@@ -2,13 +2,14 @@
 // @name         Cookie Manager
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  (For Developer Onlys) Control Cookies everywhere
+// @description  For Developers Only. Control Cookies everywhere via DevTools
 // @author       CY Fung
 // @match        https://*/*
+// @match        http://*/*
 // @icon         https://github.com/cyfung1031/userscript-supports/blob/main/icons/cookie-manager.png?raw=true
 // @grant        unsafeWindow
 // @license      MIT
-// @require      https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js#sha512-wT7uPE7tOP6w4o28u1DN775jYjHQApdBnib5Pho4RB0Pgd9y7eSkAV1BTqQydupYDB9GBhTcQQzyNMPMV3cAew==
+// @require      https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js
 // ==/UserScript==
 
 /* global Cookies */
