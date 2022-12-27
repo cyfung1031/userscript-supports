@@ -1,17 +1,17 @@
 // ==UserScript==
-// @name                YouTube Unhold IndexedDB
-// @name:en             YouTube Unhold IndexedDB
-// @name:ja             YouTube Unhold IndexedDB
-// @name:zh-TW          YouTube Unhold IndexedDB
-// @name:zh-CN          YouTube Unhold IndexedDB
+// @name                YouTube Unhold IndexedDB and WebLock
+// @name:en             YouTube Unhold IndexedDB and WebLock
+// @name:ja             YouTube Unhold IndexedDB and WebLock
+// @name:zh-TW          YouTube Unhold IndexedDB and WebLock
+// @name:zh-CN          YouTube Unhold IndexedDB and WebLock
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.27
+// @version             2022.12.27.1
 // @license             MIT License
-// @description         Release YouTube's used IndexDBs to make background tabs able to sleep
-// @description:en      Release YouTube's used IndexDBs to make background tabs able to sleep
-// @description:ja      YouTube の 使用済みIndexDB を解放して、バックグラウンドページを休止状態になるように
-// @description:zh-TW   釋放 YouTube 用過的 IndexDBs 讓後台頁面能進入休眠
-// @description:zh-CN   释放 YouTube 用过的 IndexDBs 让后台页面能进入休眠
+// @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
+// @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
+// @description:ja      YouTube の 使用済みIndexDB を解放し、WebLock を無効にして、バックグラウンドページを休止状態になるように
+// @description:zh-TW   釋放 YouTube 用過的 IndexDBs 並禁用 WebLock 讓後台頁面能進入休眠
+// @description:zh-CN   释放 YouTube 用过的 IndexDBs 并禁用 WebLock 让后台页面能进入休眠
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -34,9 +34,25 @@
 const DEBUG_LOG = false;
 const DB_NAME_FOR_TESTING = 'testdb-Q4IOpq0p'
 let runCount = 0;
+let initialChecking = null;
 const isSupported = (function (console, consoleX) {
   'use strict';
   let [window] = new Function('return [window];')(); // real window object
+
+  if (typeof LockManager === 'function') {
+    // disable WebLock
+    // WebLock is just an experimental feature and not really required for YouTube
+    LockManager.prototype.query = function () {
+      return new Promise(resolve => {
+        // do nothing
+      });
+    };
+    LockManager.prototype.request = function () {
+      return new Promise(resolve => {
+        // do nothing
+      });
+    };
+  }
 
   const isSupported = (((window || 0).indexedDB || 0).constructor || 0).name === 'IDBFactory' && typeof requestIdleCallback === 'function'
   if (isSupported) {
@@ -52,18 +68,18 @@ const isSupported = (function (console, consoleX) {
       msgStore.push(message);
       if (openCount === 0 && msgStore.length > 0) {
         if (messageDisplayCId > 0) {
-          clearTimeout(messageDisplayCId)
-          messageDisplayCId = 0
+          clearTimeout(messageDisplayCId);
+          messageDisplayCId = 0;
         }
         messageDisplayCId = setTimeout(() => {
-          messageDisplayCId = 0
+          messageDisplayCId = 0;
           if (openCount === 0 && msgStore.length > 0) {
-            let messages = [...msgStore]
-            msgStore.length = 0
-            messages.sort((a, b) => a.databaseId.localeCompare(b.databaseId) || a.time - b.time)
+            let messages = [...msgStore];
+            msgStore.length = 0;
+            messages.sort((a, b) => a.databaseId.localeCompare(b.databaseId) || a.time - b.time);
             consoleX.dir(messages)
           }
-        }, 300)
+        }, 300);
       }
     };
     const mTime = Date.now()
@@ -71,55 +87,55 @@ const isSupported = (function (console, consoleX) {
       setTimeout(() => {
         requestIdleCallback(() => {
           Promise.resolve(db).then((db) => {
-            DEBUG_LOG && console.log(db, databaseId, eventType, event_type)
+            DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
             db.close();
             db = null;
-            openCount--
-            message({ databaseId: databaseId, action: 'close', time: Date.now() })
-            runCount++
-            if (runCount > 1e9) runCount = 0
-          }).catch(consoleX.warn)
-          db = null
-        }, { timeout: 300 })
-      }, 300)
+            openCount--;
+            message({ databaseId: databaseId, action: 'close', time: Date.now() });
+            runCount++;
+            if (runCount > 1e9) runCount = 0;
+          }).catch(consoleX.warn);
+          db = null;
+        }, { timeout: 300 });
+      }, 300);
     }
 
     function makeHandler(handler, databaseId, eventType) {
       return function (event) {
-        DEBUG_LOG && console.log(32, 'addEventListener', databaseId, eventType, event.type)
-        handler.call(this, arguments)
-        releaseOnIdle(event.target.result, databaseId, eventType, event.type)
-        DEBUG_LOG && console.log(441, 'addEventListener', databaseId, eventType, event.type)
+        DEBUG_LOG && console.log(32, 'addEventListener', databaseId, eventType, event.type);
+        handler.call(this, arguments);
+        releaseOnIdle(event.target.result, databaseId, eventType, event.type);
+        DEBUG_LOG && console.log(441, 'addEventListener', databaseId, eventType, event.type);
       }
     }
 
     function makeAddEventListener(databaseId) {
       return function (eventType, handler) {
-        const addEventListener = this[addEventListenerKey]
-        if (arguments.length !== 2) return addEventListener.call(this, ...arguments)
+        const addEventListener = this[addEventListenerKey];
+        if (arguments.length !== 2) return addEventListener.call(this, ...arguments);
         if (eventType === 'error' || eventType === 'success') {
-          DEBUG_LOG && console.log(31, databaseId, eventType)
-          let gx = funcHooks.get(handler)
+          DEBUG_LOG && console.log(31, databaseId, eventType);
+          let gx = funcHooks.get(handler);
           if (!gx) {
-            gx = makeHandler(handler, databaseId, eventType) // databaseId and eventType are just for logging; not reliable
-            funcHooks.set(handler, gx)
+            gx = makeHandler(handler, databaseId, eventType); // databaseId and eventType are just for logging; not reliable
+            funcHooks.set(handler, gx);
           }
-          return addEventListener.call(this, eventType, gx)
+          return addEventListener.call(this, eventType, gx);
         }
-        return addEventListener.call(this, ...arguments)
+        return addEventListener.call(this, ...arguments);
       }
     }
 
     function makeRemoveEventListener(databaseId) {
       return function (eventType, handler) {
-        const removeEventListener = this[removeEventListenerKey]
-        if (arguments.length !== 2) return removeEventListener.call(this, ...arguments)
+        const removeEventListener = this[removeEventListenerKey];
+        if (arguments.length !== 2) return removeEventListener.call(this, ...arguments);
         if (eventType === 'error' || eventType === 'success') {
-          let gx = funcHooks.get(handler)
-          DEBUG_LOG && console.log(30, 'removeEventListener', databaseId, eventType)
-          let ret = removeEventListener.call(this, eventType, gx || handler)
-          DEBUG_LOG && console.log(442, 'removeEventListener', databaseId, eventType)
-          return ret
+          let gx = funcHooks.get(handler);
+          DEBUG_LOG && console.log(30, 'removeEventListener', databaseId, eventType);
+          let ret = removeEventListener.call(this, eventType, gx || handler);
+          DEBUG_LOG && console.log(442, 'removeEventListener', databaseId, eventType);
+          return ret;
         }
         return removeEventListener.call(this, ...arguments);
       }
@@ -127,13 +143,14 @@ const isSupported = (function (console, consoleX) {
 
     function makeOpen() {
       return function (databaseId) {
+        initialChecking && initialChecking();
         let request = this[openKey](databaseId); // IDBRequest
         request[addEventListenerKey] = request.addEventListener;
         request.addEventListener = makeAddEventListener(databaseId);
         request[removeEventListenerKey] = request.removeEventListener;
         request.removeEventListener = makeRemoveEventListener(databaseId);
         openCount++
-        message({ databaseId: databaseId, action: 'open', time: Date.now() })
+        message({ databaseId: databaseId, action: 'open', time: Date.now() });
         return request;
       }
     }
@@ -147,7 +164,8 @@ const isSupported = (function (console, consoleX) {
 
 })(DEBUG_LOG ? console : Object.assign({}, console, { log: function () { } }), console);
 
-isSupported && (function () {
+initialChecking = isSupported ? function () {
+  initialChecking = null;
   let request = indexedDB.open(DB_NAME_FOR_TESTING);
   let mi = 0;
   let px = function () {
@@ -175,9 +193,9 @@ isSupported && (function () {
           } else {
             console.log(`%cYouTube Unhold IndexDB - %cInjection Failure ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #da5a2f');
           }
-        }).catch(console.warn)
-      }, 100)
-    }, { timeout: 300 })
-  }, 300)
+        }).catch(console.warn);
+      }, 100);
+    }, { timeout: 300 });
+  }, 300);
 
-})();
+} : null;
