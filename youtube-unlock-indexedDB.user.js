@@ -47,10 +47,15 @@ const isSupported = (function (console, consoleX) {
     let openCount = 0;
 
     const msgStore = [];
+    let messageDisplayCId = 0;
     const message = (message) => {
       msgStore.push(message);
       if (openCount === 0 && msgStore.length > 0) {
-        setTimeout(() => {
+        if (messageDisplayCId > 0) {
+          clearTimeout(messageDisplayCId)
+          messageDisplayCId = 0
+        }
+        messageDisplayCId = setTimeout(() => {
           if (openCount === 0 && msgStore.length > 0) {
             let messages = [...msgStore]
             msgStore.length = 0
