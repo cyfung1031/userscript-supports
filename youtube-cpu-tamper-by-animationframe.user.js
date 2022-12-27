@@ -72,8 +72,8 @@
     let sFunc = (prop) => {
       return (func, ms, ...args) => {
         mi++; // start at {INT_INITIAL_VALUE + 1}
-        if (ms > SAFE_INT_LIMIT) return mi
         if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED; // just in case
+        if (ms > SAFE_INT_LIMIT) return mi
         let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
         handler[$busy] || (handler[$busy] = 0);
         sb.set(mi, {
