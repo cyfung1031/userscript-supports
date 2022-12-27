@@ -56,6 +56,7 @@ const isSupported = (function (console, consoleX) {
           messageDisplayCId = 0
         }
         messageDisplayCId = setTimeout(() => {
+          messageDisplayCId = 0
           if (openCount === 0 && msgStore.length > 0) {
             let messages = [...msgStore]
             msgStore.length = 0
