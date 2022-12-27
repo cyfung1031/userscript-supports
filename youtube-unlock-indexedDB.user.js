@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name                YouTube Unhold IndexedDB and WebLock
-// @name:en             YouTube Unhold IndexedDB and WebLock
-// @name:ja             YouTube Unhold IndexedDB and WebLock
-// @name:zh-TW          YouTube Unhold IndexedDB and WebLock
-// @name:zh-CN          YouTube Unhold IndexedDB and WebLock
+// @name                Unhold YouTube Resource Locks
+// @name:en             Unhold YouTube Resource Locks
+// @name:ja             Unhold YouTube Resource Locks
+// @name:zh-TW          Unhold YouTube Resource Locks
+// @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.27.1
+// @version             2022.12.27.2
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -39,15 +39,15 @@ const isSupported = (function (console, consoleX) {
   'use strict';
   let [window] = new Function('return [window];')(); // real window object
 
-  if (typeof LockManager === 'function') {
+  if (typeof (((window||0).navigator||0).locks||0).request === 'function') {
     // disable WebLock
     // WebLock is just an experimental feature and not really required for YouTube
-    LockManager.prototype.query = function () {
+    window.navigator.locks.query = function () {
       return new Promise(resolve => {
         // do nothing
       });
     };
-    LockManager.prototype.request = function () {
+    window.navigator.locks.request = function () {
       return new Promise(resolve => {
         // do nothing
       });
