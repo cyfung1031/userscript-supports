@@ -5,7 +5,7 @@
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.27.2
+// @version             2022.12.27.3
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -43,11 +43,13 @@ const isSupported = (function (console, consoleX) {
     // disable WebLock
     // WebLock is just an experimental feature and not really required for YouTube
     window.navigator.locks.query = function () {
+      console.log(arguments)
       return new Promise(resolve => {
         // do nothing
       });
     };
     window.navigator.locks.request = function () {
+      console.log(arguments)
       return new Promise(resolve => {
         // do nothing
       });
@@ -96,8 +98,8 @@ const isSupported = (function (console, consoleX) {
             if (runCount > 1e9) runCount = 0;
           }).catch(consoleX.warn);
           db = null;
-        }, { timeout: 300 });
-      }, 300);
+        }, { timeout: 600 });
+      }, 1200);
     }
 
     function makeHandler(handler, databaseId, eventType) {
@@ -185,17 +187,13 @@ initialChecking = isSupported ? function () {
   indexedDB.deleteDatabase(DB_NAME_FOR_TESTING);
 
   setTimeout(() => {
-    requestIdleCallback(() => {
-      setTimeout(() => {
-        Promise.resolve(0).then(() => {
-          if ((mi === 101 || mi === 201) && runCount >= 1) {
-            console.log(`%cYouTube Unhold IndexDB - %cInjection Success ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #bada55');
-          } else {
-            console.log(`%cYouTube Unhold IndexDB - %cInjection Failure ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #da5a2f');
-          }
-        }).catch(console.warn);
-      }, 100);
-    }, { timeout: 300 });
-  }, 300);
+    Promise.resolve(0).then(() => {
+      if ((mi === 101 || mi === 201) && runCount >= 1) {
+        console.log(`%cYouTube Unhold IndexDB - %cInjection Success ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #bada55');
+      } else {
+        console.log(`%cYouTube Unhold IndexDB - %cInjection Failure ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #da5a2f');
+      }
+    }).catch(console.warn);
+  }, 3600);
 
 } : null;
