@@ -78,17 +78,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   // a.youThereData_ = b.configData.youThereData;
   // a.youThereData_.playbackPauseDelayMs
   function onYtPageDataUpdated(evt) {
-    let messages = null;
-    try {
-      messages = document.querySelector('#page-manager').data.playerResponse.messages;
-    } catch (e) { }
-    if (!messages || !messages.length) return;
-    for (const message of messages) {
-      if (message.youThereRenderer) {
-        fixMessage(message);
-        break;
+    Promise.resolve(0).then(() => {
+      let messages = null;
+      try {
+        messages = document.querySelector('#page-manager').data.playerResponse.messages;
+      } catch (e) { }
+      if (!messages || !messages.length) return;
+      for (const message of messages) {
+        if (message.youThereRenderer) {
+          fixMessage(message);
+          break;
+        }
       }
-    }
+    }).catch(console.warn)
   }
   document.addEventListener('yt-page-data-updated', onYtPageDataUpdated, true);
 
