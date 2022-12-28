@@ -26,23 +26,29 @@ SOFTWARE.
 // ==UserScript==
 // @name         Reset YouTube Settings
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.7
 // @description  Due to YouTube making changes to its layout, some obsolete settings might remain and cause some problems to you. Use this to reset them.
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
 // @match        https://www.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @grant        GM_registerMenuCommand
+// @grant        GM_addValueChangeListener
 // @grant        unsafeWindow
+// @grant        GM.setValue
+// @grant        GM.deleteValue
 // @license      MIT
 // @require      https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js#sha512=wT7uPE7tOP6w4o28u1DN775jYjHQApdBnib5Pho4RB0Pgd9y7eSkAV1BTqQydupYDB9GBhTcQQzyNMPMV3cAew==
 // ==/UserScript==
 
-/* global Cookies */
+/* global Cookies, GM_addValueChangeListener, GM_registerMenuCommand */
 
 (function () {
   'use strict';
+  let cb1 = null
   GM_registerMenuCommand('Reset YouTube Settings', function () {
+    if (cb1) return
+    cb1 = true
 
     const whilelist = [
       // cookies
@@ -91,35 +97,88 @@ SOFTWARE.
       localStorage.removeItem(key);
     }
 
-    let ct = Date.now();
-    window.requestAnimationFrame(() => {
-      let t = Date.now();
-      if (ct - t < 800) {
 
-        const cookiesObject = Cookies.get();
-        let keysCookiesNew = Object.keys(cookiesObject)
-        const lsObject = localStorage;
-        let keysLSNew = Object.keys(lsObject)
+    function getReduceds() {
 
-        let reduceds = [keysCookies.length - keysCookiesNew.length, keysLS.length - keysLSNew.length]
-        if (reduceds[0] || reduceds[1]) {
+      const cookiesObject = Cookies.get();
+      let keysCookiesNew = Object.keys(cookiesObject)
+      const lsObject = localStorage;
+      let keysLSNew = Object.keys(lsObject)
 
+
+      let reduceds = [keysCookies.length - keysCookiesNew.length, keysLS.length - keysLSNew.length]
+
+
+      keysCookies = null
+      keysCookiesNew = null
+      keysLS = null
+      keysLSNew = null
+
+      return reduceds
+
+    }
+
+    setTimeout(() => {
+
+      let reduceds = getReduceds()
+
+      if (reduceds[0] || reduceds[1]) {
+        cb1 = () => {
           alert(`
 ${reduceds[0]} cookies and ${reduceds[1]} localstorages are deleted.
 The settings have been reset.
-      
+
 Click OK to refresh the browser page.
-      `.trim())
+              `.trim())
+          reduceds = null
           unsafeWindow.location.reload()
-
         }
-        keysCookies = null
-        keysCookiesNew = null
-        keysLS = null
-        keysLSNew = null
-
+        GM.setValue('reset-youtube-settings-flag', Date.now())
+      } else {
+        alert('No settings to be required for reset.')
+        cb1 = null
       }
-    })
 
+    }, 300)
+
+
+  })
+
+  let triggerOnce = 0
+  GM_addValueChangeListener('reset-youtube-settings-flag', function (name, old_value, new_value, remote) {
+    if (!(new_value > 0)) return
+    let mTriggered = !remote && typeof cb1 === 'function'
+    const tdt = Date.now();
+    triggerOnce = tdt
+    if (mTriggered) {
+      setTimeout(() => {
+        if (tdt !== triggerOnce) return
+        GM.deleteValue('reset-youtube-settings-flag').then(() => {
+          if (tdt !== triggerOnce) return
+          setTimeout(() => {
+            if (tdt !== triggerOnce) return
+            let pt = Date.now();
+            window.requestAnimationFrame(() => {
+              if (tdt !== triggerOnce) return
+              let ct = Date.now();
+              if (mTriggered && ct - pt < 800) {
+                cb1();
+                cb1 = null
+              } else {
+                cb1 = null
+                unsafeWindow.location.reload()
+              }
+            })
+          }, 30)
+        })
+      }, 180)
+    } else {
+      if (tdt !== triggerOnce) return
+      window.requestAnimationFrame(() => {
+        if (tdt !== triggerOnce) return
+        cb1 = null
+        unsafeWindow.location.reload()
+      })
+    }
   })
 })();
