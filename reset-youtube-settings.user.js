@@ -26,12 +26,14 @@ SOFTWARE.
 // ==UserScript==
 // @name         Reset YouTube Settings
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Due to YouTube making changes to its layout, some obsolete settings might remain and cause some problems to you. Use this to reset them.
 // @author       CY Fung
+// @supportURL   https://github.com/cyfung1031/userscript-supports
 // @match        https://www.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
 // @license      MIT
 // @require      https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js#sha512=wT7uPE7tOP6w4o28u1DN775jYjHQApdBnib5Pho4RB0Pgd9y7eSkAV1BTqQydupYDB9GBhTcQQzyNMPMV3cAew==
 // ==/UserScript==
@@ -41,6 +43,7 @@ SOFTWARE.
 (function () {
   'use strict';
   GM_registerMenuCommand('Reset YouTube Settings', function () {
+
     const whilelist = [
       // cookies
       'PREF', 'SID', 'APISID', 'SAPISID', /^__Secure-\w+$/, 'SIDCC',
@@ -51,8 +54,10 @@ SOFTWARE.
       'userscript-tabview-settings', // Tabview Youtube
       /^[\-\w]*h264ify[\-\w]+$/ // h264ify or enhanced-h264ify
     ];
+
     const cookiesObject = Cookies.get();
-    for (const key of Object.keys(cookiesObject)) {
+    let keysCookies = Object.keys(cookiesObject)
+    for (const key of keysCookies) {
       let value = cookiesObject[key];
       if (typeof value !== 'string') continue;
       if (whilelist.includes(key)) continue;
@@ -70,7 +75,8 @@ SOFTWARE.
     }
 
     const lsObject = localStorage;
-    for (const key of Object.keys(lsObject)) {
+    let keysLS = Object.keys(lsObject)
+    for (const key of keysLS) {
       let value = lsObject[key];
       if (typeof value !== 'string') continue;
       if (whilelist.includes(key)) continue;
@@ -84,5 +90,36 @@ SOFTWARE.
       if (isSkip) continue;
       localStorage.removeItem(key);
     }
+
+    let ct = Date.now();
+    window.requestAnimationFrame(() => {
+      let t = Date.now();
+      if (ct - t < 800) {
+
+        const cookiesObject = Cookies.get();
+        let keysCookiesNew = Object.keys(cookiesObject)
+        const lsObject = localStorage;
+        let keysLSNew = Object.keys(lsObject)
+
+        let reduceds = [keysCookies.length - keysCookiesNew.length, keysLS.length - keysLSNew.length]
+        if (reduceds[0] || reduceds[1]) {
+
+          alert(`
+${reduceds[0]} cookies and ${reduceds[1]} localstorages are deleted.
+The settings have been reset.
+      
+Click OK to refresh the browser page.
+      `.trim())
+          unsafeWindow.location.reload()
+
+        }
+        keysCookies = null
+        keysCookiesNew = null
+        keysLS = null
+        keysLSNew = null
+
+      }
+    })
+
   })
 })();

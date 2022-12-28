@@ -26,9 +26,10 @@ SOFTWARE.
 // ==UserScript==
 // @name         Cookie Manager
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  For Developers Only. Control Cookies everywhere via DevTools
 // @author       CY Fung
+// @supportURL   https://github.com/cyfung1031/userscript-supports
 // @match        https://*/*
 // @match        http://*/*
 // @icon         https://github.com/cyfung1031/userscript-supports/blob/main/icons/cookie-manager.png?raw=true
