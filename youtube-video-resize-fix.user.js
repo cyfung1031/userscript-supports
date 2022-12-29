@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.1.0
+// @version             0.1.4
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -51,28 +51,34 @@ SOFTWARE.
 (function () {
   'use strict';
   const elements = {}
-  let rid = 0
+  let rid1 = 0
+  let rid2 = 0
   /** @type {MutationObserver | null} */
-  let observer = null
+  let attrObserver = null
+  /** @type {ResizeObserver | null} */
+  let resizeObserver = null
   const core = {
     begin() {
       document.addEventListener('yt-player-updated', core.hanlder, true)
       document.addEventListener('ytd-navigate-finish', core.hanlder, true)
     },
     hanlder() {
-      rid++
-      const tid = rid
+      rid1++
+      if (rid1 > 1e9) rid1 = 9
+      const tid = rid1
       window.requestAnimationFrame(() => {
-        if (tid !== rid) return
+        if (tid !== rid1) return
         core.runner()
       })
     },
     async runner() {
-      if (!/^https:\/\/www\.youtube\.com\/watch\?/.test(location.href)) return
+      if (!location.href.startsWith('https://www.youtube.com/watch')) return
 
       elements.ytdFlexy = document.querySelector('ytd-watch-flexy')
       elements.video = document.querySelector('ytd-watch-flexy #movie_player video')
       if (elements.ytdFlexy && elements.video) { } else return
+      elements.moviePlayer = elements.video.closest('#movie_player')
+      if (!elements.moviePlayer) return
 
       // resize Video
       let { ytdFlexy } = elements;
@@ -80,44 +86,65 @@ SOFTWARE.
         ytdFlexy.ElYTL = 1;
         (function (ytdFlexy, calculateNormalPlayerSize_, calculateCurrentPlayerSize_) {
           ytdFlexy.calculateNormalPlayerSize_ = function () {
+            rid2++
             return core.isSkip() ? calculateNormalPlayerSize_.call(this) : core.calculateSize();
           };
           ytdFlexy.calculateCurrentPlayerSize_ = function () {
+            rid2++
             return core.isSkip() ? calculateCurrentPlayerSize_.call(this) : core.calculateSize();
           };
         })(ytdFlexy, ytdFlexy.calculateNormalPlayerSize_, ytdFlexy.calculateCurrentPlayerSize_);
       }
       ytdFlexy = null
 
-      if (observer) {
-        observer.takeRecords()
-        observer.disconnect()
-        observer = null
+      // when video is fetched
+      elements.video.removeEventListener('canplay', core.triggerResizeDelayed, false)
+      elements.video.addEventListener('canplay', core.triggerResizeDelayed, false)
+
+      // when video is resized
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
+      }
+      if (typeof ResizeObserver === 'function') {
+        resizeObserver = new ResizeObserver(core.triggerResizeDelayed);
+        resizeObserver.observe(elements.moviePlayer)
       }
 
+      // MutationObserver:[collapsed] @ ytd-live-chat-frame#chat
+      if (attrObserver) {
+        attrObserver.takeRecords()
+        attrObserver.disconnect()
+        attrObserver = null
+      }
       let chat = document.querySelector('ytd-watch-flexy ytd-live-chat-frame#chat')
       if (chat) {
         // resize due to DOM update
-        observer = new MutationObserver(core.triggerResize);
-        observer.observe(chat, { attributes: true });
+        attrObserver = new MutationObserver(core.triggerResizeDelayed);
+        attrObserver.observe(chat, { attributes: true, attributeFilter: ["collapsed"] });
         chat = null
       }
 
-      if (typeof window.requestIdleCallback === 'function') await new Promise(resolve => requestIdleCallback(resolve));
-      await Promise.resolve(0);
-      core.triggerResize()
+      // resize on idle
+      core.triggerResizeDelayed()
     },
     isSkip() {
       const { ytdFlexy } = elements
       return ytdFlexy.theater === true || ytdFlexy.isTwoColumns_ === false || document.fullscreenElement !== null
     },
     calculateSize() {
-      const { video } = elements
-      const rect = video.getBoundingClientRect()
+      const { moviePlayer } = elements
+      const rect = moviePlayer.getBoundingClientRect()
       return { width: rect.width, height: rect.height };
     },
-    triggerResize() {
-      window.dispatchEvent(new Event('resize'))
+    triggerResizeDelayed() {
+      rid2++
+      if (rid2 > 1e9) rid2 = 9
+      const tid = rid2
+      window.requestAnimationFrame(() => {
+        if (tid !== rid2) return
+        window.dispatchEvent(new Event('resize'))
+      })
     }
   };
   core.begin();
