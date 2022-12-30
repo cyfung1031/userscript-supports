@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.28.1
+// @version             2022.12.30
 // @license             MIT License
 // @description         "Video paused. Continue watching?" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" will not appear anymore.
@@ -54,15 +54,11 @@ SOFTWARE.
 (function () {
   'use strict';
   const youThereDataHashMap = new WeakMap();
-  function fixMessage(message) {
-    let youThereData = null;
-    try {
-      youThereData = message.youThereRenderer.configData.youThereData;
-    } catch (e) { }
+  function hookYouThereData(youThereData) {
     if (!youThereData || youThereDataHashMap.has(youThereData)) return;
     let ret = youThereData.playbackPauseDelayMs;
     let tenPU = Math.floor(Number.MAX_SAFE_INTEGER * 0.1);
-    if (ret > 0 && ret < 4 * tenPU) {
+    if ('playbackPauseDelayMs' in youThereData && ret >= 0 && ret < 4 * tenPU) {
       youThereDataHashMap.set(youThereData, ret);
       Object.defineProperty(youThereData, 'playbackPauseDelayMs', {
         enumerable: true,
@@ -70,7 +66,7 @@ SOFTWARE.
         get() {
           Promise.resolve(new Date).then(d => {
             console.log('YouTube is trying to pause video...', d.toLocaleTimeString());
-          });
+          }).warn(console.warn);
           return 5 * tenPU;
         },
         set(newValue) {
@@ -78,12 +74,27 @@ SOFTWARE.
           Promise.resolve([oldValue, newValue, new Date]).then(args => {
             const [oldValue, newValue, d] = args;
             console.log(`YouTube is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
-          })
+          }).warn(console.warn)
           youThereDataHashMap.set(this, newValue);
           return true;
         }
       });
+
+      if ((youThereData.showPausedActions || 0).length > 0) {
+        youThereData.tvTyh = []
+        Object.defineProperty(youThereData, 'showPausedActions', {
+          enumerable: true,
+          configurable: true,
+          get() {
+            return this.tvTyh
+          },
+          set(nv) {
+            return true
+          }
+        })
+      }
     }
+
   }
 
   // e.performDataUpdate -> f.playerData = a.playerResponse;
@@ -91,21 +102,49 @@ SOFTWARE.
   // youthereDataChanged_ -> b.youThereRenderer && fFb(this.youThereManager_, b.youThereRenderer)
   // a.youThereData_ = b.configData.youThereData;
   // a.youThereData_.playbackPauseDelayMs
-  function onYtPageDataUpdated(evt) {
+  function onPageFinished() {
     Promise.resolve(0).then(() => {
       let messages = null;
       try {
         messages = document.querySelector('#page-manager').data.playerResponse.messages;
       } catch (e) { }
-      if (!messages || !messages.length) return;
-      for (const message of messages) {
-        if (message.youThereRenderer) {
-          fixMessage(message);
-          break;
+      if (messages && messages.length > 0) {
+        for (const message of messages) {
+          if (message.youThereRenderer) {
+            let youThereData = null;
+            try {
+              youThereData = message.youThereRenderer.configData.youThereData;
+            } catch (e) { }
+            if(youThereData) hookYouThereData(youThereData)
+            youThereData = null
+            break;
+          }
         }
       }
+
+      let ytdFlexy = document.querySelector('ytd-watch-flexy')
+      if (ytdFlexy) {
+        let youThereData_ = (ytdFlexy.youThereManager_ || 0).youThereData_ || 0
+        if (youThereData_) hookYouThereData(youThereData_)
+        if (typeof ytdFlexy.youthereDataChanged_ === 'function') {
+          let f = ytdFlexy.youthereDataChanged_
+          if (!f.lq2S7) {
+            ytdFlexy.youthereDataChanged_ = (function (f) {
+              return function () {
+                console.log('youthereDataChanged_()')
+                const ret = f.apply(this, arguments)
+                onPageFinished()
+                return ret
+              }
+            })(f)
+            ytdFlexy.youthereDataChanged_.lq2S7 = 1
+          }
+        }
+      }
+
     }).catch(console.warn)
   }
-  document.addEventListener('yt-page-data-updated', onYtPageDataUpdated, true);
+  document.addEventListener('yt-page-data-updated', onPageFinished, true);
+  document.addEventListener('yt-navigate-finish', onPageFinished, true);
 
 })();
