@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.30
+// @version             2023.01.03
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -47,6 +47,12 @@ SOFTWARE.
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-unlock-indexedDB.png
 // @supportURL          https://github.com/cyfung1031/userscript-supports
+
+// @compatible          edge Edge [Blink] >= 79; Tampermonkey (Beta) / Violetmonkey
+// @compatible          chrome Chrome >= 54; Tampermonkey (Beta) / Violetmonkey
+// @compatible          firefox FireFox / Waterfox (Classic) >= 55; Tampermonkey / Violetmonkey
+// @compatible          opera Opera >= 41; Tampermonkey (Beta) / Violetmonkey
+
 // @run-at              document-start
 // @grant               none
 // @unwrap
@@ -123,8 +129,8 @@ const isSupported = (function (console, consoleX) {
             if (runCount > 1e9) runCount = 0;
           }).catch(consoleX.warn);
           db = null;
-        }, { timeout: 600 });
-      }, 1200);
+        });
+      }, 60 * 1000);
     }
 
     function makeHandler(handler, databaseId, eventType) {
@@ -185,12 +191,13 @@ const isSupported = (function (console, consoleX) {
     window.indexedDB.constructor.prototype.open = makeOpen();
 
   }
-  console.log(22)
+  // console.log(22)
 
   return isSupported
 
 })(DEBUG_LOG ? console : Object.assign({}, console, { log: function () { } }), console);
 
+/*
 initialChecking = isSupported ? function () {
   initialChecking = null;
   let request = indexedDB.open(DB_NAME_FOR_TESTING);
@@ -222,3 +229,4 @@ initialChecking = isSupported ? function () {
   }, 3600);
 
 } : null;
+*/
