@@ -171,7 +171,15 @@ SOFTWARE.
       const tid = rid2
       window.requestAnimationFrame(() => {
         if (tid !== rid2) return
-        window.dispatchEvent(new Event('resize'))
+        let { ytdFlexy } = elements
+        let r = false
+        if (ytdFlexy && ytdFlexy.windowSize_ && typeof ytdFlexy.onWindowResized_ === 'function') {
+          try {
+            ytdFlexy.onWindowResized_(ytdFlexy.windowSize_)
+            r = true
+          } catch (e) { }
+        }
+        if (!r) window.dispatchEvent(new Event('resize'))
       })
     }
   };
