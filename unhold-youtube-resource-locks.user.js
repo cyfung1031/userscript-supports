@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.03
+// @version             2023.01.03.1
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -48,10 +48,10 @@ SOFTWARE.
 // @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-unlock-indexedDB.png
 // @supportURL          https://github.com/cyfung1031/userscript-supports
 
-// @compatible          edge Edge [Blink] >= 79; Tampermonkey (Beta) / Violetmonkey
-// @compatible          chrome Chrome >= 54; Tampermonkey (Beta) / Violetmonkey
-// @compatible          firefox FireFox / Waterfox (Classic) >= 55; Tampermonkey / Violetmonkey
-// @compatible          opera Opera >= 41; Tampermonkey (Beta) / Violetmonkey
+// @compatible          edge
+// @compatible          chrome
+// @compatible          firefox
+// @compatible          opera
 
 // @run-at              document-start
 // @grant               none
@@ -66,11 +66,22 @@ const DEBUG_LOG = false;
 const DB_NAME_FOR_TESTING = 'testdb-Q4IOpq0p'
 let runCount = 0;
 let initialChecking = null;
+const store = []
+let cidxx = 0;
+
+
+/** @type {(o: Object | null) => WeakRef | null} */
+const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null); // typeof InvalidVar == 'undefined'
+
+/** @type {(wr: Object | null) => Object | null} */
+const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+
 const isSupported = (function (console, consoleX) {
   'use strict';
   let [window] = new Function('return [window];')(); // real window object
 
-  if (typeof (((window||0).navigator||0).locks||0).request === 'function') {
+  if (typeof (((window || 0).navigator || 0).locks || 0).request === 'function') {
     // disable WebLock
     // WebLock is just an experimental feature and not really required for YouTube
     window.navigator.locks.query = function () {
@@ -87,7 +98,7 @@ const isSupported = (function (console, consoleX) {
     };
   }
 
-  const isSupported = (((window || 0).indexedDB || 0).constructor || 0).name === 'IDBFactory' && typeof requestIdleCallback === 'function'
+  const isSupported = (((window || 0).indexedDB || 0).constructor || 0).name === 'IDBFactory'
   if (isSupported) {
     const addEventListenerKey = Symbol();
     const removeEventListenerKey = Symbol();
@@ -99,6 +110,30 @@ const isSupported = (function (console, consoleX) {
     let messageDisplayCId = 0;
     const message = (message) => {
       msgStore.push(message);
+    };
+    const mTime = Date.now()
+    async function releaseOnIdleHandler() {
+      if (!cidxx) return
+      cidxx = 0
+      for (const entry of store) {
+        let [kdb, databaseId, eventType, event_type] = entry
+        let db = kRef(kdb)
+
+        DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
+        db.close();
+        db = null;
+        openCount--;
+        // consoleX.log(openCount, databaseId)
+        message({ databaseId: databaseId, action: 'close', time: Date.now() });
+        runCount++;
+        if (runCount > 1e9) runCount = 0;
+        db = null
+        kdb = null
+        entry.length = 0
+      }
+      store.length = 0
+
+
       if (openCount === 0 && msgStore.length > 0) {
         if (messageDisplayCId > 0) {
           clearTimeout(messageDisplayCId);
@@ -114,30 +149,21 @@ const isSupported = (function (console, consoleX) {
           }
         }, 300);
       }
-    };
-    const mTime = Date.now()
+
+
+
+    }
     function releaseOnIdle(db, databaseId, eventType, event_type) {
-      setTimeout(() => {
-        requestIdleCallback(() => {
-          Promise.resolve(db).then((db) => {
-            DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
-            db.close();
-            db = null;
-            openCount--;
-            message({ databaseId: databaseId, action: 'close', time: Date.now() });
-            runCount++;
-            if (runCount > 1e9) runCount = 0;
-          }).catch(consoleX.warn);
-          db = null;
-        });
-      }, 60 * 1000);
+      if (cidxx > 0) clearTimeout(cidxx);
+      store.push([mWeakRef(db), databaseId, eventType, event_type])
+      cidxx = setTimeout(releaseOnIdleHandler, 18 * 1000)
     }
 
     function makeHandler(handler, databaseId, eventType) {
       return function (event) {
         DEBUG_LOG && console.log(32, 'addEventListener', databaseId, eventType, event.type);
         handler.call(this, arguments);
-        releaseOnIdle(event.target.result, databaseId, eventType, event.type);
+        releaseOnIdle(event.target.result, databaseId, eventType, event.type); // start waiting after success / failed of the first lock
         DEBUG_LOG && console.log(441, 'addEventListener', databaseId, eventType, event.type);
       }
     }
@@ -183,6 +209,7 @@ const isSupported = (function (console, consoleX) {
         request[removeEventListenerKey] = request.removeEventListener;
         request.removeEventListener = makeRemoveEventListener(databaseId);
         openCount++
+        // consoleX.log('opened', openCount, databaseId)
         message({ databaseId: databaseId, action: 'open', time: Date.now() });
         return request;
       }
