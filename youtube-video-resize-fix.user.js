@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.1.4
+// @version             0.1.5
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -57,6 +57,7 @@ SOFTWARE.
   let attrObserver = null
   /** @type {ResizeObserver | null} */
   let resizeObserver = null
+  let isHTMLAttrApplied = false
   const core = {
     begin() {
       document.addEventListener('yt-player-updated', core.hanlder, true)
@@ -135,6 +136,12 @@ SOFTWARE.
     calculateSize() {
       const { moviePlayer } = elements
       const rect = moviePlayer.getBoundingClientRect()
+      if (!isHTMLAttrApplied) {
+        isHTMLAttrApplied = true
+        Promise.resolve(0).then(() => {
+          document.documentElement.classList.add('youtube-video-resize-fix')
+        }).catch(console.warn)
+      }
       return { width: rect.width, height: rect.height };
     },
     triggerResizeDelayed() {
