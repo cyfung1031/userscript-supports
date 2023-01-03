@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name         Reset YouTube Settings
 // @namespace    http://tampermonkey.net/
-// @version      0.7
+// @version      0.8
 // @description  Due to YouTube making changes to its layout, some obsolete settings might remain and cause some problems to you. Use this to reset them.
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
@@ -50,7 +50,7 @@ SOFTWARE.
     if (cb1) return
     cb1 = true
 
-    const whilelist = [
+    const whitelist = [
       // cookies
       'PREF', 'SID', 'APISID', 'SAPISID', /^__Secure-\w+$/, 'SIDCC',
       // localstorage
@@ -66,9 +66,9 @@ SOFTWARE.
     for (const key of keysCookies) {
       let value = cookiesObject[key];
       if (typeof value !== 'string') continue;
-      if (whilelist.includes(key)) continue;
+      if (whitelist.includes(key)) continue;
       let isSkip = false;
-      for (const s of whilelist) {
+      for (const s of whitelist) {
         if (isSkip) break;
         if (typeof s === 'object' && s.constructor.name === 'RegExp') {
           if (s.test(key)) isSkip = true;
@@ -85,9 +85,9 @@ SOFTWARE.
     for (const key of keysLS) {
       let value = lsObject[key];
       if (typeof value !== 'string') continue;
-      if (whilelist.includes(key)) continue;
+      if (whitelist.includes(key)) continue;
       let isSkip = false;
-      for (const s of whilelist) {
+      for (const s of whitelist) {
         if (isSkip) break;
         if (typeof s === 'object' && s.constructor.name === 'RegExp') {
           if (s.test(key)) isSkip = true;
