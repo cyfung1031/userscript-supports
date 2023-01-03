@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.03.2
+// @version             2023.01.04
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -44,6 +44,7 @@ SOFTWARE.
 // @exclude             https://www.youtube.com/live_chat*
 // @exclude             https://www.youtube.com/live_chat_replay*
 // @match               https://music.youtube.com/*
+// @match               https://m.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-unlock-indexedDB.png
 // @supportURL          https://github.com/cyfung1031/userscript-supports
