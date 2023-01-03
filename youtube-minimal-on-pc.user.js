@@ -24,9 +24,9 @@ SOFTWARE.
 
 */
 // ==UserScript==
-// @name         YouTube Mini on PC
+// @name         YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Watch YouTube with the least CPU usage
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
