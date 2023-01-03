@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.2.0
+// @version             0.2.1
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -128,35 +128,20 @@ SOFTWARE.
           isHTMLAttrApplied = true
           Promise.resolve(0).then(() => {
             document.documentElement.classList.add('youtube-video-resize-fix')
-            /*
-          let previewHoverContainer = document.querySelector('#movie_player > div[aria-live="polite"].ytp-tooltip.ytp-bottom.ytp-preview')
-          if(previewHoverContainer){
-            let div = document.createElement('div');
-            div.classList.add('ytp-tooltip','ytp-bottom','ytp-preview')
-             previewHoverContainer.before(div)
-             div.append(previewHoverContainer)
-          }
-          */
           }).catch(console.warn)
         }
         if (document.fullscreenElement === null) {
-          const ytdFlexy = this
-          if (!kb && ytdFlexy.isTwoColumns_ === false) {
-            return { width: NaN, height: NaN }
-          }
-          if (kb || !core.isSkip()) {
-            let ret = core.calculateSize();
-            if (ret.height > 0 && ret.width > 0) {
-              return ret
-            }
+
+          // calculateCurrentPlayerSize_ shall be always return NaN to make correct positioning of toolbars
+          if (!kb) return { width: NaN, height: NaN }
+
+          let ret = core.calculateSize();
+          if (ret.height > 0 && ret.width > 0) {
+            return ret
           }
         }
         return originalFunc.apply(this, arguments)
       };
-    },
-    isSkip() {
-      const { ytdFlexy } = elements
-      return ytdFlexy.theater === true || ytdFlexy.isTwoColumns_ === false || document.fullscreenElement !== null
     },
     calculateSize_() {
       const { moviePlayer, video } = elements
