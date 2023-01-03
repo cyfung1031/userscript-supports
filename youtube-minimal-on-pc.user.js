@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name         YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  Watch YouTube with the least CPU usage
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
@@ -68,7 +68,7 @@ SOFTWARE.
     let hrefC8 = href.charAt(8) || '';
 
     let iAmDesktop = hrefC8 === 'w';
-    let iAmMini = hrefC8 === 'm';
+    let iAmMobile = hrefC8 === 'm';
 
     let redirection = false
 
@@ -92,12 +92,12 @@ SOFTWARE.
 
     }
     if (iAmDesktop) {
-        addMenuCommand("Force YouTube Mini", "https://m.youtube.com/?persist_app=1&app=m", true);
-        addMenuCommand("Normal YouTube Mini", "https://m.youtube.com/?persist_app=0&app=m", true);
+        addMenuCommand("Switch to YouTube Mobile persistently", "https://m.youtube.com/?persist_app=1&app=m", true);
+        addMenuCommand("Switch to YouTube Moble temporarily", "https://m.youtube.com/?persist_app=0&app=m", true);
 
-    } else if (iAmMini) {
-        addMenuCommand("Force YouTube Dekstop", "http://www.youtube.com/?persist_app=1&app=desktop", false);
-        addMenuCommand("Normal YouTube Dekstop", "http://www.youtube.com/?persist_app=0&app=desktop", false);
+    } else if (iAmMobile) {
+        addMenuCommand("Switch to YouTube Dekstop persistently", "http://www.youtube.com/?persist_app=1&app=desktop", false);
+        addMenuCommand("Switch to YouTube Dekstop temporarily", "http://www.youtube.com/?persist_app=0&app=desktop", false);
 
     }
 
