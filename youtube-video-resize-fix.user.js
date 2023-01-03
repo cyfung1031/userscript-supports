@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.1.5
+// @version             0.2.0
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -85,16 +85,8 @@ SOFTWARE.
       let { ytdFlexy } = elements;
       if (!ytdFlexy.ElYTL) {
         ytdFlexy.ElYTL = 1;
-        (function (ytdFlexy, calculateNormalPlayerSize_, calculateCurrentPlayerSize_) {
-          ytdFlexy.calculateNormalPlayerSize_ = function () {
-            rid2++
-            return core.isSkip() ? calculateNormalPlayerSize_.call(this) : core.calculateSize();
-          };
-          ytdFlexy.calculateCurrentPlayerSize_ = function () {
-            rid2++
-            return core.isSkip() ? calculateCurrentPlayerSize_.call(this) : core.calculateSize();
-          };
-        })(ytdFlexy, ytdFlexy.calculateNormalPlayerSize_, ytdFlexy.calculateCurrentPlayerSize_);
+        ytdFlexy.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexy.calculateNormalPlayerSize_, 1);
+        ytdFlexy.calculateCurrentPlayerSize_ = core.resizeFunc(ytdFlexy.calculateCurrentPlayerSize_, 0);
       }
       ytdFlexy = null
 
@@ -129,20 +121,64 @@ SOFTWARE.
       // resize on idle
       core.triggerResizeDelayed()
     },
+    resizeFunc(originalFunc, kb) {
+      return function () {
+        rid2++
+        if (!isHTMLAttrApplied) {
+          isHTMLAttrApplied = true
+          Promise.resolve(0).then(() => {
+            document.documentElement.classList.add('youtube-video-resize-fix')
+            /*
+          let previewHoverContainer = document.querySelector('#movie_player > div[aria-live="polite"].ytp-tooltip.ytp-bottom.ytp-preview')
+          if(previewHoverContainer){
+            let div = document.createElement('div');
+            div.classList.add('ytp-tooltip','ytp-bottom','ytp-preview')
+             previewHoverContainer.before(div)
+             div.append(previewHoverContainer)
+          }
+          */
+          }).catch(console.warn)
+        }
+        if (document.fullscreenElement === null) {
+          const ytdFlexy = this
+          if (!kb && ytdFlexy.isTwoColumns_ === false) {
+            return { width: NaN, height: NaN }
+          }
+          if (kb || !core.isSkip()) {
+            let ret = core.calculateSize();
+            if (ret.height > 0 && ret.width > 0) {
+              return ret
+            }
+          }
+        }
+        return originalFunc.apply(this, arguments)
+      };
+    },
     isSkip() {
       const { ytdFlexy } = elements
       return ytdFlexy.theater === true || ytdFlexy.isTwoColumns_ === false || document.fullscreenElement !== null
     },
-    calculateSize() {
-      const { moviePlayer } = elements
-      const rect = moviePlayer.getBoundingClientRect()
-      if (!isHTMLAttrApplied) {
-        isHTMLAttrApplied = true
-        Promise.resolve(0).then(() => {
-          document.documentElement.classList.add('youtube-video-resize-fix')
-        }).catch(console.warn)
+    calculateSize_() {
+      const { moviePlayer, video } = elements
+      const rect1 = video.getBoundingClientRect()
+      const rect2 = moviePlayer.getBoundingClientRect()
+      if (rect1.width && rect1.height && rect1.width / rect1.height > 0) {
+        let h2 = rect2.width * rect1.height / rect1.width
+        let w2 = rect2.height * rect1.width / rect1.height
+        return { rect1, rect2, h2, w2 }
+      } else {
+        return null
       }
-      return { width: rect.width, height: rect.height };
+    },
+    calculateSize() {
+      let rs = core.calculateSize_()
+      if (!rs) return { width: NaN, height: NaN }
+      const { rect1, rect2, h2, w2 } = rs
+      if (h2 > rect2.height) {
+        return { width: w2, height: rect2.height }
+      } else {
+        return { width: rect2.width, height: h2 }
+      }
     },
     triggerResizeDelayed() {
       rid2++
