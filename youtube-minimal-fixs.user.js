@@ -26,12 +26,13 @@ SOFTWARE.
 // ==UserScript==
 // @name         YouTube Minimal Fixs
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  This is to fix various features of YouTube Minimal on PC
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
 // @match        https://m.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
+// @grant        GM_registerMenuCommand
 // @license      MIT
 // @run-at       document-start
 // @grant               none
@@ -95,51 +96,235 @@ SOFTWARE.
     #player-control-overlay[class] {
         animation: removeFadeIn 1ms;
     }
-    #player-control-overlay[class]:hover {
+    #player-control-overlay[class]:hover
+     {
         animation: addFadeIn 1ms;
     }
+    h2.slim-video-information-title{
+        animation: initUI 1ms;
+
+    }
+
+    #player-control-overlay[class]{
+        pointer-events: all !important;
+    }
+
+    ytm-cinematic-container-renderer, ytm-cinematic-container-renderer * {
+        contain: layout size style;
+        user-select: none;
+        touch-action: none;
+        pointer-events: none;
+    }
+
+    ytm-custom-control .player-controls-bottom .icon-button:hover>c3-icon svg path,
+    ytm-custom-control .player-controls-middle .icon-button:hover>c3-icon svg path,
+    ytm-custom-control .player-controls-top .icon-button:hover>c3-icon svg path,
+    ytm-custom-control .player-controls-pb .icon-button:hover>c3-icon,
+    ytm-custom-control .player-controls-top ytm-closed-captioning-button button[aria-pressed=true]:hover>c3-icon svg path,
+    ytm-custom-control .player-controls-top ytm-closed-captioning-button button[aria-pressed=false]:hover>c3-icon svg path ,
+
+    ytm-custom-control .player-controls-top ytm-closed-captioning-button button:hover>c3-icon svg path,
+    ytm-custom-control .player-controls-middle .icon-button.icon-disable:hover>c3-icon svg path
+    {
+
+
+        fill: #006aff;
+
+    }
+
 
     `
 
+    let controlsInitialized = false
+
+    async function videoToggle(video) {
+
+        if (video.paused) video.play(); else video.pause();
+    }
+
+    let elements = {
+
+    }
+
+    const eventHandlers = {
+
+        pbMouseUp(evt) {
+
+
+            let pb = this
+            //                console.log(evt.target, evt, this)
+            let m = evt.offsetX / pb.offsetWidth
+            if (m < 0 || m > 1) return
+
+            let video = document.querySelector('#movie_player video[src]')
+            if (!video) return
+
+            let ct = video.currentTime
+            let d = video.duration
+            if (!ct || ct < 0) return
+            if (!d || d < 0) return
+
+            video.currentTime = m * d
+
+
+            evt.preventDefault()
+            evt.stopPropagation()
+            evt.stopImmediatePropagation()
+
+
+        },
+        pbMouseClick(evt) {
+
+
+
+            evt.preventDefault()
+            evt.stopPropagation()
+            evt.stopImmediatePropagation()
+
+
+        },
+        pbMouseDown(evt) {
+
+
+
+            evt.preventDefault()
+            evt.stopPropagation()
+            evt.stopImmediatePropagation()
+
+
+        },
+        backDropClick(evt) {
+
+
+
+
+            if (evt && evt.target) { } else return;
+
+            let target = evt.target
+            if (target.nodeName === "DIV" && (target.className || '').indexOf('player-controls-background') >= 0) { } else return;
+
+
+            let video = document.querySelector('#movie_player video[src]')
+            if (!video) return;
+
+
+            evt.preventDefault();
+            evt.stopPropagation();
+            evt.stopImmediatePropagation();
+
+            videoToggle(video);
+
+
+        },
+        docKeyDown(evt) {
+            if (evt.target.nodeName === 'BODY') {
+                // console.log(evt)
+                if (evt.code === "Space") {
+
+                    let video = document.querySelector('#movie_player video[src]')
+                    if (!video) return;
+                    videoToggle(video);
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    evt.stopImmediatePropagation();
+
+                } else if (evt.code === 'ArrowLeft') {
+
+
+                    let video = document.querySelector('#movie_player video[src]')
+                    if (!video) return;
+
+                    if (video.currentTime >= 5)
+                        video.currentTime = video.currentTime - 5
+
+                } else if (evt.code === 'ArrowRight') {
+
+
+                    let video = document.querySelector('#movie_player video[src]')
+                    if (!video) return;
+
+                    if (video.duration >= video.currentTime + 5)
+                        video.currentTime = video.currentTime + 5
+
+
+                }
+
+            }
+        }
+
+    }
+
+    function uiSetup(elm) {
+
+
+        if (!controlsInitialized) {
+            controlsInitialized = true;
+
+
+            let pb = document.querySelector('.player-controls-pb .ytm-progress-bar')
+
+
+
+            pb.addEventListener('mouseup', eventHandlers.pbMouseUp, true)
+
+            elm.addEventListener('click', eventHandlers.backDropClick, true)
+
+
+            document.addEventListener('keydown', eventHandlers.docKeyDown, true)
+
+        }
+
+    }
 
     const cssFNs = {
 
-        addFadeIn(elm){
-        elm.classList.add('fadein')
-
+        addFadeIn(elm) {
+            elm.classList.add('fadein')
+            uiSetup(elm)
         },
 
-        removeFadeIn(elm){
-        elm.classList.remove('fadein')
+        removeFadeIn(elm) {
+            let skip = false
+            let video = document.querySelector('#movie_player video[src]')
+            if (video && video.paused) {
+                skip = true
+            }
+            if (!skip) elm.classList.remove('fadein')
+
+            uiSetup(elm)
+        },
+        initUI() {
+
+            let elm = document.querySelector('#player-control-overlay[class]')
+            uiSetup(elm)
+
         }
 
     }
 
     document.addEventListener('animationstart', (evt) => {
 
-        let n = (evt||0).animationName
+        let n = (evt || 0).animationName
 
         let f = cssFNs[n]
-        if(f) f(evt.target)
+        if (f) f(evt.target)
 
 
     }, true)
 
 
 
-    function onReady(t) {
-        if(t!==9) window.removeEventListener("DOMContentLoaded", onReady, false);
+    function onReady() {
 
         document.head.appendChild(styleElm)
         styleElm = null
-        onReady = null
 
     }
 
 
 
     if (document.readyState != 'loading') {
-        onReady(9);
+        onReady();
     } else {
         window.addEventListener("DOMContentLoaded", onReady, false);
     }
