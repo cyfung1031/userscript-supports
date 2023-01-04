@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.2.4
+// @version             0.2.5
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -39,7 +39,7 @@ SOFTWARE.
 // @supportURL          https://github.com/cyfung1031/userscript-supports
 // @run-at              document-start
 // @match               https://www.youtube.com/*
-// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/youtube-video-resize-fix.png
+// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/youtube-video-resize-fix.png?v1
 // @grant               none
 // @unwrap
 // @allFrames
