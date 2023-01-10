@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name         Cookie Manager
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  For Developers Only. Control Cookies everywhere via DevTools
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
@@ -37,9 +37,9 @@ SOFTWARE.
 // @license      MIT
 // @require      https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js#sha512=wT7uPE7tOP6w4o28u1DN775jYjHQApdBnib5Pho4RB0Pgd9y7eSkAV1BTqQydupYDB9GBhTcQQzyNMPMV3cAew==
 // ==/UserScript==
- 
+
 /* global Cookies */
- 
+
 /*
 usage:
  
@@ -50,18 +50,42 @@ cook.remove('hello-world')
 cook.myvar = 'abc'
 console.log(cook.myvar)
 cook.myvar = null
+
+cook.get()
+
+const api = cook.chef(null, { path: '/', domain: '.example.com' })
+const api = cook.chef({
+  write: function (value, name) {
+    return value.toUpperCase()
+  }
+}, null)
  
 */
- 
-(function () {
+
+(function (Cookies) {
   'use strict';
   // Your code here...
   if (unsafeWindow.cook) return
-  unsafeWindow.cook = new Proxy({
-    set: Cookies.set.bind(Cookies),
-    get: Cookies.get.bind(Cookies),
-    remove: Cookies.remove.bind(Cookies)
-  }, {
+  const { get, set, remove } = Cookies
+  function chefFunc(converter, attributes) {
+    converter = converter ? Object.assign({}, this.converter, converter) : this.converter
+    attributes = attributes ? Object.assign({}, this.attributes, attributes) : this.attributes
+    return init(converter, attributes)
+  }
+  const target = {
+    set: set.bind(Cookies),
+    get: get.bind(Cookies),
+    remove: remove.bind(Cookies),
+    chef: chefFunc.bind(Cookies),
+    replaceChef: (chef) => {
+      Cookies = chef
+      target.set = set.bind(Cookies)
+      target.get = get.bind(Cookies)
+      target.remove = remove.bind(Cookies)
+      target.chef = chefFunc.bind(Cookies)
+    }
+  }
+  unsafeWindow.cook = new Proxy(target, {
     get(target, prop) {
       if (prop in target) {
         return target[prop]
@@ -74,4 +98,4 @@ cook.myvar = null
       return true
     }
   })
-})();
+})(Cookies);
