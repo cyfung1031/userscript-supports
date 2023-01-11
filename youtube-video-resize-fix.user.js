@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.2.5
+// @version             0.2.6
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -145,20 +145,20 @@ SOFTWARE.
     },
     calculateSize_() {
       const { moviePlayer, video } = elements
-      const rect1 = video.getBoundingClientRect()
-      const rect2 = moviePlayer.getBoundingClientRect()
-      if (rect1.width && rect1.height && rect1.width / rect1.height > 0) {
-        let h2 = rect2.width * rect1.height / rect1.width
-        let w2 = rect2.height * rect1.width / rect1.height
-        return { rect1, rect2, h2, w2 }
-      } else {
-        return null
+      const rect1 = { width: video.videoWidth, height: video.videoHeight } // native values independent of css rules
+      if (rect1.width > 0 && rect1.height > 0) {
+        const rect2 = moviePlayer.getBoundingClientRect()
+        const aspectRatio = rect1.width / rect1.height
+        let h2 = rect2.width / aspectRatio
+        let w2 = rect2.height * aspectRatio
+        return { rect2, h2, w2 }
       }
+      return null
     },
     calculateSize() {
       let rs = core.calculateSize_()
       if (!rs) return { width: NaN, height: NaN }
-      const { rect1, rect2, h2, w2 } = rs
+      const { rect2, h2, w2 } = rs
       if (h2 > rect2.height) {
         return { width: w2, height: rect2.height }
       } else {
@@ -173,9 +173,10 @@ SOFTWARE.
         if (tid !== rid2) return
         let { ytdFlexy } = elements
         let r = false
-        if (ytdFlexy && ytdFlexy.windowSize_ && typeof ytdFlexy.onWindowResized_ === 'function') {
+        const windowSize_ = (ytdFlexy || 0).windowSize_
+        if (windowSize_ && typeof ytdFlexy.onWindowResized_ === 'function') {
           try {
-            ytdFlexy.onWindowResized_(ytdFlexy.windowSize_)
+            ytdFlexy.onWindowResized_(windowSize_)
             r = true
           } catch (e) { }
         }
