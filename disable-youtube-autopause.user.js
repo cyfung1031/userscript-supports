@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2022.12.30
+// @version             2023.01.13
 // @license             MIT License
 // @description         "Video paused. Continue watching?" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" will not appear anymore.
@@ -60,32 +60,38 @@ SOFTWARE.
     let tenPU = Math.floor(Number.MAX_SAFE_INTEGER * 0.1);
     if ('playbackPauseDelayMs' in youThereData && ret >= 0 && ret < 4 * tenPU) {
       youThereDataHashMap.set(youThereData, ret);
-      Object.defineProperty(youThereData, 'playbackPauseDelayMs', {
-        enumerable: true,
-        configurable: true,
-        get() {
-          Promise.resolve(new Date).then(d => {
-            console.log('YouTube is trying to pause video...', d.toLocaleTimeString());
-          }).warn(console.warn);
-          return 5 * tenPU;
-        },
-        set(newValue) {
-          let oldValue = youThereDataHashMap.get(this);
-          Promise.resolve([oldValue, newValue, new Date]).then(args => {
-            const [oldValue, newValue, d] = args;
-            console.log(`YouTube is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
-          }).warn(console.warn)
-          youThereDataHashMap.set(this, newValue);
-          return true;
-        }
-      });
+      const retType = typeof ret === 'string' ? 2 : +(typeof ret === 'number')
+      if (retType >= 1) {
+        Object.defineProperty(youThereData, 'playbackPauseDelayMs', {
+          enumerable: true,
+          configurable: true,
+          get() {
+            Promise.resolve(new Date).then(d => {
+              console.log('YouTube is trying to pause video...', d.toLocaleTimeString());
+            }).warn(console.warn);
+            let ret = 5 * tenPU;
+            if (retType === 2) return `${ret}`;
+            return ret;
+          },
+          set(newValue) {
+            let oldValue = youThereDataHashMap.get(this);
+            Promise.resolve([oldValue, newValue, new Date]).then(args => {
+              const [oldValue, newValue, d] = args;
+              console.log(`YouTube is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+            }).warn(console.warn)
+            youThereDataHashMap.set(this, newValue);
+            return true;
+          }
+        });
+      }
 
-      if ((youThereData.showPausedActions || 0).length > 0) {
+      if ((youThereData.showPausedActions || 0).length >= 0 && !youThereData.tvTyh) {
         youThereData.tvTyh = []
         Object.defineProperty(youThereData, 'showPausedActions', {
           enumerable: true,
           configurable: true,
           get() {
+            if (this.tvTyh.length >= 1) this.tvTyh.length = 0
             return this.tvTyh
           },
           set(nv) {
