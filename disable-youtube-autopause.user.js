@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.13
+// @version             2023.01.13a
 // @license             MIT License
 // @description         "Video paused. Continue watching?" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" will not appear anymore.
@@ -68,7 +68,7 @@ SOFTWARE.
           get() {
             Promise.resolve(new Date).then(d => {
               console.log('YouTube is trying to pause video...', d.toLocaleTimeString());
-            }).warn(console.warn);
+            }).catch(console.warn);
             let ret = 5 * tenPU;
             if (retType === 2) return `${ret}`;
             return ret;
@@ -78,7 +78,7 @@ SOFTWARE.
             Promise.resolve([oldValue, newValue, new Date]).then(args => {
               const [oldValue, newValue, d] = args;
               console.log(`YouTube is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
-            }).warn(console.warn)
+            }).catch(console.warn)
             youThereDataHashMap.set(this, newValue);
             return true;
           }
