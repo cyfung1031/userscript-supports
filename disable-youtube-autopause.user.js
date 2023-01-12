@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.13a
+// @version             2023.01.13b
 // @license             MIT License
 // @description         "Video paused. Continue watching?" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" will not appear anymore.
@@ -85,7 +85,7 @@ SOFTWARE.
         });
       }
 
-      if ((youThereData.showPausedActions || 0).length >= 0 && !youThereData.tvTyh) {
+      if (typeof ((youThereData.showPausedActions || 0).length) === 'number' && !youThereData.tvTyh) {
         youThereData.tvTyh = []
         Object.defineProperty(youThereData, 'showPausedActions', {
           enumerable: true,
