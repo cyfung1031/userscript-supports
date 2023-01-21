@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.04
+// @version             2023.01.21
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -67,11 +67,10 @@ SOFTWARE.
   'use strict';
 
   const DEBUG_LOG = false;
-  const DB_NAME_FOR_TESTING = 'testdb-Q4IOpq0p'
-  let runCount = 0;
   let initialChecking = null;
   const store = []
   let cidxx = 0;
+  const dbSet = new Set();
 
 
   /** @type {(o: Object | null) => WeakRef | null} */
@@ -89,20 +88,20 @@ SOFTWARE.
       // disable WebLock
       // WebLock is just an experimental feature and not really required for YouTube
       window.navigator.locks.query = function () {
-        console.log(arguments)
+        console.log(arguments);
         return new Promise(resolve => {
           // do nothing
         });
       };
       window.navigator.locks.request = function () {
-        console.log(arguments)
+        console.log(arguments);
         return new Promise(resolve => {
           // do nothing
         });
       };
     }
 
-    const isSupported = (((window || 0).indexedDB || 0).constructor || 0).name === 'IDBFactory'
+    const isSupported = (((window || 0).indexedDB || 0).constructor || 0).name === 'IDBFactory';
     if (isSupported) {
       const addEventListenerKey = Symbol();
       const removeEventListenerKey = Symbol();
@@ -117,11 +116,36 @@ SOFTWARE.
       };
       const mTime = Date.now()
       async function releaseOnIdleHandler() {
+        // console.log('OCK1', openCount, store.length);
         if (!cidxx) return
         cidxx = 0
+        DEBUG_LOG && console.log('CLEANING - 01 - BEGIN', openCount);
+        for (const request of [...dbSet.values()]) {
+
+          try {
+            let db = request.result;
+            let databaseId = db.name
+            DEBUG_LOG && console.log(db, databaseId);
+            db.close();
+            db = null;
+            openCount--;
+            message({ databaseId: databaseId, action: 'close', time: Date.now() });
+
+          } catch (e) { }
+
+          // releaseOnIdle(target.result, databaseId, eventType, event.type); // start waiting after success / failed of the first lock
+
+
+        }
+        dbSet.clear()
+        DEBUG_LOG && console.log('CLEANING - 01 - END', openCount);
+
+        DEBUG_LOG && console.log('CLEANING - 02 - BEGIN', openCount);
         for (const entry of store) {
           let [kdb, databaseId, eventType, event_type] = entry
+          entry.length = 0
           let db = kRef(kdb)
+          kdb = null
 
           DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
           db.close();
@@ -129,13 +153,12 @@ SOFTWARE.
           openCount--;
           // consoleX.log(openCount, databaseId)
           message({ databaseId: databaseId, action: 'close', time: Date.now() });
-          runCount++;
-          if (runCount > 1e9) runCount = 0;
-          db = null
-          kdb = null
-          entry.length = 0
+
         }
         store.length = 0
+        // console.log('OCK2', openCount)
+
+        DEBUG_LOG && console.log('CLEANING - 02 - END', openCount);
 
 
         if (openCount === 0 && msgStore.length > 0) {
@@ -160,6 +183,7 @@ SOFTWARE.
       function releaseOnIdle(db, databaseId, eventType, event_type) {
         if (cidxx > 0) clearTimeout(cidxx);
         store.push([mWeakRef(db), databaseId, eventType, event_type])
+        // console.log('OC', openCount)
         cidxx = setTimeout(releaseOnIdleHandler, 18 * 1000)
       }
 
@@ -167,13 +191,23 @@ SOFTWARE.
         return function (event) {
           DEBUG_LOG && console.log(32, 'addEventListener', databaseId, eventType, event.type);
           handler.call(this, arguments);
-          releaseOnIdle(event.target.result, databaseId, eventType, event.type); // start waiting after success / failed of the first lock
+          const target = (event || 0).target
+          if (dbSet.has(target)) {
+
+            releaseOnIdle(target.result, databaseId, eventType, event.type); // start waiting after success / failed of the first lock
+
+            console.log('releaseOnIdle', store.length, databaseId);
+            dbSet.delete(target)
+          }
+          // dbSet.add()
           DEBUG_LOG && console.log(441, 'addEventListener', databaseId, eventType, event.type);
         }
       }
 
       function makeAddEventListener(databaseId) {
+        console.log('makeAddEventListener1', databaseId)
         return function (eventType, handler) {
+          console.log('makeAddEventListener2', databaseId)
           const addEventListener = this[addEventListenerKey];
           if (arguments.length !== 2) return addEventListener.call(this, ...arguments);
           if (eventType === 'error' || eventType === 'success') {
@@ -212,7 +246,11 @@ SOFTWARE.
           request.addEventListener = makeAddEventListener(databaseId);
           request[removeEventListenerKey] = request.removeEventListener;
           request.removeEventListener = makeRemoveEventListener(databaseId);
-          openCount++
+          openCount++;
+          dbSet.add(request);
+          // console.log('openCount', openCount, databaseId)
+          if (cidxx > 0) clearTimeout(cidxx);
+          cidxx = setTimeout(releaseOnIdleHandler, 18 * 1000);
           // consoleX.log('opened', openCount, databaseId)
           message({ databaseId: databaseId, action: 'open', time: Date.now() });
           return request;
@@ -228,38 +266,5 @@ SOFTWARE.
 
   })(DEBUG_LOG ? console : Object.assign({}, console, { log: function () { } }), console);
 
-  /*
-  initialChecking = isSupported ? function () {
-    initialChecking = null;
-    let request = indexedDB.open(DB_NAME_FOR_TESTING);
-    let mi = 0;
-    let px = function () {
-      mi += 1000;
-    };
-    request.addEventListener('success', px);
-    request.addEventListener('success', function () {
-      mi += 101;
-    });
-    request.addEventListener('error', px);
-    request.addEventListener('error', function () {
-      mi += 201;
-    });
-    request.removeEventListener('success', px);
-    request.removeEventListener('error', px);
-  
-    indexedDB.deleteDatabase(DB_NAME_FOR_TESTING);
-  
-    setTimeout(() => {
-      Promise.resolve(0).then(() => {
-        if ((mi === 101 || mi === 201) && runCount >= 1) {
-          console.log(`%cYouTube Unhold IndexDB - %cInjection Success ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #bada55');
-        } else {
-          console.log(`%cYouTube Unhold IndexDB - %cInjection Failure ${mi} ${runCount}`, 'background: #222; color: #fff', 'background: #222; color: #da5a2f');
-        }
-      }).catch(console.warn);
-    }, 3600);
-  
-  } : null;
-  */
 
 })();
