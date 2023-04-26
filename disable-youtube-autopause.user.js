@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.13c
+// @version             2023.04.26
 // @license             MIT License
 // @description         "Video paused. Continue watching?" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" will not appear anymore.
@@ -53,38 +53,43 @@ SOFTWARE.
 
 (function () {
   'use strict';
-  const youThereDataHashMap = new WeakMap();
+  const youThereDataHashMapPauseDelay = new WeakMap();
+  const youThereDataHashMapPromptDelay = new WeakMap();
+  const websiteName = 'YouTube';
+
   function hookYouThereData(youThereData) {
-    if (!youThereData || youThereDataHashMap.has(youThereData)) return;
-    let ret = youThereData.playbackPauseDelayMs;
-    let tenPU = Math.floor(Number.MAX_SAFE_INTEGER * 0.1);
-    if ('playbackPauseDelayMs' in youThereData && ret >= 0 && ret < 4 * tenPU) {
-      youThereDataHashMap.set(youThereData, ret);
-      const retType = typeof ret === 'string' ? 2 : +(typeof ret === 'number')
+    if (!youThereData || youThereDataHashMapPauseDelay.has(youThereData)) return;
+    const retPauseDelay = youThereData.playbackPauseDelayMs;
+    const retPromptDelay = youThereData.promptDelaySec;
+    const tenPU = Math.floor(Number.MAX_SAFE_INTEGER * 0.1);
+    const mPU = Math.floor(tenPU / 1000);
+
+    if ('playbackPauseDelayMs' in youThereData && retPauseDelay >= 0 && retPauseDelay < 4 * tenPU) {
+      youThereDataHashMapPauseDelay.set(youThereData, retPauseDelay);
+      const retType = typeof retPauseDelay === 'string' ? 2 : +(typeof retPauseDelay === 'number')
       if (retType >= 1) {
         Object.defineProperty(youThereData, 'playbackPauseDelayMs', {
           enumerable: true,
           configurable: true,
           get() {
             Promise.resolve(new Date).then(d => {
-              console.log('YouTube is trying to pause video...', d.toLocaleTimeString());
+              console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
             }).catch(console.warn);
             let ret = 5 * tenPU;
             if (retType === 2) return `${ret}`;
             return ret;
           },
           set(newValue) {
-            let oldValue = youThereDataHashMap.get(this);
+            let oldValue = youThereDataHashMapPauseDelay.get(this);
             Promise.resolve([oldValue, newValue, new Date]).then(args => {
               const [oldValue, newValue, d] = args;
-              console.log(`YouTube is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+              console.log(`${websiteName} is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
             }).catch(console.warn)
-            youThereDataHashMap.set(this, newValue);
+            youThereDataHashMapPauseDelay.set(this, newValue);
             return true;
           }
         });
       }
-
       if (typeof ((youThereData.showPausedActions || 0).length) === 'number' && !youThereData.tvTyh) {
         youThereData.tvTyh = []
         Object.defineProperty(youThereData, 'showPausedActions', {
@@ -102,6 +107,35 @@ SOFTWARE.
       }
     }
 
+    if ('promptDelaySec' in youThereData && retPromptDelay >= 0 && retPromptDelay < 4 * mPU) {
+      youThereDataHashMapPromptDelay.set(youThereData, retPromptDelay);
+      const retType = typeof retPromptDelay === 'string' ? 2 : +(typeof retPromptDelay === 'number')
+      // this is for YouTube Music to not show the prompt. I guess this should be added to YouTube version too.
+      // lact -> promptDelaySec -> showDialog -> playbackPauseDelayMs -> pause
+      if (retType >= 1) {
+        Object.defineProperty(youThereData, 'promptDelaySec', {
+          enumerable: true,
+          configurable: true,
+          get() {
+            Promise.resolve(new Date).then(d => {
+              console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+            }).catch(console.warn);
+            let ret = 5 * mPU;
+            if (retType === 2) return `${ret}`;
+            return ret;
+          },
+          set(newValue) {
+            let oldValue = youThereDataHashMapPromptDelay.get(this);
+            Promise.resolve([oldValue, newValue, new Date]).then(args => {
+              const [oldValue, newValue, d] = args;
+              console.log(`${websiteName} is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+            }).catch(console.warn)
+            youThereDataHashMapPromptDelay.set(this, newValue);
+            return true;
+          }
+        });
+      }
+    }
   }
 
   // e.performDataUpdate -> f.playerData = a.playerResponse;
@@ -122,7 +156,7 @@ SOFTWARE.
             try {
               youThereData = message.youThereRenderer.configData.youThereData;
             } catch (e) { }
-            if(youThereData) hookYouThereData(youThereData)
+            if (youThereData) hookYouThereData(youThereData)
             youThereData = null
             break;
           }
