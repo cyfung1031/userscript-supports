@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.04.26.2
+// @version             2023.04.27
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -55,12 +55,48 @@ SOFTWARE.
   'use strict';
   const youThereDataHashMapPauseDelay = new WeakMap();
   const youThereDataHashMapPromptDelay = new WeakMap();
+  const youThereDataHashMapLactThreshold = new WeakMap();
   const websiteName = 'YouTube';
+
+  function defineProp1(youThereData, key, retType, constVal, fGet, fSet, hashMap) {
+    Object.defineProperty(youThereData, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        Promise.resolve(new Date).then(fGet).catch(console.warn);
+        let ret = constVal;
+        if (retType === 2) return `${ret}`;
+        return ret;
+      },
+      set(newValue) {
+        let oldValue = hashMap.get(this);
+        Promise.resolve([oldValue, newValue, new Date]).then(fSet).catch(console.warn);
+        hashMap.set(this, newValue);
+        return true;
+      }
+    });
+  }
+
+  function defineProp2(youThereData, key, qKey) {
+    Object.defineProperty(youThereData, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        const r = this[qKey];
+        if ((r || 0).length >= 1) r.length = 0;
+        return r;
+      },
+      set(nv) {
+        return true;
+      }
+    });
+  }
 
   function hookYouThereData(youThereData) {
     if (!youThereData || youThereDataHashMapPauseDelay.has(youThereData)) return;
     const retPauseDelay = youThereData.playbackPauseDelayMs;
     const retPromptDelay = youThereData.promptDelaySec;
+    const retLactThreshold = youThereData.lactThresholdMs;
     const tenPU = Math.floor(Number.MAX_SAFE_INTEGER * 0.1);
     const mPU = Math.floor(tenPU / 1000);
 
@@ -68,42 +104,16 @@ SOFTWARE.
       youThereDataHashMapPauseDelay.set(youThereData, retPauseDelay);
       const retType = typeof retPauseDelay === 'string' ? 2 : +(typeof retPauseDelay === 'number');
       if (retType >= 1) {
-        Object.defineProperty(youThereData, 'playbackPauseDelayMs', {
-          enumerable: true,
-          configurable: true,
-          get() {
-            Promise.resolve(new Date).then(d => {
-              console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
-            }).catch(console.warn);
-            let ret = 5 * tenPU;
-            if (retType === 2) return `${ret}`;
-            return ret;
-          },
-          set(newValue) {
-            let oldValue = youThereDataHashMapPauseDelay.get(this);
-            Promise.resolve([oldValue, newValue, new Date]).then(args => {
-              const [oldValue, newValue, d] = args;
-              console.log(`${websiteName} is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
-            }).catch(console.warn)
-            youThereDataHashMapPauseDelay.set(this, newValue);
-            return true;
-          }
-        });
+        defineProp1(youThereData, 'playbackPauseDelayMs', retType, 5 * tenPU, d => {
+          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+        }, args => {
+          const [oldValue, newValue, d] = args;
+          console.log(`${websiteName} is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+        }, youThereDataHashMapPauseDelay);
       }
       if (typeof ((youThereData.showPausedActions || 0).length) === 'number' && !youThereData.tvTyh) {
-        youThereData.tvTyh = []
-        Object.defineProperty(youThereData, 'showPausedActions', {
-          enumerable: true,
-          configurable: true,
-          get() {
-            const r = this.tvTyh
-            if ((r || 0).length >= 1) r.length = 0
-            return r
-          },
-          set(nv) {
-            return true
-          }
-        })
+        youThereData.tvTyh = [];
+        defineProp2(youThereData, 'showPausedActions', 'tvTyh');
       }
     }
 
@@ -112,29 +122,31 @@ SOFTWARE.
       const retType = typeof retPromptDelay === 'string' ? 2 : +(typeof retPromptDelay === 'number');
       // lact -> promptDelaySec -> showDialog -> playbackPauseDelayMs -> pause
       if (retType >= 1) {
-        Object.defineProperty(youThereData, 'promptDelaySec', {
-          enumerable: true,
-          configurable: true,
-          get() {
-            Promise.resolve(new Date).then(d => {
-              console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
-            }).catch(console.warn);
-            let ret = 5 * mPU;
-            if (retType === 2) return `${ret}`;
-            return ret;
-          },
-          set(newValue) {
-            let oldValue = youThereDataHashMapPromptDelay.get(this);
-            Promise.resolve([oldValue, newValue, new Date]).then(args => {
-              const [oldValue, newValue, d] = args;
-              console.log(`${websiteName} is trying to change value 'promptDelaySec' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
-            }).catch(console.warn)
-            youThereDataHashMapPromptDelay.set(this, newValue);
-            return true;
-          }
-        });
+
+        defineProp1(youThereData, 'promptDelaySec', retType, 5 * mPU, d => {
+          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+        }, args => {
+          const [oldValue, newValue, d] = args;
+          console.log(`${websiteName} is trying to change value 'promptDelaySec' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+        }, youThereDataHashMapPromptDelay);
+
       }
     }
+
+    if ('lactThresholdMs' in youThereData && retLactThreshold >= 0 && retLactThreshold < 4 * tenPU) {
+      youThereDataHashMapLactThreshold.set(youThereData, retLactThreshold);
+      const retType = typeof retLactThreshold === 'string' ? 2 : +(typeof retLactThreshold === 'number');
+      // lact -> promptDelaySec -> showDialog -> playbackPauseDelayMs -> pause
+      if (retType >= 1) {
+        defineProp1(youThereData, 'lactThresholdMs', retType, 5 * tenPU, d => {
+          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+        }, args => {
+          const [oldValue, newValue, d] = args;
+          console.log(`${websiteName} is trying to change value 'lactThresholdMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
+        }, youThereDataHashMapLactThreshold);
+      }
+    }
+
   }
 
   // e.performDataUpdate -> f.playerData = a.playerResponse;
@@ -155,26 +167,26 @@ SOFTWARE.
             try {
               youThereData = message.youThereRenderer.configData.youThereData;
             } catch (e) { }
-            if (youThereData) hookYouThereData(youThereData)
-            youThereData = null
+            if (youThereData) hookYouThereData(youThereData);
+            youThereData = null;
             break;
           }
         }
       }
 
-      let ytdFlexy = document.querySelector('ytd-watch-flexy')
+      let ytdFlexy = document.querySelector('ytd-watch-flexy');
       if (ytdFlexy) {
-        let youThereData_ = (ytdFlexy.youThereManager_ || 0).youThereData_ || 0
-        if (youThereData_) hookYouThereData(youThereData_)
+        let youThereData_ = (ytdFlexy.youThereManager_ || 0).youThereData_ || 0;
+        if (youThereData_) hookYouThereData(youThereData_);
         if (typeof ytdFlexy.youthereDataChanged_ === 'function') {
-          let f = ytdFlexy.youthereDataChanged_
+          let f = ytdFlexy.youthereDataChanged_;
           if (!f.lq2S7) {
             ytdFlexy.youthereDataChanged_ = (function (f) {
               return function () {
-                console.log('youthereDataChanged_()')
-                const ret = f.apply(this, arguments)
-                onPageFinished()
-                return ret
+                console.log('youthereDataChanged_()');
+                const ret = f.apply(this, arguments);
+                onPageFinished();
+                return ret;
               }
             })(f)
             ytdFlexy.youthereDataChanged_.lq2S7 = 1
