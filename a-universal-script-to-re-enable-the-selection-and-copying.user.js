@@ -2,7 +2,7 @@
 // @name                A Universal Script to Re-Enable the Selection and Copying
 // @name:zh-TW          A Universal Script to Re-Enable the Selection and Copying
 // @name:zh-CN          通用脚本重开启选取复制
-// @version             1.8.1.8
+// @version             1.8.2.0
 // @description         Enables select, right-click, copy and drag on pages that disable them. Enhanced Feature: Alt Key HyperLink Text Selection
 // @description:zh-TW   破解鎖右鍵，解除禁止復制、剪切、選擇文本、右鍵菜單、文字複製、文字選取、圖片右鍵等限制。增強功能：Alt鍵超連結文字選取。
 // @description:zh-CN   破解锁右键，解除禁止复制、剪切、选择文本、右键菜单、文字复制、文字选取、图片右键等限制。增强功能：Alt键超连结文字选取。
@@ -45,7 +45,7 @@
  
     function isSupportAdvancedEventListener() {
         if ('_b1750' in $) return $._b1750
-        var prop = 0;
+        let prop = 0;
         document.createAttribute('z').addEventListener('nil', $nil, {
             get passive() {
                 prop++;
@@ -59,7 +59,7 @@
  
     function isSupportPassiveEventListener() {
         if ('_b1650' in $) return $._b1650
-        var prop = 0;
+        let prop = 0;
         document.createAttribute('z').addEventListener('nil', $nil, {
             get passive() {
                 prop++;
@@ -76,7 +76,7 @@
         }
     }
  
-    var getSelection = window.getSelection || Error()(),
+    const getSelection = window.getSelection || Error()(),
         requestAnimationFrame = window.requestAnimationFrame || Error()(),
         getComputedStyle = window.getComputedStyle.bind(window) || Error()();
  
@@ -84,8 +84,8 @@
         utSelectionColorHack: 'msmtwejkzrqa',
         utTapHighlight: 'xfcklblvkjsj',
         utLpSelection: 'gykqyzwufxpz',
-        utHoverBlock: 'meefgeibrtqx', //scc_emptyblock
-        //utNonEmptyElm: 'ilkpvtsnwmjb',
+        utHoverBlock: 'meefgeibrtqx', // scc_emptyblock
+        // utNonEmptyElm: 'ilkpvtsnwmjb',
         utNonEmptyElmPrevElm: 'jttkfplemwzo',
         utHoverTextWrap: 'oseksntfvucn',
         ksFuncReplacerNonFalse: '___dqzadwpujtct___',
@@ -98,23 +98,24 @@
             passive: true
         })) : true,
  
-        mAlert_DOWN: function() {}, //dummy function in case alert replacement is not valid
-        mAlert_UP: function() {}, //dummy function in case alert replacement is not valid
+        mAlert_DOWN: function() {}, // dummy function in case alert replacement is not valid
+        mAlert_UP: function() {}, // dummy function in case alert replacement is not valid
  
  
         lpKeyPressing: false,
         lpKeyPressingPromise: Promise.resolve(),
  
         isNum: (d) => (d > 0 || d < 0 || d === 0),
- 
+
+        getNodeType: (n) => ((n instanceof Node) ? n.nodeType : -1),
+
         isAnySelection: function() {
-            var sel = getSelection();
+            const sel = getSelection();
             return !sel ? null : (typeof sel.isCollapsed == 'boolean') ? !sel.isCollapsed : (sel.toString().length > 0);
         },
  
         createCSSElement: function(cssStyle, container) {
-            var css = document.createElement('style'); //slope: DOM throughout
-            css.type = 'text/css';
+            const css = document.createElement('style'); // slope: DOM throughout
             css.textContent = cssStyle;
             if (container) container.appendChild(css);
             return css;
@@ -126,13 +127,13 @@
             function alert(msg) {
                 alert.__isDisabled__() ? console.log("alert msg disabled: ", msg) : _alert.apply(this, arguments);
             };
-            alert.toString = () => "function alert() { [native code] }";
+            alert.toString = _alert.toString.bind(_alert);
             return alert;
         },
  
         createFuncReplacer: function(originalFunc, pName, resFX) {
             resFX = function(ev) {
-                var res = originalFunc.apply(this, arguments);
+                const res = originalFunc.apply(this, arguments);
                 if (!this || this[pName] != resFX) return res; // if this is null or undefined, or this.onXXX is not this function
                 if (res === false) return; // return undefined when "return false;"
                 originalFunc[$.ksFuncReplacerNonFalse] = true;
@@ -144,14 +145,14 @@
         },
  
         listenerDisableAll: function(evt) {
-            var elmNode = evt.target;
-            var pName = 'on' + evt.type;
+            let elmNode = evt.target;
+            const pName = 'on' + evt.type;
             evt = null;
             Promise.resolve().then(() => {
-                while (elmNode && elmNode.nodeType > 0) { //i.e. HTMLDocument or HTMLElement
-                    var f = elmNode[pName];
+                while (elmNode && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
+                    const f = elmNode[pName];
                     if (typeof f == 'function' && f[$.ksFuncReplacerNonFalse] !== true) {
-                        var nf = $.createFuncReplacer(f, pName);
+                        const nf = $.createFuncReplacer(f, pName);
                         nf[$.ksFuncReplacerNonFalse] = true;
                         elmNode[pName] = nf;
                     }
@@ -164,15 +165,15 @@
             if (document.documentElement.hasAttribute($.utLpSelection)) return;
             $.onceCssHighlightSelection = null
             Promise.resolve().then(() => {
-                var s = [...document.querySelectorAll('a,p,div,span,b,i,strong,li')].filter(elm => elm.childElementCount === 0); // randomly pick an element containing text only to avoid css style bug
-                var elm = !s.length ? document.body : s[s.length >> 1];
+                const s = [...document.querySelectorAll('a,p,div,span,b,i,strong,li')].filter(elm => elm.childElementCount === 0); // randomly pick an element containing text only to avoid css style bug
+                const elm = !s.length ? document.body : s[s.length >> 1];
                 return elm
             }).then(elm => {
-                var selectionStyle = getComputedStyle(elm, ':selection');
+                const selectionStyle = getComputedStyle(elm, ':selection');
                 if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionStyle.getPropertyValue('background-color'))) document.documentElement.setAttribute($.utSelectionColorHack, "");
                 return elm;
             }).then(elm => {
-                var elmStyle = getComputedStyle(elm)
+                const elmStyle = getComputedStyle(elm)
                 if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(elmStyle.getPropertyValue('-webkit-tap-highlight-color'))) document.documentElement.setAttribute($.utTapHighlight, "");
             })
         },
@@ -180,30 +181,55 @@
         clipDataProcess: function(clipboardData) {
  
             if (!clipboardData) return;
-            const evt = clipboardData[$.ksSetData]; //NOT NULL when preventDefault is called
+            const evt = clipboardData[$.ksSetData]; // NOT NULL when preventDefault is called
             if (!evt || evt.clipboardData !== clipboardData) return;
-            const plainText = clipboardData[$.ksNonEmptyPlainText]; //NOT NULL when setData is called with non empty input
+            const plainText = clipboardData[$.ksNonEmptyPlainText]; // NOT NULL when setData is called with non empty input
             if (!plainText) return;
  
-            //BOTH preventDefault and setData are called.
- 
+            // BOTH preventDefault and setData are called.
+
             if (evt.cancelable !== true || evt.defaultPrevented !== false) return;
+
+
+            // ---- disable text replacement on plain text node(s) ----
+
+            let cSelection = getSelection();
+            if (!cSelection) return; // ?
+            let exactSelectionText = cSelection.toString();
+            let trimedSelectionText = exactSelectionText.trim();
+            if (exactSelectionText.length > 0 && exactSelectionText.length < plainText.length) {
+                let pSelection = trimedSelectionText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                let pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                // a newline char (\n) could be generated between nodes.
+                let search = pRequest.indexOf(pSelection);
+                if (search >= 0 && search < (plainText.length / 2) + 1 && $.getNodeType(cSelection.anchorNode) === 3 && $.getNodeType(cSelection.focusNode) === 3) {
+                    console.log({
+                        msg: "copy event - clipboardData replacement is NOT allowed as the text node(s) is/are selected.",
+                        oldText: trimedSelectionText,
+                        newText: plainText,
+                    })
+                    return;
+                }
+            }
+
+            // --- allow preventDefault for text replacement ---
+
             $.bypass = true;
             evt.preventDefault();
             $.bypass = false;
+
+            // ---- message log ----
  
- 
-            var trimedSelectionText = getSelection().toString().trim()
  
             if (trimedSelectionText) {
-                //there is replacement data and the selection is not empty
+                // there is replacement data and the selection is not empty
                 console.log({
                     msg: "copy event - clipboardData replacement is allowed and the selection is not empty",
                     oldText: trimedSelectionText,
                     newText: plainText,
                 })
             } else {
-                //there is replacement data and the selection is empty
+                // there is replacement data and the selection is empty
                 console.log({
                     msg: "copy event - clipboardData replacement is allowed and the selection is empty",
                     oldText: trimedSelectionText,
@@ -214,22 +240,22 @@
         },
  
         enableSelectClickCopy: function() {
-            $.eyEvts = ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy']; //slope: throughout
+            $.eyEvts = ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy']; // slope: throughout
  
             function isDeactivePreventDefault(evt) {
-                if ($.bypass) return false;
-                var j = $.eyEvts.indexOf(evt.type);
+                if (!evt || $.bypass) return false;
+                let j = $.eyEvts.indexOf(evt.type);
                 switch (j) {
                     case 6:
                         if ($.enableDragging) return false;
-                        if (evt&&evt.target && evt.target.nodeType==1 && evt.target.hasAttribute('draggable')) {
+                        if (evt.target && evt.target.nodeType==1 && evt.target.hasAttribute('draggable')) {
                             $.enableDragging = true;
                             return false;
                         }
-                        //if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
+                        // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
                         return true;
                     case 3:
-                        if (evt.target instanceof Element && (evt.target.textContent || "").trim().length === 0) return false; //exclude elements like video
+                        if (evt.target instanceof Element && (evt.target.textContent || "").trim().length === 0) return false; // exclude elements like video
                         return true;
                     case -1:
                         return false;
@@ -240,12 +266,12 @@
                         if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
                         if (evt.cancelable && evt.defaultPrevented === false) {} else return true;
  
-                        if (evt.clipboardData[$.ksSetData] && evt.clipboardData[$.ksSetData] != evt) return true; //in case there is a bug
+                        if (evt.clipboardData[$.ksSetData] && evt.clipboardData[$.ksSetData] != evt) return true; // in case there is a bug
                         evt.clipboardData[$.ksSetData] = evt;
  
                         $.clipDataProcess(evt.clipboardData);
  
-                        return true; //preventDefault in clipDataProcess
+                        return true; // preventDefault in clipDataProcess
  
  
                     default:
@@ -274,13 +300,13 @@
             })(DataTransfer.prototype.setData);
  
             Object.defineProperties(DataTransfer.prototype, {
-                [$.ksSetData]: { //store the event
+                [$.ksSetData]: { // store the event
                     value: null,
                     writable: true,
                     enumerable: false,
                     configurable: true
                 },
-                [$.ksNonEmptyPlainText]: { //store the text
+                [$.ksNonEmptyPlainText]: { // store the text
                     value: null,
                     writable: true,
                     enumerable: false,
@@ -309,7 +335,7 @@
                 configurable: true
             });
  
-            for (var i = 2, eventsCount = $.eyEvts.length; i < eventsCount; i++) {
+            for (let i = 2, eventsCount = $.eyEvts.length; i < eventsCount; i++) {
                 document.addEventListener($.eyEvts[i], $.listenerDisableAll, true); // Capture Event; passive:false; expected occurrence COMPLETELY before Target Capture and Target Bubble
             }
  
@@ -319,7 +345,7 @@
                 window_ = new Function('return window')();
             }catch(e){}
             if(window_){
-                let _alert = window_.alert; //slope: temporary
+                let _alert = window_.alert; // slope: temporary
                 if (typeof _alert == 'function') {
                     let _mAlert = $.createFakeAlert(_alert);
                     if (_mAlert) {
@@ -613,7 +639,7 @@
         },
  
         mainEnableScript: () => {
-            var cssStyleOnReady = `
+            const cssStyleOnReady = `
             html, html *,
             html *::before, html *::after,
             html *:hover, html *:link, html *:visited, html *:active,
@@ -676,11 +702,11 @@
  
         disableHoverBlock: () => {
  
-            var nMap = new WeakMap()
+            const nMap = new WeakMap();
  
             function elmParam(elm) {
  
-                var mElm = nMap.get(elm);
+                let mElm = nMap.get(elm);
                 if (!mElm) nMap.set(elm, mElm = {});
                 return mElm;
             }
@@ -782,7 +808,7 @@
                 nImg.addEventListener('mouseout', handle, true);
                 nImg.addEventListener('mouseenter', handle, true);
                 nImg.addEventListener('mouseleave', handle, true);
-                //nImg.addEventListener('wheel', handle, $.eh_capture_passive());
+                // nImg.addEventListener('wheel', handle, $.eh_capture_passive());
                 let resObj = {
                     elm: nImg,
                     lastTime: +new Date,
@@ -807,7 +833,7 @@
                     return;
                 }
  
-                //if($.lpKeyPressing)return;
+                // if($.lpKeyPressing)return;
  
                 const targetElm = lastMouseEnterElm
  
@@ -930,7 +956,7 @@
  
                         if (typeof sUrl != 'string') return;
  
-                        //console.log(targetElm, targetElm.querySelectorAll('img').length)
+                        // console.log(targetElm, targetElm.querySelectorAll('img').length)
  
                         // console.log(313, evt.target, s)
                         let _nImg = nImgFunc();
