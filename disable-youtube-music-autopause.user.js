@@ -139,7 +139,7 @@ SOFTWARE.
       // lact -> promptDelaySec -> showDialog -> playbackPauseDelayMs -> pause
       if (retType >= 1) {
         defineProp1(youThereData, 'lactThresholdMs', retType, 5 * tenPU, d => {
-          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+          // console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
         }, args => {
           const [oldValue, newValue, d] = args;
           console.log(`${websiteName} is trying to change value 'lactThresholdMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
