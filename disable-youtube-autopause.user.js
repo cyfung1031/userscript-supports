@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.04.27
+// @version             2023.05.08
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -57,6 +57,13 @@ SOFTWARE.
   const youThereDataHashMapPromptDelay = new WeakMap();
   const youThereDataHashMapLactThreshold = new WeakMap();
   const websiteName = 'YouTube';
+  const scriptStartAt = Date.now();
+
+  function delayLog(...args){
+    const timeNow = Date.now() - scriptStartAt;
+    if(timeNow < 8 * 1000) return;
+    console.log(...args);
+  }
 
   function defineProp1(youThereData, key, retType, constVal, fGet, fSet, hashMap) {
     Object.defineProperty(youThereData, key, {
@@ -105,7 +112,7 @@ SOFTWARE.
       const retType = typeof retPauseDelay === 'string' ? 2 : +(typeof retPauseDelay === 'number');
       if (retType >= 1) {
         defineProp1(youThereData, 'playbackPauseDelayMs', retType, 5 * tenPU, d => {
-          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+          delayLog(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
         }, args => {
           const [oldValue, newValue, d] = args;
           console.log(`${websiteName} is trying to change value 'playbackPauseDelayMs' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
@@ -124,7 +131,7 @@ SOFTWARE.
       if (retType >= 1) {
 
         defineProp1(youThereData, 'promptDelaySec', retType, 5 * mPU, d => {
-          console.log(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
+          delayLog(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
         }, args => {
           const [oldValue, newValue, d] = args;
           console.log(`${websiteName} is trying to change value 'promptDelaySec' from ${oldValue} to ${newValue} ...`, d.toLocaleTimeString());
