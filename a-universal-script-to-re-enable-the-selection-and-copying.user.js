@@ -2,7 +2,7 @@
 // @name                A Universal Script to Re-Enable the Selection and Copying
 // @name:zh-TW          A Universal Script to Re-Enable the Selection and Copying
 // @name:zh-CN          通用脚本重开启选取复制
-// @version             1.8.2.0
+// @version             1.8.2.1
 // @description         Enables select, right-click, copy and drag on pages that disable them. Enhanced Feature: Alt Key HyperLink Text Selection
 // @description:zh-TW   破解鎖右鍵，解除禁止復制、剪切、選擇文本、右鍵菜單、文字複製、文字選取、圖片右鍵等限制。增強功能：Alt鍵超連結文字選取。
 // @description:zh-CN   破解锁右键，解除禁止复制、剪切、选择文本、右键菜单、文字复制、文字选取、图片右键等限制。增强功能：Alt键超连结文字选取。
@@ -657,8 +657,8 @@
             [${$.utHoverTextWrap}]>*{z-index:inherit !important;}
  
             html[${$.utLpSelection}] *:hover, html[${$.utLpSelection}] *:hover * { cursor:text !important;}
-            html[${$.utLpSelection}] :not(input):not(textarea)::selection {background-color: rgba(255, 156, 179,0.5) !important;}
-            html[${$.utLpSelection}] :not(input):not(textarea)::-moz-selection {background-color: rgba(255, 156, 179,0.5) !important;}
+            html[${$.utLpSelection}] :not(input):not(textarea)::selection {background-color: rgba(255, 156, 179, 0.5) !important;}
+            html[${$.utLpSelection}] :not(input):not(textarea)::-moz-selection {background-color: rgba(255, 156, 179, 0.5) !important;}
  
             img[${$.utHoverBlock}="4"]{display:none !important;}
             [${$.utHoverBlock}="7"]{padding:0 !important;overflow:hidden !important;}
@@ -678,7 +678,11 @@
                 border: 0 !important;
                 box-sizing: border-box !important;
                 transform: initial !important;
-                user-select:none !important;
+                -khtml-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+                -webkit-user-select: none !important;
+                user-select: none !important;
                 z-index:1 !important;
                 float: left !important;
                 cursor:inherit !important;
