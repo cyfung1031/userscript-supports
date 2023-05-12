@@ -1,28 +1,28 @@
 // ==UserScript==
-// @name                Force YouTube AV1
-// @description         Force YouTube to use AV1 for video playback
-// @name:zh-TW          強制 YouTube AV1
-// @description:zh-TW   強制 YouTube 使用 AV1 進行影片播放
-// @name:zh-HK          強制 YouTube AV1
-// @description:zh-HK   強制 YouTube 使用 AV1 進行影片播放
-// @name:zh-CN          强制 YouTube AV1
-// @description:zh-CN   强制 YouTube 使用 AV1 进行视频播放
-// @name:ja             YouTube AV1 強制再生
-// @description:ja      YouTube の動画再生に AV1 を強制的に使用する
-// @name:ko             YouTube AV1 강제 사용
-// @description:ko      YouTube의 동영상 재생에 AV1을 강제로 사용하기
-// @name:vi             Bắt buộc YouTube sử dụng AV1
-// @description:vi      Bắt buộc YouTube sử dụng AV1 để phát video
-// @name:de             YouTube AV1 erzwingen
-// @description:de      Erzwingt die Verwendung von AV1 für die Videowiedergabe auf YouTube
-// @name:fr             Forcer YouTube AV1
-// @description:fr      Force YouTube à utiliser AV1 pour la lecture des vidéos
-// @name:it             Forza YouTube AV1
-// @description:it      Forza YouTube a utilizzare AV1 per la riproduzione dei video
-// @name:es             Forzar AV1 en YouTube
-// @description:es      Forzar a YouTube a usar AV1 para la reproducción de videos
+// @name                Use YouTube AV1
+// @description         Use AV1 for video playback on YouTube
+// @name:zh-TW          使用 YouTube AV1
+// @description:zh-TW   使用 AV1 進行 YouTube 影片播放
+// @name:zh-HK          使用 YouTube AV1
+// @description:zh-HK   使用 AV1 進行 YouTube 影片播放
+// @name:zh-CN          使用 YouTube AV1
+// @description:zh-CN   使用 AV1 进行 YouTube 视频播放
+// @name:ja             YouTube AV1 の使用
+// @description:ja      YouTube の動画再生に AV1 を使用する
+// @name:ko             YouTube AV1 사용
+// @description:ko      YouTube의 동영상 재생에 AV1을 사용하기
+// @name:vi             Sử dụng YouTube AV1
+// @description:vi      Sử dụng AV1 để phát video trên YouTube
+// @name:de             YouTube AV1 verwenden
+// @description:de      Verwende AV1 für die Videowiedergabe auf YouTube
+// @name:fr             Utiliser YouTube AV1
+// @description:fr      Utiliser AV1 pour la lecture des vidéos sur YouTube
+// @name:it             Usa YouTube AV1
+// @description:it      Usa AV1 per la riproduzione dei video su YouTube
+// @name:es             Usar AV1 en YouTube
+// @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             1.0.5
+// @version             1.0.6
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
