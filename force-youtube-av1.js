@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name                YouTube AV1 Force
+// @name                Force YouTube AV1
 // @description         Force YouTube to use AV1 for video playback
 // @name:zh-TW          強制 YouTube AV1
 // @description:zh-TW   強制 YouTube 使用 AV1 進行影片播放
@@ -15,14 +15,14 @@
 // @description:vi      Bắt buộc YouTube sử dụng AV1 để phát video
 // @name:de             YouTube AV1 erzwingen
 // @description:de      Erzwingt die Verwendung von AV1 für die Videowiedergabe auf YouTube
-// @name:fr             Forcer l'utilisation d'AV1 sur YouTube
+// @name:fr             Forcer YouTube AV1
 // @description:fr      Force YouTube à utiliser AV1 pour la lecture des vidéos
-// @name:it             Forzare l'utilizzo di AV1 su YouTube
+// @name:it             Forza YouTube AV1
 // @description:it      Forza YouTube a utilizzare AV1 per la riproduzione dei video
-// @name:es             Forzar el uso de AV1 en YouTube
-// @description:es      Forzar a YouTube a utilizar AV1 para la reproducción de videos 
+// @name:es             Forzar AV1 en YouTube
+// @description:es      Forzar a YouTube a usar AV1 para la reproducción de videos
 // @namespace           http://tampermonkey.net/
-// @version             1.0.0
+// @version             1.0.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -34,6 +34,9 @@
 // @grant               none
 // @run-at              document-start
 // @license             MIT
+// @compatible          chrome
+// @compatible          firefox
+// @compatible          opera
 // @unwrap
 // @allFrames
 // @inject-into page
