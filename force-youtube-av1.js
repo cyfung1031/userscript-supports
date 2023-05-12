@@ -22,7 +22,7 @@
 // @name:es             Forzar AV1 en YouTube
 // @description:es      Forzar a YouTube a usar AV1 para la reproducción de videos
 // @namespace           http://tampermonkey.net/
-// @version             1.0.1
+// @version             1.0.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -59,7 +59,7 @@
     function typeTest(type) {
 
 
-      let disallowed_types = ['vp8', 'vp9', 'mp4a', 'vp09'];
+      let disallowed_types = ['vp8', 'vp9', 'mp4a'];
       // mp4a is a container for AAC. In most cases (<192kbps), Opus is better than AAC.
       // vp09 will be also disabled if av1 is enabled.
       for (const disallowed_type of disallowed_types) {
