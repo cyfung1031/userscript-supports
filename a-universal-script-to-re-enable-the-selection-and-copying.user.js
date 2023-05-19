@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.8.2.3
+// @version             1.8.2.4
 // @description         Enables select, right-click, copy and drag on pages that disable them. Enhanced Feature: Alt Key HyperLink Text Selection
 // @description:zh-TW   破解鎖右鍵，解除禁止復制、剪切、選擇文本、右鍵菜單、文字複製、文字選取、圖片右鍵等限制。增強功能：Alt鍵超連結文字選取。
 // @description:zh-CN   破解锁右键，解除禁止复制、剪切、选择文本、右键菜单、文字复制、文字选取、图片右键等限制。增强功能：Alt键超连结文字选取。
@@ -170,11 +170,21 @@
                 return elm
             }).then(elm => {
                 const selectionStyle = getComputedStyle(elm, '::selection');
-                if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionStyle.getPropertyValue('background-color'))) document.documentElement.setAttribute($.utSelectionColorHack, "");
+                let selectionBackgroundColor = selectionStyle.getPropertyValue('background-color');
+
+                if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionBackgroundColor)){
+                    document.documentElement.setAttribute($.utSelectionColorHack, "");
+                }else {
+                    let bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color');
+                    if(bodyBackgroundColor === selectionBackgroundColor){
+                        document.documentElement.setAttribute($.utSelectionColorHack, "");
+                    }
+                }
                 return elm;
             }).then(elm => {
-                const elmStyle = getComputedStyle(elm)
-                if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(elmStyle.getPropertyValue('-webkit-tap-highlight-color'))) document.documentElement.setAttribute($.utTapHighlight, "");
+                const elmStyle = getComputedStyle(elm);
+                let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
+                if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
             })
         },
  
