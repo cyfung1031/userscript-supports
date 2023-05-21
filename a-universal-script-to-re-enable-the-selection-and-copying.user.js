@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.8.2.6
+// @version             1.9.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -721,12 +721,22 @@
  
         mainEnableScript: () => {
             const cssStyleOnReady = `
+
+            html {
+                --sac-user-select: auto;
+            }
+            [role="slider"], input, textarea {
+                --sac-user-select: nil;
+            }
+            label:not(:empty) {
+                --sac-user-select: auto;
+            }
+
             html, html *,
             html *::before, html *::after,
             html *:hover, html *:link, html *:visited, html *:active,
-            html *[style], html *[class]{
-                -khtml-user-select: auto !important; -moz-user-select: auto !important; -ms-user-select: auto !important;
-                -webkit-touch-callout: default !important; -webkit-user-select: auto !important; user-select: auto !important;
+            html *[style], html *[class]:not(input):not(textarea):not({
+                -webkit-touch-callout: default !important; user-select: var(--sac-user-select) !important;
             }
             *:hover>img[src]{pointer-events:auto !important;}
  
@@ -759,10 +769,6 @@
                 border: 0 !important;
                 box-sizing: border-box !important;
                 transform: initial !important;
-                -khtml-user-select: none !important;
-                -moz-user-select: none !important;
-                -ms-user-select: none !important;
-                -webkit-user-select: none !important;
                 user-select: none !important;
                 z-index:1 !important;
                 float: left !important;
