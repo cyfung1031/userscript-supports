@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.05.21
+// @version             2023.05.21.1
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -170,13 +170,15 @@ SOFTWARE.
         mi++; // start at {INT_INITIAL_VALUE + 1}
         if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED; // just in case
         if (ms > SAFE_INT_LIMIT) return mi
-        let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
-        handler[$busy] || (handler[$busy] = 0);
-        sb.set(mi, {
-          handler,
-          [prop]: ms, // timeout / interval; value can be undefined
-          nextAt: Date.now() + (ms > 0 ? ms : 0) // overload for setTimeout(func);
-        });
+        if (typeof func === 'function') { // ignore all non-function parameter
+          let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
+          handler[$busy] || (handler[$busy] = 0);
+          sb.set(mi, {
+            handler,
+            [prop]: ms, // timeout / interval; value can be undefined
+            nextAt: Date.now() + (ms > 0 ? ms : 0) // overload for setTimeout(func);
+          });
+        }
         return mi;
       };
     };
