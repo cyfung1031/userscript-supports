@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.2.6
+// @version             0.3.0
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -185,4 +185,146 @@ SOFTWARE.
     }
   };
   core.begin();
+
+
+
+
+
+
+
+  // YouTube Watch Page Reflect (WPR)
+
+
+
+  // This script enhances the functionality of YouTube pages by reflecting changes in the page state.
+
+  (async function youTubeWPR() {
+
+    // A WeakSet to keep track of elements being monitored for mutations.
+    const monitorWeakSet = new WeakSet();
+
+    // Function to reflect the current state of the YouTube page.
+    function _reflect() {
+      const youtubeWpr = document.documentElement.getAttribute("youtube-wpr");
+      let s = '';
+
+      // Check if the current page is the video watch page.
+      if (location.pathname === '/watch') {
+        let watch = document.querySelector("ytd-watch-flexy");
+        let chat = document.querySelector("ytd-live-chat-frame#chat");
+
+        if (watch) {
+          // Determine the state of the chat and video player on the watch page and generate a state string.
+          s += !chat ? 'h0' : (chat.hasAttribute('collapsed') || !document.querySelector('iframe#chatframe')) ? 'h1' : 'h2';
+          s += watch.hasAttribute('is-two-columns_') ? 's' : 'S';
+          s += watch.hasAttribute('fullscreen') ? 'F' : 'f';
+          s += watch.hasAttribute('theater') ? 'T' : 't';
+        }
+      }
+
+      // Update the reflected state if it has changed.
+      if (s !== youtubeWpr) {
+        document.documentElement.setAttribute("youtube-wpr", s);
+      }
+    }
+
+    // Function to reflect changes in specific attributes of monitored elements.
+    function reflect(nodeName, attrNames, forced) {
+      if (!forced) {
+        let skip = true;
+        for (const attrName of attrNames) {
+          if (nodeName === 'ytd-live-chat-frame') {
+            if (attrName === 'collapsed') skip = false;
+          } else if (nodeName === 'ytd-watch-flexy') {
+            if (attrName === 'is-two-columns_') skip = false;
+            else if (attrName === 'fullscreen') skip = false;
+            else if (attrName === 'theater') skip = false;
+          }
+        }
+        if (skip) return;
+      }
+
+      // Log the mutated element and its attributes.
+      // console.log(nodeName, attrNames);
+
+      // Call _reflect() to update the reflected state.
+      _reflect();
+    }
+
+    // Callback function for the MutationObserver that tracks mutations in monitored elements.
+    function callback(mutationsList) {
+      const attrNames = new Set();
+      let nodeName = null;
+      for (const mutation of mutationsList) {
+        if (nodeName === null && mutation.target) nodeName = mutation.target.nodeName.toLowerCase();
+        attrNames.add(mutation.attributeName);
+      }
+      reflect(nodeName, attrNames, false);
+    }
+
+    // Function to start monitoring an element for mutations.
+    function monitor(element) {
+      if (!element) return;
+      if (monitorWeakSet.has(element)) {
+        return;
+      }
+
+      monitorWeakSet.add(element);
+
+      const observer = new MutationObserver(callback);
+      observer.observe(element, { attributes: true });
+
+      return 1;
+    }
+
+    let timeout = 0;
+
+    // Function to monitor relevant elements and update the reflected state.
+    let g = (forced) => {
+      let b = 0;
+      b = b | monitor(document.querySelector("ytd-watch-flexy"));
+      b = b | monitor(document.querySelector("ytd-live-chat-frame#chat"));
+      if (b || forced) {
+        _reflect();
+      }
+    }
+
+    // Event handler function that triggers when the page finishes navigation or page data updates.
+    let eventHandlerFunc = async () => {
+      timeout = Date.now() + 800;
+      g(1);
+    }
+
+    let loadState = 0;
+
+    // Function to initialize the script and start monitoring the page.
+    async function actor() {
+      if (loadState === 0) {
+        if (!document.documentElement.hasAttribute("youtube-wpr")) {
+          loadState = 1;
+          document.documentElement.setAttribute("youtube-wpr", "");
+          document.addEventListener("yt-navigate-finish", eventHandlerFunc, false);
+          document.addEventListener("yt-page-data-updated", eventHandlerFunc, false);
+        } else {
+          loadState = -1;
+          document.removeEventListener("yt-page-data-fetched", actor, false);
+          return;
+        }
+      }
+      if (loadState === 1) {
+        timeout = Date.now() + 800;
+        // Function to continuously monitor elements and update the reflected state.
+        let pf = () => {
+          g(0);
+          if (Date.now() < timeout) requestAnimationFrame(pf);
+        };
+        pf();
+      }
+    }
+
+    // Event listener that triggers when page data is fetched.
+    document.addEventListener("yt-page-data-fetched", actor, false);
+  })();
+
+
 })();
