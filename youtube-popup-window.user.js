@@ -1,13 +1,17 @@
 // ==UserScript==
-// @name         YouTube Popup Window
-// @namespace    http://tampermonkey.net/
-// @version      0.1.0
-// @description  Enhances YouTube with a popup window feature.
-// @author       CY Fung
-// @license      MIT
-// @match        https://www.youtube.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
-// @grant        GM_registerMenuCommand
+// @name                YouTube Popup Window
+// @name:zh-TW          YouTube Popup Window
+// @name:ja             YouTube Popup Window
+// @namespace           http://tampermonkey.net/
+// @version             0.1.1
+// @description         Enhances YouTube with a popup window feature.
+// @description:zh-TW   透過彈出視窗功能增強YouTube。
+// @description:ja      YouTubeをポップアップウィンドウ機能で強化します。
+// @author              CY Fung
+// @license             MIT
+// @match               https://www.youtube.com/*
+// @icon                https://www.google.com/s2/favicons?sz=64&domain=youtube.com
+// @grant               GM_registerMenuCommand
 // @allFrames
 // ==/UserScript==
 
