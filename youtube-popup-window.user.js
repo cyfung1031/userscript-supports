@@ -3,7 +3,7 @@
 // @name:zh-TW          YouTube Popup Window
 // @name:ja             YouTube Popup Window
 // @namespace           http://tampermonkey.net/
-// @version             0.1.1
+// @version             0.1.2
 // @description         Enhances YouTube with a popup window feature.
 // @description:zh-TW   透過彈出視窗功能增強YouTube。
 // @description:ja      YouTubeをポップアップウィンドウ機能で強化します。
