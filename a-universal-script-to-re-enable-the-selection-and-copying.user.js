@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.9.0.2
+// @version             1.9.0.3
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -326,17 +326,42 @@
             function isDeactivePreventDefault(evt) {
                 if (!evt || $.bypass) return false;
                 let j = $.eyEvts.indexOf(evt.type);
+                const target = evt.target;
                 switch (j) {
                     case 6:
                         if ($.enableDragging) return false;
-                        if (evt.target && evt.target.nodeType==1 && evt.target.hasAttribute('draggable')) {
+                        if (target && target.nodeType == 1 && target.hasAttribute('draggable')) {
                             $.enableDragging = true;
                             return false;
                         }
                         // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
                         return true;
                     case 3:
-                        if (evt.target instanceof Element && (evt.target.textContent || "").trim().length === 0) return false; // exclude elements like video
+                        if (target instanceof Element) {
+                            switch (target.nodeName) {
+                                case 'IMG':
+                                case 'SPAN':
+                                case 'P':
+                                case 'BODY':
+                                case 'HTML':
+                                case 'A':
+                                case 'B':
+                                case 'I':
+                                case 'PRE':
+                                case 'CODE':
+                                case 'CENTER':
+                                case 'SMALL':
+                                case 'SUB':
+                                case 'SAMP':
+                                    return true;
+                                case 'VIDEO':
+                                case 'AUDIO':
+                                    return false;
+                            }
+                            if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
+                                return false; // exclude elements like video
+                            }
+                        }
                         return true;
                     case -1:
                         return false;
@@ -398,7 +423,9 @@
  
             Event.prototype.preventDefault = (function(f) {
                 function preventDefault() {
-                    if (!isDeactivePreventDefault(this)) f.call(this);
+                    let r = isDeactivePreventDefault(this);
+                    console.log(arguments,r)
+                    if (!r) f.call(this);
                 }
                 preventDefault.toString = () => f.toString();
                 return preventDefault;
