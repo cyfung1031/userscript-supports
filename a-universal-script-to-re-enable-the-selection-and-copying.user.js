@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.10.0.1
+// @version             1.10.0.2
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -98,7 +98,8 @@
     if (!document || !document.documentElement) return window.requestAnimationFrame($$); // this is tampermonkey bug?? not sure
     //console.log('script at', location)
 
-    const $nil = () => { }
+    const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
+    const $nil = () => { };
 
     function isLatestBrowser() {
 
@@ -112,7 +113,7 @@
         } catch (e) { }
         return !!res;
     }
-    if (!isLatestBrowser()) throw 'Browser version before 2020-01-01 is not supported. Please update to the latest version.';
+    if (!isLatestBrowser()) console.warn(`${SCRIPT_TAG}: Browser version before 2020-01-01 is not recommended. Please update to the latest version.`);
 
     function getEventListenerSupport() {
         if ('_b1850' in $) return $._b1850
@@ -1215,10 +1216,21 @@
         MenuEnable: (
             class MenuEnable {
 
+                /**
+                 * 
+                 * @param {string} textToEnable 
+                 * @param {string} textToDisable 
+                 * @param {Function} callback 
+                 * @param {boolean?} initalEnable 
+                 */
                 constructor(textToEnable, textToDisable, callback, initalEnable) {
+                    /** @type {string} */
                     this.textToEnable = textToEnable;
+                    /** @type {string} */
                     this.textToDisable = textToDisable;
+                    /** @type {Function} */
                     this.callback = callback;
+                    /** @type {Function} */
                     this.gx = this.gx.bind(this);
                 }
 
