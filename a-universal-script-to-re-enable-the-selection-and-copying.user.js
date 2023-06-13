@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.11.0.3
+// @version             1.12.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -136,16 +136,6 @@
         return (getEventListenerSupport() & 1) === 1;
     }
 
-    function updateIsWindowEventSupported() {
-        // https://developer.mozilla.org/en-US/docs/Web/API/Window/event
-        // FireFox >= 66
-        let p = document.createElement('HTMLElementEventChecker');
-        p.onclick = function (ev) { $.isGlobalEventCheckForFuncReplacer = (window.event === ev) };
-        p.dispatchEvent(new Event('click'))
-        p = null;
-    }
-
-
     function inIframe() {
         try {
             return window.self !== window.top;
@@ -196,6 +186,10 @@
         ksFuncReplacerCounterId: 0,
         isStackCheckForFuncReplacer: false, // multi-line stack in FireFox
         isGlobalEventCheckForFuncReplacer: false,
+        enableReturnValueReplacment: false, // set true by code
+
+        /** @readonly */
+        eyEvts: ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy'], // slope: throughout
 
         isNum: (d) => (d > 0 || d < 0 || d === 0),
 
@@ -204,6 +198,15 @@
         isAnySelection: function () {
             const sel = getSelection();
             return !sel ? null : (typeof sel.isCollapsed === 'boolean') ? !sel.isCollapsed : (sel.toString().length > 0);
+        },
+
+        updateIsWindowEventSupported: function () {
+            // https://developer.mozilla.org/en-US/docs/Web/API/Window/event
+            // FireFox >= 66
+            let p = document.createElement('noscript');
+            p.onclick = function (ev) { $.isGlobalEventCheckForFuncReplacer = (window.event === ev) };
+            p.dispatchEvent(new Event('click'));
+            p = null;
         },
 
         /**
@@ -266,23 +269,8 @@
         },
 
 
-        /** @type {EventListener} */
-        listenerDisableAll: async (evt) => {
-            let elmNode = evt.target;
-            const pName = 'on' + evt.type;
-            evt = null;
-            await Promise.resolve();
-            while ((elmNode instanceof Node) && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
-                const f = elmNode[pName];
-                if (typeof f === 'function') {
-                    let replacerId = f[$.ksFuncReplacerCounter];
-                    if (replacerId > 0) break; // assume all parent functions are replaced; for performance only
-                    // note: "return false" is preventDefault() in VanilaJS but preventDefault()+stopPropagation() in jQuery.
-                    elmNode[pName] = $.weakMapFuncReplaced.get(f) || $.createFuncReplacer(f);
-                }
-                elmNode = elmNode.parentNode;
-            }
-        },
+        // listenerDisableAll: async (evt) => {
+        // },
 
         onceCssHighlightSelection: async () => {
             if (document.documentElement.hasAttribute($.utLpSelection)) return;
@@ -368,79 +356,77 @@
 
         },
 
-        enableSelectClickCopy: function () {
-            $.eyEvts = ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy']; // slope: throughout
-
-            function isDeactivePreventDefault(evt) {
-                if (!evt || $.bypass) return false;
-                let j = $.eyEvts.indexOf(evt.type);
-                const target = evt.target;
-                switch (j) {
-                    case 6: // dragstart
-                        if ($.enableDragging) return false;
-                        if (target instanceof Element && target.hasAttribute('draggable')) {
-                            $.enableDragging = true;
-                            return false;
-                        }
-                        // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
-                        return true;
-                    case 3: // contextmenu
-                        if (target instanceof Element) {
-                            switch (target.nodeName) {
-                                case 'IMG':
-                                case 'SPAN':
-                                case 'P':
-                                case 'BODY':
-                                case 'HTML':
-                                case 'A':
-                                case 'B':
-                                case 'I':
-                                case 'PRE':
-                                case 'CODE':
-                                case 'CENTER':
-                                case 'SMALL':
-                                case 'SUB':
-                                case 'SAMP':
-                                    return true;
-                                case 'VIDEO':
-                                case 'AUDIO':
-                                    return false;
-                            }
-                            if (target.closest('ytd-player#ytd-player')) return false;
-                            if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
-                                return false; // exclude elements like video
-                            }
-                        }
-                        return true;
-                    case -1:
+        isDeactivePreventDefault: function (evt) {
+            if (!evt || $.bypass) return false;
+            let j = $.eyEvts.indexOf(evt.type);
+            const target = evt.target;
+            switch (j) {
+                case 6: // dragstart
+                    if ($.enableDragging) return false;
+                    if (target instanceof Element && target.hasAttribute('draggable')) {
+                        $.enableDragging = true;
                         return false;
-                    case 0: // keydown
-                    case 1: // keyup
-                        return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
-                    case 2: // copy
-                        if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
-                        if (evt.cancelable && evt.defaultPrevented === false) { } else return true;
-
-                        const cd = evt.clipboardData[$.ksSetData];
-                        if (typeof WeakRef === 'function') {
-                            let obj = cd ? cd.deref() : null;
-                            if (obj && obj !== evt) return true; // in case there is a bug
-                            evt.clipboardData[$.ksSetData] = new WeakRef(evt);
-                        } else {
-                            if (cd && cd !== evt) return true; // in case there is a bug
-                            evt.clipboardData[$.ksSetData] = evt;
+                    }
+                    // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
+                    return true;
+                case 3: // contextmenu
+                    if (target instanceof Element) {
+                        switch (target.nodeName) {
+                            case 'IMG':
+                            case 'SPAN':
+                            case 'P':
+                            case 'BODY':
+                            case 'HTML':
+                            case 'A':
+                            case 'B':
+                            case 'I':
+                            case 'PRE':
+                            case 'CODE':
+                            case 'CENTER':
+                            case 'SMALL':
+                            case 'SUB':
+                            case 'SAMP':
+                                return true;
+                            case 'VIDEO':
+                            case 'AUDIO':
+                                return false;
                         }
+                        if (target.closest('ytd-player#ytd-player')) return false;
+                        if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
+                            return false; // exclude elements like video
+                        }
+                    }
+                    return true;
+                case -1:
+                    return false;
+                case 0: // keydown
+                case 1: // keyup
+                    return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
+                case 2: // copy
+                    if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
+                    if (evt.cancelable && evt.defaultPrevented === false) { } else return true;
 
-                        $.clipDataProcess(evt.clipboardData);
+                    const cd = evt.clipboardData[$.ksSetData];
+                    if (typeof WeakRef === 'function') {
+                        let obj = cd ? cd.deref() : null;
+                        if (obj && obj !== evt) return true; // in case there is a bug
+                        evt.clipboardData[$.ksSetData] = new WeakRef(evt);
+                    } else {
+                        if (cd && cd !== evt) return true; // in case there is a bug
+                        evt.clipboardData[$.ksSetData] = evt;
+                    }
 
-                        return true; // preventDefault in clipDataProcess
+                    $.clipDataProcess(evt.clipboardData);
+
+                    return true; // preventDefault in clipDataProcess
 
 
-                    default:
-                        return true;
-                }
+                default:
+                    return true;
             }
-            $.isDeactivePreventDefault = isDeactivePreventDefault;
+        },
+
+        enableSelectClickCopy: function () {
 
             !(function ($setData) {
                 DataTransfer.prototype.setData = (function setData() {
@@ -480,7 +466,7 @@
 
             Event.prototype.preventDefault = (function (f) {
                 function preventDefault() {
-                    if (!isDeactivePreventDefault(this)) f.call(this);
+                    if (!$.isDeactivePreventDefault(this)) f.call(this);
                 }
                 preventDefault.toString = f.toString.bind(f);
                 return preventDefault;
@@ -491,16 +477,17 @@
                     return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
                 },
                 set(newValue) {
-                    if (newValue === false && !isDeactivePreventDefault(this)) this.preventDefault();
+                    if (newValue === false && (typeof this.cancelable !== 'boolean' || this.cancelable) && !$.isDeactivePreventDefault(this)) this.preventDefault();
                     this[$.ksEventReturnValue] = newValue;
                 },
                 enumerable: true,
                 configurable: true
             });
 
-            for (const eyEvt of $.eyEvts) {
-                document.addEventListener(eyEvt, $.listenerDisableAll, true); // Capture Event; passive:false; expected occurrence COMPLETELY before Target Capture and Target Bubble
-            }
+            $.enableReturnValueReplacment = true;
+            // for (const eyEvt of $.eyEvts) {
+            //     document.addEventListener(eyEvt, $.listenerDisableAll, true); // Capture Event; passive:false; expected occurrence COMPLETELY before Target Capture and Target Bubble
+            // }
 
             // userscript bug ?  window.alert not working
             /** @type {Window | null} */
@@ -1405,7 +1392,35 @@
         },
 
         /** @type {EventListener} */
-        genericEventHandler: (evt) => {
+        genericEventHandlerLevel2: (evt) => {
+            if ($.gm_absolute_mode) {
+                // inspired by https://greasyfork.org/en/scripts/23772-absolute-enable-right-click-copy
+                evt.stopPropagation();
+                evt.stopImmediatePropagation();
+            }
+            // .. and more
+
+            if($.enableReturnValueReplacment === true){
+                // $.listenerDisableAll(evt);
+                let elmNode = evt.target;
+                const pName = 'on' + evt.type;
+                evt = null;
+                while ((elmNode instanceof Node) && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
+                    const f = elmNode[pName];
+                    if (typeof f === 'function') {
+                        let replacerId = f[$.ksFuncReplacerCounter];
+                        if (replacerId > 0) break; // assume all parent functions are replaced; for performance only
+                        // note: "return false" is preventDefault() in VanilaJS but preventDefault()+stopPropagation() in jQuery.
+                        elmNode[pName] = $.weakMapFuncReplaced.get(f) || $.createFuncReplacer(f);
+                    }
+                    elmNode = elmNode.parentNode;
+                }
+            }
+
+        },
+
+        /** @type {EventListener} */
+        genericEventHandlerLevel1: (evt) => {
             if ($.gm_absolute_mode) {
                 // inspired by https://greasyfork.org/en/scripts/23772-absolute-enable-right-click-copy
                 evt.stopPropagation();
@@ -1414,8 +1429,12 @@
         },
 
         eventsInjection: function () {
-            for (const s of ['contextmenu', 'copy', 'cut', 'paste', 'mouseup', 'mousedown', 'keyup', 'keydown', 'drag', 'dragstart', 'select', 'selectstart']) {
-                document.addEventListener(s, $.genericEventHandler, true);
+            for (const s of ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy']) {
+                document.addEventListener(s, $.genericEventHandlerLevel2, true);
+            }
+
+            for (const s of ['cut', 'paste', 'mouseup', 'mousedown', 'drag', 'select']) {
+                document.addEventListener(s, $.genericEventHandlerLevel1, true);
             }
         }
 
@@ -1450,7 +1469,7 @@
 
     console.log(`userscript running - ${SCRIPT_TAG}`);
 
-    updateIsWindowEventSupported();
+    $.updateIsWindowEventSupported();
 
     if (typeof GM_registerMenuCommand === 'function' && typeof GM_unregisterMenuCommand === 'function') {
 
