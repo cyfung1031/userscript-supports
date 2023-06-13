@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.12.1.1
+// @version             1.13.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -190,6 +190,7 @@
 
         /** @readonly */
         eyEvts: ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy'], // slope: throughout
+        delayMouseUpTasks: 0,
 
         isNum: (d) => (d > 0 || d < 0 || d === 0),
 
@@ -788,7 +789,7 @@
 
         // note: "user-select: XXX" is deemed as invalid property value in FireFox.
 
-        mainEnableScript: () => {
+        injectCSSRules: () => {
             const cssStyleOnReady = `
 
             html {
@@ -855,21 +856,7 @@
             }
  
             `.trim();
-
-            $.enableSelectClickCopy()
             $.createCSSElement(cssStyleOnReady, document.documentElement);
-
-        },
-
-        /**
-         * 
-         * @param {EventListener} listenerPress 
-         * @param {EventListener} listenerRelease 
-         */
-        mainEvents: (listenerPress, listenerRelease) => {
-            document.addEventListener("mousedown", listenerPress, true); // Capture Event; (desktop)
-            document.addEventListener("contextmenu", listenerPress, true); // Capture Event; (desktop&mobile)
-            document.addEventListener("mouseup", listenerRelease, false); // Bubble Event;
         },
 
         disableHoverBlock: () => {
@@ -1227,15 +1214,15 @@
 
         },
 
-        preventAuxClickRepeat: function () {
+        // preventAuxClickRepeat: function () {
 
-            const opt = $.eh_capture_active();
-            document.addEventListener('mousedown', $.acrAuxDown, opt)
-            document.addEventListener('mouseup', $.acrAuxUp, opt)
-            document.addEventListener('auxclick', $.acrAuxClick, opt)
+        //     const opt = $.eh_capture_active();
+        //     // document.addEventListener('mousedown', $.acrAuxDown, opt)
+        //     // document.addEventListener('mouseup', $.acrAuxUp, opt)
+        //     document.addEventListener('auxclick', $.acrAuxClick, opt)
 
 
-        },
+        // },
 
         MenuEnable: (
             class MenuEnable {
@@ -1402,10 +1389,12 @@
             }
             // .. and more
 
-            if($.enableReturnValueReplacment === true){
+            const evtType = (evt || 0).type
+
+            if (evtType && $.enableReturnValueReplacment === true) {
                 // $.listenerDisableAll(evt);
                 let elmNode = evt.target;
-                const pName = 'on' + evt.type;
+                const pName = 'on' + evtType;
                 evt = null;
                 while ((elmNode instanceof Node) && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
                     const f = elmNode[pName];
@@ -1419,6 +1408,12 @@
                 }
             }
 
+            if (evtType === 'contextmenu') {
+                if (evt.defaultPrevented !== true) {
+                    $.mainListenerPress(evt);
+                }
+            }
+
         },
 
         /** @type {EventListener} */
@@ -1427,6 +1422,18 @@
                 // inspired by https://greasyfork.org/en/scripts/23772-absolute-enable-right-click-copy
                 evt.stopPropagation();
                 evt.stopImmediatePropagation();
+            }
+            const evtType = (evt || 0).type
+            if (evtType === 'mousedown') {
+                $.acrAuxDown(evt);
+                if (evt.defaultPrevented !== true) {
+                    $.mainListenerPress(evt);
+                }
+            } else if (evtType === 'mouseup') {
+                $.acrAuxUp(evt);
+                if (evt.defaultPrevented !== true) {
+                    $.mainListenerRelease(evt);
+                }
             }
         },
 
@@ -1438,36 +1445,55 @@
             for (const s of ['cut', 'paste', 'mouseup', 'mousedown', 'drag', 'select']) {
                 document.addEventListener(s, $.genericEventHandlerLevel1, true);
             }
-        }
 
-    }
+            document.addEventListener('auxclick', $.acrAuxClick, true)
+        },
 
-    $.eventsInjection();
+        delayMouseUpTasksHandler: () => {
+            if ($.delayMouseUpTasks > 0) {
+                const flag = $.delayMouseUpTasks
+                $.delayMouseUpTasks = 0;
+                if ((flag & 1) === 1) $.mAlert_UP();
+                if ((flag & 2) === 2 && $.enableDragging === true) $.enableDragging = false;
+            }
+        },
 
-    // $.holdingElm=null;
-    $.mainEnableScript();
-
-    if (isSupportAdvancedEventListener()) $.lpEnable(); // top capture event for alt-click
-
-    $.mainEvents(
-        function (evt) {
+        mainListenerPress: (evt) => { // Capture Event; (mousedown - desktop; contextmenu - desktop&mobile)
             //   $.holdingElm=evt.target;
             //   console.log('down',evt.target)
             if ($.onceCssHighlightSelection) window.requestAnimationFrame($.onceCssHighlightSelection);
-            if (evt.button === 2 || evt.type === "contextmenu") $.mAlert_DOWN();
+            const isContextMenuEvent = evt.type === "contextmenu";
+            if (evt.button === 2 || isContextMenuEvent) $.mAlert_DOWN();
+            if (isContextMenuEvent && $.delayMouseUpTasks === 0) {
+                $.delayMouseUpTasks |= 1;
+                window.requestAnimationFrame($.delayMouseUpTasksHandler)
+            }
         },
-        function (evt) {
+
+        mainListenerRelease: (evt) => { // Capture Event; (mouseup - desktop)
             //  $.holdingElm=null;
             //   console.log('up',evt.target)
-            if (evt.button === 2) $.mAlert_UP();
-            if ($.enableDragging === true) {
-                $.enableDragging = false;
+            if ($.delayMouseUpTasks === 0) { // skip if it is already queued 
+                if (evt.button === 2) $.delayMouseUpTasks |= 1;
+                if ($.enableDragging === true) $.delayMouseUpTasks |= 2;
+                if ($.delayMouseUpTasks > 0) {
+                    window.requestAnimationFrame($.delayMouseUpTasksHandler)
+                }
             }
         }
-    );
+
+
+    }
+
+    // $.holdingElm=null;
+    $.eventsInjection();
+    $.enableSelectClickCopy()
+    $.injectCSSRules();
+
+    if (isSupportAdvancedEventListener()) $.lpEnable(); // top capture event for alt-click
 
     $.disableHoverBlock();
-    $.preventAuxClickRepeat();
+    // $.preventAuxClickRepeat();
 
     console.log(`userscript running - ${SCRIPT_TAG}`);
 
