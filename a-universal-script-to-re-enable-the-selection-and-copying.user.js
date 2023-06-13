@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.13.0.1
+// @version             1.14.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -266,6 +266,7 @@
             }
             resFX[$.ksFuncReplacerCounter] = id;
             resFX.toString = originalFunc.toString.bind(originalFunc);
+            $.weakMapFuncReplaced.set(originalFunc, resFX);
             return resFX;
         },
 
@@ -1395,7 +1396,9 @@
                 // $.listenerDisableAll(evt);
                 let elmNode = evt.target;
                 const pName = 'on' + evtType;
+                let maxN = 99;
                 while ((elmNode instanceof Node) && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
+                    if (--maxN < 4) break; // prevent unknown case
                     const f = elmNode[pName];
                     if (typeof f === 'function') {
                         let replacerId = f[$.ksFuncReplacerCounter];
