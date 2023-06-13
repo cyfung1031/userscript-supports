@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.10.0.2
+// @version             1.11.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -102,7 +102,6 @@
     const $nil = () => { };
 
     function isLatestBrowser() {
-
         let res;
         try {
             let o = { $nil };
@@ -145,12 +144,13 @@
         }
     }
 
-     /** @type {() => Selection | null} */ 
+    /** @type {() => Selection | null} */
     const getSelection = window.getSelection || Error()();
-    /** @type {(callback: FrameRequestCallback) => number} */ 
+    /** @type {(callback: FrameRequestCallback) => number} */
     const requestAnimationFrame = window.requestAnimationFrame || Error()();
     /** @type {(elt: Element, pseudoElt?: string | null) => CSSStyleDeclaration} */
     const getComputedStyle = window.getComputedStyle.bind(window) || Error()();
+
 
     const $ = {
         utSelectionColorHack: 'msmtwejkzrqa',
@@ -160,7 +160,7 @@
         // utNonEmptyElm: 'ilkpvtsnwmjb',
         utNonEmptyElmPrevElm: 'jttkfplemwzo',
         utHoverTextWrap: 'oseksntfvucn',
-        ksFuncReplacerNonFalse: '___dqzadwpujtct___',
+        ksFuncReplacerCounter: '___dqzadwpujtct___',
         ksEventReturnValue: ' ___ndjfujndrlsx___',
         ksSetData: '___rgqclrdllmhr___',
         ksNonEmptyPlainText: '___grpvyosdjhuk___',
@@ -180,6 +180,12 @@
 
         lpKeyPressing: false,
         lpKeyPressingPromise: Promise.resolve(),
+
+        /** @readonly */
+        weakMapFuncReplaced: new WeakMap(),
+        ksFuncReplacerCounterId: 0,
+        isStackCheckForFuncReplacer: true,
+        isGlobalEventCheckForFuncReplacer: true,
 
         isNum: (d) => (d > 0 || d < 0 || d === 0),
 
@@ -219,20 +225,37 @@
          * @param {string} pName 
          * @returns 
          */
-        createFuncReplacer: function (originalFunc, pName) {
+        createFuncReplacer: function (originalFunc) {
+            const id = ++$.ksFuncReplacerCounterId;
             const resFX = function (ev) {
                 const res = originalFunc.apply(this, arguments);
-                if (!this || this[pName] !== resFX) return res; // if this is null or undefined, or this.onXXX is not this function
-                if (res === false) return; // return undefined when "return false;"
-                originalFunc[$.ksFuncReplacerNonFalse] = true;
-                this[pName] = originalFunc; // restore original
+                if (res === false) {
+                    if (!this || !ev) return false;
+                    const pName = 'on' + ev.type;
+                    const selfFunc = this[pName];
+                    if (typeof selfFunc !== 'function') return false;
+                    if (selfFunc[$.ksFuncReplacerCounter] !== id) return false;
+                    // if this is null or undefined, or this.onXXX is not this function
+                    if ($.isDeactivePreventDefault(ev)) {
+                        if ($.isGlobalEventCheckForFuncReplacer === true) {
+                            if (window.event !== ev) return false; // eslint-disable-line
+                        }
+                        if ($.isStackCheckForFuncReplacer === true) {
+                            let stack = (new Error()).stack;
+                            let onlyOneLineStack = stack.indexOf('\n') === stack.lastIndexOf('\n');
+                            if (onlyOneLineStack === false) return false;
+                        }
+                        return true;
+                    }
+                }
                 return res;
             }
+            resFX[$.ksFuncReplacerCounter] = id;
             resFX.toString = originalFunc.toString.bind(originalFunc);
             return resFX;
         },
 
-        
+
         /** @type {EventListener} */
         listenerDisableAll: async (evt) => {
             let elmNode = evt.target;
@@ -241,10 +264,11 @@
             await Promise.resolve();
             while ((elmNode instanceof Node) && elmNode.nodeType > 0) { // i.e. HTMLDocument or HTMLElement
                 const f = elmNode[pName];
-                if (typeof f === 'function' && f[$.ksFuncReplacerNonFalse] !== true) {
-                    const nf = $.createFuncReplacer(f, pName);
-                    nf[$.ksFuncReplacerNonFalse] = true;
-                    elmNode[pName] = nf;
+                if (typeof f === 'function') {
+                    let replacerId = f[$.ksFuncReplacerCounter];
+                    if (replacerId > 0) break; // assume all parent functions are replaced; for performance only
+                    // note: "return false" is preventDefault() in VanilaJS but preventDefault()+stopPropagation() in jQuery.
+                    elmNode[pName] = $.weakMapFuncReplaced.get(f) || $.createFuncReplacer(f);
                 }
                 elmNode = elmNode.parentNode;
             }
@@ -267,7 +291,7 @@
                     document.documentElement.setAttribute($.utSelectionColorHack, "");
                 }
             }
-            await Promise.resolve(); 
+            await Promise.resolve();
             const elmStyle = getComputedStyle(elm);
             let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
             if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
@@ -342,7 +366,7 @@
                 let j = $.eyEvts.indexOf(evt.type);
                 const target = evt.target;
                 switch (j) {
-                    case 6:
+                    case 6: // dragstart
                         if ($.enableDragging) return false;
                         if (target instanceof Element && target.hasAttribute('draggable')) {
                             $.enableDragging = true;
@@ -350,7 +374,7 @@
                         }
                         // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
                         return true;
-                    case 3:
+                    case 3: // contextmenu
                         if (target instanceof Element) {
                             switch (target.nodeName) {
                                 case 'IMG':
@@ -380,10 +404,10 @@
                         return true;
                     case -1:
                         return false;
-                    case 0:
-                    case 1:
+                    case 0: // keydown
+                    case 1: // keyup
                         return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
-                    case 2:
+                    case 2: // copy
                         if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
                         if (evt.cancelable && evt.defaultPrevented === false) { } else return true;
 
@@ -406,6 +430,7 @@
                         return true;
                 }
             }
+            $.isDeactivePreventDefault = isDeactivePreventDefault;
 
             !(function ($setData) {
                 DataTransfer.prototype.setData = (function setData() {
@@ -463,8 +488,8 @@
                 configurable: true
             });
 
-            for (let i = 2, eventsCount = $.eyEvts.length; i < eventsCount; i++) {
-                document.addEventListener($.eyEvts[i], $.listenerDisableAll, true); // Capture Event; passive:false; expected occurrence COMPLETELY before Target Capture and Target Bubble
+            for (const eyEvt of $.eyEvts) {
+                document.addEventListener(eyEvt, $.listenerDisableAll, true); // Capture Event; passive:false; expected occurrence COMPLETELY before Target Capture and Target Bubble
             }
 
             // userscript bug ?  window.alert not working
@@ -535,7 +560,7 @@
         },
 
 
-        
+
         /** @type {EventListener} */
         lpKeyDown: (evt) => {
 
@@ -1002,10 +1027,10 @@
                 lastMouseEnterElm = evt.target
                 lastMouseEnterAt = +new Date;
 
-                if(lastMouseEnterCid) return;
+                if (lastMouseEnterCid) return;
                 lastMouseEnterCid = 1;
                 do {
-                    await new Promise(resolve=>setTimeout(resolve, 82));
+                    await new Promise(resolve => setTimeout(resolve, 82));
                 } while (+new Date - lastMouseEnterAt < 30);
                 lastMouseEnterCid = 0;
 
@@ -1015,7 +1040,7 @@
                 const targetElm = lastMouseEnterElm
 
                 await Promise.resolve();
-                
+
                 if (!targetElm || !targetElm.parentNode) {
                     return;
                 }
@@ -1045,7 +1070,7 @@
                 }
 
                 /** @type {string | null} */
-                let sUrl = null; 
+                let sUrl = null;
 
                 const targetCSS = getComputedStyle(targetElm)
                 const targetBgImage = targetCSS.getPropertyValue('background-image');
@@ -1417,7 +1442,7 @@
 
     if (typeof GM_registerMenuCommand === 'function' && typeof GM_unregisterMenuCommand === 'function') {
 
-        if(isSupportAdvancedEventListener()){
+        if (isSupportAdvancedEventListener()) {
             $.gm_status_fn("gm_lp_enable", "To Enable `Enhanced build-in Alt Text Selection`", "To Disable `Enhanced build-in Alt Text Selection`", () => {
                 // callback
             });
