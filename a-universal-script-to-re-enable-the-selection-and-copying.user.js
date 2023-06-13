@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.11.0.2
+// @version             1.11.0.3
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -136,6 +136,16 @@
         return (getEventListenerSupport() & 1) === 1;
     }
 
+    function updateIsWindowEventSupported() {
+        // https://developer.mozilla.org/en-US/docs/Web/API/Window/event
+        // FireFox >= 66
+        let p = document.createElement('HTMLElementEventChecker');
+        p.onclick = function (ev) { $.isGlobalEventCheckForFuncReplacer = (window.event === ev) };
+        p.dispatchEvent(new Event('click'))
+        p = null;
+    }
+
+
     function inIframe() {
         try {
             return window.self !== window.top;
@@ -185,7 +195,7 @@
         weakMapFuncReplaced: new WeakMap(),
         ksFuncReplacerCounterId: 0,
         isStackCheckForFuncReplacer: false, // multi-line stack in FireFox
-        isGlobalEventCheckForFuncReplacer: true,
+        isGlobalEventCheckForFuncReplacer: false,
 
         isNum: (d) => (d > 0 || d < 0 || d === 0),
 
@@ -1439,6 +1449,8 @@
     $.preventAuxClickRepeat();
 
     console.log(`userscript running - ${SCRIPT_TAG}`);
+
+    updateIsWindowEventSupported();
 
     if (typeof GM_registerMenuCommand === 'function' && typeof GM_unregisterMenuCommand === 'function') {
 
