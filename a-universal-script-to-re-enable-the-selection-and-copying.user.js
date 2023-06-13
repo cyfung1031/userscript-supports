@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.12.0.0
+// @version             1.12.1.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -249,7 +249,7 @@
                     if (typeof selfFunc !== 'function') return false;
                     if (selfFunc[$.ksFuncReplacerCounter] !== id) return false;
                     // if this is null or undefined, or this.onXXX is not this function
-                    if ($.isDeactivePreventDefault(ev)) {
+                    if (ev.cancelable !== false && $.isDeactivePreventDefault(ev)) {
                         if ($.isGlobalEventCheckForFuncReplacer === true) {
                             if (window.event !== ev) return false; // eslint-disable-line
                         }
@@ -305,7 +305,7 @@
 
             // BOTH preventDefault and setData are called.
 
-            if (evt.cancelable !== true || evt.defaultPrevented !== false) return;
+            if (evt.cancelable === false || evt.defaultPrevented !== false) return;
 
 
             // ---- disable text replacement on plain text node(s) ----
@@ -404,7 +404,7 @@
                     return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
                 case 2: // copy
                     if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
-                    if (evt.cancelable && evt.defaultPrevented === false) { } else return true;
+                    if (evt.cancelable !== false && evt.defaultPrevented === false) { } else return true;
 
                     const cd = evt.clipboardData[$.ksSetData];
                     if (typeof WeakRef === 'function') {
@@ -466,7 +466,7 @@
 
             Event.prototype.preventDefault = (function (f) {
                 function preventDefault() {
-                    if (!$.isDeactivePreventDefault(this)) f.call(this);
+                    if (this.cancelable !== false && !$.isDeactivePreventDefault(this)) f.call(this);
                 }
                 preventDefault.toString = f.toString.bind(f);
                 return preventDefault;
@@ -477,7 +477,7 @@
                     return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
                 },
                 set(newValue) {
-                    if (newValue === false && (typeof this.cancelable !== 'boolean' || this.cancelable) && !$.isDeactivePreventDefault(this)) this.preventDefault();
+                    if (newValue === false) this.preventDefault();
                     this[$.ksEventReturnValue] = newValue;
                 },
                 enumerable: true,
@@ -1410,7 +1410,7 @@
                     if (typeof f === 'function') {
                         let replacerId = f[$.ksFuncReplacerCounter];
                         if (replacerId > 0) break; // assume all parent functions are replaced; for performance only
-                        // note: "return false" is preventDefault() in VanilaJS but preventDefault()+stopPropagation() in jQuery.
+                        // note: "return false" is preventDefault() in VanillaJS but preventDefault()+stopPropagation() in jQuery.
                         elmNode[pName] = $.weakMapFuncReplaced.get(f) || $.createFuncReplacer(f);
                     }
                     elmNode = elmNode.parentNode;
