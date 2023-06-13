@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.12.1.0
+// @version             1.12.1.1
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -786,6 +786,8 @@
 
         },
 
+        // note: "user-select: XXX" is deemed as invalid property value in FireFox.
+
         mainEnableScript: () => {
             const cssStyleOnReady = `
 
@@ -801,15 +803,15 @@
 
             html, html *,
             html *[style], html *[class] {
-                -webkit-touch-callout: default !important; user-select: var(--sac-user-select) !important;
+                -webkit-touch-callout: default !important; user-select: var(--sac-user-select) !important; -moz-user-select: var(--sac-user-select) !important;
             }
 
             html *:hover, html *:link, html *:visited, html *:active {
-                -webkit-touch-callout: default !important; user-select: var(--sac-user-select) !important;
+                -webkit-touch-callout: default !important; user-select: var(--sac-user-select) !important; -moz-user-select: var(--sac-user-select) !important;
             }
 
             html *::before, html *::after {
-                -webkit-touch-callout: default !important; user-select: auto !important;
+                -webkit-touch-callout: default !important; user-select: auto !important; -moz-user-select: auto !important;
             }
 
             *:hover>img[src]{pointer-events:auto !important;}
