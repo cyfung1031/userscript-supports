@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.14.0.5
+// @version             1.14.0.6
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -847,6 +847,8 @@
                 border: 0 !important;
                 box-sizing: border-box !important;
                 transform: initial !important;
+                -moz-user-select: none !important;
+                -webkit-user-select: none !important;
                 user-select: none !important;
                 z-index:1 !important;
                 float: left !important;
