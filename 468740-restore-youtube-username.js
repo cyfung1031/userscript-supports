@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.3
+// @version             0.4.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -39,6 +39,12 @@ SOFTWARE.
 // @unwrap
 // @allFrames
 // @inject-into page
+
+// @compatible          firefox 55
+// @compatible          chrome 61
+// @compatible          opera 48
+// @compatible          safari 11.1
+// @compatible          edge 16
 
 // @description         To restore YouTube Username to the traditional custom name
 // @description:ja      YouTubeのユーザー名を伝統的なカスタム名に復元するために。
@@ -176,7 +182,6 @@ SOFTWARE.
 
         return new Promise(networkResolve => {
 
-
             mutex.add(lockResolve => {
 
                 let fetchedResult = displayNameCacheStore.get(channelId);
@@ -194,7 +199,6 @@ SOFTWARE.
                 }
 
                 //INNERTUBE_API_KEY = ytcfg.data_.INNERTUBE_API_KEY
-
 
                 fetch(new window.Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
                     "method": "POST",
@@ -251,9 +255,7 @@ SOFTWARE.
                     lockResolve();
                     console.warn(e);
                     networkResolve(null);
-                })
-
-
+                });
 
             });
 
@@ -606,8 +608,15 @@ SOFTWARE.
         const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
         /** @type {HTMLElement | null} */
         const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-        if (lastNewAnchorLast && mutex.nextIndex >= 1) {
-            new Promise(resolve => {
+        lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+        
+        if (!firstDOMCheck) {
+            firstDOMCheck = true;
+            firstDOMChecker();
+        }
+
+        new Promise(resolve => {
+            if (lastNewAnchorLast && mutex.nextIndex >= 1) {
                 if (mutex.nextIndex === 0) {
                     // no change
                 } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
@@ -615,30 +624,26 @@ SOFTWARE.
                 } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
                     mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
                 }
-                domCheckerBusy--;
-                resolve();
-            });
-        } else {
+            }
             domCheckerBusy--;
-        }
-        lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
-        if (!firstDOMCheck) {
-            firstDOMCheck = true;
-            firstDOMChecker();
-        }
-        // newAnchorAdded = true;
-        for (const anchor of newAnchors) {
-            // author-text or name
-            // normal url: /channel/xxxxxxx
-            // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
-            const href = anchor.getAttribute('href');
-            const channelId = obtainChannelId(href); // string, can be empty
-            anchor.setAttribute('jkrgy', channelId);
-            // intersectionobserver.unobserve(anchor);
-            // intersectionobserver.observe(anchor); // force first occurance
-            domCheck(anchor, href, channelId);
-        }
-        domCheckerBusy--;
+            resolve();
+        }).then(()=>{
+
+            // newAnchorAdded = true;
+            for (const anchor of newAnchors) {
+                // author-text or name
+                // normal url: /channel/xxxxxxx
+                // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
+                const href = anchor.getAttribute('href');
+                const channelId = obtainChannelId(href); // string, can be empty
+                anchor.setAttribute('jkrgy', channelId);
+                // intersectionobserver.unobserve(anchor);
+                // intersectionobserver.observe(anchor); // force first occurance
+                domCheck(anchor, href, channelId);
+            }
+            domCheckerBusy--;
+
+        }).catch(console.warn);
 
     };
 
