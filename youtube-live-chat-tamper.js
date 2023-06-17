@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Live Chat Tamper
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.0
+// @version             2023.06.17.1
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
 // @match               https://www.youtube.com/live_chat_replay*
@@ -20,7 +20,6 @@
 // @compatible          safari 11.1
 // @compatible          edge 16
 
-// @description         to maximize chat refresh performance
 // @description         to maximize the performance of YouTube Live Chat Refresh
 // @description:ja      YouTubeライブチャットリフレッシュのパフォーマンスを最大化するためのもの
 // @description:zh-TW   用於最大化YouTube直播聊天刷新的性能
