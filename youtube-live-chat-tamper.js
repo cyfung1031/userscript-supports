@@ -24,9 +24,9 @@ SOFTWARE.
  
 */
 // ==UserScript==
-// @name                YouTube Live Chat Tamper
+// @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.4
+// @version             2023.06.17.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
