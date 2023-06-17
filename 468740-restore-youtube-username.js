@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.2
+// @version             0.4.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -606,12 +606,14 @@ SOFTWARE.
         const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
         /** @type {HTMLElement | null} */
         const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-        if (lastNewAnchorLast) {
+        if (lastNewAnchorLast && mutex.nextIndex >= 1) {
             new Promise(resolve => {
-                if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
+                if (mutex.nextIndex === 0) {
+                    // no change
+                } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
                     mutex.nextIndex = 0; // highest priority
                 } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
-                    mutex.nextIndex = Math.floor(mutex.arr.length / 2); // relatively higher priority
+                    mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
                 }
                 domCheckerBusy--;
                 resolve();
