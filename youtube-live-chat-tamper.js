@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Live Chat Tamper
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.1
+// @version             2023.06.17.2
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
 // @match               https://www.youtube.com/live_chat_replay*
@@ -111,6 +111,10 @@
     let smoothScrollFunc = null;
     let updateTimeoutCallable = 0;
     let updateTimeoutFunc = null;
+    let smoothScrollReset = 0;
+    let updateTimeoutReset = 0;
+    let smoothScrollRid = 0;
+    let updateTimeoutRid = 0;
 
     const prettyStack = (stack) => {
         let lines = stack.split('\n');
@@ -179,31 +183,64 @@
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
                 smoothScrollCallable++;
+                smoothScrollFunc = oriFunc;
+                let lockId = smoothScrollRid;
                 f = (hRes) => {
+                    if (smoothScrollRid !== lockId) return;
+                    if (!smoothScrollFunc) return;
                     smoothScrollCallable--;
-                    if (smoothScrollCallable === 0) oriFunc(hRes); // oriFunc refers to the last oriFunc
+                    const now = Date.now();
+                    if (smoothScrollReset < now) { // this will be set at 1st run, rarely run on subsequent calls
+                        smoothScrollReset = now + 1000;
+                        smoothScrollCallable = 0;
+                        ++smoothScrollRid;
+                        if (smoothScrollRid > 1e9) smoothScrollRid = 1e3;
+                    }
+                    if (smoothScrollCallable === 0 && smoothScrollFunc) {
+                        let uFunc = smoothScrollFunc;
+                        smoothScrollFunc = null; // unknown bug is found that smoothScrollFunc must be clear before execution
+                        uFunc(hRes); // uFunc refers to the last oriFunc
+                        smoothScrollReset = now + 1000;
+                    }
                     f = null;
                     oriFunc = null;
                 };
             } else if (stack.indexOf('.start') > 0 || stack.indexOf('.unsubscribe') > 0) {
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
+                let mutexDelayedFunc = oriFunc;
                 f = (hRes) => {
                     mutex.lockWith(lockResolve => {
-                        Promise.resolve(hRes).then(oriFunc).then(() => {
+                        Promise.resolve(hRes).then(mutexDelayedFunc).then(() => {
                             lockResolve();
-                            f = null;
-                            oriFunc = null;
+                            mutexDelayedFunc = null;
+                            lockResolve = null;
                         });
                     });
                 };
             } else if (stack.indexOf('.updateTimeout') > 0) {
                 updateTimeoutCallable++;
+                updateTimeoutFunc = oriFunc;
+                let lockId = updateTimeoutRid;
                 f = (hRes) => {
+                    if (updateTimeoutRid !== lockId) return;
+                    if (!updateTimeoutFunc) return;
                     updateTimeoutCallable--;
-                    if (updateTimeoutCallable === 0) oriFunc(hRes); // oriFunc refers to the last oriFunc
-                    f = null;
-                    oriFunc = null;
+
+                    const now = Date.now();
+                    if (updateTimeoutReset < now) { // this will be set at 1st run, rarely run on subsequent calls
+                        updateTimeoutReset = now + 1000;
+                        updateTimeoutCallable = 0;
+                        ++updateTimeoutRid;
+                        if (updateTimeoutRid > 1e9) updateTimeoutRid = 1e3;
+                    }
+
+                    if (updateTimeoutCallable === 0 && updateTimeoutFunc) {
+                        let uFunc = updateTimeoutFunc;
+                        updateTimeoutFunc = null; // unknown bug is found that updateTimeoutFunc must be clear before execution
+                        uFunc(hRes); // uFunc refers to the last oriFunc
+                        updateTimeoutReset = now + 1000;
+                    }
                 };
             }
             // console.log(65, 'modified', oriFunc !== f);
