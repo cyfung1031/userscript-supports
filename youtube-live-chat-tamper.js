@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Live Chat Tamper
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.2
+// @version             2023.06.17.3
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
 // @match               https://www.youtube.com/live_chat_replay*
@@ -104,17 +104,7 @@
 
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
 
-
-
     const t0 = Date.now();
-    let smoothScrollCallable = 0;
-    let smoothScrollFunc = null;
-    let updateTimeoutCallable = 0;
-    let updateTimeoutFunc = null;
-    let smoothScrollReset = 0;
-    let updateTimeoutReset = 0;
-    let smoothScrollRid = 0;
-    let updateTimeoutRid = 0;
 
     const prettyStack = (stack) => {
         let lines = stack.split('\n');
@@ -169,7 +159,98 @@
         return f;
     }
     */
+    class FuncBuilder {
+        constructor() {
+            this.callable = 0;
+            this.func = null;
+            this.reset = 0;
+            this.rid = 0;
+            this.g = (lockId, hRes) => {
+                if (this.rid !== lockId) return;
+                const uFunc = this.func;
+                if (!uFunc) return;
+                this.callable--;
+                const now = Date.now();
+                if (this.reset < now) { // this will be set at 1st run, rarely run on subsequent calls
+                    this.reset = now + 1000;
+                    this.callable = 0;
+                    ++this.rid;
+                    if (this.rid > 1e9) this.rid = 1e3;
+                }
+                if (this.callable === 0) {
+                    this.func = null; // unknown bug is found that this.func must be clear before execution
+                    // uFunc refers to the last oriFunc
+                    if (typeof queueMicrotask === 'function') {
+                        // avoid interuption with user operation
+                        queueMicrotask(() => {
+                            uFunc(hRes);
+                        });
+                    } else {
+                        uFunc(hRes);
+                    }
+                    this.reset = now + 1000;
+                }
+            };
+        }
+        wrapper(oriFunc) {
+            this.callable++;
+            this.func = oriFunc;
+            let lockId = this.rid;
+            return (hRes) => this.g(lockId, hRes);
+        }
+
+    }
+    const smoothScrollF = new FuncBuilder();
+    const updateTimeoutF = new FuncBuilder();
     let byPass = false;
+    /*
+    let mww = [0, 0, 0, 0]
+    setInterval(()=>console.log(2323, mww), 5000)
+
+
+        if(stack.indexOf('.smoothScroll_') > 0) mww[0]++
+        if(stack.indexOf('.start') > 0) mww[1]++
+        if(stack.indexOf('.unsubscribe') > 0) mww[2]++
+        if(stack.indexOf('.updateTimeout') > 0) mww[3]++
+
+    // livestream
+
+    [71, 31, 8, 0]
+    [106, 84, 23, 0]
+    [122, 126, 37, 0]
+    [141, 169, 51, 0]
+    [162, 218, 65, 0]
+    [188, 276, 81, 0]
+    [203, 310, 94, 0]
+    [225, 362, 109, 0]
+    [243, 406, 122, 0]
+    [256, 438, 134, 0]
+    [271, 475, 146, 0]
+    [284, 499, 153, 0]
+    [382, 527, 164, 0]
+    [425, 539, 169, 0]
+    [477, 548, 176, 0]
+    [536, 558, 183, 0]
+    [628, 577, 193, 0]
+    [752, 600, 203, 0]
+    [838, 662, 218, 0]
+    [853, 701, 233, 0]
+    [869, 745, 247, 0]
+
+    // replay
+
+    [37, 37, 0, 349]
+    [108, 81, 0, 851]
+    [125, 115, 0, 1320]
+    [143, 155, 0, 1736]
+    [162, 202, 0, 2119]
+    [180, 251, 0, 2442]
+    [196, 291, 0, 2732]
+
+
+
+
+    */
     const fix = () => {
 
         window.requestAnimationFrame = (function (f) {
@@ -179,83 +260,40 @@
 
             const stack = new Error().stack;
             let oriFunc = f;
-
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
-                smoothScrollCallable++;
-                smoothScrollFunc = oriFunc;
-                let lockId = smoothScrollRid;
-                f = (hRes) => {
-                    if (smoothScrollRid !== lockId) return;
-                    if (!smoothScrollFunc) return;
-                    smoothScrollCallable--;
-                    const now = Date.now();
-                    if (smoothScrollReset < now) { // this will be set at 1st run, rarely run on subsequent calls
-                        smoothScrollReset = now + 1000;
-                        smoothScrollCallable = 0;
-                        ++smoothScrollRid;
-                        if (smoothScrollRid > 1e9) smoothScrollRid = 1e3;
-                    }
-                    if (smoothScrollCallable === 0 && smoothScrollFunc) {
-                        let uFunc = smoothScrollFunc;
-                        smoothScrollFunc = null; // unknown bug is found that smoothScrollFunc must be clear before execution
-                        uFunc(hRes); // uFunc refers to the last oriFunc
-                        smoothScrollReset = now + 1000;
-                    }
-                    f = null;
-                    oriFunc = null;
-                };
+                f = smoothScrollF.wrapper(oriFunc);
             } else if (stack.indexOf('.start') > 0 || stack.indexOf('.unsubscribe') > 0) {
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
                 let mutexDelayedFunc = oriFunc;
                 f = (hRes) => {
                     mutex.lockWith(lockResolve => {
-                        Promise.resolve(hRes).then(mutexDelayedFunc).then(() => {
+                        const final = () => {
                             lockResolve();
                             mutexDelayedFunc = null;
                             lockResolve = null;
-                        });
+                        };
+                        Promise.resolve(hRes).then(mutexDelayedFunc).then(final).catch(final);
                     });
                 };
             } else if (stack.indexOf('.updateTimeout') > 0) {
-                updateTimeoutCallable++;
-                updateTimeoutFunc = oriFunc;
-                let lockId = updateTimeoutRid;
-                f = (hRes) => {
-                    if (updateTimeoutRid !== lockId) return;
-                    if (!updateTimeoutFunc) return;
-                    updateTimeoutCallable--;
-
-                    const now = Date.now();
-                    if (updateTimeoutReset < now) { // this will be set at 1st run, rarely run on subsequent calls
-                        updateTimeoutReset = now + 1000;
-                        updateTimeoutCallable = 0;
-                        ++updateTimeoutRid;
-                        if (updateTimeoutRid > 1e9) updateTimeoutRid = 1e3;
-                    }
-
-                    if (updateTimeoutCallable === 0 && updateTimeoutFunc) {
-                        let uFunc = updateTimeoutFunc;
-                        updateTimeoutFunc = null; // unknown bug is found that updateTimeoutFunc must be clear before execution
-                        uFunc(hRes); // uFunc refers to the last oriFunc
-                        updateTimeoutReset = now + 1000;
-                    }
-                };
+                f = updateTimeoutF.wrapper(oriFunc);
             }
             // console.log(65, 'modified', oriFunc !== f);
             // console.log(prettyStack(stack));
+            let r;
             if (this.__requestAnimationFrame2__) {
+                byPass = true;
                 let m = this.requestAnimationFrame
                 this.requestAnimationFrame = this.__requestAnimationFrame2__;
-                byPass = true;
-                let r = this.requestAnimationFrame(f); // the modified requestAnimationFrame will be called with byPass = true
-                byPass = false;
+                r = this.requestAnimationFrame(f); // the modified requestAnimationFrame will be called with byPass = true
                 this.requestAnimationFrame = m;
-                return r;
+                byPass = false;
             } else {
-                return this.__requestAnimationFrame__(f);
+                r = this.__requestAnimationFrame__(f);
             }
+            return r;
         }).bind(window)
 
     }
