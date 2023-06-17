@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.1
+// @version             0.4.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -594,23 +594,36 @@ SOFTWARE.
     const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
     let lastNewAnchorLastWR = null;
+    let domCheckerBusy = 0;
 
     const domChecker = () => {
+        if (domCheckerBusy > 0) return;
 
         const newAnchors = document.querySelectorAll('a[id][href*="channel/"]:not([jkrgy])');
         if (newAnchors.length === 0) return;
+        domCheckerBusy = 2;
         const cNewAnchorFirst = newAnchors[0]; // non-null
         const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
         /** @type {HTMLElement | null} */
         const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
         if (lastNewAnchorLast) {
-            if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
-                mutex.nextIndex = 0; // highest priority
-            } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
-                mutex.nextIndex = Math.floor(mutex.arr.length / 2); // relatively higher priority
-            }
+            new Promise(resolve => {
+                if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
+                    mutex.nextIndex = 0; // highest priority
+                } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
+                    mutex.nextIndex = Math.floor(mutex.arr.length / 2); // relatively higher priority
+                }
+                domCheckerBusy--;
+                resolve();
+            });
+        } else {
+            domCheckerBusy--;
         }
         lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+        if (!firstDOMCheck) {
+            firstDOMCheck = true;
+            firstDOMChecker();
+        }
         // newAnchorAdded = true;
         for (const anchor of newAnchors) {
             // author-text or name
@@ -619,14 +632,11 @@ SOFTWARE.
             const href = anchor.getAttribute('href');
             const channelId = obtainChannelId(href); // string, can be empty
             anchor.setAttribute('jkrgy', channelId);
-            if (!firstDOMCheck) {
-                firstDOMCheck = true;
-                firstDOMChecker();
-            }
             // intersectionobserver.unobserve(anchor);
             // intersectionobserver.observe(anchor); // force first occurance
             domCheck(anchor, href, channelId);
         }
+        domCheckerBusy--;
 
     };
 
@@ -635,6 +645,7 @@ SOFTWARE.
     let domObserver = null;
 
     document.addEventListener('yt-page-data-fetched', function (evt) {
+        firstDOMCheck = false;
 
         const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
         for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
