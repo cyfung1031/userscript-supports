@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.0
+// @version             0.4.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -141,12 +141,20 @@ SOFTWARE.
             this.nextIndex = 0;
             this.arr = [];
             this.lockFunc = resolve => {
-                if (!this.arr.length) resolve();
-                let f = this.arr[0];
-                if (typeof f !== 'function') resolve();
-                this.arr.shift();
-                if (this.nextIndex > 0) this.nextIndex--;
-                f(resolve);
+                if (this.arr.length >= 1) {
+                    let f = this.arr[0];
+                    if (typeof f === 'function') {
+                        this.arr.shift();
+                        if (this.nextIndex > 0) this.nextIndex--;
+                        f(resolve);
+                        return;
+                    } else {
+                        // reset if unknown error
+                        this.arr.length = 0;
+                        this.nextIndex = 0;
+                    }
+                }
+                resolve();
             };
         }
         add(f) {
