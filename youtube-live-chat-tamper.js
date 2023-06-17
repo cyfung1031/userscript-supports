@@ -1,19 +1,19 @@
 /*
- 
+
 MIT License
- 
+
 Copyright 2023 CY Fung
- 
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
- 
+
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,12 +21,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
- 
+
 */
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.7
+// @version             2023.06.17.8
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -291,10 +291,15 @@ SOFTWARE.
             let oriFunc = f;
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
-                f = smoothScrollF.wrapper(oriFunc);
-            } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true): false )) {
+                useSimpleRAF = true; // repeating calls
+                f = smoothScrollF.wrapper(oriFunc); // one smoothScroll per multiple new items
+            } else if (stack.indexOf('.showNewItems_') > 0) {
+                useSimpleRAF = false; // when new items avaiable
+
+            } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
+                // .unsubscribe: non essential function => useSimpleRAF
                 let mutexDelayedFunc = oriFunc;
                 f = (hRes) => {
                     mutex.lockWith(lockResolve => {
@@ -307,6 +312,7 @@ SOFTWARE.
                     });
                 };
             } else if (stack.indexOf('.updateTimeout') > 0) {
+                // .updateTimeout: non essential function => useSimpleRAF
                 useSimpleRAF = true;
                 const uFunc = oriFunc;
                 f = (hRes) => {
@@ -321,9 +327,14 @@ SOFTWARE.
                     }
                 };
                 // f = updateTimeoutF.wrapper(oriFunc);
+            } else if (stack.indexOf('__deraf') > 0 || stack.indexOf('rEa') > 0) {
+                // useSimpleRAF to avoid dead lock in participant list
+                useSimpleRAF = true;
             }
+
             // console.log(65, 'modified', oriFunc !== f);
             // console.log(prettyStack(stack));
+
             let r;
             if (!useSimpleRAF && this.__requestAnimationFrame2__) {
                 byPass = true;
