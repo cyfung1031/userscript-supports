@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.6
+// @version             2023.06.17.7
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -129,6 +129,7 @@ SOFTWARE.
     'use strict';
 
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
+    const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : null;
 
     const t0 = Date.now();
 
@@ -206,9 +207,9 @@ SOFTWARE.
                 if (this.callable === 0) {
                     this.func = null; // unknown bug is found that this.func must be clear before execution
                     // uFunc refers to the last oriFunc
-                    if (typeof queueMicrotask === 'function') {
+                    if (typeof _queueMicrotask === 'function') {
                         // avoid interuption with user operation
-                        queueMicrotask(() => {
+                        _queueMicrotask(() => {
                             uFunc(hRes);
                         });
                     } else {
@@ -284,12 +285,14 @@ SOFTWARE.
                 return this.__requestAnimationFrame__(f);
             }
 
+            let useSimpleRAF = false;
+
             const stack = new Error().stack;
             let oriFunc = f;
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
                 f = smoothScrollF.wrapper(oriFunc);
-            } else if (stack.indexOf('.start') > 0 || stack.indexOf('.unsubscribe') > 0) {
+            } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true): false )) {
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
                 let mutexDelayedFunc = oriFunc;
@@ -304,24 +307,25 @@ SOFTWARE.
                     });
                 };
             } else if (stack.indexOf('.updateTimeout') > 0) {
+                useSimpleRAF = true;
                 const uFunc = oriFunc;
-                return this.__requestAnimationFrame__((hRes) => {
+                f = (hRes) => {
                     // updateTimeout just requires original requestAnimationFrame.
-                    if (typeof queueMicrotask === 'function') {
+                    if (typeof _queueMicrotask === 'function') {
                         // avoid interuption with user operation
-                        queueMicrotask(() => {
+                        _queueMicrotask(() => {
                             uFunc(hRes);
                         });
                     } else {
                         uFunc(hRes);
                     }
-                });
+                };
                 // f = updateTimeoutF.wrapper(oriFunc);
             }
             // console.log(65, 'modified', oriFunc !== f);
             // console.log(prettyStack(stack));
             let r;
-            if (this.__requestAnimationFrame2__) {
+            if (!useSimpleRAF && this.__requestAnimationFrame2__) {
                 byPass = true;
                 let m = this.requestAnimationFrame
                 this.requestAnimationFrame = this.__requestAnimationFrame2__;
