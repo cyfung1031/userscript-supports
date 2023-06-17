@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.3.6
+// @version             0.4.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -44,7 +44,7 @@ SOFTWARE.
 // @description:ja      YouTubeのユーザー名を伝統的なカスタム名に復元するために。
 // @description:zh-TW   將 YouTube 使用者名稱從 Handle 恢復為自訂名稱
 // @description:zh-CN   将 YouTube 用户名从 Handle 恢复为自定义名称
- 
+
 // @description:ko     YouTube 사용자 이름을 전통적인 사용자 지정 이름으로 복원합니다.
 // @description:ru     Восстановление имени пользователя YouTube с помощью обычного настраиваемого имени
 // @description:af     Herstel YouTube-gebruikersnaam vanaf Handvat na Aangepaste Naam
@@ -134,7 +134,31 @@ SOFTWARE.
         }
 
     }
-    const mutex = new Mutex();
+
+    class OrderedMutex extends Mutex {
+        constructor() {
+            super();
+            this.nextIndex = 0;
+            this.arr = [];
+            this.lockFunc = resolve => {
+                if (!this.arr.length) resolve();
+                let f = this.arr[0];
+                if (typeof f !== 'function') resolve();
+                this.arr.shift();
+                if (this.nextIndex > 0) this.nextIndex--;
+                f(resolve);
+            };
+        }
+        add(f) {
+            if (this.nextIndex === this.arr.length) {
+                this.arr.push(f); this.nextIndex++;
+            } else {
+                this.arr.splice(this.nextIndex++, 0, f);
+            }
+            this.lockWith(this.lockFunc);
+        }
+    }
+    const mutex = new OrderedMutex();
 
     const displayNameCacheStore = new Map();
 
@@ -145,7 +169,14 @@ SOFTWARE.
         return new Promise(networkResolve => {
 
 
-            mutex.lockWith(lockResolve => {
+            mutex.add(lockResolve => {
+
+                let fetchedResult = displayNameCacheStore.get(channelId);
+                if (fetchedResult) {
+                    lockResolve();
+                    networkResolve(fetchedResult);
+                    return;
+                }
 
                 if (!document.querySelector(`[jkrgy="${channelId}"]`)) {
                     // element has already been removed
@@ -244,6 +275,11 @@ SOFTWARE.
                     delete promisesStore[channelId];
                 });
 
+                if ('verified123' in (res || 0)) {
+                    resolve(res); // fetchedResult
+                    return;
+                }
+
                 let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
 
                 if (!resultInfo) {
@@ -252,7 +288,7 @@ SOFTWARE.
 
                     const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = res.metadata.channelMetadataRenderer;
 
-                    const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified: false };
+                    const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
                     displayNameCacheStore.set(channelId, displayNameRes);
 
                     resolve(displayNameRes);
@@ -305,11 +341,11 @@ SOFTWARE.
 
     const verifyAndConvertHandle = (currentDisplayed, fetchResult) => {
 
-        const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified } = fetchResult;
+        const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
 
         const currentDisplayTrimmed = currentDisplayed.trim();
         let match = false;
-        if (verified) {
+        if (verified123) {
             match = true;
         } else if ((vanityChannelUrl || '').endsWith(`/${currentDisplayTrimmed}`)) {
             match = true;
@@ -508,7 +544,7 @@ SOFTWARE.
                             ownerUrls: [],
                             title: mainChannelText,
                             vanityChannelUrl: null,
-                            verified: true
+                            verified123: true
                         });
                     }
 
@@ -519,9 +555,55 @@ SOFTWARE.
 
     };
 
+    // let newAnchorAdded = false;
+    /*
+
+    const intersectionobserver = new IntersectionObserver((entries) => {
+        let anchorAppear = false;
+        for (const entry of entries) {
+            if (entry.isIntersecting === true) {
+                anchorAppear = true;
+                break;
+            }
+        }
+        if (anchorAppear && newAnchorAdded) {
+            newAnchorAdded = false; // stacking will be only reset when one or more anchor added to DOM.
+            mutex.nextIndex = 0; // higher pirority for new elements being shown
+        }
+    }, {
+        rootMargin:"0px 0px 0px 0px",
+        threshold:1
+    })
+    */
+
+
+    /* globals WeakRef:false */
+
+    /** @type {(o: Object | null) => WeakRef | null} */
+    const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null); // typeof InvalidVar == 'undefined'
+
+    /** @type {(wr: Object | null) => Object | null} */
+    const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+    let lastNewAnchorLastWR = null;
+
     const domChecker = () => {
 
         const newAnchors = document.querySelectorAll('a[id][href*="channel/"]:not([jkrgy])');
+        if (newAnchors.length === 0) return;
+        const cNewAnchorFirst = newAnchors[0]; // non-null
+        const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
+        /** @type {HTMLElement | null} */
+        const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
+        if (lastNewAnchorLast) {
+            if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
+                mutex.nextIndex = 0; // highest priority
+            } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
+                mutex.nextIndex = Math.floor(mutex.arr.length / 2); // relatively higher priority
+            }
+        }
+        lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+        // newAnchorAdded = true;
         for (const anchor of newAnchors) {
             // author-text or name
             // normal url: /channel/xxxxxxx
@@ -533,6 +615,8 @@ SOFTWARE.
                 firstDOMCheck = true;
                 firstDOMChecker();
             }
+            // intersectionobserver.unobserve(anchor);
+            // intersectionobserver.observe(anchor); // force first occurance
             domCheck(anchor, href, channelId);
         }
 
