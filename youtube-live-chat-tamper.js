@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.5
+// @version             2023.06.17.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -304,7 +304,19 @@ SOFTWARE.
                     });
                 };
             } else if (stack.indexOf('.updateTimeout') > 0) {
-                f = updateTimeoutF.wrapper(oriFunc);
+                const uFunc = oriFunc;
+                return this.__requestAnimationFrame__((hRes) => {
+                    // updateTimeout just requires original requestAnimationFrame.
+                    if (typeof queueMicrotask === 'function') {
+                        // avoid interuption with user operation
+                        queueMicrotask(() => {
+                            uFunc(hRes);
+                        });
+                    } else {
+                        uFunc(hRes);
+                    }
+                });
+                // f = updateTimeoutF.wrapper(oriFunc);
             }
             // console.log(65, 'modified', oriFunc !== f);
             // console.log(prettyStack(stack));
