@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.18.1
+// @version             2023.06.18.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -130,6 +130,9 @@ SOFTWARE.
 
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
     const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
+
+    const _setInterval = setInterval.bind(window); // native setInterval to avoid error
+    const _clearInterval = clearInterval.bind(window); // native clearInterval to avoid error
 
     const t0 = Date.now();
 
@@ -366,8 +369,8 @@ SOFTWARE.
     }
     fix();
     let comparisonFunc = window.requestAnimationFrame;
-    let cid = setInterval(() => {
-        if (Date.now() - t0 > 8000) return clearInterval(cid); // give up after 8s
+    let cid = _setInterval(() => {
+        if (Date.now() - t0 > 8000) return _clearInterval(cid); // give up after 8s
         if (window.requestAnimationFrame === comparisonFunc) return;
         if (!comparisonFunc) return;
         comparisonFunc = null;
@@ -834,15 +837,15 @@ SOFTWARE.
                     s.__setup334__();
                 }
             });
-            
+
         });
 
     }
 
-    let cid2 = setInterval(() => {
+    let cid2 = _setInterval(() => {
 
         if(typeof customElements !== "object") return; // waiting polyfill
-        clearInterval(cid2);
+        _clearInterval(cid2);
         if(typeof (customElements||0).whenDefined !=='function') return; // error - ignore
 
         setup322();
