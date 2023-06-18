@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.18.2
+// @version             2023.06.18.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -231,7 +231,7 @@ SOFTWARE.
     let byPass = false;
     /*
     let mww = [0, 0, 0, 0]
-    setInterval(()=>console.log(2323, mww), 5000)
+    _setInterval(()=>console.log(2323, mww), 5000)
 
 
         if(stack.indexOf('.smoothScroll_') > 0) mww[0]++
@@ -374,9 +374,9 @@ SOFTWARE.
         if (window.requestAnimationFrame === comparisonFunc) return;
         if (!comparisonFunc) return;
         comparisonFunc = null;
-        clearInterval(cid);
+        _clearInterval(cid);
         if ((window.requestAnimationFrame + "").indexOf('_updateAnimationsPromises') > 0) {
-            // clearInterval(cid);
+            // _clearInterval(cid);
             window.__requestAnimationFrame2__ = window.requestAnimationFrame; // youtube's own schduler function
             // window.__requestAnimationFrame__ = window.requestAnimationFrame;
             fix();
@@ -751,7 +751,7 @@ SOFTWARE.
     let beforeParticipantsMap = new WeakMap();
 
     /*
-    let cid2 = setInterval(() => {
+    let cid2 = _setInterval(() => {
 
 
         for (const s of document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')) {
