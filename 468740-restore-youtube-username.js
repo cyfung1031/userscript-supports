@@ -26,11 +26,12 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.6
+// @version             0.5.0
 // @license             MIT License
 
 // @author              CY Fung
 // @match               https://www.youtube.com/*
+// @match               https://m.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/general-icon.png
 // @supportURL          https://github.com/cyfung1031/userscript-supports
@@ -128,6 +129,8 @@ SOFTWARE.
 (function () {
     'use strict';
 
+    const isMobile = location.hostname === 'm.youtube.com';
+
     const cfg = {};
     class Mutex {
 
@@ -179,6 +182,41 @@ SOFTWARE.
     const promisesStore = {};
 
     const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
+
+    const dataChangedFuncStore = new WeakMap();
+    const handleToChannelId = new Map();
+    const handleToChannelIdPromises = new Map();
+
+    const cacheHandleToChannel = (json, channelId) => {
+
+        let resultInfo = ((json || 0).metadata || 0).channelMetadataRenderer;
+        const { vanityChannelUrl, ownerUrls } = resultInfo
+
+        let handleText = urlToHandle(vanityChannelUrl || '');
+
+        if (handleText) {
+            // match = true;
+        } else if ((ownerUrls || 0).length >= 1) {
+            for (const ownerUrl of ownerUrls) {
+                handleText = urlToHandle(ownerUrl || '');
+
+                if (handleText) {
+                    //  match = true;
+                    break;
+                }
+            }
+        }
+        if (handleText) {
+
+            handleToChannelId.set(handleText, channelId);
+            let waiting = handleToChannelIdPromises.get(handleText);
+            if (waiting) {
+                waiting.resolve();
+            }
+        }
+
+
+    }
 
     function createNetworkPromise(channelId) {
 
@@ -252,6 +290,10 @@ SOFTWARE.
                     lockResolve();
                     return res.json();
                 }).then(res => {
+
+                    // console.log(displayNameRes, urlToHandle(vanityChannelUrl))
+                    // displayNameCacheStore.set(channelId, displayNameRes);
+                    cacheHandleToChannel(res, channelId);
                     networkResolve(res);
                 }).catch(e => {
                     lockResolve();
@@ -262,6 +304,18 @@ SOFTWARE.
             });
 
         })
+
+    }
+
+    function urlToHandle(url) {
+
+        if (typeof url !== 'string') return '';
+        let i = url.indexOf('.youtube.com/');
+        if (i > 0) url = url.substring(i + '.youtube.com/'.length);
+        else if (url.charAt(0) === '/') url = url.substring(1);
+        return isDisplayAsHandle(url) ? url : '';
+
+
 
     }
 
@@ -299,7 +353,7 @@ SOFTWARE.
                     const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = res.metadata.channelMetadataRenderer;
 
                     const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
-                    displayNameCacheStore.set(channelId, displayNameRes);
+
 
                     resolve(displayNameRes);
 
@@ -311,7 +365,6 @@ SOFTWARE.
         }).catch(console.warn);
     }
 
-    const dataChangedFuncStore = new WeakMap();
 
     const obtainChannelId = (href) => {
         let m = /\/channel\/(UC[-_a-zA-Z0-9+=.]+)/.exec(`/${href}`);
@@ -431,7 +484,158 @@ SOFTWARE.
         return null;
     };
 
-    const domCheck = async (anchor, channelHref, mt) => {
+    function findTextNodes(parentNode, callback) {
+        function traverse(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                let r = callback(node);
+                if (r === true) return true;
+            }
+
+            let childNode = node.firstChild;
+            while (childNode) {
+                let r = traverse(childNode);
+                if (r === true) return true;
+                childNode = childNode.nextSibling;
+            }
+        }
+
+        traverse(parentNode);
+    }
+
+    const mobileContentHandle = async (parentNode, contentTexts, aidx) => {
+
+
+        let commentText = parentNode.querySelector('.comment-text');
+        if (!commentText) return;
+        commentText = commentText.querySelector('.yt-core-attributed-string') || commentText
+        let currentText = commentText.textContent;
+        let textMatch = commentText.textContent === contentTexts.map(e => e.text).join('');
+        if (!textMatch) return;
+
+
+        let handleText = contentTexts[aidx].text.trim();
+        let channelId = handleToChannelId.get(handleText);
+
+        channelId = channelId || (await new Promise(resolve => { // note: it could be never resolved
+
+            handleToChannelIdPromises.set(handleText, {
+                resolve
+            })
+        }).then(() => {
+            return handleToChannelId.get(handleText);
+        }));
+
+        if (commentText.isConnected !== true) return; // already removed
+        if (commentText.textContent !== currentText) return; // already changed
+
+
+        const fetchResult = await getDisplayName(channelId);
+
+
+        if (fetchResult === null) return;
+
+
+        const { title, externalId } = fetchResult;
+        if (externalId !== channelId) return; // channel id must be the same
+
+
+        let search = contentTexts[aidx].text;
+        contentTexts[aidx].text = contentTexts[aidx].text.replace(contentTexts[aidx].text.trim(), "@" + title);
+
+
+
+        findTextNodes(commentText, (textnode) => {
+
+            if (textnode.nodeValue.indexOf(search) >= 0) {
+
+
+                textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
+                return true;
+
+            }
+
+        });
+
+
+
+
+    }
+
+
+    const domCheck = isMobile ? async (anchor, channelHref, mt) => {
+
+
+
+        if (!channelHref || !mt) return;
+        let parentNode = anchor.parentNode;
+        while (parentNode instanceof Node) {
+            if (parentNode.nodeName === 'YTM-COMMENT-RENDERER') break;
+            parentNode = parentNode.parentNode
+        }
+        if (parentNode instanceof Node && parentNode.nodeName === 'YTM-COMMENT-RENDERER') { } else return;
+
+        let displayTextDOM = parentNode.querySelector('.comment-header .comment-title');
+        if (!displayTextDOM) return;
+        displayTextDOM = displayTextDOM.querySelector('.yt-core-attributed-string') || displayTextDOM;
+        let airaLabel = anchor.getAttribute('aria-label')
+        const parentNodeData = parentNode.data;
+        let runs = ((parentNodeData || 0).authorText || 0).runs;
+
+        if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
+
+
+            const fetchResult = await getDisplayName(mt);
+
+
+            if (fetchResult === null) return;
+
+            const { title, externalId } = fetchResult;
+
+            if (externalId !== mt) return; // channel id must be the same
+
+            // anchor href might be changed by external
+            if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
+
+            let found = false;
+
+            findTextNodes(displayTextDOM, (textnode) => {
+
+                if (textnode.nodeValue === airaLabel) {
+                    textnode.nodeValue = title;
+                    found = true;
+                    return true;
+                }
+
+            });
+
+            if (!found) return;
+            anchor.setAttribute('aria-label', title);
+            runs[0].text = title;
+
+
+            const contentTexts = (parentNodeData.contentText || 0).runs;
+            if (contentTexts && contentTexts.length >= 2) {
+                for (let aidx = 0; aidx < contentTexts.length; aidx++) {
+                    if (contentTexts[aidx].italics !== true) {
+                        let isHandle = isDisplayAsHandle(contentTexts[aidx].text);
+                        if (isHandle) {
+
+                            mobileContentHandle(parentNode, contentTexts, aidx);
+                        }
+
+                    }
+                    // const r = contentTextProcess(contentTexts, aidx);
+                    //  if (r instanceof Promise) funcPromises.push(r);
+                }
+            }
+
+
+
+
+        }
+
+
+    } : async (anchor, channelHref, mt) => {
 
         try {
             if (!channelHref || !mt) return;
@@ -470,6 +674,7 @@ SOFTWARE.
 
             const parentNodeData = parentNode.data
             const funcPromises = [];
+
             if (parentNode.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
 
                 if (authorText.simpleText !== currentDisplayed) return;
@@ -519,8 +724,60 @@ SOFTWARE.
 
     }
 
+    const channelUrlUnify = (url) => {
+
+        if (typeof url !== 'string') return url;
+        let c0 = url.charAt(0);
+        if (c0 === '/') return url;
+        let i = url.indexOf('.youtube.com/');
+        if (i > 0) url = url.substring(i + '.youtube.com/'.length);
+        if (url.charAt(0) != '/') url = '/' + url;
+        return url
+
+    }
+
     let firstDOMCheck = false;
-    const firstDOMChecker = () => {
+    const firstDOMChecker = isMobile ? () => {
+
+        let channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
+        let channelNameDOMData = (channelNameDOM || 0).data;
+
+        if (channelNameDOMData) {
+            let mainChannelUrl = null;
+            let mainFormattedNameUrl = null;
+            let mainChannelText = null;
+            let mainFormattedNameText = null;
+
+            try {
+                mainChannelUrl = channelUrlUnify(channelNameDOMData.channelUrl)
+                mainFormattedNameUrl = channelUrlUnify(channelNameDOMData.title.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl)
+                mainChannelText = channelNameDOMData.channelName
+                mainFormattedNameText = channelNameDOMData.title.runs[0].text
+            } catch (e) { }
+
+            if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
+
+
+                let channelId = obtainChannelId(mainChannelUrl);
+                if (channelId) {
+                    if (mainChannelText.startsWith('@')) return;
+                    if (mainChannelText.trim() !== mainChannelText) return;
+
+                    displayNameCacheStore.set(channelId, {
+                        channelUrl: `https://www.youtube.com/channel/${channelId}`,
+                        externalId: `${channelId}`,
+                        ownerUrls: [],
+                        title: mainChannelText,
+                        vanityChannelUrl: null,
+                        verified123: true
+                    });
+                }
+
+
+            }
+        }
+
+    } : () => {
 
         let channelNameDOM = document.querySelector('ytd-channel-name.ytd-video-owner-renderer');
         let channelNameDOMData = (channelNameDOM || 0).__data;
@@ -563,6 +820,8 @@ SOFTWARE.
         }
 
 
+
+
     };
 
     // let newAnchorAdded = false;
@@ -601,7 +860,7 @@ SOFTWARE.
     const domChecker = () => {
         if (domCheckerBusy > 0) return;
 
-        const newAnchors = document.querySelectorAll('a[id][href*="channel/"]:not([jkrgy])');
+        const newAnchors = document.querySelectorAll(isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])');
         if (newAnchors.length === 0) return;
         domCheckerBusy = 2;
         const cNewAnchorFirst = newAnchors[0]; // non-null
@@ -609,7 +868,7 @@ SOFTWARE.
         /** @type {HTMLElement | null} */
         const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
         lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
-        
+
         if (!firstDOMCheck) {
             firstDOMCheck = true;
             firstDOMChecker();
@@ -627,7 +886,7 @@ SOFTWARE.
             }
             domCheckerBusy--;
             resolve();
-        }).then(()=>{
+        }).then(() => {
 
             // newAnchorAdded = true;
             for (const anchor of newAnchors) {
@@ -651,30 +910,86 @@ SOFTWARE.
     /** @type {MutationObserver | null} */
     let domObserver = null;
 
-    document.addEventListener('yt-page-data-fetched', function (evt) {
-        firstDOMCheck = false;
 
-        const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
-        for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
-            cfg[key] = cfgData[key];
+    if (isMobile) {
+
+
+        let _setInterval = window.setInterval.bind(window);
+        let _clearInterval = window.clearInterval.bind(window);
+
+        async function mobileLayoutSetup(evt) {
+
+            firstDOMCheck = false;
+
+            let ytcfg;
+            do {
+                ytcfg = ((window || 0).ytcfg || 0);
+                if (ytcfg) break;
+                await new Promise(r => _setInterval(r, 1));
+            } while (true);
+
+            for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
+                cfg[key] = ytcfg.get(key);
+            }
+
+
+
+            if (!cfg['INNERTUBE_API_KEY']) {
+                console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
+                return;
+            }
+
+            if (!domObserver) {
+                domObserver = new MutationObserver(domChecker);
+            } else {
+                domObserver.takeRecords();
+                domObserver.disconnect();
+            }
+
+            domObserver.observe(evt.target || document.body, { childList: true, subtree: true });
+            domChecker();
+
         }
 
-        if (!cfg['INNERTUBE_API_KEY']) {
-            console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
-            return;
-        }
+        let cidm = _setInterval(() => {
 
-        if (!domObserver) {
-            domObserver = new MutationObserver(domChecker);
-        } else {
-            domObserver.takeRecords();
-            domObserver.disconnect();
-        }
+            let app = document.querySelector('ytm-app#app')
+            if (app === null) return;
+            _clearInterval(cidm)
+            _queueMicrotask(() => {
 
-        domObserver.observe(evt.target || document.body, { childList: true, subtree: true });
-        domChecker();
+                mobileLayoutSetup({ target: app });
+            })
+        }, 1)
 
-    });
+    } else {
 
+
+        document.addEventListener('yt-page-data-fetched', function (evt) {
+            firstDOMCheck = false;
+
+            const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
+            for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
+                cfg[key] = cfgData[key];
+            }
+
+            if (!cfg['INNERTUBE_API_KEY']) {
+                console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
+                return;
+            }
+
+            if (!domObserver) {
+                domObserver = new MutationObserver(domChecker);
+            } else {
+                domObserver.takeRecords();
+                domObserver.disconnect();
+            }
+
+            domObserver.observe(evt.target || document.body, { childList: true, subtree: true });
+            domChecker();
+
+        }, true);
+
+    }
 
 })();
