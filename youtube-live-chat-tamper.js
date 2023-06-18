@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.17.8
+// @version             2023.06.18.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -129,7 +129,7 @@ SOFTWARE.
     'use strict';
 
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
-    const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : null;
+    const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
 
     const t0 = Date.now();
 
@@ -194,7 +194,7 @@ SOFTWARE.
             this.rid = 0;
             this.g = (lockId, hRes) => {
                 if (this.rid !== lockId) return;
-                const uFunc = this.func;
+                const uFunc = this.func; // uFunc refers to the last oriFunc
                 if (!uFunc) return;
                 this.callable--;
                 const now = Date.now();
@@ -206,15 +206,11 @@ SOFTWARE.
                 }
                 if (this.callable === 0) {
                     this.func = null; // unknown bug is found that this.func must be clear before execution
-                    // uFunc refers to the last oriFunc
-                    if (typeof _queueMicrotask === 'function') {
-                        // avoid interuption with user operation
-                        _queueMicrotask(() => {
-                            uFunc(hRes);
-                        });
-                    } else {
+
+                    // avoid interuption with user operation
+                    _queueMicrotask(() => {
                         uFunc(hRes);
-                    }
+                    });
                     this.reset = now + 1000;
                 }
             };
@@ -291,9 +287,21 @@ SOFTWARE.
             let oriFunc = f;
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
+                // essential function for auto scrolling
                 useSimpleRAF = true; // repeating calls
-                f = smoothScrollF.wrapper(oriFunc); // one smoothScroll per multiple new items
+                // all calls have to be executed otherwise scrolling will be locked occasionally.
+
+                const uFunc = oriFunc;
+                f = (hRes) => {
+                    // avoid interuption with user operation
+                    _queueMicrotask(() => {
+                        uFunc(hRes);
+                    });
+                };
+
+                // f = smoothScrollF.wrapper(oriFunc); // one smoothScroll per multiple new items
             } else if (stack.indexOf('.showNewItems_') > 0) {
+                // essential function for showing new item(s)
                 useSimpleRAF = false; // when new items avaiable
 
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
@@ -316,20 +324,24 @@ SOFTWARE.
                 useSimpleRAF = true;
                 const uFunc = oriFunc;
                 f = (hRes) => {
-                    // updateTimeout just requires original requestAnimationFrame.
-                    if (typeof _queueMicrotask === 'function') {
-                        // avoid interuption with user operation
-                        _queueMicrotask(() => {
-                            uFunc(hRes);
-                        });
-                    } else {
+                    // avoid interuption with user operation
+                    _queueMicrotask(() => {
                         uFunc(hRes);
-                    }
+                    });
                 };
                 // f = updateTimeoutF.wrapper(oriFunc);
             } else if (stack.indexOf('__deraf') > 0 || stack.indexOf('rEa') > 0) {
                 // useSimpleRAF to avoid dead lock in participant list
                 useSimpleRAF = true;
+            } else {
+                useSimpleRAF = false;
+                 // when page is first loaded:
+                // 1) new hv -> ev
+                // 2) .initializeFirstPartyVeLogging
+                // 3) .keepScrollClamped
+
+                // console.log(65, 'modified', oriFunc !== f);
+                // console.log(prettyStack(stack));
             }
 
             // console.log(65, 'modified', oriFunc !== f);
@@ -344,7 +356,9 @@ SOFTWARE.
                 this.requestAnimationFrame = m;
                 byPass = false;
             } else {
+                byPass = true; // just in case, avoid infinite loops
                 r = this.__requestAnimationFrame__(f);
+                byPass = false;
             }
             return r;
         }).bind(window)
@@ -355,6 +369,8 @@ SOFTWARE.
     let cid = setInterval(() => {
         if (Date.now() - t0 > 8000) return clearInterval(cid); // give up after 8s
         if (window.requestAnimationFrame === comparisonFunc) return;
+        if (!comparisonFunc) return;
+        comparisonFunc = null;
         clearInterval(cid);
         if ((window.requestAnimationFrame + "").indexOf('_updateAnimationsPromises') > 0) {
             // clearInterval(cid);
