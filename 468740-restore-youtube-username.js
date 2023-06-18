@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.0
+// @version             0.5.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -213,6 +213,9 @@ SOFTWARE.
             if (waiting) {
                 waiting.resolve();
             }
+            _queueMicrotask(() => {
+                handleToChannelIdPromises.delete(handleText);
+            })
         }
 
 
