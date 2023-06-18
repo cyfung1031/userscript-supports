@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.18.3
+// @version             2023.06.18.4
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -832,9 +832,11 @@ SOFTWARE.
             };
 
             // for elements before this execution.
-            requestAnimationFrame(()=>{
+            requestAnimationFrame(() => {
                 for (const s of document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')) {
-                    s.__setup334__();
+                    if (s.__dataEnabled === true || s.__dataReady === true) {
+                        s.__setup334__();
+                    }
                 }
             });
 
