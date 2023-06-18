@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.4
+// @version             0.4.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -285,7 +285,7 @@ SOFTWARE.
                     delete promisesStore[channelId];
                 });
 
-                if ('verified123' in (res || 0)) {
+                if (typeof (res || 0).verified123 === 'boolean') {
                     resolve(res); // fetchedResult
                     return;
                 }
