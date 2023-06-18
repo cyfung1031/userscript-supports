@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.4.5
+// @version             0.4.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -178,6 +178,8 @@ SOFTWARE.
 
     const promisesStore = {};
 
+    const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
+
     function createNetworkPromise(channelId) {
 
         return new Promise(networkResolve => {
@@ -263,8 +265,6 @@ SOFTWARE.
 
     }
 
-    const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : requestAnimationFrame;
-
     function getDisplayName(channelId) {
 
         return new Promise(resolve => {
@@ -280,7 +280,7 @@ SOFTWARE.
             promisesStore[channelId].then(res => {
                 // res might be null
 
-                queueMicrotask_(() => {
+                _queueMicrotask(() => {
                     promisesStore[channelId] = null;
                     delete promisesStore[channelId];
                 });
