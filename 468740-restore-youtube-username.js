@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.3
+// @version             0.5.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -185,7 +185,31 @@ SOFTWARE.
 
     const dataChangedFuncStore = new WeakMap();
     const handleToChannelId = new Map();
-    const handleToChannelIdPromises = new Map();
+
+    class AsyncValue {
+        constructor() {
+            this.__value__ = null;
+            this.__resolve__ = null;
+            this.__promise__ = new Promise(resolve => {
+                this.__resolve__ = resolve;
+            });
+        }
+        setValue(value) {
+            const promise = this.__promise__;
+            if (promise === null) throw 'Value has already been set.';
+            this.__value__ = value;
+            this.__promise__ = null;
+            this.__resolve__ ? this.__resolve__() : Promise.resolve().then(() => this.__resolve__());
+        }
+        async getValue() {
+            const promise = this.__promise__;
+            if (promise === null) return this.__value__;
+            await promise; // promise become null
+            this.__promise__ = null; // just in case
+            this.__resolve__ = null;
+            return this.__value__;
+        }
+    }
 
     const cacheHandleToChannel = (json, channelId) => {
 
@@ -208,14 +232,11 @@ SOFTWARE.
         }
         if (handleText) {
 
-            handleToChannelId.set(handleText, channelId);
-            let waiting = handleToChannelIdPromises.get(handleText);
-            if (waiting) {
-                waiting.resolve();
+            const asyncValue = handleToChannelId.get(handleText); // nothing if no pending promise
+            if (asyncValue instanceof AsyncValue) {
+                asyncValue.setValue(channelId);
             }
-            _queueMicrotask(() => {
-                handleToChannelIdPromises.delete(handleText);
-            })
+            handleToChannelId.set(handleText, channelId);
         }
 
 
@@ -306,7 +327,7 @@ SOFTWARE.
 
             });
 
-        })
+        }).catch(console.warn)
 
     }
 
@@ -515,26 +536,19 @@ SOFTWARE.
         let textMatch = commentText.textContent === contentTexts.map(e => e.text).join('');
         if (!textMatch) return;
 
-
         let handleText = contentTexts[aidx].text.trim();
-        let channelId = handleToChannelId.get(handleText);
+        let channelId;
 
-        if (!channelId) {
-            const cachedPromiseObject = handleToChannelIdPromises.get(handleText);
-            let waitingPromise;
-            if (!cachedPromiseObject) {
-                const newPromise = new Promise(resolve => { // note: it could be never resolved
-                    handleToChannelIdPromises.set(handleText, {
-                        promiseGetter: ()=>newPromise,
-                        resolve
-                    })
-                }).catch(console.warn);
-                waitingPromise = newPromise;
-            } else {
-                waitingPromise = cachedPromiseObject.promiseGetter();
-            }
-            await waitingPromise;
-            channelId = handleToChannelId.get(handleText);
+        let cache = handleToChannelId.get(handleText);
+
+        if (typeof cache === 'string') {
+            channelId = cache;
+        } else if (cache instanceof AsyncValue) {
+            channelId = await cache.getValue();
+        } else {
+            const asyncValue = new AsyncValue();
+            handleToChannelId.set(handleText, asyncValue);
+            channelId = await asyncValue.getValue();  // note: it could be never resolved
         }
 
         if (!channelId) return; // just in case
