@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.4
+// @version             0.5.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -895,6 +895,12 @@ SOFTWARE.
 
         new Promise(resolve => {
             if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+
+                if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                    mutex.nextIndex = 0;
+                }
+
+                /*
                 if (mutex.nextIndex === 0) {
                     // no change
                 } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
@@ -902,6 +908,7 @@ SOFTWARE.
                 } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
                     mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
                 }
+                */
             }
             domCheckerBusy--;
             resolve();
