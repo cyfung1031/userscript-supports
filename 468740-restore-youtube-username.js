@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.1
+// @version             0.5.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -519,21 +519,30 @@ SOFTWARE.
         let handleText = contentTexts[aidx].text.trim();
         let channelId = handleToChannelId.get(handleText);
 
-        channelId = channelId || (await new Promise(resolve => { // note: it could be never resolved
+        if (!channelId) {
+            const cachedPromiseObject = handleToChannelIdPromises.get(handleText);
+            let waitingPromise;
+            if (!cachedPromiseObject) {
+                const newPromise = new Promise(resolve => { // note: it could be never resolved
+                    handleToChannelIdPromises.set(handleText, {
+                        promise: newPromise,
+                        resolve
+                    })
+                });
+                waitingPromise = newPromise;
+            } else {
+                waitingPromise = cachedPromiseObject.promise;
+            }
+            await waitingPromise;
+            channelId = handleToChannelId.get(handleText);
+        }
 
-            handleToChannelIdPromises.set(handleText, {
-                resolve
-            })
-        }).then(() => {
-            return handleToChannelId.get(handleText);
-        }));
+        if (!channelId) return; // just in case
 
         if (commentText.isConnected !== true) return; // already removed
         if (commentText.textContent !== currentText) return; // already changed
 
-
         const fetchResult = await getDisplayName(channelId);
-
 
         if (fetchResult === null) return;
 
@@ -546,11 +555,9 @@ SOFTWARE.
         contentTexts[aidx].text = contentTexts[aidx].text.replace(contentTexts[aidx].text.trim(), "@" + title);
 
 
-
         findTextNodes(commentText, (textnode) => {
 
             if (textnode.nodeValue.indexOf(search) >= 0) {
-
 
                 textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
                 return true;
@@ -560,13 +567,10 @@ SOFTWARE.
         });
 
 
-
-
     }
 
 
     const domCheck = isMobile ? async (anchor, channelHref, mt) => {
-
 
 
         if (!channelHref || !mt) return;
@@ -631,8 +635,6 @@ SOFTWARE.
                     //  if (r instanceof Promise) funcPromises.push(r);
                 }
             }
-
-
 
 
         }
