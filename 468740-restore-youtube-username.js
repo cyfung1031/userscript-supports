@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.5
+// @version             0.5.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -128,6 +128,97 @@ SOFTWARE.
 
 (function () {
     'use strict';
+
+    /*
+
+
+    init
+
+        initialdata
+        state-progress
+        state-responsereceived
+        player-autonav-pause
+        state-change
+        state-navigateend
+        player-initialized
+        renderer-module-load-start
+        video-data-change
+        player-state-change
+        updateui
+        renderer-module-load-end -> channel owner DOM available
+        player-autonav-pause
+        updateui
+        renderer-module-load-start
+        updateui
+        renderer-module-load-end
+
+
+        playing
+
+        h5player.video-progress
+        h5player.video-progress
+        h5player.video-progress
+        h5player.video-progress
+        ...
+
+
+
+
+    navigate new video
+
+        state-navigatestart
+        state-change => channel owener DOM vanished
+        state-progress
+        ...
+        h5player.player-state-change
+        h5player.video-data-change
+        h5player.player-state-change
+        h5player.muted-autoplay-change
+        h5player.volume-change
+        h5player.video-data-change
+        h5player.volume-change
+        ...
+
+        state-progress
+        ...
+
+        state-progress => channel owner DOM appear [just before state-responsereceived]
+        state-responsereceived
+
+        video-data-change
+        state-change
+        state-navigateend
+
+
+
+
+    UX interaction
+
+        user-activity
+        player-autonav-pause
+
+
+
+
+
+    EventTarget.prototype.uhfsE = EventTarget.prototype.dispatchEvent
+
+    EventTarget.prototype.dispatchEvent = function (ev) {
+        if (ev instanceof Event) {
+            if (ev.type === 'video-progress') { } else {
+                console.log(ev.type, this, ev.target)
+                if (ev.target === null) {
+                    console.log(ev.type, (document.querySelector('ytm-app') || 0).data)
+                    console.log(ev.type, (document.querySelector('ytm-slim-owner-renderer') || 0).textContent)
+                }
+            }
+        }
+        return this.uhfsE.apply(this, arguments);
+    }
+
+
+
+*/
 
     const isMobile = location.hostname === 'm.youtube.com';
 
@@ -874,61 +965,80 @@ SOFTWARE.
     const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
     let lastNewAnchorLastWR = null;
-    let domCheckerBusy = 0;
+
+    let domCheckTimeStamp = 0;
+
+    const mutexForDOMMutations = new Mutex();
 
     const domChecker = () => {
-        if (domCheckerBusy > 0) return;
 
-        const newAnchors = document.querySelectorAll(isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])');
-        if (newAnchors.length === 0) return;
-        domCheckerBusy = 2;
-        const cNewAnchorFirst = newAnchors[0]; // non-null
-        const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
-        /** @type {HTMLElement | null} */
-        const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-        lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+        mutexForDOMMutations.lockWith(lockResolve => {
 
-        if (!firstDOMCheck) {
-            firstDOMCheck = true;
-            firstDOMChecker();
-        }
+            const newAnchors = document.querySelectorAll(isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])');
+            if (newAnchors.length === 0) {
+                lockResolve();
+                return;
+            }
 
-        new Promise(resolve => {
-            if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+            const cNewAnchorFirst = newAnchors[0]; // non-null
+            const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
+            /** @type {HTMLElement | null} */
+            const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
+            lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
 
-                if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                    mutex.nextIndex = 0;
+            const ltDOMCheck = domCheckTimeStamp;
+            const ctDOMCheck = Date.now();
+            domCheckTimeStamp = ctDOMCheck;
+
+            if (!firstDOMCheck) {
+                firstDOMCheck = true;
+                firstDOMChecker();
+            }
+
+            new Promise(resolve => {
+                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+
+                    if (ctDOMCheck - ltDOMCheck < 230) {
+
+                    } else {
+                        if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                            mutex.nextIndex = 0;
+                        }
+                    }
+
+                    /*
+                    if (mutex.nextIndex === 0) {
+                        // no change
+                    } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
+                        mutex.nextIndex = 0; // highest priority
+                    } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
+                        mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
+                    }
+                    */
+                }
+                resolve();
+            }).then(() => {
+
+                // newAnchorAdded = true;
+                for (const anchor of newAnchors) {
+                    // author-text or name
+                    // normal url: /channel/xxxxxxx
+                    // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
+                    const href = anchor.getAttribute('href');
+                    const channelId = obtainChannelId(href); // string, can be empty
+                    anchor.setAttribute('jkrgy', channelId);
+                    // intersectionobserver.unobserve(anchor);
+                    // intersectionobserver.observe(anchor); // force first occurance
+                    domCheck(anchor, href, channelId);
                 }
 
-                /*
-                if (mutex.nextIndex === 0) {
-                    // no change
-                } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
-                    mutex.nextIndex = 0; // highest priority
-                } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
-                    mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
-                }
-                */
-            }
-            domCheckerBusy--;
-            resolve();
-        }).then(() => {
+            }).then(lockResolve).catch(e => {
+                lockResolve();
+                console.warn(e);
+            });
 
-            // newAnchorAdded = true;
-            for (const anchor of newAnchors) {
-                // author-text or name
-                // normal url: /channel/xxxxxxx
-                // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
-                const href = anchor.getAttribute('href');
-                const channelId = obtainChannelId(href); // string, can be empty
-                anchor.setAttribute('jkrgy', channelId);
-                // intersectionobserver.unobserve(anchor);
-                // intersectionobserver.observe(anchor); // force first occurance
-                domCheck(anchor, href, channelId);
-            }
-            domCheckerBusy--;
+        });
 
-        }).catch(console.warn);
 
     };
 
@@ -936,28 +1046,54 @@ SOFTWARE.
     /** @type {MutationObserver | null} */
     let domObserver = null;
 
+    const onPageFetched = isMobile ? (callback, final) => {
+
+        let state = 0;
+
+        window.addEventListener('state-change', function (evt) {
+            if (state === 1) return; // ignore intemediate events
+            state = 1; // before value: 0 or 2;
+            callback(evt);
+        }, false);
+
+        window.addEventListener('state-navigateend', function (evt) { // fallback
+            let inSeq = state === 1;
+            state = 2; // 2 when loaded
+            if (!inSeq) callback(evt);
+        }, false);
+
+    } : (callback) => {
+
+        let state = 0;
+
+        document.addEventListener('yt-page-data-fetched', function (evt) {
+            if (state === 1) return; // ignore intemediate events
+            state = 1; // before value: 0 or 2;
+            callback(evt);
+        }, false);
+
+        document.addEventListener('yt-navigate-finish', function (evt) { // fallback
+            let inSeq = state === 1;
+            state = 2; // 2 when loaded
+            if (!inSeq) callback(evt);
+        }, false);
+
+    };
+
 
     if (isMobile) {
 
-
-        let _setInterval = window.setInterval.bind(window);
-        let _clearInterval = window.clearInterval.bind(window);
-
-        async function mobileLayoutSetup(evt) {
+        onPageFetched(async (evt) => {
+            let app = document.querySelector('ytm-app#app') || document.querySelector('ytm-app');
+            console.assert(app);
 
             firstDOMCheck = false;
 
-            let ytcfg;
-            do {
-                ytcfg = ((window || 0).ytcfg || 0);
-                if (ytcfg) break;
-                await new Promise(r => _setInterval(r, 1));
-            } while (true);
+            const ytcfg = ((window || 0).ytcfg || 0);
 
             for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
                 cfg[key] = ytcfg.get(key);
             }
-
 
 
             if (!cfg['INNERTUBE_API_KEY']) {
@@ -972,26 +1108,18 @@ SOFTWARE.
                 domObserver.disconnect();
             }
 
-            domObserver.observe(evt.target || document.body, { childList: true, subtree: true });
+            domObserver.observe(app, { childList: true, subtree: true });
             domChecker();
 
-        }
-
-        let cidm = _setInterval(() => {
-
-            let app = document.querySelector('ytm-app#app')
-            if (app === null) return;
-            _clearInterval(cidm)
-            _queueMicrotask(() => {
-
-                mobileLayoutSetup({ target: app });
-            })
-        }, 1)
+        });
 
     } else {
 
 
-        document.addEventListener('yt-page-data-fetched', function (evt) {
+        onPageFetched(async (evt) => {
+            const app = (evt || 0).target || document.querySelector('ytd-app');
+            console.assert(app);
+
             firstDOMCheck = false;
 
             const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
@@ -1011,10 +1139,10 @@ SOFTWARE.
                 domObserver.disconnect();
             }
 
-            domObserver.observe(evt.target || document.body, { childList: true, subtree: true });
+            domObserver.observe(app, { childList: true, subtree: true });
             domChecker();
 
-        }, true);
+        });
 
     }
 
