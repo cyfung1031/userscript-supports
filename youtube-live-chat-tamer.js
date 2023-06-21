@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.21.1
+// @version             2023.06.21.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -160,7 +160,7 @@ SOFTWARE.
         }
 
         lockWith(f) {
-            this.p = this.p.then(() => new Promise(f)).catch(console.warn)
+            this.p = this.p.then(() => new Promise(f).catch(console.warn))
         }
 
     }
