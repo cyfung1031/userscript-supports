@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.18.4
+// @version             2023.06.21.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -128,6 +128,10 @@ SOFTWARE.
 (function () {
     'use strict';
 
+    const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms 
+    // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called 
+    //   and `transform: translateY(...)` will be updated sequentially
+
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
     const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
 
@@ -211,9 +215,12 @@ SOFTWARE.
                     this.func = null; // unknown bug is found that this.func must be clear before execution
 
                     // avoid interuption with user operation
+                    /*
                     _queueMicrotask(() => {
                         uFunc(hRes);
                     });
+                    */
+                    Promise.resolve(hRes).then(uFunc);
                     this.reset = now + 1000;
                 }
             };
@@ -277,74 +284,104 @@ SOFTWARE.
 
 
     */
+    const asyncWaiter = async (delay) => {
+        let t = Date.now() + delay;
+        do {
+            await new Promise(r => window.__requestAnimationFrame__(r));
+        } while (Date.now() < t);
+    }
     const fix = () => {
 
         window.requestAnimationFrame = (function (f) {
             if (byPass) {
                 return this.__requestAnimationFrame__(f);
             }
-
-            let useSimpleRAF = false;
-
             const stack = new Error().stack;
-            let oriFunc = f;
+            let useSimpleRAF = false;
+            const oriFunc = f;
+            let delayBeforeRAF = 0;
+            let rAfHandling = 0;
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
+                // console.log('stack', '.smoothScroll_')
                 // essential function for auto scrolling
                 useSimpleRAF = true; // repeating calls
                 // all calls have to be executed otherwise scrolling will be locked occasionally.
-
-                const uFunc = oriFunc;
-                f = (hRes) => {
-                    // avoid interuption with user operation
-                    _queueMicrotask(() => {
-                        uFunc(hRes);
-                    });
-                };
-
+                rAfHandling = 2;
                 // f = smoothScrollF.wrapper(oriFunc); // one smoothScroll per multiple new items
+                // Performance Analaysis: performance.now() - lastTimestamp per each rAf
             } else if (stack.indexOf('.showNewItems_') > 0) {
+                // console.log('stack', '.showNewItems_')
                 // essential function for showing new item(s)
                 useSimpleRAF = false; // when new items avaiable
-
+                rAfHandling = 2;
+                delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
+                // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
+                // console.log('stack', '.start/unsubscribe', 'unsubscribe=' + useSimpleRAF)
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
                 // .unsubscribe: non essential function => useSimpleRAF
-                let mutexDelayedFunc = oriFunc;
-                f = (hRes) => {
-                    mutex.lockWith(lockResolve => {
-                        const final = () => {
-                            lockResolve();
-                            mutexDelayedFunc = null;
-                            lockResolve = null;
-                        };
-                        Promise.resolve(hRes).then(mutexDelayedFunc).then(final).catch(final);
-                    });
-                };
+                rAfHandling = 2;
+                // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
             } else if (stack.indexOf('.updateTimeout') > 0) {
+                // console.log('stack', '.updateTimeout')
                 // .updateTimeout: non essential function => useSimpleRAF
                 useSimpleRAF = true;
-                const uFunc = oriFunc;
-                f = (hRes) => {
-                    // avoid interuption with user operation
-                    _queueMicrotask(() => {
-                        uFunc(hRes);
-                    });
-                };
+                rAfHandling = 1;
                 // f = updateTimeoutF.wrapper(oriFunc);
+                // Performance Analaysis: triggered by video::timeupdate
             } else if (stack.indexOf('__deraf') > 0 || stack.indexOf('rEa') > 0) {
                 // useSimpleRAF to avoid dead lock in participant list
                 useSimpleRAF = true;
+                // Performance Analaysis: as a core control
             } else {
+                // console.log('stack', '??')
                 useSimpleRAF = false;
                 // when page is first loaded:
                 // 1) new hv -> ev
                 // 2) .initializeFirstPartyVeLogging
                 // 3) .keepScrollClamped
-
                 // console.log(65, 'modified', oriFunc !== f);
                 // console.log(prettyStack(stack));
+                // Performance Analaysis: mainly for initialization 
+            }
+
+            if (delayBeforeRAF > 0) {
+                const delay = delayBeforeRAF;
+                mutex.lockWith(lockResolve => {
+                    asyncWaiter(delay).then(lockResolve);
+                });
+            }
+
+            let delayedFunc = oriFunc;
+            switch(rAfHandling){
+                case 1:
+                    f = (hRes) => {
+                        // avoid interuption with user operation
+                        /*
+                        _queueMicrotask(() => {
+                            delayedFunc(hRes);
+                        });
+                        */
+                        Promise.resolve(hRes).then(delayedFunc);
+                    };
+                    break;
+                case 2:
+                    f = (hRes) => {
+                        mutex.lockWith(lockResolve => {
+                            // force calls in order
+                            // pause {DELAY_AFTER_NEW_ITEMS_FETCHED}ms after .showNewItems_ execution
+                            // fetch more new items by batch due to delay
+                            const final = () => {
+                                lockResolve();
+                                delayedFunc = null;
+                                lockResolve = null;
+                            };
+                            Promise.resolve(hRes).then(delayedFunc).then(final).catch(final);
+                        });
+                    };
+                    break;
             }
 
             // console.log(65, 'modified', oriFunc !== f);
@@ -786,45 +823,45 @@ SOFTWARE.
     */
 
 
-    const setup322 = ()=>{
+    const setup322 = () => {
 
-        customElements.whenDefined("yt-live-chat-participant-list-renderer").then(p=>{
-            
+        customElements.whenDefined("yt-live-chat-participant-list-renderer").then(p => {
+
             let proto = window.customElements.get("yt-live-chat-participant-list-renderer").prototype
-            if(typeof proto.attached !=='function') return;
+            if (typeof proto.attached !== 'function') return;
             proto.__attached411__ = proto.attached;
-            proto.__setup334__ = function(){
+            proto.__setup334__ = function () {
 
-                if(beforeParticipantsMap.has(this)) return;
+                if (beforeParticipantsMap.has(this)) return;
 
                 const s = this;
                 s.classList.add('n9fJ3');
                 Promise.resolve(s).then(s => {
-    
-    
+
+
                     if (typeof s.notifyPath !== 'function' || typeof s.__notifyPath5035__ !== 'undefined') {
                         console.warn("ERROR(0xE318): yt-live-chat-participant-list-renderer")
                         return;
                     }
-    
-    
+
+
                     s.__notifyPath5035__ = s.notifyPath
-    
+
                     beforeParticipantsMap.set(s, [...s.participantsManager.participants]);
                     s.notifyPath = notifyPath7081;
-                    
+
                     // if(typeof s.onParticipantsChanged !=='function') return;
                     // s.onParticipantsChanged = function(){
-    
+
                     //     // this.notifyPath("participantsManager.participants");
                     // }
-                    
-    
+
+
                 });
 
 
             }
-            proto.attached = function(){
+            proto.attached = function () {
 
                 this.__setup334__();
 
@@ -846,9 +883,9 @@ SOFTWARE.
 
     let cid2 = _setInterval(() => {
 
-        if(typeof customElements !== "object") return; // waiting polyfill
+        if (typeof customElements !== "object") return; // waiting polyfill
         _clearInterval(cid2);
-        if(typeof (customElements||0).whenDefined !=='function') return; // error - ignore
+        if (typeof (customElements || 0).whenDefined !== 'function') return; // error - ignore
 
         setup322();
 
