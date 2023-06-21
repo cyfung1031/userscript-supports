@@ -128,7 +128,7 @@ SOFTWARE.
 (function () {
     'use strict';
 
-    const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms 
+    // const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms 
     // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called 
     //   and `transform: translateY(...)` will be updated sequentially
 
@@ -320,7 +320,8 @@ SOFTWARE.
                 // essential function for showing new item(s)
                 useSimpleRAF = false; // when new items avaiable
                 rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
-                delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
+                // delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
+                delayBeforeRAF = 1;
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
                 // console.log('stack', '.start/unsubscribe', 'unsubscribe=' + useSimpleRAF)
                 // avoid parallel running - use mutex
@@ -328,6 +329,7 @@ SOFTWARE.
                 // .unsubscribe: non essential function => useSimpleRAF
                 rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
+                delayBeforeRAF = 1;
             } else if (stack.indexOf('.updateTimeout') > 0) {
                 // console.log('stack', '.updateTimeout')
                 // .updateTimeout: non essential function => useSimpleRAF
@@ -359,7 +361,7 @@ SOFTWARE.
             }
 
             let delayedFunc = oriFunc;
-            switch(rAfHandling){
+            switch (rAfHandling) {
                 case 1:
                     f = (hRes) => {
                         // avoid interuption with user operation
