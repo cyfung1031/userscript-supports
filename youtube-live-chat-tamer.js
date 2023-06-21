@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.21.2
+// @version             2023.06.21.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -159,6 +159,9 @@ SOFTWARE.
             this.p = Promise.resolve()
         }
 
+        /**
+         *  @param { (lockResolve: () => void} f
+         */
         lockWith(f) {
             this.p = this.p.then(() => new Promise(f).catch(console.warn))
         }
@@ -233,8 +236,8 @@ SOFTWARE.
         }
 
     }
-    const smoothScrollF = new FuncBuilder();
-    const updateTimeoutF = new FuncBuilder();
+    // const smoothScrollF = new FuncBuilder();
+    // const updateTimeoutF = new FuncBuilder();
     let byPass = false;
     /*
     let mww = [0, 0, 0, 0]
@@ -303,32 +306,33 @@ SOFTWARE.
             let rAfHandling = 0;
             // no modification on .showNewItems_ under MutationObserver
             if (stack.indexOf('.smoothScroll_') > 0) {
+                // Function Requested: .smoothScroll_
                 // console.log('stack', '.smoothScroll_')
                 // essential function for auto scrolling
                 useSimpleRAF = true; // repeating calls
                 // all calls have to be executed otherwise scrolling will be locked occasionally.
-                rAfHandling = 2;
+                rAfHandling = 1; // .smoothScroll_: performance.now() - lastTimestamp per each rAf; with `transform: translate(...)` update
                 // f = smoothScrollF.wrapper(oriFunc); // one smoothScroll per multiple new items
                 // Performance Analaysis: performance.now() - lastTimestamp per each rAf
             } else if (stack.indexOf('.showNewItems_') > 0) {
+                // Function Requested: .smoothScroll_
                 // console.log('stack', '.showNewItems_')
                 // essential function for showing new item(s)
                 useSimpleRAF = false; // when new items avaiable
-                rAfHandling = 2;
+                rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
-                // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
                 // console.log('stack', '.start/unsubscribe', 'unsubscribe=' + useSimpleRAF)
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
                 // .unsubscribe: non essential function => useSimpleRAF
-                rAfHandling = 2;
+                rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
             } else if (stack.indexOf('.updateTimeout') > 0) {
                 // console.log('stack', '.updateTimeout')
                 // .updateTimeout: non essential function => useSimpleRAF
                 useSimpleRAF = true;
-                rAfHandling = 1;
+                rAfHandling = 0; // multiple video::timeupdate might call in one nimation Frame; but no DOM manipulation (state update only)
                 // f = updateTimeoutF.wrapper(oriFunc);
                 // Performance Analaysis: triggered by video::timeupdate
             } else if (stack.indexOf('__deraf') > 0 || stack.indexOf('rEa') > 0) {
