@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.7
+// @version             0.5.8
 // @license             MIT License
 
 // @author              CY Fung
@@ -335,23 +335,30 @@ SOFTWARE.
 
     }
 
-    function stackNewRequest(channelId, bResult) {
-
-        let setResult = (result) => {
-            setResult = null;
-            if (!result) {
-                bResult.fetchingState = 0;
-                bResult.setValue(null);
-                displayNameResStore.delete(channelId); // create another network response in the next request
-            } else {
-                bResult.fetchingState = 4;
-                bResult.setValue(result);
-                displayNameResStore.set(channelId, result); // update store result to resolved value
-            }
-            bResult = null;
-        }
+    function stackNewRequest(channelId) {
 
         mutex.add(lockResolve => {
+
+            let bResult = displayNameResStore.get(channelId);
+            if (!(bResult instanceof AsyncValue)) {
+                // resolved or removed
+                lockResolve(); lockResolve = null;
+                return;
+            }
+
+            let setResult = (result) => {
+                setResult = null;
+                if (!result) {
+                    bResult.fetchingState = 0;
+                    bResult.setValue(null);
+                    displayNameResStore.delete(channelId); // create another network response in the next request
+                } else {
+                    bResult.fetchingState = 4;
+                    bResult.setValue(result);
+                    displayNameResStore.set(channelId, result); // update store result to resolved value
+                }
+                bResult = null;
+            }
 
             if (bResult.fetchingState >= 2) { // fetchingState == 3 or 4
                 // request is already done. no need to stack any request
@@ -425,7 +432,7 @@ SOFTWARE.
 
                 // console.log(displayNameRes, urlToHandle(vanityChannelUrl))
                 // displayNameCacheStore.set(channelId, displayNameRes);
-                
+
 
                 let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
                 if (!resultInfo) {
@@ -433,15 +440,15 @@ SOFTWARE.
                     setResult(null);
                     return;
                 }
-    
+
                 cacheHandleToChannel(res, channelId);
-    
+
                 const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
-    
+
                 const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
-    
+
                 setResult(displayNameRes);
-    
+
 
             }).catch(e => {
                 lockResolve && lockResolve();
@@ -491,7 +498,7 @@ SOFTWARE.
             bResult.getValue().then(resolve);
             if (isStackNewRequest) {
                 bResult.fetchingState = 1;
-                stackNewRequest(channelId, bResult)
+                stackNewRequest(channelId);
             }
         }).catch(console.warn);
     }
@@ -1084,7 +1091,7 @@ SOFTWARE.
 
     };
 
-    function setupOnPageFetched(app){
+    function setupOnPageFetched(app) {
 
         firstDOMCheck = false;
 
