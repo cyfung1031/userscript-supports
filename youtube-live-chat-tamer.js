@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.21.4
+// @version             2023.06.22.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -128,8 +128,8 @@ SOFTWARE.
 (function () {
     'use strict';
 
-    // const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms 
-    // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called 
+    // const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms
+    // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called
     //   and `transform: translateY(...)` will be updated sequentially
 
     window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
@@ -293,6 +293,8 @@ SOFTWARE.
             await new Promise(r => window.__requestAnimationFrame__(r));
         } while (Date.now() < t);
     }
+    let mz3 = 0;
+    let delayLocked = false;
     const fix = () => {
 
         window.requestAnimationFrame = (function (f) {
@@ -321,15 +323,17 @@ SOFTWARE.
                 useSimpleRAF = false; // when new items avaiable
                 rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 // delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
-                // delayBeforeRAF = 1;
+                delayBeforeRAF = 1;
+                if (++mz3 > 1e9) mz3 = 1e3;
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
+                // .start will also match ".startCountdown"
                 // console.log('stack', '.start/unsubscribe', 'unsubscribe=' + useSimpleRAF)
                 // avoid parallel running - use mutex
                 // under HTMLDivElement.removeChild or HTMLImageElement.<anonymous> => onLoad_
                 // .unsubscribe: non essential function => useSimpleRAF
                 rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
-                // delayBeforeRAF = 1;
+                delayBeforeRAF = 1;
             } else if (stack.indexOf('.updateTimeout') > 0) {
                 // console.log('stack', '.updateTimeout')
                 // .updateTimeout: non essential function => useSimpleRAF
@@ -350,17 +354,24 @@ SOFTWARE.
                 // 3) .keepScrollClamped
                 // console.log(65, 'modified', oriFunc !== f);
                 // console.log(prettyStack(stack));
-                // Performance Analaysis: mainly for initialization 
+                // Performance Analaysis: mainly for initialization
             }
 
             if (delayBeforeRAF > 0) {
                 const delay = delayBeforeRAF;
-                mutex.lockWith(lockResolve => {
-                    asyncWaiter(delay).then(lockResolve);
-                });
+                if (!delayLocked) {
+                    mutex.lockWith(lockResolve => {
+                        delayLocked = true; // set just before asyncWaiter, reset when rAf fires
+                        asyncWaiter(delay).then(() => {
+                            lockResolve();
+                            delayLocked = false;
+                        });
+                    });
+                }
             }
 
             let delayedFunc = oriFunc;
+            let lz3 = mz3;
             switch (rAfHandling) {
                 case 1:
                     f = (hRes) => {
@@ -375,6 +386,10 @@ SOFTWARE.
                     break;
                 case 2:
                     f = (hRes) => {
+                        if (lz3 !== mz3) {
+                            // bypass ".start" once restored from background tab to foreground tab
+                            return;
+                        }
                         mutex.lockWith(lockResolve => {
                             // force calls in order
                             // pause {DELAY_AFTER_NEW_ITEMS_FETCHED}ms after .showNewItems_ execution
@@ -814,13 +829,13 @@ SOFTWARE.
 
                 beforeParticipantsMap.set(s, [...s.participantsManager.participants]);
                 s.notifyPath = notifyPath7081;
-                
+
                 // if(typeof s.onParticipantsChanged !=='function') return;
                 // s.onParticipantsChanged = function(){
 
                 //     // this.notifyPath("participantsManager.participants");
                 // }
-                
+
 
             });
         }
