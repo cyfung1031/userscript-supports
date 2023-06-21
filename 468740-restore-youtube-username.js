@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.6
+// @version             0.5.7
 // @license             MIT License
 
 // @author              CY Fung
@@ -229,8 +229,11 @@ SOFTWARE.
             this.p = Promise.resolve()
         }
 
+        /**
+         *  @param { (lockResolve: () => void} f
+         */
         lockWith(f) {
-            this.p = this.p.then(() => new Promise(f)).catch(console.warn)
+            this.p = this.p.then(() => new Promise(f).catch(console.warn))
         }
 
     }
@@ -257,6 +260,9 @@ SOFTWARE.
                 resolve();
             };
         }
+        /**
+         *  @param { (lockResolve: () => void} f
+         */
         add(f) {
             if (this.nextIndex === this.arr.length) {
                 this.arr.push(f); this.nextIndex++;
@@ -268,11 +274,7 @@ SOFTWARE.
     }
     const mutex = new OrderedMutex();
 
-    const displayNameCacheStore = new Map();
-
-    const promisesStore = {};
-
-    const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
+    const displayNameResStore = new Map();
 
     const dataChangedFuncStore = new WeakMap();
     const handleToChannelId = new Map();
@@ -305,7 +307,7 @@ SOFTWARE.
     const cacheHandleToChannel = (json, channelId) => {
 
         let resultInfo = ((json || 0).metadata || 0).channelMetadataRenderer;
-        const { vanityChannelUrl, ownerUrls } = resultInfo
+        const { vanityChannelUrl, ownerUrls } = resultInfo;
 
         let handleText = urlToHandle(vanityChannelUrl || '');
 
@@ -333,92 +335,121 @@ SOFTWARE.
 
     }
 
-    function createNetworkPromise(channelId) {
+    function stackNewRequest(channelId, bResult) {
 
-        return new Promise(networkResolve => {
+        let setResult = (result) => {
+            setResult = null;
+            if (!result) {
+                bResult.fetchingState = 0;
+                bResult.setValue(null);
+                displayNameResStore.delete(channelId); // create another network response in the next request
+            } else {
+                bResult.fetchingState = 4;
+                bResult.setValue(result);
+                displayNameResStore.set(channelId, result); // update store result to resolved value
+            }
+            bResult = null;
+        }
 
-            mutex.add(lockResolve => {
+        mutex.add(lockResolve => {
 
-                let fetchedResult = displayNameCacheStore.get(channelId);
-                if (fetchedResult) {
-                    lockResolve();
-                    networkResolve(fetchedResult);
-                    return;
-                }
+            if (bResult.fetchingState >= 2) { // fetchingState == 3 or 4
+                // request is already done. no need to stack any request
+                lockResolve(); lockResolve = null;
+                return;
+            }
 
-                if (!document.querySelector(`[jkrgy="${channelId}"]`)) {
-                    // element has already been removed
-                    lockResolve();
-                    networkResolve(null);
-                    return;
-                }
+            if (!document.querySelector(`[jkrgy="${channelId}"]`)) {
+                // element has already been removed
+                lockResolve(); lockResolve = null;
+                setResult(null);
+                return;
+            }
 
-                //INNERTUBE_API_KEY = ytcfg.data_.INNERTUBE_API_KEY
+            //INNERTUBE_API_KEY = ytcfg.data_.INNERTUBE_API_KEY
 
-                fetch(new window.Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
-                    "method": "POST",
-                    "mode": "same-origin",
-                    "credentials": "same-origin",
+            bResult.fetchingState = 2;
 
-                    // (-- reference: https://javascript.info/fetch-api
-                    referrerPolicy: "no-referrer",
-                    cache: "default",
-                    redirect: "error",
-                    integrity: "",
-                    keepalive: false,
-                    signal: undefined,
-                    window: window,
-                    // --)
+            fetch(new window.Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
+                "method": "POST",
+                "mode": "same-origin",
+                "credentials": "same-origin",
 
-                    "headers": {
-                        "Content-Type": "application/json",
-                        "Accept-Encoding": "gzip, deflate, br"
-                    },
-                    "body": JSON.stringify({
-                        "context": {
-                            "client": {
-                                "clientName": "MWEB",
-                                "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`,
-                                "originalUrl": `https://m.youtube.com/channel/${channelId}`,
-                                "playerType": "UNIPLAYER",
-                                "platform": "MOBILE",
-                                "clientFormFactor": "SMALL_FORM_FACTOR",
-                                "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                                "mainAppWebInfo": {
-                                    "graftUrl": `/channel/${channelId}`,
-                                    "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                                    "isWebNativeShareAvailable": true
-                                }
-                            },
-                            "user": {
-                                "lockedSafetyMode": false
-                            },
-                            "request": {
-                                "useSsl": true,
-                                "internalExperimentFlags": [],
-                                "consistencyTokenJars": []
+                // (-- reference: https://javascript.info/fetch-api
+                referrerPolicy: "no-referrer",
+                cache: "default",
+                redirect: "error",
+                integrity: "",
+                keepalive: false,
+                signal: undefined,
+                window: window,
+                // --)
+
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Accept-Encoding": "gzip, deflate, br"
+                },
+                "body": JSON.stringify({
+                    "context": {
+                        "client": {
+                            "clientName": "MWEB",
+                            "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`,
+                            "originalUrl": `https://m.youtube.com/channel/${channelId}`,
+                            "playerType": "UNIPLAYER",
+                            "platform": "MOBILE",
+                            "clientFormFactor": "SMALL_FORM_FACTOR",
+                            "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                            "mainAppWebInfo": {
+                                "graftUrl": `/channel/${channelId}`,
+                                "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                                "isWebNativeShareAvailable": true
                             }
                         },
-                        "browseId": `${channelId}`
-                    })
-                })).then(res => {
-                    lockResolve();
-                    return res.json();
-                }).then(res => {
+                        "user": {
+                            "lockedSafetyMode": false
+                        },
+                        "request": {
+                            "useSsl": true,
+                            "internalExperimentFlags": [],
+                            "consistencyTokenJars": []
+                        }
+                    },
+                    "browseId": `${channelId}`
+                })
+            })).then(res => {
+                bResult.fetchingState = 3;
+                lockResolve();
+                lockResolve = null;
+                return res.json();
+            }).then(res => {
 
-                    // console.log(displayNameRes, urlToHandle(vanityChannelUrl))
-                    // displayNameCacheStore.set(channelId, displayNameRes);
-                    cacheHandleToChannel(res, channelId);
-                    networkResolve(res);
-                }).catch(e => {
-                    lockResolve();
-                    console.warn(e);
-                    networkResolve(null);
-                });
+                // console.log(displayNameRes, urlToHandle(vanityChannelUrl))
+                // displayNameCacheStore.set(channelId, displayNameRes);
+                
 
+                let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
+                if (!resultInfo) {
+                    // invalid json format
+                    setResult(null);
+                    return;
+                }
+    
+                cacheHandleToChannel(res, channelId);
+    
+                const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
+    
+                const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
+    
+                setResult(displayNameRes);
+    
+
+            }).catch(e => {
+                lockResolve && lockResolve();
+                console.warn(e);
+                setResult && setResult(null);
             });
 
-        }).catch(console.warn)
+        });
 
     }
 
@@ -426,11 +457,9 @@ SOFTWARE.
 
         if (typeof url !== 'string') return '';
         let i = url.indexOf('.youtube.com/');
-        if (i > 0) url = url.substring(i + '.youtube.com/'.length);
+        if (i >= 1) url = url.substring(i + '.youtube.com/'.length);
         else if (url.charAt(0) === '/') url = url.substring(1);
         return isDisplayAsHandle(url) ? url : '';
-
-
 
     }
 
@@ -438,45 +467,32 @@ SOFTWARE.
 
         return new Promise(resolve => {
 
-            let cachedResult = displayNameCacheStore.get(channelId);
-            if (cachedResult) {
-                resolve(cachedResult);
+            let aResult = displayNameResStore.get(channelId);
+            let isStackNewRequest = true;
+            if (aResult instanceof AsyncValue && aResult.fetchingState >= 2) {
+                // aResult.fetchingState
+                // 2: network fetch started
+                // 3: network fetch ended
+                isStackNewRequest = false;
+            } else if (aResult instanceof AsyncValue) {
+                // 0: invalid before
+                // 1: scheduled but not yet fetch
+            } else if (aResult) { // resolved result
+                resolve(aResult);
                 return;
+            } // else no cached value found
+            /** @type {AsyncValue} */
+            let bResult = aResult || new AsyncValue()
+            if (aResult) {
+                aResult = null;
+            } else {
+                displayNameResStore.set(channelId, bResult);
             }
-
-            if (!promisesStore[channelId]) promisesStore[channelId] = createNetworkPromise(channelId);
-
-            promisesStore[channelId].then(res => {
-                // res might be null
-
-                _queueMicrotask(() => {
-                    promisesStore[channelId] = null;
-                    delete promisesStore[channelId];
-                });
-
-                if (typeof (res || 0).verified123 === 'boolean') {
-                    resolve(res); // fetchedResult
-                    return;
-                }
-
-                let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
-
-                if (!resultInfo) {
-                    resolve(null);
-                } else {
-
-                    const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = res.metadata.channelMetadataRenderer;
-
-                    const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
-
-
-                    resolve(displayNameRes);
-
-                }
-
-
-            }).catch(console.warn);
-
+            bResult.getValue().then(resolve);
+            if (isStackNewRequest) {
+                bResult.fetchingState = 1;
+                stackNewRequest(channelId, bResult)
+            }
         }).catch(console.warn);
     }
 
@@ -547,7 +563,7 @@ SOFTWARE.
         if (typeof text !== 'string') return false;
         if (text.length < 4) return false;
         if (text.indexOf('@') < 0) return false;
-        return /^\s*@[a-zA-Z0-9_\-.]{3,30}\s*$/.test(text);
+        return /^\s*@[-_a-zA-Z0-9.]{3,30}\s*$/.test(text);
 
 
         /* https://support.google.com/youtube/answer/11585688?hl=en&co=GENIE.Platform%3DAndroid
@@ -651,40 +667,31 @@ SOFTWARE.
 
         if (fetchResult === null) return;
 
-
         const { title, externalId } = fetchResult;
         if (externalId !== channelId) return; // channel id must be the same
-
 
         let search = contentTexts[aidx].text;
         contentTexts[aidx].text = contentTexts[aidx].text.replace(contentTexts[aidx].text.trim(), "@" + title);
 
-
         findTextNodes(commentText, (textnode) => {
-
             if (textnode.nodeValue.indexOf(search) >= 0) {
-
                 textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
                 return true;
-
             }
-
         });
-
 
     }
 
 
     const domCheck = isMobile ? async (anchor, channelHref, mt) => {
 
-
         if (!channelHref || !mt) return;
         let parentNode = anchor.parentNode;
         while (parentNode instanceof Node) {
-            if (parentNode.nodeName === 'YTM-COMMENT-RENDERER') break;
+            if (parentNode.nodeName === 'YTM-COMMENT-RENDERER' || ('_commentData' in parentNode)) break;
             parentNode = parentNode.parentNode
         }
-        if (parentNode instanceof Node && parentNode.nodeName === 'YTM-COMMENT-RENDERER') { } else return;
+        if (parentNode instanceof Node) { } else return;
 
         let displayTextDOM = parentNode.querySelector('.comment-header .comment-title');
         if (!displayTextDOM) return;
@@ -695,9 +702,7 @@ SOFTWARE.
 
         if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
 
-
             const fetchResult = await getDisplayName(mt);
-
 
             if (fetchResult === null) return;
 
@@ -711,13 +716,11 @@ SOFTWARE.
             let found = false;
 
             findTextNodes(displayTextDOM, (textnode) => {
-
                 if (textnode.nodeValue === airaLabel) {
                     textnode.nodeValue = title;
                     found = true;
                     return true;
                 }
-
             });
 
             if (!found) return;
@@ -731,16 +734,11 @@ SOFTWARE.
                     if (contentTexts[aidx].italics !== true) {
                         let isHandle = isDisplayAsHandle(contentTexts[aidx].text);
                         if (isHandle) {
-
                             mobileContentHandle(parentNode, contentTexts, aidx);
                         }
-
                     }
-                    // const r = contentTextProcess(contentTexts, aidx);
-                    //  if (r instanceof Promise) funcPromises.push(r);
                 }
             }
-
 
         }
 
@@ -754,7 +752,7 @@ SOFTWARE.
                 if (typeof parentNode.is === 'string' && typeof parentNode.dataChanged === 'function') break;
                 parentNode = parentNode.parentNode
             }
-            if (parentNode instanceof Node && typeof parentNode.is === 'string' && typeof parentNode.dataChanged === 'function') { } else return;
+            if (parentNode instanceof Node) { } else return;
             const authorText = (parentNode.data || 0).authorText;
             const currentDisplayed = (authorText || 0).simpleText;
             if (typeof currentDisplayed !== 'string') return;
@@ -836,12 +834,12 @@ SOFTWARE.
 
     const channelUrlUnify = (url) => {
 
-        if (typeof url !== 'string') return url;
+        if (typeof url !== 'string') return url; // type unchanged
         let c0 = url.charAt(0);
         if (c0 === '/') return url;
         let i = url.indexOf('.youtube.com/');
-        if (i > 0) url = url.substring(i + '.youtube.com/'.length);
-        if (url.charAt(0) != '/') url = '/' + url;
+        if (i >= 1) url = url.substring(i + '.youtube.com/'.length - 1);
+        else if (url.charAt(0) !== '/') url = '/' + url;
         return url
 
     }
@@ -873,7 +871,7 @@ SOFTWARE.
                     if (mainChannelText.startsWith('@')) return;
                     if (mainChannelText.trim() !== mainChannelText) return;
 
-                    displayNameCacheStore.set(channelId, {
+                    displayNameResStore.set(channelId, {
                         channelUrl: `https://www.youtube.com/channel/${channelId}`,
                         externalId: `${channelId}`,
                         ownerUrls: [],
@@ -906,7 +904,7 @@ SOFTWARE.
 
             if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
 
-                let m = /^\/(@[a-zA-Z0-9_\-.]{3,30})$/.test(mainChannelUrl);
+                let m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.test(mainChannelUrl);
 
                 if (m && m[1] && mainChannelText !== m[1]) {
 
@@ -915,7 +913,7 @@ SOFTWARE.
                         if (mainChannelText.startsWith('@')) return;
                         if (mainChannelText.trim() !== mainChannelText) return;
 
-                        displayNameCacheStore.set(channelId, {
+                        displayNameResStore.set(channelId, {
                             channelUrl: `https://www.youtube.com/channel/${channelId}`,
                             externalId: `${channelId}`,
                             ownerUrls: [],
@@ -969,12 +967,18 @@ SOFTWARE.
     let domCheckTimeStamp = 0;
 
     const mutexForDOMMutations = new Mutex();
+    const domCheckSelector = isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])';
 
     const domChecker = () => {
 
+        const newAnchors = document.querySelectorAll(domCheckSelector);
+        if (newAnchors.length === 0) {
+            return;
+        }
+
         mutexForDOMMutations.lockWith(lockResolve => {
 
-            const newAnchors = document.querySelectorAll(isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])');
+            const newAnchors = document.querySelectorAll(domCheckSelector);
             if (newAnchors.length === 0) {
                 lockResolve();
                 return;
@@ -1051,7 +1055,7 @@ SOFTWARE.
         let state = 0;
 
         window.addEventListener('state-change', function (evt) {
-            if (state === 1) return; // ignore intemediate events
+            if (state === 1) return; // ignore intermediate events
             state = 1; // before value: 0 or 2;
             callback(evt);
         }, false);
@@ -1067,7 +1071,7 @@ SOFTWARE.
         let state = 0;
 
         document.addEventListener('yt-page-data-fetched', function (evt) {
-            if (state === 1) return; // ignore intemediate events
+            if (state === 1) return; // ignore intermediate events if any
             state = 1; // before value: 0 or 2;
             callback(evt);
         }, false);
@@ -1080,6 +1084,26 @@ SOFTWARE.
 
     };
 
+    function setupOnPageFetched(app){
+
+        firstDOMCheck = false;
+
+        if (!cfg['INNERTUBE_API_KEY']) {
+            console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
+            return;
+        }
+
+        if (!domObserver) {
+            domObserver = new MutationObserver(domChecker);
+        } else {
+            domObserver.takeRecords();
+            domObserver.disconnect();
+        }
+
+        domObserver.observe(app, { childList: true, subtree: true });
+        domChecker();
+
+    }
 
     if (isMobile) {
 
@@ -1087,30 +1111,13 @@ SOFTWARE.
             let app = document.querySelector('ytm-app#app') || document.querySelector('ytm-app');
             console.assert(app);
 
-            firstDOMCheck = false;
-
             const ytcfg = ((window || 0).ytcfg || 0);
 
             for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
                 cfg[key] = ytcfg.get(key);
             }
 
-
-            if (!cfg['INNERTUBE_API_KEY']) {
-                console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
-                return;
-            }
-
-            if (!domObserver) {
-                domObserver = new MutationObserver(domChecker);
-            } else {
-                domObserver.takeRecords();
-                domObserver.disconnect();
-            }
-
-            domObserver.observe(app, { childList: true, subtree: true });
-            domChecker();
-
+            setupOnPageFetched(app);
         });
 
     } else {
@@ -1120,27 +1127,12 @@ SOFTWARE.
             const app = (evt || 0).target || document.querySelector('ytd-app');
             console.assert(app);
 
-            firstDOMCheck = false;
-
             const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
             for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
                 cfg[key] = cfgData[key];
             }
 
-            if (!cfg['INNERTUBE_API_KEY']) {
-                console.warn("Userscript Error: INNERTUBE_API_KEY is not found.");
-                return;
-            }
-
-            if (!domObserver) {
-                domObserver = new MutationObserver(domChecker);
-            } else {
-                domObserver.takeRecords();
-                domObserver.disconnect();
-            }
-
-            domObserver.observe(app, { childList: true, subtree: true });
-            domChecker();
+            setupOnPageFetched(app);
 
         });
 
