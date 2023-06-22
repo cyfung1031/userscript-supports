@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.5
+// @version             2023.06.22.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -37,8 +37,8 @@ SOFTWARE.
 // @run-at              document-start
 // @grant               none
 // @unwrap
-// @allFrames
-// @inject-into page
+// @allFrames           true
+// @inject-into         page
 
 // @compatible          firefox 55
 // @compatible          chrome 61

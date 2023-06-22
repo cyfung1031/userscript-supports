@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 en YouTube
 // @description:es      Desactivar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             1.0.2
+// @version             1.0.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -40,8 +40,8 @@
 // @compatible          edge
 // @compatible          safari
 // @unwrap
-// @allFrames
-// @inject-into page
+// @allFrames           true
+// @inject-into         page
 // ==/UserScript==
 
 (function () {

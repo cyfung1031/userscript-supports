@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.3
+// @version      0.4
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -36,8 +36,8 @@ SOFTWARE.
 // @icon         https://github.com/cyfung1031/userscript-supports/raw/main/icons/youtube-minimal.png
 // @grant        none
 // @unwrap
-// @allFrames
-// @inject-into page
+// @allFrames    true
+// @inject-into  page
 // ==/UserScript==
 "use strict";
 

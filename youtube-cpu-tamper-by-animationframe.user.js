@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.0
+// @version             2023.06.22.1
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -121,8 +121,8 @@ SOFTWARE.
 // @run-at              document-start
 // @grant               none
 // @unwrap
-// @allFrames
-// @inject-into page
+// @allFrames           true
+// @inject-into         page
 // ==/UserScript==
 
 /* jshint esversion:8 */

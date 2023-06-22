@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.9
+// @version             0.5.10
 // @license             MIT License
 
 // @author              CY Fung
@@ -38,8 +38,8 @@ SOFTWARE.
 // @run-at              document-start
 // @grant               none
 // @unwrap
-// @allFrames
-// @inject-into page
+// @allFrames           true
+// @inject-into         page
 
 // @compatible          firefox 55
 // @compatible          chrome 61
