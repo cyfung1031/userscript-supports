@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.1
+// @version             2023.06.22.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -287,16 +287,17 @@ SOFTWARE.
 
 
     */
-   /*
-    const asyncWaiter = async (delay) => {
-        let t = Date.now() + delay;
-        do {
-            await new Promise(r => window.__requestAnimationFrame__(r));
-        } while (Date.now() < t);
-    }
-    */
+    /*
+     const asyncWaiter = async (delay) => {
+         let t = Date.now() + delay;
+         do {
+             await new Promise(r => window.__requestAnimationFrame__(r));
+         } while (Date.now() < t);
+     }
+     */
     // let mz3 = 0;
     // let delayLocked = false;
+    let mz1 = 0; let mz2 = 0; let mz3 = 0;
     const fix = () => {
 
         window.requestAnimationFrame = (function (f) {
@@ -309,6 +310,7 @@ SOFTWARE.
             // let delayBeforeRAF = 0;
             let rAfHandling = 0;
             // no modification on .showNewItems_ under MutationObserver
+            let pj = 0;
             if (stack.indexOf('.smoothScroll_') > 0) {
                 // Function Requested: .smoothScroll_
                 // console.log('stack', '.smoothScroll_')
@@ -327,6 +329,9 @@ SOFTWARE.
                 // delayBeforeRAF = DELAY_AFTER_NEW_ITEMS_FETCHED; // delayed the first smoothScroll_
                 // delayBeforeRAF = 1;
                 // if (++mz3 > 1e9) mz3 = 1e3;
+                if (++mz1 > 1e9) mz1 = 1e3;
+                pj = 1;
+                console(stack)
             } else if (stack.indexOf('.start') > 0 || (stack.indexOf('.unsubscribe') > 0 ? (useSimpleRAF = true) : false)) {
                 // .start will also match ".startCountdown"
                 // console.log('stack', '.start/unsubscribe', 'unsubscribe=' + useSimpleRAF)
@@ -336,6 +341,14 @@ SOFTWARE.
                 rAfHandling = 2; // lock with DELAY_AFTER_NEW_ITEMS_FETCHED
                 // Performance Analaysis: (when the chat is idle) .unsubscribe => .start => .showNewItems_ => .smoothScroll_ X N
                 // delayBeforeRAF = 1;
+                if (useSimpleRAF) {
+                    pj = 3;
+                    if (++mz3 > 1e9) mz3 = 1e3;
+                } else {
+                    pj = 2;
+                    if (++mz2 > 1e9) mz2 = 1e3;
+                }
+                console(stack)
             } else if (stack.indexOf('.updateTimeout') > 0) {
                 // console.log('stack', '.updateTimeout')
                 // .updateTimeout: non essential function => useSimpleRAF
@@ -376,6 +389,9 @@ SOFTWARE.
 
             let delayedFunc = oriFunc;
             // let lz3 = mz3;
+            let lz1 = mz1;
+            // let lz2 = mz2;
+            let lz3 = mz3;
             switch (rAfHandling) {
                 case 1:
                     f = (hRes) => {
@@ -390,6 +406,9 @@ SOFTWARE.
                     break;
                 case 2:
                     f = (hRes) => {
+                        if (pj === 1 && lz1 !== mz1) return; // skip all hidden .showNewItems_'s f
+                        //if(pj===2 && lz2!==mz2) return;
+                        if (pj === 3 && lz3 !== mz3) return; // skip all hidden .unsubscribe's f
                         // if (lz3 !== mz3) {
                         //     // bypass ".start" once restored from background tab to foreground tab
                         //     return;
