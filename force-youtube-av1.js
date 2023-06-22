@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             1.0.6
+// @version             1.0.7
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -42,8 +42,10 @@
 // @inject-into page
 // ==/UserScript==
 
-(function () {
+(function (__Promise__) {
   'use strict';
+
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   console.debug("force-youtube-av1", "injected");
 
@@ -146,4 +148,4 @@
 
 
 
-})();
+})(Promise);

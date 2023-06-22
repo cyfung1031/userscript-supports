@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.05.08
+// @version             2023.06.22
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -51,8 +51,11 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function () {
+(function (__Promise__) {
   'use strict';
+
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
+
   const youThereDataHashMapPauseDelay = new WeakMap();
   const youThereDataHashMapPromptDelay = new WeakMap();
   const youThereDataHashMapLactThreshold = new WeakMap();
@@ -206,4 +209,4 @@ SOFTWARE.
   document.addEventListener('yt-page-data-updated', onPageFinished, true);
   document.addEventListener('yt-navigate-finish', onPageFinished, true);
 
-})();
+})(Promise);

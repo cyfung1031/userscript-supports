@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.3
+// @version             2023.06.22.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -125,8 +125,10 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function () {
+(function (__Promise__) {
     'use strict';
+
+    const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     // const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms
     // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called
@@ -936,4 +938,4 @@ SOFTWARE.
 
 
     // Your code here...
-})();
+})(Promise);

@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.8
+// @version             0.5.9
 // @license             MIT License
 
 // @author              CY Fung
@@ -126,8 +126,10 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function () {
+(function (__Promise__) {
     'use strict';
+
+    const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     /*
 
@@ -1145,4 +1147,4 @@ SOFTWARE.
 
     }
 
-})();
+})(Promise);

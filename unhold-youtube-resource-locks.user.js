@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2023.01.21
+// @version             2023.06.22
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -63,8 +63,10 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function () {
+(function (__Promise__) {
   'use strict';
+
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const DEBUG_LOG = false;
   let initialChecking = null;
@@ -267,4 +269,4 @@ SOFTWARE.
   })(DEBUG_LOG ? console : Object.assign({}, console, { log: function () { } }), console);
 
 
-})();
+})(Promise);
