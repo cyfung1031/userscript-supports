@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.05.21.1
+// @version             2023.06.22.0
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -127,7 +127,7 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function () {
+(function (__Promise__) {
   'use strict';
 
   const $busy = Symbol('$busy');
@@ -139,6 +139,8 @@ SOFTWARE.
   const SAFE_INT_REDUCED = 67108864; // avoid persistent interval handlers with cids between {INT_INITIAL_VALUE + 1} and {SAFE_INT_REDUCED - 1}
 
   let toResetFuncHandlers = false;
+
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm] = (() => {
 
@@ -353,4 +355,4 @@ SOFTWARE.
   // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
 
-})();
+})(Promise);
