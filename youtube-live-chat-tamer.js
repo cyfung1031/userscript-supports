@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.6
+// @version             2023.06.24.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -408,7 +408,11 @@ SOFTWARE.
                     f = (hRes) => {
                         if (pj === 1 && lz1 !== mz1) return; // skip all hidden .showNewItems_'s f
                         //if(pj===2 && lz2!==mz2) return;
-                        if (pj === 3 && lz3 !== mz3) return; // skip all hidden .unsubscribe's f
+                        if (pj === 3 && lz3 !== mz3) {
+                            // necessary; remove the expired live chat ticker
+                            Promise.resolve(hRes).then(delayedFunc);
+                            return;
+                        } // skip all hidden .unsubscribe's f
                         // if (lz3 !== mz3) {
                         //     // bypass ".start" once restored from background tab to foreground tab
                         //     return;
