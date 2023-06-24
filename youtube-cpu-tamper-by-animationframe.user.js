@@ -127,7 +127,6 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-// Define a function that takes a Promise constructor as an argument
 (function (__Promise__) {
   'use strict';
 
@@ -135,59 +134,72 @@ SOFTWARE.
   const $busy = Symbol('$busy');
 
   // Define some constants for the initial value and the safe limits of the timer ID
-  const INT_INITIAL_VALUE = 8192;
-  const SAFE_INT_LIMIT = 2251799813685248;
-  const SAFE_INT_REDUCED = 67108864;
+  const INT_INITIAL_VALUE = 8192; // 1 ~ {INT_INITIAL_VALUE} are reserved for native setTimeout/setInterval
+  const SAFE_INT_LIMIT = 2251799813685248; // in case cid would be used for multiplying
+  const SAFE_INT_REDUCED = 67108864; // avoid persistent interval handlers with cids between {INT_INITIAL_VALUE + 1} and {SAFE_INT_REDUCED - 1}
+  // Note: Number.MAX_SAFE_INTEGER = 9007199254740991
 
   // Define a flag to indicate whether the function handlers need to be reset
   let toResetFuncHandlers = false;
 
   // Assign the Promise constructor to a local variable
-  const Promise = __Promise__;
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-  // Create an array of variables to store the native window methods and a map of timers
   const [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm] = (() => {
 
     // Get the window object from the global scope
-    let [window] = new Function('return [window];')();
+    let [window] = new Function('return [window];')(); // real window object
 
     // Create a unique key for the script and check if it is already running
     const hkey_script = 'nzsxclvflluv';
-    if (window[hkey_script]) throw new Error('Duplicated Userscript Calling');
+    if (window[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
     window[hkey_script] = true;
 
-    // Bind the native window methods to local variables
-    const $$requestAnimationFrame = window.requestAnimationFrame.bind(window);
-    const $$setTimeout = window.setTimeout.bind(window);
-    const $$setInterval = window.setInterval.bind(window);
-    const $$clearTimeout = window.clearTimeout.bind(window);
-    const $$clearInterval = window.clearInterval.bind(window);
 
-    // Initialize the timer ID and the map of timers
-    let mi = INT_INITIAL_VALUE;
-    const sb = new Map();
+    // copies of native functions
+    // Bind the native window methods to local variables
+
+    /** @type {requestAnimationFrame} */
+    const $$requestAnimationFrame = window.requestAnimationFrame.bind(window); // core looping
+    /** @type {setTimeout} */
+    const $$setTimeout = window.setTimeout.bind(window); // for race
+    /** @type {setInterval} */
+    const $$setInterval = window.setInterval.bind(window); // for background execution
+    /** @type {clearTimeout} */
+    const $$clearTimeout = window.clearTimeout.bind(window); // for native clearTimeout
+    /** @type {clearInterval} */
+    const $$clearInterval = window.clearInterval.bind(window); // for native clearInterval
+
+    let mi = INT_INITIAL_VALUE; // skip first {INT_INITIAL_VALUE} cids to avoid browser not yet initialized
+
+    /** @type { Map<number, object> } */
+    const sb = new Map(); // map of timer objects
 
     // Define a helper function to create a timer object with a handler, a delay and a next execution time
-    let sFunc = (prop) => (func, ms, ...args) => {
-      mi++;
-      if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED;
-      if (ms > SAFE_INT_LIMIT || typeof func !== 'function') return mi
-      let handler = args.length ? func.bind(null, ...args) : func;
-      handler[$busy] || (handler[$busy] = 0);
-      sb.set(mi, {
-        handler,
-        [prop]: ms,
-        nextAt: Date.now() + (ms > 0 ? ms : 0)
-      });
-      return mi;
+    let sFunc = (prop) => {
+      return (func, ms, ...args) => {
+        mi++; // start at {INT_INITIAL_VALUE + 1}
+        if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED; // just in case
+        if (ms > SAFE_INT_LIMIT) return mi;
+        if (typeof func === 'function') { // ignore all non-function parameter
+          let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
+          handler[$busy] || (handler[$busy] = 0);
+          sb.set(mi, {
+            handler,
+            [prop]: ms, // timeout / interval; value can be undefined
+            nextAt: Date.now() + (ms > 0 ? ms : 0) // overload for setTimeout(func);
+          });
+        }
+        return mi;
+      };
     };
 
     // Define a helper function to remove a timer object from the map or call the native method if not found
     const rm = function (jd) {
-      if (!jd) return;
+      if (!jd) return; // native setInterval & setTimeout start from 1
       let o = sb.get(jd);
-      if (typeof o !== 'object') {
-        if (jd <= INT_INITIAL_VALUE) this.nativeFn(jd);
+      if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
+        if (jd <= INT_INITIAL_VALUE) this.nativeFn(jd); // only for clearTimeout & clearInterval
       } else {
         for (let k in o) o[k] = null;
         o = null;
@@ -217,122 +229,153 @@ SOFTWARE.
 
     // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
     window.addEventListener("yt-navigate-finish", () => {
-      toResetFuncHandlers = true;
-    }, true);
+      toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
+    }, true); // capturing event - to let it runs before all everything else.
 
     // Clear the reference to the window object and the helper function sFunc
     window = null;
     sFunc = null;
 
-    // Return an array of variables that can be accessed outside this scope
     return [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm];
 
   })();
 
-  // Define a variable to store a resolve function for non-responsive handlers
   let nonResponsiveResolve = null
+  const delayNonResponsive = (resolve) => (nonResponsiveResolve = resolve);
 
-  // Define a helper function to assign a resolve function to the variable
-  const delayNonResponsive = resolve => (nonResponsiveResolve = resolve);
-
-  // Define a helper function to create a promise that resolves when a handler function is executed
-  const pf =
+  const pf = (
     handler => new Promise(resolve => {
+      // try catch is not required - no further execution on the handler
+      // For function handler with high energy impact, discard 1st, 2nd, ... (n-1)th calling:  (a,b,c,a,b,d,e,f) => (c,a,b,d,e,f)
+      // For function handler with low energy impact, discard or not discard depends on system performance
       if (handler[$busy] === 1) handler();
       handler[$busy]--;
-      handler = resolve = null;
+      handler = null; // remove the reference of `handler`
+      resolve();
+      resolve = null; // remove the reference of `resolve`
     })
+  );
 
   // Define a variable to store the next background execution time
-  let bgExecutionAt = 0;
+  let bgExecutionAt = 0; // set at 0 to trigger tf in background startup when requestAnimationFrame is not responsive
 
   // Define a variable to store the active page state
-  let dexActivePage = true;
+  let dexActivePage = true; // true for default; false when checking triggered by setInterval
 
-  // Define a variable to store an interrupter function for the infinite loop
+  /** @type {Function|null} */
   let interupter = null;
 
-  // Define a helper function to create an interrupter function for the infinite loop
-  const infiniteLooper = resolve => $$requestAnimationFrame(interupter = resolve);
+  const infiniteLooper = (resolve) => $$requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
 
   // Define a helper function to execute the timer handlers in the map
   const mbx = async () => {
 
-    // Get the current time
+    // microTask #1
     let now = Date.now();
-
-    // Initialize an array to store the promises for the handler functions
+    // bgExecutionAt = now + 160; // if requestAnimationFrame is not responsive (e.g. background running)
     let promisesF = [];
-
-    // Loop through the map of timers and check if any handler needs to be executed
-    for (const [jb, o] of sb.entries()) {
-      const {handler,interval,nextAt}=o
+    const lsb = sb;
+    for (const jb of lsb.keys()) {
+      const o = lsb.get(jb);
+      const {
+        handler,
+        // timeout,
+        interval,
+        nextAt
+      } = o;
       if (now < nextAt) continue;
       handler[$busy]++;
       promisesF.push(handler);
-      if (interval > 0) {
-        o.nextAt += interval * Math.max(1, Math.floor((now - nextAt) / interval));
+      if (interval > 0) { // prevent undefined, zero, negative values
+        const _interval = +interval; // convertion from string to number if necessary; decimal is acceptable
+        if (nextAt + _interval > now) o.nextAt += _interval;
+        else if (nextAt + 2 * _interval > now) o.nextAt += 2 * _interval;
+        else if (nextAt + 3 * _interval > now) o.nextAt += 3 * _interval;
+        else if (nextAt + 4 * _interval > now) o.nextAt += 4 * _interval;
+        else if (nextAt + 5 * _interval > now) o.nextAt += 5 * _interval;
+        else o.nextAt = now + _interval;
       } else {
-        rm(jb);
+        // jb in sb must > INT_INITIAL_VALUE
+        rm(jb); // remove timeout
       }
     }
 
-    // Wait for the next event cycle
-    await Promise.resolve(0);
+    await Promise.resolve(0); // split microTasks inside async()
 
-    // If there are no promises, return
-    if (!promisesF.length) return
+    // microTask #2
+    // bgExecutionAt = Date.now() + 160; // if requestAnimationFrame is not responsive (e.g. background running)
+    if (promisesF.length === 0) { // no handler functions
+      // requestAnimationFrame when the page is active
+      // execution interval is no less than AnimationFrame
+      promisesF = null;
+    } else if (dexActivePage) {
+      // ret3: looping for all functions. First error leads resolve non-reachable;
+      // the particular [$busy] will not reset to 0 normally
+      let ret3 = new Promise(resolveK => {
+        // error would not affect calling the next tick
+        Promise.all(promisesF.map(pf)).then(resolveK); //microTasks
+        promisesF.length = 0;
+        promisesF = null;
+      })
+      let ret2 = new Promise(delayNonResponsive);
+      // for every 125ms, ret2 probably resolve eariler than ret3
+      // however it still be controlled by rAF (or 250ms) in the next looping
 
-    // If the page is active, wait for all the promises or the non-responsive resolve function to finish
-    if (dexActivePage) {
-      let ret3=Promise.all(promisesF.map(pf))
-      let ret2=new Promise(delayNonResponsive)
-      await Promise.race([ret2, ret3]);
-      nonResponsiveResolve=null
+      await Promise.race([ret2, ret3]); // continue either 125ms time limit reached or all working functions have been done
+      nonResponsiveResolve = null;
     } else {
-     // If the page is not active, just execute all the promises without waiting
-     promisesF.forEach(pf)
-   }
-
-   // Clear the array of promises
-   promisesF.length=0
-   promisesF=null
+      new Promise(resolveK => {
+        // error would not affect calling the next tick
+        promisesF.forEach(pf); //microTasks
+        promisesF.length = 0;
+        promisesF = null;
+      })
+    }
 
   };
 
-  // Create an async function that runs an infinite loop to check and execute the timer handlers
   (async () => {
     while (true) {
       bgExecutionAt = Date.now() + 160;
       await new Promise(infiniteLooper);
       if (interupter === null) {
+        // triggered by setInterval
         dexActivePage = false;
       } else {
+        // triggered by rAF
         interupter = null;
         if (dexActivePage === false) toResetFuncHandlers = true;
         dexActivePage = true;
       }
       if (toResetFuncHandlers) {
+        // true if page change from hidden to visible OR yt-finish
         toResetFuncHandlers = false;
-        for (let eb of sb.values()) eb.handler[$busy] = 0;
+        for (let eb of sb.values()) eb.handler[$busy] = 0; // including the functions with error
       }
       await mbx();
     }
   })();
 
-  // Use the native setInterval method to check and interrupt the infinite loop if there are non-responsive handlers or if the background execution time is exceeded
   $$setInterval(() => {
     if (nonResponsiveResolve !== null) {
       nonResponsiveResolve();
       return;
     }
+    // no response of requestAnimationFrame; e.g. running in background
     let interupter_t = interupter, now;
     if (interupter_t !== null && (now = Date.now()) > bgExecutionAt) {
+      // interupter not triggered by rAF
       bgExecutionAt = now + 230;
       interupter = null;
       interupter_t();
     }
   }, 125);
+  // --- 2022.12.14 ---
+  // 125ms for race promise 'nonResponsiveResolve' only; interupter still works with interval set by bgExecutionAt
+  // Timer Throttling might be more serious since 125ms is used instead of 250ms
+  // ---------------------
+  // 4 times per second for background execution - to keep YouTube application functional
+  // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
-// Pass the Promise constructor as an argument to the function
+
 })(Promise);
