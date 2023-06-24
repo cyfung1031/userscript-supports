@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.12
+// @version             0.5.13
 // @license             MIT License
 
 // @author              CY Fung
@@ -126,10 +126,24 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function (__Promise__) {
+
+/**
+    @typedef DisplayNameResultObject
+    @type {Object}
+    @property {string} title
+    @property {string?} externalId
+    @property {string[]} ownerUrls
+    @property {string} channelUrl
+    @property {string} vanityChannelUrl
+    @property {boolean|undefined} verified123
+
+*/
+
+(function (__CONTEXT__) {
     'use strict';
 
-    const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const { Promise, fetch } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
 
     /*
 
@@ -276,9 +290,13 @@ SOFTWARE.
     }
     const mutex = new OrderedMutex();
 
+    /** @type {Map<string, AsyncValue | Object>} */
     const displayNameResStore = new Map();
 
+    /** @type {WeakMap<Function, Function>} */
     const dataChangedFuncStore = new WeakMap();
+
+    /** @type {Map<string, string>} */
     const handleToChannelId = new Map();
 
     class AsyncValue {
@@ -306,9 +324,13 @@ SOFTWARE.
         }
     }
 
-    const cacheHandleToChannel = (json, channelId) => {
+    /**
+     * 
+     * @param {DisplayNameResultObject} resultInfo 
+     * @param {string} channelId 
+     */
+    const cacheHandleToChannel = (resultInfo, channelId) => {
 
-        let resultInfo = ((json || 0).metadata || 0).channelMetadataRenderer;
         const { vanityChannelUrl, ownerUrls } = resultInfo;
 
         let handleText = urlToHandle(vanityChannelUrl || '');
@@ -337,6 +359,10 @@ SOFTWARE.
 
     }
 
+    /**
+     * 
+     * @param {string} channelId 
+     */
     function stackNewRequest(channelId) {
 
         mutex.add(lockResolve => {
@@ -384,19 +410,19 @@ SOFTWARE.
                 "mode": "same-origin",
                 "credentials": "same-origin",
 
-                // (-- reference: https://javascript.info/fetch-api
                 referrerPolicy: "no-referrer",
                 cache: "default",
-                redirect: "error",
+                redirect: "error", // there shall be no redirection in this API request
                 integrity: "",
                 keepalive: false,
                 signal: undefined,
-                window: window,
-                // --)
 
                 "headers": {
                     "Content-Type": "application/json",
-                    "Accept-Encoding": "gzip, deflate, br"
+                    "Accept-Encoding": "gzip, deflate, br",
+                    // X-Youtube-Bootstrap-Logged-In: false,
+                    // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
+                    // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
                 },
                 "body": JSON.stringify({
                     "context": {
@@ -443,7 +469,7 @@ SOFTWARE.
                     return;
                 }
 
-                cacheHandleToChannel(res, channelId);
+                cacheHandleToChannel(resultInfo, channelId);
 
                 const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
 
@@ -462,6 +488,11 @@ SOFTWARE.
 
     }
 
+    /**
+     * 
+     * @param {string} url Example: _www\.youtube\.com/\@yr__kd_
+     * @returns Example: _\@yr__kd_
+     */
     function urlToHandle(url) {
 
         if (typeof url !== 'string') return '';
@@ -472,31 +503,43 @@ SOFTWARE.
 
     }
 
+    /**
+     * 
+     * @param {string} channelId Example: UC0gmRdmpDWJ4dt7DAeRaawA
+     * @returns 
+     */
     function getDisplayName(channelId) {
 
         return new Promise(resolve => {
 
             let aResult = displayNameResStore.get(channelId);
             let isStackNewRequest = true;
-            if (aResult instanceof AsyncValue && aResult.fetchingState >= 2) {
-                // aResult.fetchingState
-                // 2: network fetch started
-                // 3: network fetch ended
-                isStackNewRequest = false;
-            } else if (aResult instanceof AsyncValue) {
-                // 0: invalid before
-                // 1: scheduled but not yet fetch
-            } else if (aResult) { // resolved result
+
+            if (aResult instanceof AsyncValue) {
+
+                if (aResult.fetchingState >= 2) {
+                    // aResult.fetchingState
+                    // 2: network fetch started
+                    // 3: network fetch ended
+                    isStackNewRequest = false;
+                } else {
+                    // 0: invalid before
+                    // 1: scheduled but not yet fetch
+                }
+
+            } else if (aResult) {
+                // resolved result
                 resolve(aResult);
                 return;
-            } // else no cached value found
-            /** @type {AsyncValue} */
-            let bResult = aResult || new AsyncValue()
-            if (aResult) {
-                aResult = null;
             } else {
-                displayNameResStore.set(channelId, bResult);
+                // else no cached value found
+                aResult = new AsyncValue();
+                displayNameResStore.set(channelId, aResult);
             }
+
+            /** @type {AsyncValue} */
+            const bResult = aResult;
+
             bResult.getValue().then(resolve);
             if (isStackNewRequest) {
                 bResult.fetchingState = 1;
@@ -506,12 +549,22 @@ SOFTWARE.
     }
 
 
+    /**
+     * 
+     * @param {string} href Example: https\:\/\/www\.youtube\.com/channel/UC0gmRdmpDWJ4dt7DAeRaawA
+     * @returns 
+     */
     const obtainChannelId = (href) => {
         let m = /\/channel\/(UC[-_a-zA-Z0-9+=.]+)/.exec(`/${href}`);
         // let m = /\/channel\/([^/?#\s]+)/.exec(`/${href}`);
         return !m ? '' : (m[1] || '');
     };
 
+    /**
+     * 
+     * @param {Function} dataChanged original dataChanged function
+     * @returns new dataChanged function
+     */
     const dataChangeFuncProducer = (dataChanged) => {
 
         return function () {
@@ -530,10 +583,14 @@ SOFTWARE.
 
     };
 
+    /**
+     * 
+     * @param {HTMLAnchorElement} anchor Example: https\:\/\/www\.youtube\.com/channel/UCRmLncxsQFcOOC8OhzUIfxQ/videos
+     * @param {string} channelHref Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ
+     * @param {string} channelId Example: UCRmLncxsQFcOOC8OhzUIfxQ
+     * @returns 
+     */
     const anchorIntegrityCheck = (anchor, channelHref, channelId) => {
-
-        // https://www.youtube.com/channel/UCRmLncxsQFcOOC8OhzUIfxQ/videos /channel/UCRmLncxsQFcOOC8OhzUIfxQ UCRmLncxsQFcOOC8OhzUIfxQ
-
 
         let currentHref = anchor.getAttribute('href');
         if (currentHref === channelHref) return true; // /channel/UCRmLncxsQFcOOC8OhzUIfxQ // /channel/UCRmLncxsQFcOOC8OhzUIfxQ
@@ -542,6 +599,12 @@ SOFTWARE.
 
     };
 
+    /**
+     * 
+     * @param {string} currentDisplayed 
+     * @param {DisplayNameResultObject} fetchResult 
+     * @returns 
+     */
     const verifyAndConvertHandle = (currentDisplayed, fetchResult) => {
 
         const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
@@ -567,6 +630,26 @@ SOFTWARE.
 
     };
 
+    /**
+     * 
+     * 
+
+        ### [Handle naming guidelines](https://support.google.com/youtube/answer/11585688?hl=en&co=GENIE.Platform%3DAndroid)
+
+        - Is between 3-30 characters
+        - Is made up of alphanumeric characters (A–Z, a–z, 0–9)
+        - Your handle can also include: underscores (_), hyphens (-), dots (.)
+        - Is not URL-like or phone number-like
+        - Is not already being used
+        - Follows YouTube's Community Guidelines
+
+        ### Handle automatically generated by YouTube
+        - `@user-XXXX`
+        - without dot (.)
+     * 
+     * @param {string} text 
+     * @returns 
+     */
     const isDisplayAsHandle = (text) => {
 
         if (typeof text !== 'string') return false;
@@ -574,24 +657,14 @@ SOFTWARE.
         if (text.indexOf('@') < 0) return false;
         return /^\s*@[-_a-zA-Z0-9.]{3,30}\s*$/.test(text);
 
-
-        /* https://support.google.com/youtube/answer/11585688?hl=en&co=GENIE.Platform%3DAndroid
-
-        Handle naming guidelines
-
-        Is between 3-30 characters
-        Is made up of alphanumeric characters (A–Z, a–z, 0–9)
-        Your handle can also include: underscores (_), hyphens (-), dots (.)
-        Is not URL-like or phone number-like
-        Is not already being used
-        Follows YouTube's Community Guidelines
-
-        // auto handle - without dot (.)
-
-        */
-
     };
 
+    /**
+     * 
+     * @param {Object[]} contentTexts 
+     * @param {number} idx 
+     * @returns 
+     */
     const contentTextProcess = (contentTexts, idx) => {
         const contentText = contentTexts[idx];
         const text = (contentText || 0).text;
@@ -624,7 +697,17 @@ SOFTWARE.
         return null;
     };
 
+    /**
+     * 
+     * @param {ParentNode} parentNode 
+     * @param {Function} callback 
+     */
     function findTextNodes(parentNode, callback) {
+        /**
+         * 
+         * @param {Node} node 
+         * @returns 
+         */
         function traverse(node) {
             if (node.nodeType === Node.TEXT_NODE) {
                 let r = callback(node);
@@ -642,6 +725,13 @@ SOFTWARE.
         traverse(parentNode);
     }
 
+    /**
+     * 
+     * @param {ParentNode} parentNode 
+     * @param {Object[]} contentTexts 
+     * @param {number} aidx 
+     * @returns 
+     */
     const mobileContentHandle = async (parentNode, contentTexts, aidx) => {
 
 
@@ -680,18 +770,25 @@ SOFTWARE.
         if (externalId !== channelId) return; // channel id must be the same
 
         let search = contentTexts[aidx].text;
-        contentTexts[aidx].text = contentTexts[aidx].text.replace(contentTexts[aidx].text.trim(), "@" + title);
+        if (typeof search === 'string') {
 
-        findTextNodes(commentText, (textnode) => {
-            if (textnode.nodeValue.indexOf(search) >= 0) {
-                textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
-                return true;
-            }
-        });
+            contentTexts[aidx].text = search.replace(search.trim(), "@" + title);
+
+            findTextNodes(commentText, (textnode) => {
+                if (textnode.nodeValue.indexOf(search) >= 0) {
+                    textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
+                    return true;
+                }
+            });
+
+        }
 
     }
 
-
+    /**
+     * Process Checking when there is new (unprocessed) anchor DOM element with hyperlink of channel
+     * @type {(anchor: HTMLElement, channelHref: string?, mt: string?)} 
+     */
     const domCheck = isMobile ? async (anchor, channelHref, mt) => {
 
         if (!channelHref || !mt) return;
@@ -841,6 +938,11 @@ SOFTWARE.
 
     }
 
+    /**
+     * 
+     * @param {string} url 
+     * @returns 
+     */
     const channelUrlUnify = (url) => {
 
         if (typeof url !== 'string') return url; // type unchanged
@@ -1093,6 +1195,11 @@ SOFTWARE.
 
     };
 
+    /**
+     * 
+     * @param {Node} app 
+     * @returns 
+     */
     function setupOnPageFetched(app) {
 
         firstDOMCheck = false;
@@ -1119,32 +1226,25 @@ SOFTWARE.
         onPageFetched(async (evt) => {
             let app = document.querySelector('ytm-app#app') || document.querySelector('ytm-app');
             console.assert(app);
-
             const ytcfg = ((window || 0).ytcfg || 0);
-
             for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
                 cfg[key] = ytcfg.get(key);
             }
-
             setupOnPageFetched(app);
         });
 
     } else {
 
-
         onPageFetched(async (evt) => {
             const app = (evt || 0).target || document.querySelector('ytd-app');
             console.assert(app);
-
             const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
             for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
                 cfg[key] = cfgData[key];
             }
-
             setupOnPageFetched(app);
-
         });
 
     }
 
-})(Promise);
+})({ Promise, fetch });
