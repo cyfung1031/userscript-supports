@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.24.1
+// @version             2023.06.24.3
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -277,7 +277,6 @@ SOFTWARE.
 
   /** @param {Function} handler */
   const pfMicroFn = (handler) => {
-    new Promise()
     // For function handler with high energy impact, discard 1st, 2nd, ... (n-1)th calling:  (a,b,c,a,b,d,e,f) => (c,a,b,d,e,f)
     // For function handler with low energy impact, discard or not discard depends on system performance
     if (handler[$busy] === 1) handler();
@@ -306,10 +305,10 @@ SOFTWARE.
   const infiniteLooper = (resolve) => $$requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
 
   /** @type {(aHandlers: Function[])}  */
-  const microTaskExecutionActivePage = aHandlers => Promise.all(aHandlers.map(pf));
+  const microTaskExecutionActivePage = (aHandlers) => Promise.all(aHandlers.map(pf));
 
   /** @type {(aHandlers: Function[])}  */
-  const microTaskExecutionBackgroundPage = aHandlers => {
+  const microTaskExecutionBackgroundPage = (aHandlers) => {
     // error would not affect calling the next tick
     aHandlers.forEach(pf); // microTasks
     aHandlers.length = 0;
