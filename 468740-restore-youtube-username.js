@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.13
+// @version             0.5.14
 // @license             MIT License
 
 // @author              CY Fung
@@ -296,7 +296,7 @@ SOFTWARE.
     /** @type {WeakMap<Function, Function>} */
     const dataChangedFuncStore = new WeakMap();
 
-    /** @type {Map<string, string>} */
+    /** @type {Map<string, AsyncValue | string>} */
     const handleToChannelId = new Map();
 
     class AsyncValue {
@@ -506,46 +506,43 @@ SOFTWARE.
     /**
      * 
      * @param {string} channelId Example: UC0gmRdmpDWJ4dt7DAeRaawA
-     * @returns 
+     * @returns {Promise<DisplayNameResultObject | null>}
      */
-    function getDisplayName(channelId) {
+    async function getDisplayName(channelId) {
 
-        return new Promise(resolve => {
+        let cache = displayNameResStore.get(channelId);
+        let isStackNewRequest = false;
 
-            let aResult = displayNameResStore.get(channelId);
-            let isStackNewRequest = true;
+        /** @type {AsyncValue | null | undefined} */
+        let aResult;
 
-            if (aResult instanceof AsyncValue) {
-
-                if (aResult.fetchingState >= 2) {
-                    // aResult.fetchingState
-                    // 2: network fetch started
-                    // 3: network fetch ended
-                    isStackNewRequest = false;
-                } else {
-                    // 0: invalid before
-                    // 1: scheduled but not yet fetch
-                }
-
-            } else if (aResult) {
-                // resolved result
-                resolve(aResult);
-                return;
+        if (cache instanceof AsyncValue) {
+            aResult = cache;
+            if (aResult.fetchingState >= 2) {
+                // aResult.fetchingState
+                // 2: network fetch started
+                // 3: network fetch ended
+                // isStackNewRequest = false;
             } else {
-                // else no cached value found
-                aResult = new AsyncValue();
-                displayNameResStore.set(channelId, aResult);
+                // 0: invalid before
+                // 1: scheduled but not yet fetch
+                isStackNewRequest = true;
             }
+        } else if (cache) {
+            // resolved result
+            return cache;
+        } else {
+            // else no cached value found
+            aResult = new AsyncValue();
+            displayNameResStore.set(channelId, aResult);
+            isStackNewRequest = true;
+        }
 
-            /** @type {AsyncValue} */
-            const bResult = aResult;
-
-            bResult.getValue().then(resolve);
-            if (isStackNewRequest) {
-                bResult.fetchingState = 1;
-                stackNewRequest(channelId);
-            }
-        }).catch(console.warn);
+        if (isStackNewRequest) {
+            aResult.fetchingState = 1;
+            stackNewRequest(channelId);
+        }
+        return await aResult.getValue();
     }
 
 
@@ -742,7 +739,11 @@ SOFTWARE.
         let textMatch = commentText.textContent === contentTexts.map(e => e.text).join('');
         if (!textMatch) return;
 
-        let handleText = contentTexts[aidx].text.trim();
+        const contentText = contentTexts[aidx];
+
+        /** @type {string} */
+        const handleText = contentText.text.trim();
+        /** @type {string | null | undefined} */
         let channelId;
 
         let cache = handleToChannelId.get(handleText);
@@ -769,17 +770,20 @@ SOFTWARE.
         const { title, externalId } = fetchResult;
         if (externalId !== channelId) return; // channel id must be the same
 
-        let search = contentTexts[aidx].text;
+        let search = contentText.text;
         if (typeof search === 'string') {
 
-            contentTexts[aidx].text = search.replace(search.trim(), "@" + title);
+            const searchTrimmed = search.trim();
+            if (searchTrimmed === handleText) { // ensure integrity after getDisplayName
+                contentText.text = search.replace(searchTrimmed, "@" + title);
 
-            findTextNodes(commentText, (textnode) => {
-                if (textnode.nodeValue.indexOf(search) >= 0) {
-                    textnode.nodeValue = textnode.nodeValue.replace(search, contentTexts[aidx].text);
-                    return true;
-                }
-            });
+                findTextNodes(commentText, (textnode) => {
+                    if (textnode.nodeValue.indexOf(search) >= 0) {
+                        textnode.nodeValue = textnode.nodeValue.replace(search, contentText.text);
+                        return true;
+                    }
+                });
+            }
 
         }
 
