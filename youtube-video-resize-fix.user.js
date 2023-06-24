@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.2
+// @version             0.3.3
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -50,142 +50,142 @@ SOFTWARE.
 
 (function (__Promise__) {
   'use strict';
-  const Promise = __Promise__ // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
-  const elements = {}
-  let rid1 = 0
-  let rid2 = 0
+  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const elements = {};
+  let rid1 = 0;
+  let rid2 = 0;
   /** @type {MutationObserver | null} */
-  let attrObserver = null
+  let attrObserver = null;
   /** @type {ResizeObserver | null} */
-  let resizeObserver = null
-  let isHTMLAttrApplied = false
+  let resizeObserver = null;
+  let isHTMLAttrApplied = false;
   const core = {
     begin() {
-      document.addEventListener('yt-player-updated', core.hanlder, true)
-      document.addEventListener('ytd-navigate-finish', core.hanlder, true)
+      document.addEventListener('yt-player-updated', core.hanlder, true);
+      document.addEventListener('ytd-navigate-finish', core.hanlder, true);
     },
     hanlder() {
-      rid1++
-      if (rid1 > 1e9) rid1 = 9
-      const tid = rid1
+      rid1++;
+      if (rid1 > 1e9) rid1 = 9;
+      const tid = rid1;
       window.requestAnimationFrame(() => {
-        if (tid !== rid1) return
-        core.runner()
+        if (tid !== rid1) return;
+        core.runner();
       })
     },
     async runner() {
-      if (!location.href.startsWith('https://www.youtube.com/watch')) return
+      if (!location.href.startsWith('https://www.youtube.com/watch')) return;
 
-      elements.ytdFlexy = document.querySelector('ytd-watch-flexy')
-      elements.video = document.querySelector('ytd-watch-flexy #movie_player video')
-      if (elements.ytdFlexy && elements.video) { } else return
-      elements.moviePlayer = elements.video.closest('#movie_player')
-      if (!elements.moviePlayer) return
+      elements.ytdFlexy = document.querySelector('ytd-watch-flexy');
+      elements.video = document.querySelector('ytd-watch-flexy #movie_player video');
+      if (elements.ytdFlexy && elements.video) { } else return;
+      elements.moviePlayer = elements.video.closest('#movie_player');
+      if (!elements.moviePlayer) return;
 
       // resize Video
-      let { ytdFlexy } = elements
+      let { ytdFlexy } = elements;
       if (!ytdFlexy.ElYTL) {
-        ytdFlexy.ElYTL = 1
-        ytdFlexy.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexy.calculateNormalPlayerSize_, 1)
-        ytdFlexy.calculateCurrentPlayerSize_ = core.resizeFunc(ytdFlexy.calculateCurrentPlayerSize_, 0)
+        ytdFlexy.ElYTL = 1;
+        ytdFlexy.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexy.calculateNormalPlayerSize_, 1);
+        ytdFlexy.calculateCurrentPlayerSize_ = core.resizeFunc(ytdFlexy.calculateCurrentPlayerSize_, 0);
       }
-      ytdFlexy = null
+      ytdFlexy = null;
 
       // when video is fetched
-      elements.video.removeEventListener('canplay', core.triggerResizeDelayed, false)
-      elements.video.addEventListener('canplay', core.triggerResizeDelayed, false)
+      elements.video.removeEventListener('canplay', core.triggerResizeDelayed, false);
+      elements.video.addEventListener('canplay', core.triggerResizeDelayed, false);
 
       // when video is resized
       if (resizeObserver) {
-        resizeObserver.disconnect()
-        resizeObserver = null
+        resizeObserver.disconnect();
+        resizeObserver = null;
       }
       if (typeof ResizeObserver === 'function') {
-        resizeObserver = new ResizeObserver(core.triggerResizeDelayed)
-        resizeObserver.observe(elements.moviePlayer)
+        resizeObserver = new ResizeObserver(core.triggerResizeDelayed);
+        resizeObserver.observe(elements.moviePlayer);
       }
 
       // MutationObserver:[collapsed] @ ytd-live-chat-frame#chat
       if (attrObserver) {
-        attrObserver.takeRecords()
-        attrObserver.disconnect()
-        attrObserver = null
+        attrObserver.takeRecords();
+        attrObserver.disconnect();
+        attrObserver = null;
       }
-      let chat = document.querySelector('ytd-watch-flexy ytd-live-chat-frame#chat')
+      let chat = document.querySelector('ytd-watch-flexy ytd-live-chat-frame#chat');
       if (chat) {
         // resize due to DOM update
-        attrObserver = new MutationObserver(core.triggerResizeDelayed)
-        attrObserver.observe(chat, { attributes: true, attributeFilter: ["collapsed"] })
-        chat = null
+        attrObserver = new MutationObserver(core.triggerResizeDelayed);
+        attrObserver.observe(chat, { attributes: true, attributeFilter: ["collapsed"] });
+        chat = null;
       }
 
       // resize on idle
-      core.triggerResizeDelayed()
+      core.triggerResizeDelayed();
     },
     resizeFunc(originalFunc, kb) {
       return function () {
-        rid2++
+        rid2++;
         if (!isHTMLAttrApplied) {
-          isHTMLAttrApplied = true
+          isHTMLAttrApplied = true;
           Promise.resolve(0).then(() => {
-            document.documentElement.classList.add('youtube-video-resize-fix')
-          }).catch(console.warn)
+            document.documentElement.classList.add('youtube-video-resize-fix');
+          }).catch(console.warn);
         }
         if (document.fullscreenElement === null) {
 
           // calculateCurrentPlayerSize_ shall be always return NaN to make correct positioning of toolbars
-          if (!kb) return { width: NaN, height: NaN }
+          if (!kb) return { width: NaN, height: NaN };
 
-          let ret = core.calculateSize()
+          let ret = core.calculateSize();
           if (ret.height > 0 && ret.width > 0) {
-            return ret
+            return ret;
           }
         }
-        return originalFunc.apply(this, arguments)
+        return originalFunc.apply(this, arguments);
       }
     },
     calculateSize_() {
-      const { moviePlayer, video } = elements
-      const rect1 = { width: video.videoWidth, height: video.videoHeight } // native values independent of css rules
+      const { moviePlayer, video } = elements;
+      const rect1 = { width: video.videoWidth, height: video.videoHeight }; // native values independent of css rules
       if (rect1.width > 0 && rect1.height > 0) {
-        const rect2 = moviePlayer.getBoundingClientRect()
-        const aspectRatio = rect1.width / rect1.height
-        let h2 = rect2.width / aspectRatio
-        let w2 = rect2.height * aspectRatio
-        return { rect2, h2, w2 }
+        const rect2 = moviePlayer.getBoundingClientRect();
+        const aspectRatio = rect1.width / rect1.height;
+        let h2 = rect2.width / aspectRatio;
+        let w2 = rect2.height * aspectRatio;
+        return { rect2, h2, w2 };
       }
-      return null
+      return null;
     },
     calculateSize() {
-      let rs = core.calculateSize_()
-      if (!rs) return { width: NaN, height: NaN }
-      const { rect2, h2, w2 } = rs
+      let rs = core.calculateSize_();
+      if (!rs) return { width: NaN, height: NaN };
+      const { rect2, h2, w2 } = rs;
       if (h2 > rect2.height) {
-        return { width: w2, height: rect2.height }
+        return { width: w2, height: rect2.height };
       } else {
-        return { width: rect2.width, height: h2 }
+        return { width: rect2.width, height: h2 };
       }
     },
     triggerResizeDelayed() {
-      rid2++
-      if (rid2 > 1e9) rid2 = 9
-      const tid = rid2
+      rid2++;
+      if (rid2 > 1e9) rid2 = 9;
+      const tid = rid2;
       window.requestAnimationFrame(() => {
-        if (tid !== rid2) return
-        let { ytdFlexy } = elements
-        let r = false
-        const windowSize_ = (ytdFlexy || 0).windowSize_
+        if (tid !== rid2) return;
+        const { ytdFlexy } = elements;
+        let r = false;
+        const windowSize_ = (ytdFlexy || 0).windowSize_;
         if (windowSize_ && typeof ytdFlexy.onWindowResized_ === 'function') {
           try {
-            ytdFlexy.onWindowResized_(windowSize_)
-            r = true
+            ytdFlexy.onWindowResized_(windowSize_);
+            r = true;
           } catch (e) { }
         }
-        if (!r) window.dispatchEvent(new Event('resize'))
+        if (!r) window.dispatchEvent(new Event('resize'));
       })
     }
-  }
-  core.begin()
+  };
+  core.begin();
 
 
 
