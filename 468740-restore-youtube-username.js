@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.14
+// @version             0.5.15
 // @license             MIT License
 
 // @author              CY Fung
@@ -144,6 +144,41 @@ SOFTWARE.
 
     const { Promise, fetch } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
+    const fxOperator = (proto, propertyName) => {
+        let propertyDescriptorGetter = null;
+        try {
+            propertyDescriptorGetter = Object.getOwnPropertyDescriptor(proto, propertyName).get;
+            // https://github.com/cyfung1031/userscript-supports/issues/9
+            // .parentNode becomes DocumentFragment
+            /** 
+             * 
+             * Issue Description: YtCustomElements - Custom DOM Operations overrided in FireFox
+             * 
+             * e.g. ytd-comment-renderer#comment > div#body
+             * 
+             * ${div#body}.parentNode = DocumentFragment <Node.parentNode>
+             * ${ytd-comment-renderer#comment}.firstElementChild <Element.firstElementChild>
+             * 
+             * Cofirmed Affected: parentNode, firstChild, firstElementChild, lastChild, lastElementChild, querySelector, & querySelectorAll
+             * 
+             * Alternative way: ytCustomElement.$.xxxxxxx
+             * 
+             */
+        } catch (e) { }
+        return typeof propertyDescriptorGetter === 'function' ? (e) => propertyDescriptorGetter.call(e) : (e) => e[propertyName];
+    };
+
+    const fxAPI = (proto, propertyName) => {
+        const methodFunc = proto[propertyName];
+        return typeof methodFunc === 'function' ? (e, ...args) => methodFunc.apply(e, args) : (e, ...args) => e[propertyName](...args);
+    };
+
+    const nodeParent = fxOperator(Node.prototype, 'parentNode');
+    const nodeFirstChild = fxOperator(Node.prototype, 'firstChild');
+    const nodeNextSibling = fxOperator(Node.prototype, 'nextSibling');
+
+    const elementQS = fxAPI(Element.prototype, 'querySelector');
+    const elementQSA = fxAPI(Element.prototype, 'querySelectorAll');
 
     /*
 
@@ -567,7 +602,7 @@ SOFTWARE.
         return function () {
             let anchors = null;
             try {
-                anchors = HTMLElement.prototype.querySelectorAll.call(this, 'a[id][href*="channel/"][jkrgy]');
+                anchors = elementQSA(this, 'a[id][href*="channel/"][jkrgy]');
             } catch (e) { }
             if ((anchors || 0).length >= 1 && (this.data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
@@ -711,11 +746,11 @@ SOFTWARE.
                 if (r === true) return true;
             }
 
-            let childNode = node.firstChild;
+            let childNode = nodeFirstChild(node);
             while (childNode) {
                 let r = traverse(childNode);
                 if (r === true) return true;
-                childNode = childNode.nextSibling;
+                childNode = nodeNextSibling(childNode);
             }
         }
 
@@ -732,9 +767,9 @@ SOFTWARE.
     const mobileContentHandle = async (parentNode, contentTexts, aidx) => {
 
 
-        let commentText = parentNode.querySelector('.comment-text');
+        let commentText = elementQS(parentNode, '.comment-text');
         if (!commentText) return;
-        commentText = commentText.querySelector('.yt-core-attributed-string') || commentText
+        commentText = elementQS(commentText, '.yt-core-attributed-string') || commentText
         let currentText = commentText.textContent;
         let textMatch = commentText.textContent === contentTexts.map(e => e.text).join('');
         if (!textMatch) return;
@@ -796,16 +831,16 @@ SOFTWARE.
     const domCheck = isMobile ? async (anchor, channelHref, mt) => {
 
         if (!channelHref || !mt) return;
-        let parentNode = anchor.parentNode;
+        let parentNode = nodeParent(anchor);
         while (parentNode instanceof Node) {
             if (parentNode.nodeName === 'YTM-COMMENT-RENDERER' || ('_commentData' in parentNode)) break;
-            parentNode = parentNode.parentNode
+            parentNode = nodeParent(parentNode);
         }
         if (parentNode instanceof Node) { } else return;
 
-        let displayTextDOM = parentNode.querySelector('.comment-header .comment-title');
+        let displayTextDOM = elementQS(parentNode, '.comment-header .comment-title');
         if (!displayTextDOM) return;
-        displayTextDOM = displayTextDOM.querySelector('.yt-core-attributed-string') || displayTextDOM;
+        displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
         let airaLabel = anchor.getAttribute('aria-label')
         const parentNodeData = parentNode.data;
         let runs = ((parentNodeData || 0).authorText || 0).runs;
@@ -857,10 +892,10 @@ SOFTWARE.
 
         try {
             if (!channelHref || !mt) return;
-            let parentNode = anchor.parentNode;
+            let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
                 if (typeof parentNode.is === 'string' && typeof parentNode.dataChanged === 'function') break;
-                parentNode = parentNode.parentNode
+                parentNode = nodeParent(parentNode)
             }
             if (parentNode instanceof Node) { } else return;
             const authorText = (parentNode.data || 0).authorText;
