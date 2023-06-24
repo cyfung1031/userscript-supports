@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.22.1
+// @version             2023.06.24.0
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -145,6 +145,8 @@ SOFTWARE.
   // Assign the Promise constructor to a local variable
   const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
+  const ignorePromiseErrorFn = () => { };
+
   const [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm] = (() => {
 
     // Get the window object from the global scope
@@ -240,20 +242,19 @@ SOFTWARE.
 
   })();
 
-  let nonResponsiveResolve = null
+  let nonResponsiveResolve = null;
   const delayNonResponsive = (resolve) => (nonResponsiveResolve = resolve);
 
+  const pfMicroFn = (handler) => {
+    // try catch is not required - no further execution on the handler
+    // For function handler with high energy impact, discard 1st, 2nd, ... (n-1)th calling:  (a,b,c,a,b,d,e,f) => (c,a,b,d,e,f)
+    // For function handler with low energy impact, discard or not discard depends on system performance
+    if (handler[$busy] === 1) handler();
+    handler[$busy]--;
+  };
+
   const pf = (
-    handler => new Promise(resolve => {
-      // try catch is not required - no further execution on the handler
-      // For function handler with high energy impact, discard 1st, 2nd, ... (n-1)th calling:  (a,b,c,a,b,d,e,f) => (c,a,b,d,e,f)
-      // For function handler with low energy impact, discard or not discard depends on system performance
-      if (handler[$busy] === 1) handler();
-      handler[$busy]--;
-      handler = null; // remove the reference of `handler`
-      resolve();
-      resolve = null; // remove the reference of `resolve`
-    })
+    handler => Promise.resolve(handler).then(pfMicroFn).catch(ignorePromiseErrorFn) // catch here to avoid no resolve to the race promise & avoid immediate end of the promise.all
   );
 
   // Define a variable to store the next background execution time
@@ -300,7 +301,7 @@ SOFTWARE.
       }
     }
 
-    await Promise.resolve(0); // split microTasks inside async()
+    await Promise.resolve(); // split microTasks inside async()
 
     // microTask #2
     // bgExecutionAt = Date.now() + 160; // if requestAnimationFrame is not responsive (e.g. background running)
@@ -309,27 +310,27 @@ SOFTWARE.
       // execution interval is no less than AnimationFrame
       promisesF = null;
     } else if (dexActivePage) {
-      // ret3: looping for all functions. First error leads resolve non-reachable;
+
+      // retFP: looping for all functions. First error leads resolve non-reachable;
       // the particular [$busy] will not reset to 0 normally
-      let ret3 = new Promise(resolveK => {
-        // error would not affect calling the next tick
-        Promise.all(promisesF.map(pf)).then(resolveK); //microTasks
-        promisesF.length = 0;
-        promisesF = null;
-      })
-      let ret2 = new Promise(delayNonResponsive);
-      // for every 125ms, ret2 probably resolve eariler than ret3
+      let retFP = Promise.resolve(promisesF).then(promisesF => Promise.all(promisesF.map(pf)));
+      // inside Promise (async function), error would not affect calling the next tick
+
+      let retNR = new Promise(delayNonResponsive);
+      // for every 125ms, ret2 probably resolve eariler than retFP
       // however it still be controlled by rAF (or 250ms) in the next looping
 
-      await Promise.race([ret2, ret3]); // continue either 125ms time limit reached or all working functions have been done
+      await Promise.race([retFP, retNR]); // continue either 125ms time limit reached or all working functions have been done
+      promisesF.length = 0;
+      promisesF = null;
       nonResponsiveResolve = null;
     } else {
-      new Promise(resolveK => {
+      Promise.resolve(promisesF).then(promisesF => {
         // error would not affect calling the next tick
-        promisesF.forEach(pf); //microTasks
+        promisesF.forEach(pf); // microTasks
         promisesF.length = 0;
-        promisesF = null;
-      })
+      });
+      promisesF = null;
     }
 
   };
