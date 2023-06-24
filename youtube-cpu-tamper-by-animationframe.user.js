@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright 2021 CY Fung
+Copyright 2021-2023 CY Fung
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.24.0
+// @version             2023.06.24.1
 // @license             MIT License
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
@@ -127,6 +127,27 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
+/**
+ * 
+ * This script does not support the following syntax intentionally.
+ * 
+ * - string parameter as TimerHandler
+ * e.g. setTimeout("console.log('300ms')", 300)
+ * - no delay for `setInterval`
+ * e.g. setInterval(f)
+ * 
+ */
+
+/**
+    @typedef TimerObject
+    @type {Object}
+    @property {Function} handler
+    @property {number?} timeout
+    @property {number?} interval
+    @property {number} nextAt
+
+*/
+
 (function (__Promise__) {
   'use strict';
 
@@ -145,12 +166,12 @@ SOFTWARE.
   // Assign the Promise constructor to a local variable
   const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-  const ignorePromiseErrorFn = () => { };
+  const ignorePromiseErrorFn = () => { }; // Promise will be resolved for Promise.all
 
   const [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm] = (() => {
 
     // Get the window object from the global scope
-    let [window] = new Function('return [window];')(); // real window object
+    const [window] = new Function('return [window];')(); // real window object
 
     // Create a unique key for the script and check if it is already running
     const hkey_script = 'nzsxclvflluv';
@@ -159,7 +180,6 @@ SOFTWARE.
 
 
     // copies of native functions
-    // Bind the native window methods to local variables
 
     /** @type {requestAnimationFrame} */
     const $$requestAnimationFrame = window.requestAnimationFrame.bind(window); // core looping
@@ -174,16 +194,25 @@ SOFTWARE.
 
     let mi = INT_INITIAL_VALUE; // skip first {INT_INITIAL_VALUE} cids to avoid browser not yet initialized
 
-    /** @type { Map<number, object> } */
+    /** @type { Map<number, TimerObject> } */
     const sb = new Map(); // map of timer objects
 
-    // Define a helper function to create a timer object with a handler, a delay and a next execution time
-    let sFunc = (prop) => {
+    /**
+     * Define a helper function to create a timer object with a handler, a delay and a next execution time
+     * @param {string} prop timeout / interval
+     * @returns 
+     */
+    const sFunc = (prop) => {
+      /**
+       * @param {Function} func TimerHandler
+       * @param {number?} ms TimerHandler
+       * @param {any[]} args
+       */
       return (func, ms, ...args) => {
         mi++; // start at {INT_INITIAL_VALUE + 1}
         if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED; // just in case
         if (ms > SAFE_INT_LIMIT) return mi;
-        if (typeof func === 'function') { // ignore all non-function parameter
+        if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
           let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
           handler[$busy] || (handler[$busy] = 0);
           sb.set(mi, {
@@ -196,15 +225,18 @@ SOFTWARE.
       };
     };
 
-    // Define a helper function to remove a timer object from the map or call the native method if not found
+    /**
+     * Define a helper function to remove a timer object from the map or call the native method if not found
+     * @param {number} jd timeoutID / intervalID
+     * @returns 
+     */
     const rm = function (jd) {
       if (!jd) return; // native setInterval & setTimeout start from 1
-      let o = sb.get(jd);
+      const o = sb.get(jd);
       if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
         if (jd <= INT_INITIAL_VALUE) this.nativeFn(jd); // only for clearTimeout & clearInterval
       } else {
-        for (let k in o) o[k] = null;
-        o = null;
+        for (const k in o) o[k] = null;
         sb.delete(jd);
       }
     };
@@ -234,25 +266,29 @@ SOFTWARE.
       toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
     }, true); // capturing event - to let it runs before all everything else.
 
-    // Clear the reference to the window object and the helper function sFunc
-    window = null;
-    sFunc = null;
-
     return [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm];
 
   })();
 
+  /** @type {Function|null} */
   let nonResponsiveResolve = null;
+  /** @type {(resolve: () => void)}  */
   const delayNonResponsive = (resolve) => (nonResponsiveResolve = resolve);
 
+  /** @param {Function} handler */
   const pfMicroFn = (handler) => {
-    // try catch is not required - no further execution on the handler
+    new Promise()
     // For function handler with high energy impact, discard 1st, 2nd, ... (n-1)th calling:  (a,b,c,a,b,d,e,f) => (c,a,b,d,e,f)
     // For function handler with low energy impact, discard or not discard depends on system performance
     if (handler[$busy] === 1) handler();
+    // error in handler would stop the following code execution and jump out to the Promise.all considered as "resolved" due to ignorePromiseErrorFn
     handler[$busy]--;
   };
 
+  /**
+   * 
+   * @param {Function} handler 
+   */
   const pf = (
     handler => Promise.resolve(handler).then(pfMicroFn).catch(ignorePromiseErrorFn) // catch here to avoid no resolve to the race promise & avoid immediate end of the promise.all
   );
@@ -266,73 +302,77 @@ SOFTWARE.
   /** @type {Function|null} */
   let interupter = null;
 
+  /** @type {(resolve: () => void)}  */
   const infiniteLooper = (resolve) => $$requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
 
-  // Define a helper function to execute the timer handlers in the map
-  const mbx = async () => {
+  /** @type {(aHandlers: Function[])}  */
+  const microTaskExecutionActivePage = aHandlers => Promise.all(aHandlers.map(pf));
 
-    // microTask #1
-    let now = Date.now();
+  /** @type {(aHandlers: Function[])}  */
+  const microTaskExecutionBackgroundPage = aHandlers => {
+    // error would not affect calling the next tick
+    aHandlers.forEach(pf); // microTasks
+    aHandlers.length = 0;
+  };
+
+  const nextTickExecutionMT1 = async () => { // microTask #1
+    const now = Date.now();
     // bgExecutionAt = now + 160; // if requestAnimationFrame is not responsive (e.g. background running)
-    let promisesF = [];
-    const lsb = sb;
-    for (const jb of lsb.keys()) {
-      const o = lsb.get(jb);
+    /** @type {Function[]} */
+    const sHandlers = []; // an array of handlers being executed in this tick
+    const lsb = sb; // vairable scope < global to local > for better performance
+    lsb.forEach((sV, sK) => {
       const {
         handler,
         // timeout,
         interval,
         nextAt
-      } = o;
-      if (now < nextAt) continue;
+      } = sV;
+      if (now < nextAt) return;
       handler[$busy]++;
-      promisesF.push(handler);
+      sHandlers.push(handler);
       if (interval > 0) { // prevent undefined, zero, negative values
         const _interval = +interval; // convertion from string to number if necessary; decimal is acceptable
-        if (nextAt + _interval > now) o.nextAt += _interval;
-        else if (nextAt + 2 * _interval > now) o.nextAt += 2 * _interval;
-        else if (nextAt + 3 * _interval > now) o.nextAt += 3 * _interval;
-        else if (nextAt + 4 * _interval > now) o.nextAt += 4 * _interval;
-        else if (nextAt + 5 * _interval > now) o.nextAt += 5 * _interval;
-        else o.nextAt = now + _interval;
+        if (nextAt + _interval > now) sV.nextAt += _interval;
+        else if (nextAt + 2 * _interval > now) sV.nextAt += 2 * _interval;
+        else if (nextAt + 3 * _interval > now) sV.nextAt += 3 * _interval;
+        else if (nextAt + 4 * _interval > now) sV.nextAt += 4 * _interval;
+        else if (nextAt + 5 * _interval > now) sV.nextAt += 5 * _interval;
+        else sV.nextAt = now + _interval;
       } else {
-        // jb in sb must > INT_INITIAL_VALUE
-        rm(jb); // remove timeout
+        // sK in sb must > INT_INITIAL_VALUE
+        rm(sK); // remove timeout
       }
-    }
+    });
+    return sHandlers;
 
-    await Promise.resolve(); // split microTasks inside async()
+  }
 
-    // microTask #2
-    // bgExecutionAt = Date.now() + 160; // if requestAnimationFrame is not responsive (e.g. background running)
-    if (promisesF.length === 0) { // no handler functions
+  /**
+   * 
+   * @param {Function[]} sHandlers 
+   */
+  const nextTickExecutionMT2 = async (sHandlers) => { // microTask #2
+    if (sHandlers.length === 0) { // no handler functions
       // requestAnimationFrame when the page is active
       // execution interval is no less than AnimationFrame
-      promisesF = null;
     } else if (dexActivePage) {
 
       // retFP: looping for all functions. First error leads resolve non-reachable;
       // the particular [$busy] will not reset to 0 normally
-      let retFP = Promise.resolve(promisesF).then(promisesF => Promise.all(promisesF.map(pf)));
+      const retFP = Promise.resolve(sHandlers).then(microTaskExecutionActivePage);
       // inside Promise (async function), error would not affect calling the next tick
 
-      let retNR = new Promise(delayNonResponsive);
-      // for every 125ms, ret2 probably resolve eariler than retFP
+      const retNR = new Promise(delayNonResponsive);
+      // for every 125ms, retNR probably resolve eariler than retFP
       // however it still be controlled by rAF (or 250ms) in the next looping
 
       await Promise.race([retFP, retNR]); // continue either 125ms time limit reached or all working functions have been done
-      promisesF.length = 0;
-      promisesF = null;
+      sHandlers.length = 0;
       nonResponsiveResolve = null;
     } else {
-      Promise.resolve(promisesF).then(promisesF => {
-        // error would not affect calling the next tick
-        promisesF.forEach(pf); // microTasks
-        promisesF.length = 0;
-      });
-      promisesF = null;
+      Promise.resolve(sHandlers).then(microTaskExecutionBackgroundPage);
     }
-
   };
 
   (async () => {
@@ -351,9 +391,10 @@ SOFTWARE.
       if (toResetFuncHandlers) {
         // true if page change from hidden to visible OR yt-finish
         toResetFuncHandlers = false;
-        for (let eb of sb.values()) eb.handler[$busy] = 0; // including the functions with error
+        for (const eb of sb.values()) eb.handler[$busy] = 0; // including the functions with error
       }
-      await mbx();
+      const sHandlers = await nextTickExecutionMT1();
+      await nextTickExecutionMT2(sHandlers);
     }
   })();
 
@@ -363,7 +404,8 @@ SOFTWARE.
       return;
     }
     // no response of requestAnimationFrame; e.g. running in background
-    let interupter_t = interupter, now;
+    const interupter_t = interupter;
+    let now;
     if (interupter_t !== null && (now = Date.now()) > bgExecutionAt) {
       // interupter not triggered by rAF
       bgExecutionAt = now + 230;
