@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.15
+// @version             0.5.16
 // @license             MIT License
 
 // @author              CY Fung
@@ -895,7 +895,7 @@ SOFTWARE.
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
                 if (typeof parentNode.is === 'string' && typeof parentNode.dataChanged === 'function') break;
-                parentNode = nodeParent(parentNode)
+                parentNode = nodeParent(parentNode);
             }
             if (parentNode instanceof Node) { } else return;
             const authorText = (parentNode.data || 0).authorText;
@@ -905,7 +905,7 @@ SOFTWARE.
 
             const oldDataChanged = parentNode.dataChanged;
             if (typeof oldDataChanged === 'function' && !oldDataChanged.jkrgx) {
-                let newDataChanged = dataChangedFuncStore.get(oldDataChanged)
+                let newDataChanged = dataChangedFuncStore.get(oldDataChanged);
                 if (!newDataChanged) {
                     newDataChanged = dataChangeFuncProducer(oldDataChanged);
                     newDataChanged.jkrgx = 1;
@@ -925,7 +925,7 @@ SOFTWARE.
             // anchor href might be changed by external
             if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
 
-            const parentNodeData = parentNode.data
+            const parentNodeData = parentNode.data;
             const funcPromises = [];
 
             if (parentNode.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
