@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.16
+// @version             0.5.17
 // @license             MIT License
 
 // @author              CY Fung
@@ -592,27 +592,32 @@ SOFTWARE.
         return !m ? '' : (m[1] || '');
     };
 
+
+    /**
+     * 
+     * @param {Element} Node
+     */
+    const resetWhenDataChanged = (ytElm) => {
+        if (ytElm instanceof Element) {
+            const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
+            if ((anchors || 0).length >= 1 && (ytElm.data || 0).jkrgx !== 1) {
+                for (const anchor of anchors) {
+                    anchor.removeAttribute('jkrgy');
+                }
+            }
+        }
+    }
+
     /**
      * 
      * @param {Function} dataChanged original dataChanged function
      * @returns new dataChanged function
      */
     const dataChangeFuncProducer = (dataChanged) => {
-
         return function () {
-            let anchors = null;
-            try {
-                anchors = elementQSA(this, 'a[id][href*="channel/"][jkrgy]');
-            } catch (e) { }
-            if ((anchors || 0).length >= 1 && (this.data || 0).jkrgx !== 1) {
-                for (const anchor of anchors) {
-                    anchor.removeAttribute('jkrgy');
-                }
-            }
-            return dataChanged.apply(this, arguments)
+            resetWhenDataChanged(this);
+            return dataChanged.apply(this, arguments);
         }
-
-
     };
 
     /**
@@ -769,7 +774,7 @@ SOFTWARE.
 
         let commentText = elementQS(parentNode, '.comment-text');
         if (!commentText) return;
-        commentText = elementQS(commentText, '.yt-core-attributed-string') || commentText
+        commentText = elementQS(commentText, '.yt-core-attributed-string') || commentText;
         let currentText = commentText.textContent;
         let textMatch = commentText.textContent === contentTexts.map(e => e.text).join('');
         if (!textMatch) return;
@@ -997,8 +1002,8 @@ SOFTWARE.
     let firstDOMCheck = false;
     const firstDOMChecker = isMobile ? () => {
 
-        let channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
-        let channelNameDOMData = (channelNameDOM || 0).data;
+        const channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
+        const channelNameDOMData = (channelNameDOM || 0).data;
 
         if (channelNameDOMData) {
             let mainChannelUrl = null;
@@ -1037,8 +1042,8 @@ SOFTWARE.
 
     } : () => {
 
-        let channelNameDOM = document.querySelector('ytd-channel-name.ytd-video-owner-renderer');
-        let channelNameDOMData = (channelNameDOM || 0).__data;
+        const channelNameDOM = document.querySelector('ytd-channel-name.ytd-video-owner-renderer');
+        const channelNameDOMData = (channelNameDOM || 0).__data;
         if (channelNameDOMData) {
             let mainChannelUrl = null;
             let mainFormattedNameUrl = null;
@@ -1200,7 +1205,8 @@ SOFTWARE.
     /** @type {MutationObserver | null} */
     let domObserver = null;
 
-    const onPageFetched = isMobile ? (callback, final) => {
+    /** @type {(callback: (event: Event)=>{})} */
+    const onPageFetched = isMobile ? (callback) => {
 
         let state = 0;
 
@@ -1260,30 +1266,31 @@ SOFTWARE.
 
     }
 
-    if (isMobile) {
-
-        onPageFetched(async (evt) => {
-            let app = document.querySelector('ytm-app#app') || document.querySelector('ytm-app');
-            console.assert(app);
-            const ytcfg = ((window || 0).ytcfg || 0);
-            for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
-                cfg[key] = ytcfg.get(key);
+    function getYtConfig(dest, ytcfg, keys) {
+        dest = dest || {};
+        if (typeof ytcfg.get === 'function') { // mobile
+            for (const key of keys) {
+                dest[key] = ytcfg.get(key);
             }
-            setupOnPageFetched(app);
-        });
-
-    } else {
-
-        onPageFetched(async (evt) => {
-            const app = (evt || 0).target || document.querySelector('ytd-app');
-            console.assert(app);
-            const cfgData = (((window || 0).ytcfg || 0).data_ || 0);
-            for (const key of ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']) {
-                cfg[key] = cfgData[key];
+        } else {
+            const cfgData = ytcfg.data_ || ytcfg.__data || ytcfg._data || ytcfg.data || ytcfg; // dekstop - ytcfg.data_
+            for (const key of keys) {
+                dest[key] = cfgData[key];
             }
-            setupOnPageFetched(app);
-        });
-
+        }
+        return dest;
     }
+
+    const getPageApp = isMobile
+        ? ((evt) => (document.querySelector('ytm-app#app') || document.querySelector('ytm-app')))
+        : ((evt) => ((evt || 0).target || document.querySelector('ytd-app')));
+
+    onPageFetched(async (evt) => {
+        const app = getPageApp(evt);
+        console.assert(app);
+        const ytcfg = ((window || 0).ytcfg || 0);
+        getYtConfig(cfg, ytcfg, ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']);
+        setupOnPageFetched(app);
+    });
 
 })({ Promise, fetch });
