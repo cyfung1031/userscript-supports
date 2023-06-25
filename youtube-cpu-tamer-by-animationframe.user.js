@@ -25,13 +25,27 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name                YouTube CPU Tamer by AnimationFrame
-// @name:en             YouTube CPU Tamer by AnimationFrame
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
-// @name:zh-CN          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.24.3
+// @version             2023.06.25.1
 // @license             MIT License
+// @author              CY Fung
+// @match               https://www.youtube.com/*
+// @match               https://www.youtube.com/embed/*
+// @match               https://www.youtube-nocookie.com/embed/*
+// @match               https://www.youtube.com/live_chat*
+// @match               https://www.youtube.com/live_chat_replay*
+// @match               https://music.youtube.com/*
+// @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
+// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-cpu-tamper-by-animationframe.webp
+// @supportURL          https://github.com/cyfung1031/userscript-supports
+// @run-at              document-start
+// @grant               none
+// @unwrap
+// @allFrames           true
+// @inject-into         page
+
 // @description         Reduce Browser's Energy Impact for playing YouTube Video
 // @description:en      Reduce Browser's Energy Impact for playing YouTube Video
 // @description:ja      YouTubeビデオのエネルギーインパクトを減らす
@@ -107,22 +121,6 @@ SOFTWARE.
 // @description:ka      YouTube ვიდეოების დაკვრებისას ბრაუზერის ენერგიის შეცვლა
 // @description:am      YouTube ቪዲዮዎችን ለመቀነስ የባህሪውን አርእስት ግንኙነት ማድረግ
 // @description:km      បង្កើតការធ្វើបរិមាណលំអិតរបស់ការកំណត់ការដាក់នៅលើសម្ពាធរបស់ប្រព័ន្ធបញ្ចូលបន្ទាត់ YouTube
-
-// @author              CY Fung
-// @match               https://www.youtube.com/*
-// @match               https://www.youtube.com/embed/*
-// @match               https://www.youtube-nocookie.com/embed/*
-// @match               https://www.youtube.com/live_chat*
-// @match               https://www.youtube.com/live_chat_replay*
-// @match               https://music.youtube.com/*
-// @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
-// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-cpu-tamper-by-animationframe.webp
-// @supportURL          https://github.com/cyfung1031/userscript-supports
-// @run-at              document-start
-// @grant               none
-// @unwrap
-// @allFrames           true
-// @inject-into         page
 // ==/UserScript==
 
 /* jshint esversion:8 */
