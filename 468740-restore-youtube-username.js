@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.17
+// @version             0.5.18
 // @license             MIT License
 
 // @author              CY Fung
@@ -1122,7 +1122,7 @@ SOFTWARE.
     let domCheckTimeStamp = 0;
 
     const mutexForDOMMutations = new Mutex();
-    const domCheckSelector = isMobile ? 'a[aria-label^="@"][href*="channel/"]' : 'a[id][href*="channel/"]:not([jkrgy])';
+    const domCheckSelector = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])';
 
     const domChecker = () => {
 
