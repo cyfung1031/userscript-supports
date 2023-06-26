@@ -93,16 +93,15 @@
 // @description:am    የቀኝ ጠቋሚውን ምቀይረህ ለማውረድ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ, ቅጥ ወይም የጽሁፍ መጻፊያውን ለመርዝ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ. መልክዎ ከፍተኛ ስለሆነ: Alt አውታርክ ጽሁፍ መርዝ መርጃዎን.
 // @description:km    ដាក់អនុញ្ញាតឱ្យចុចត្រូវលើរបារអង្គចុចស្ដាប់, បិទ, ជ្រើសរើសអត្ថបទ, ម៉ឺនុយចុចស្ដាប់, ការចម្អិនអត្ថបទ, ការជ្រើសរើសអត្ថបទ, ចុចត្រូវលើរបាររូបភាព និងបន្ថែមមនុស្សពីអត្ថបទ: Alt កិច្ចការតម្រូវការចម្អិនអត្ថបទ។
 // ==/UserScript==
-
-const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
 (function $$() {
     'use strict';
-    
+
     if (!document || !document.documentElement) return window.requestAnimationFrame($$); // this is tampermonkey bug?? not sure
     //console.log('script at', location)
 
-    const { Promise } = window; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
+    const Promise = window.Promise; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
 
+    const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
     const $nil = () => { };
 
     function isLatestBrowser() {
@@ -253,15 +252,18 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
                 const res = originalFunc.apply(this, arguments);
                 if (res === false) {
                     if (!this || !ev) return false;
-                    const pName = `on${ev.type}`;
+                    const pName = 'on' + ev.type;
                     const selfFunc = this[pName];
-                    if (typeof selfFunc !== 'function' || selfFunc[$.ksFuncReplacerCounter] !== id) return false;
+                    if (typeof selfFunc !== 'function') return false;
+                    if (selfFunc[$.ksFuncReplacerCounter] !== id) return false;
                     // if this is null or undefined, or this.onXXX is not this function
                     if (ev.cancelable !== false && $.isDeactivePreventDefault(ev)) {
-                        if ($.isGlobalEventCheckForFuncReplacer === true && window.event !== ev) return false; // eslint-disable-line
+                        if ($.isGlobalEventCheckForFuncReplacer === true) {
+                            if (window.event !== ev) return false; // eslint-disable-line
+                        }
                         if ($.isStackCheckForFuncReplacer === true) {
-                            const { stack } = (new Error());
-                            const onlyOneLineStack = stack.indexOf('\n') === stack.lastIndexOf('\n');
+                            let stack = (new Error()).stack;
+                            let onlyOneLineStack = stack.indexOf('\n') === stack.lastIndexOf('\n');
                             if (onlyOneLineStack === false) return false;
                         }
                         return true;
@@ -284,21 +286,21 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
             $.onceCssHighlightSelection = null
             await Promise.resolve();
             const s = [...document.querySelectorAll('a,p,div,span,b,i,strong,li')].filter(elm => elm.childElementCount === 0); // randomly pick an element containing text only to avoid css style bug
-            const elm = s.length ? s[s.length >> 1] : document.body;
+            const elm = !s.length ? document.body : s[s.length >> 1];
             await Promise.resolve();
             const selectionStyle = getComputedStyle(elm, '::selection');
-            const selectionBackgroundColor = selectionStyle.getPropertyValue('background-color');
+            let selectionBackgroundColor = selectionStyle.getPropertyValue('background-color');
             if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionBackgroundColor)) {
                 document.documentElement.setAttribute($.utSelectionColorHack, "");
             } else {
-                const bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color');
+                let bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color');
                 if (bodyBackgroundColor === selectionBackgroundColor) {
                     document.documentElement.setAttribute($.utSelectionColorHack, "");
                 }
             }
             await Promise.resolve();
             const elmStyle = getComputedStyle(elm);
-            const highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
+            let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
             if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
         },
 
@@ -308,20 +310,24 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
             const evt = clipboardData[$.ksSetData]; // NOT NULL when preventDefault is called
             if (!evt || evt.clipboardData !== clipboardData) return;
             const plainText = clipboardData[$.ksNonEmptyPlainText]; // NOT NULL when setData is called with non empty input
-            if (!plainText || (evt.cancelable === false || evt.defaultPrevented === true)) return;
+            if (!plainText) return;
+
+            // BOTH preventDefault and setData are called.
+
+            if (evt.cancelable === false || evt.defaultPrevented === true) return;
 
 
             // ---- disable text replacement on plain text node(s) ----
 
-            const cSelection = getSelection();
+            let cSelection = getSelection();
             if (!cSelection) return; // ?
-            const exactSelectionText = cSelection.toString();
-            const trimedSelectionText = exactSelectionText.trim();
+            let exactSelectionText = cSelection.toString();
+            let trimedSelectionText = exactSelectionText.trim();
             if (exactSelectionText.length > 0 && exactSelectionText.length < plainText.length) {
-                const pSelection = trimedSelectionText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
-                const pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                let pSelection = trimedSelectionText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                let pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
                 // a newline char (\n) could be generated between nodes.
-                const search = pRequest.indexOf(pSelection);
+                let search = pRequest.indexOf(pSelection);
                 if (search >= 0 && search < (plainText.length / 2) + 1 && $.getNodeType(cSelection.anchorNode) === 3 && $.getNodeType(cSelection.focusNode) === 3) {
                     console.log({
                         msg: "copy event - clipboardData replacement is NOT allowed as the text node(s) is/are selected.",
@@ -361,8 +367,8 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
 
         isDeactivePreventDefault(evt) {
             if (!evt || $.bypass) return false;
-            const j = $.eyEvts.indexOf(evt.type);
-            const { target } = evt;
+            let j = $.eyEvts.indexOf(evt.type);
+            const target = evt.target;
             switch (j) {
                 case 6: // dragstart
                     if ($.enableDragging) return false;
@@ -406,11 +412,12 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
                 case 1: // keyup
                     return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
                 case 2: // copy
-                    if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype) || (evt.cancelable === false || evt.defaultPrevented === true)) return true; // Event oncopy not supporting clipboardData
+                    if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
+                    if (evt.cancelable === false || evt.defaultPrevented === true) return true;
 
                     const cd = evt.clipboardData[$.ksSetData];
                     if (typeof WeakRef === 'function') {
-                        const obj = cd ? cd.deref() : null;
+                        let obj = cd ? cd.deref() : null;
                         if (obj && obj !== evt) return true; // in case there is a bug
                         evt.clipboardData[$.ksSetData] = new WeakRef(evt);
                     } else {
@@ -516,7 +523,9 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
         },
 
         lpCheckPointer(targetElm) {
-            if (targetElm instanceof Element && targetElm.matches('*:hover') && (getComputedStyle(targetElm).getPropertyValue('cursor') === 'pointer' && targetElm.textContent)) return true;
+            if (targetElm instanceof Element && targetElm.matches('*:hover')) {
+                if (getComputedStyle(targetElm).getPropertyValue('cursor') === 'pointer' && targetElm.textContent) return true;
+            }
             return false;
         },
 
@@ -538,7 +547,7 @@ const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
         lpKeyAltPressInterval: 0,
 
         noPlayingVideo() {
-for (const video of document.querySelectorAll('video[src]')) {
+            for (const video of document.querySelectorAll('video[src]')) {
 
                 if (video.paused === false) {
                     return false;
@@ -563,7 +572,7 @@ for (const video of document.querySelectorAll('video[src]')) {
 
                 $.lpKeyAltLastPressAt = +new Date;
 
-                const element = evt.target;
+                let element = evt.target;
 
 
                 if ($.lpKeyPressing === false && (element instanceof Node) && element.parentNode && !evt.repeat && $.noPlayingVideo()) {
@@ -646,7 +655,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                                 promises = null;
                                 promiseCallback = null;
                                 for (const pElm of laterArr) {
-                                    const { parentNode } = pElm
+                                    let parentNode = pElm.parentNode
                                     if (wmTextWrap.get(parentNode) === true) {
                                         $.lpHoverBlocks.push(pElm);
                                         pElm.setAttribute($.utNonEmptyElmPrevElm, '');
@@ -661,11 +670,9 @@ for (const video of document.querySelectorAll('video[src]')) {
                     }
 
                 }
-                return;
 
 
-            }
-            if ($.lpKeyPressing === true) {
+            } else if ($.lpKeyPressing === true) {
 
                 $.lpCancelKeyPressAlt();
 
@@ -711,14 +718,13 @@ for (const video of document.querySelectorAll('video[src]')) {
             if (!$.gm_lp_enable) return;
 
             $.lpMouseActive = 0;
-            if (!(evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey && evt.button === 0 && (evt.target instanceof Node) && $.noPlayingVideo())) {
-                return;
+            if (evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey && evt.button === 0 && (evt.target instanceof Node) && $.noPlayingVideo()) {
+                $.lpMouseActive = 1;
+                $.eventCancel(evt, false);
+                const rootNode = $.rootHTML(evt.target);
+                $.lpAltRoots.push(rootNode);
+                rootNode.setAttribute($.utLpSelection, '');
             }
-            $.lpMouseActive = 1;
-            $.eventCancel(evt, false);
-            const rootNode = $.rootHTML(evt.target);
-            $.lpAltRoots.push(rootNode);
-            rootNode.setAttribute($.utLpSelection, '');
         },
 
         lpMouseUpClear() {
@@ -732,12 +738,11 @@ for (const video of document.querySelectorAll('video[src]')) {
 
             if (!$.gm_lp_enable) return;
 
-            if ($.lpMouseActive !== 1) {
-                return;
+            if ($.lpMouseActive === 1) {
+                $.lpMouseActive = 2;
+                $.eventCancel(evt, false);
+                $.lpMouseUpClear();
             }
-            $.lpMouseActive = 2;
-            $.eventCancel(evt, false);
-            $.lpMouseUpClear();
         },
 
         /** @type {EventListener} */
@@ -880,30 +885,30 @@ for (const video of document.querySelectorAll('video[src]')) {
              */
             function overlapArea(rect1, rect2) {
 
-                const l1 = {
+                let l1 = {
                     x: rect1.left,
                     y: rect1.top
                 }
 
-                const r1 = {
+                let r1 = {
                     x: rect1.right,
                     y: rect1.bottom
                 }
-                const l2 = {
+                let l2 = {
                     x: rect2.left,
                     y: rect2.top
                 }
 
-                const r2 = {
+                let r2 = {
                     x: rect2.right,
                     y: rect2.bottom
                 }
 
                 // Area of 1st Rectangle
-                const area1 = Math.abs(l1.x - r1.x) * Math.abs(l1.y - r1.y);
+                let area1 = Math.abs(l1.x - r1.x) * Math.abs(l1.y - r1.y);
 
                 // Area of 2nd Rectangle
-                const area2 = Math.abs(l2.x - r2.x) * Math.abs(l2.y - r2.y);
+                let area2 = Math.abs(l2.x - r2.x) * Math.abs(l2.y - r2.y);
 
                 // Length of intersecting part i.e
                 // start from max(l1.x, l2.x) of
@@ -911,9 +916,9 @@ for (const video of document.querySelectorAll('video[src]')) {
                 // r2.x) x-coordinate by subtracting
                 // start from end we get required
                 // lengths
-                const x_dist = Math.min(r1.x, r2.x) - Math.max(l1.x, l2.x);
-                const y_dist = Math.min(r1.y, r2.y) - Math.max(l1.y, l2.y);
-                const areaI = x_dist > 0 && y_dist > 0 ? x_dist * y_dist : 0;
+                let x_dist = Math.min(r1.x, r2.x) - Math.max(l1.x, l2.x);
+                let y_dist = Math.min(r1.y, r2.y) - Math.max(l1.y, l2.y);
+                let areaI = x_dist > 0 && y_dist > 0 ? x_dist * y_dist : 0;
 
                 return {
                     area1,
@@ -944,7 +949,7 @@ for (const video of document.querySelectorAll('video[src]')) {
             */
 
             /** @type { NImg[] } */
-            const _nImgs = [];
+            let _nImgs = [];
             const handleNImgs = async (img) => {
                 await Promise.resolve();
                 for (const s of _nImgs) {
@@ -963,7 +968,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                     }
                 }
 
-                const nImg = document.createElement('img');
+                let nImg = document.createElement('img');
                 nImg.setAttribute('title', '　');
                 nImg.setAttribute('alt', '　');
                 nImg.onerror = function () {
@@ -985,7 +990,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                 nImg.addEventListener('mouseenter', handle, true);
                 nImg.addEventListener('mouseleave', handle, true);
                 // nImg.addEventListener('wheel', handle, $.eh_capture_passive());
-                const resObj = {
+                let resObj = {
                     elm: nImg,
                     lastTime: +new Date,
                     cid_fade: 0
@@ -1028,7 +1033,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                 if (floatingBlockHover.get(targetElm)) {
                     let url = null
                     if (targetElm.getAttribute($.utHoverBlock) === '7' && (url = wmHoverUrl.get(targetElm)) && targetElm.querySelector(`[${$.utHoverBlock}]`) === null) {
-                        const _nImg = nImgFunc();
+                        let _nImg = nImgFunc();
                         if (_nImg.parentNode !== targetElm) {
                             _nImg.setAttribute('src', url);
                             targetElm.insertBefore(_nImg, targetElm.firstChild);
@@ -1040,7 +1045,9 @@ for (const video of document.querySelectorAll('video[src]')) {
 
                 await Promise.resolve();
 
-                if (!(targetElm instanceof Element) || "|SVG|IMG|HTML|BODY|VIDEO|AUDIO|BR|HEAD|NOSCRIPT|SCRIPT|STYLE|TEXTAREA|AREA|INPUT|FORM|BUTTON|".indexOf(`|${targetElm.nodeName}|`) >= 0) return;
+                if (!(targetElm instanceof Element)) return;
+                // if (targetElm.nodeType !== 1) return;
+                if ("|SVG|IMG|HTML|BODY|VIDEO|AUDIO|BR|HEAD|NOSCRIPT|SCRIPT|STYLE|TEXTAREA|AREA|INPUT|FORM|BUTTON|".indexOf(`|${targetElm.nodeName}|`) >= 0) return;
 
                 const targetArea = targetElm.clientWidth * targetElm.clientHeight
 
@@ -1069,7 +1076,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                     }
                     if ((targetElm.textContent || "").trim().length > 0) return;
 
-                    const possibleResults = [];
+                    let possibleResults = [];
 
                     for (const imgElm of document.querySelectorAll('img[src]')) {
                         const param = elmParam(imgElm)
@@ -1077,7 +1084,9 @@ for (const video of document.querySelectorAll('video[src]')) {
                             const area = imgElm.clientWidth * imgElm.clientHeight
                             if (area > 0) param.area = area;
                         }
-                        if (param.area > 0 && targetArea > param.area * 0.9) possibleResults.push(imgElm)
+                        if (param.area > 0) {
+                            if (targetArea > param.area * 0.9) possibleResults.push(imgElm)
+                        }
                     }
 
                     let i = 0;
@@ -1141,16 +1150,15 @@ for (const video of document.querySelectorAll('video[src]')) {
                 // console.log(targetElm, targetElm.querySelectorAll('img').length)
 
                 // console.log(313, evt.target, s)
-                const _nImg = nImgFunc();
+                let _nImg = nImgFunc();
 
 
-                if (_nImg.parentNode === targetElm) {
-                    return;
+                if (_nImg.parentNode !== targetElm) {
+                    _nImg.setAttribute('src', sUrl);
+                    targetElm.insertBefore(_nImg, targetElm.firstChild);
+                    wmHoverUrl.set(targetElm, sUrl);
+                    targetElm.setAttribute($.utHoverBlock, '7');
                 }
-                _nImg.setAttribute('src', sUrl);
-                targetElm.insertBefore(_nImg, targetElm.firstChild);
-                wmHoverUrl.set(targetElm, sUrl);
-                targetElm.setAttribute($.utHoverBlock, '7');
 
 
 
@@ -1167,13 +1175,12 @@ for (const video of document.querySelectorAll('video[src]')) {
 
             if (!$.gm_prevent_aux_click_enable) return;
 
-            if (evt.button !== 1) {
-                return;
-            }
-            const check = $.dmmMouseUpLast > $.dmmMouseDownLast && evt.timeStamp - $.dmmMouseUpLast < 40
-            $.dmmMouseDownLast = evt.timeStamp;
-            if (check) {
-                $.eventCancel(evt, true);
+            if (evt.button === 1) {
+                let check = $.dmmMouseUpLast > $.dmmMouseDownLast && evt.timeStamp - $.dmmMouseUpLast < 40
+                $.dmmMouseDownLast = evt.timeStamp;
+                if (check) {
+                    $.eventCancel(evt, true);
+                }
             }
 
         },
@@ -1182,14 +1189,13 @@ for (const video of document.querySelectorAll('video[src]')) {
         acrAuxUp: (evt) => {
             if (!$.gm_prevent_aux_click_enable) return;
 
-            if (evt.button !== 1) {
-                return;
-            }
-            const check = $.dmmMouseDownLast > $.dmmMouseUpLast && evt.timeStamp - $.dmmMouseDownLast < 40;
-            $.dmmMouseUpLast = evt.timeStamp;
-            if (check) {
-                $.dmmMouseUpCancel = evt.timeStamp;
-                $.eventCancel(evt, true);
+            if (evt.button === 1) {
+                let check = $.dmmMouseDownLast > $.dmmMouseUpLast && evt.timeStamp - $.dmmMouseDownLast < 40;
+                $.dmmMouseUpLast = evt.timeStamp;
+                if (check) {
+                    $.dmmMouseUpCancel = evt.timeStamp;
+                    $.eventCancel(evt, true);
+                }
             }
 
         },
@@ -1199,8 +1205,10 @@ for (const video of document.querySelectorAll('video[src]')) {
         acrAuxClick: (evt) => {
             if (!$.gm_prevent_aux_click_enable) return;
 
-            if (evt.button === 1 && evt.timeStamp - $.dmmMouseUpCancel < 40) {
-                $.eventCancel(evt, true);
+            if (evt.button === 1) {
+                if (evt.timeStamp - $.dmmMouseUpCancel < 40) {
+                    $.eventCancel(evt, true);
+                }
             }
 
 
@@ -1238,9 +1246,7 @@ for (const video of document.querySelectorAll('video[src]')) {
                 }
 
                 unregister() {
-                    if ((this.h >= 0)) {
-                        (GM_unregisterMenuCommand(this.h), (this.h = 0));
-                    }
+                    (this.h >= 0) ? (GM_unregisterMenuCommand(this.h), (this.h = 0)) : 0;
                 }
 
                 register(text) {
@@ -1261,9 +1267,9 @@ for (const video of document.querySelectorAll('video[src]')) {
 
                     if ($.gm_status_fn_store && $.gm_status_fn_store.indexOf(this) >= 0) {
 
-                        const store = $.gm_status_fn_store
-                        const idx = store.indexOf(this)
-                        const count = store.length;
+                        let store = $.gm_status_fn_store
+                        let idx = store.indexOf(this)
+                        let count = store.length;
 
 
                         if (idx >= 0 && idx <= count - 2) {
@@ -1340,7 +1346,7 @@ for (const video of document.querySelectorAll('video[src]')) {
          */
         async gm_status_fn(gm_name, textToEnable, textToDisable, callback) {
 
-            const menuEnableName = `${gm_name}$menuEnable`;
+            const menuEnableName = gm_name + "$menuEnable";
 
             function set_gm(enabled) {
                 $[gm_name] = enabled;
@@ -1392,13 +1398,13 @@ for (const video of document.querySelectorAll('video[src]')) {
             if (evtType && $.enableReturnValueReplacment === true) {
                 // $.listenerDisableAll(evt);
                 let elmNode = evt.target;
-                const pName = `on${evtType}`;
+                const pName = 'on' + evtType;
                 let maxN = 99;
                 while (elmNode instanceof Node) { // i.e. HTMLDocument or HTMLElement
                     if (--maxN < 4) break; // prevent unknown case
                     const f = elmNode[pName];
                     if (typeof f === 'function') {
-                        const replacerId = f[$.ksFuncReplacerCounter];
+                        let replacerId = f[$.ksFuncReplacerCounter];
                         if (replacerId > 0) break; // assume all parent functions are replaced; for performance only
                         // note: "return false" is preventDefault() in VanillaJS but preventDefault()+stopPropagation() in jQuery.
                         elmNode[pName] = $.weakMapFuncReplaced.get(f) || $.createFuncReplacer(f);
@@ -1407,8 +1413,10 @@ for (const video of document.querySelectorAll('video[src]')) {
                 }
             }
 
-            if (evtType === 'contextmenu' && evt.defaultPrevented !== true) {
-                  $.mainListenerPress(evt);
+            if (evtType === 'contextmenu') {
+                if (evt.defaultPrevented !== true) {
+                    $.mainListenerPress(evt);
+                }
             }
 
         },
@@ -1447,13 +1455,12 @@ for (const video of document.querySelectorAll('video[src]')) {
         },
 
         delayMouseUpTasksHandler: () => {
-            if (!($.delayMouseUpTasks > 0)) {
-                return;
+            if ($.delayMouseUpTasks > 0) {
+                const flag = $.delayMouseUpTasks
+                $.delayMouseUpTasks = 0;
+                if ((flag & 1) === 1) $.mAlert_UP();
+                if ((flag & 2) === 2 && $.enableDragging === true) $.enableDragging = false;
             }
-            const flag = $.delayMouseUpTasks
-            $.delayMouseUpTasks = 0;
-            if ((flag & 1) === 1) $.mAlert_UP();
-            if ((flag & 2) === 2 && $.enableDragging === true) $.enableDragging = false;
         },
 
         mainListenerPress: (evt) => { // Capture Event; (mousedown - desktop; contextmenu - desktop&mobile)
@@ -1471,13 +1478,12 @@ for (const video of document.querySelectorAll('video[src]')) {
         mainListenerRelease: (evt) => { // Capture Event; (mouseup - desktop)
             //  $.holdingElm=null;
             //   console.log('up',evt.target)
-            if ($.delayMouseUpTasks !== 0) {
-                return;
-            }
-            if (evt.button === 2) $.delayMouseUpTasks |= 1;
-            if ($.enableDragging === true) $.delayMouseUpTasks |= 2;
-            if ($.delayMouseUpTasks > 0) {
-                window.requestAnimationFrame($.delayMouseUpTasksHandler)
+            if ($.delayMouseUpTasks === 0) { // skip if it is already queued 
+                if (evt.button === 2) $.delayMouseUpTasks |= 1;
+                if ($.enableDragging === true) $.delayMouseUpTasks |= 2;
+                if ($.delayMouseUpTasks > 0) {
+                    window.requestAnimationFrame($.delayMouseUpTasksHandler)
+                }
             }
         }
 
@@ -1498,23 +1504,24 @@ for (const video of document.querySelectorAll('video[src]')) {
 
     $.updateIsWindowEventSupported();
 
-    if (!(typeof GM_registerMenuCommand === 'function' && typeof GM_unregisterMenuCommand === 'function')) {
-        return;
-    }
-    if (isSupportAdvancedEventListener()) {
-        $.gm_status_fn("gm_lp_enable", "To Enable `Enhanced build-in Alt Text Selection`", "To Disable `Enhanced build-in Alt Text Selection`", () => {
+    if (typeof GM_registerMenuCommand === 'function' && typeof GM_unregisterMenuCommand === 'function') {
+
+        if (isSupportAdvancedEventListener()) {
+            $.gm_status_fn("gm_lp_enable", "To Enable `Enhanced build-in Alt Text Selection`", "To Disable `Enhanced build-in Alt Text Selection`", () => {
+                // callback
+            });
+        }
+        $.gm_status_fn("gm_disablehover_enable", "To Enable `Hover on Image`", "To Disable `Hover on Image`", () => {
             // callback
         });
+        $.gm_status_fn("gm_prevent_aux_click_enable", "To Enable `Repetitive AuxClick Prevention`", "To Disable `Repetitive AuxClick Prevention`", () => {
+            // callback
+        });
+        $.gm_status_fn("gm_absolute_mode", "To Enable `Absolute Mode`", "To Disable `Absolute Mode`", () => {
+            // callback
+        });
+
     }
-    $.gm_status_fn("gm_disablehover_enable", "To Enable `Hover on Image`", "To Disable `Hover on Image`", () => {
-        // callback
-    });
-    $.gm_status_fn("gm_prevent_aux_click_enable", "To Enable `Repetitive AuxClick Prevention`", "To Disable `Repetitive AuxClick Prevention`", () => {
-        // callback
-    });
-    $.gm_status_fn("gm_absolute_mode", "To Enable `Absolute Mode`", "To Disable `Absolute Mode`", () => {
-        // callback
-    });
 
 
 })();
