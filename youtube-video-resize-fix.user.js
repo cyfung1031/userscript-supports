@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.3
+// @version             0.3.4
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -48,9 +48,9 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function (__Promise__) {
+(function (__CONTEXT__) {
   'use strict';
-  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const { Promise, requestAnimationFrame } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
   const elements = {};
   let rid1 = 0;
   let rid2 = 0;
@@ -64,11 +64,11 @@ SOFTWARE.
       document.addEventListener('yt-player-updated', core.hanlder, true);
       document.addEventListener('ytd-navigate-finish', core.hanlder, true);
     },
-    hanlder() {
+    hanlder: () => {
       rid1++;
       if (rid1 > 1e9) rid1 = 9;
       const tid = rid1;
-      window.requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         if (tid !== rid1) return;
         core.runner();
       })
@@ -120,7 +120,7 @@ SOFTWARE.
       }
 
       // resize on idle
-      core.triggerResizeDelayed();
+      Promise.resolve().then(core.triggerResizeDelayed);
     },
     resizeFunc(originalFunc, kb) {
       return function () {
@@ -166,11 +166,11 @@ SOFTWARE.
         return { width: rect2.width, height: h2 };
       }
     },
-    triggerResizeDelayed() {
+    triggerResizeDelayed: () => {
       rid2++;
       if (rid2 > 1e9) rid2 = 9;
       const tid = rid2;
-      window.requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         if (tid !== rid2) return;
         const { ytdFlexy } = elements;
         let r = false;
@@ -328,4 +328,4 @@ SOFTWARE.
   })();
 
 
-})(Promise);
+})({ Promise, requestAnimationFrame });
