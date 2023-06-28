@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.19
+// @version             0.5.20
 // @license             MIT License
 
 // @author              CY Fung
@@ -1131,8 +1131,7 @@ SOFTWARE.
     const domChecker = () => {
 
         if(domCheckScheduled) return;
-        const newAnchors = document.querySelectorAll(domCheckSelector);
-        if (newAnchors.length === 0) {
+        if (document.querySelector(domCheckSelector) === null) {
             return;
         }
         domCheckScheduled = true;
