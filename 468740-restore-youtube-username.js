@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.5.20
+// @version             0.6.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -142,7 +142,29 @@ SOFTWARE.
 (function (__CONTEXT__) {
     'use strict';
 
-    const { Promise, fetch } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const USE_RSS_FETCHER = true;
+    const USE_TIMEOUT_SIGNAL = false;
+
+    const { Promise, fetch, JSON, Request, AbortController, setTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+    const timeoutSignal = AbortController && USE_TIMEOUT_SIGNAL ? (timeout) => {
+        const controller = new AbortController();
+        let cid = setTimeout(() => {
+            if (cid >= 1) {
+                cid = 0;
+                controller.abort();
+            }
+        }, timeout);
+        let r = controller.signal;
+        r.clearTimeout = () => {
+            if (cid >= 1) {
+                clearTimeout(cid);
+                cid = 0;
+            }
+        }
+        return r;
+
+    } : () => { }
 
     const fxOperator = (proto, propertyName) => {
         let propertyDescriptorGetter = null;
@@ -150,19 +172,19 @@ SOFTWARE.
             propertyDescriptorGetter = Object.getOwnPropertyDescriptor(proto, propertyName).get;
             // https://github.com/cyfung1031/userscript-supports/issues/9
             // .parentNode becomes DocumentFragment
-            /** 
-             * 
+            /**
+             *
              * Issue Description: YtCustomElements - Custom DOM Operations overrided in FireFox
-             * 
+             *
              * e.g. ytd-comment-renderer#comment > div#body
-             * 
+             *
              * ${div#body}.parentNode = DocumentFragment <Node.parentNode>
              * ${ytd-comment-renderer#comment}.firstElementChild <Element.firstElementChild>
-             * 
+             *
              * Cofirmed Affected: parentNode, firstChild, firstElementChild, lastChild, lastElementChild, querySelector, & querySelectorAll
-             * 
+             *
              * Alternative way: ytCustomElement.$.xxxxxxx
-             * 
+             *
              */
         } catch (e) { }
         return typeof propertyDescriptorGetter === 'function' ? (e) => propertyDescriptorGetter.call(e) : (e) => e[propertyName];
@@ -323,16 +345,29 @@ SOFTWARE.
             this.lockWith(this.lockFunc);
         }
     }
+    // usage: run network request one by one
     const mutex = new OrderedMutex();
 
-    /** @type {Map<string, AsyncValue | Object>} */
+    //
+    /**
+     * usage: cache the network result per web application instance.
+     *  @type {Map<string, AsyncValue | Object>} */
     const displayNameResStore = new Map();
 
-    /** @type {WeakMap<Function, Function>} */
+    /**
+     * usage: mapping the .dataChanged() to the wrapped function - only few entries as most are {ytd-comment-renderer}.dataChanged().
+     *  @type {WeakMap<Function, Function>} */
     const dataChangedFuncStore = new WeakMap();
 
-    /** @type {Map<string, AsyncValue | string>} */
+    /**
+     * usage: for \@Mention inside comments in YouTube Mobile that without hyperlinks for channelId.
+     *  @type {Map<string, AsyncValue | string>} */
     const handleToChannelId = new Map();
+
+    /**
+     * usage: in RSS fetching, no handle text will be obtained from the response. inject the handle into the response.
+     * @type {Map<string, Object>} */
+    const channelIdToHandle = new Map();
 
     class AsyncValue {
         constructor() {
@@ -360,9 +395,9 @@ SOFTWARE.
     }
 
     /**
-     * 
-     * @param {DisplayNameResultObject} resultInfo 
-     * @param {string} channelId 
+     *
+     * @param {DisplayNameResultObject} resultInfo
+     * @param {string} channelId
      */
     const cacheHandleToChannel = (resultInfo, channelId) => {
 
@@ -394,9 +429,178 @@ SOFTWARE.
 
     }
 
+    const fetcherBrowseAPI = (channelId, onDownloaded, onResulted, onError) => {
+
+        const signal = timeoutSignal(4000);
+
+        fetch(new Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
+            "method": "POST",
+            "mode": "same-origin",
+            "credentials": "same-origin",
+
+            referrerPolicy: "no-referrer",
+            cache: "default", // no effect on POST request
+            // cache: "force-cache",
+            redirect: "error", // there shall be no redirection in this API request
+            integrity: "",
+            keepalive: false,
+            signal,
+
+            "headers": {
+                "Content-Type": "application/json", // content type of the body data in POST request
+                "Accept-Encoding": "gzip, deflate, br",
+                // X-Youtube-Bootstrap-Logged-In: false,
+                // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
+                // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
+
+                "Accept": "application/json",
+            },
+            "body": JSON.stringify({
+                "context": {
+                    "client": {
+                        "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
+                        "clientName": "MWEB", // "WEB", "MWEB"
+                        "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
+                        "originalUrl": `https://m.youtube.com/channel/${channelId}`,
+                        "playerType": "UNIPLAYER",
+                        "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
+                        "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR"
+                        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "mainAppWebInfo": {
+                            "graftUrl": `/channel/${channelId}`,
+                            "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                            "isWebNativeShareAvailable": true
+                        }
+                    },
+                    "user": {
+                        "lockedSafetyMode": false
+                    },
+                    "request": {
+                        "useSsl": true,
+                        "internalExperimentFlags": [],
+                        "consistencyTokenJars": []
+                    }
+                },
+                "browseId": `${channelId}`
+            })
+        })).then(res => {
+            signal && signal.clearTimeout && signal.clearTimeout();
+            onDownloaded();
+            return res.json();
+        }).then(resJson => {
+            let resultInfo = ((resJson || 0).metadata || 0).channelMetadataRenderer;
+            onResulted(resultInfo);
+        }).catch(onError);
+
+    };
+
+    const fetcherRSS = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
+
+        const signal = timeoutSignal(4000);
+        fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
+            // YouTube RSS Response - public, max-age=900
+
+            "method": "GET",
+            "mode": "same-origin",
+            "credentials": "same-origin",
+
+            referrerPolicy: "no-referrer",
+            cache: "default",
+            // cache: "no-cache",
+            redirect: "error", // there shall be no redirection in this API request
+            integrity: "",
+            keepalive: false,
+            signal,
+
+            "headers": {
+                "Cache-Control": "public, max-age=900, stale-while-revalidate=1800",
+                // refer "Cache-Control Use Case Examples" in https://www.koyeb.com/blog/using-cache-control-and-cdns-to-improve-performance-and-reduce-latency
+                // seems YouTube RSS Feeds server insists its own Cache-Control.
+
+                // "Content-Type": "text/xml; charset=UTF-8",
+                "Accept-Encoding": "gzip, deflate, br",
+                // X-Youtube-Bootstrap-Logged-In: false,
+                // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
+                // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
+                
+                "Accept":"text/xml",
+            }
+        }).then(res => {
+            signal && signal.clearTimeout && signal.clearTimeout();
+            onDownloaded();
+            return res.text();
+        }).then(resText => {
+            let eIdx = resText.indexOf('<entry>');
+            let mText = (eIdx > 0) ? `${resText.substring(0, eIdx).trim()}</feed>` : resText;
+
+            // simple: https://www.youtube.com/feeds/videos.xml?channel_id=UC-MUu72gixoYlhV5_mWa36g
+            // standard: https://www.youtube.com/feeds/videos.xml?channel_id=UCGSfK5HeiIhuFfXoKE47TzA
+            // long: https://www.youtube.com/feeds/videos.xml?channel_id=UC8cSGjKxDuh2mWG1hDOTdBg
+            // special: http://www.youtube.com/feeds/videos.xml?channel_id=UCmZ2-GUxmdWFKfXA5IN0x-w
+
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(mText, "text/xml");
+
+            // const author = xmlDoc.querySelector("author");
+
+            // https://extendsclass.com/xpath-tester.html
+
+            const authorChilds = xmlDoc.evaluate("//*[name()='author']/*", xmlDoc, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+
+            let authorChild;
+            let name, uri, mt;
+            while ((authorChild = authorChilds.iterateNext()) !== null) {
+                if (authorChild.nodeName === 'name') name = authorChild.textContent;
+                else if (authorChild.nodeName === 'uri') {
+                    uri = authorChild.textContent;
+                    mt = obtainChannelId(uri)
+                }
+            }
+
+            try {
+                xmlDoc.firstChild.remove();
+            } catch (e) { }
+
+            let res = null;
+
+            if (name && uri && mt && mt === channelId) {
+
+
+                let object = channelIdToHandle.get(mt);
+
+                if (object) {
+
+                    if (object.handleText === name) channelIdToHandle.delete(mt);
+                    else {
+                        object.justPossible = false; // ignore @handle checking
+
+                        res = {
+                            "title": name,
+                            "externalId": mt,
+                            "ownerUrls": [
+                                `http://www.youtube.com/${object.handleText}`
+                            ],
+                            "channelUrl": uri,
+                            "vanityChannelUrl": `http://www.youtube.com/${object.handleText}`
+                        };
+
+                    }
+                }
+            }
+
+            onResulted(res);
+
+            // let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
+            // onResulted(resultInfo);
+        }).catch(onError);
+
+
+
+    }
+
     /**
-     * 
-     * @param {string} channelId 
+     *
+     * @param {string} channelId
      */
     function stackNewRequest(channelId) {
 
@@ -440,64 +644,16 @@ SOFTWARE.
 
             bResult.fetchingState = 2;
 
-            fetch(new window.Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
-                "method": "POST",
-                "mode": "same-origin",
-                "credentials": "same-origin",
 
-                referrerPolicy: "no-referrer",
-                cache: "default",
-                redirect: "error", // there shall be no redirection in this API request
-                integrity: "",
-                keepalive: false,
-                signal: undefined,
-
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    // X-Youtube-Bootstrap-Logged-In: false,
-                    // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
-                    // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
-                },
-                "body": JSON.stringify({
-                    "context": {
-                        "client": {
-                            "clientName": "MWEB",
-                            "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`,
-                            "originalUrl": `https://m.youtube.com/channel/${channelId}`,
-                            "playerType": "UNIPLAYER",
-                            "platform": "MOBILE",
-                            "clientFormFactor": "SMALL_FORM_FACTOR",
-                            "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "mainAppWebInfo": {
-                                "graftUrl": `/channel/${channelId}`,
-                                "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                                "isWebNativeShareAvailable": true
-                            }
-                        },
-                        "user": {
-                            "lockedSafetyMode": false
-                        },
-                        "request": {
-                            "useSsl": true,
-                            "internalExperimentFlags": [],
-                            "consistencyTokenJars": []
-                        }
-                    },
-                    "browseId": `${channelId}`
-                })
-            })).then(res => {
+            // note: when setResult(null), the fetch will be requested again if the same username appears. (multiple occurrences)
+            // consider the network problem might be fixed in the 2nd attempt, the name will be changed in the 2nd attempt but ignore 1st attempt.
+            const fetcher = USE_RSS_FETCHER && fetcherRSS && channelIdToHandle.has(channelId) ? fetcherRSS : fetcherBrowseAPI;
+            fetcher(channelId, () => {
                 bResult.fetchingState = 3;
                 lockResolve();
                 lockResolve = null;
-                return res.json();
-            }).then(res => {
+            }, resultInfo => {
 
-                // console.log(displayNameRes, urlToHandle(vanityChannelUrl))
-                // displayNameCacheStore.set(channelId, displayNameRes);
-
-
-                let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
                 if (!resultInfo) {
                     // invalid json format
                     setResult(null);
@@ -511,9 +667,7 @@ SOFTWARE.
                 const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
 
                 setResult(displayNameRes);
-
-
-            }).catch(e => {
+            }, e => {
                 lockResolve && lockResolve();
                 console.warn(e);
                 setResult && setResult(null);
@@ -524,7 +678,7 @@ SOFTWARE.
     }
 
     /**
-     * 
+     *
      * @param {string} url Example: _www\.youtube\.com/\@yr__kd_
      * @returns Example: _\@yr__kd_
      */
@@ -539,7 +693,7 @@ SOFTWARE.
     }
 
     /**
-     * 
+     *
      * @param {string} channelId Example: UC0gmRdmpDWJ4dt7DAeRaawA
      * @returns {Promise<DisplayNameResultObject | null>}
      */
@@ -582,9 +736,9 @@ SOFTWARE.
 
 
     /**
-     * 
+     *
      * @param {string} href Example: https\:\/\/www\.youtube\.com/channel/UC0gmRdmpDWJ4dt7DAeRaawA
-     * @returns 
+     * @returns
      */
     const obtainChannelId = (href) => {
         let m = /\/channel\/(UC[-_a-zA-Z0-9+=.]+)/.exec(`/${href}`);
@@ -594,7 +748,7 @@ SOFTWARE.
 
 
     /**
-     * 
+     *
      * @param {Element} Node
      */
     const resetWhenDataChanged = (ytElm) => {
@@ -609,7 +763,7 @@ SOFTWARE.
     }
 
     /**
-     * 
+     *
      * @param {Function} dataChanged original dataChanged function
      * @returns new dataChanged function
      */
@@ -621,11 +775,11 @@ SOFTWARE.
     };
 
     /**
-     * 
+     *
      * @param {HTMLAnchorElement} anchor Example: https\:\/\/www\.youtube\.com/channel/UCRmLncxsQFcOOC8OhzUIfxQ/videos
      * @param {string} channelHref Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ
      * @param {string} channelId Example: UCRmLncxsQFcOOC8OhzUIfxQ
-     * @returns 
+     * @returns
      */
     const anchorIntegrityCheck = (anchor, channelHref, channelId) => {
 
@@ -637,10 +791,10 @@ SOFTWARE.
     };
 
     /**
-     * 
-     * @param {string} currentDisplayed 
-     * @param {DisplayNameResultObject} fetchResult 
-     * @returns 
+     *
+     * @param {string} currentDisplayed
+     * @param {DisplayNameResultObject} fetchResult
+     * @returns
      */
     const verifyAndConvertHandle = (currentDisplayed, fetchResult) => {
 
@@ -668,8 +822,8 @@ SOFTWARE.
     };
 
     /**
-     * 
-     * 
+     *
+     *
 
         ### [Handle naming guidelines](https://support.google.com/youtube/answer/11585688?hl=en&co=GENIE.Platform%3DAndroid)
 
@@ -683,9 +837,9 @@ SOFTWARE.
         ### Handle automatically generated by YouTube
         - `@user-XXXX`
         - without dot (.)
-     * 
-     * @param {string} text 
-     * @returns 
+     *
+     * @param {string} text
+     * @returns
      */
     const isDisplayAsHandle = (text) => {
 
@@ -697,10 +851,10 @@ SOFTWARE.
     };
 
     /**
-     * 
-     * @param {Object[]} contentTexts 
-     * @param {number} idx 
-     * @returns 
+     *
+     * @param {Object[]} contentTexts
+     * @param {number} idx
+     * @returns
      */
     const contentTextProcess = (contentTexts, idx) => {
         const contentText = contentTexts[idx];
@@ -735,15 +889,15 @@ SOFTWARE.
     };
 
     /**
-     * 
-     * @param {ParentNode} parentNode 
-     * @param {Function} callback 
+     *
+     * @param {ParentNode} parentNode
+     * @param {Function} callback
      */
     function findTextNodes(parentNode, callback) {
         /**
-         * 
-         * @param {Node} node 
-         * @returns 
+         *
+         * @param {Node} node
+         * @returns
          */
         function traverse(node) {
             if (node.nodeType === Node.TEXT_NODE) {
@@ -763,11 +917,11 @@ SOFTWARE.
     }
 
     /**
-     * 
-     * @param {ParentNode} parentNode 
-     * @param {Object[]} contentTexts 
-     * @param {number} aidx 
-     * @returns 
+     *
+     * @param {ParentNode} parentNode
+     * @param {Object[]} contentTexts
+     * @param {number} aidx
+     * @returns
      */
     const mobileContentHandleAsync = async (parentNode, contentTexts, aidx) => {
 
@@ -831,7 +985,7 @@ SOFTWARE.
 
     /**
      * Process Checking when there is new (unprocessed) anchor DOM element with hyperlink of channel
-     * @type {(anchor: HTMLElement, channelHref: string?, mt: string?)} 
+     * @type {(anchor: HTMLElement, channelHref: string?, mt: string?)}
      */
     const domCheckAsync = isMobile ? async (anchor, channelHref, mt) => {
 
@@ -852,6 +1006,13 @@ SOFTWARE.
             let runs = ((parentNodeData || 0).authorText || 0).runs;
 
             if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
+
+                if (!channelIdToHandle.has(mt)) {
+                    channelIdToHandle.set(mt, {
+                        handleText: airaLabel.trim(),
+                        justPossible: true
+                    })
+                }
 
                 const fetchResult = await getDisplayName(mt);
 
@@ -911,6 +1072,13 @@ SOFTWARE.
             const currentDisplayed = (authorText || 0).simpleText;
             if (typeof currentDisplayed !== 'string') return;
             if (!isDisplayAsHandle(currentDisplayed)) return;
+
+            if (!channelIdToHandle.has(mt)) {
+                channelIdToHandle.set(mt, {
+                    handleText: currentDisplayed.trim(),
+                    justPossible: true
+                })
+            }
 
             const oldDataChanged = parentNode.dataChanged;
             if (typeof oldDataChanged === 'function' && !oldDataChanged.jkrgx) {
@@ -986,9 +1154,9 @@ SOFTWARE.
     }
 
     /**
-     * 
-     * @param {string} url 
-     * @returns 
+     *
+     * @param {string} url
+     * @returns
      */
     const channelUrlUnify = (url) => {
 
@@ -1130,7 +1298,7 @@ SOFTWARE.
     let domCheckScheduled = false;
     const domChecker = () => {
 
-        if(domCheckScheduled) return;
+        if (domCheckScheduled) return;
         if (document.querySelector(domCheckSelector) === null) {
             return;
         }
@@ -1163,46 +1331,46 @@ SOFTWARE.
             const isDocumentModifying = ctDOMCheck - ltDOMCheck < 230;
 
             Promise.resolve()
-            .then(() => {
-                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+                .then(() => {
+                    if (lastNewAnchorLast && mutex.nextIndex >= 1) {
 
-                    if (isDocumentModifying) {
+                        if (isDocumentModifying) {
 
-                    } else {
-                        if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                            mutex.nextIndex = 0;
+                        } else {
+                            if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                                mutex.nextIndex = 0;
+                            }
                         }
+
+                        /*
+                        if (mutex.nextIndex === 0) {
+                            // no change
+                        } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
+                            mutex.nextIndex = 0; // highest priority
+                        } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
+                            mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
+                        }
+                        */
+                    }
+                }).then(() => {
+
+                    // newAnchorAdded = true;
+                    for (const anchor of newAnchors) {
+                        // author-text or name
+                        // normal url: /channel/xxxxxxx
+                        // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
+                        const href = anchor.getAttribute('href');
+                        const channelId = obtainChannelId(href); // string, can be empty
+                        anchor.setAttribute('jkrgy', channelId);
+                        // intersectionobserver.unobserve(anchor);
+                        // intersectionobserver.observe(anchor); // force first occurance
+                        domCheckAsync(anchor, href, channelId);
                     }
 
-                    /*
-                    if (mutex.nextIndex === 0) {
-                        // no change
-                    } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
-                        mutex.nextIndex = 0; // highest priority
-                    } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
-                        mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
-                    }
-                    */
-                }
-            }).then(() => {
-
-                // newAnchorAdded = true;
-                for (const anchor of newAnchors) {
-                    // author-text or name
-                    // normal url: /channel/xxxxxxx
-                    // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
-                    const href = anchor.getAttribute('href');
-                    const channelId = obtainChannelId(href); // string, can be empty
-                    anchor.setAttribute('jkrgy', channelId);
-                    // intersectionobserver.unobserve(anchor);
-                    // intersectionobserver.observe(anchor); // force first occurance
-                    domCheckAsync(anchor, href, channelId);
-                }
-
-            }).then(lockResolve).catch(e => {
-                lockResolve();
-                console.warn(e);
-            });
+                }).then(lockResolve).catch(e => {
+                    lockResolve();
+                    console.warn(e);
+                });
 
         });
 
@@ -1249,9 +1417,9 @@ SOFTWARE.
     };
 
     /**
-     * 
-     * @param {Node} app 
-     * @returns 
+     *
+     * @param {Node} app
+     * @returns
      */
     function setupOnPageFetched(app) {
 
@@ -1275,11 +1443,11 @@ SOFTWARE.
     }
 
     /**
-     * 
-     * @param {Object|null} dest 
-     * @param {Object} ytcfg 
-     * @param {string[]} keys 
-     * @returns 
+     *
+     * @param {Object|null} dest
+     * @param {Object} ytcfg
+     * @param {string[]} keys
+     * @returns
      */
     function getYtConfig(dest, ytcfg, keys) {
         dest = dest || {};
@@ -1309,4 +1477,4 @@ SOFTWARE.
         setupOnPageFetched(app);
     });
 
-})({ Promise, fetch });
+})({ Promise, fetch, JSON, Request, AbortController, setTimeout });
