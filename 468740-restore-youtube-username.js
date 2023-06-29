@@ -522,8 +522,8 @@ SOFTWARE.
                 // X-Youtube-Bootstrap-Logged-In: false,
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
-                
-                "Accept":"text/xml",
+
+                "Accept": "text/xml",
             }
         }).then(res => {
             signal && signal.clearTimeout && signal.clearTimeout();
