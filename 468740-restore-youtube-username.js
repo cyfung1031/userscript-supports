@@ -448,7 +448,7 @@ SOFTWARE.
 
             "headers": {
                 "Content-Type": "application/json", // content type of the body data in POST request
-                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Encoding": "gzip, deflate, br", // YouTube Response - br
                 // X-Youtube-Bootstrap-Logged-In: false,
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
@@ -518,7 +518,7 @@ SOFTWARE.
                 // seems YouTube RSS Feeds server insists its own Cache-Control.
 
                 // "Content-Type": "text/xml; charset=UTF-8",
-                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Encoding": "gzip, deflate, br", // YouTube Response - gzip
                 // X-Youtube-Bootstrap-Logged-In: false,
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
