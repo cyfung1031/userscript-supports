@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.6.0
+// @version             0.6.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -436,7 +436,7 @@ SOFTWARE.
         fetch(new Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
             "method": "POST",
             "mode": "same-origin",
-            "credentials": "same-origin",
+            "credentials": "omit",
 
             referrerPolicy: "no-referrer",
             cache: "default", // no effect on POST request
@@ -502,7 +502,7 @@ SOFTWARE.
 
             "method": "GET",
             "mode": "same-origin",
-            "credentials": "same-origin",
+            "credentials": "omit",
 
             referrerPolicy: "no-referrer",
             cache: "default",
