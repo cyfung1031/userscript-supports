@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.6.2
+// @version             0.6.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -151,18 +151,20 @@ SOFTWARE.
 
     const USE_RSS_FETCHER = true;
     const USE_TIMEOUT_SIGNAL = false;
+    const USE_CHANNEL_META = true;
 
     const { Promise, fetch, JSON, Request, AbortController, setTimeout, clearTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const timeoutSignal = AbortController && USE_TIMEOUT_SIGNAL ? (timeout) => {
-        const controller = new AbortController();
+        let controller = new AbortController();
+        const r = controller.signal;
         let cid = setTimeout(() => {
             if (cid >= 1) {
                 cid = 0;
-                controller.abort();
+                controller && controller.abort();
+                controller = null;
             }
         }, timeout);
-        let r = controller.signal;
         r.clearTimeout = () => {
             if (cid >= 1) {
                 clearTimeout(cid);
@@ -170,7 +172,6 @@ SOFTWARE.
             }
         }
         return r;
-
     } : () => { };
 
     const fxOperator = (proto, propertyName) => {
@@ -202,11 +203,16 @@ SOFTWARE.
         return typeof methodFunc === 'function' ? (e, ...args) => methodFunc.apply(e, args) : (e, ...args) => e[propertyName](...args);
     };
 
+    /** @type { (node: Node)=>Node | null } */
     const nodeParent = fxOperator(Node.prototype, 'parentNode');
+    /** @type { (node: Node)=>Node | null } */
     const nodeFirstChild = fxOperator(Node.prototype, 'firstChild');
+    /** @type { (node: Node)=>Node | null } */
     const nodeNextSibling = fxOperator(Node.prototype, 'nextSibling');
 
+    /** @type { (node: ParentNode, selector: string)=>Element | null } */
     const elementQS = fxAPI(Element.prototype, 'querySelector');
+    /** @type { (node: ParentNode, selector: string)=>Element[] } */
     const elementQSA = fxAPI(Element.prototype, 'querySelectorAll');
 
     /*
@@ -355,10 +361,15 @@ SOFTWARE.
     // usage: run network request one by one
     const mutex = new OrderedMutex();
 
+  /** 
+ * @typedef { AsyncValue<T> | T} AsyncOrResolvedValue<T>
+ * @template T
+ */
+    
     //
     /**
      * usage: cache the network result per web application instance.
-     *  @type {Map<string, AsyncValue | Object>} */
+     *  @type {Map<string, AsyncOrResolvedValue<DisplayNameResultObject>>} */
     const displayNameResStore = new Map();
 
     /**
@@ -368,7 +379,7 @@ SOFTWARE.
 
     /**
      * usage: for \@Mention inside comments in YouTube Mobile that without hyperlinks for channelId.
-     *  @type {Map<string, AsyncValue | string>} */
+     *  @type {Map<string, AsyncOrResolvedValue<string>>} */
     const handleToChannelId = new Map();
 
     /**
@@ -376,14 +387,26 @@ SOFTWARE.
      * @type {Map<string, ChannelIdToHandleResult>} */
     const channelIdToHandle = new Map();
 
+
+    /**
+     * AsyncValue
+     * @class
+     * @template T
+     */
     class AsyncValue {
         constructor() {
+            /** @type {T | null} */
             this.__value__ = null;
+            /** @type {((value: any)=>void) | null} */
             this.__resolve__ = null;
             this.__promise__ = new Promise(resolve => {
                 this.__resolve__ = resolve;
             });
         }
+        /**
+         * 
+         * @param {T} value 
+         */
         setValue(value) {
             const promise = this.__promise__;
             if (promise === null) throw 'Value has already been set.';
@@ -391,6 +414,10 @@ SOFTWARE.
             this.__promise__ = null;
             this.__resolve__ ? this.__resolve__() : Promise.resolve().then(() => this.__resolve__());
         }
+        /**
+         * 
+         * @returns {Promise<T>}
+         */
         async getValue() {
             const promise = this.__promise__;
             if (promise === null) return this.__value__;
@@ -436,9 +463,16 @@ SOFTWARE.
 
     }
 
+    /**
+     * 
+     * @param {string} channelId 
+     * @param {Function} onDownloaded 
+     * @param {Function} onResulted 
+     * @param {Function} onError 
+     */
     const fetcherBrowseAPI = (channelId, onDownloaded, onResulted, onError) => {
 
-        const signal = timeoutSignal(4000);
+        let signal = timeoutSignal(4000);
 
         fetch(new Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
             "method": "POST",
@@ -492,18 +526,28 @@ SOFTWARE.
             })
         })).then(res => {
             signal && signal.clearTimeout && signal.clearTimeout();
+            signal = null;
             onDownloaded();
+            onDownloaded = null;
             return res.json();
         }).then(resJson => {
             let resultInfo = ((resJson || 0).metadata || 0).channelMetadataRenderer;
             onResulted(resultInfo);
+            onResulted = null;
         }).catch(onError);
 
     };
 
+    /**
+     * 
+     * @param {string} channelId 
+     * @param {Function} onDownloaded 
+     * @param {Function} onResulted 
+     * @param {Function} onError 
+     */
     const fetcherRSS = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
 
-        const signal = timeoutSignal(4000);
+        let signal = timeoutSignal(4000);
         fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
             // YouTube RSS Response - public, max-age=900
 
@@ -534,7 +578,9 @@ SOFTWARE.
             }
         }).then(res => {
             signal && signal.clearTimeout && signal.clearTimeout();
+            signal = null;
             onDownloaded();
+            onDownloaded = null;
             return res.text();
         }).then(resText => {
             let eIdx = resText.indexOf('<entry>');
@@ -573,6 +619,7 @@ SOFTWARE.
                         mt = obtainChannelId(uri);
                     }
                 }
+                template.innerHTML = '';
             }
 
             if (!name && !uri) {
@@ -634,6 +681,7 @@ SOFTWARE.
             }
 
             onResulted(res);
+            onResulted = null;
 
             // let resultInfo = ((res || 0).metadata || 0).channelMetadataRenderer;
             // onResulted(resultInfo);
@@ -714,6 +762,7 @@ SOFTWARE.
                 setResult(displayNameRes);
             }, e => {
                 lockResolve && lockResolve();
+                lockResolve = null;
                 console.warn(e);
                 setResult && setResult(null);
             });
@@ -747,7 +796,7 @@ SOFTWARE.
         let cache = displayNameResStore.get(channelId);
         let isStackNewRequest = false;
 
-        /** @type {AsyncValue | null | undefined} */
+        /** @type {AsyncValue<DisplayNameResultObject> | null | undefined} */
         let aResult;
 
         if (cache instanceof AsyncValue) {
@@ -767,6 +816,7 @@ SOFTWARE.
             return cache;
         } else {
             // else no cached value found
+            /** @type {AsyncValue<DisplayNameResultObject>} */
             aResult = new AsyncValue();
             displayNameResStore.set(channelId, aResult);
             isStackNewRequest = true;
@@ -794,7 +844,7 @@ SOFTWARE.
 
     /**
      *
-     * @param {Element} Node
+     * @param {Element} ytElm
      */
     const resetWhenDataChanged = (ytElm) => {
         if (ytElm instanceof Element) {
@@ -813,6 +863,7 @@ SOFTWARE.
      * @returns new dataChanged function
      */
     const dataChangeFuncProducer = (dataChanged) => {
+        /** @this HTMLElement */
         return function () {
             resetWhenDataChanged(this);
             return dataChanged.apply(this, arguments);
@@ -926,7 +977,7 @@ SOFTWARE.
                         };
                     }
                 }
-                return (resolveResult); // function as a Promise
+                return resolveResult; // function as a Promise
             });
         }
 
@@ -992,6 +1043,7 @@ SOFTWARE.
         } else if (cache instanceof AsyncValue) {
             channelId = await cache.getValue();
         } else {
+            /** @type {AsyncValue<string>} */
             const asyncValue = new AsyncValue();
             handleToChannelId.set(handleText, asyncValue);
             channelId = await asyncValue.getValue();  // note: it could be never resolved
@@ -1030,7 +1082,7 @@ SOFTWARE.
 
     /**
      * Process Checking when there is new (unprocessed) anchor DOM element with hyperlink of channel
-     * @type {(anchor: HTMLElement, channelHref: string?, mt: string?)}
+     * @type { (anchor: HTMLElement, channelHref: string?, mt: string?) => Promise<void> }
      */
     const domCheckAsync = isMobile ? async (anchor, channelHref, mt) => {
 
@@ -1370,7 +1422,7 @@ SOFTWARE.
 
             if (!firstDOMCheck) {
                 firstDOMCheck = true;
-                firstDOMChecker();
+                USE_CHANNEL_META && firstDOMChecker();
             }
 
             const isDocumentModifying = ctDOMCheck - ltDOMCheck < 230;
