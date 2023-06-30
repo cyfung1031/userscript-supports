@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.6.1
+// @version             0.6.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -139,13 +139,20 @@ SOFTWARE.
 
 */
 
+/**
+    @typedef ChannelIdToHandleResult
+    @type {Object}
+    @property {string} handleText
+    @property {boolean} justPossible
+ */
+
 (function (__CONTEXT__) {
     'use strict';
 
     const USE_RSS_FETCHER = true;
     const USE_TIMEOUT_SIGNAL = false;
 
-    const { Promise, fetch, JSON, Request, AbortController, setTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const { Promise, fetch, JSON, Request, AbortController, setTimeout, clearTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const timeoutSignal = AbortController && USE_TIMEOUT_SIGNAL ? (timeout) => {
         const controller = new AbortController();
@@ -164,7 +171,7 @@ SOFTWARE.
         }
         return r;
 
-    } : () => { }
+    } : () => { };
 
     const fxOperator = (proto, propertyName) => {
         let propertyDescriptorGetter = null;
@@ -366,7 +373,7 @@ SOFTWARE.
 
     /**
      * usage: in RSS fetching, no handle text will be obtained from the response. inject the handle into the response.
-     * @type {Map<string, Object>} */
+     * @type {Map<string, ChannelIdToHandleResult>} */
     const channelIdToHandle = new Map();
 
     class AsyncValue {
@@ -538,28 +545,66 @@ SOFTWARE.
             // long: https://www.youtube.com/feeds/videos.xml?channel_id=UC8cSGjKxDuh2mWG1hDOTdBg
             // special: http://www.youtube.com/feeds/videos.xml?channel_id=UCmZ2-GUxmdWFKfXA5IN0x-w
 
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(mText, "text/xml");
 
-            // const author = xmlDoc.querySelector("author");
-
-            // https://extendsclass.com/xpath-tester.html
-
-            const authorChilds = xmlDoc.evaluate("//*[name()='author']/*", xmlDoc, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-
-            let authorChild;
             let name, uri, mt;
-            while ((authorChild = authorChilds.iterateNext()) !== null) {
-                if (authorChild.nodeName === 'name') name = authorChild.textContent;
-                else if (authorChild.nodeName === 'uri') {
-                    uri = authorChild.textContent;
-                    mt = obtainChannelId(uri)
+
+            // ===============================================================
+
+            /* removed in 2023.06.30 */
+
+
+            // ===============================================================
+
+
+            const wIdx1 = mText.indexOf('<author>');
+            const wIdx2 = wIdx1 > 0 ? mText.indexOf('</author>', wIdx1 + 8) : -1;
+
+            if (wIdx1 > 0 && wIdx2 > 0) {
+                let qText = mText.substring(wIdx1, wIdx2 + '</author>'.length);
+                const template = document.createElement('template');
+                template.innerHTML = qText;
+                /** @type {HTMLElement | null} */
+                let authorChild = ((template.content || 0).firstElementChild || 0).firstElementChild;
+                for (; authorChild !== null; authorChild = authorChild.nextElementSibling) {
+                    const nodeName = authorChild.nodeName;
+                    if (nodeName === 'NAME') name = authorChild.textContent;
+                    else if (nodeName === 'URI') {
+                        uri = authorChild.textContent;
+                        mt = obtainChannelId(uri);
+                    }
                 }
             }
 
-            try {
-                xmlDoc.firstChild.remove();
-            } catch (e) { }
+            if (!name && !uri) {
+
+                // fallback
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(mText, "text/xml");
+
+                // const author = xmlDoc.querySelector("author");
+
+                // https://extendsclass.com/xpath-tester.html
+
+                const authorChilds = xmlDoc.evaluate("//*[name()='author']/*", xmlDoc, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+
+                let authorChild;
+                while ((authorChild = authorChilds.iterateNext()) !== null) {
+                    if (authorChild.nodeName === 'name') name = authorChild.textContent;
+                    else if (authorChild.nodeName === 'uri') {
+                        uri = authorChild.textContent;
+                        mt = obtainChannelId(uri)
+                    }
+                }
+
+                try {
+                    xmlDoc.firstChild.remove();
+                } catch (e) { }
+
+            }
+
+
+
 
             let res = null;
 
@@ -1477,4 +1522,4 @@ SOFTWARE.
         setupOnPageFetched(app);
     });
 
-})({ Promise, fetch, JSON, Request, AbortController, setTimeout });
+})({ Promise, fetch, JSON, Request, AbortController, setTimeout, clearTimeout });
