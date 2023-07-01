@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.7.0
+// @version             0.7.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -1484,6 +1484,7 @@ SOFTWARE.
                         let t = textDom.textContent.trim()
                         if (t === object.handleText || t === '') {
                             rchannelName.removeAttribute('jkrgy');
+                            Promise.resolve().then(domChecker);
                         }
                     }
                 }
