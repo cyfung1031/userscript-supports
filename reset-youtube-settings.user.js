@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name         Reset YouTube Settings
 // @namespace    http://tampermonkey.net/
-// @version      0.8
+// @version      1.0
 // @description  Due to YouTube making changes to its layout, some obsolete settings might remain and cause some problems to you. Use this to reset them.
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
@@ -52,7 +52,7 @@ SOFTWARE.
 
     const whitelist = [
       // cookies
-      'PREF', 'SID', 'APISID', 'SAPISID', /^__Secure-\w+$/, 'SIDCC',
+       // 'PREF', 'SID', 'APISID', 'SAPISID', /^__Secure-\w+$/, 'SIDCC',
       // localstorage
       'yt-remote-device-id', 'yt-player-headers-readable',
       'ytidb::LAST_RESULT_ENTRY_KEY',
@@ -65,6 +65,9 @@ SOFTWARE.
     let keysCookies = Object.keys(cookiesObject)
     for (const key of keysCookies) {
       let value = cookiesObject[key];
+      let kd= (/__Secure-/.test(key));
+
+      if(!kd){
       if (typeof value !== 'string') continue;
       if (whitelist.includes(key)) continue;
       let isSkip = false;
@@ -75,9 +78,13 @@ SOFTWARE.
         }
       }
       if (isSkip) continue;
+      }
       Cookies.remove(key);
       Cookies.remove(key, { domain: 'youtube.com' }); // most youtube cookies use youtube.com
       Cookies.remove(key, { domain: 'www.youtube.com' }); // some cookies such as 'WEVNSM' and 'WNMCID' use www.youtube.com
+      Cookies.remove(key, { secure: true });
+      Cookies.remove(key, { domain: 'youtube.com',  secure: true  }); // most youtube cookies use youtube.com
+      Cookies.remove(key, { domain: 'www.youtube.com',  secure: true }); // some cookies such as 'WEVNSM' and 'WNMCID' use www.youtube.com
     }
 
     const lsObject = localStorage;
