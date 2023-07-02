@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.2.1
+// @version             0.2.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -408,7 +408,7 @@
 
             if (this.classList.contains('yt-live-chat-ticker-renderer')) { // just in case
                 appendChild.call(this, s);
-                const container = this.$.container;
+                const container = (this.$||0).container;
                 if (container) {
                     // const sp3v = new Proxy(container.style, dummy3p)
                     // Object.defineProperty(container, 'style', {get(){return sp3v}, set() { }, enumerable: true, configurable: true });
