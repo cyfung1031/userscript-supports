@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.3.0
+// @version             0.3.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -184,7 +184,7 @@
 
     ].join('\n');
 
-    const { Promise, requestAnimationFrame } = __CONTEXT__;
+    const { Promise, requestAnimationFrame, IntersectionObserver } = __CONTEXT__;
 
 
     const isContainSupport = CSS.supports('contain', 'layout paint style');
@@ -198,13 +198,13 @@
 
     // const APPLY_delayAppendChild = false;
 
-    let activeDeferredAppendChild = false;
+    let activeDeferredAppendChild = false; // deprecated
 
     // let delayedAppendParentWS = new WeakSet();
     // let delayedAppendOperations = [];
     // let commonAppendParentStackSet = new Set();
 
-    let firstVisibleItemDetected = false;
+    let firstVisibleItemDetected = false; // deprecated
 
     const sp7 = Symbol();
 
@@ -231,7 +231,6 @@
             return (prop in target)
         },
         deleteProperty(target, prop) {
-
             return true;
         },
         ownKeys(target) {
@@ -239,13 +238,10 @@
         },
         defineProperty(target, key, descriptor) {
             return Object.defineProperty(target, key, descriptor);
-            // return true;
         },
         getOwnPropertyDescriptor(target, key) {
             return Object.getOwnPropertyDescriptor(target, key);
         },
-
-
 
     });
 
@@ -288,7 +284,7 @@
 
 
             const ratio1 = (yd.ratio * 100);
-            if (typeof ratio1 === 'number') {
+            if (ratio1 > -1) { // avoid NaN
 
                 const ratio2 = pt2DecimalFixer(ratio1);
                 v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`)
@@ -334,6 +330,11 @@
 
         // if (!CSS.supports('contain-intrinsic-size', 'auto var(--wsr94)')) return;
 
+        const getElemFromWR = (nr) => {
+            const n = kRef(nr);
+            if (n && n.isConnected) return n;
+            return null;
+        }
 
         const clearContentVisibilitySizing = () => {
             Promise.resolve().then(() => {
@@ -347,12 +348,12 @@
                     // custom CSS property --wsr94 not working when attribute wSr93 removed
                 }
                 requestAnimationFrame(() => {
-                    const btnShowMore = kRef(btnShowMoreWR); btnShowMoreWR = null;
-                    if (btnShowMore && btnShowMore.isConnected) btnShowMore.click();
+                    const btnShowMore = getElemFromWR(btnShowMoreWR); btnShowMoreWR = null;
+                    if (btnShowMore) btnShowMore.click();
                     else {
                         // would not work if switch it frequently
-                        const lastVisibleItem = kRef(lastVisibleItemWR); lastVisibleItemWR = null;
-                        if (lastVisibleItem && lastVisibleItem.isConnected) {
+                        const lastVisibleItem = getElemFromWR(lastVisibleItemWR); lastVisibleItemWR = null;
+                        if (lastVisibleItem) {
 
                             Promise.resolve()
                                 .then(() => lastVisibleItem.scrollIntoView())
@@ -364,12 +365,10 @@
                     }
                 })
 
-
-
             })
 
-
         }
+
         const mutObserver = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 if ((mutation.addedNodes || 0).length >= 1) {
@@ -447,22 +446,6 @@
         addCss();
 
         setupStyle(m1, m2);
-
-        let lastClick = 0;
-        document.addEventListener('click', (evt) => {
-            if (!evt.isTrusted) return;
-            const target = ((evt || 0).target || 0)
-            if (target.id === 'show-more') {
-                if (target.nodeName !== 'YT-ICON-BUTTON') return;
-
-                if (dateNow() - lastClick < 80) return;
-                requestAnimationFrame(() => {
-                    lastClick = dateNow();
-                    target.click();
-                })
-            }
-
-        });
 
         let lcRendererWR = null;
 
@@ -589,6 +572,14 @@
             // }
         }
 
+
+        let scrollCount = 0;
+        document.addEventListener('scroll', (evt) => {
+            if (!evt || !evt.isTrusted) return;
+            // lastScroll = dateNow();
+            if (++scrollCount > 1e9) scrollCount = 9;
+        }, { passive: true, capture: true }) // support contain => support passive
+
         // document.addEventListener('scroll', (evt) => {
 
         //     if (!evt || !evt.isTrusted) return;
@@ -600,24 +591,26 @@
         // }, { passive: true, capture: true }) // support contain => support passive
 
 
+        let lastScrollCount = -1;
         document.addEventListener('wheel', (evt) => {
 
             if (!evt || !evt.isTrusted) return;
+            if (lastScrollCount === scrollCount) return;
+            lastScrollCount = scrollCount;
             lastWheel = dateNow();
 
         }, { passive: true, capture: true }) // support contain => support passive
 
 
         const fp = (renderer) => {
-
             const container = renderer.$.container;
             if (container) {
                 container.setAttribute = tickerContainerSetAttribute;
             }
         }
-        for (const tag of ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
-            "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"
-        ]) {
+        const tags =  ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
+        "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
+        for (const tag of tags) {
             const proto = customElements.get(tag).prototype;
             proto.attached77 = proto.attached
 
@@ -667,4 +660,4 @@
         window.addEventListener("DOMContentLoaded", onReady, false);
     }
 
-})({ Promise, requestAnimationFrame });
+})({ Promise, requestAnimationFrame, IntersectionObserver });
