@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.2.4
+// @version             0.2.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -682,6 +682,7 @@
 
 
         /** @type {HTMLElement} */
+        /*
         let c1 = nPrevElem(m1);
         if (c1 && c1.id === "live-chat-banner") {
             let rsObserver = new ResizeObserver((entries) => {
@@ -698,6 +699,7 @@
             });
             rsObserver.observe(c1);
         }
+        */
 
         document.addEventListener('scroll', (evt) => {
 
