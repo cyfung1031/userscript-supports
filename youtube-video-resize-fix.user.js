@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.4
+// @version             0.3.5
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -50,7 +50,7 @@ SOFTWARE.
 
 (function (__CONTEXT__) {
   'use strict';
-  const { Promise, requestAnimationFrame } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const { Promise, requestAnimationFrame, ResizeObserver } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
   const elements = {};
   let rid1 = 0;
   let rid2 = 0;
@@ -328,4 +328,4 @@ SOFTWARE.
   })();
 
 
-})({ Promise, requestAnimationFrame });
+})({ Promise, requestAnimationFrame, ResizeObserver });
