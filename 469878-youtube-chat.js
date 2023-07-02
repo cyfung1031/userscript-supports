@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.2.2
+// @version             0.2.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -73,8 +73,7 @@
       }
 
       #items.style-scope.yt-live-chat-item-list-renderer {
-        transform: translateY(0px) !important;         /*padding-bottom: 0 !important;
-          padding-top: 0 !important;*/
+        transform: translateY(0px) !important;
       }
 
       /* optional */
@@ -204,6 +203,8 @@
     let delayedAppendParentWS = new WeakSet();
     let delayedAppendOperations = [];
     let commonAppendParentStackSet = new Set();
+
+    let firstVisibleItemDetected = false;
 
     const sp7 = Symbol();
 
@@ -337,7 +338,7 @@
 
 
     const createDelayAppendOper = () => requestAnimationFrame(() => {
-        const e = [...delayedAppendOperations]
+        const e = delayedAppendOperations.slice(0);
         delayedAppendOperations.length = 0;
         for (const t of e) t();
     });
@@ -408,7 +409,7 @@
 
             if (this.classList.contains('yt-live-chat-ticker-renderer')) { // just in case
                 appendChild.call(this, s);
-                const container = (this.$||0).container;
+                const container = (this.$ || 0).container;
                 if (container) {
                     // const sp3v = new Proxy(container.style, dummy3p)
                     // Object.defineProperty(container, 'style', {get(){return sp3v}, set() { }, enumerable: true, configurable: true });
@@ -509,27 +510,21 @@
 
         }
         const mutObserver = new MutationObserver((mutations) => {
-            console.log(mutations.length)
             for (const mutation of mutations) {
                 if ((mutation.addedNodes || 0).length >= 1) {
-
                     for (const addedNode of mutation.addedNodes) {
                         if (addedNode.nodeName === 'STYLE') {
                             clearContentVisibilitySizing();
                             return;
                         }
-
                     }
                 }
                 if ((mutation.removedNodes || 0).length >= 1) {
-
                     for (const removedNode of mutation.removedNodes) {
-
                         if (removedNode.nodeName === 'STYLE') {
                             clearContentVisibilitySizing();
                             return;
                         }
-
                     }
                 }
             }
@@ -578,8 +573,6 @@
             dummy1v[k] = ((k) => (function () { const style = this[sp7]; return style[k](...arguments); }))(k)
         }
 
-
-
         const dummy1p = proxyHelperFn(dummy1v);
         const sp1v = new Proxy(m1.style, dummy1p);
         const sp2v = new Proxy(m2.style, dummy1p);
@@ -606,7 +599,6 @@
 
         let btnShowMoreWR = null;
 
-
         const clickShowMore = () => {
             let btnShowMore = kRef(btnShowMoreWR);
             if (!btnShowMore || !btnShowMore.isConnected) {
@@ -629,7 +621,7 @@
                     target.style.setProperty('--wsr94', entry.boundingClientRect.height + 'px');
                     target.setAttribute('wSr93', 'visible');
                     if (nNextElem(target) === null) {
-                        canSetMaxScrollTop = true;
+                        firstVisibleItemDetected = true;
                         if (dateNow() - lastScroll < 80) {
                             lastLShow = 0;
                             lastScroll = 0;
@@ -662,7 +654,7 @@
         rootMargin: "0px",
         threshold: 1.0,
         */
-            root: document.querySelector('#item-scroller'), // nullable
+            root: HTMLElement.prototype.closest.call(m2, '#item-scroller.yt-live-chat-item-list-renderer'), // nullable
             rootMargin: "0px",
             threshold: [0.05, 0.95],
         });
@@ -670,8 +662,7 @@
         //m2.style.visibility='';
 
         const mutFn = (items) => {
-            let node = nLastElem(items);
-            for (; node !== null; node = nPrevElem(node)) {
+            for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) {
                 if (node.hasAttribute('wSr93')) break;
                 node.setAttribute('wSr93', '');
                 visObserver.observe(node);
@@ -708,12 +699,10 @@
             rsObserver.observe(c1);
         }
 
-        let maxScrollTop = -1;
-        let canSetMaxScrollTop = false;
         document.addEventListener('scroll', (evt) => {
 
             if (!evt || !evt.isTrusted) return;
-            if (!canSetMaxScrollTop) return;
+            if (!firstVisibleItemDetected) return;
             const isUserAction = dateNow() - lastWheel < 80; // continuous wheel -> continuous scroll -> continuous wheel -> continuous scroll
             if (!isUserAction) return;
 
@@ -725,8 +714,6 @@
                 lastScroll = dateNow();
             }
 
-
-
         }, { passive: true, capture: true }) // support contain => support passive
 
 
@@ -735,11 +722,9 @@
             if (!evt || !evt.isTrusted) return;
             lastWheel = dateNow();
 
-
         }, { passive: true, capture: true }) // support contain => support passive
 
     };
-
 
 
     function onReady() {
@@ -769,13 +754,10 @@
 
     }
 
-
-
     if (document.readyState != 'loading') {
         onReady();
     } else {
         window.addEventListener("DOMContentLoaded", onReady, false);
     }
-
 
 })({ Promise, requestAnimationFrame });
