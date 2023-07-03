@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.4.0
+// @version             0.5.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8,6 +8,7 @@
 // @namespace           UserScript
 // @match               https://www.youtube.com/live_chat*
 // @author              CY Fung
+// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1201715
 // @run-at              document-start
 // @grant               none
 // @unwrap
@@ -417,6 +418,131 @@
 
     }
 
+
+    class WillChangeController {
+        constructor(itemScroller, willChangeValue) {
+            this.element = itemScroller;
+            this.counter = 0;
+            this.active = false;
+            this.willChangeValue = willChangeValue;
+        }
+
+        beforeOper() {
+            if (!this.active) {
+                this.active = true;
+                this.element.style.willChange = this.willChangeValue;
+            }
+            this.counter++;
+        }
+
+        afterOper() {
+            const c = this.counter;
+            requestAnimationFrame(() => {
+                if (c === this.counter) {
+                    this.active = false;
+                    this.element.style.willChange = '';
+                }
+            })
+        }
+
+        release() {
+            const element = this.element;
+            this.element = null;
+            this.counter = 1e16;
+            this.active = false;
+            try {
+                element.style.willChange = '';
+            } catch (e) { }
+        }
+
+    }
+
+
+    let scrollWillChangeController = null;
+    let contensWillChangeController = null;
+
+    // as it links to event handling, it has to be injected using immediateCallback
+    customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto)=>{
+
+        const mclp = proto;
+        console.assert(typeof mclp.scrollToBottom_ ==='function')
+        console.assert(typeof mclp.scrollToBottom66_ !=='function')
+        console.assert(typeof mclp.flushActiveItems_ ==='function')
+        console.assert(typeof mclp.flushActiveItems66_ !=='function')
+
+
+        mclp.__intermediate_delay__ = null;
+
+        mclp.scrollToBottom66_ = mclp.scrollToBottom_;
+        mclp.scrollToBottom_ = function () {
+            const itemScroller = this.itemScroller;
+            if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
+                scrollWillChangeController.release();
+                scrollWillChangeController = null;
+            }
+            if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
+            const controller = scrollWillChangeController;
+            controller.beforeOper();
+
+            this.__intermediate_delay__ = new Promise(resolve=>{
+                Promise.resolve().then(()=>{
+                    this.scrollToBottom66_()
+                    resolve();
+                }).then(()=>{
+                    controller.afterOper();
+                });
+            })
+        }
+
+        mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+        mclp.flushActiveItems_ = function () {
+
+            const items = this.$.items;
+            if (contensWillChangeController && contensWillChangeController.element !== items) {
+                contensWillChangeController.release();
+                contensWillChangeController = null;
+            }
+            if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+            const controller = contensWillChangeController;
+
+            // ignore previous __intermediate_delay__ and create a new one
+            this.__intermediate_delay__ = new Promise(resolve=>{
+
+                if (this.activeItems_.length > 0 && this.canScrollToBottom_()) {
+                    controller.beforeOper();
+                    Promise.resolve().then(()=>{
+                        this.flushActiveItems66_.apply(this, arguments);
+                        resolve();
+                    }).then(()=>{
+                        this.async(() => {
+                            controller.afterOper();
+                            resolve();
+                        });
+                    })
+                } else {
+                    Promise.resolve().then(()=>{
+                        this.flushActiveItems66_.apply(this, arguments);
+                        resolve();
+                    })
+                }
+
+            })
+
+        }
+
+        mclp.async66=mclp.async;
+        mclp.async = function(){
+            // ensure the previous operation is done
+            // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
+
+            (this.__intermediate_delay__ || Promise.resolve()).then(()=>{
+                this.async66.apply(this, arguments);
+            });
+
+        }
+
+    })
+
     let done = 0;
     let main = async (q) => {
 
@@ -531,46 +657,6 @@
 
         setupMutObserver(m2);
 
-        class WillChangeController {
-            constructor(itemScroller, willChangeValue) {
-                this.element = itemScroller;
-                this.counter = 0;
-                this.active = false;
-                this.willChangeValue = willChangeValue;
-            }
-
-            beforeOper() {
-                if (!this.active) {
-                    this.active = true;
-                    this.element.style.willChange = this.willChangeValue;
-                }
-                this.counter++;
-            }
-
-            afterOper() {
-                const c = this.counter;
-                requestAnimationFrame(() => {
-                    if (c === this.counter) {
-                        this.active = false;
-                        this.element.style.willChange = '';
-                    }
-                })
-            }
-
-            release() {
-                const element = this.element;
-                this.element = null;
-                this.counter = 1e16;
-                this.active = false;
-                try {
-                    element.style.willChange = '';
-                } catch (e) { }
-            }
-
-        }
-
-        let scrollWillChangeController = null;
-        let contensWillChangeController = null;
 
         const mclp = (customElements.get('yt-live-chat-item-list-renderer') || 0).prototype
         if (mclp) {
@@ -592,41 +678,6 @@
 
             mclp.canScrollToBottom_ = function () {
                 return this.atBottom && this.allowScroll && !(dateNow() - lastWheel < 80)
-            }
-
-            mclp.scrollToBottom66_ = mclp.scrollToBottom_;
-            mclp.scrollToBottom_ = function () {
-                const itemScroller = this.itemScroller;
-                if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
-                    scrollWillChangeController.release();
-                    scrollWillChangeController = null;
-                }
-                if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
-                scrollWillChangeController.beforeOper();
-                this.scrollToBottom66_();
-                scrollWillChangeController.afterOper();
-            }
-
-            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
-            mclp.flushActiveItems_ = function () {
-
-                const items = this.$.items;
-                if (contensWillChangeController && contensWillChangeController.element !== items) {
-                    contensWillChangeController.release();
-                    contensWillChangeController = null;
-                }
-                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-
-                if (this.activeItems_.length > 0 && this.canScrollToBottom_()) {
-                    contensWillChangeController.beforeOper();
-                    mclp.flushActiveItems66_.apply(this, arguments);
-                    this.async(() => {
-                        contensWillChangeController.afterOper();
-                    });
-                } else {
-                    mclp.flushActiveItems66_.apply(this, arguments);
-                }
-
             }
 
             mclp.isSmoothScrollEnabled_ = function () {
