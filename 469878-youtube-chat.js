@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.0
+// @version             0.5.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -462,13 +462,13 @@
     let contensWillChangeController = null;
 
     // as it links to event handling, it has to be injected using immediateCallback
-    customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto)=>{
+    customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto) => {
 
         const mclp = proto;
-        console.assert(typeof mclp.scrollToBottom_ ==='function')
-        console.assert(typeof mclp.scrollToBottom66_ !=='function')
-        console.assert(typeof mclp.flushActiveItems_ ==='function')
-        console.assert(typeof mclp.flushActiveItems66_ !=='function')
+        console.assert(typeof mclp.scrollToBottom_ === 'function')
+        console.assert(typeof mclp.scrollToBottom66_ !== 'function')
+        console.assert(typeof mclp.flushActiveItems_ === 'function')
+        console.assert(typeof mclp.flushActiveItems66_ !== 'function')
 
 
         mclp.__intermediate_delay__ = null;
@@ -484,11 +484,11 @@
             const controller = scrollWillChangeController;
             controller.beforeOper();
 
-            this.__intermediate_delay__ = new Promise(resolve=>{
-                Promise.resolve().then(()=>{
+            this.__intermediate_delay__ = new Promise(resolve => {
+                Promise.resolve().then(() => {
                     this.scrollToBottom66_()
                     resolve();
-                }).then(()=>{
+                }).then(() => {
                     controller.afterOper();
                 });
             })
@@ -506,21 +506,21 @@
             const controller = contensWillChangeController;
 
             // ignore previous __intermediate_delay__ and create a new one
-            this.__intermediate_delay__ = new Promise(resolve=>{
+            this.__intermediate_delay__ = new Promise(resolve => {
 
                 if (this.activeItems_.length > 0 && this.canScrollToBottom_()) {
                     controller.beforeOper();
-                    Promise.resolve().then(()=>{
+                    Promise.resolve().then(() => {
                         this.flushActiveItems66_.apply(this, arguments);
                         resolve();
-                    }).then(()=>{
+                    }).then(() => {
                         this.async(() => {
                             controller.afterOper();
                             resolve();
                         });
                     })
                 } else {
-                    Promise.resolve().then(()=>{
+                    Promise.resolve().then(() => {
                         this.flushActiveItems66_.apply(this, arguments);
                         resolve();
                     })
@@ -530,12 +530,12 @@
 
         }
 
-        mclp.async66=mclp.async;
-        mclp.async = function(){
+        mclp.async66 = mclp.async;
+        mclp.async = function () {
             // ensure the previous operation is done
             // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
 
-            (this.__intermediate_delay__ || Promise.resolve()).then(()=>{
+            (this.__intermediate_delay__ || Promise.resolve()).then(() => {
                 this.async66.apply(this, arguments);
             });
 
@@ -581,8 +581,14 @@
                 const target = entry.target;
                 if (!target) continue;
                 let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
+                const h = entry.boundingClientRect.height;
+                if (h < 16){
+                    // e.g. under fullscreen. the element created but not rendered.
+                    target.setAttribute('wSr93', '');
+                    continue;
+                } 
                 if (isVisible) {
-                    target.style.setProperty('--wsr94', entry.boundingClientRect.height + 'px');
+                    target.style.setProperty('--wsr94', h + 'px');
                     target.setAttribute('wSr93', 'visible');
                     if (nNextElem(target) === null) {
                         firstVisibleItemDetected = true;
@@ -610,7 +616,7 @@
                 }
                 else if (target.getAttribute('wSr93') === 'visible') { // ignore target.getAttribute('wSr93') === '' to avoid wrong sizing
 
-                    target.style.setProperty('--wsr94', entry.boundingClientRect.height + 'px');
+                    target.style.setProperty('--wsr94', h + 'px');
                     target.setAttribute('wSr93', 'hidden');
                 } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wSr93') === '' <new last item>
 
