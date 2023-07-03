@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.3.1
+// @version             0.4.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -25,45 +25,32 @@
 
     // const ACTIVE_DEFERRED_APPEND = false; // somehow buggy
 
-    const ACTIVE_CONTENT_VISIBILITY = true;
-    const ACTIVE_CONTAIN_SIZE = true;
+    // const ACTIVE_CONTENT_VISIBILITY = true;
+    // const ACTIVE_CONTAIN_SIZE = true;
 
-    const addCss = () => document.head.appendChild(document.createElement('style')).textContent = [
-        !ACTIVE_CONTENT_VISIBILITY ? '' : `
+    const addCss = () => document.head.appendChild(document.createElement('style')).textContent = `
+
 
     @supports (contain:layout paint style) and (content-visibility:auto) and (contain-intrinsic-size:auto var(--wsr94)) {
-      [wSr93] {
-        content-visibility: visible;
-      }
 
       [wSr93="hidden"]:nth-last-child(n+4) {
-        content-visibility: auto;
+        --wsr93-content-visibility: auto;
         contain-intrinsic-size: auto var(--wsr94);
       }
 
     }
 
-      `,
-
-        !ACTIVE_CONTAIN_SIZE ? '' : `
-
     @supports (contain:layout paint style) {
-      [wSr93*="i"] {
-        height: var(--wsr94);
-        box-sizing: border-box;
-        contain: size layout style;
+
+      [wSr93] {
+        --wsr93-contain: layout style;
+        contain: var(--wsr93-contain, unset) !important;
+        box-sizing: border-box !important;
+        content-visibility: var(--wsr93-content-visibility, visible);
       }
-    }
-        `,
-
-        `
-
-
-    @supports (contain:layout paint style) {
       [wSr93*="i"] {
+        --wsr93-contain: size layout style;
         height: var(--wsr94);
-        box-sizing: border-box;
-        contain: size layout style;
       }
 
       /* optional */
@@ -81,7 +68,12 @@
         pointer-events: none !important;
       }
 
-      #item-list.style-scope.yt-live-chat-renderer, yt-live-chat-item-list-renderer.style-scope.yt-live-chat-renderer, #item-list.style-scope.yt-live-chat-renderer *, yt-live-chat-item-list-renderer.style-scope.yt-live-chat-renderer * {
+      .ytp-contextmenu[class],
+      .toggle-button.tp-yt-paper-toggle-button[class],
+      .yt-spec-touch-feedback-shape__fill[class],
+      .fill.yt-interaction[class],
+      .ytp-videowall-still-info-content[class],
+      .ytp-suggestion-image[class] {
         will-change: unset !important;
       }
 
@@ -108,9 +100,11 @@
         vertical-align: middle;
       }
       */
+     /*
       #items yt-live-chat-text-message-renderer {
         contain: layout style;
       }
+      */
 
       yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
         overflow-y: scroll;
@@ -176,13 +170,7 @@
 
     }
 
-
-        `
-
-
-
-
-    ].join('\n');
+    `;
 
     const { Promise, requestAnimationFrame, IntersectionObserver } = __CONTEXT__;
 
@@ -543,6 +531,46 @@
 
         setupMutObserver(m2);
 
+        class WillChangeController {
+            constructor(itemScroller, willChangeValue) {
+                this.element = itemScroller;
+                this.counter = 0;
+                this.active = false;
+                this.willChangeValue = willChangeValue;
+            }
+
+            beforeOper() {
+                if (!this.active) {
+                    this.active = true;
+                    this.element.style.willChange = this.willChangeValue;
+                }
+                this.counter++;
+            }
+
+            afterOper() {
+                const c = this.counter;
+                requestAnimationFrame(() => {
+                    if (c === this.counter) {
+                        this.active = false;
+                        this.element.style.willChange = '';
+                    }
+                })
+            }
+
+            release() {
+                const element = this.element;
+                this.element = null;
+                this.counter = 1e16;
+                this.active = false;
+                try {
+                    element.style.willChange = '';
+                } catch (e) { }
+            }
+
+        }
+
+        let scrollWillChangeController = null;
+        let contensWillChangeController = null;
 
         const mclp = (customElements.get('yt-live-chat-item-list-renderer') || 0).prototype
         if (mclp) {
@@ -566,10 +594,44 @@
                 return this.atBottom && this.allowScroll && !(dateNow() - lastWheel < 80)
             }
 
-            // mclp.scrollToBottom66_ = mclp.scrollToBottom_;
-            // mclp.scrollToBottom_ = function () {
-            //     this.scrollToBottom66_();
-            // }
+            mclp.scrollToBottom66_ = mclp.scrollToBottom_;
+            mclp.scrollToBottom_ = function () {
+                const itemScroller = this.itemScroller;
+                if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
+                    scrollWillChangeController.release();
+                    scrollWillChangeController = null;
+                }
+                if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
+                scrollWillChangeController.beforeOper();
+                this.scrollToBottom66_();
+                scrollWillChangeController.afterOper();
+            }
+
+            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+            mclp.flushActiveItems_ = function () {
+
+                const items = this.$.items;
+                if (contensWillChangeController && contensWillChangeController.element !== items) {
+                    contensWillChangeController.release();
+                    contensWillChangeController = null;
+                }
+                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+
+                if (this.activeItems_.length > 0 && this.canScrollToBottom_()) {
+                    contensWillChangeController.beforeOper();
+                    mclp.flushActiveItems66_.apply(this, arguments);
+                    this.async(() => {
+                        contensWillChangeController.afterOper();
+                    });
+                } else {
+                    mclp.flushActiveItems66_.apply(this, arguments);
+                }
+
+            }
+
+            mclp.isSmoothScrollEnabled_ = function () {
+                return false;
+            }
         }
 
 
@@ -608,8 +670,8 @@
                 container.setAttribute = tickerContainerSetAttribute;
             }
         }
-        const tags =  ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
-        "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
+        const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
+            "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
         for (const tag of tags) {
             const proto = customElements.get(tag).prototype;
             proto.attached77 = proto.attached
