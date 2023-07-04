@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.1
+// @version             0.5.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8,7 +8,7 @@
 // @namespace           UserScript
 // @match               https://www.youtube.com/live_chat*
 // @author              CY Fung
-// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1201715
+// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1214942
 // @run-at              document-start
 // @grant               none
 // @unwrap
@@ -582,7 +582,7 @@
                 if (!target) continue;
                 let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
                 const h = entry.boundingClientRect.height;
-                if (h < 16){
+                if (h < 16){ // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
                     // e.g. under fullscreen. the element created but not rendered.
                     target.setAttribute('wSr93', '');
                     continue;
