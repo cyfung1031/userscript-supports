@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.5
+// @version             0.5.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8,7 +8,7 @@
 // @namespace           UserScript
 // @match               https://www.youtube.com/live_chat*
 // @author              CY Fung
-// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1215161
+// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1215280
 // @run-at              document-start
 // @grant               none
 // @unwrap
@@ -458,99 +458,104 @@
     }
 
 
-    let scrollWillChangeController = null;
-    let contensWillChangeController = null;
+    customYtElements.onRegistryReady(() => {
 
-    // as it links to event handling, it has to be injected using immediateCallback
-    customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto) => {
+        let scrollWillChangeController = null;
+        let contensWillChangeController = null;
 
-        const mclp = proto;
-        console.assert(typeof mclp.scrollToBottom_ === 'function')
-        console.assert(typeof mclp.scrollToBottom66_ !== 'function')
-        console.assert(typeof mclp.flushActiveItems_ === 'function')
-        console.assert(typeof mclp.flushActiveItems66_ !== 'function')
+        // as it links to event handling, it has to be injected using immediateCallback
+        customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto) => {
+
+            const mclp = proto;
+            console.assert(typeof mclp.scrollToBottom_ === 'function')
+            console.assert(typeof mclp.scrollToBottom66_ !== 'function')
+            console.assert(typeof mclp.flushActiveItems_ === 'function')
+            console.assert(typeof mclp.flushActiveItems66_ !== 'function')
 
 
-        mclp.__intermediate_delay__ = null;
+            mclp.__intermediate_delay__ = null;
 
-        mclp.scrollToBottom66_ = mclp.scrollToBottom_;
-        mclp.scrollToBottom_ = function () {
-            const itemScroller = this.itemScroller;
-            if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
-                scrollWillChangeController.release();
-                scrollWillChangeController = null;
-            }
-            if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
-            const controller = scrollWillChangeController;
-            controller.beforeOper();
-
-            this.__intermediate_delay__ = new Promise(resolve => {
-                Promise.resolve().then(() => {
-                    this.scrollToBottom66_()
-                    resolve();
-                }).then(() => {
-                    controller.afterOper();
-                });
-            });
-        }
-
-        mclp.flushActiveItems66_ = mclp.flushActiveItems_;
-        mclp.flushActiveItems_ = function () {
-
-            if (arguments.length !== 0) return this.flushActiveItems66_.apply(this, arguments);
-
-            if (this.activeItems_.length === 0) {
-                this.__intermediate_delay__ = null;
-                return;
-            }
-
-            const items = this.$.items;
-            if (contensWillChangeController && contensWillChangeController.element !== items) {
-                contensWillChangeController.release();
-                contensWillChangeController = null;
-            }
-            if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-            const controller = contensWillChangeController;
-
-            // ignore previous __intermediate_delay__ and create a new one
-            this.__intermediate_delay__ = new Promise(resolve => {
-                if (this.activeItems_.length === 0) {
-                    resolve();
-                } else {
-                    if (this.canScrollToBottom_()) {
-                        controller.beforeOper();
-                        Promise.resolve().then(() => {
-                            this.flushActiveItems66_();
-                            resolve();
-                        }).then(() => {
-                            this.async(() => {
-                                controller.afterOper();
-                                resolve();
-                            });
-                        })
-                    } else {
-                        Promise.resolve().then(() => {
-                            this.flushActiveItems66_();
-                            resolve();
-                        })
-                    }
+            mclp.scrollToBottom66_ = mclp.scrollToBottom_;
+            mclp.scrollToBottom_ = function () {
+                const itemScroller = this.itemScroller;
+                if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
+                    scrollWillChangeController.release();
+                    scrollWillChangeController = null;
                 }
-            });
+                if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
+                const controller = scrollWillChangeController;
+                controller.beforeOper();
 
-        }
+                this.__intermediate_delay__ = new Promise(resolve => {
+                    Promise.resolve().then(() => {
+                        this.scrollToBottom66_()
+                        resolve();
+                    }).then(() => {
+                        controller.afterOper();
+                    });
+                });
+            }
 
-        mclp.async66 = mclp.async;
-        mclp.async = function () {
-            // ensure the previous operation is done
-            // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
+            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+            mclp.flushActiveItems_ = function () {
 
-            (this.__intermediate_delay__ || Promise.resolve()).then(() => {
-                this.async66.apply(this, arguments);
-            });
+                if (arguments.length !== 0) return this.flushActiveItems66_.apply(this, arguments);
 
-        }
+                if (this.activeItems_.length === 0) {
+                    this.__intermediate_delay__ = null;
+                    return;
+                }
 
-    })
+                const items = this.$.items;
+                if (contensWillChangeController && contensWillChangeController.element !== items) {
+                    contensWillChangeController.release();
+                    contensWillChangeController = null;
+                }
+                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+                const controller = contensWillChangeController;
+
+                // ignore previous __intermediate_delay__ and create a new one
+                this.__intermediate_delay__ = new Promise(resolve => {
+                    if (this.activeItems_.length === 0) {
+                        resolve();
+                    } else {
+                        if (this.canScrollToBottom_()) {
+                            controller.beforeOper();
+                            Promise.resolve().then(() => {
+                                this.flushActiveItems66_();
+                                resolve();
+                            }).then(() => {
+                                this.async(() => {
+                                    controller.afterOper();
+                                    resolve();
+                                });
+                            })
+                        } else {
+                            Promise.resolve().then(() => {
+                                this.flushActiveItems66_();
+                                resolve();
+                            })
+                        }
+                    }
+                });
+
+            }
+
+            mclp.async66 = mclp.async;
+            mclp.async = function () {
+                // ensure the previous operation is done
+                // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
+
+                (this.__intermediate_delay__ || Promise.resolve()).then(() => {
+                    this.async66.apply(this, arguments);
+                });
+
+            }
+
+        })
+
+    });
+
 
     let done = 0;
     let main = async (q) => {
