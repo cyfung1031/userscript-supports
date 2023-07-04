@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.2
+// @version             0.5.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8,7 +8,7 @@
 // @namespace           UserScript
 // @match               https://www.youtube.com/live_chat*
 // @author              CY Fung
-// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1214942
+// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1215125
 // @run-at              document-start
 // @grant               none
 // @unwrap
