@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.3
+// @version             0.5.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -491,11 +491,18 @@
                 }).then(() => {
                     controller.afterOper();
                 });
-            })
+            });
         }
 
         mclp.flushActiveItems66_ = mclp.flushActiveItems_;
         mclp.flushActiveItems_ = function () {
+
+            if (arguments.length !== 0) return this.flushActiveItems66_.apply(this, arguments);
+
+            if (this.activeItems_.length === 0) {
+                this.__intermediate_delay__ = null;
+                return;
+            }
 
             const items = this.$.items;
             if (contensWillChangeController && contensWillChangeController.element !== items) {
@@ -507,26 +514,28 @@
 
             // ignore previous __intermediate_delay__ and create a new one
             this.__intermediate_delay__ = new Promise(resolve => {
-
-                if (this.activeItems_.length > 0 && this.canScrollToBottom_()) {
-                    controller.beforeOper();
-                    Promise.resolve().then(() => {
-                        this.flushActiveItems66_.apply(this, arguments);
-                        resolve();
-                    }).then(() => {
-                        this.async(() => {
-                            controller.afterOper();
-                            resolve();
-                        });
-                    })
+                if (this.activeItems_.length === 0) {
+                    resolve();
                 } else {
-                    Promise.resolve().then(() => {
-                        this.flushActiveItems66_.apply(this, arguments);
-                        resolve();
-                    })
+                    if (this.canScrollToBottom_()) {
+                        controller.beforeOper();
+                        Promise.resolve().then(() => {
+                            this.flushActiveItems66_();
+                            resolve();
+                        }).then(() => {
+                            this.async(() => {
+                                controller.afterOper();
+                                resolve();
+                            });
+                        })
+                    } else {
+                        Promise.resolve().then(() => {
+                            this.flushActiveItems66_();
+                            resolve();
+                        })
+                    }
                 }
-
-            })
+            });
 
         }
 
@@ -582,11 +591,11 @@
                 if (!target) continue;
                 let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
                 const h = entry.boundingClientRect.height;
-                if (h < 16){ // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
+                if (h < 16) { // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
                     // e.g. under fullscreen. the element created but not rendered.
                     target.setAttribute('wSr93', '');
                     continue;
-                } 
+                }
                 if (isVisible) {
                     target.style.setProperty('--wsr94', h + 'px');
                     target.setAttribute('wSr93', 'visible');
