@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.24.2
+// @version             2023.07.05.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -870,13 +870,27 @@ SOFTWARE.
     }, 1);
     */
 
+    const getProto = (element) => {
+        let proto = null;
+        if (element) {
+            if (element.inst) proto = element.inst.constructor.prototype;
+            else proto = element.constructor.prototype;
+        }
+        return proto || null;
+    }
 
     const setup322 = () => {
 
         customElements.whenDefined("yt-live-chat-participant-list-renderer").then(p => {
 
-            let proto = window.customElements.get("yt-live-chat-participant-list-renderer").prototype
-            if (typeof proto.attached !== 'function') return;
+            const proto = getProto(document.createElement("yt-live-chat-participant-list-renderer"));
+            if (!proto || typeof proto.attached !== 'function') {
+                // for _registered, proto.attached shall exist when the element is defined.
+                // for controller extraction, attached shall exist when instance creates.
+                console.warn(`proto.attached for ${"yt-live-chat-participant-list-renderer"} is unavailable.`)
+                return;
+            }
+
             proto.__attached411__ = proto.attached;
             proto.__setup334__ = function () {
 

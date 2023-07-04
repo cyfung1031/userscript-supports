@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.6
+// @version             0.5.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -169,6 +169,16 @@
         visibility: collapse;
       }
 
+        yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer{
+            top: 4px;
+            transition-property: top;
+            bottom: unset;
+        }
+
+        yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer[disabled]{
+            top: -42px;
+        }
+
     }
 
     `;
@@ -187,13 +197,13 @@
 
     // const APPLY_delayAppendChild = false;
 
-    let activeDeferredAppendChild = false; // deprecated
+    // let activeDeferredAppendChild = false; // deprecated
 
     // let delayedAppendParentWS = new WeakSet();
     // let delayedAppendOperations = [];
     // let commonAppendParentStackSet = new Set();
 
-    let firstVisibleItemDetected = false; // deprecated
+    // let firstVisibleItemDetected = false; // deprecated
 
     const sp7 = Symbol();
 
@@ -214,7 +224,6 @@
                 target[prop] = value;
             }
             return true;
-
         },
         has(target, prop) {
             return (prop in target)
@@ -556,6 +565,14 @@
 
     });
 
+    const getProto = (element) => {
+        let proto = null;
+        if (element) {
+            if (element.inst) proto = element.inst.constructor.prototype;
+            else proto = element.constructor.prototype;
+        }
+        return proto || null;
+    }
 
     let done = 0;
     let main = async (q) => {
@@ -605,7 +622,7 @@
                     target.style.setProperty('--wsr94', h + 'px');
                     target.setAttribute('wSr93', 'visible');
                     if (nNextElem(target) === null) {
-                        firstVisibleItemDetected = true;
+                        // firstVisibleItemDetected = true;
                         /*
                           if (dateNow() - lastScroll < 80) {
                               lastLShow = 0;
@@ -621,7 +638,7 @@
                         hasFirstShowMore = true;
                         requestAnimationFrame(() => {
                             // foreground page
-                            activeDeferredAppendChild = true;
+                            // activeDeferredAppendChild = true;
                             // page visibly ready -> load the latest comments at initial loading
                             const lcRenderer = lcRendererElm();
                             lcRenderer.scrollToBottom_();
@@ -677,9 +694,8 @@
 
         setupMutObserver(m2);
 
-
-        const mclp = (customElements.get('yt-live-chat-item-list-renderer') || 0).prototype
-        if (mclp) {
+        const mclp = getProto(document.querySelector('yt-live-chat-item-list-renderer'));
+        if (mclp && mclp.attached) {
 
             mclp.attached66 = mclp.attached;
             mclp.attached = function () {
@@ -703,6 +719,9 @@
             mclp.isSmoothScrollEnabled_ = function () {
                 return false;
             }
+
+        } else {
+            console.warn(`proto.attached for yt-live-chat-item-list-renderer is unavailable.`)
         }
 
 
@@ -744,7 +763,11 @@
         const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
             "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
         for (const tag of tags) {
-            const proto = customElements.get(tag).prototype;
+            const proto = getProto(document.createElement(tag));
+            if (!proto || !proto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`)
+                continue;
+            }
             proto.attached77 = proto.attached
 
             proto.attached = function () {
