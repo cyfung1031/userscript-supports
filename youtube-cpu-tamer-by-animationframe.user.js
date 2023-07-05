@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.06.25.2
+// @version             2023.07.06.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -146,8 +146,14 @@ SOFTWARE.
 
 */
 
-(function (__Promise__) {
+(function (__CONTEXT__) {
   'use strict';
+
+  const win = this || window;
+  // Create a unique key for the script and check if it is already running
+  const hkey_script = 'nzsxclvflluv';
+  if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
+  win[hkey_script] = true;
 
   // Create a symbol to represent the busy state of a handler function
   const $busy = Symbol('$busy');
@@ -162,33 +168,11 @@ SOFTWARE.
   let toResetFuncHandlers = false;
 
   // Assign the Promise constructor to a local variable
-  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const { Promise, requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const ignorePromiseErrorFn = () => { }; // Promise will be resolved for Promise.all
 
-  const [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm] = (() => {
-
-    // Get the window object from the global scope
-    const [window] = new Function('return [window];')(); // real window object
-
-    // Create a unique key for the script and check if it is already running
-    const hkey_script = 'nzsxclvflluv';
-    if (window[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
-    window[hkey_script] = true;
-
-
-    // copies of native functions
-
-    /** @type {requestAnimationFrame} */
-    const $$requestAnimationFrame = window.requestAnimationFrame.bind(window); // core looping
-    /** @type {setTimeout} */
-    const $$setTimeout = window.setTimeout.bind(window); // for race
-    /** @type {setInterval} */
-    const $$setInterval = window.setInterval.bind(window); // for background execution
-    /** @type {clearTimeout} */
-    const $$clearTimeout = window.clearTimeout.bind(window); // for native clearTimeout
-    /** @type {clearInterval} */
-    const $$clearInterval = window.clearInterval.bind(window); // for native clearInterval
+  const [sb, rm] = (() => {
 
     let mi = INT_INITIAL_VALUE; // skip first {INT_INITIAL_VALUE} cids to avoid browser not yet initialized
 
@@ -232,7 +216,10 @@ SOFTWARE.
       if (!jd) return; // native setInterval & setTimeout start from 1
       const o = sb.get(jd);
       if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
-        if (jd <= INT_INITIAL_VALUE) this.nativeFn(jd); // only for clearTimeout & clearInterval
+        if (jd <= INT_INITIAL_VALUE) {
+          const nativeFn = this.nativeFn; // de::this
+          nativeFn(jd); // only for clearTimeout & clearInterval
+        }
       } else {
         for (const k in o) o[k] = null;
         sb.delete(jd);
@@ -240,31 +227,31 @@ SOFTWARE.
     };
 
     // Override the window methods for setTimeout and setInterval with custom functions that use the helper function sFunc
-    window.setTimeout = sFunc('timeout');
-    window.setInterval = sFunc('interval');
+    win.setTimeout = sFunc('timeout');
+    win.setInterval = sFunc('interval');
 
     // Override the window methods for clearTimeout and clearInterval with custom functions that use the helper function rm
-    window.clearTimeout = rm.bind({
-      nativeFn: $$clearTimeout
+    win.clearTimeout = rm.bind({
+      nativeFn: clearTimeout
     });
-    window.clearInterval = rm.bind({
-      nativeFn: $$clearInterval
+    win.clearInterval = rm.bind({
+      nativeFn: clearInterval
     });
 
     // Try to override the toString methods of the window methods with the native ones
     try {
-      window.setTimeout.toString = $$setTimeout.toString.bind($$setTimeout)
-      window.setInterval.toString = $$setInterval.toString.bind($$setInterval)
-      window.clearTimeout.toString = $$clearTimeout.toString.bind($$clearTimeout)
-      window.clearInterval.toString = $$clearInterval.toString.bind($$clearInterval)
+      win.setTimeout.toString = setTimeout.toString.bind(setTimeout)
+      win.setInterval.toString = setInterval.toString.bind(setInterval)
+      win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout)
+      win.clearInterval.toString = clearInterval.toString.bind(clearInterval)
     } catch (e) { console.warn(e) }
 
     // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
-    window.addEventListener("yt-navigate-finish", () => {
+    win.addEventListener("yt-navigate-finish", () => {
       toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
     }, true); // capturing event - to let it runs before all everything else.
 
-    return [$$requestAnimationFrame, $$setTimeout, $$setInterval, $$clearTimeout, $$clearInterval, sb, rm];
+    return [sb, rm];
 
   })();
 
@@ -300,7 +287,7 @@ SOFTWARE.
   let interupter = null;
 
   /** @type {(resolve: () => void)}  */
-  const infiniteLooper = (resolve) => $$requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
+  const infiniteLooper = (resolve) => requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
 
   /** @type {(aHandlers: Function[])}  */
   const microTaskExecutionActivePage = (aHandlers) => Promise.all(aHandlers.map(pf));
@@ -395,7 +382,7 @@ SOFTWARE.
     }
   })();
 
-  $$setInterval(() => {
+  setInterval(() => {
     if (nonResponsiveResolve !== null) {
       nonResponsiveResolve();
       return;
@@ -418,4 +405,4 @@ SOFTWARE.
   // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
 
-})(Promise);
+})({ Promise, requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval });
