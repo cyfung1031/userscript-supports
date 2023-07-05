@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.05.1
+// @version             2023.07.06.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -125,16 +125,17 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function (__Promise__) {
+(function (__CONTEXT__) {
     'use strict';
 
-    const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const { Promise, requestAnimationFrame } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+    const __requestAnimationFrame__ = requestAnimationFrame;
 
     // const DELAY_AFTER_NEW_ITEMS_FETCHED = 145; // 145ms
     // - DOM will be created but not shown. after 145ms, the .smoothScroll_ will be called
     //   and `transform: translateY(...)` will be updated sequentially
-
-    window.__requestAnimationFrame__ = window.requestAnimationFrame; // native function
+    
     const _queueMicrotask = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => Promise.resolve().then(f);
 
     const _setInterval = setInterval.bind(window); // native setInterval to avoid error
@@ -289,22 +290,13 @@ SOFTWARE.
 
 
     */
-    /*
-     const asyncWaiter = async (delay) => {
-         let t = Date.now() + delay;
-         do {
-             await new Promise(r => window.__requestAnimationFrame__(r));
-         } while (Date.now() < t);
-     }
-     */
-    // let mz3 = 0;
-    // let delayLocked = false;
+   
     let mz1 = 0; let mz2 = 0; let mz3 = 0;
     const fix = () => {
 
         window.requestAnimationFrame = (function (f) {
             if (byPass) {
-                return this.__requestAnimationFrame__(f);
+                return __requestAnimationFrame__(f);
             }
             const stack = new Error().stack;
             let useSimpleRAF = false;
@@ -445,7 +437,7 @@ SOFTWARE.
                 byPass = false;
             } else {
                 byPass = true; // just in case, avoid infinite loops
-                r = this.__requestAnimationFrame__(f);
+                r = __requestAnimationFrame__(f);
                 byPass = false;
             }
             return r;
@@ -463,7 +455,6 @@ SOFTWARE.
         if ((window.requestAnimationFrame + "").indexOf('_updateAnimationsPromises') > 0) {
             // _clearInterval(cid);
             window.__requestAnimationFrame2__ = window.requestAnimationFrame; // youtube's own schduler function
-            // window.__requestAnimationFrame__ = window.requestAnimationFrame;
             fix();
             return;
         }
@@ -656,7 +647,7 @@ SOFTWARE.
                 res = 0;
                 break;
             }
-            await new Promise(resolve => window.__requestAnimationFrame__(resolve));
+            await new Promise(resolve => __requestAnimationFrame__(resolve));
         } while (Date.now() < expired);
 
         return res;
@@ -665,27 +656,30 @@ SOFTWARE.
         // console.log(participants.length, doms.length) // different if no requestAnimationFrame
     }
 
-    function notifyPath7081(path) {
+    function notifyPath7081(path) { // cnt "yt-live-chat-participant-list-renderer"
 
         let stack = new Error().stack;
         if (path !== "participantsManager.participants" || stack.indexOf('.onParticipantsChanged') < 0) {
             return this.__notifyPath5035__.apply(this, arguments);
         }
 
+        const cnt = this;
         mutexParticipants.lockWith(lockResolve => {
 
-            const participants = [...this.participantsManager.participants];
+            const participants = cnt.participantsManager.participants.slice(0);
 
-            const beforeParticipants = beforeParticipantsMap.get(this) || [];
-            beforeParticipantsMap.set(this, participants);
+            const beforeParticipants = beforeParticipantsMap.get(cnt) || [];
+            beforeParticipantsMap.set(cnt, participants);
 
-            let doms = HTMLElement.prototype.querySelectorAll.call(this, 'yt-live-chat-participant-renderer')
+            const hostElement = cnt.hostElement || cnt;
+
+            let doms = HTMLElement.prototype.querySelectorAll.call(hostElement, 'yt-live-chat-participant-renderer')
             // console.log(participants.length, doms.length) // different if no requestAnimationFrame
             if (beforeParticipants.length !== doms.length) {
                 // there is somewrong for the cache. - sometimes happen
-                this.__notifyPath5035__("participantsManager.participants"); // full refresh
-                asyncOnDOMReady(participants, this).then(() => {
-                    window.__requestAnimationFrame__(() => {
+                cnt.__notifyPath5035__("participantsManager.participants"); // full refresh
+                asyncOnDOMReady(participants, hostElement).then(() => {
+                    __requestAnimationFrame__(() => {
                         _queueMicrotask(lockResolve);
                     });
                 });
@@ -715,25 +709,14 @@ SOFTWARE.
                 */
                 // stampDomArraySplices_
 
-                this.__notifyPath5035__("participantsManager.participants.splices", {
+                cnt.__notifyPath5035__("participantsManager.participants.splices", {
                     indexSplices
                 });
                 releaser();
-                this.__notifyPath5035__("participantsManager.participants.length",
+                cnt.__notifyPath5035__("participantsManager.participants.length",
                     participants.length
                 );
                 lengthChanged = true;
-
-                // let doms = HTMLElement.prototype.querySelectorAll.call(this,'yt-live-chat-participant-renderer')
-                // console.log(participants.length, doms.length) // different if no requestAnimationFrame
-
-                /*
-                for(const indexSplice of indexSplices){
-                    if(indexSplice.addedCount === indexSplices.removed.length){
-                        participants.slice(indexSplice.index, indexSplice.index+indexSplice.addedCount).map(p=>((p||0).liveChatTextMessageRenderer||0).id)
-                    }
-                }
-                */
 
 
                 delayLockResolve = true;
@@ -743,19 +726,11 @@ SOFTWARE.
                     lengthChanged = true;
                 }
 
-                // if (beforeParticipants.length !== participants.length) {
-                //     // just in case. should not happen
-                //     this.__notifyPath5035__("participantsManager.participants.length",
-                //         participants.length
-                //     );
-                //     delayLockResolve = true;
-                // }
-
             }
 
-            (lengthChanged ? asyncOnDOMReady(participants, this) : Promise.resolve(0)).then(() => {
+            (lengthChanged ? asyncOnDOMReady(participants, hostElement) : Promise.resolve(0)).then(() => {
 
-                let doms = HTMLElement.prototype.querySelectorAll.call(this, 'yt-live-chat-participant-renderer')
+                let doms = HTMLElement.prototype.querySelectorAll.call(hostElement, 'yt-live-chat-participant-renderer')
                 // console.log(participants.length, doms.length) // different if no requestAnimationFrame
                 let wrongSize = participants.length !== doms.length;
 
@@ -763,9 +738,9 @@ SOFTWARE.
 
                     console.warn("ERROR(0xE2C3): notifyPath7081", beforeParticipants.length, participants.length, doms.length)
 
-                    this.__notifyPath5035__("participantsManager.participants"); // full refresh
-                    asyncOnDOMReady(participants, this).then(() => {
-                        window.__requestAnimationFrame__(() => {
+                    cnt.__notifyPath5035__("participantsManager.participants"); // full refresh
+                    asyncOnDOMReady(participants, hostElement).then(() => {
+                        __requestAnimationFrame__(() => {
                             _queueMicrotask(lockResolve);
                         });
                     })
@@ -778,7 +753,7 @@ SOFTWARE.
                         for (const contentUpdate of contentUpdates) {
                             let isChanged = checkChangeToParticipantRendererContent(beforeParticipants[contentUpdate.indexI], participants[contentUpdate.indexJ]);
                             if (isChanged) {
-                                this.__notifyPath5035__(`participantsManager.participants[${contentUpdate.indexJ}]`);
+                                cnt.__notifyPath5035__(`participantsManager.participants[${contentUpdate.indexJ}]`);
                             }
                         }
                         delayLockResolve = true;
@@ -789,7 +764,7 @@ SOFTWARE.
                 if (delayLockResolve) {
                     // __requestAnimationFrame__ is required to avoid particiant update during DOM changing (stampDomArraySplices_)
                     // mutex lock with requestAnimationFrame can also disable participants update in background
-                    window.__requestAnimationFrame__(() => {
+                    __requestAnimationFrame__(() => {
                         _queueMicrotask(lockResolve);
                     });
                 } else {
@@ -835,40 +810,6 @@ SOFTWARE.
 
     let beforeParticipantsMap = new WeakMap();
 
-    /*
-    let cid2 = _setInterval(() => {
-
-
-        for (const s of document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')) {
-            s.classList.add('n9fJ3');
-            Promise.resolve(s).then(s => {
-
-
-                if (typeof s.notifyPath !== 'function' || typeof s.__notifyPath5035__ !== 'undefined') {
-
-
-                    console.warn("ERROR(0xE318): yt-live-chat-participant-list-renderer")
-                    return;
-                }
-
-
-                s.__notifyPath5035__ = s.notifyPath
-
-                beforeParticipantsMap.set(s, [...s.participantsManager.participants]);
-                s.notifyPath = notifyPath7081;
-
-                // if(typeof s.onParticipantsChanged !=='function') return;
-                // s.onParticipantsChanged = function(){
-
-                //     // this.notifyPath("participantsManager.participants");
-                // }
-
-
-            });
-        }
-
-    }, 1);
-    */
 
     const getProto = (element) => {
         let proto = null;
@@ -883,58 +824,50 @@ SOFTWARE.
 
         customElements.whenDefined("yt-live-chat-participant-list-renderer").then(p => {
 
-            const proto = getProto(document.createElement("yt-live-chat-participant-list-renderer"));
-            if (!proto || typeof proto.attached !== 'function') {
+            const cProto = getProto(document.createElement("yt-live-chat-participant-list-renderer"));
+            if (!cProto || typeof cProto.attached !== 'function') {
                 // for _registered, proto.attached shall exist when the element is defined.
                 // for controller extraction, attached shall exist when instance creates.
                 console.warn(`proto.attached for ${"yt-live-chat-participant-list-renderer"} is unavailable.`)
                 return;
             }
 
-            proto.__attached411__ = proto.attached;
-            proto.__setup334__ = function () {
+            cProto.__attached411__ = cProto.attached;
+            const __setup334__ = function (hostElement) {
 
-                if (beforeParticipantsMap.has(this)) return;
+                if (beforeParticipantsMap.has(cnt)) return;
 
-                const s = this;
-                s.classList.add('n9fJ3');
-                Promise.resolve(s).then(s => {
+                const cnt = hostElement.inst || hostElement;
+                hostElement.classList.add('n9fJ3');
+                Promise.resolve(cnt).then(cnt => {
 
-
-                    if (typeof s.notifyPath !== 'function' || typeof s.__notifyPath5035__ !== 'undefined') {
+                    if (typeof cnt.notifyPath !== 'function' || typeof cnt.__notifyPath5035__ !== 'undefined') {
                         console.warn("ERROR(0xE318): yt-live-chat-participant-list-renderer")
                         return;
                     }
 
+                    cnt.__notifyPath5035__ = cnt.notifyPath
 
-                    s.__notifyPath5035__ = s.notifyPath
-
-                    beforeParticipantsMap.set(s, [...s.participantsManager.participants]);
-                    s.notifyPath = notifyPath7081;
-
-                    // if(typeof s.onParticipantsChanged !=='function') return;
-                    // s.onParticipantsChanged = function(){
-
-                    //     // this.notifyPath("participantsManager.participants");
-                    // }
-
+                    beforeParticipantsMap.set(cnt, cnt.participantsManager.participants.slice(0));
+                    cnt.notifyPath = notifyPath7081;
 
                 });
 
 
             }
-            proto.attached = function () {
+            cProto.attached = function () {
 
-                this.__setup334__();
+                __setup334__(this.hostElement || this);
 
-                proto.__attached411__.apply(this, arguments);
+                cProto.__attached411__.apply(this, arguments);
             };
 
             // for elements before this execution.
-            requestAnimationFrame(() => {
+            __requestAnimationFrame__(() => {
                 for (const s of document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')) {
-                    if (s.__dataEnabled === true || s.__dataReady === true) {
-                        s.__setup334__();
+                    const cnt = s.inst || s;
+                    if (cnt.__dataEnabled === true || cnt.__dataReady === true) {
+                        __setup334__(s);
                     }
                 }
             });
@@ -956,4 +889,4 @@ SOFTWARE.
 
 
     // Your code here...
-})(Promise);
+})({ Promise, requestAnimationFrame });
