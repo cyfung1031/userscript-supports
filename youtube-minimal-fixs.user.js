@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.4
+// @version      0.5
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -322,7 +322,7 @@ SOFTWARE.
 
 
 
-    if (document.readyState != 'loading') {
+    if (document.readyState === 'complete') { // document.body might not be ready if document.readyState !== 'loading'
         onReady();
     } else {
         window.addEventListener("DOMContentLoaded", onReady, false);
