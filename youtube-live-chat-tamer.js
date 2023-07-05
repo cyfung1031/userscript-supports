@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.06.0
+// @version             2023.07.06.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -835,9 +835,10 @@ SOFTWARE.
             cProto.__attached411__ = cProto.attached;
             const __setup334__ = function (hostElement) {
 
+                const cnt = hostElement.inst || hostElement;
+
                 if (beforeParticipantsMap.has(cnt)) return;
 
-                const cnt = hostElement.inst || hostElement;
                 hostElement.classList.add('n9fJ3');
                 Promise.resolve(cnt).then(cnt => {
 
