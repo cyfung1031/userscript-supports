@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.7
+// @version             0.5.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -243,34 +243,9 @@
 
     });
 
+    const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
 
-    // const dummy3v = {
-    //   "background": "",
-    //   "backgroundAttachment": "",
-    //   "backgroundBlendMode": "",
-    //   "backgroundClip": "",
-    //   "backgroundColor": "",
-    //   "backgroundImage": "",
-    //   "backgroundOrigin": "",
-    //   "backgroundPosition": "",
-    //   "backgroundPositionX": "",
-    //   "backgroundPositionY": "",
-    //   "backgroundRepeat": "",
-    //   "backgroundRepeatX": "",
-    //   "backgroundRepeatY": "",
-    //   "backgroundSize": ""
-    // };
-    // for (const k of ['toString', 'getPropertyPriority', 'getPropertyValue', 'item', 'removeProperty', 'setProperty']) {
-    //   dummy3v[k] = ((k) => (function () { const style = this[sp7]; return style[k](...arguments); }))(k)
-    // }
-
-    // const dummy3p = phFn(dummy3v);
-
-    const pt2DecimalFixer = (x) => Math.round(x * 5, 0) / 5;
-
-    const tickerContainerSetAttribute = function (attrName, attrValue) {
-
-        let yd = (this.__dataHost || 0).__data;
+        let yd = (this.__dataHost || (this.inst || 0).__dataHost).__data;
 
         if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
 
@@ -284,11 +259,13 @@
             const ratio1 = (yd.ratio * 100);
             if (ratio1 > -1) { // avoid NaN
 
-                const ratio2 = pt2DecimalFixer(ratio1);
+                const ratio2 = ratio1.toFixed(1)
                 v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`)
 
                 if (yd.__style_last__ === v) return;
                 yd.__style_last__ = v;
+                // do not consider any delay here. 
+                // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
 
             }
 
@@ -473,9 +450,9 @@
         let contensWillChangeController = null;
 
         // as it links to event handling, it has to be injected using immediateCallback
-        customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (proto) => {
+        customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (cProto) => {
 
-            const mclp = proto;
+            const mclp = cProto;
             console.assert(typeof mclp.scrollToBottom_ === 'function')
             console.assert(typeof mclp.scrollToBottom66_ !== 'function')
             console.assert(typeof mclp.flushActiveItems_ === 'function')
@@ -486,62 +463,63 @@
 
             mclp.scrollToBottom66_ = mclp.scrollToBottom_;
             mclp.scrollToBottom_ = function () {
-                const itemScroller = this.itemScroller;
+                const cnt = this;
+                const itemScroller = cnt.itemScroller;
                 if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
                     scrollWillChangeController.release();
                     scrollWillChangeController = null;
                 }
                 if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
-                const controller = scrollWillChangeController;
-                controller.beforeOper();
-
-                this.__intermediate_delay__ = new Promise(resolve => {
+                const wcController = scrollWillChangeController;
+                wcController.beforeOper();
+                cnt.__intermediate_delay__ = new Promise(resolve => {
                     Promise.resolve().then(() => {
-                        this.scrollToBottom66_()
+                        cnt.scrollToBottom66_()
                         resolve();
                     }).then(() => {
-                        controller.afterOper();
+                        wcController.afterOper();
                     });
                 });
             }
 
             mclp.flushActiveItems66_ = mclp.flushActiveItems_;
             mclp.flushActiveItems_ = function () {
+                const cnt = this;
 
-                if (arguments.length !== 0) return this.flushActiveItems66_.apply(this, arguments);
+                if (arguments.length !== 0) return cnt.flushActiveItems66_.apply(this, arguments);
 
-                if (this.activeItems_.length === 0) {
-                    this.__intermediate_delay__ = null;
+                if (cnt.activeItems_.length === 0) {
+                    cnt.__intermediate_delay__ = null;
                     return;
                 }
 
-                const items = this.$.items;
+                const items = (cnt.$ || 0).items;
                 if (contensWillChangeController && contensWillChangeController.element !== items) {
                     contensWillChangeController.release();
                     contensWillChangeController = null;
                 }
                 if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-                const controller = contensWillChangeController;
+                const wcController = contensWillChangeController;
 
                 // ignore previous __intermediate_delay__ and create a new one
-                this.__intermediate_delay__ = new Promise(resolve => {
-                    if (this.activeItems_.length === 0) {
+                cnt.__intermediate_delay__ = new Promise(resolve => {
+                    if (cnt.activeItems_.length === 0) {
                         resolve();
                     } else {
-                        if (this.canScrollToBottom_()) {
-                            controller.beforeOper();
+                        if (cnt.canScrollToBottom_()) {
+                            wcController.beforeOper();
                             Promise.resolve().then(() => {
-                                this.flushActiveItems66_();
+                                cnt.flushActiveItems66_();
                                 resolve();
                             }).then(() => {
-                                this.async(() => {
-                                    controller.afterOper();
+                                cnt.async(() => {
+                                    wcController.afterOper();
                                     resolve();
                                 });
                             })
                         } else {
                             Promise.resolve().then(() => {
-                                this.flushActiveItems66_();
+                                cnt.flushActiveItems66_();
                                 resolve();
                             })
                         }
@@ -598,58 +576,66 @@
             let lcRenderer = kRef(lcRendererWR);
             if (!lcRenderer || !lcRenderer.isConnected) {
                 lcRenderer = document.querySelector('yt-live-chat-item-list-renderer.yt-live-chat-renderer');
-                lcRendererWR = mWeakRef(lcRenderer);
+                lcRendererWR = lcRenderer ? mWeakRef(lcRenderer) : null;
             }
             return lcRenderer
         };
 
         let hasFirstShowMore = false;
 
+        const visObserverFn = (entry) => {
+
+            const target = entry.target;
+            if (!target) return;
+            let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
+            const h = entry.boundingClientRect.height;
+            if (h < 16) { // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
+                // e.g. under fullscreen. the element created but not rendered.
+                target.setAttribute('wSr93', '');
+                return;
+            }
+            if (isVisible) {
+                target.style.setProperty('--wsr94', h + 'px');
+                target.setAttribute('wSr93', 'visible');
+                if (nNextElem(target) === null) {
+                    // firstVisibleItemDetected = true;
+                    /*
+                      if (dateNow() - lastScroll < 80) {
+                          lastLShow = 0;
+                          lastScroll = 0;
+                          Promise.resolve().then(clickShowMore);
+                      } else {
+                          lastLShow = dateNow();
+                      }
+                      */
+                    // lastLShow = dateNow();
+                } else if (!hasFirstShowMore) { // should more than one item being visible
+                    // implement inside visObserver to ensure there is sufficient delay
+                    hasFirstShowMore = true;
+                    requestAnimationFrame(() => {
+                        // foreground page
+                        // activeDeferredAppendChild = true;
+                        // page visibly ready -> load the latest comments at initial loading
+                        const lcRenderer = lcRendererElm();
+                        if (lcRenderer) {
+                            (lcRenderer.inst || lcRenderer).scrollToBottom_();
+                        }
+                    });
+                }
+            }
+            else if (target.getAttribute('wSr93') === 'visible') { // ignore target.getAttribute('wSr93') === '' to avoid wrong sizing
+
+                target.style.setProperty('--wsr94', h + 'px');
+                target.setAttribute('wSr93', 'hidden');
+            } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wSr93') === '' <new last item>
+
+        }
+
         const visObserver = new IntersectionObserver((entries) => {
 
             for (const entry of entries) {
 
-                const target = entry.target;
-                if (!target) continue;
-                let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
-                const h = entry.boundingClientRect.height;
-                if (h < 16) { // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
-                    // e.g. under fullscreen. the element created but not rendered.
-                    target.setAttribute('wSr93', '');
-                    continue;
-                }
-                if (isVisible) {
-                    target.style.setProperty('--wsr94', h + 'px');
-                    target.setAttribute('wSr93', 'visible');
-                    if (nNextElem(target) === null) {
-                        // firstVisibleItemDetected = true;
-                        /*
-                          if (dateNow() - lastScroll < 80) {
-                              lastLShow = 0;
-                              lastScroll = 0;
-                              Promise.resolve().then(clickShowMore);
-                          } else {
-                              lastLShow = dateNow();
-                          }
-                          */
-                        // lastLShow = dateNow();
-                    } else if (!hasFirstShowMore) { // should more than one item being visible
-                        // implement inside visObserver to ensure there is sufficient delay
-                        hasFirstShowMore = true;
-                        requestAnimationFrame(() => {
-                            // foreground page
-                            // activeDeferredAppendChild = true;
-                            // page visibly ready -> load the latest comments at initial loading
-                            const lcRenderer = lcRendererElm();
-                            lcRenderer.scrollToBottom_();
-                        });
-                    }
-                }
-                else if (target.getAttribute('wSr93') === 'visible') { // ignore target.getAttribute('wSr93') === '' to avoid wrong sizing
-
-                    target.style.setProperty('--wsr94', h + 'px');
-                    target.setAttribute('wSr93', 'hidden');
-                } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wSr93') === '' <new last item>
+                Promise.resolve(entry).then(visObserverFn);
 
             }
 
@@ -755,7 +741,8 @@
 
 
         const fp = (renderer) => {
-            const container = renderer.$.container;
+            const hostElement = renderer.inst || renderer;
+            const container = (hostElement.$ || 0).container;
             if (container) {
                 container.setAttribute = tickerContainerSetAttribute;
             }
@@ -763,21 +750,123 @@
         const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
             "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
         for (const tag of tags) {
-            const proto = getProto(document.createElement(tag));
-            if (!proto || !proto.attached) {
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
                 console.warn(`proto.attached for ${tag} is unavailable.`)
                 continue;
             }
-            proto.attached77 = proto.attached
 
-            proto.attached = function () {
-                fp(this);
+            const __updateTimeout__ = cProto.updateTimeout;
+
+            const canDoUpdateTimeoutReplacement = (() => {
+
+                if (dummy.countdownMs < 1 && dummy.lastCountdownTimeMs < 1 && dummy.countdownMs < 1 && dummy.countdownDurationMs < 1) {
+                    return typeof dummy.setContainerWidth === 'function' && typeof dummy.slideDown === 'function';
+                }
+                return false;
+
+            })(dummy.inst || dummy) && ((__updateTimeout__ + "").indexOf("window.requestAnimationFrame(this.updateTimeout.bind(this))") > 0);
+
+
+
+            if (canDoUpdateTimeoutReplacement) {
+
+                const killTicker = (cnt) => {
+                    if ("auto" === cnt.hostElement.style.width) cnt.setContainerWidth();
+                    cnt.slideDown()
+                };
+
+                cProto.__ratio__ = null;
+                cProto._updateTimeout21_ = function (a) {
+
+                    /*
+                    let pRatio = this.countdownMs / this.countdownDurationMs;
+                    this.countdownMs -= (a - (this.lastCountdownTimeMs || 0));
+                    let noMoreCountDown = this.countdownMs < 1e-6;
+                    let qRatio = this.countdownMs / this.countdownDurationMs;
+                    if(noMoreCountDown){
+                        this.countdownMs = 0;
+                        this.ratio = 0;
+                    } else if( pRatio - qRatio < 0.001 && qRatio < pRatio){
+
+                    }else{
+                        this.ratio = qRatio;
+                    }
+                    */
+
+                    this.countdownMs -= (a - (this.lastCountdownTimeMs || 0));
+
+                    let currentRatio = this.__ratio__;
+                    let tdv = this.countdownMs / this.countdownDurationMs;
+                    let nextRatio = Math.round( tdv * 500 ) / 500; // might generate 0.143000000001
+
+                    const validCountDown = nextRatio > 0;
+                    const isAttached = this.isAttached;
+
+                    if (!validCountDown) {
+
+                        this.lastCountdownTimeMs = null;
+
+                        this.countdownMs = 0;
+                        this.__ratio__ = null;
+                        this.ratio = 0;
+
+                        if (isAttached) Promise.resolve(this).then(killTicker);
+
+                    } else if (!isAttached) {
+
+                        this.lastCountdownTimeMs = null;
+
+                    } else {
+
+                        this.lastCountdownTimeMs = a;
+
+                        const ratioDiff = currentRatio - nextRatio;  // 0.144 - 0.142 = 0.002
+                        if (ratioDiff < 0.001 && ratioDiff > -1e-6) {
+                            // ratioDiff = 0
+
+                        } else {
+                            // ratioDiff = 0.002 / 0.004 ....
+                            // OR ratioDiff < 0
+
+                            this.__ratio__ = nextRatio;
+
+                            this.ratio = nextRatio;
+                        }
+
+                        return true;
+                    }
+
+                };
+
+                cProto.updateTimeout = async function (a) {
+
+                    let ret = this._updateTimeout21_(a);
+                    while (ret) {
+                        let a = await new Promise(resolve => {
+                            this.rafId = requestAnimationFrame(resolve)
+                        }); // could be never resolve
+                        ret = this._updateTimeout21_(a);
+                    }
+
+                };
+
+            }
+
+            cProto.attached77 = cProto.attached
+
+            cProto.attached = function () {
+                fp(this.hostElement || this);
                 return this.attached77();
             }
 
             for (const elm of document.getElementsByTagName(tag)) {
                 fp(elm);
             }
+            
+
         }
 
     };
@@ -810,7 +899,7 @@
 
     }
 
-    if (document.readyState != 'loading') {
+    if (document.readyState === 'complete') { // document.body might not be ready if document.readyState !== 'loading'
         onReady();
     } else {
         window.addEventListener("DOMContentLoaded", onReady, false);
