@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.5
+// @version      0.6
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -43,8 +43,10 @@ SOFTWARE.
 
 //document.addEventListener('visibilitychange',function(evt){ evt.isTrusted && document.visibilityState==='hidden' && evt.stopPropagation() }, true)
 
-(function () {
+(function (__CONTEXT__) {
     "use strict";
+
+    const { Promise } = __CONTEXT__;
 
     let [window] = new Function('return [window]')();
 
@@ -315,19 +317,21 @@ SOFTWARE.
 
     function onReady() {
 
-        document.head.appendChild(styleElm)
-        styleElm = null
+        (document.head || document.documentElement).appendChild(styleElm);
+        styleElm = null;
 
     }
 
 
 
-    if (document.readyState === 'complete') { // document.body might not be ready if document.readyState !== 'loading'
-        onReady();
-    } else {
-        window.addEventListener("DOMContentLoaded", onReady, false);
-    }
+    Promise.resolve().then(() => {
+        if (document.readyState !== 'loading') {
+            onReady();
+        } else {
+            window.addEventListener("DOMContentLoaded", onReady, false);
+        }
+    });
 
 
 
-})();
+})({ Promise });
