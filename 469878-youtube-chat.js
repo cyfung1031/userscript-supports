@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.10
+// @version             0.5.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -56,7 +56,7 @@
 
 
       /* ------------------------------------------------------------------------------------------------------------- */
-      
+
       yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image img {
         contain: layout style;
       }
@@ -112,7 +112,7 @@
         .ytp-suggestion-image[class] {
           will-change: unset !important;
         }
-  
+
         yt-img-shadow[height][width] {
           content-visibility: visible !important;
         }
@@ -121,7 +121,7 @@
             overflow-y: scroll;
             padding-right: 0;
         }
-        
+
 
         /* optional */
         #item-offset.style-scope.yt-live-chat-item-list-renderer {
@@ -239,7 +239,7 @@
 
                 if (yd.__style_last__ === v) return;
                 yd.__style_last__ = v;
-                // do not consider any delay here. 
+                // do not consider any delay here.
                 // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
 
             }
@@ -816,17 +816,36 @@
 
                 };
 
-                cProto.updateTimeout = async function (a) {
-
-                    let ret = this._updateTimeout21_(a);
-                    while (ret) {
-                        let a = await new Promise(resolve => {
-                            this.rafId = requestAnimationFrame(resolve)
-                        }); // could be never resolve
-                        ret = this._updateTimeout21_(a);
+                cProto._updateTimeout21_ = function (a) {
+                    this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+                    this.ratio = this.countdownMs / this.countdownDurationMs;
+                    if (this.isAttached && this.countdownMs) {
+                        this.lastCountdownTimeMs = a;
+                        return true;
+                    } else {
+                        this.lastCountdownTimeMs = null;
+                        if (this.isAttached) {
+                            ("auto" === this.hostElement.style.width && this.setContainerWidth(), this.slideDown())
+                        }
                     }
+                }
 
-                };
+
+                // temporarily removed; buggy for playback
+                /*
+                  cProto.updateTimeout = async function (a) {
+  
+                      let ret = this._updateTimeout21_(a);
+                      while (ret) {
+                          let a = await new Promise(resolve => {
+                              this.rafId = requestAnimationFrame(resolve)
+                          }); // could be never resolve
+                          ret = this._updateTimeout21_(a);
+                      }
+  
+                  };
+                */
+
 
             }
 
