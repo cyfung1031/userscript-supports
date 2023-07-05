@@ -741,8 +741,8 @@
 
 
         const fp = (renderer) => {
-            const hostElement = renderer.inst || renderer;
-            const container = (hostElement.$ || 0).container;
+            const cnt = renderer.inst || renderer;
+            const container = (cnt.$ || 0).container;
             if (container) {
                 container.setAttribute = tickerContainerSetAttribute;
             }
