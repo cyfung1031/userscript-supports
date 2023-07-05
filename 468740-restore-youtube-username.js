@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.7.1
+// @version             0.7.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -850,7 +850,7 @@ SOFTWARE.
     const resetWhenDataChanged = (ytElm) => {
         if (ytElm instanceof Element) {
             const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
-            if ((anchors || 0).length >= 1 && (ytElm.data || 0).jkrgx !== 1) {
+            if ((anchors || 0).length >= 1 && ((ytElm.inst||ytElm).data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
                     anchor.removeAttribute('jkrgy');
                 }
@@ -1062,6 +1062,9 @@ SOFTWARE.
         const { title, externalId } = fetchResult;
         if (externalId !== channelId) return; // channel id must be the same
 
+        if (commentText.isConnected !== true) return; // already removed
+        if (commentText.textContent !== currentText) return; // already changed
+
         let search = contentText.text;
         if (typeof search === 'string') {
 
@@ -1100,7 +1103,7 @@ SOFTWARE.
             if (!displayTextDOM) return;
             displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
             let airaLabel = anchor.getAttribute('aria-label')
-            const parentNodeData = parentNode.data;
+            const parentNodeData = (parentNode.inst || parentNode).data;
             let runs = ((parentNodeData || 0).authorText || 0).runs;
 
             if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
@@ -1122,6 +1125,8 @@ SOFTWARE.
 
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
+
+                if (displayTextDOM.isConnected !== true) return; // already removed
 
                 let found = false;
 
@@ -1162,11 +1167,13 @@ SOFTWARE.
             if (!channelHref || !mt) return;
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
-                if (typeof parentNode.is === 'string' && typeof parentNode.dataChanged === 'function') break;
+                const cnt = parentNode.inst || parentNode;
+                if (typeof cnt.is === 'string' && typeof cnt.dataChanged === 'function') break;
                 parentNode = nodeParent(parentNode);
             }
             if (parentNode instanceof Node) { } else return;
-            const authorText = (parentNode.data || 0).authorText;
+            const parentNodeController = parentNode.inst || parentNode;
+            const authorText = (parentNodeController.data || 0).authorText;
             const currentDisplayed = (authorText || 0).simpleText;
             if (typeof currentDisplayed !== 'string') return;
             if (!isDisplayAsHandle(currentDisplayed)) return;
@@ -1178,7 +1185,7 @@ SOFTWARE.
                 })
             }
 
-            const oldDataChanged = parentNode.dataChanged;
+            const oldDataChanged = parentNodeController.dataChanged;
             if (typeof oldDataChanged === 'function' && !oldDataChanged.jkrgx) {
                 let newDataChanged = dataChangedFuncStore.get(oldDataChanged);
                 if (!newDataChanged) {
@@ -1186,7 +1193,7 @@ SOFTWARE.
                     newDataChanged.jkrgx = 1;
                     dataChangedFuncStore.set(oldDataChanged, newDataChanged);
                 }
-                parentNode.dataChanged = newDataChanged;
+                parentNodeController.dataChanged = newDataChanged;
             }
 
             const fetchResult = await getDisplayName(mt);
@@ -1200,10 +1207,10 @@ SOFTWARE.
             // anchor href might be changed by external
             if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
 
-            const parentNodeData = parentNode.data;
+            const parentNodeData = parentNodeController.data;
             const funcPromises = [];
 
-            if (parentNode.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
+            if (parentNodeController.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
 
                 if (authorText.simpleText !== currentDisplayed) return;
                 const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
@@ -1241,7 +1248,10 @@ SOFTWARE.
                             }
                         }
                     }
-                    parentNode.data = Object.assign({}, md, { jkrgx: 1 });
+
+                    if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
+                        parentNodeController.data = Object.assign({}, md, { jkrgx: 1 });
+                    }
 
 
                 }
@@ -1284,7 +1294,8 @@ SOFTWARE.
         const pDom = parentYtElement(rchannelNameDOM, 'YTD-REEL-PLAYER-HEADER-RENDERER', 18);
 
         if (pDom instanceof HTMLElement) {
-            const runs = (((pDom.data || 0).channelTitleText || 0).runs || 0);
+            const pDomController = pDom.inst || pDom;
+            const runs = (((pDomController.data || 0).channelTitleText || 0).runs || 0);
             if (runs.length === 1) {
                 const browserEndpoint = (((runs[0] || 0).navigationEndpoint || 0).browseEndpoint || 0);
                 browseId = (browserEndpoint.browseId || '');
@@ -1311,9 +1322,11 @@ SOFTWARE.
                         if (externalId !== browseId) return; // channel id must be the same
 
                         let hDom = pDom;
-                        let hData = (hDom || 0).data || 0;
+                        const hDomHostElement = hDom.hostElement || hDom;
+                        const hDomController = hDom.inst || hDom;
+                        let hData = (hDomController || 0).data || 0;
                         const runs = (((hData || 0).channelTitleText || 0).runs || 0);
-                        if (runs && runs.length === 1 && (runs[0] || 0).text === currentDisplayText) {
+                        if (runs && runs.length === 1 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
 
                             let runs2 = [Object.assign({}, runs[0], { text: title })];
 
@@ -1326,7 +1339,7 @@ SOFTWARE.
                                       });
                             */
 
-                            hDom.data = Object.assign({}, hDom.data, { channelTitleText: { runs: runs2 }, rSk0e: 1 });
+                            hDomController.data = Object.assign({}, hDomController.data, { channelTitleText: { runs: runs2 }, rSk0e: 1 });
 
                             byPassCheckStore.delete(rchannelNameDOM);
                         }
@@ -1346,7 +1359,7 @@ SOFTWARE.
     const firstDOMChecker = isMobile ? () => {
 
         const channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
-        const channelNameDOMData = (channelNameDOM || 0).data;
+        const channelNameDOMData = (channelNameDOM.inst || channelNameDOM || 0).data;
 
         if (channelNameDOMData) {
             let mainChannelUrl = null;
