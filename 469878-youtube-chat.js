@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.9
+// @version             0.5.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -54,62 +54,11 @@
         height: var(--wsr94);
       }
 
-      /* optional */
-      #item-offset.style-scope.yt-live-chat-item-list-renderer {
-        height: auto !important;
-        min-height: unset !important;
-      }
-
-      #items.style-scope.yt-live-chat-item-list-renderer {
-        transform: translateY(0px) !important;
-      }
-
-      /* optional */
-      yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
-        pointer-events: none !important;
-      }
-
-      .ytp-contextmenu[class],
-      .toggle-button.tp-yt-paper-toggle-button[class],
-      .yt-spec-touch-feedback-shape__fill[class],
-      .fill.yt-interaction[class],
-      .ytp-videowall-still-info-content[class],
-      .ytp-suggestion-image[class] {
-        will-change: unset !important;
-      }
-
-      yt-img-shadow[height][width] {
-        content-visibility: visible !important;
-      }
-
-      #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
-        position: static !important;
-      }
 
       /* ------------------------------------------------------------------------------------------------------------- */
+      
       yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image img {
         contain: layout style;
-      }
-
-      /*
-      yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip,
-      yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer,
-      yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image,
-      yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image img {
-        contain: layout style;
-        display: inline-flex;
-        vertical-align: middle;
-      }
-      */
-     /*
-      #items yt-live-chat-text-message-renderer {
-        contain: layout style;
-      }
-      */
-
-      yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
-        overflow-y: scroll;
-        padding-right: 0;
       }
 
       body yt-live-chat-app {
@@ -145,29 +94,59 @@
         contain: layout paint style;
       }
 
-      /*
-      #item-offset.style-scope.yt-live-chat-item-list-renderer {
-        position: relative !important;
-        height: auto !important;
-      }
-      */
-
       /* ------------------------------------------------------------------------------------------------------------- */
 
+    }
 
-      #items.style-scope.yt-live-chat-item-list-renderer {
-        padding-top: var(--items-top-padding);
-      }
+    @supports (color: var(--general)) {
 
-      #continuations, #continuations * {
-        contain: strict;
-        position: fixed;
-        top: 2px;
-        height: 1px;
-        width: 2px;
-        height: 1px;
-        visibility: collapse;
-      }
+        #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
+            position: static !important;
+        }
+
+        .ytp-contextmenu[class],
+        .toggle-button.tp-yt-paper-toggle-button[class],
+        .yt-spec-touch-feedback-shape__fill[class],
+        .fill.yt-interaction[class],
+        .ytp-videowall-still-info-content[class],
+        .ytp-suggestion-image[class] {
+          will-change: unset !important;
+        }
+  
+        yt-img-shadow[height][width] {
+          content-visibility: visible !important;
+        }
+
+        yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
+            overflow-y: scroll;
+            padding-right: 0;
+        }
+        
+
+        /* optional */
+        #item-offset.style-scope.yt-live-chat-item-list-renderer {
+        height: auto !important;
+        min-height: unset !important;
+        }
+
+        #items.style-scope.yt-live-chat-item-list-renderer {
+        transform: translateY(0px) !important;
+        }
+
+        /* optional */
+        yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
+        pointer-events: none !important;
+        }
+
+        #continuations, #continuations * {
+            contain: strict;
+            position: fixed;
+            top: 2px;
+            height: 1px;
+            width: 2px;
+            height: 1px;
+            visibility: collapse;
+        }
 
         yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer{
             top: 4px;
@@ -188,11 +167,7 @@
 
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
-        console.error(`
-  YouTube Light Chat Scroll: Your browser does not support 'contain'.
-  Chrome >= 52; Edge >= 79; Safari >= 15.4, Firefox >= 69; Opera >= 39
-  `.trim());
-        return;
+        console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
     }
 
     // const APPLY_delayAppendChild = false;
