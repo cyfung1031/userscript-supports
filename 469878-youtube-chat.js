@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.8
+// @version             0.5.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -800,7 +800,7 @@
 
                     let currentRatio = this.__ratio__;
                     let tdv = this.countdownMs / this.countdownDurationMs;
-                    let nextRatio = Math.round( tdv * 500 ) / 500; // might generate 0.143000000001
+                    let nextRatio = Math.round(tdv * 500) / 500; // might generate 0.143000000001
 
                     const validCountDown = nextRatio > 0;
                     const isAttached = this.isAttached;
@@ -865,7 +865,7 @@
             for (const elm of document.getElementsByTagName(tag)) {
                 fp(elm);
             }
-            
+
 
         }
 
@@ -892,17 +892,21 @@
 
         });
 
-        tmObserver.observe(document.body, {
+        tmObserver.observe(document.body || document.documentElement, {
             childList: true,
             subtree: true
         });
 
     }
 
-    if (document.readyState === 'complete') { // document.body might not be ready if document.readyState !== 'loading'
-        onReady();
-    } else {
-        window.addEventListener("DOMContentLoaded", onReady, false);
-    }
+    Promise.resolve().then(() => {
+
+        if (document.readyState !== 'loading') {
+            onReady();
+        } else {
+            window.addEventListener("DOMContentLoaded", onReady, false);
+        }
+
+    });
 
 })({ Promise, requestAnimationFrame, IntersectionObserver });
