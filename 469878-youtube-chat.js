@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.13
+// @version             0.5.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -485,10 +485,10 @@
                 wcController.beforeOper();
                 cnt.__intermediate_delay__ = new Promise(resolve => {
                     Promise.resolve().then(() => {
-                        cnt.scrollToBottom66_()
-                        resolve();
+                        cnt.scrollToBottom66_();
                     }).then(() => {
                         wcController.afterOper();
+                        resolve();
                     });
                 });
             }
@@ -521,12 +521,11 @@
                             wcController.beforeOper();
                             new Promise(requestAnimationFrame).then(() => {
                                 cnt.flushActiveItems66_();
-                                resolve();
                             }).then(() => {
                                 cnt.async(() => {
                                     wcController.afterOper();
-                                    resolve();
                                 });
+                                resolve();
                             })
                         } else {
                             Promise.resolve().then(() => {
