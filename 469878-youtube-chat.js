@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.11
+// @version             0.5.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -234,7 +234,43 @@
             const ratio1 = (yd.ratio * 100);
             if (ratio1 > -1) { // avoid NaN
 
-                const ratio2 = ratio1.toFixed(1)
+                // countdownDurationMs
+                // 600000 - 0.2%    <1% = 6s>  <0.2% = 1.2s>
+                // 300000 - 0.5%    <1% = 3s>  <0.5% = 1.5s>
+                // 150000 - 1%    <1% = 1.5s>
+                // 75000 - 2%    <1% =0.75s > <2% = 1.5s>
+                // 30000 - 5%    <1% =0.3s > <5% = 1.5s>
+                
+                // 99px * 5% = 4.95px
+
+                // 15000 - 10%    <1% =0.15s > <10% = 1.5s>
+
+
+
+
+                // 1% Duration 
+
+                let ratio2 = ratio1;
+
+                const ydd = yd.data;
+                const d1 = ydd.durationSec;
+                const d2 = ydd.fullDurationSec;
+
+                if(d1 === d2 && d1>1){
+
+                    if(d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
+                    else if(d1>200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
+                    else if(d1>100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
+                    else if(d1>50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
+                    else if(d1>25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
+                    else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
+                    
+                }else {
+                    ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
+                }
+                
+                // ratio2 = Math.round(ratio2 * 5) / 5;
+                ratio2 = ratio2.toFixed(1)
                 v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`)
 
                 if (yd.__style_last__ === v) return;
