@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.12
+// @version             0.5.13
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -519,7 +519,7 @@
                     } else {
                         if (cnt.canScrollToBottom_()) {
                             wcController.beforeOper();
-                            Promise.resolve().then(() => {
+                            new Promise(requestAnimationFrame).then(() => {
                                 cnt.flushActiveItems66_();
                                 resolve();
                             }).then(() => {
