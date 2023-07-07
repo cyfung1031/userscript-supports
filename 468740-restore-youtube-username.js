@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.7.2
+// @version             0.7.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -1359,19 +1359,19 @@ SOFTWARE.
     const firstDOMChecker = isMobile ? () => {
 
         const channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
-        const channelNameDOMData = (channelNameDOM.inst || channelNameDOM || 0).data;
+        const channelNameCData = !channelNameDOM ? null : (channelNameDOM.inst || channelNameDOM || 0).data;
 
-        if (channelNameDOMData) {
+        if (channelNameCData) {
             let mainChannelUrl = null;
             let mainFormattedNameUrl = null;
             let mainChannelText = null;
             let mainFormattedNameText = null;
 
             try {
-                mainChannelUrl = channelUrlUnify(channelNameDOMData.channelUrl)
-                mainFormattedNameUrl = channelUrlUnify(channelNameDOMData.title.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl)
-                mainChannelText = channelNameDOMData.channelName
-                mainFormattedNameText = channelNameDOMData.title.runs[0].text
+                mainChannelUrl = channelUrlUnify(channelNameCData.channelUrl)
+                mainFormattedNameUrl = channelUrlUnify(channelNameCData.title.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl)
+                mainChannelText = channelNameCData.channelName
+                mainFormattedNameText = channelNameCData.title.runs[0].text
             } catch (e) { }
 
             if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
@@ -1399,18 +1399,19 @@ SOFTWARE.
     } : () => {
 
         const channelNameDOM = document.querySelector('ytd-channel-name.ytd-video-owner-renderer');
-        const channelNameDOMData = (channelNameDOM || 0).__data;
-        if (channelNameDOMData) {
+        const channelNameCnt = !channelNameDOM ? null : channelNameDOM.inst || channelNameDOM;
+        const channelNameCData = (channelNameCnt || 0).__data || (channelNameDOM || 0).__data;
+        if (channelNameCData) {
             let mainChannelUrl = null;
             let mainFormattedNameUrl = null;
             let mainChannelText = null;
             let mainFormattedNameText = null;
 
             try {
-                mainChannelUrl = channelNameDOMData.channelName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
-                mainFormattedNameUrl = channelNameDOMData.formattedName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
-                mainChannelText = channelNameDOMData.channelName.runs[0].text
-                mainFormattedNameText = channelNameDOMData.formattedName.runs[0].text
+                mainChannelUrl = channelNameCData.channelName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
+                mainFormattedNameUrl = channelNameCData.formattedName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
+                mainChannelText = channelNameCData.channelName.runs[0].text
+                mainFormattedNameText = channelNameCData.formattedName.runs[0].text
             } catch (e) { }
 
             if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
@@ -1484,19 +1485,20 @@ SOFTWARE.
         for (const mutation of mutations) {
             const target = mutation.target;
             if (!target) continue;
-            const rchannelName = parentYtElement(target, 'YTD-CHANNEL-NAME', 18);
-            if (!rchannelName) continue;
-            if ((rchannelName.data || 0).rSk0e) continue;
-            const channelId = rchannelName.getAttribute('jkrgy');
+            const rchannelNameElm = parentYtElement(target, 'YTD-CHANNEL-NAME', 18);
+            if (!rchannelNameElm) continue;
+            const rchannelNameCnt = rchannelNameElm.inst || rchannelNameElm;
+            if ((rchannelNameCnt.data || 0).rSk0e) continue;
+            const channelId = rchannelNameElm.getAttribute('jkrgy');
             if (channelId) {
-                if (byPassCheckStore.has(rchannelName)) continue;
+                if (byPassCheckStore.has(rchannelNameElm)) continue;
                 const object = channelIdToHandle.get(channelId);
                 if (object && object.handleText && !object.justPossible) {
-                    const textDom = ((rchannelName.$ || 0).text || 0);
+                    const textDom = ((rchannelNameCnt.$ || 0).text || 0);
                     if (textDom) {
                         let t = textDom.textContent.trim()
                         if (t === object.handleText || t === '') {
-                            rchannelName.removeAttribute('jkrgy');
+                            rchannelNameElm.removeAttribute('jkrgy');
                             Promise.resolve().then(domChecker);
                         }
                     }
@@ -1533,16 +1535,16 @@ SOFTWARE.
 
             for (const node of nodes) {
 
-                const rchannelName = parentYtElement(node, 'YTD-CHANNEL-NAME', 18);
-                if (rchannelName) {
-                    mutObserverForShortsChannelName.observe(rchannelName, {
+                const rchannelNameElm = parentYtElement(node, 'YTD-CHANNEL-NAME', 18);
+                if (rchannelNameElm) {
+                    mutObserverForShortsChannelName.observe(rchannelNameElm, {
                         childList: true,
                         subtree: true
                     });
                     let channelId = '';
-                    byPassCheckStore.add(rchannelName);
-                    channelId = checkShortsChannelName(rchannelName);
-                    rchannelName.setAttribute('jkrgy', channelId || '');
+                    byPassCheckStore.add(rchannelNameElm);
+                    channelId = checkShortsChannelName(rchannelNameElm);
+                    rchannelNameElm.setAttribute('jkrgy', channelId || '');
                 }
 
             }
