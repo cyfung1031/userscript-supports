@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.7.3
+// @version             0.7.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -850,7 +850,7 @@ SOFTWARE.
     const resetWhenDataChanged = (ytElm) => {
         if (ytElm instanceof Element) {
             const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
-            if ((anchors || 0).length >= 1 && ((ytElm.inst||ytElm).data || 0).jkrgx !== 1) {
+            if ((anchors || 0).length >= 1 && ((ytElm.inst || ytElm).data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
                     anchor.removeAttribute('jkrgy');
                 }
@@ -1475,8 +1475,6 @@ SOFTWARE.
 
     let lastNewAnchorLastWR = null;
 
-    let domCheckTimeStamp = 0;
-
     const mutexForDOMMutations = new Mutex();
 
     const byPassCheckStore = new WeakSet();
@@ -1585,38 +1583,17 @@ SOFTWARE.
             const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
             lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
 
-            const ltDOMCheck = domCheckTimeStamp;
-            const ctDOMCheck = Date.now();
-            domCheckTimeStamp = ctDOMCheck;
-
             if (!firstDOMCheck) {
                 firstDOMCheck = true;
                 USE_CHANNEL_META && firstDOMChecker();
             }
 
-            const isDocumentModifying = ctDOMCheck - ltDOMCheck < 230;
-
             Promise.resolve()
                 .then(() => {
                     if (lastNewAnchorLast && mutex.nextIndex >= 1) {
-
-                        if (isDocumentModifying) {
-
-                        } else {
-                            if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                                mutex.nextIndex = 0;
-                            }
+                        if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                            mutex.nextIndex = 0;
                         }
-
-                        /*
-                        if (mutex.nextIndex === 0) {
-                            // no change
-                        } else if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorLast) & 2) === 2) { // when "XX replies" clicked
-                            mutex.nextIndex = 0; // highest priority
-                        } else if (cNewAnchorLast !== cNewAnchorFirst && (lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 1) { // rarely
-                            mutex.nextIndex = Math.floor(mutex.nextIndex / 2); // relatively higher priority
-                        }
-                        */
                     }
                 }).then(() => {
 
