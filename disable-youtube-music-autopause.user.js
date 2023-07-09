@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.09.1
+// @version             2023.07.09.2
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -64,6 +64,7 @@ SOFTWARE.
 
   function delayLog(...args) {
     if (Date.now() < noDelayLogUntil) return;
+    noDelayLogUntil = Date.now() + 280; // avoid duplicated delay log in the same time ticker
     console.log(...args);
   }
 
