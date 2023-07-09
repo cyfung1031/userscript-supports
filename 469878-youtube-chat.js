@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.15
+// @version             0.5.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -494,6 +494,7 @@
             }
 
             mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+            let lastFlushActiveItemsCalled = 0;
             mclp.flushActiveItems_ = function () {
                 const cnt = this;
 
@@ -503,6 +504,9 @@
                     cnt.__intermediate_delay__ = null;
                     return;
                 }
+
+                if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
+                let tid = ++lastFlushActiveItemsCalled;
 
                 const items = (cnt.$ || 0).items;
                 if (contensWillChangeController && contensWillChangeController.element !== items) {
@@ -514,22 +518,37 @@
 
                 // ignore previous __intermediate_delay__ and create a new one
                 cnt.__intermediate_delay__ = new Promise(resolve => {
+                    if (tid !== lastFlushActiveItemsCalled) {
+                        resolve();
+                        return;
+                    }
                     if (cnt.activeItems_.length === 0) {
                         resolve();
                     } else {
                         if (cnt.canScrollToBottom_()) {
                             wcController.beforeOper();
                             new Promise(requestAnimationFrame).then(() => {
-                                cnt.flushActiveItems66_();
-                            }).then(() => {
-                                cnt.async(() => {
+                                if (tid === lastFlushActiveItemsCalled) {
+                                    const len1 = cnt.activeItems_.length;
+                                    cnt.flushActiveItems66_();
+                                    const len2 = cnt.activeItems_.length;
+                                    return len1 !== len2;
+                                }
+                            }).then(bAsync => {
+                                if (bAsync) {
+                                    cnt.async(() => {
+                                        wcController.afterOper();
+                                    });
+                                } else {
                                     wcController.afterOper();
-                                });
+                                }
                                 resolve();
                             })
                         } else {
                             Promise.resolve().then(() => {
-                                cnt.flushActiveItems66_();
+                                if (tid === lastFlushActiveItemsCalled) {
+                                    cnt.flushActiveItems66_();
+                                }
                                 resolve();
                             })
                         }
