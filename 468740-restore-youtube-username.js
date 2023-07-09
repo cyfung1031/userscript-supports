@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.7.4
+// @version             0.8.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -1112,7 +1112,7 @@ SOFTWARE.
                     channelIdToHandle.set(mt, {
                         handleText: airaLabel.trim(),
                         justPossible: true
-                    })
+                    });
                 }
 
                 const fetchResult = await getDisplayName(mt);
@@ -1182,7 +1182,7 @@ SOFTWARE.
                 channelIdToHandle.set(mt, {
                     handleText: currentDisplayed.trim(),
                     justPossible: true
-                })
+                });
             }
 
             const oldDataChanged = parentNodeController.dataChanged;
@@ -1307,13 +1307,13 @@ SOFTWARE.
                         channelIdToHandle.set(browseId, {
                             handleText: currentDisplayText.trim(),
                             justPossible: true
-                        })
+                        });
                     }
 
 
                     // let anchorNode = elementQS(rchannelNameDOM, `a[href="${browserEndpoint.canonicalBaseUrl}"]`);
                     // anchorNode && anchorNode.setAttribute('jkrgy', browseId); // for checking
-                    // anchorNode && 
+                    // anchorNode &&
                     getDisplayName(browseId).then(fetchResult => {
 
                         if (fetchResult === null) return;
@@ -1472,6 +1472,7 @@ SOFTWARE.
     const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
     let doShortsChecking = false;
+    let doDescriptionChecking = true;
 
     let lastNewAnchorLastWR = null;
 
@@ -1556,11 +1557,73 @@ SOFTWARE.
 
     }
 
+    const domCheckerForDescriptionAnchor = (s) => {
+
+        findTextNodes(s, (textNode) => {
+            const p = textNode.nodeValue;
+            const index = p.indexOf('@');
+            if (index < 0) return;
+            const q = p.substring(index);
+            const b = isDisplayAsHandle(q);
+            if (b) {
+                const href = s.getAttribute('href')
+
+                const channelId = obtainChannelId(href);
+                if (channelId) {
+                    let h = q.trim();
+
+                    if (!channelIdToHandle.has(channelId)) {
+                        channelIdToHandle.set(channelId, {
+                            handleText: h,
+                            justPossible: true
+                        });
+                    }
+
+                    s.setAttribute('jkrgy', channelId);
+
+                    getDisplayName(channelId).then(fetchResult => {
+
+                        if (fetchResult === null) return;
+
+                        const { title, externalId } = fetchResult;
+                        if (externalId !== channelId) return; // channel id must be the same
+
+                        const anchorElement = s;
+                        const anchorTextNode = textNode;
+
+                        if (anchorElement.isConnected === true && anchorTextNode.isConnected === true && anchorElement.contains(anchorTextNode) && anchorTextNode.nodeValue === p && s.getAttribute('href') === href) {
+
+                            anchorTextNode.nodeValue = `${p.substring(0, index)}${q.replace(h, title)}`;
+
+                        }
+
+                    });
+                }
+            }
+            return true;
+        });
+
+    }
+    const domCheckerForDescription = isMobile ? ()=>{
+        // example https://m.youtube.com/watch?v=jKt4Ah47L7Q
+        for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
+            s.setAttribute('dxcPj', '');
+            domCheckerForDescriptionAnchor(s);
+        }
+    } : () => {
+        // example https://www.youtube.com/watch?v=jKt4Ah47L7Q
+        for (const s of document.querySelectorAll('yt-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
+            s.setAttribute('dxcPj', '');
+            domCheckerForDescriptionAnchor(s);
+        }
+    };
+
     let domCheckScheduled = false;
     const domCheckSelector = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])';
     const domChecker = () => {
 
         doShortsChecking && domCheckerForShorts();
+        doDescriptionChecking && domCheckerForDescription();
 
         if (domCheckScheduled) return;
         if (document.querySelector(domCheckSelector) === null) {
