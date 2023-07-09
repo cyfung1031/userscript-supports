@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.09.0
+// @version             2023.07.09.1
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -60,7 +60,7 @@ SOFTWARE.
   const youThereDataHashMapPromptDelay = new WeakMap();
   const youThereDataHashMapLactThreshold = new WeakMap();
   const websiteName = 'YouTube Music';
-  let noDelayLogUntil = Date.now() + 800;
+  let noDelayLogUntil = 0;
 
   function delayLog(...args) {
     if (Date.now() < noDelayLogUntil) return;
@@ -113,7 +113,6 @@ SOFTWARE.
       youThereDataHashMapPauseDelay.set(youThereData, retPauseDelay);
       const retType = typeof retPauseDelay === 'string' ? 2 : +(typeof retPauseDelay === 'number');
       if (retType >= 1) {
-        noDelayLogUntil = Date.now() + 800;
         defineProp1(youThereData, 'playbackPauseDelayMs', retType, 5 * tenPU, d => {
           delayLog(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
         }, args => {
@@ -132,7 +131,6 @@ SOFTWARE.
       const retType = typeof retPromptDelay === 'string' ? 2 : +(typeof retPromptDelay === 'number');
       // lact -> promptDelaySec -> showDialog -> playbackPauseDelayMs -> pause
       if (retType >= 1) {
-        noDelayLogUntil = Date.now() + 800;
         defineProp1(youThereData, 'promptDelaySec', retType, 5 * mPU, d => {
           delayLog(`${websiteName} is trying to pause video...`, d.toLocaleTimeString());
         }, args => {
@@ -255,7 +253,7 @@ SOFTWARE.
 
 
   async function canplayHandlerAsync() {
-    noDelayLogUntil = Date.now() + 800;
+    noDelayLogUntil = Date.now() + 3400; // no delay log for video changes
 
     messagesRunnerRid++;
     let tid = messagesRunnerRid;
