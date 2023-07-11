@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.18
+// @version             0.5.19
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -171,6 +171,11 @@
             border-bottom: 0;
         }
 
+        #input-panel #picker-buttons yt-live-chat-icon-toggle-button-renderer#product-picker {
+            overflow: hidden;
+            contain: layout paint style;
+        }
+
     }
 
     `;
@@ -261,7 +266,7 @@
 
 
 
-                // 1% Duration 
+                // 1% Duration
 
                 let ratio2 = ratio1;
 
@@ -561,6 +566,9 @@
                     cnt.__intermediate_delay__ = null;
                     return;
                 }
+
+                const cntData = ((cnt || 0).data || 0);
+                if (cntData.maxItemsToDisplay > 90) cntData.maxItemsToDisplay = 90;
 
                 // ignore previous __intermediate_delay__ and create a new one
                 cnt.__intermediate_delay__ = new Promise(resolve => {
@@ -900,7 +908,7 @@
                 // temporarily removed; buggy for playback
                 /*
                   cProto.updateTimeout = async function (a) {
-  
+
                       let ret = this._updateTimeout21_(a);
                       while (ret) {
                           let a = await new Promise(resolve => {
@@ -908,7 +916,7 @@
                           }); // could be never resolve
                           ret = this._updateTimeout21_(a);
                       }
-  
+
                   };
                 */
 
