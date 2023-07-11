@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.17
+// @version             0.5.18
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -158,6 +158,19 @@
             top: -42px;
         }
 
+        html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer:not(:empty) {
+            --yt-live-chat-action-panel-top-border: none;
+        }
+
+        html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer.iron-selected > *:first-child {
+            border-top: 1px solid var(--yt-live-chat-panel-pages-border-color);
+        }
+
+        html #panel-pages.yt-live-chat-renderer {
+            border-top: 0;
+            border-bottom: 0;
+        }
+
     }
 
     `;
@@ -240,7 +253,7 @@
                 // 150000 - 1%    <1% = 1.5s>
                 // 75000 - 2%    <1% =0.75s > <2% = 1.5s>
                 // 30000 - 5%    <1% =0.3s > <5% = 1.5s>
-                
+
                 // 99px * 5% = 4.95px
 
                 // 15000 - 10%    <1% =0.15s > <10% = 1.5s>
@@ -256,19 +269,19 @@
                 const d1 = ydd.durationSec;
                 const d2 = ydd.fullDurationSec;
 
-                if(d1 === d2 && d1>1){
+                if (d1 === d2 && d1 > 1) {
 
-                    if(d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
-                    else if(d1>200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
-                    else if(d1>100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
-                    else if(d1>50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
-                    else if(d1>25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
+                    if (d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
+                    else if (d1 > 200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
+                    else if (d1 > 100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
+                    else if (d1 > 50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
+                    else if (d1 > 25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
                     else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
-                    
-                }else {
+
+                } else {
                     ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
                 }
-                
+
                 // ratio2 = Math.round(ratio2 * 5) / 5;
                 ratio2 = ratio2.toFixed(1)
                 v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`)
@@ -493,66 +506,65 @@
                 });
             }
 
+            mclp.flushActiveItems77_ = async function () {
+                try {
+
+                    const cnt = this;
+                    if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
+                    let tid = ++lastFlushActiveItemsCalled;
+                    if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                    if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+                    if (cnt.canScrollToBottom_()) {
+                        let immd = cnt.__intermediate_delay__;
+                        await new Promise(requestAnimationFrame);
+                        if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                        if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+
+                        const items = (cnt.$ || 0).items;
+                        if (contensWillChangeController && contensWillChangeController.element !== items) {
+                            contensWillChangeController.release();
+                            contensWillChangeController = null;
+                        }
+                        if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+                        const wcController = contensWillChangeController;
+                        cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
+                        wcController.beforeOper();
+                        await Promise.resolve();
+                        const len1 = cnt.activeItems_.length;
+                        cnt.flushActiveItems66_();
+                        const len2 = cnt.activeItems_.length;
+                        let bAsync = len1 !== len2;
+                        await Promise.resolve();
+                        if (bAsync) {
+                            cnt.async(() => {
+                                wcController.afterOper();
+                            });
+                        } else {
+                            wcController.afterOper();
+                        }
+                    } else {
+                        cnt.flushActiveItems66_();
+                    }
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
             mclp.flushActiveItems66_ = mclp.flushActiveItems_;
             let lastFlushActiveItemsCalled = 0;
             mclp.flushActiveItems_ = function () {
                 const cnt = this;
 
-                if (arguments.length !== 0) return cnt.flushActiveItems66_.apply(this, arguments);
+                if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
 
                 if (cnt.activeItems_.length === 0) {
                     cnt.__intermediate_delay__ = null;
                     return;
                 }
 
-                if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
-                let tid = ++lastFlushActiveItemsCalled;
-
-                const items = (cnt.$ || 0).items;
-                if (contensWillChangeController && contensWillChangeController.element !== items) {
-                    contensWillChangeController.release();
-                    contensWillChangeController = null;
-                }
-                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-                const wcController = contensWillChangeController;
-
                 // ignore previous __intermediate_delay__ and create a new one
                 cnt.__intermediate_delay__ = new Promise(resolve => {
-                    if (tid !== lastFlushActiveItemsCalled) {
-                        resolve();
-                        return;
-                    }
-                    if (cnt.activeItems_.length === 0) {
-                        resolve();
-                    } else {
-                        if (cnt.canScrollToBottom_()) {
-                            wcController.beforeOper();
-                            new Promise(requestAnimationFrame).then(() => {
-                                if (tid === lastFlushActiveItemsCalled && cnt.isAttached && (cnt.hostElement || cnt).isConnected) {
-                                    const len1 = cnt.activeItems_.length;
-                                    cnt.flushActiveItems66_();
-                                    const len2 = cnt.activeItems_.length;
-                                    return len1 !== len2;
-                                }
-                            }).then(bAsync => {
-                                if (bAsync) {
-                                    cnt.async(() => {
-                                        wcController.afterOper();
-                                    });
-                                } else {
-                                    wcController.afterOper();
-                                }
-                                resolve();
-                            })
-                        } else {
-                            Promise.resolve().then(() => {
-                                if (tid === lastFlushActiveItemsCalled && cnt.isAttached && (cnt.hostElement || cnt).isConnected) {
-                                    cnt.flushActiveItems66_();
-                                }
-                                resolve();
-                            })
-                        }
-                    }
+                    cnt.flushActiveItems77_().then(resolve);
                 });
 
             }
