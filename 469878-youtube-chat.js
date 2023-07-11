@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.21
+// @version             0.5.22
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -589,10 +589,11 @@
                 // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
 
                 const stack = new Error().stack;
+                const isFlushAsync = stack.indexOf('flushActiveItems_') >= 0;
                 (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
-                    if (rk < 0) return;
-                    if (rk === 2) {
-                        if (stack.indexOf('flushActiveItems_') >= 0 && arguments[0] === this.maybeScrollToBottom_) return;
+                    if (isFlushAsync) {
+                        if (rk < 0) return;
+                        if (rk === 2 && arguments[0] === this.maybeScrollToBottom_) return;
                     }
                     this.async66.apply(this, arguments);
                 });
