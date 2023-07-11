@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.22
+// @version             0.5.23
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -174,6 +174,10 @@
         #input-panel #picker-buttons yt-live-chat-icon-toggle-button-renderer#product-picker {
             overflow: hidden;
             contain: layout paint style;
+        }
+
+        #chat.yt-live-chat-renderer ~ #panel-pages.yt-live-chat-renderer {
+            overflow: visible;
         }
 
     }
