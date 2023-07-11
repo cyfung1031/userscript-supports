@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.19
+// @version             0.5.20
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -572,7 +572,10 @@
 
                 // ignore previous __intermediate_delay__ and create a new one
                 cnt.__intermediate_delay__ = new Promise(resolve => {
-                    cnt.flushActiveItems77_().then(resolve);
+                    cnt.flushActiveItems77_().then(() => {
+                        if ((cnt.activeItems_ || 0).length === 0) resolve();
+                        else resolve(-1);
+                    });
                 });
 
             }
@@ -582,7 +585,11 @@
                 // ensure the previous operation is done
                 // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
 
-                (this.__intermediate_delay__ || Promise.resolve()).then(() => {
+                const stack = new Error().stack;
+                (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
+                    if (rk < 0) {
+                        if (stack.indexOf('flushActiveItems_') >= 0) return;
+                    }
                     this.async66.apply(this, arguments);
                 });
 
