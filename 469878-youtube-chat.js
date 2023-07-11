@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.20
+// @version             0.5.21
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -547,8 +547,10 @@
                         } else {
                             wcController.afterOper();
                         }
+                        return 1;
                     } else {
                         cnt.flushActiveItems66_();
+                        return 2;
                     }
                 } catch (e) {
                     console.warn(e);
@@ -572,9 +574,10 @@
 
                 // ignore previous __intermediate_delay__ and create a new one
                 cnt.__intermediate_delay__ = new Promise(resolve => {
-                    cnt.flushActiveItems77_().then(() => {
-                        if ((cnt.activeItems_ || 0).length === 0) resolve();
-                        else resolve(-1);
+                    cnt.flushActiveItems77_().then(rt => {
+                        if (rt === 1) resolve(1); // success, scroll to bottom
+                        else if (rt === 2) resolve(2); // success, trim
+                        else resolve(-1); // skip
                     });
                 });
 
@@ -587,8 +590,9 @@
 
                 const stack = new Error().stack;
                 (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
-                    if (rk < 0) {
-                        if (stack.indexOf('flushActiveItems_') >= 0) return;
+                    if (rk < 0) return;
+                    if (rk === 2) {
+                        if (stack.indexOf('flushActiveItems_') >= 0 && arguments[0] === this.maybeScrollToBottom_) return;
                     }
                     this.async66.apply(this, arguments);
                 });
