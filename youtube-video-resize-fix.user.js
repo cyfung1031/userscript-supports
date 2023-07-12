@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.5
+// @version             0.3.6
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -204,8 +204,13 @@ SOFTWARE.
     // A WeakSet to keep track of elements being monitored for mutations.
     const monitorWeakSet = new WeakSet();
 
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => {})().constructor;
+
     // Function to reflect the current state of the YouTube page.
-    function _reflect() {
+    async function _reflect() {
+      await Promise.resolve();
+
       const youtubeWpr = document.documentElement.getAttribute("youtube-wpr");
       let s = '';
 
@@ -227,10 +232,13 @@ SOFTWARE.
       if (s !== youtubeWpr) {
         document.documentElement.setAttribute("youtube-wpr", s);
       }
+
     }
 
     // Function to reflect changes in specific attributes of monitored elements.
-    function reflect(nodeName, attrNames, forced) {
+    async function reflect(nodeName, attrNames, forced) {
+      await Promise.resolve();
+
       if (!forced) {
         let skip = true;
         for (const attrName of attrNames) {
@@ -281,7 +289,8 @@ SOFTWARE.
     let timeout = 0;
 
     // Function to monitor relevant elements and update the reflected state.
-    let g = (forced) => {
+    let g = async (forced) => {
+      await Promise.resolve();
       let b = 0;
       b = b | monitor(document.querySelector("ytd-watch-flexy"));
       b = b | monitor(document.querySelector("ytd-live-chat-frame#chat"));
@@ -291,9 +300,15 @@ SOFTWARE.
     }
 
     // Event handler function that triggers when the page finishes navigation or page data updates.
-    let eventHandlerFunc = async () => {
+    let eventHandlerFunc = async (evt) => {
       timeout = Date.now() + 800;
       g(1);
+      if (evt.type === 'yt-navigate-finish') {
+        // delay required when page type is changed for #chat (home -> watch).
+        setTimeout(() => {
+          g(1);
+        }, 80);
+      }
     }
 
     let loadState = 0;
