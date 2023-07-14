@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.6.0
+// @version             0.6.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -495,9 +495,28 @@
 
             mclp.__intermediate_delay__ = null;
 
-            if ((mclp.scrollToBottom_ || 0).length === 0) {
+            let mzk = 0;
+            let myk = 0;
+            let mlf = 0;
+            let myw = 0;
+            let mzt = 0;
+            let zarr = null;
 
-                let mzk = 0;
+            if ((mclp.clearList || 0).length === 0) {
+                mclp.clearList66 = mclp.clearList;
+                mclp.clearList = function () {
+                    mzk++;
+                    myk++;
+                    mlf++;
+                    myw++;
+                    mzt++;
+                    zarr = null;
+                    this.__intermediate_delay__ = null;
+                    this.clearList66();
+                };
+            }
+
+            if ((mclp.scrollToBottom_ || 0).length === 0) {
 
                 mclp.scrollToBottom66_ = mclp.scrollToBottom_;
 
@@ -544,7 +563,7 @@
 
 
                 mclp.showNewItems66_ = mclp.showNewItems_;
-                let myk = 0;
+                
                 mclp.showNewItems77_ = async function () {
                     if (myk > 1e9) myk = 9;
                     let tid = ++myk;
@@ -583,21 +602,20 @@
 
 
                 mclp.flushActiveItems66_ = mclp.flushActiveItems_;
-                let lastFlushActiveItemsCalled = 0;
 
 
                 mclp.flushActiveItems77_ = async function () {
                     try {
 
                         const cnt = this;
-                        if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
-                        let tid = ++lastFlushActiveItemsCalled;
-                        if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                        if (mlf > 1e9) mlf = 9;
+                        let tid = ++mlf;
+                        if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                         if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
                         if (cnt.canScrollToBottom_()) {
                             let immd = cnt.__intermediate_delay__;
                             await new Promise(requestAnimationFrame);
-                            if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                            if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                             if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
                             const items = (cnt.$ || 0).items;
@@ -683,7 +701,6 @@
             if ((mclp.onScrollItems_ || 0).length === 1) {
 
                 mclp.onScrollItems66_ = mclp.onScrollItems_;
-                let myw = 0;
                 mclp.onScrollItems77_ = async function (evt) {
                     if (myw > 1e9) myw = 9;
                     let tid = ++myw;
@@ -717,8 +734,6 @@
             if ((mclp.handleLiveChatActions_ || 0).length === 1) {
                 mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
 
-                let mzt = 0;
-                let zarr = null;
                 mclp.handleLiveChatActions77_ = async function (arr) {
                     if (typeof (arr || 0).length !== 'number') {
                         this.handleLiveChatActions66_(arr);
@@ -733,7 +748,7 @@
 
                     await new Promise(requestAnimationFrame);
 
-                    if (tid !== mzt) {
+                    if (tid !== mzt || zarr === null) {
                         return;
                     }
 
