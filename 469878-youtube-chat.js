@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.24
+// @version             0.6.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -682,7 +682,7 @@
 
             if ((mclp.onScrollItems_ || 0).length === 1) {
 
-                mclp.onScrollItems66_ =  mclp.onScrollItems_;
+                mclp.onScrollItems66_ = mclp.onScrollItems_;
                 let myw = 0;
                 mclp.onScrollItems77_ = async function (evt) {
                     if (myw > 1e9) myw = 9;
@@ -714,7 +714,50 @@
                 }
             }
 
-            // mclp.handleLiveChatActions66_ =mclp.handleLiveChatActions_; 
+            if ((mclp.handleLiveChatActions_ || 0).length === 1) {
+                mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
+
+                let mzt = 0;
+                let zarr = null;
+                mclp.handleLiveChatActions77_ = async function (arr) {
+                    if (typeof (arr || 0).length !== 'number') {
+                        this.handleLiveChatActions66_(arr);
+                        return;
+                    }
+                    if (mzt > 1e9) mzt = 9;
+                    let tid = ++mzt;
+
+                    if (zarr === null) zarr = arr;
+                    else Array.prototype.push.apply(zarr, arr);
+                    arr = null;
+
+                    await new Promise(requestAnimationFrame);
+
+                    if (tid !== mzt) {
+                        return;
+                    }
+
+                    const carr = zarr;
+                    zarr = null;
+
+                    await Promise.resolve();
+                    this.handleLiveChatActions66_(carr);
+                    await Promise.resolve();
+
+                }
+
+                mclp.handleLiveChatActions_ = function (arr) {
+
+                    const cnt = this;
+                    cnt.__intermediate_delay__ = new Promise(resolve => {
+                        cnt.handleLiveChatActions77_(arr).then(() => {
+                            resolve();
+                        });
+                    });
+                }
+
+            }
+
 
 
 
@@ -889,15 +932,15 @@
                 // 
             }
 
-            mclp.refreshOffsetContainerHeight_ = function(){
+            mclp.refreshOffsetContainerHeight_ = function () {
                 //
             }
 
-            mclp.smoothScroll_ = function (){
+            mclp.smoothScroll_ = function () {
                 //
             }
 
-            mclp.resetSmoothScroll_ = function (){
+            mclp.resetSmoothScroll_ = function () {
                 //
             }
 
