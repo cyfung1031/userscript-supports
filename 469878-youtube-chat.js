@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.5.23
+// @version             0.5.24
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -490,119 +490,233 @@
             console.assert(typeof mclp.scrollToBottom66_ !== 'function')
             console.assert(typeof mclp.flushActiveItems_ === 'function')
             console.assert(typeof mclp.flushActiveItems66_ !== 'function')
+            console.assert(typeof mclp.async === 'function')
 
 
             mclp.__intermediate_delay__ = null;
 
-            mclp.scrollToBottom66_ = mclp.scrollToBottom_;
-            mclp.scrollToBottom_ = function () {
-                const cnt = this;
-                const itemScroller = cnt.itemScroller;
-                if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
-                    scrollWillChangeController.release();
-                    scrollWillChangeController = null;
-                }
-                if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
-                const wcController = scrollWillChangeController;
-                wcController.beforeOper();
-                cnt.__intermediate_delay__ = new Promise(resolve => {
-                    Promise.resolve().then(() => {
-                        cnt.scrollToBottom66_();
-                    }).then(() => {
-                        wcController.afterOper();
-                        resolve();
-                    });
-                });
-            }
+            if ((mclp.scrollToBottom_ || 0).length === 0) {
 
-            mclp.flushActiveItems77_ = async function () {
-                try {
+                let mzk = 0;
+
+                mclp.scrollToBottom66_ = mclp.scrollToBottom_;
+
+                mclp.scrollToBottom77_ = async function () {
+                    if (mzk > 1e9) mzk = 9;
+                    let tid = ++mzk;
+
+                    await new Promise(requestAnimationFrame);
+
+                    if (tid !== mzk) {
+                        return;
+                    }
 
                     const cnt = this;
-                    if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
-                    let tid = ++lastFlushActiveItemsCalled;
-                    if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
-                    if (cnt.canScrollToBottom_()) {
-                        let immd = cnt.__intermediate_delay__;
-                        await new Promise(requestAnimationFrame);
+                    const itemScroller = cnt.itemScroller;
+                    if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
+                        scrollWillChangeController.release();
+                        scrollWillChangeController = null;
+                    }
+                    if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
+                    const wcController = scrollWillChangeController;
+                    wcController.beforeOper();
+
+                    await Promise.resolve();
+                    cnt.scrollToBottom66_();
+
+                    await Promise.resolve();
+                    wcController.afterOper();
+
+                }
+
+                mclp.scrollToBottom_ = function () {
+                    const cnt = this;
+                    cnt.__intermediate_delay__ = new Promise(resolve => {
+                        cnt.scrollToBottom77_().then(() => {
+                            resolve();
+                        });
+                    });
+                }
+            }
+
+
+            if ((mclp.showNewItems_ || 0).length === 0) {
+
+
+                mclp.showNewItems66_ = mclp.showNewItems_;
+                let myk = 0;
+                mclp.showNewItems77_ = async function () {
+                    if (myk > 1e9) myk = 9;
+                    let tid = ++myk;
+
+                    await new Promise(requestAnimationFrame);
+
+                    if (tid !== myk) {
+                        return;
+                    }
+
+                    const cnt = this;
+
+                    await Promise.resolve();
+                    cnt.showNewItems66_();
+
+                    await Promise.resolve();
+
+                }
+
+                mclp.showNewItems_ = function () {
+
+                    const cnt = this;
+                    cnt.__intermediate_delay__ = new Promise(resolve => {
+                        cnt.showNewItems77_().then(() => {
+                            resolve();
+                        });
+                    });
+                }
+
+            }
+
+
+
+
+            if ((mclp.flushActiveItems_ || 0).length === 0) {
+
+
+                mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+                let lastFlushActiveItemsCalled = 0;
+
+
+                mclp.flushActiveItems77_ = async function () {
+                    try {
+
+                        const cnt = this;
+                        if (lastFlushActiveItemsCalled > 1e9) lastFlushActiveItemsCalled = 9;
+                        let tid = ++lastFlushActiveItemsCalled;
                         if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                         if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+                        if (cnt.canScrollToBottom_()) {
+                            let immd = cnt.__intermediate_delay__;
+                            await new Promise(requestAnimationFrame);
+                            if (tid !== lastFlushActiveItemsCalled || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                            if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
-                        const items = (cnt.$ || 0).items;
-                        if (contensWillChangeController && contensWillChangeController.element !== items) {
-                            contensWillChangeController.release();
-                            contensWillChangeController = null;
-                        }
-                        if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-                        const wcController = contensWillChangeController;
-                        cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
-                        wcController.beforeOper();
-                        await Promise.resolve();
-                        const len1 = cnt.activeItems_.length;
-                        cnt.flushActiveItems66_();
-                        const len2 = cnt.activeItems_.length;
-                        let bAsync = len1 !== len2;
-                        await Promise.resolve();
-                        if (bAsync) {
-                            cnt.async(() => {
+                            const items = (cnt.$ || 0).items;
+                            if (contensWillChangeController && contensWillChangeController.element !== items) {
+                                contensWillChangeController.release();
+                                contensWillChangeController = null;
+                            }
+                            if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+                            const wcController = contensWillChangeController;
+                            cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
+                            wcController.beforeOper();
+                            await Promise.resolve();
+                            const len1 = cnt.activeItems_.length;
+                            cnt.flushActiveItems66_();
+                            const len2 = cnt.activeItems_.length;
+                            let bAsync = len1 !== len2;
+                            await Promise.resolve();
+                            if (bAsync) {
+                                cnt.async(() => {
+                                    wcController.afterOper();
+                                });
+                            } else {
                                 wcController.afterOper();
-                            });
+                            }
+                            return 1;
                         } else {
-                            wcController.afterOper();
+                            cnt.flushActiveItems66_();
+                            return 2;
                         }
-                        return 1;
-                    } else {
-                        cnt.flushActiveItems66_();
-                        return 2;
+                    } catch (e) {
+                        console.warn(e);
                     }
-                } catch (e) {
-                    console.warn(e);
-                }
-            }
-
-            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
-            let lastFlushActiveItemsCalled = 0;
-            mclp.flushActiveItems_ = function () {
-                const cnt = this;
-
-                if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
-
-                if (cnt.activeItems_.length === 0) {
-                    cnt.__intermediate_delay__ = null;
-                    return;
                 }
 
-                const cntData = ((cnt || 0).data || 0);
-                if (cntData.maxItemsToDisplay > 90) cntData.maxItemsToDisplay = 90;
+                mclp.flushActiveItems_ = function () {
+                    const cnt = this;
 
-                // ignore previous __intermediate_delay__ and create a new one
-                cnt.__intermediate_delay__ = new Promise(resolve => {
-                    cnt.flushActiveItems77_().then(rt => {
-                        if (rt === 1) resolve(1); // success, scroll to bottom
-                        else if (rt === 2) resolve(2); // success, trim
-                        else resolve(-1); // skip
+                    if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
+
+                    if (cnt.activeItems_.length === 0) {
+                        cnt.__intermediate_delay__ = null;
+                        return;
+                    }
+
+                    const cntData = ((cnt || 0).data || 0);
+                    if (cntData.maxItemsToDisplay > 90) cntData.maxItemsToDisplay = 90;
+
+                    // ignore previous __intermediate_delay__ and create a new one
+                    cnt.__intermediate_delay__ = new Promise(resolve => {
+                        cnt.flushActiveItems77_().then(rt => {
+                            if (rt === 1) resolve(1); // success, scroll to bottom
+                            else if (rt === 2) resolve(2); // success, trim
+                            else resolve(-1); // skip
+                        });
                     });
-                });
+
+                }
+            }
+
+            if ((mclp.async || 0).length === 2) {
+
+
+                mclp.async66 = mclp.async;
+                mclp.async = function () {
+                    // ensure the previous operation is done
+                    // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
+
+                    const stack = new Error().stack;
+                    const isFlushAsync = stack.indexOf('flushActiveItems_') >= 0;
+                    (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
+                        if (isFlushAsync) {
+                            if (rk < 0) return;
+                            if (rk === 2 && arguments[0] === this.maybeScrollToBottom_) return;
+                        }
+                        this.async66.apply(this, arguments);
+                    });
+
+                }
 
             }
 
-            mclp.async66 = mclp.async;
-            mclp.async = function () {
-                // ensure the previous operation is done
-                // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
 
-                const stack = new Error().stack;
-                const isFlushAsync = stack.indexOf('flushActiveItems_') >= 0;
-                (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
-                    if (isFlushAsync) {
-                        if (rk < 0) return;
-                        if (rk === 2 && arguments[0] === this.maybeScrollToBottom_) return;
+            if ((mclp.onScrollItems_ || 0).length === 1) {
+
+                mclp.onScrollItems66_ =  mclp.onScrollItems_;
+                let myw = 0;
+                mclp.onScrollItems77_ = async function (evt) {
+                    if (myw > 1e9) myw = 9;
+                    let tid = ++myw;
+
+                    await new Promise(requestAnimationFrame);
+
+                    if (tid !== myw) {
+                        return;
                     }
-                    this.async66.apply(this, arguments);
-                });
 
+                    const cnt = this;
+
+                    await Promise.resolve();
+                    cnt.onScrollItems66_(evt);
+
+                    await Promise.resolve();
+
+                }
+
+                mclp.onScrollItems_ = function (evt) {
+
+                    const cnt = this;
+                    cnt.__intermediate_delay__ = new Promise(resolve => {
+                        cnt.onScrollItems77_(evt).then(() => {
+                            resolve();
+                        });
+                    });
+                }
             }
+
+            // mclp.handleLiveChatActions66_ =mclp.handleLiveChatActions_; 
+
+
 
         })
 
@@ -769,6 +883,22 @@
 
             mclp.isSmoothScrollEnabled_ = function () {
                 return false;
+            }
+
+            mclp.maybeResizeScrollContainer_ = function () {
+                // 
+            }
+
+            mclp.refreshOffsetContainerHeight_ = function(){
+                //
+            }
+
+            mclp.smoothScroll_ = function (){
+                //
+            }
+
+            mclp.resetSmoothScroll_ = function (){
+                //
             }
 
         } else {
