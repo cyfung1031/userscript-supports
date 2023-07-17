@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.6.4
+// @version             0.6.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -28,6 +28,10 @@
 
     // const ACTIVE_CONTENT_VISIBILITY = true;
     // const ACTIVE_CONTAIN_SIZE = true;
+
+    const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;
+    const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
+    const MAX_ITEMS_FOR_FULL_FLUSH = 25;
 
     const addCss = () => document.head.appendChild(document.createElement('style')).textContent = `
 
@@ -566,7 +570,7 @@
 
 
                 mclp.showNewItems66_ = mclp.showNewItems_;
-                
+
                 mclp.showNewItems77_ = async function () {
                     if (myk > 1e9) myk = 9;
                     let tid = ++myk;
@@ -615,20 +619,37 @@
                         let tid = ++mlf;
                         if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                         if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
-                        
-                        // 4 times to maxItems to avoid frequent trimming.
-                        // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 15 ... 20 ... 30 ..... 60 ... => 15
 
-                        this.activeItems_.length > this.data.maxItemsToDisplay * 4 && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
+                        // 4 times to maxItems to avoid frequent trimming.
+                        // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
+
+                        this.activeItems_.length > this.data.maxItemsToDisplay * 4 && this.data.maxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay - 1);
                         if (cnt.canScrollToBottom_()) {
                             let immd = cnt.__intermediate_delay__;
                             await new Promise(requestAnimationFrame);
                             if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                             if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
+                            const oMaxItemsToDisplay = this.data.maxItemsToDisplay;
+                            const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
+                            let changeMaxItemsToDisplay = false;
+                            if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && this.activeItems_.length > this.data.maxItemsToDisplay) {
+                                if (this.data.maxItemsToDisplay > reducedMaxItemsToDisplay) {
+                                    // as all the rendered chats are already "outdated"
+                                    // all old chats shall remove and reduced number of few chats will be rendered
+                                    // then restore to the original number
+                                    changeMaxItemsToDisplay = true;
+                                    this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
+                                }
+                                this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
+                                //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+                            }
+
                             // it is found that it will render all stacked chats after switching back from background
                             // to avoid lagging in popular livestream with massive chats, trim first before rendering.
-                            this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
+                            // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
+
+
 
                             const items = (cnt.$ || 0).items;
                             if (contensWillChangeController && contensWillChangeController.element !== items) {
@@ -652,6 +673,12 @@
                             } else {
                                 wcController.afterOper();
                             }
+                            if (changeMaxItemsToDisplay) {
+                                if (this.data.maxItemsToDisplay === reducedMaxItemsToDisplay) {
+                                    this.data.maxItemsToDisplay = oMaxItemsToDisplay;
+                                    //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+                                }
+                            }
                             return 1;
                         } else {
                             // cnt.flushActiveItems66_();
@@ -674,7 +701,7 @@
                     }
 
                     const cntData = ((cnt || 0).data || 0);
-                    if (cntData.maxItemsToDisplay > 90) cntData.maxItemsToDisplay = 90;
+                    if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
 
                     // ignore previous __intermediate_delay__ and create a new one
                     cnt.__intermediate_delay__ = new Promise(resolve => {
@@ -957,7 +984,7 @@
             }
 
             mclp.maybeResizeScrollContainer_ = function () {
-                // 
+                //
             }
 
             mclp.refreshOffsetContainerHeight_ = function () {
