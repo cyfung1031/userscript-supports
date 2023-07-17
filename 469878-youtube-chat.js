@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.7.1
+// @version             0.7.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -765,20 +765,24 @@
                             }
 
 
-                            if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+                            if (1) {
 
 
                                 const ff = () => {
 
-
                                     if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                                     //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                                    if (!cnt.atBottom && cnt.allowScroll && cnt.canScrollToBottomDLW_ && cnt.canScrollToBottomDLW_()) cnt.scrollToBottom_();
-                                    Promise.resolve().then(() => {
+                                    if (!cnt.atBottom && cnt.allowScroll && cnt.canScrollToBottomDLW_ && cnt.canScrollToBottomDLW_()) {
+                                        cnt.scrollToBottom_();
 
-                                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                                        if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                                    })
+                                        Promise.resolve().then(() => {
+
+                                            if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                            if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
+                                        })
+
+
+                                    }
                                 }
 
                                 ff();
@@ -786,7 +790,7 @@
 
                                 Promise.resolve().then(ff)
 
-                                requestAnimationFrame(ff);
+                                // requestAnimationFrame(ff);
                             }
 
 
