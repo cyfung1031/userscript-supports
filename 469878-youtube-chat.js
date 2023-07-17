@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.6.2
+// @version             0.6.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -620,6 +620,10 @@
                             await new Promise(requestAnimationFrame);
                             if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                             if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+
+                            // it is found that it will render all stacked chats after switching back from background
+                            // to avoid lagging in popular livestream with massive chats, trim first before rendering.
+                            this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
 
                             const items = (cnt.$ || 0).items;
                             if (contensWillChangeController && contensWillChangeController.element !== items) {
