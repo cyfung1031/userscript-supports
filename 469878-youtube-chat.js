@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.7.2
+// @version             0.7.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -29,6 +29,7 @@
     const MAX_ITEMS_FOR_FULL_FLUSH = 25;
 
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
+    const ENABLE_CONTENT_HIDDEN = false;
 
 
     let cssText1 = '';
@@ -39,7 +40,10 @@
     let cssText6 = '';
     let cssText7 = '';
 
-    if (1) {
+    let cssText2b= '';
+
+    if(ENABLE_CONTENT_HIDDEN){
+
         cssText1 = `
 
       [wSr93="hidden"]:nth-last-child(n+4) {
@@ -47,6 +51,20 @@
         contain-intrinsic-size: auto var(--wsr94);
       }
       `;
+
+        cssText2b = `
+
+        [wSr93="hidden"] { /* initial->[wSr93]->[wSr93="visible"]->[wSr93="hidden"] => reliable rendered height */
+            --wsr93-contain: size layout style;
+            height: var(--wsr94);
+        }
+
+        `;
+
+    }
+
+
+    if (1) {
 
         cssText2 = `
 
@@ -57,10 +75,7 @@
         box-sizing: border-box !important;
         content-visibility: var(--wsr93-content-visibility, visible);
       }
-      [wSr93="hidden"] { /* initial->[wSr93]->[wSr93="visible"]->[wSr93="hidden"] => reliable rendered height */
-        --wsr93-contain: size layout style;
-        height: var(--wsr94);
-      }
+      ${cssText2b}
 
     `;
     }
