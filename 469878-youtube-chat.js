@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.9.0
+// @version             0.9.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -30,7 +30,7 @@
 
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
     // const ENABLE_CONTENT_HIDDEN = false;
-    const ENABLE_FULL_RENDER_REQUIRED = true;
+    let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
 
 
     let cssText1 = '';
@@ -404,6 +404,10 @@
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
         console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
+    }else{
+
+        ENABLE_FULL_RENDER_REQUIRED = true; // Chromium-based browsers
+
     }
 
 
@@ -411,7 +415,7 @@
     // let listOfDom = [];
 
 
-    document.addEventListener('animationstart', (evt)=>{
+    ENABLE_FULL_RENDER_REQUIRED && document.addEventListener('animationstart', (evt)=>{
 
         if(evt.animationName === 'dontRenderAnimation'){
             evt.target.classList.remove('dont-render');
