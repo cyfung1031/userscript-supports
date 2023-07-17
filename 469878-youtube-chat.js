@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.8.0
+// @version             0.9.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -29,7 +29,8 @@
     const MAX_ITEMS_FOR_FULL_FLUSH = 25;
 
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
-    const ENABLE_CONTENT_HIDDEN = false;
+    // const ENABLE_CONTENT_HIDDEN = false;
+    const ENABLE_FULL_RENDER_REQUIRED = true;
 
 
     let cssText1 = '';
@@ -40,8 +41,9 @@
     let cssText6 = '';
     let cssText7 = '';
 
-    let cssText2b= '';
+    // let cssText2b= '';
 
+    /*
     if(ENABLE_CONTENT_HIDDEN){
 
         cssText1 = `
@@ -54,7 +56,7 @@
 
         cssText2b = `
 
-        [wSr93="hidden"] { /* initial->[wSr93]->[wSr93="visible"]->[wSr93="hidden"] => reliable rendered height */
+        [wSr93="hidden"] { /|* initial->[wSr93]->[wSr93="visible"]->[wSr93="hidden"] => reliable rendered height *|/
             --wsr93-contain: size layout style;
             height: var(--wsr94);
         }
@@ -62,8 +64,9 @@
         `;
 
     }
+*/
 
-
+/*
     if (1) {
 
         cssText2 = `
@@ -79,6 +82,7 @@
 
     `;
     }
+    */
 
     if (ENABLE_NO_SMOOTH_TRANSFORM) {
 
@@ -308,11 +312,11 @@
             pointer-events:none !important;
 
         }
-       
+
         #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
             overflow-anchor: initial !important;
         }
-        
+
         html item-anchor {
 
             height: 1px;
@@ -328,6 +332,67 @@
         }
 
 
+        /*
+        #qwcc{
+            position:fixed;
+            top:0;
+            bottom:0;
+            left:0;
+            right:0;
+            contain: strict;
+            visibility: collapse;
+            z-index:-1;
+        }
+        */
+
+
+        /*
+        .dont-render{
+            position: absolute !important;
+            visibility: collapse !important;
+            z-index:-1 !important;
+            width:auto !important;
+            height:auto !important;
+            contain: none !important;
+            box-sizing: border-box !important;
+
+        }
+        */
+
+
+        
+        @keyframes dontRenderAnimation {
+            0% {
+                background-position-x: 3px;
+            }
+            100% {
+                background-position-x: 4px;
+            }
+        }
+
+        .dont-render{
+            visibility: collapse !important;
+            transform: scale(0.01) !important;
+            transform: scale(0.00001) !important;
+            transform: scale(0.0000001) !important;
+            transform-origin:0 0 !important;
+            z-index:-1 !important;
+            contain: strict !important;
+            box-sizing: border-box !important;
+
+            height:1px !important;
+            height:0.1px !important;
+            height:0.01px !important;
+            height:0.0001px !important;
+            height:0.000001px !important;
+
+
+            animation: dontRenderAnimation 1ms linear 80ms 1 normal forwards !important;
+
+        }
+
+
+
     }
 
     `;
@@ -340,6 +405,114 @@
     if (!isContainSupport) {
         console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
     }
+
+
+    // let bufferRegion = null;
+    // let listOfDom = [];
+
+
+    document.addEventListener('animationstart', (evt)=>{
+
+        if(evt.animationName === 'dontRenderAnimation'){
+            evt.target.classList.remove('dont-render');
+        }
+
+    }, true);
+
+    ENABLE_FULL_RENDER_REQUIRED && ((appendChild)=>{
+
+        const f = (elm)=>{
+            if(elm && elm.nodeType === 1){
+                elm.classList.add('dont-render');
+            }
+        }
+
+        Node.prototype.appendChild = function(a){
+
+            if(this.id==='items' && this.classList.contains('yt-live-chat-item-list-renderer')){
+                // if(this.matches('.style-scope.yt-live-chat-item-list-renderer')){
+
+
+                    // let elms = [];
+                    // if(a.nodeType ===1) elms.push(a);
+                    // else if(a instanceof DocumentFragment ){
+
+                    //     for(let n = a.firstChild; n; n=n.nextSibling){
+                    //         elms.push(n);
+                    //     }
+
+                    // }
+
+                    // for(const elm of elms){
+
+
+                    //     if(elm && elm.nodeType ===1){
+
+                    //         /*
+
+                    //         let placeholder = document.createElement('dom-placeholder');
+
+
+                    //         placeholder.descTo = elm;
+                    //         elm.placeHolderAs = placeholder;
+                    //         appendChild.call(bufferRegion, elm);
+                    //         return appendChild.call(this, placeholder);
+
+                    //         */
+
+                    //         elm.classList.add('dont-render');
+                    //         // // listOfDom.push(elm);
+                    //         // Promise.resolve(elm).then((elm)=>{
+
+                    //         //     setTimeout(()=>{
+
+
+                    //         //       elm.classList.remove('dont-render');
+                    //         //     }, 80);
+                    //         // });
+
+
+
+
+                    //     }
+
+                    // }
+
+
+
+                    if(a && a.nodeType ===1) f(a);
+                    else if(a instanceof DocumentFragment ){
+
+                        for(let n = a.firstChild; n; n=n.nextSibling){
+                            f(n);
+                        }
+
+                    }
+
+
+                    return appendChild.call(this, a);
+
+                // }
+
+            }
+            // console.log(11,this)
+            return appendChild.call(this, a)
+
+        }
+
+    })(Node.prototype.appendChild);
+
+
+    ((appendChild)=>{
+
+        DocumentFragment.prototype.appendChild = function(a){
+
+            // console.log(22,this)
+            return appendChild.call(this, a)
+
+        }
+
+    })(DocumentFragment.prototype.appendChild)
 
     // const APPLY_delayAppendChild = false;
 
@@ -1056,15 +1229,18 @@
 
             const target = entry.target;
             if (!target) return;
+            // if(target.classList.contains('dont-render')) return;
             let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
-            const h = entry.boundingClientRect.height;
+            // const h = entry.boundingClientRect.height;
+            /*
             if (h < 16) { // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
                 // e.g. under fullscreen. the element created but not rendered.
                 target.setAttribute('wSr93', '');
                 return;
             }
+            */
             if (isVisible) {
-                target.style.setProperty('--wsr94', h + 'px');
+                // target.style.setProperty('--wsr94', h + 'px');
                 target.setAttribute('wSr93', 'visible');
                 if (nNextElem(target) === null) {
 
@@ -1095,7 +1271,7 @@
             }
             else if (target.getAttribute('wSr93') === 'visible') { // ignore target.getAttribute('wSr93') === '' to avoid wrong sizing
 
-                target.style.setProperty('--wsr94', h + 'px');
+                // target.style.setProperty('--wsr94', h + 'px');
                 target.setAttribute('wSr93', 'hidden');
             } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wSr93') === '' <new last item>
 
@@ -1136,6 +1312,78 @@
             mutFn(items);
         });
 
+
+        // let lzf = 0;
+        /*
+        const buffObserver = new MutationObserver((mutations) => {
+
+            const buff = (mutations[0] || 0).target;
+            if (!buff) return;
+
+            let m2 = document.querySelector('#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer');
+            if(!m2) return;
+
+
+            let uz = 0;
+            for(const mutation of mutations){
+                if(mutation.addedNodes){
+                    for(const node of mutation.addedNodes){
+
+                        uz++;
+
+                        Promise.resolve(node).then((node) => {
+
+
+                            const placeholder = node.placeHolderAs;
+                            if (placeholder && placeholder.isConnected) {
+                                placeholder.descTo = null;
+                                node.placeHolderAs = null;
+
+                                requestAnimationFrame(() => {
+                                    if (placeholder.isConnected && node.isConnected) {
+
+
+                                        placeholder.replaceWith(node);
+                                        try {
+                                            placeholder.remove();
+                                        } catch (e) { }
+                                    }
+                                })
+                            }
+                        })
+
+                    }
+                }
+            }
+
+            if(uz===0) return;
+
+
+            if(lzf>1e9) lzf = 9;
+            let tid = ++lzf;
+            /|*
+
+            let f = ()=>{
+
+                if(lzf !== tid) return;
+                let r = [];
+                let remain = false;
+                for(let node = buff.firstChild; node !==null ; node=node.nextSibling){
+                    if(node.mkkReady) r.push(node);
+                    else remain = true;
+                }
+
+                m2.append(...r);
+
+                if(remain) requestAnimationFrame(f);
+
+            };
+
+            requestAnimationFrame(f)
+            *|/
+        });
+        */
+
         const setupMutObserver = (m2) => {
             mutObserver.disconnect();
             mutObserver.takeRecords();
@@ -1166,6 +1414,18 @@
                     }
 
                 }
+
+                // let div = document.createElement('div');
+                // div.id = 'qwcc';
+                // HTMLElement.prototype.appendChild.call(document.querySelector('yt-live-chat-item-list-renderer'), div )
+                // bufferRegion =div;
+
+                // buffObserver.takeRecords();
+                // buffObserver.disconnect();
+                // buffObserver.observe(div,  {
+                //     childList: true,
+                //     subtree: false
+                // })
 
 
 
