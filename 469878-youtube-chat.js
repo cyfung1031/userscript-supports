@@ -615,6 +615,11 @@
                         let tid = ++mlf;
                         if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                         if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+                        
+                        // 4 times to maxItems to avoid frequent trimming.
+                        // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 15 ... 20 ... 30 ..... 60 ... => 15
+
+                        this.activeItems_.length > this.data.maxItemsToDisplay * 4 && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
                         if (cnt.canScrollToBottom_()) {
                             let immd = cnt.__intermediate_delay__;
                             await new Promise(requestAnimationFrame);
@@ -649,7 +654,8 @@
                             }
                             return 1;
                         } else {
-                            cnt.flushActiveItems66_();
+                            // cnt.flushActiveItems66_();
+                            // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
                             return 2;
                         }
                     } catch (e) {
