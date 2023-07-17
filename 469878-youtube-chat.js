@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.6.5
+// @version             0.7.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -15,37 +15,40 @@
 // @allFrames           true
 // @inject-into         page
 //
-// @description         To make your YouTube Live Chat scroll instantly without smoothing transform CSS
-// @description:ja      YouTubeライブチャットをスムーズな変形CSSなしで瞬時にスクロールさせるために。
-// @description:zh-TW   讓您的 YouTube 直播聊天即時滾動，不經過平滑轉換 CSS。
-// @description:zh-CN   让您的 YouTube 直播聊天即时滚动，不经过平滑转换 CSS。
+// @description         Ultimate Performance Boost for YouTube Live Chats
+// @description:ja      YouTubeのライブチャットの究極のパフォーマンスブースト
+// @description:zh-TW   YouTube直播聊天的終極性能提升
+// @description:zh-CN   YouTube直播聊天的终极性能提升
 //
 // ==/UserScript==
 
 ((__CONTEXT__) => {
 
-    // const ACTIVE_DEFERRED_APPEND = false; // somehow buggy
-
-    // const ACTIVE_CONTENT_VISIBILITY = true;
-    // const ACTIVE_CONTAIN_SIZE = true;
-
     const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;
     const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
     const MAX_ITEMS_FOR_FULL_FLUSH = 25;
 
-    const addCss = () => document.head.appendChild(document.createElement('style')).textContent = `
+    const ENABLE_NO_SMOOTH_TRANSFORM = true;
 
 
-    @supports (contain:layout paint style) and (content-visibility:auto) and (contain-intrinsic-size:auto var(--wsr94)) {
+    let cssText1 = '';
+    let cssText2 = '';
+    let cssText3 = '';
+    let cssText4 = '';
+    let cssText5 = '';
+    let cssText6 = '';
+    let cssText7 = '';
+    if (ENABLE_NO_SMOOTH_TRANSFORM) {
+        cssText1 = `
 
       [wSr93="hidden"]:nth-last-child(n+4) {
         --wsr93-content-visibility: auto;
         contain-intrinsic-size: auto var(--wsr94);
       }
+      `;
 
-    }
+        cssText2 = `
 
-    @supports (contain:layout paint style) {
 
       [wSr93] {
         --wsr93-contain: layout style;
@@ -57,6 +60,39 @@
         --wsr93-contain: size layout style;
         height: var(--wsr94);
       }
+
+    `;
+
+        cssText3 = `
+
+        #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
+            position: static !important;
+        }
+    `
+        cssText4 =
+
+
+            `
+
+
+        /* optional */
+        #item-offset.style-scope.yt-live-chat-item-list-renderer {
+        height: auto !important;
+        min-height: unset !important;
+        }
+
+        #items.style-scope.yt-live-chat-item-list-renderer {
+        transform: translateY(0px) !important;
+        }
+
+        /* optional */
+
+      `
+    }
+
+    if (1) {
+        cssText5 = `
+
 
 
       /* ------------------------------------------------------------------------------------------------------------- */
@@ -100,44 +136,14 @@
 
       /* ------------------------------------------------------------------------------------------------------------- */
 
+    `
     }
 
-    @supports (color: var(--general)) {
+    if (1) {
 
-        #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
-            position: static !important;
-        }
-
-        .ytp-contextmenu[class],
-        .toggle-button.tp-yt-paper-toggle-button[class],
-        .yt-spec-touch-feedback-shape__fill[class],
-        .fill.yt-interaction[class],
-        .ytp-videowall-still-info-content[class],
-        .ytp-suggestion-image[class] {
-          will-change: unset !important;
-        }
-
-        yt-img-shadow[height][width] {
-          content-visibility: visible !important;
-        }
-
-        yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
-            overflow-y: scroll;
-            padding-right: 0;
-        }
+        cssText6 = `
 
 
-        /* optional */
-        #item-offset.style-scope.yt-live-chat-item-list-renderer {
-        height: auto !important;
-        min-height: unset !important;
-        }
-
-        #items.style-scope.yt-live-chat-item-list-renderer {
-        transform: translateY(0px) !important;
-        }
-
-        /* optional */
         yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
         pointer-events: none !important;
         }
@@ -187,12 +193,82 @@
             overflow: visible;
         }
 
+
+    `
+    }
+
+    if (1) {
+        cssText7 = `
+
+
+        .ytp-contextmenu[class],
+        .toggle-button.tp-yt-paper-toggle-button[class],
+        .yt-spec-touch-feedback-shape__fill[class],
+        .fill.yt-interaction[class],
+        .ytp-videowall-still-info-content[class],
+        .ytp-suggestion-image[class] {
+          will-change: unset !important;
+        }
+
+        img, .style-scope {
+          content-visibility: visible !important;
+        }
+
+        yt-img-shadow[height][width] {
+          content-visibility: visible !important;
+        }
+
+        yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
+            overflow-y: scroll;
+            padding-right: 0;
+        }
+
+    `
+    }
+
+    function addCssElement() {
+        let s = document.createElement('style')
+        s.id = 'ewRvC';
+        return s;
+    }
+
+    const addCss = () => document.head.appendChild(addCssElement()).textContent = `
+
+
+    @supports (contain:layout paint style) and (content-visibility:auto) and (contain-intrinsic-size:auto var(--wsr94)) {
+
+        ${cssText1}
+    }
+
+    @supports (contain:layout paint style) {
+
+      ${cssText2}
+
+
+      ${cssText5}
+
+    }
+
+    @supports (color: var(--general)) {
+
+        ${cssText3}
+
+        ${cssText7}
+
+
+        ${cssText4}
+
+        ${cssText6}
+
+
+
     }
 
     `;
 
     const { Promise, requestAnimationFrame, IntersectionObserver } = __CONTEXT__;
 
+    if (!IntersectionObserver) return console.error("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.")
 
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
@@ -422,6 +498,7 @@
     }
 
     const setupStyle = (m1, m2) => {
+        if (!ENABLE_NO_SMOOTH_TRANSFORM) return;
 
         const dummy1v = {
             transform: '',
@@ -430,6 +507,7 @@
             paddingBottom: '',
             paddingTop: ''
         };
+
         for (const k of ['toString', 'getPropertyPriority', 'getPropertyValue', 'item', 'removeProperty', 'setProperty']) {
             dummy1v[k] = ((k) => (function () { const style = this[sp7]; return style[k](...arguments); }))(k)
         }
@@ -486,6 +564,7 @@
 
     customYtElements.onRegistryReady(() => {
 
+
         let scrollWillChangeController = null;
         let contensWillChangeController = null;
 
@@ -523,7 +602,7 @@
                 };
             }
 
-            if ((mclp.scrollToBottom_ || 0).length === 0) {
+            if ((mclp.scrollToBottom_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
 
                 mclp.scrollToBottom66_ = mclp.scrollToBottom_;
 
@@ -566,7 +645,7 @@
             }
 
 
-            if ((mclp.showNewItems_ || 0).length === 0) {
+            if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
 
 
                 mclp.showNewItems66_ = mclp.showNewItems_;
@@ -679,6 +758,33 @@
                                     //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
                                 }
                             }
+
+
+                            if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+
+
+                                const ff = () => {
+
+
+                                    if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                    //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                    if (!cnt.atBottom && cnt.allowScroll && cnt.canScrollToBottomDLW_ && cnt.canScrollToBottomDLW_()) cnt.scrollToBottom_();
+                                    Promise.resolve().then(() => {
+
+                                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                        if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
+                                    })
+                                }
+
+                                ff();
+
+
+                                Promise.resolve().then(ff)
+
+                                requestAnimationFrame(ff);
+                            }
+
+
                             return 1;
                         } else {
                             // cnt.flushActiveItems66_();
@@ -831,7 +937,6 @@
 
     let done = 0;
     let main = async (q) => {
-
         if (done) return;
 
         if (!q) return;
@@ -875,6 +980,7 @@
                 target.style.setProperty('--wsr94', h + 'px');
                 target.setAttribute('wSr93', 'visible');
                 if (nNextElem(target) === null) {
+
                     // firstVisibleItemDetected = true;
                     /*
                       if (dateNow() - lastScroll < 80) {
@@ -975,28 +1081,36 @@
                 return this.detached66();
             }
 
+            mclp.canScrollToBottomDLW_ = () => !(dateNow() - lastWheel < 80);
+
             mclp.canScrollToBottom_ = function () {
-                return this.atBottom && this.allowScroll && !(dateNow() - lastWheel < 80)
+                return this.atBottom && this.allowScroll && this.canScrollToBottomDLW_();
             }
 
-            mclp.isSmoothScrollEnabled_ = function () {
-                return false;
-            }
+            if (ENABLE_NO_SMOOTH_TRANSFORM) {
 
-            mclp.maybeResizeScrollContainer_ = function () {
-                //
-            }
 
-            mclp.refreshOffsetContainerHeight_ = function () {
-                //
-            }
+                mclp.isSmoothScrollEnabled_ = function () {
+                    return false;
+                }
 
-            mclp.smoothScroll_ = function () {
-                //
-            }
 
-            mclp.resetSmoothScroll_ = function () {
-                //
+
+                mclp.maybeResizeScrollContainer_ = function () {
+                    //
+                }
+
+                mclp.refreshOffsetContainerHeight_ = function () {
+                    //
+                }
+
+                mclp.smoothScroll_ = function () {
+                    //
+                }
+
+                mclp.resetSmoothScroll_ = function () {
+                    //
+                }
             }
 
         } else {
