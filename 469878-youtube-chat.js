@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.7.3
+// @version             0.8.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -280,6 +280,52 @@
 
         ${cssText6}
 
+        .no-anchor * {
+            overflow-anchor: none;
+        }
+        .no-anchor > item-anchor {
+            overflow-anchor: auto;
+        }
+
+        item-anchor {
+
+            height:1px;
+            width: 100%;
+            transform: scaleY(0.00001);
+            transform-origin:0 0;
+            contain: strict;
+            opacity:0;
+            display:flex;
+            position:relative;
+            flex-shrink:0;
+            flex-grow:0;
+            margin-bottom:0;
+            overflow:hidden;
+            box-sizing:border-box;
+            visibility: visible;
+            content-visibility: visible;
+            contain-intrinsic-size: auto 1px;
+            pointer-events:none !important;
+
+        }
+       
+        #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
+            overflow-anchor: initial !important;
+        }
+        
+        html item-anchor {
+
+            height: 1px;
+            width: 1px;
+            top:auto;
+            left:auto;
+            right:auto;
+            bottom:auto;
+            transform: translateY(-1px);
+            position: absolute;
+            z-index:-1;
+
+        }
 
 
     }
@@ -780,7 +826,7 @@
                             }
 
 
-                            if (1) {
+                            if (!ENABLE_NO_SMOOTH_TRANSFORM) {
 
 
                                 const ff = () => {
@@ -806,6 +852,23 @@
                                 Promise.resolve().then(ff)
 
                                 // requestAnimationFrame(ff);
+                            } else if(false) {
+
+                                Promise.resolve().then(() => {
+
+                                    if (!cnt.atBottom) {
+                                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                        cnt.scrollToBottom_();
+                                    }
+
+                                }).then(()=>{
+
+                                    if (!cnt.atBottom) {
+                                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                        cnt.scrollToBottom_();
+                                    }
+
+                                })
                             }
 
 
@@ -1082,6 +1145,30 @@
                     subtree: false
                 });
                 mutFn(m2);
+
+
+                if(ENABLE_NO_SMOOTH_TRANSFORM){
+
+                    let items = m2;
+                    let addedAnchor = false;
+                    if(items){
+                        if(items.nextElementSibling === null){
+                            items.classList.add('no-anchor');
+                            addedAnchor = true;
+                            items.parentNode.appendChild(document.createElement('item-anchor'));
+                        }
+                    }
+
+
+
+                    if(addedAnchor){
+                        nodeParent(m2).classList.add('no-anchor'); // required
+                    }
+
+                }
+
+
+
             }
         }
 
