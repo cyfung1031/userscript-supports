@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.9.1
+// @version             0.9.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -31,6 +31,7 @@
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
     // const ENABLE_CONTENT_HIDDEN = false;
     let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
+    const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
 
 
     let cssText1 = '';
@@ -1124,7 +1125,21 @@
                     const cnt = this;
 
                     await Promise.resolve();
-                    cnt.onScrollItems66_(evt);
+                    if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
+                        await Promise.resolve().then(()=>{
+                            this.ytRendererBehavior.onScroll(evt);
+                        }).then(()=>{
+                            if (dateNow() - lastWheel < 80) {
+                                this.setAtBottom();
+                            }
+                        }).then(()=>{
+                            this.flushActiveItems_();
+                        });
+                    } else {
+                        cnt.onScrollItems66_(evt);
+                    }
+                    
+
 
                     await Promise.resolve();
 
