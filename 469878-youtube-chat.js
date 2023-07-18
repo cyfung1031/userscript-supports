@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.9.2
+// @version             0.9.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -32,6 +32,7 @@
     // const ENABLE_CONTENT_HIDDEN = false;
     let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
     const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
+    const USE_WILL_CHANGE_CONTROLLER = false;
 
 
     let cssText1 = '';
@@ -861,20 +862,22 @@
                     }
 
                     const cnt = this;
-                    const itemScroller = cnt.itemScroller;
-                    if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
-                        scrollWillChangeController.release();
-                        scrollWillChangeController = null;
+                    if (USE_WILL_CHANGE_CONTROLLER) {
+                        const itemScroller = cnt.itemScroller;
+                        if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
+                            scrollWillChangeController.release();
+                            scrollWillChangeController = null;
+                        }
+                        if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
                     }
-                    if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
                     const wcController = scrollWillChangeController;
-                    wcController.beforeOper();
+                    wcController && wcController.beforeOper();
 
                     await Promise.resolve();
                     cnt.scrollToBottom66_();
 
                     await Promise.resolve();
-                    wcController.afterOper();
+                    wcController && wcController.afterOper();
 
                 }
 
@@ -975,26 +978,31 @@
 
 
                             const items = (cnt.$ || 0).items;
-                            if (contensWillChangeController && contensWillChangeController.element !== items) {
-                                contensWillChangeController.release();
-                                contensWillChangeController = null;
+
+                            if (USE_WILL_CHANGE_CONTROLLER) {
+                                if (contensWillChangeController && contensWillChangeController.element !== items) {
+                                    contensWillChangeController.release();
+                                    contensWillChangeController = null;
+                                }
+                                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
                             }
-                            if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
                             const wcController = contensWillChangeController;
                             cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
-                            wcController.beforeOper();
+                            wcController && wcController.beforeOper();
                             await Promise.resolve();
                             const len1 = cnt.activeItems_.length;
                             cnt.flushActiveItems66_();
                             const len2 = cnt.activeItems_.length;
                             let bAsync = len1 !== len2;
                             await Promise.resolve();
-                            if (bAsync) {
-                                cnt.async(() => {
+                            if (wcController) {
+                                if (bAsync) {
+                                    cnt.async(() => {
+                                        wcController.afterOper();
+                                    });
+                                } else {
                                     wcController.afterOper();
-                                });
-                            } else {
-                                wcController.afterOper();
+                                }
                             }
                             if (changeMaxItemsToDisplay) {
                                 if (this.data.maxItemsToDisplay === reducedMaxItemsToDisplay) {
@@ -1513,7 +1521,7 @@
             if (!evt || !evt.isTrusted) return;
             // lastScroll = dateNow();
             if (++scrollCount > 1e9) scrollCount = 9;
-        }, { passive: true, capture: true }) // support contain => support passive
+        }, { passive: true, capture: true }); // support contain => support passive
 
         // document.addEventListener('scroll', (evt) => {
 
@@ -1534,7 +1542,7 @@
             lastScrollCount = scrollCount;
             lastWheel = dateNow();
 
-        }, { passive: true, capture: true }) // support contain => support passive
+        }, { passive: true, capture: true }); // support contain => support passive
 
 
         const fp = (renderer) => {
@@ -1543,7 +1551,7 @@
             if (container) {
                 container.setAttribute = tickerContainerSetAttribute;
             }
-        }
+        };
         const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
             "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
         for (const tag of tags) {
