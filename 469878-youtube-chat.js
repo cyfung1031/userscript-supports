@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.9.3
+// @version             0.9.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -33,6 +33,7 @@
     let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
     const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
     const USE_WILL_CHANGE_CONTROLLER = false;
+    const MODIFY_SCROLL_TO_BOTTOM = false; // NOT REQUIRED in the latest version
 
 
     let cssText1 = '';
@@ -42,6 +43,12 @@
     let cssText5 = '';
     let cssText6 = '';
     let cssText7 = '';
+
+    function dr(s) {
+        // reserved for future use
+        return s;
+        // return window.deWeakJS ? window.deWeakJS(s) : s;
+    }
 
     // let cssText2b= '';
 
@@ -68,23 +75,23 @@
     }
 */
 
-/*
-    if (1) {
-
-        cssText2 = `
-
-
-      [wSr93] {
-        --wsr93-contain: layout style;
-        contain: var(--wsr93-contain, unset) !important;
-        box-sizing: border-box !important;
-        content-visibility: var(--wsr93-content-visibility, visible);
-      }
-      ${cssText2b}
-
-    `;
-    }
-    */
+    /*
+        if (1) {
+    
+            cssText2 = `
+    
+    
+          [wSr93] {
+            --wsr93-contain: layout style;
+            contain: var(--wsr93-contain, unset) !important;
+            box-sizing: border-box !important;
+            content-visibility: var(--wsr93-content-visibility, visible);
+          }
+          ${cssText2b}
+    
+        `;
+        }
+        */
 
     if (ENABLE_NO_SMOOTH_TRANSFORM) {
 
@@ -258,7 +265,7 @@
         return s;
     }
 
-    const addCss = () => document.head.appendChild(addCssElement()).textContent = `
+    const addCss = () => document.head.appendChild(dr(addCssElement())).textContent = `
 
 
     @supports (contain:layout paint style) and (content-visibility:auto) and (contain-intrinsic-size:auto var(--wsr94)) {
@@ -362,7 +369,7 @@
         */
 
 
-        
+
         @keyframes dontRenderAnimation {
             0% {
                 background-position-x: 3px;
@@ -372,7 +379,7 @@
             }
         }
 
-        .dont-render{
+        /*html[dont-render-enabled] */ .dont-render{
             visibility: collapse !important;
             transform: scale(0.01) !important;
             transform: scale(0.00001) !important;
@@ -406,7 +413,7 @@
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
         console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
-    }else{
+    } else {
 
         ENABLE_FULL_RENDER_REQUIRED = true; // Chromium-based browsers
 
@@ -417,104 +424,107 @@
     // let listOfDom = [];
 
 
-    ENABLE_FULL_RENDER_REQUIRED && document.addEventListener('animationstart', (evt)=>{
+    ENABLE_FULL_RENDER_REQUIRED && document.addEventListener('animationstart', (evt) => {
 
-        if(evt.animationName === 'dontRenderAnimation'){
+        if (evt.animationName === 'dontRenderAnimation') {
             evt.target.classList.remove('dont-render');
         }
 
     }, true);
 
-    ENABLE_FULL_RENDER_REQUIRED && ((appendChild)=>{
+    ENABLE_FULL_RENDER_REQUIRED && ((appendChild) => {
 
-        const f = (elm)=>{
-            if(elm && elm.nodeType === 1){
+        const f = (elm) => {
+            if (elm && elm.nodeType === 1) {
                 elm.classList.add('dont-render');
             }
         }
 
-        Node.prototype.appendChild = function(a){
+        Node.prototype.appendChild = function (a) {
+            a = dr(a);
 
-            if(this.id==='items' && this.classList.contains('yt-live-chat-item-list-renderer')){
+
+            if (this.id === 'items' && this.classList.contains('yt-live-chat-item-list-renderer')) {
                 // if(this.matches('.style-scope.yt-live-chat-item-list-renderer')){
 
 
-                    // let elms = [];
-                    // if(a.nodeType ===1) elms.push(a);
-                    // else if(a instanceof DocumentFragment ){
+                // let elms = [];
+                // if(a.nodeType ===1) elms.push(a);
+                // else if(a instanceof DocumentFragment ){
 
-                    //     for(let n = a.firstChild; n; n=n.nextSibling){
-                    //         elms.push(n);
-                    //     }
+                //     for(let n = a.firstChild; n; n=n.nextSibling){
+                //         elms.push(n);
+                //     }
 
-                    // }
+                // }
 
-                    // for(const elm of elms){
-
-
-                    //     if(elm && elm.nodeType ===1){
-
-                    //         /*
-
-                    //         let placeholder = document.createElement('dom-placeholder');
+                // for(const elm of elms){
 
 
-                    //         placeholder.descTo = elm;
-                    //         elm.placeHolderAs = placeholder;
-                    //         appendChild.call(bufferRegion, elm);
-                    //         return appendChild.call(this, placeholder);
+                //     if(elm && elm.nodeType ===1){
 
-                    //         */
+                //         /*
 
-                    //         elm.classList.add('dont-render');
-                    //         // // listOfDom.push(elm);
-                    //         // Promise.resolve(elm).then((elm)=>{
-
-                    //         //     setTimeout(()=>{
+                //         let placeholder = document.createElement('dom-placeholder');
 
 
-                    //         //       elm.classList.remove('dont-render');
-                    //         //     }, 80);
-                    //         // });
+                //         placeholder.descTo = elm;
+                //         elm.placeHolderAs = placeholder;
+                //         appendChild.call(bufferRegion, elm);
+                //         return appendChild.call(this, placeholder);
+
+                //         */
+
+                //         elm.classList.add('dont-render');
+                //         // // listOfDom.push(elm);
+                //         // Promise.resolve(elm).then((elm)=>{
+
+                //         //     setTimeout(()=>{
 
 
-
-
-                    //     }
-
-                    // }
+                //         //       elm.classList.remove('dont-render');
+                //         //     }, 80);
+                //         // });
 
 
 
-                    if(a && a.nodeType ===1) f(a);
-                    else if(a instanceof DocumentFragment ){
 
-                        for(let n = a.firstChild; n; n=n.nextSibling){
-                            f(n);
-                        }
+                //     }
 
+                // }
+
+
+
+                if (a && a.nodeType === 1) f(a);
+                else if (a instanceof DocumentFragment) {
+
+                    for (let n = a.firstChild; n; n = n.nextSibling) {
+                        f(n);
                     }
 
+                }
 
-                    return appendChild.call(this, a);
+
+                return appendChild.call(dr(this), a);
 
                 // }
 
             }
             // console.log(11,this)
-            return appendChild.call(this, a)
+            return appendChild.call(dr(this), a)
 
         }
 
     })(Node.prototype.appendChild);
 
 
-    ((appendChild)=>{
+    ((appendChild) => {
 
-        DocumentFragment.prototype.appendChild = function(a){
+        DocumentFragment.prototype.appendChild = function (a) {
+            a = dr(a)
 
             // console.log(22,this)
-            return appendChild.call(this, a)
+            return appendChild.call(dr(this), a)
 
         }
 
@@ -630,11 +640,11 @@
 
             }
 
-            HTMLElement.prototype.setAttribute.call(this, attrName, v);
+            HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
 
 
         } else {
-            HTMLElement.prototype.setAttribute.apply(this, arguments);
+            HTMLElement.prototype.setAttribute.apply(dr(this), arguments);
         }
 
     };
@@ -644,7 +654,13 @@
         try {
             propertyDescriptorGetter = Object.getOwnPropertyDescriptor(proto, propertyName).get;
         } catch (e) { }
-        return typeof propertyDescriptorGetter === 'function' ? (e) => propertyDescriptorGetter.call(e) : (e) => e[propertyName];
+        return typeof propertyDescriptorGetter === 'function' ? (e) => {
+            try {
+
+                return propertyDescriptorGetter.call(dr(e))
+            } catch (e) { }
+            return e[propertyName];
+        } : (e) => e[propertyName];
     };
 
     const nodeParent = fxOperator(Node.prototype, 'parentNode');
@@ -806,7 +822,6 @@
 
     }
 
-
     customYtElements.onRegistryReady(() => {
 
 
@@ -815,6 +830,7 @@
 
         // as it links to event handling, it has to be injected using immediateCallback
         customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (cProto) => {
+
 
             const mclp = cProto;
             console.assert(typeof mclp.scrollToBottom_ === 'function')
@@ -847,7 +863,7 @@
                 };
             }
 
-            if ((mclp.scrollToBottom_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
+            if ((mclp.scrollToBottom_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM && MODIFY_SCROLL_TO_BOTTOM) {
 
                 mclp.scrollToBottom66_ = mclp.scrollToBottom_;
 
@@ -890,6 +906,7 @@
                     });
                 }
             }
+
 
 
             if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -1038,7 +1055,7 @@
                                 Promise.resolve().then(ff)
 
                                 // requestAnimationFrame(ff);
-                            } else if(false) {
+                            } else if (false) {
 
                                 Promise.resolve().then(() => {
 
@@ -1047,7 +1064,7 @@
                                         cnt.scrollToBottom_();
                                     }
 
-                                }).then(()=>{
+                                }).then(() => {
 
                                     if (!cnt.atBottom) {
                                         if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
@@ -1134,19 +1151,19 @@
 
                     await Promise.resolve();
                     if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
-                        await Promise.resolve().then(()=>{
+                        await Promise.resolve().then(() => {
                             this.ytRendererBehavior.onScroll(evt);
-                        }).then(()=>{
+                        }).then(() => {
                             if (dateNow() - lastWheel < 80) {
                                 this.setAtBottom();
                             }
-                        }).then(()=>{
+                        }).then(() => {
                             this.flushActiveItems_();
                         });
                     } else {
                         cnt.onScrollItems66_(evt);
                     }
-                    
+
 
 
                     await Promise.resolve();
@@ -1232,6 +1249,10 @@
         if (!(m1 && m1.id === 'item-offset' && m2 && m2.id === 'items')) return;
 
         done = 1;
+
+        // setTimeout(()=>{
+        //   document.documentElement.setAttribute('dont-render-enabled','')
+        // },80)
 
         Promise.resolve().then(watchUserCSS);
 
@@ -1422,21 +1443,21 @@
                 mutFn(m2);
 
 
-                if(ENABLE_NO_SMOOTH_TRANSFORM){
+                if (ENABLE_NO_SMOOTH_TRANSFORM) {
 
                     let items = m2;
                     let addedAnchor = false;
-                    if(items){
-                        if(items.nextElementSibling === null){
+                    if (items) {
+                        if (items.nextElementSibling === null) {
                             items.classList.add('no-anchor');
                             addedAnchor = true;
-                            items.parentNode.appendChild(document.createElement('item-anchor'));
+                            items.parentNode.appendChild(dr(document.createElement('item-anchor')));
                         }
                     }
 
 
 
-                    if(addedAnchor){
+                    if (addedAnchor) {
                         nodeParent(m2).classList.add('no-anchor'); // required
                     }
 
