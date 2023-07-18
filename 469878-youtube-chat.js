@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.9.5
+// @version             0.9.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -33,7 +33,7 @@
     let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
     const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
     const USE_WILL_CHANGE_CONTROLLER = false;
-    const MODIFY_SCROLL_TO_BOTTOM = false; // NOT REQUIRED in the latest version
+    const MODIFY_SCROLL_TO_BOTTOM = false; // NOT REQUIRED in the latest version // and affect atBottom logic
 
 
     let cssText1 = '';
@@ -1050,7 +1050,7 @@
                                 Promise.resolve().then(ff)
 
                                 // requestAnimationFrame(ff);
-                            } else if (false) {
+                            } else if (true) { // it might not be sticky to bottom when there is a full refresh.
 
                                 Promise.resolve().then(() => {
 
@@ -1059,7 +1059,7 @@
                                         cnt.scrollToBottom_();
                                     }
 
-                                }).then(() => {
+                                }).then(() => { // do twice
 
                                     if (!cnt.atBottom) {
                                         if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
