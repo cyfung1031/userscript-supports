@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.06.0
+// @version             2023.07.19.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -168,7 +168,10 @@ SOFTWARE.
   let toResetFuncHandlers = false;
 
   // Assign the Promise constructor to a local variable
-  const { Promise, requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+  /** @type {globalThis.PromiseConstructor} */
+  const Promise = (async ()=>{})().constructor;
 
   const ignorePromiseErrorFn = () => { }; // Promise will be resolved for Promise.all
 
@@ -328,8 +331,8 @@ SOFTWARE.
         rm(sK); // remove timeout
       }
     });
+    await Promise.resolve();
     return sHandlers;
-
   }
 
   /**
@@ -405,4 +408,4 @@ SOFTWARE.
   // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
 
-})({ Promise, requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval });
+})({ requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval });
