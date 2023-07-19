@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.0
+// @version             2023.07.20.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -472,8 +472,8 @@ SOFTWARE.
       let now;
       if (dInterupter !== null && (now = Date.now()) > bgExecutionAt) {
         // interupter not triggered by rAF
-        bgExecutionAt = now + 230;
         afInterupter = null;
+        bgExecutionAt = now + 230;
         dInterupter();
       }
     }, 125);
@@ -489,6 +489,7 @@ SOFTWARE.
 
 
     function executeNow() {
+      // in order to immediate fire setTimeout(..., 0) when livestream is paused (laggy)
 
       if (nonResponsiveResolve !== null) {
         nonResponsiveResolve();
@@ -501,8 +502,8 @@ SOFTWARE.
 
       const dInterupter = afInterupter;
       if (dInterupter !== null) {
-        bgExecutionAt = now + 230;
         afInterupter = null;
+        bgExecutionAt = Date.now() + 230;
         dInterupter();
       }
 
