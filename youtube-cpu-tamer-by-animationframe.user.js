@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.19.4
+// @version             2023.07.20.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -189,6 +189,8 @@ SOFTWARE.
     }
   };
 
+  let videoIsPaused = false;
+
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
@@ -210,6 +212,7 @@ SOFTWARE.
 
     const onPromiseErrorFn = (e) => { Promise.resolve(e).then(e => console.error(e)); }; // Promise will be resolved for Promise.all
 
+    const pq = new Map();
     const [sb, rm] = (() => {
 
       let mi = INT_INITIAL_VALUE; // skip first {INT_INITIAL_VALUE} cids to avoid browser not yet initialized
@@ -233,6 +236,20 @@ SOFTWARE.
           if (mi > SAFE_INT_LIMIT) mi = SAFE_INT_REDUCED; // just in case
           if (ms > SAFE_INT_LIMIT) return mi;
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
+
+            if (videoIsPaused && ms < 16 && args.length === 0) {
+              // typical example for ms: 0, 10 [except undefined]
+              if (prop === 'timeout') {
+                const jd = mi;
+                const cid = setTimeout(() => {
+                  func();
+                  Promise.resolve().then(() => pq.delete(jd));
+                }, ms);
+                pq.set(mi, cid);
+                return mi;
+              }
+            }
+
             let handler = args.length > 0 ? func.bind(null, ...args) : func; // original func if no extra argument
             handler[$busy] || (handler[$busy] = 0);
             sb.set(mi, {
@@ -254,7 +271,18 @@ SOFTWARE.
         if (!jd) return; // native setInterval & setTimeout start from 1
         const o = sb.get(jd);
         if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
-          if (jd <= INT_INITIAL_VALUE) {
+
+          let action = jd <= INT_INITIAL_VALUE;
+          if (!action) {
+            const cid = pq.get(jd);
+            if (cid > 0) {
+              action = true;
+              pq.delete(jd);
+              jd = cid;
+            }
+          }
+
+          if (action) {
             const nativeFn = this.nativeFn; // de::this
             nativeFn(jd); // only for clearTimeout & clearInterval
           }
@@ -286,7 +314,9 @@ SOFTWARE.
 
       // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
       win.addEventListener("yt-navigate-finish", () => {
+        videoIsPaused = false; // reset; no weaker tamer after navigation until video is paused afterwards.
         toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
+        Promise.resolve().then(executeNow);
       }, true); // capturing event - to let it runs before all everything else.
 
       return [sb, rm];
@@ -322,10 +352,10 @@ SOFTWARE.
     let dexActivePage = true; // true for default; false when checking triggered by setInterval
 
     /** @type {Function|null} */
-    let interupter = null;
+    let afInterupter = null;
 
     /** @type {(resolve: () => void)}  */
-    const infiniteLooper = (resolve) => requestAnimationFrame(interupter = resolve); // rAF will not execute if document is hidden
+    const infiniteLooper = (resolve) => requestAnimationFrame(afInterupter = resolve); // rAF will not execute if document is hidden
 
     /** @type {(aHandlers: Function[])}  */
     const microTaskExecutionActivePage = (aHandlers) => Promise.all(aHandlers.map(pf));
@@ -413,12 +443,12 @@ SOFTWARE.
         const pTimer = new Promise(pTimerFn);
         await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
         await pTimer; // resolve by timer@10ms
-        if (interupter === null) {
+        if (afInterupter === null) {
           // triggered by setInterval
           dexActivePage = false;
         } else {
           // triggered by rAF
-          interupter = null;
+          afInterupter = null;
           if (dexActivePage === false) toResetFuncHandlers = true;
           dexActivePage = true;
         }
@@ -438,13 +468,13 @@ SOFTWARE.
         return;
       }
       // no response of requestAnimationFrame; e.g. running in background
-      const interupter_t = interupter;
+      const dInterupter = afInterupter;
       let now;
-      if (interupter_t !== null && (now = Date.now()) > bgExecutionAt) {
+      if (dInterupter !== null && (now = Date.now()) > bgExecutionAt) {
         // interupter not triggered by rAF
         bgExecutionAt = now + 230;
-        interupter = null;
-        interupter_t();
+        afInterupter = null;
+        dInterupter();
       }
     }, 125);
     // --- 2022.12.14 ---
@@ -455,8 +485,54 @@ SOFTWARE.
     // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
 
+    const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
+
+
+    function executeNow() {
+
+      if (nonResponsiveResolve !== null) {
+        nonResponsiveResolve();
+      }
+
+      if (intervalTimerResolve !== null) {
+        intervalTimerResolve();
+        intervalTimerResolve = null;
+      }
+
+      const dInterupter = afInterupter;
+      if (dInterupter !== null) {
+        bgExecutionAt = now + 230;
+        afInterupter = null;
+        dInterupter();
+      }
+
+    }
+
+    document.addEventListener('pause', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement && target.networkState === 2) {
+        // the video paused might not be the main video; i.e. weaker tamer will apply to non-watch page (like home page)
+        // networkState will be useful to filter out no source or fully loaded video
+        // weaker tamer focuses on the video is loading (fetching from the server)
+        videoIsPaused = true;
+        Promise.resolve().then(executeNow);
+      }
+
+    }, passiveCapture);
+
+
+    document.addEventListener('play', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement && ((target.networkState % 3) >= 1)) {
+        videoIsPaused = false;
+        Promise.resolve().then(executeNow);
+      }
+
+    }, passiveCapture);
 
   })
 
 
-})({ requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval });
+})(null);
