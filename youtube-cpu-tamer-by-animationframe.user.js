@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.19.3
+// @version             2023.07.19.4
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -164,18 +164,18 @@ SOFTWARE.
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
-
   const cleanContext = async (win) => {
+    const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
       const mx = 16; // MAX TRIAL
       const frame = document.createElement('iframe');
       frame.sandbox = 'allow-same-origin';
       const n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
       n.appendChild(frame);
-      while (!document.documentElement && mx-- > 0) await new Promise(requestAnimationFrame); // requestAnimationFrame here could get modified by YouTube engine
+      while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
       const root = document.documentElement;
       root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
-      while (!frame.contentWindow && mx-- > 0) await new Promise(requestAnimationFrame);
+      while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
       const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
