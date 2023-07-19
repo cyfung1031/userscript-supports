@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.19.2
+// @version             2023.07.19.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -149,7 +149,11 @@ SOFTWARE.
 (function (__CONTEXT__) {
   'use strict';
 
-  const DERATING = 10; // default 10ms; increase to make the timer less responsive.
+  const UNDERCLOCK = +localStorage.cpuTamerUnderclock || 10; // default 10ms; increase to make the timer less responsive.
+
+  // "UNDERCLOCK" is set at 10ms by default. You can increase it to avoid unnecessary timer callbacks.
+  // Suggested values: 10ms, 16ms, 24ms, 32ms, 48ms, 64ms.
+  // Note: The script is not designed to operate with values higher 200ms. Please be careful of changing UNDERCLOCK value.
 
   const win = this || window;
 
@@ -399,7 +403,7 @@ SOFTWARE.
         intervalTimerResolve();
         intervalTimerResolve = null;
       }
-    }, DERATING);
+    }, UNDERCLOCK);
     const pTimerFn = resolve => { intervalTimerResolve = resolve };
 
     (async () => {
