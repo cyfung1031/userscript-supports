@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.19.1
+// @version             2023.07.19.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -162,23 +162,27 @@ SOFTWARE.
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const cleanContext = async (win) => {
-    const mx = 16; // MAX TRIAL
-    const frame = document.createElement('iframe');
-    frame.sandbox = 'allow-same-origin';
-    const n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-    n.appendChild(frame);
-    while (!document.documentElement && mx-- > 0) await new Promise(requestAnimationFrame); // requestAnimationFrame here could get modified by YouTube engine
-    const root = document.documentElement;
-    if (!root) return null;
-    root.appendChild(n);
-    while (!frame.contentWindow && mx-- > 0) await new Promise(requestAnimationFrame);
-    const fc = frame.contentWindow;
-    if (!fc) return null;
-    const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
-    const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
-    for (let k in res) res[k] = res[k].bind(win); // necessary
-    n.remove();
-    return res;
+    try {
+      const mx = 16; // MAX TRIAL
+      const frame = document.createElement('iframe');
+      frame.sandbox = 'allow-same-origin';
+      const n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
+      n.appendChild(frame);
+      while (!document.documentElement && mx-- > 0) await new Promise(requestAnimationFrame); // requestAnimationFrame here could get modified by YouTube engine
+      const root = document.documentElement;
+      root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+      while (!frame.contentWindow && mx-- > 0) await new Promise(requestAnimationFrame);
+      const fc = frame.contentWindow;
+      if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
+      const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
+      const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
+      for (let k in res) res[k] = res[k].bind(win); // necessary
+      n.remove();
+      return res;
+    } catch (e) {
+      console.warn(e);
+      return null;
+    }
   };
 
   cleanContext(win).then(__CONTEXT__ => {
@@ -200,7 +204,7 @@ SOFTWARE.
     // Assign the Promise constructor to a local variable
     const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__;
 
-    const ignorePromiseErrorFn = () => { }; // Promise will be resolved for Promise.all
+    const onPromiseErrorFn = (e) => { Promise.resolve(e).then(e => console.error(e)); }; // Promise will be resolved for Promise.all
 
     const [sb, rm] = (() => {
 
@@ -304,7 +308,7 @@ SOFTWARE.
      * @param {Function} handler
      */
     const pf = (
-      handler => Promise.resolve(handler).then(pfMicroFn).catch(ignorePromiseErrorFn) // catch here to avoid no resolve to the race promise & avoid immediate end of the promise.all
+      handler => Promise.resolve(handler).then(pfMicroFn).catch(onPromiseErrorFn) // catch here to avoid no resolve to the race promise & avoid immediate end of the promise.all
     );
 
     // Define a variable to store the next background execution time
