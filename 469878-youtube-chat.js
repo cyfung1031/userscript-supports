@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.0
+// @version             0.10.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -355,7 +355,7 @@
     const win = this || window;
 
     // Create a unique key for the script and check if it is already running
-    const hkey_script = 'kucwgdszblzm';
+    const hkey_script = 'mchbwnoasqph';
     if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
     win[hkey_script] = true;
 
