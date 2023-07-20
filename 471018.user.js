@@ -28,7 +28,7 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.7
+// @version             0.1.8
 // @license             MIT License
 // @author              CY Fung
 // @run-at              document-start
