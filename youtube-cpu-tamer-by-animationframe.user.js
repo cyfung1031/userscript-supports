@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.3
+// @version             2023.07.20.4
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -466,8 +466,7 @@ SOFTWARE.
     (async () => {
       while (true) {
         bgExecutionAt = Date.now() + 160;
-        intervalTimerResolve = null;
-        if (isAllMediaPaused && 0) {
+        if (isAllMediaPaused) {
           await new Promise(infiniteLooperForNoPlaying);
           afInterupter = null;
           toResetFuncHandlers = false;
