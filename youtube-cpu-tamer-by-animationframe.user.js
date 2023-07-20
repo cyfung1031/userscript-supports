@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.21.0
+// @version             2023.07.21.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -146,7 +146,7 @@ SOFTWARE.
 
 */
 
-(function (__CONTEXT__) {
+((__CONTEXT__) => {
   'use strict';
 
   const UNDERCLOCK = +localStorage.cpuTamerUnderclock || 10; // default 10ms; increase to make the timer less responsive.
@@ -167,21 +167,42 @@ SOFTWARE.
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
-      const mx = 16; // MAX TRIAL
-      const frame = document.createElement('iframe');
-      frame.sandbox = 'allow-same-origin';
-      const n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-      n.appendChild(frame);
-      while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
-      const root = document.documentElement;
-      root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+      let mx = 16; // MAX TRIAL
+      const frameId = 'vanillajs-iframe-v1'
+      let frame = document.getElementById(frameId);
+      let removeIframeFn = null;
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = 'vanillajs-iframe-v1';
+        frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
+        let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
+        n.appendChild(frame);
+        while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
+        const root = document.documentElement;
+        root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+        removeIframeFn = (setTimeout) => {
+          const removeIframeOnDocumentReady = (e) => {
+            e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+            win = null;
+            setTimeout(() => {
+              n.remove();
+              n = null;
+            }, 200);
+          }
+          if (document.readyState !== 'loading') {
+            removeIframeOnDocumentReady();
+          } else {
+            win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+          }
+        }
+      }
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
       const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
       const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
       for (let k in res) res[k] = res[k].bind(win); // necessary
-      n.remove();
+      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       return res;
     } catch (e) {
       console.warn(e);
