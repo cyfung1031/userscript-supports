@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.2
+// @version             2023.07.20.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -239,57 +239,41 @@ SOFTWARE.
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
 
             const hasArgs = args.length > 0;
-            if (videoIsPaused > 0 && !hasArgs) { // no exceptional case for hasArgs can be found
-              // idea: 
+            if (videoIsPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
 
-              // 0~16ms & immediately after paused  => native call (keep livestream sync)
+              // 0, 10
+              // 20 (rare)
+              // 100
+              // 250, 1000, 10000, 20000
+              if (ms < 16 && !isAllMediaPaused) {
+                // typical example for ms: 0, 10 [no undefined was found]
 
-              // 0~200ms & isAllMediaPaused         => 200ms
-              // 200~800ms & isAllMediaPaused       => ignore for user action
-              // 800ms+ & isAllMediaPaused          => much more delay
+                const jd = mi;
+                const cid = setTimeout(() => {
+                  func();
+                  Promise.resolve().then(() => pq.delete(jd));
+                }, ms);
+                pq.set(mi, cid);
+                return mi;
 
-              // other case - 16ms+ & immediate paused => limit to 200ms
-              // 0~200ms & !isAllMediaPaused        => 200ms
-              // 200ms+ & !isAllMediaPaused         => remains unchanged
+              } else if (ms < 200) {
+                // 20ms, TBC
+                // 100ms
+                ms = 200;
 
-              if (ms < 16) {
-                // typical example for ms: 0, 10 [except undefined]
-                if (!isAllMediaPaused && prop === 'timeout') {
-                  const jd = mi;
-                  const cid = setTimeout(() => {
-                    func();
-                    Promise.resolve().then(() => pq.delete(jd));
-                  }, ms);
-                  pq.set(mi, cid);
-                  return mi;
-                } else {
-                  // isAllMediaPaused
-                  // 10ms or 0ms, timeout, isAllMediaPaused=true
-                  ms = 200;
-                }
-              } else if (ms > 50) {
-                if (isAllMediaPaused && prop === 'timeout') {
-                  // 100
-                  // 250, 1000, 10000, 20000
-                  if (ms < 200) { // eg 100ms
-                    ms = 200;
-                  } else if (ms < 800) { // eg 250ms
-                    // do not modify ms; for video resume by user.
-                  } else if (ms < 8000) ms = 32000;
+              } else if (ms < 800) {
+                // 250ms
+                // no modification
+                // for video resume by user
+              } else {
+                // 1000ms, 10000ms, 20000ms
+                if (isAllMediaPaused) {
+                  if (ms < 8000) ms = 32000;
                   else if (ms < 80000) ms = 320000;
                   else ms = ms + 380000;
-                } else if (ms < 200) {
-                  ms = 200;
-                } else {
-                  // 250ms, timeout, isAllMediaPaused=false
-                  // 5000ms 1000ms when video is paused
-
                 }
-              } else {
-                // 20ms, TBC
-                // console.log('tbc 01', ms, prop)
-                ms = 200;
               }
+
             }
 
             let handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
@@ -311,9 +295,9 @@ SOFTWARE.
        */
       const rm = function (jd) {
         if (!jd) return; // native setInterval & setTimeout start from 1
+        if (typeof jd === 'string') jd = +jd;
         const o = sb.get(jd);
         if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
-
           let action = jd <= INT_INITIAL_VALUE;
           if (!action) {
             const cid = pq.get(jd);
@@ -323,7 +307,6 @@ SOFTWARE.
               jd = cid;
             }
           }
-
           if (action) {
             const nativeFn = this.nativeFn; // de::this
             nativeFn(jd); // only for clearTimeout & clearInterval
