@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.6
+// @version             2023.07.20.7
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -650,6 +650,26 @@ SOFTWARE.
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         videoIsWaiting = 1;
+        executeNow();
+      }
+
+    }, passiveCapture);
+
+    document.addEventListener('loadedmetadata', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        isAllMediaPaused = false;
+        executeNow();
+      }
+
+    }, passiveCapture);
+
+    document.addEventListener('loadeddata', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        isAllMediaPaused = false;
         executeNow();
       }
 
