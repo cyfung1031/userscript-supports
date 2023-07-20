@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.8
+// @version             2023.07.21.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -206,9 +206,9 @@ SOFTWARE.
 
     const onPromiseErrorFn = (e) => { Promise.resolve(e).then(e => console.error(e)); }; // Promise will be resolved for Promise.all
 
-    let videoIsWaiting = 0;
-    let videoIsPaused = 0; // for video is fetching data
-    let isAllMediaPaused = false; // only when there is any video is fetching data
+    let isAnyVideoJustStartedWaiting = 0;
+    let countAnyVideoJustPaused = 0; // for video is fetching data
+    let noActiveMediaForAWhile = false; // only when there is any video is fetching data
 
     // Define a flag to indicate whether the function handlers need to be reset
     let toResetFuncHandlers = false;
@@ -241,17 +241,17 @@ SOFTWARE.
 
             const hasArgs = args.length > 0;
             let doNativeFn = false;
-            if (videoIsWaiting > 0 && !hasArgs && prop === 'timeout') {
+            if (isAnyVideoJustStartedWaiting > 0 && !hasArgs && prop === 'timeout') {
               if (ms < 16) {
                 doNativeFn = true;
               }
-            } else if (videoIsPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
+            } else if (countAnyVideoJustPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
 
               // 0, 10
               // 20 (rare)
               // 100
               // 250, 1000, 10000, 20000
-              if (ms < 16 && !isAllMediaPaused) {
+              if (ms < 16 && !noActiveMediaForAWhile) {
                 // typical example for ms: 0, 10 [no undefined was found]
                 doNativeFn = true;
 
@@ -266,7 +266,7 @@ SOFTWARE.
                 // for video resume by user
               } else {
                 // 1000ms, 10000ms, 20000ms
-                if (isAllMediaPaused) {
+                if (noActiveMediaForAWhile) {
                   if (ms < 8000) ms = 32000;
                   else if (ms < 80000) ms = 320000;
                   else ms = ms + 380000;
@@ -478,9 +478,9 @@ SOFTWARE.
 
     // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
     document.addEventListener("yt-navigate-finish", () => {
-      videoIsWaiting = 0; // reset
-      videoIsPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
-      isAllMediaPaused = false; // reset first
+      isAnyVideoJustStartedWaiting = 0; // reset
+      countAnyVideoJustPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
+      noActiveMediaForAWhile = false; // reset first
       toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
       Promise.resolve().then(executeNow);
     }, true); // capturing event - to let it runs before all everything else.
@@ -496,14 +496,14 @@ SOFTWARE.
     (async () => {
       while (true) {
         bgExecutionAt = Date.now() + 160;
-        if (isAllMediaPaused) {
+        if (noActiveMediaForAWhile) {
           await new Promise(infiniteLooperForNoPlaying);
           afInterupter = null;
           toResetFuncHandlers = false;
           dexActivePage = false;
         } else {
           const pTimer = new Promise(pTimerFn);
-          await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
+          if (!isAnyVideoJustStartedWaiting) await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
           await pTimer; // resolve by timer@10ms
           if (afInterupter === null) {
             // triggered by setInterval
@@ -526,39 +526,29 @@ SOFTWARE.
     })();
 
     setInterval(() => {
-      if (videoIsPaused > 0) {
+      if (countAnyVideoJustPaused > 0) {
         // videoIsPaused = 2 => 125ms
         // videoIsPaused = 3 => 250ms ...
-        if (videoIsPaused < 16) {
-          videoIsPaused++;
-          if (videoIsPaused === 8 && !videoIsWaiting) {  // 875ms
+        if (countAnyVideoJustPaused < 16) {
+          countAnyVideoJustPaused++;
+          if (countAnyVideoJustPaused === 8 && !isAnyVideoJustStartedWaiting) {  // 875ms
             Promise.resolve().then(() => {
-              if (videoIsPaused > 0) {
+              if (countAnyVideoJustPaused > 0) {
                 /** @type {NodeListOf<HTMLMediaElement | HTMLVideoElement >} */
                 let medias = document.querySelectorAll('video[src], audio[src]');
                 let mp = true;
                 for (const media of medias) {
-                  if (media.paused !== true) {
+                  if (media.paused !== true && media.readyState >= 3) {
                     mp = false;
                     break;
                   }
                 }
-                if (mp) {
-                  // check spinner as well
-                  for (const spinner of document.querySelectorAll('.ytp-spinner')) {
-                    const rect = spinner.getBoundingClientRect();
-                    if (rect.width * rect.height > 4) {
-                      mp = false;
-                      break;
-                    }
-                  }
-                }
                 if (!mp) {
-                  videoIsPaused = 0;
-                  isAllMediaPaused = false;
+                  countAnyVideoJustPaused = 0;
+                  noActiveMediaForAWhile = false;
                   Promise.resolve().then(executeNow);
                 } else {
-                  isAllMediaPaused = true;
+                  noActiveMediaForAWhile = true;
                 }
               }
             })
@@ -598,8 +588,8 @@ SOFTWARE.
         // networkState will be useful to filter out no source or fully loaded video
         // weaker tamer focuses on the video is loading (fetching from the server)
         // execute whatever videoIsPaused is.
-        videoIsPaused = 1;
-        isAllMediaPaused = false; // as there is user action to trigger pause
+        countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false; // as there is user action to trigger pause
         executeNow();
       }
     }, passiveCapture);
@@ -607,8 +597,8 @@ SOFTWARE.
     document.addEventListener('abort', function (evt) {
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
-        videoIsPaused = 1;
-        isAllMediaPaused = false; // as there is user action to trigger abort
+        countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false; // as there is user action to trigger abort
         executeNow();
       }
     }, passiveCapture);
@@ -616,8 +606,8 @@ SOFTWARE.
     document.addEventListener('emptied', function (evt) {
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
-        videoIsPaused = 1;
-        isAllMediaPaused = false; // as there is user action to trigger emptied
+        countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false; // as there is user action to trigger emptied
         executeNow();
       }
     }, passiveCapture);
@@ -625,16 +615,16 @@ SOFTWARE.
     document.addEventListener('play', function (evt) {
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
-        if (videoIsPaused > 0) videoIsPaused = 1;
-        isAllMediaPaused = false; // videoIsPaused remains unchanged
+        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false; // videoIsPaused remains unchanged
         executeNow();
       }
     }, passiveCapture);
 
     document.addEventListener('waiting', function (evt) {
       const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        videoIsWaiting = 1;
+      if (target instanceof HTMLVideoElement && target.readyState <= 2) {
+        isAnyVideoJustStartedWaiting = 1;
         executeNow();
       }
     }, passiveCapture);
@@ -642,8 +632,8 @@ SOFTWARE.
     document.addEventListener('loadedmetadata', function (evt) {
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
-        if (videoIsPaused > 0) videoIsPaused = 1;
-        isAllMediaPaused = false;
+        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false;
         executeNow();
       }
     }, passiveCapture);
@@ -651,18 +641,18 @@ SOFTWARE.
     document.addEventListener('loadeddata', function (evt) {
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
-        if (videoIsPaused > 0) videoIsPaused = 1;
-        isAllMediaPaused = false;
+        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
+        noActiveMediaForAWhile = false;
         executeNow();
       }
     }, passiveCapture);
 
     document.addEventListener('playing', function (evt) {
       const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        videoIsWaiting = 0;
-        videoIsPaused = 0;
-        isAllMediaPaused = false;
+      if (target instanceof HTMLVideoElement && target.readyState >= 3) {
+        isAnyVideoJustStartedWaiting = 0;
+        countAnyVideoJustPaused = 0;
+        noActiveMediaForAWhile = false;
         executeNow();
       }
     }, passiveCapture);
