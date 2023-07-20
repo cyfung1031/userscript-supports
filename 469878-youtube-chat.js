@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.1
+// @version             0.10.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -30,11 +30,8 @@
     const MAX_ITEMS_FOR_FULL_FLUSH = 25;
 
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
-    // const ENABLE_CONTENT_HIDDEN = false;
-    let ENABLE_FULL_RENDER_REQUIRED = false; // Chrome Only; Firefox Excluded
     const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
     const USE_WILL_CHANGE_CONTROLLER = false;
-    const MODIFY_SCROLL_TO_BOTTOM = false; // NOT REQUIRED in the latest version // and affect atBottom logic
 
 
     let cssText1 = '';
@@ -340,14 +337,17 @@
 
     if (!IntersectionObserver) return console.error("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.")
 
+    let ENABLE_FULL_RENDER_REQUIRED_ = false;
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
         console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
     } else {
 
-        ENABLE_FULL_RENDER_REQUIRED = true; // Chromium-based browsers
+        ENABLE_FULL_RENDER_REQUIRED_ = true; // mainly for Chromium-based browsers
 
     }
+
+    const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_;
 
 
 
@@ -395,6 +395,7 @@
 
             if (evt.animationName === 'dontRenderAnimation') {
                 evt.target.classList.remove('dont-render');
+                if (scrollChatFn) scrollChatFn();
             }
 
         }, true);
@@ -423,7 +424,7 @@
                 this.__appendChild931__.apply(this, arguments);
                 return Node.prototype.appendChild.apply(this, arguments)
             }
-            
+
 
         })();
 
@@ -441,6 +442,8 @@
         // let lastScroll = 0;
         // let lastLShow = 0;
         let lastWheel = 0;
+
+        let scrollChatFn = null;
 
         const proxyHelperFn = (dummy) => ({
 
@@ -756,50 +759,6 @@
                     };
                 }
 
-                if ((mclp.scrollToBottom_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM && MODIFY_SCROLL_TO_BOTTOM) {
-
-                    mclp.scrollToBottom66_ = mclp.scrollToBottom_;
-
-                    mclp.scrollToBottom77_ = async function () {
-                        if (mzk > 1e9) mzk = 9;
-                        let tid = ++mzk;
-
-                        await new Promise(requestAnimationFrame);
-
-                        if (tid !== mzk) {
-                            return;
-                        }
-
-                        const cnt = this;
-                        if (USE_WILL_CHANGE_CONTROLLER) {
-                            const itemScroller = cnt.itemScroller;
-                            if (scrollWillChangeController && scrollWillChangeController.element !== itemScroller) {
-                                scrollWillChangeController.release();
-                                scrollWillChangeController = null;
-                            }
-                            if (!scrollWillChangeController) scrollWillChangeController = new WillChangeController(itemScroller, 'scroll-position');
-                        }
-                        const wcController = scrollWillChangeController;
-                        wcController && wcController.beforeOper();
-
-                        await Promise.resolve();
-                        cnt.scrollToBottom66_();
-
-                        await Promise.resolve();
-                        wcController && wcController.afterOper();
-
-                    }
-
-                    mclp.scrollToBottom_ = function () {
-                        const cnt = this;
-                        cnt.__intermediate_delay__ = new Promise(resolve => {
-                            cnt.scrollToBottom77_().then(() => {
-                                resolve();
-                            });
-                        });
-                    }
-                }
-
 
 
                 if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -950,21 +909,30 @@
                                     // requestAnimationFrame(ff);
                                 } else if (true) { // it might not be sticky to bottom when there is a full refresh.
 
-                                    Promise.resolve().then(() => {
+                                    const knt = cnt;
+                                    if (!scrollChatFn) scrollChatFn = () => {
+                                        const cnt = knt;
 
-                                        if (!cnt.atBottom) {
-                                            if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                                            cnt.scrollToBottom_();
-                                        }
 
-                                    }).then(() => { // do twice
+                                        Promise.resolve().then(() => {
 
-                                        if (!cnt.atBottom) {
-                                            if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                                            cnt.scrollToBottom_();
-                                        }
+                                            if (!cnt.atBottom) {
+                                                if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                                cnt.scrollToBottom_();
+                                            }
 
-                                    })
+                                        }).then(() => { // do twice
+
+                                            if (!cnt.atBottom) {
+                                                if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                                                cnt.scrollToBottom_();
+                                            }
+
+                                        });
+
+                                    }
+
+                                    if (!ENABLE_FULL_RENDER_REQUIRED) scrollChatFn();
                                 }
 
 
@@ -1248,6 +1216,7 @@
             });
 
             const setupMutObserver = (m2) => {
+                scrollChatFn = null;
                 mutObserver.disconnect();
                 mutObserver.takeRecords();
                 if (m2) {
