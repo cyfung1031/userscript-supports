@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.4
+// @version             2023.07.20.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -189,6 +189,7 @@ SOFTWARE.
     }
   };
 
+  let videoIsWaiting = 0;
   let videoIsPaused = 0; // for video is fetching data
   let isAllMediaPaused = false; // only when there is any video is fetching data
 
@@ -239,7 +240,12 @@ SOFTWARE.
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
 
             const hasArgs = args.length > 0;
-            if (videoIsPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
+            let doNativeFn = false;
+            if (videoIsWaiting > 0 && !hasArgs && prop === 'timeout') {
+              if (ms < 16) {
+                doNativeFn = true;
+              }
+            } else if (videoIsPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
 
               // 0, 10
               // 20 (rare)
@@ -247,14 +253,7 @@ SOFTWARE.
               // 250, 1000, 10000, 20000
               if (ms < 16 && !isAllMediaPaused) {
                 // typical example for ms: 0, 10 [no undefined was found]
-
-                const jd = mi;
-                const cid = setTimeout(() => {
-                  func();
-                  Promise.resolve().then(() => pq.delete(jd));
-                }, ms);
-                pq.set(mi, cid);
-                return mi;
+                doNativeFn = true;
 
               } else if (ms < 200) {
                 // 20ms, TBC
@@ -274,6 +273,15 @@ SOFTWARE.
                 }
               }
 
+            }
+            if (doNativeFn) {
+              const jd = mi;
+              const cid = setTimeout(() => {
+                func();
+                Promise.resolve().then(() => pq.delete(jd));
+              }, ms);
+              pq.set(mi, cid);
+              return mi;
             }
 
             let handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
@@ -339,6 +347,7 @@ SOFTWARE.
 
       // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
       win.addEventListener("yt-navigate-finish", () => {
+        videoIsWaiting = 0; // reset
         videoIsPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
         isAllMediaPaused = false; // reset first
         toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
@@ -501,7 +510,7 @@ SOFTWARE.
         // videoIsPaused = 3 => 250ms ...
         if (videoIsPaused < 16) {
           videoIsPaused++;
-          if (videoIsPaused === 8) {  // 875ms
+          if (videoIsPaused === 8 && !videoIsWaiting) {  // 875ms
             Promise.resolve().then(() => {
               if (videoIsPaused > 0) {
                 /** @type {NodeListOf<HTMLMediaElement | HTMLVideoElement >} */
@@ -581,7 +590,20 @@ SOFTWARE.
 
     }
 
+
+    document.addEventListener('waiting', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement && target.networkState === 2) {
+        videoIsWaiting = 1;
+        Promise.resolve().then(executeNow);
+      }
+
+    }, passiveCapture);
+
     document.addEventListener('pause', function (evt) {
+      // for changing quality, 'abort' + 'emptied' will be triggered instead.
+      // quality change: 'abort'  'emptied'  'play'  'waiting' 'loadeddata'
 
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement && target.networkState === 2) {
@@ -596,18 +618,46 @@ SOFTWARE.
     }, passiveCapture);
 
 
-    document.addEventListener('play', function (evt) {
+    document.addEventListener('abort', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement && target.networkState === 2) {
+        videoIsPaused = 1;
+        Promise.resolve().then(executeNow);
+      }
+
+    }, passiveCapture);
+
+
+    document.addEventListener('playing', function (evt) {
 
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement && ((target.networkState % 3) >= 1)) {
-        // reset even it is ads or hover element
-        // execute whatever videoIsPaused is.
+        videoIsWaiting = 0;
         videoIsPaused = 0;
         isAllMediaPaused = false;
         Promise.resolve().then(executeNow);
       }
 
     }, passiveCapture);
+
+
+    document.addEventListener('play', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement && ((target.networkState % 3) >= 1)) {
+        // reset even it is ads or hover element
+        // execute whatever videoIsPaused is.
+        videoIsWaiting = 0;
+        videoIsPaused = 0;
+        isAllMediaPaused = false;
+        Promise.resolve().then(executeNow);
+      }
+
+    }, passiveCapture);
+
+
+
 
   })
 
