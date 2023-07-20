@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.2
+// @version             0.10.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -32,6 +32,8 @@
     const ENABLE_NO_SMOOTH_TRANSFORM = true;
     const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;
     const USE_WILL_CHANGE_CONTROLLER = false;
+    const ENABLE_FULL_RENDER_REQUIRED_PREFERRED = true;
+    const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;
 
 
     let cssText1 = '';
@@ -235,6 +237,10 @@
 
     @supports (color: var(--general)) {
 
+        html {
+          --yt-live-chat-item-list-renderer-padding: 0px 0px;
+        }
+
         ${cssText3}
 
         ${cssText7}
@@ -274,7 +280,7 @@
         }
 
         #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
-            overflow-anchor: initial !important;
+            overflow-anchor: initial !important; /* whenever ENABLE_OVERFLOW_ANCHOR or not */
         }
 
         html item-anchor {
@@ -337,18 +343,33 @@
 
     if (!IntersectionObserver) return console.error("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.")
 
-    let ENABLE_FULL_RENDER_REQUIRED_ = false;
+    let ENABLE_FULL_RENDER_REQUIRED_CAPABLE = false;
     const isContainSupport = CSS.supports('contain', 'layout paint style');
     if (!isContainSupport) {
         console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
     } else {
 
-        ENABLE_FULL_RENDER_REQUIRED_ = true; // mainly for Chromium-based browsers
+        ENABLE_FULL_RENDER_REQUIRED_CAPABLE = true; // mainly for Chromium-based browsers
 
     }
 
-    const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_;
 
+
+    let ENABLE_OVERFLOW_ANCHOR_CAPABLE = false;
+    const isOverflowAnchorSupport = CSS.supports('overflow-anchor', 'auto');
+    if (!isOverflowAnchorSupport) {
+        console.warn("Your browser does not support css property 'overflow-anchor'.\nPlease upgrade to the latest version.".trim());
+    } else {
+
+        ENABLE_OVERFLOW_ANCHOR_CAPABLE = true; // mainly for Chromium-based browsers
+
+    }
+
+
+    const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && ENABLE_OVERFLOW_ANCHOR_CAPABLE && ENABLE_NO_SMOOTH_TRANSFORM;
+
+
+    const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_PREFERRED && ENABLE_FULL_RENDER_REQUIRED_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM;
 
 
 
@@ -444,6 +465,7 @@
         let lastWheel = 0;
 
         let scrollChatFn = null;
+        let lastAddition = 0;
 
         const proxyHelperFn = (dummy) => ({
 
@@ -910,26 +932,18 @@
                                 } else if (true) { // it might not be sticky to bottom when there is a full refresh.
 
                                     const knt = cnt;
-                                    if (!scrollChatFn) scrollChatFn = () => {
+                                    if (!scrollChatFn) {
                                         const cnt = knt;
-
-
-                                        Promise.resolve().then(() => {
-
+                                        const f = () => {
+                                            const itemScroller = cnt.itemScroller;
+                                            if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
                                             if (!cnt.atBottom) {
-                                                if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                                                 cnt.scrollToBottom_();
+                                            } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
+                                                itemScroller.scrollTop = itemScroller.scrollHeight;
                                             }
-
-                                        }).then(() => { // do twice
-
-                                            if (!cnt.atBottom) {
-                                                if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                                                cnt.scrollToBottom_();
-                                            }
-
-                                        });
-
+                                        };
+                                        scrollChatFn = () => Promise.resolve().then(f).then(f);
                                     }
 
                                     if (!ENABLE_FULL_RENDER_REQUIRED) scrollChatFn();
@@ -1027,11 +1041,18 @@
 
 
 
+
                         await Promise.resolve();
 
                     }
 
                     mclp.onScrollItems_ = function (evt) {
+
+                        if (Date.now() - lastAddition < 80) {
+                            console.log(12345)
+                            lastAddition = 0;
+                            cnt.scrollToBottom_();
+                        }
 
                         const cnt = this;
                         cnt.__intermediate_delay__ = new Promise(resolve => {
@@ -1231,7 +1252,7 @@
                     mutFn(m2);
 
 
-                    if (ENABLE_NO_SMOOTH_TRANSFORM) {
+                    if (ENABLE_OVERFLOW_ANCHOR) {
 
                         let items = m2;
                         let addedAnchor = false;
