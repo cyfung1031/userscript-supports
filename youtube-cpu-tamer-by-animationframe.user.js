@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.5
+// @version             2023.07.20.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -591,28 +591,19 @@ SOFTWARE.
     }
 
 
-    document.addEventListener('waiting', function (evt) {
-
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && target.networkState === 2) {
-        videoIsWaiting = 1;
-        Promise.resolve().then(executeNow);
-      }
-
-    }, passiveCapture);
-
     document.addEventListener('pause', function (evt) {
       // for changing quality, 'abort' + 'emptied' will be triggered instead.
       // quality change: 'abort'  'emptied'  'play'  'waiting' 'loadeddata'
 
       const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && target.networkState === 2) {
+      if (target instanceof HTMLVideoElement) {
         // the video paused might not be the main video; i.e. weaker tamer will apply to non-watch page (like home page)
         // networkState will be useful to filter out no source or fully loaded video
         // weaker tamer focuses on the video is loading (fetching from the server)
         // execute whatever videoIsPaused is.
         videoIsPaused = 1;
-        Promise.resolve().then(executeNow);
+        isAllMediaPaused = false; // as there is user action to trigger pause
+        executeNow();
       }
 
     }, passiveCapture);
@@ -621,41 +612,60 @@ SOFTWARE.
     document.addEventListener('abort', function (evt) {
 
       const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && target.networkState === 2) {
+      if (target instanceof HTMLVideoElement) {
         videoIsPaused = 1;
-        Promise.resolve().then(executeNow);
+        isAllMediaPaused = false; // as there is user action to trigger abort
+        executeNow();
       }
 
     }, passiveCapture);
 
+
+    document.addEventListener('emptied', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        videoIsPaused = 1;
+        isAllMediaPaused = false; // as there is user action to trigger emptied
+        executeNow();
+      }
+
+    }, passiveCapture);
+
+
+    
+    document.addEventListener('play', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        isAllMediaPaused = false; // videoIsPaused remains unchanged
+        executeNow();
+      }
+
+    }, passiveCapture);
+    
+
+    document.addEventListener('waiting', function (evt) {
+
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        videoIsWaiting = 1;
+        executeNow();
+      }
+
+    }, passiveCapture);
 
     document.addEventListener('playing', function (evt) {
 
       const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && ((target.networkState % 3) >= 1)) {
+      if (target instanceof HTMLVideoElement) {
         videoIsWaiting = 0;
         videoIsPaused = 0;
         isAllMediaPaused = false;
-        Promise.resolve().then(executeNow);
+        executeNow();
       }
 
     }, passiveCapture);
-
-
-    document.addEventListener('play', function (evt) {
-
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && ((target.networkState % 3) >= 1)) {
-        // reset even it is ads or hover element
-        // execute whatever videoIsPaused is.
-        videoIsWaiting = 0;
-        videoIsPaused = 0;
-        isAllMediaPaused = false;
-        Promise.resolve().then(executeNow);
-      }
-
-    }, passiveCapture);
-
 
 
 
