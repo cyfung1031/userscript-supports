@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.20.7
+// @version             2023.07.20.8
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -189,13 +189,8 @@ SOFTWARE.
     }
   };
 
-  let videoIsWaiting = 0;
-  let videoIsPaused = 0; // for video is fetching data
-  let isAllMediaPaused = false; // only when there is any video is fetching data
-
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
-
 
     // Create a symbol to represent the busy state of a handler function
     const $busy = Symbol('$busy');
@@ -206,13 +201,18 @@ SOFTWARE.
     const SAFE_INT_REDUCED = 67108864; // avoid persistent interval handlers with cids between {INT_INITIAL_VALUE + 1} and {SAFE_INT_REDUCED - 1}
     // Note: Number.MAX_SAFE_INTEGER = 9007199254740991
 
-    // Define a flag to indicate whether the function handlers need to be reset
-    let toResetFuncHandlers = false;
-
     // Assign the Promise constructor to a local variable
     const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__;
 
     const onPromiseErrorFn = (e) => { Promise.resolve(e).then(e => console.error(e)); }; // Promise will be resolved for Promise.all
+
+    let videoIsWaiting = 0;
+    let videoIsPaused = 0; // for video is fetching data
+    let isAllMediaPaused = false; // only when there is any video is fetching data
+
+    // Define a flag to indicate whether the function handlers need to be reset
+    let toResetFuncHandlers = false;
+    let intervalTimerResolve = null;
 
     const pq = new Map();
     const [sb, rm] = (() => {
@@ -345,15 +345,6 @@ SOFTWARE.
         win.clearInterval.toString = clearInterval.toString.bind(clearInterval)
       } catch (e) { console.warn(e) }
 
-      // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
-      win.addEventListener("yt-navigate-finish", () => {
-        videoIsWaiting = 0; // reset
-        videoIsPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
-        isAllMediaPaused = false; // reset first
-        toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
-        Promise.resolve().then(executeNow);
-      }, true); // capturing event - to let it runs before all everything else.
-
       return [sb, rm];
 
     })();
@@ -388,6 +379,28 @@ SOFTWARE.
 
     /** @type {Function|null} */
     let afInterupter = null;
+
+
+    function executeNow() {
+      // in order to immediate fire setTimeout(..., 0) when livestream is paused (laggy)
+
+      if (nonResponsiveResolve !== null) {
+        nonResponsiveResolve();
+      }
+
+      if (intervalTimerResolve !== null) {
+        intervalTimerResolve();
+        intervalTimerResolve = null;
+      }
+
+      const dInterupter = afInterupter;
+      if (dInterupter !== null) {
+        afInterupter = null;
+        bgExecutionAt = Date.now() + 230;
+        dInterupter();
+      }
+
+    }
 
     /** @type {(resolve: () => void)}  */
     const infiniteLooper = (resolve) => requestAnimationFrame(afInterupter = resolve); // rAF will not execute if document is hidden
@@ -463,7 +476,15 @@ SOFTWARE.
       }
     };
 
-    let intervalTimerResolve = null;
+    // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
+    document.addEventListener("yt-navigate-finish", () => {
+      videoIsWaiting = 0; // reset
+      videoIsPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
+      isAllMediaPaused = false; // reset first
+      toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
+      Promise.resolve().then(executeNow);
+    }, true); // capturing event - to let it runs before all everything else.
+
     setInterval(() => {
       if (intervalTimerResolve !== null) {
         intervalTimerResolve();
@@ -533,7 +554,7 @@ SOFTWARE.
                   }
                 }
                 if (!mp) {
-                  videoIsPaused = false;
+                  videoIsPaused = 0;
                   isAllMediaPaused = false;
                   Promise.resolve().then(executeNow);
                 } else {
@@ -568,33 +589,9 @@ SOFTWARE.
 
     const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
 
-
-    function executeNow() {
-      // in order to immediate fire setTimeout(..., 0) when livestream is paused (laggy)
-
-      if (nonResponsiveResolve !== null) {
-        nonResponsiveResolve();
-      }
-
-      if (intervalTimerResolve !== null) {
-        intervalTimerResolve();
-        intervalTimerResolve = null;
-      }
-
-      const dInterupter = afInterupter;
-      if (dInterupter !== null) {
-        afInterupter = null;
-        bgExecutionAt = Date.now() + 230;
-        dInterupter();
-      }
-
-    }
-
-
     document.addEventListener('pause', function (evt) {
       // for changing quality, 'abort' + 'emptied' will be triggered instead.
       // quality change: 'abort'  'emptied'  'play'  'waiting' 'loadeddata'
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         // the video paused might not be the main video; i.e. weaker tamer will apply to non-watch page (like home page)
@@ -605,78 +602,62 @@ SOFTWARE.
         isAllMediaPaused = false; // as there is user action to trigger pause
         executeNow();
       }
-
     }, passiveCapture);
 
-
     document.addEventListener('abort', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         videoIsPaused = 1;
         isAllMediaPaused = false; // as there is user action to trigger abort
         executeNow();
       }
-
     }, passiveCapture);
 
-
     document.addEventListener('emptied', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         videoIsPaused = 1;
         isAllMediaPaused = false; // as there is user action to trigger emptied
         executeNow();
       }
-
     }, passiveCapture);
 
-
-    
     document.addEventListener('play', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
+        if (videoIsPaused > 0) videoIsPaused = 1;
         isAllMediaPaused = false; // videoIsPaused remains unchanged
         executeNow();
       }
-
     }, passiveCapture);
-    
 
     document.addEventListener('waiting', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         videoIsWaiting = 1;
         executeNow();
       }
-
     }, passiveCapture);
 
     document.addEventListener('loadedmetadata', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
+        if (videoIsPaused > 0) videoIsPaused = 1;
         isAllMediaPaused = false;
         executeNow();
       }
-
     }, passiveCapture);
 
     document.addEventListener('loadeddata', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
+        if (videoIsPaused > 0) videoIsPaused = 1;
         isAllMediaPaused = false;
         executeNow();
       }
-
     }, passiveCapture);
 
     document.addEventListener('playing', function (evt) {
-
       const target = (evt || 0).target;
       if (target instanceof HTMLVideoElement) {
         videoIsWaiting = 0;
@@ -684,10 +665,7 @@ SOFTWARE.
         isAllMediaPaused = false;
         executeNow();
       }
-
     }, passiveCapture);
-
-
 
   })
 
