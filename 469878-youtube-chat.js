@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.5
+// @version             0.10.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1053,8 +1053,15 @@
               await Promise.resolve().then(() => {
                 this.ytRendererBehavior.onScroll(evt);
               }).then(() => {
-                if (this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true) {
-                  // only when there is an user action
+                let hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
+                if (this.canScrollToBottom_()) {
+                  if (hasUserJustInteracted) {
+                    // only when there is an user action
+                    this.setAtBottom();
+                    return 1;
+                  }
+                } else {
+                  // no message inserting
                   this.setAtBottom();
                   return 1;
                 }
