@@ -2,9 +2,10 @@
 // @name        Disable all YouTube EXPERIMENT_FLAGS
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.4
+// @version     0.3.5
 // @license     MIT
 // @author      CY Fung
+// @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
 // @description To Disable all YouTube EXPERIMENT_FLAGS
 // @grant       none
 // @unwrap
