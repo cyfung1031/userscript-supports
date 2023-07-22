@@ -25,6 +25,12 @@
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: space-between;
     }
 
     button {
@@ -43,8 +49,24 @@
     <form>
       <label for="textarea">Enter your text:</label>
       <textarea id="textarea" name="textarea" placeholder="Type your text here..."></textarea>
-      <button type="submit">Submit</button>
+      <div class="button-container">
+        <button type="button" onclick="clearTextarea()">Clear</button>
+        <button type="button" onclick="copyTextarea()">Copy</button>
+      </div>
     </form>
   </div>
+
+  <script>
+    function clearTextarea() {
+      document.getElementById('textarea').value = '';
+    }
+
+    function copyTextarea() {
+      var textarea = document.getElementById('textarea');
+      textarea.select();
+      document.execCommand('copy');
+      alert('Text has been copied to the clipboard.');
+    }
+  </script>
 </body>
 </html>
