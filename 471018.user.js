@@ -28,7 +28,7 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.8
+// @version             0.1.9
 // @license             MIT License
 // @author              CY Fung
 // @run-at              document-start
@@ -250,5 +250,5 @@ SOFTWARE.
   frames,
   defineProperty: Object.defineProperty,
   window,
-  Promise, CDATASection, ProcessingInstruction, FocusEvent
+  CDATASection, ProcessingInstruction, FocusEvent
 });
