@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.8
+// @version             0.10.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
 // @name:zh-CN          YouTube 超快聊天
+// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/super-fast-chat.png
 // @namespace           UserScript
 // @match               https://www.youtube.com/live_chat*
 // @author              CY Fung
