@@ -2,7 +2,7 @@
 // @name        Disable all YouTube EXPERIMENT_FLAGS
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.5
+// @version     0.3.3
 // @license     MIT
 // @author      CY Fung
 // @description To Disable all YouTube EXPERIMENT_FLAGS
@@ -31,6 +31,318 @@
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = ((async () => { })()).constructor;
+
+  let isMainWindow = false;
+  let mzFlagDetected = new Set();
+  let zPlayerKevlar = false;
+  try {
+    isMainWindow = window.document === window.top.document
+  } catch (e) { }
+
+  function fixSerializedExperiment(conf) {
+
+    let ids = null, flags = null;
+
+    if (typeof conf.serializedExperimentIds === 'string') {
+      ids = conf.serializedExperimentIds.split(',');
+      let newIds = [];
+      for (const id of ids) {
+        let keep = false;
+        if (keep) {
+          newIds.push(id);
+        }
+      }
+      conf.serializedExperimentIds = newIds.join(',');
+    }
+
+    if (typeof conf.serializedExperimentFlags === 'string') {
+      const fg = conf.serializedExperimentFlags;
+      const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
+
+      let res = [];
+
+      for (let m; m = rx.exec(fg);) {
+        let key = m[2];
+        let value = m[3];
+        let keep = false;
+        if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
+          keep = true;
+        }
+        if (keep) res.push(`${key}=${value}`);
+      }
+
+      conf.serializedExperimentFlags = res.join('&');
+
+    }
+
+
+
+  }
+
+
+  const hLooper = ((fn) => {
+
+    let nativeFnLoaded = false;
+    let kc1 = 0;
+
+    const setIntervalW = setInterval;
+    const clearIntervalW = clearInterval;
+    let microDisconnectFn = null;
+    let fStopLooper = false;
+    const looperFn = () => {
+      if (fStopLooper) return;
+
+      let EXPERIMENT_FLAGS = null;
+      try {
+        EXPERIMENT_FLAGS = yt.config_.EXPERIMENT_FLAGS
+      } catch (e) { }
+
+      if (EXPERIMENT_FLAGS) {
+
+        fn(EXPERIMENT_FLAGS);
+
+        if (microDisconnectFn) {
+          let isYtLoaded = false;
+          try {
+            isYtLoaded = typeof ytcfg.set === 'function';
+          } catch (e) { }
+          if (isYtLoaded) {
+            microDisconnectFn();
+          }
+        }
+
+      }
+
+      let playerKevlar = null;
+
+      try {
+        playerKevlar = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
+      } catch (e) { }
+
+      if (playerKevlar && !zPlayerKevlar) {
+        zPlayerKevlar = true;
+
+        if (NO_SerializedExperiment && typeof playerKevlar.serializedExperimentFlags === 'string' && typeof playerKevlar.serializedExperimentIds === 'string') {
+          fixSerializedExperiment(playerKevlar);
+        }
+
+
+      }
+
+
+
+    };
+
+    const controller = {
+      start() {
+        kc1 = setIntervalW(looperFn, 1);
+        (async () => {
+          while (true && !nativeFnLoaded) {
+            looperFn();
+            if (fStopLooper) break;
+            await (new Promise(requestAnimationFrame));
+          }
+        })();
+        looperFn();
+      },
+      setupForCleanContext(__CONTEXT__) {
+
+        const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
+
+        (async () => {
+          while (true) {
+            looperFn();
+            if (fStopLooper) break;
+            await (new Promise(requestAnimationFrame));
+          }
+        })();
+
+        let kc2 = setInterval(looperFn, 1);
+
+        const marcoDisconnectFn = () => {
+          if (fStopLooper) return;
+          Promise.resolve().then(() => {
+            if (kc1 || kc2) {
+              kc1 && clearIntervalW(kc1); kc1 = 0;
+              kc2 && clearInterval(kc2); kc2 = 0;
+              looperFn();
+            }
+            fStopLooper = true;
+          });
+          document.removeEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
+          document.removeEventListener('yt-navigate-finish', marcoDisconnectFn, false);
+          document.removeEventListener('spfdone', marcoDisconnectFn, false);
+        };
+        document.addEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
+        document.addEventListener('yt-navigate-finish', marcoDisconnectFn, false);
+        document.addEventListener('spfdone', marcoDisconnectFn, false);
+
+
+        function onReady() {
+          if (!fStopLooper) {
+            setTimeout(() => {
+              !fStopLooper && marcoDisconnectFn();
+            }, 1000);
+          }
+        }
+
+        Promise.resolve().then(() => {
+          if (document.readyState !== 'loading') {
+            onReady();
+          } else {
+            window.addEventListener("DOMContentLoaded", onReady, false);
+          }
+        });
+
+        nativeFnLoaded = true;
+
+        microDisconnectFn = () => Promise.resolve(marcoDisconnectFn).then(setTimeout);
+
+      }
+    };
+
+    return controller;
+  })((EXPERIMENT_FLAGS) => {
+
+
+    if (isMainWindow) {
+      for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
+
+        if (value === true) {
+          // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
+
+          if (mzFlagDetected.has(key)) continue;
+          mzFlagDetected.add(key);
+          const kl = key.length;
+          const kl7 = kl % 7;
+          const kl5 = kl % 5;
+          const kl3 = kl % 3;
+          const kl2 = kl % 2;
+          if (!DISABLE_CINEMATICS) {
+
+            let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
+              : key === 'kevlar_watch_cinematics' ? 2
+                : key === 'web_cinematic_masthead' ? 3
+                  : key === 'web_watch_cinematics_preferred_reduced_motion_default_disabled' ? 4 : 0;
+            if (cineKey > 0) {
+              return;
+            }
+          }
+
+          if (key.indexOf('kevlar_') >= 0) {
+
+            if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
+              if (key === 'kevlar_system_icons') continue;
+            }
+
+            // if(key==='kevlar_prefetch_data_augments_network_data') continue;
+
+            if (kl7 === 6 && kl5 === 0 && kl3 === 2 && kl2 === 0) { // home page / watch page icons
+
+              if (key === 'kevlar_three_dot_ink') continue;
+              if (key === 'kevlar_use_wil_icons') continue;
+              if (key === 'kevlar_home_skeleton') continue;
+            }
+
+            if (kl7 === 4 && kl5 === 0 && kl3 === 1 && kl2 === 1) {
+
+              if (key === 'kevlar_fluid_touch_scroll') continue;
+              if (key === 'kevlar_watch_color_update') continue;
+              if (key === 'kevlar_use_vimio_behavior') continue; // home page - channel icon
+
+            }
+
+            if (kl3 === 2 && kl5 === 4 && kl2 < 2) {  // collapsed meta
+              // no teaser, use latest collapsed meta design
+              if (key === 'kevlar_structured_description_content_inline') continue;
+              if (key === 'kevlar_watch_metadata_refresh') continue;
+
+            }
+
+
+            if (kl5 === 3 && kl3 === 1 && kl2 === 0) {
+
+              if (key === 'kevlar_watch_js_panel_height') continue; // affect Tabview Youtube
+
+
+            }
+
+
+          } else {
+
+            if (kl7 === 3 && kl5 == 1 && kl2 === 1 && kl3 === 1) {
+              if (key === 'web_darker_dark_theme_live_chat') continue;
+            }
+
+            if (kl5 === 1 && kl3 === 0 && kl2 === 1 && kl7 === 0) {
+              if (key === 'web_darker_dark_theme') return; // it also affect cinemtaics
+            }
+
+            if (kl3 === 0 && kl5 === 2) {  // modern menu
+
+              if (key === 'web_button_rework_with_live') continue;
+              if (key === 'web_fix_fine_scrubbing_drag') continue;
+            }
+
+
+            if (kl3 === 1 && kl5 === 4 && kl2 === 1) {  // full screen -buggy
+              if (key === 'external_fullscreen') continue;
+            }
+
+            if (kl3 === 0 && kl5 === 3 && kl2 === 0) { // minimize menu
+              if (key === 'web_modern_buttons') continue;
+              if (key === 'web_modern_dialogs') continue;
+
+            }
+
+            if (kl3 === 1 && kl5 === 0 && kl7 === 5 && kl2 === 0) { // Tabview Youtube - multiline transcript
+              if (key === 'enable_mixed_direction_formatted_strings') continue;
+            }
+
+          }
+
+
+
+
+
+
+          // console.log(key)
+          EXPERIMENT_FLAGS[key] = false;
+        }
+
+      }
+    } else {
+
+
+      for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
+
+        if (value === true) {
+          // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
+
+          if (mzFlagDetected.has(key)) continue;
+          mzFlagDetected.add(key);
+
+
+
+
+          // console.log(key)
+          EXPERIMENT_FLAGS[key] = false;
+        }
+
+      }
+
+
+    }
+
+    EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
+    EXPERIMENT_FLAGS.web_animated_like = false;
+    EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
+
+    // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
+  });
+
+  hLooper.start();
+
 
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
@@ -80,275 +392,9 @@
 
   cleanContext(win).then(__CONTEXT__ => {
 
-    let fStop = false;
-    let isMainWindow = false;
-    let mz = new Set();
-    try {
-      isMainWindow = window.document === window.top.document
-    } catch (e) { }
-
     const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
 
-    let zPlayerKevlar = false;
-
-    function fixSerializedExperiment(conf) {
-
-      let ids = null, flags = null;
-
-      if (typeof conf.serializedExperimentIds === 'string') {
-        ids = conf.serializedExperimentIds.split(',');
-        let newIds = [];
-        for (const id of ids) {
-          let keep = false;
-          if (keep) {
-            newIds.push(id);
-          }
-        }
-        conf.serializedExperimentIds = newIds.join(',');
-      }
-
-      if (typeof conf.serializedExperimentFlags === 'string') {
-        const fg = conf.serializedExperimentFlags;
-        const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
-
-        let res = [];
-
-        for (let m; m = rx.exec(fg);) {
-          let key = m[2];
-          let value = m[3];
-          let keep = false;
-          if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
-            keep = true;
-          }
-          if (keep) res.push(`${key}=${value}`);
-        }
-
-        conf.serializedExperimentFlags = res.join('&');
-
-      }
-
-
-
-    }
-
-
-
-
-    function f() {
-      if (fStop) return;
-      let EXPERIMENT_FLAGS = null;
-      try {
-        EXPERIMENT_FLAGS = yt.config_.EXPERIMENT_FLAGS
-      } catch (e) { }
-
-      if (EXPERIMENT_FLAGS) {
-
-        if (isMainWindow) {
-          for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
-
-            if (value === true) {
-              // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
-
-              if (mz.has(key)) continue;
-              mz.add(key);
-              const kl = key.length;
-              const kl7 = kl % 7;
-              const kl5 = kl % 5;
-              const kl3 = kl % 3;
-              const kl2 = kl % 2;
-              if (!DISABLE_CINEMATICS) {
-
-                let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
-                  : key === 'kevlar_watch_cinematics' ? 2
-                    : key === 'web_cinematic_masthead' ? 3
-                      : key === 'web_watch_cinematics_preferred_reduced_motion_default_disabled' ? 4 : 0;
-                if (cineKey > 0) {
-                  return;
-                }
-              }
-
-              if (key.indexOf('kevlar_') >= 0) {
-
-                if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
-                  if (key === 'kevlar_system_icons') continue;
-                }
-
-                // if(key==='kevlar_prefetch_data_augments_network_data') continue;
-
-                if (kl7 === 6 && kl5 === 0 && kl3 === 2 && kl2 === 0) { // home page / watch page icons
-
-                  if (key === 'kevlar_three_dot_ink') continue;
-                  if (key === 'kevlar_use_wil_icons') continue;
-                  if (key === 'kevlar_home_skeleton') continue;
-                }
-
-                if (kl7 === 4 && kl5 === 0 && kl3 === 1 && kl2 === 1) {
-
-                  if (key === 'kevlar_fluid_touch_scroll') continue;
-                  if (key === 'kevlar_watch_color_update') continue;
-                  if (key === 'kevlar_use_vimio_behavior') continue; // home page - channel icon
-
-                }
-
-                if (kl3 === 2 && kl5 === 4 && kl2 < 2) {  // collapsed meta
-                  // no teaser, use latest collapsed meta design
-                  if (key === 'kevlar_structured_description_content_inline') continue;
-                  if (key === 'kevlar_watch_metadata_refresh') continue;
-
-                }
-
-
-                if (kl5 === 3 && kl3 === 1 && kl2 === 0) {
-
-                  if (key === 'kevlar_watch_js_panel_height') continue; // affect Tabview Youtube
-
-
-                }
-
-
-              } else {
-
-                if (kl7 === 3 && kl5 == 1 && kl2 === 1 && kl3 === 1) {
-                  if (key === 'web_darker_dark_theme_live_chat') continue;
-                }
-
-                if (kl5 === 1 && kl3 === 0 && kl2 === 1 && kl7 === 0) {
-                  if (key === 'web_darker_dark_theme') return; // it also affect cinemtaics
-                }
-
-                if (kl3 === 0 && kl5 === 2) {  // modern menu
-
-                  if (key === 'web_button_rework_with_live') continue;
-                  if (key === 'web_fix_fine_scrubbing_drag') continue;
-                }
-
-
-                if (kl3 === 1 && kl5 === 4 && kl2 === 1) {  // full screen -buggy
-                  if (key === 'external_fullscreen') continue;
-                }
-
-                if (kl3 === 0 && kl5 === 3 && kl2 === 0) { // minimize menu
-                  if (key === 'web_modern_buttons') continue;
-                  if (key === 'web_modern_dialogs') continue;
-
-                }
-
-                if (kl3 === 1 && kl5 === 0 && kl7 === 5 && kl2 === 0) { // Tabview Youtube - multiline transcript
-                  if (key === 'enable_mixed_direction_formatted_strings') continue;
-                }
-
-              }
-
-
-
-
-
-
-              // console.log(key)
-              EXPERIMENT_FLAGS[key] = false;
-            }
-
-          }
-        } else {
-
-
-          for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
-
-            if (value === true) {
-              // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
-
-              if (mz.has(key)) continue;
-              mz.add(key);
-
-
-
-
-              // console.log(key)
-              EXPERIMENT_FLAGS[key] = false;
-            }
-
-          }
-
-
-        }
-
-        EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
-        EXPERIMENT_FLAGS.web_animated_like = false;
-        EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
-
-        // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
-
-        let isYtLoaded = false;
-        try {
-          isYtLoaded = typeof ytcfg.set === 'function';
-        } catch (e) { }
-        if (isYtLoaded) {
-          Promise.resolve().then(fhandler);
-        }
-
-      }
-
-      let playerKevlar = null;
-
-      try {
-        playerKevlar = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
-      } catch (e) { }
-
-      if (playerKevlar && !zPlayerKevlar) {
-        zPlayerKevlar = true;
-
-        if (NO_SerializedExperiment && typeof playerKevlar.serializedExperimentFlags === 'string' && typeof playerKevlar.serializedExperimentIds === 'string') {
-          fixSerializedExperiment(playerKevlar);
-        }
-
-
-      }
-
-
-
-    }
-    let cid = setInterval(f, 1);
-    (async () => {
-      while (true) {
-        f();
-        if (fStop) break;
-        await (new Promise(requestAnimationFrame));
-      }
-    })();
-    f();
-    function fhandler() {
-      if (fStop) return;
-      Promise.resolve().then(() => {
-        if (cid) {
-          cid && clearInterval(cid); cid = 0;
-          f();
-        }
-        fStop = true;
-      });
-      document.removeEventListener('yt-page-data-fetched', fhandler, false);
-      document.removeEventListener('yt-navigate-finish', fhandler, false);
-      document.removeEventListener('spfdone', fhandler, false);
-    }
-    document.addEventListener('yt-page-data-fetched', fhandler, false);
-    document.addEventListener('yt-navigate-finish', fhandler, false);
-    document.addEventListener('spfdone', fhandler, false);
-
-
-    function onReady() {
-      if (!fStop) {
-        setTimeout(() => {
-          !fStop && fhandler();
-        }, 1000);
-      }
-    }
-
-    Promise.resolve().then(() => {
-      if (document.readyState !== 'loading') {
-        onReady();
-      } else {
-        window.addEventListener("DOMContentLoaded", onReady, false);
-      }
-    });
+    hLooper.setupForCleanContext(__CONTEXT__)
 
   });
 
