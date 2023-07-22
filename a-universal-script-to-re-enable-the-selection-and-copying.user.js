@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.14.0.8
+// @version             1.15.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -19,6 +19,20 @@
 // @grant               GM.setValue
 // @grant               GM.getValue
 // @grant               GM_addValueChangeListener
+// @grant               unsafeWindow
+// @inject-into         page
+
+// @compatible          firefox Violentmonkey
+// @compatible          firefox Tampermonkey
+// @compatible          chrome Violentmonkey
+// @compatible          chrome Tampermonkey
+// @compatible          opera Violentmonkey
+// @compatible          opera Tampermonkey
+// @compatible          edge Violentmonkey
+// @compatible          edge Tampermonkey
+// @compatible          brave Violentmonkey
+// @compatible          brave Tampermonkey
+
 // @description:zh-TW   破解鎖右鍵，解除禁止復制、剪切、選擇文本、右鍵菜單、文字複製、文字選取、圖片右鍵等限制。增強功能：Alt鍵超連結文字選取。
 // @description:zh-CN   破解锁右键，解除禁止复制、剪切、选择文本、右键菜单、文字复制、文字选取、图片右键等限制。增强功能：Alt键超连结文字选取。
 
@@ -95,8 +109,17 @@
 // ==/UserScript==
 (function $$() {
     'use strict';
-    
-    if (!document || !document.documentElement) return window.requestAnimationFrame($$); // this is tampermonkey bug?? not sure
+
+    const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
+    /** @type {() => Selection | null} */
+    const getSelection = uWin.getSelection.bind(uWin) || Error()();
+    /** @type {(callback: FrameRequestCallback) => number} */
+    const requestAnimationFrame = uWin.requestAnimationFrame.bind(uWin) || Error()();
+    /** @type {(elt: Element, pseudoElt?: string | null) => CSSStyleDeclaration} */
+    const getComputedStyle = uWin.getComputedStyle.bind(uWin) || Error()();
+
+    if (!document || !document.documentElement) return requestAnimationFrame($$); // this is tampermonkey bug?? not sure
     //console.log('script at', location)
 
     /** @type {globalThis.PromiseConstructor} */
@@ -147,14 +170,6 @@
             return true;
         }
     }
-
-    /** @type {() => Selection | null} */
-    const getSelection = window.getSelection || Error()();
-    /** @type {(callback: FrameRequestCallback) => number} */
-    const requestAnimationFrame = window.requestAnimationFrame || Error()();
-    /** @type {(elt: Element, pseudoElt?: string | null) => CSSStyleDeclaration} */
-    const getComputedStyle = window.getComputedStyle.bind(window) || Error()();
-
 
     const $ = {
         utSelectionColorHack: 'msmtwejkzrqa',
@@ -497,10 +512,7 @@
 
             // userscript bug ?  window.alert not working
             /** @type {Window | null} */
-            let window_ = null;
-            try {
-                window_ = new Function('return window')();
-            } catch (e) { }
+            let window_ = uWin;
             if (window_) {
                 let _alert = window_.alert; // slope: temporary
                 if (typeof _alert === 'function') {
@@ -733,7 +745,7 @@
         lpMouseUpClear: function () {
             for (const rootNode of $.lpAltRoots) rootNode.removeAttribute($.utLpSelection);
             $.lpAltRoots.length = 0;
-            if ($.onceCssHighlightSelection) window.requestAnimationFrame($.onceCssHighlightSelection);
+            if ($.onceCssHighlightSelection) requestAnimationFrame($.onceCssHighlightSelection);
         },
 
         /** @type {EventListener} */
@@ -1469,12 +1481,12 @@
         mainListenerPress: (evt) => { // Capture Event; (mousedown - desktop; contextmenu - desktop&mobile)
             //   $.holdingElm=evt.target;
             //   console.log('down',evt.target)
-            if ($.onceCssHighlightSelection) window.requestAnimationFrame($.onceCssHighlightSelection);
+            if ($.onceCssHighlightSelection) requestAnimationFrame($.onceCssHighlightSelection);
             const isContextMenuEvent = evt.type === "contextmenu";
             if (evt.button === 2 || isContextMenuEvent) $.mAlert_DOWN();
             if (isContextMenuEvent && $.delayMouseUpTasks === 0) {
                 $.delayMouseUpTasks |= 1;
-                window.requestAnimationFrame($.delayMouseUpTasksHandler)
+                requestAnimationFrame($.delayMouseUpTasksHandler)
             }
         },
 
@@ -1485,7 +1497,7 @@
                 if (evt.button === 2) $.delayMouseUpTasks |= 1;
                 if ($.enableDragging === true) $.delayMouseUpTasks |= 2;
                 if ($.delayMouseUpTasks > 0) {
-                    window.requestAnimationFrame($.delayMouseUpTasksHandler)
+                    requestAnimationFrame($.delayMouseUpTasksHandler)
                 }
             }
         }
