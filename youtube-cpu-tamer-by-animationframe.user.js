@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.22.0
+// @version             2023.07.23.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -272,12 +272,23 @@ SOFTWARE.
               // 20 (rare)
               // 100
               // 250, 1000, 10000, 20000
-              if (ms < 16 && !noActiveMediaForAWhile) {
+              if (ms <= 16 && !noActiveMediaForAWhile) {
                 // typical example for ms: 0, 10 [no undefined was found]
                 doNativeFn = true;
 
-              } else if (ms < 200) {
+              } else if (ms <= 20) {
                 // 20ms, TBC
+                ms = 20;
+
+              } else if (ms <= 40) {
+                // TBC
+                ms = 40;
+
+              } else if (ms <= 80) {
+                // TBC
+                ms = 80;
+
+              } else if (ms <= 200) {
                 // 100ms
                 ms = 200;
 
@@ -401,7 +412,6 @@ SOFTWARE.
     /** @type {Function|null} */
     let afInterupter = null;
 
-
     function executeNow() {
       // in order to immediate fire setTimeout(..., 0) when livestream is paused (laggy)
 
@@ -425,7 +435,6 @@ SOFTWARE.
 
     /** @type {(resolve: () => void)}  */
     const infiniteLooper = (resolve) => requestAnimationFrame(afInterupter = resolve); // rAF will not execute if document is hidden
-    const infiniteLooperForNoPlaying = (resolve) => (afInterupter = resolve); // rAF will not execute if document is hidden
 
     /** @type {(aHandlers: Function[])}  */
     const microTaskExecutionActivePage = (aHandlers) => Promise.all(aHandlers.map(pf));
@@ -518,12 +527,12 @@ SOFTWARE.
       while (true) {
         bgExecutionAt = Date.now() + 160;
         if (noActiveMediaForAWhile) {
-          await new Promise(infiniteLooperForNoPlaying);
+          await new Promise(pTimerFn); // CPU
           afInterupter = null;
           toResetFuncHandlers = false;
           dexActivePage = false;
         } else {
-          const pTimer = new Promise(pTimerFn);
+          const pTimer = new Promise(pTimerFn); // CPU
           if (!isAnyVideoJustStartedWaiting) await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
           await pTimer; // resolve by timer@10ms
           if (afInterupter === null) {
