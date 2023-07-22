@@ -155,7 +155,7 @@ SOFTWARE.
   // Suggested values: 10ms, 16ms, 24ms, 32ms, 48ms, 64ms.
   // Note: The script is not designed to operate with values higher 200ms. Please be careful of changing UNDERCLOCK value.
 
-  const win = this || window;
+  const win = this instanceof Window ? this : window;
 
   // Create a unique key for the script and check if it is already running
   const hkey_script = 'nzsxclvflluv';

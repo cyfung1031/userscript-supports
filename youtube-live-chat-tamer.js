@@ -128,7 +128,7 @@ SOFTWARE.
 ((__CONTEXT__)=> {
   'use strict';
 
-  const win = this || window;
+  const win = this instanceof Window ? this : window;
 
   // Create a unique key for the script and check if it is already running
   const hkey_script = 'kucwgdszblzm';

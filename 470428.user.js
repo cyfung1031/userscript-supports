@@ -22,13 +22,14 @@
   // To disable cinematics, the user shall use other userscripts or just turn off the option in the video options.
 
 
-  const win = this || window;
+  const win = this instanceof Window ? this : window;
 
   // Create a unique key for the script and check if it is already running
   const hkey_script = 'jmimcvowrlzl';
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
 
+  /** @type {globalThis.PromiseConstructor} */
   const Promise = ((async () => { })()).constructor;
 
   const cleanContext = async (win) => {

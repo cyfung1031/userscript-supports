@@ -99,7 +99,8 @@
     if (!document || !document.documentElement) return window.requestAnimationFrame($$); // this is tampermonkey bug?? not sure
     //console.log('script at', location)
 
-    const Promise = window.Promise; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor;// YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
 
     const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
     const $nil = () => { };

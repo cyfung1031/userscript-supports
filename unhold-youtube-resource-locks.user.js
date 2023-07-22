@@ -66,7 +66,8 @@ SOFTWARE.
 (function (__Promise__) {
   'use strict';
 
-  const Promise = __Promise__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  /** @type {globalThis.PromiseConstructor} */
+  const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const DEBUG_LOG = false;
   let initialChecking = null;
