@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.8.0
+// @version             0.8.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -154,7 +154,10 @@ SOFTWARE.
     const USE_CHANNEL_META = true;
     const CHANGE_FOR_SHORTS_CHANNEL_NAME = false;
 
-    const { Promise, fetch, JSON, Request, AbortController, setTimeout, clearTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+    const { fetch, JSON, Request, AbortController, setTimeout, clearTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const timeoutSignal = AbortController && USE_TIMEOUT_SIGNAL ? (timeout) => {
         let controller = new AbortController();
@@ -1789,4 +1792,4 @@ SOFTWARE.
         setupOnPageFetched(app);
     });
 
-})({ Promise, fetch, JSON, Request, AbortController, setTimeout, clearTimeout });
+})({ fetch, JSON, Request, AbortController, setTimeout, clearTimeout });
