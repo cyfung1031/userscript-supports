@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.7
+// @version             0.10.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天

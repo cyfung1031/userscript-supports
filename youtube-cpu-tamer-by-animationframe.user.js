@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.21.1
+// @version             2023.07.22.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
