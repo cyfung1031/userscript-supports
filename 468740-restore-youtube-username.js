@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.8.1
+// @version             0.8.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -41,11 +41,18 @@ SOFTWARE.
 // @allFrames           true
 // @inject-into         page
 
-// @compatible          firefox 55
-// @compatible          chrome 61
-// @compatible          opera 48
-// @compatible          safari 11.1
-// @compatible          edge 16
+// @compatible          firefox Violentmonkey
+// @compatible          firefox Tampermonkey
+// @compatible          firefox Firemonkey
+// @compatible          chrome Violentmonkey
+// @compatible          chrome Tampermonkey
+// @compatible          opera Violentmonkey
+// @compatible          opera Tampermonkey
+// @compatible          safari Stay
+// @compatible          edge Violentmonkey
+// @compatible          edge Tampermonkey
+// @compatible          brave Violentmonkey
+// @compatible          brave Tampermonkey
 
 // @description         To restore YouTube Username to the traditional custom name
 // @description:ja      YouTubeのユーザー名を伝統的なカスタム名に復元するために。
