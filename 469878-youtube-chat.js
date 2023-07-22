@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.4
+// @version             0.10.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -484,6 +484,9 @@
     // let lastScroll = 0;
     // let lastLShow = 0;
     let lastWheel = 0;
+    let lastMouseDown = 0;
+    let lastMouseUp = 0;
+    let currentMouseDown = false;
 
     let scrollChatFn = null;
     let lastAddition = 0;
@@ -931,7 +934,7 @@
 
                     if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                     //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    if (!cnt.atBottom && cnt.allowScroll && cnt.canScrollToBottomDLW_ && cnt.canScrollToBottomDLW_()) {
+                    if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
                       cnt.scrollToBottom_();
 
                       Promise.resolve().then(() => {
@@ -1050,11 +1053,21 @@
               await Promise.resolve().then(() => {
                 this.ytRendererBehavior.onScroll(evt);
               }).then(() => {
-                if (dateNow() - lastWheel < 80) {
+                if (this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true) {
+                  // only when there is an user action
+                  this.setAtBottom();
+                  return 1;
+                }
+              }).then((r) => {
+                if (this.canScrollToBottom_()) {
+                  this.flushActiveItems_();
+                  return 1 && r;
+                }
+              }).then((r) => {
+                if (r) {
+                  // ensure setAtBottom is correctly set
                   this.setAtBottom();
                 }
-              }).then(() => {
-                this.flushActiveItems_();
               });
             } else {
               cnt.onScrollItems66_(evt);
@@ -1330,10 +1343,13 @@
           return this.detached66();
         }
 
-        mclp.canScrollToBottomDLW_ = () => !(dateNow() - lastWheel < 80);
+        mclp.hasUserJustInteracted11_ = () => {
+          const t = dateNow();
+          return (t - lastWheel < 80) || currentMouseDown || (t - lastMouseDown < 80) || (t - lastMouseUp < 80);
+        }
 
         mclp.canScrollToBottom_ = function () {
-          return this.atBottom && this.allowScroll && this.canScrollToBottomDLW_();
+          return this.atBottom && this.allowScroll && !this.hasUserJustInteracted11_();
         }
 
         if (ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -1368,21 +1384,70 @@
 
 
       let scrollCount = 0;
+
+      const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
+
       document.addEventListener('scroll', (evt) => {
         if (!evt || !evt.isTrusted) return;
         // lastScroll = dateNow();
         if (++scrollCount > 1e9) scrollCount = 9;
-      }, { passive: true, capture: true }); // support contain => support passive
+      }, passiveCapture); // support contain => support passive
 
       let lastScrollCount = -1;
       document.addEventListener('wheel', (evt) => {
-
         if (!evt || !evt.isTrusted) return;
         if (lastScrollCount === scrollCount) return;
         lastScrollCount = scrollCount;
         lastWheel = dateNow();
+      }, passiveCapture); // support contain => support passive
 
-      }, { passive: true, capture: true }); // support contain => support passive
+      document.addEventListener('mousedown', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (((evt || 0).target || 0).id !== 'item-scroller') return;
+        lastMouseDown = dateNow();
+        currentMouseDown = true;
+      }, passiveCapture);
+
+      document.addEventListener('pointerdown', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (((evt || 0).target || 0).id !== 'item-scroller') return;
+        lastMouseDown = dateNow();
+        currentMouseDown = true;
+      }, passiveCapture);
+
+      document.addEventListener('click', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (((evt || 0).target || 0).id !== 'item-scroller') return;
+        lastMouseDown = lastMouseUp = dateNow();
+        currentMouseDown = false;
+
+      }, passiveCapture);
+
+      document.addEventListener('tap', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (((evt || 0).target || 0).id !== 'item-scroller') return;
+        lastMouseDown = lastMouseUp = dateNow();
+        currentMouseDown = false;
+      }, passiveCapture);
+
+
+      document.addEventListener('mouseup', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (currentMouseDown) {
+          lastMouseUp = dateNow();
+          currentMouseDown = false;
+        }
+      }, passiveCapture);
+
+
+      document.addEventListener('pointerup', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (currentMouseDown) {
+          lastMouseUp = dateNow();
+          currentMouseDown = false;
+        }
+      }, passiveCapture);
+
 
 
       const fp = (renderer) => {
