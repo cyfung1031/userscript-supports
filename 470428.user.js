@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.1
+// @version     0.4.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -35,6 +35,12 @@
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS !== 'undefined',
     externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS ? true : false)
   };
+  const ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH = {
+    defaultValue: true,
+    useExternal: () => typeof localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH !== 'undefined',
+    externalValue: () => (+localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH ? true : false)
+  };
+
 
 
   // TBC
@@ -48,7 +54,9 @@
 
   // kevlar_tuner_should_test_visibility_time_between_jobs
   // kevlar_tuner_visibility_time_between_jobs_ms
-  // 
+
+  // kevlar_tuner_default_comments_delay
+  // kevlar_tuner_run_default_comments_delay 
 
   let settled = null;
   // cinematic feature is no longer an experimential feature.
@@ -244,17 +252,20 @@
     if (!settled) {
       settled = {
         use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
-        use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS)
+        use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS),
+        use_defer_detach:  getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
       }
       if (settled.use_maintain_stable_list) console.debug("use_maintain_stable_list");
       if (settled.use_maintain_reuse_components) console.debug("use_maintain_reuse_components");
+      if (settled.use_defer_detach) console.debug("use_defer_detach");
     }
-    const { use_maintain_stable_list, use_maintain_reuse_components } = settled;
+    const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = settled;
 
     const setFalseFn = (EXPERIMENT_FLAGS) => {
 
 
       for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
+
 
         if (value === true) {
           // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
@@ -266,7 +277,14 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
           if (!DISABLE_CINEMATICS) {
+
+ 
+              if(key ==='kevlar_measure_ambient_mode_idle' || key ==='kevlar_watch_cinematics_invisible'  || key === 'web_cinematic_theater_mode' || key ==='web_cinematic_fullscreen' ){
+                continue;
+              } 
+
 
             let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
               : key === 'kevlar_watch_cinematics' ? 2
@@ -401,6 +419,10 @@
       EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
       EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
       EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
+    }
+
+    if(use_defer_detach){
+      EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach= true;
     }
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
