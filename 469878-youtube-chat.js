@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.9
+// @version             0.10.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -369,7 +369,7 @@
 
   const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && ENABLE_OVERFLOW_ANCHOR_CAPABLE && ENABLE_NO_SMOOTH_TRANSFORM;
 
-  const NOT_FIREFOX = !CSS.supports('-moz-appearance','none'); // 1. Firefox does not have the flicking issue; 2. Firefox's OVERFLOW_ANCHOR does not work very well as chromium.
+  const NOT_FIREFOX = !CSS.supports('-moz-appearance', 'none'); // 1. Firefox does not have the flicking issue; 2. Firefox's OVERFLOW_ANCHOR does not work very well as chromium.
 
   const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_PREFERRED && ENABLE_FULL_RENDER_REQUIRED_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
 
@@ -432,7 +432,7 @@
     if (!__CONTEXT__) return null;
 
 
-    const { requestAnimationFrame } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout } = __CONTEXT__;
 
 
     ENABLE_FULL_RENDER_REQUIRED && document.addEventListener('animationstart', (evt) => {
@@ -792,6 +792,7 @@
         let myw = 0;
         let mzt = 0;
         let zarr = null;
+        let mlg = 0;
 
         if ((mclp.clearList || 0).length === 0) {
           mclp.clearList66 = mclp.clearList;
@@ -801,6 +802,7 @@
             mlf++;
             myw++;
             mzt++;
+            mlg++;
             zarr = null;
             this.__intermediate_delay__ = null;
             this.clearList66();
@@ -872,6 +874,9 @@
                 await new Promise(requestAnimationFrame);
                 if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                 if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+
+                if (mlg > 1e9) mlg = 9;
+                ++mlg;
 
                 const oMaxItemsToDisplay = this.data.maxItemsToDisplay;
                 const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
@@ -1034,6 +1039,19 @@
 
         }
 
+        mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
+          if (mlg > 1e9) mlg = 9;
+          const tid = ++mlg;
+          const keepTrialCond = () => this.atBottom && (tid === mlg) && this.isAttached === true && (this.hostElement || 0).isConnected === true;
+          const runCond = () => this.canScrollToBottom_();
+          if (!keepTrialCond()) return;
+          if (runCond()) return this.flushActiveItems_();
+          await new Promise(r => setTimeout(r, 80));
+          if (!keepTrialCond()) return;
+          if (runCond()) return this.flushActiveItems_();
+          await new Promise(requestAnimationFrame);
+          if (runCond()) return this.flushActiveItems_();
+        }
 
         if ((mclp.onScrollItems_ || 0).length === 1) {
 
@@ -1068,9 +1086,17 @@
                   return 1;
                 }
               }).then((r) => {
-                if (this.canScrollToBottom_()) {
-                  this.flushActiveItems_();
-                  return 1 && r;
+
+                if (this.activeItems_.length) {
+
+                  if (this.canScrollToBottom_()) {
+                    this.flushActiveItems_();
+                    return 1 && r;
+                  } else if (this.atBottom) {
+                    // delayed due to user action
+                    this.delayFlushActiveItemsAfterUserAction11_ && this.delayFlushActiveItemsAfterUserAction11_();
+                    return 0;
+                  }
                 }
               }).then((r) => {
                 if (r) {
@@ -1195,6 +1221,16 @@
         }
         return lcRenderer
       };
+
+      const delayFlushActiveItemsAfterUserActionK_ = () => {
+
+        const lcRenderer = lcRendererElm();
+        if (lcRenderer) {
+          const cnt = (lcRenderer.inst || lcRenderer);
+          cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
+        }
+
+      }
 
       let hasFirstShowMore = false;
 
@@ -1446,6 +1482,7 @@
           lastMouseUp = dateNow();
           currentMouseDown = false;
         }
+        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
 
@@ -1455,6 +1492,7 @@
           lastMouseUp = dateNow();
           currentMouseDown = false;
         }
+        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
 
