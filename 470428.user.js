@@ -2,7 +2,7 @@
 // @name        Disable all YouTube EXPERIMENT_FLAGS
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.6
+// @version     0.3.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -23,6 +23,7 @@
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
     externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST ? true : false)
   };
+  let settled = null;
   // cinematic feature is no longer an experimential feature.
   // It has been officially implemented.
   // To disable cinematics, the user shall use other userscripts or just turn off the option in the video options.
@@ -211,6 +212,14 @@
     return controller;
   })((EXPERIMENT_FLAGS) => {
 
+    if(!EXPERIMENT_FLAGS) return;
+
+    if (!settled) {
+      settled = {
+        use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST)
+      }
+      if (settled.use_maintain_stable_list) console.debug("use_maintain_stable_list");
+    }
 
     if (isMainWindow) {
       for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
@@ -237,6 +246,18 @@
           }
 
           if (key.indexOf('kevlar_') >= 0) {
+
+            if (kl === 22) {
+              // kevlar_enable_up_arrow - no use
+              // kevlar_help_use_locale - might use
+              // kevlar_refresh_gesture - might use
+              // kevlar_smart_downloads - might use
+              // kevlar_thumbnail_fluid
+              // kevlar_ytb_live_badges
+
+              if (key === 'kevlar_ytb_live_badges') continue;
+
+            }
 
 
             if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
@@ -333,9 +354,6 @@
           if (mzFlagDetected.has(key)) continue;
           mzFlagDetected.add(key);
 
-
-
-
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
         }
@@ -349,16 +367,10 @@
     EXPERIMENT_FLAGS.web_animated_like = false;
     EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
 
-
-
-    const use_maintain_stable_list = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST);
-
-    if (use_maintain_stable_list) {
+    if (settled.use_maintain_stable_list) {
       EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
       EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
     }
-
-
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
   });
