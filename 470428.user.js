@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name        Disable all YouTube EXPERIMENT_FLAGS
+// @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.7
+// @version     0.4.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
-// @description To Disable all YouTube EXPERIMENT_FLAGS
+// @description Adjust EXPERIMENT_FLAGS
 // @grant       none
 // @unwrap
 // @run-at      document-start
@@ -16,13 +16,40 @@
 
 ((__CONTEXT__) => {
 
+  // Purpose 1: Remove Obsolete Flags
+  // Purpose 2: Remove Flags bring no visual difference
+  // Purpose 3: Enable Flags bring performance boost
+
   const DISABLE_CINEMATICS = false;
   const NO_SerializedExperiment = true;
+  const KEEP_PLAYER_QUALITY_STICKY = true;
+  const DISABLE_serializedExperimentIds = true;
+  const DISABLE_serializedExperimentFlags = true;
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
-    defaultValue: false,
+    defaultValue: true,
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
     externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST ? true : false)
   };
+  const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS = {
+    defaultValue: true,
+    useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS !== 'undefined',
+    externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS ? true : false)
+  };
+
+
+  // TBC
+  // kevlar_tuner_should_always_use_device_pixel_ratio
+  // kevlar_tuner_should_clamp_device_pixel_ratio
+  // kevlar_tuner_clamp_device_pixel_ratio
+  // kevlar_tuner_should_use_thumbnail_factor
+  // kevlar_tuner_thumbnail_factor
+  // kevlar_tuner_min_thumbnail_quality
+  // kevlar_tuner_max_thumbnail_quality
+
+  // kevlar_tuner_should_test_visibility_time_between_jobs
+  // kevlar_tuner_visibility_time_between_jobs_ms
+  // 
+
   let settled = null;
   // cinematic feature is no longer an experimential feature.
   // It has been officially implemented.
@@ -49,10 +76,8 @@
 
   function fixSerializedExperiment(conf) {
 
-    let ids = null, flags = null;
-
-    if (typeof conf.serializedExperimentIds === 'string') {
-      ids = conf.serializedExperimentIds.split(',');
+    if (DISABLE_serializedExperimentIds && typeof conf.serializedExperimentIds === 'string') {
+      let ids = conf.serializedExperimentIds.split(',');
       let newIds = [];
       for (const id of ids) {
         let keep = false;
@@ -63,27 +88,23 @@
       conf.serializedExperimentIds = newIds.join(',');
     }
 
-    if (typeof conf.serializedExperimentFlags === 'string') {
+    if (DISABLE_serializedExperimentFlags && typeof conf.serializedExperimentFlags === 'string') {
       const fg = conf.serializedExperimentFlags;
       const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
-
       let res = [];
-
       for (let m; m = rx.exec(fg);) {
         let key = m[2];
         let value = m[3];
         let keep = false;
-        if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
-          keep = true;
+        if (KEEP_PLAYER_QUALITY_STICKY) {
+          if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
+            keep = true;
+          }
         }
         if (keep) res.push(`${key}=${value}`);
       }
-
       conf.serializedExperimentFlags = res.join('&');
-
     }
-
-
 
   }
 
@@ -100,14 +121,16 @@
     const looperFn = () => {
       if (fStopLooper) return;
 
+      let config_ = null;
       let EXPERIMENT_FLAGS = null;
       try {
-        EXPERIMENT_FLAGS = yt.config_.EXPERIMENT_FLAGS
+        config_ = yt.config_;
+        EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS
       } catch (e) { }
 
       if (EXPERIMENT_FLAGS) {
 
-        fn(EXPERIMENT_FLAGS);
+        fn(EXPERIMENT_FLAGS, config_);
 
         if (microDisconnectFn) {
           let isYtLoaded = false;
@@ -153,6 +176,10 @@
         })();
         looperFn();
       },
+      /**
+       * 
+       * @param {Window} __CONTEXT__ 
+       */
       setupForCleanContext(__CONTEXT__) {
 
         const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
@@ -210,18 +237,23 @@
     };
 
     return controller;
-  })((EXPERIMENT_FLAGS) => {
+  })((EXPERIMENT_FLAGS, config_) => {
 
-    if(!EXPERIMENT_FLAGS) return;
+    if (!EXPERIMENT_FLAGS) return;
 
     if (!settled) {
       settled = {
-        use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST)
+        use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
+        use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS)
       }
       if (settled.use_maintain_stable_list) console.debug("use_maintain_stable_list");
+      if (settled.use_maintain_reuse_components) console.debug("use_maintain_reuse_components");
     }
+    const { use_maintain_stable_list, use_maintain_reuse_components } = settled;
 
-    if (isMainWindow) {
+    const setFalseFn = (EXPERIMENT_FLAGS) => {
+
+
       for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
 
         if (value === true) {
@@ -260,8 +292,18 @@
             }
 
 
-            if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
-            if (key === 'kevlar_should_maintain_stable_list') continue;
+            if (!use_maintain_stable_list) {
+
+              if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
+              if (key === 'kevlar_should_maintain_stable_list') continue;
+              if (key === 'kevlar_tuner_should_maintain_stable_list') continue; // fallback
+            }
+            if (!use_maintain_reuse_components) {
+
+              if (key === 'kevlar_tuner_should_test_reuse_components') continue;
+              if (key === 'kevlar_tuner_should_reuse_components') continue;
+              if (key === 'kevlar_should_reuse_components') continue; // fallback
+            }
 
             if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
               if (key === 'kevlar_system_icons') continue;
@@ -302,6 +344,8 @@
 
           } else {
 
+            if (key === 'web_button_rework') continue;
+
             if (kl7 === 3 && kl5 == 1 && kl2 === 1 && kl3 === 1) {
               if (key === 'web_darker_dark_theme_live_chat') continue;
             }
@@ -333,43 +377,30 @@
 
           }
 
-
-
-
-
-
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
         }
-
       }
-    } else {
-
-
-      for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
-
-        if (value === true) {
-          // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
-
-          if (mzFlagDetected.has(key)) continue;
-          mzFlagDetected.add(key);
-
-          // console.log(key)
-          EXPERIMENT_FLAGS[key] = false;
-        }
-
-      }
-
 
     }
+
+    setFalseFn(EXPERIMENT_FLAGS);
+    if (config_.EXPERIMENTS_FORCED_FLAGS) setFalseFn(config_.EXPERIMENTS_FORCED_FLAGS);
 
     EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
     EXPERIMENT_FLAGS.web_animated_like = false;
     EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
 
-    if (settled.use_maintain_stable_list) {
+    if (use_maintain_stable_list) {
       EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
       EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+      EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
+    }
+
+    if (use_maintain_reuse_components) {
+      EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+      EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+      EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
     }
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
