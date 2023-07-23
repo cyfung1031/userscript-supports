@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.4
+// @version     0.4.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -489,5 +489,21 @@
     hLooper.setupForCleanContext(__CONTEXT__)
 
   });
+
+
+  if (isMainWindow) {
+
+    console.groupCollapsed(
+      "%cYouTube EXPERIMENT_FLAGS Tamer",
+      "background-color: #EDE43B ; color: #000 ; font-weight: bold ; padding: 4px ;"
+    );
+
+    console.log("Script is loaded.");
+    console.log("This might affect the new features when YouTube rolls them out to general users.");
+    console.log("If you found any issue in using YouTube, please disable this script to check whether the issue is due to this script or not.");
+
+    console.groupEnd();
+
+  }
 
 })(null);
