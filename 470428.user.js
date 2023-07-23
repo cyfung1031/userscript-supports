@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.2
+// @version     0.4.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -253,11 +253,11 @@
       settled = {
         use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
         use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS),
-        use_defer_detach:  getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
+        use_defer_detach: getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
       }
-      if (settled.use_maintain_stable_list) console.debug("use_maintain_stable_list");
-      if (settled.use_maintain_reuse_components) console.debug("use_maintain_reuse_components");
-      if (settled.use_defer_detach) console.debug("use_defer_detach");
+      if (settled.use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
+      if (settled.use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
+      if (settled.use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
     }
     const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = settled;
 
