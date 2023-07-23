@@ -20,23 +20,23 @@
   // Purpose 2: Remove Flags bring no visual difference
   // Purpose 3: Enable Flags bring performance boost
 
-  const DISABLE_CINEMATICS = false;
+  const DISABLE_CINEMATICS = false; // standard design
   const NO_SerializedExperiment = true;
-  const KEEP_PLAYER_QUALITY_STICKY = true;
+  const KEEP_PLAYER_QUALITY_STICKY = true; // see https://greasyfork.org/scripts/471033/
   const DISABLE_serializedExperimentIds = true;
   const DISABLE_serializedExperimentFlags = true;
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
-    defaultValue: true,
+    defaultValue: true, // performance boost
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
     externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST ? true : false)
   };
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS = {
-    defaultValue: true,
+    defaultValue: true, // not sure
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS !== 'undefined',
     externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS ? true : false)
   };
   const ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH = {
-    defaultValue: true,
+    defaultValue: true, // not sure
     useExternal: () => typeof localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH !== 'undefined',
     externalValue: () => (+localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH ? true : false)
   };
