@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.13
+// @version             0.10.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -81,8 +81,7 @@
     `
   }
 
-  if (1) {
-    cssText5 = `
+  cssText5 = `
 
 
 
@@ -123,11 +122,9 @@
     /* ------------------------------------------------------------------------------------------------------------- */
 
   `
-  }
 
-  if (1) {
 
-    cssText6 = `
+  cssText6 = `
 
 
       yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
@@ -181,10 +178,8 @@
 
 
   `
-  }
 
-  if (1) {
-    cssText7 = `
+  cssText7 = `
 
 
       .ytp-contextmenu[class],
@@ -211,7 +206,6 @@
       }
 
   `
-  }
 
   function addCssElement() {
     let s = document.createElement('style')
@@ -222,17 +216,17 @@
   const addCss = () => document.head.appendChild(dr(addCssElement())).textContent = `
 
 
-  @supports (contain:layout paint style) and (content-visibility:auto) and (contain-intrinsic-size:auto var(--wsr94)) {
+  @supports (contain: layout paint style) and (content-visibility: auto) and (contain-intrinsic-size: auto var(--wsr94)) {
 
       ${cssText1}
   }
 
-  @supports (contain:layout paint style) {
+  @supports (contain: layout paint style) {
 
-    ${cssText2}
+      ${cssText2}
 
 
-    ${cssText5}
+      ${cssText5}
 
   }
 
@@ -250,6 +244,11 @@
       ${cssText4}
 
       ${cssText6}
+
+  }
+
+
+  @supports (overflow-anchor: auto) {
 
       .no-anchor * {
           overflow-anchor: none;
@@ -288,17 +287,19 @@
 
           height: 1px;
           width: 1px;
-          top:auto;
-          left:auto;
-          right:auto;
-          bottom:auto;
+          top: auto;
+          left: auto;
+          right: auto;
+          bottom: auto;
           transform: translateY(-1px);
           position: absolute;
-          z-index:-1;
+          z-index: -1;
 
       }
 
+  }
 
+  @supports (color: var(--pre-rendering)) {
 
       @keyframes dontRenderAnimation {
           0% {
@@ -314,23 +315,20 @@
           transform: scale(0.01) !important;
           transform: scale(0.00001) !important;
           transform: scale(0.0000001) !important;
-          transform-origin:0 0 !important;
+          transform-origin: 0 0 !important;
           z-index:-1 !important;
           contain: strict !important;
           box-sizing: border-box !important;
 
-          height:1px !important;
-          height:0.1px !important;
-          height:0.01px !important;
-          height:0.0001px !important;
-          height:0.000001px !important;
-
+          height: 1px !important;
+          height: 0.1px !important;
+          height: 0.01px !important;
+          height: 0.0001px !important;
+          height: 0.000001px !important;
 
           animation: dontRenderAnimation 1ms linear 80ms 1 normal forwards !important;
 
       }
-
-
 
   }
 
@@ -489,9 +487,12 @@
     let lastMouseDown = 0;
     let lastMouseUp = 0;
     let currentMouseDown = false;
+    let lastTouchDown = 0;
+    let lastTouchUp = 0;
+    let currentTouchDown = false;
+    let lastUserInteraction = 0;
 
     let scrollChatFn = null;
-    let lastAddition = 0;
 
     const proxyHelperFn = (dummy) => ({
 
@@ -1043,7 +1044,7 @@
           try {
             if (mlg > 1e9) mlg = 9;
             const tid = ++mlg;
-            const keepTrialCond = () => this.atBottom && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
+            const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
             const runCond = () => this.canScrollToBottom_();
             if (!keepTrialCond()) return;
             if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
@@ -1077,8 +1078,8 @@
               await Promise.resolve().then(() => {
                 this.ytRendererBehavior.onScroll(evt);
               }).then(() => {
-                let hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
                 if (this.canScrollToBottom_()) {
+                  const hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
                   if (hasUserJustInteracted) {
                     // only when there is an user action
                     this.setAtBottom();
@@ -1096,7 +1097,7 @@
                   if (this.canScrollToBottom_()) {
                     this.flushActiveItems_();
                     return 1 && r;
-                  } else if (this.atBottom) {
+                  } else if (this.atBottom && this.allowScroll && (this.hasUserJustInteracted11_ && this.hasUserJustInteracted11_())) {
                     // delayed due to user action
                     this.delayFlushActiveItemsAfterUserAction11_ && this.delayFlushActiveItemsAfterUserAction11_();
                     return 0;
@@ -1112,20 +1113,11 @@
               cnt.onScrollItems66_(evt);
             }
 
-
-
-
             await Promise.resolve();
 
           }
 
           mclp.onScrollItems_ = function (evt) {
-
-            if (Date.now() - lastAddition < 80) {
-              console.log(12345)
-              lastAddition = 0;
-              cnt.scrollToBottom_();
-            }
 
             const cnt = this;
             cnt.__intermediate_delay__ = new Promise(resolve => {
@@ -1231,7 +1223,8 @@
         const lcRenderer = lcRendererElm();
         if (lcRenderer) {
           const cnt = (lcRenderer.inst || lcRenderer);
-          if (cnt.atBottom && cnt.activeItems_.length >= 1 && !cnt.canScrollToBottom_()) {
+          if (!cnt.hasUserJustInteracted11_) return;
+          if (cnt.atBottom && cnt.allowScroll && cnt.activeItems_.length >= 1 && cnt.hasUserJustInteracted11_()) {
             cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
           }
         }
@@ -1396,7 +1389,7 @@
 
         mclp.hasUserJustInteracted11_ = () => {
           const t = dateNow();
-          return (t - lastWheel < 80) || currentMouseDown || (t - lastMouseDown < 80) || (t - lastMouseUp < 80);
+          return (t - lastWheel < 80) || currentMouseDown || currentTouchDown || (t - lastUserInteraction < 80);
         }
 
         mclp.canScrollToBottom_ = function () {
@@ -1405,12 +1398,9 @@
 
         if (ENABLE_NO_SMOOTH_TRANSFORM) {
 
-
           mclp.isSmoothScrollEnabled_ = function () {
             return false;
           }
-
-
 
           mclp.maybeResizeScrollContainer_ = function () {
             //
@@ -1458,6 +1448,7 @@
         if (((evt || 0).target || 0).id !== 'item-scroller') return;
         lastMouseDown = dateNow();
         currentMouseDown = true;
+        lastUserInteraction = lastMouseDown;
       }, passiveCapture);
 
       document.addEventListener('pointerdown', (evt) => {
@@ -1465,6 +1456,7 @@
         if (((evt || 0).target || 0).id !== 'item-scroller') return;
         lastMouseDown = dateNow();
         currentMouseDown = true;
+        lastUserInteraction = lastMouseDown;
       }, passiveCapture);
 
       document.addEventListener('click', (evt) => {
@@ -1472,7 +1464,8 @@
         if (((evt || 0).target || 0).id !== 'item-scroller') return;
         lastMouseDown = lastMouseUp = dateNow();
         currentMouseDown = false;
-
+        lastUserInteraction = lastMouseDown;
+        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
       document.addEventListener('tap', (evt) => {
@@ -1480,6 +1473,8 @@
         if (((evt || 0).target || 0).id !== 'item-scroller') return;
         lastMouseDown = lastMouseUp = dateNow();
         currentMouseDown = false;
+        lastUserInteraction = lastMouseDown;
+        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
 
@@ -1488,8 +1483,9 @@
         if (currentMouseDown) {
           lastMouseUp = dateNow();
           currentMouseDown = false;
+          lastUserInteraction = lastMouseUp;
+          delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
         }
-        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
 
@@ -1498,10 +1494,44 @@
         if (currentMouseDown) {
           lastMouseUp = dateNow();
           currentMouseDown = false;
+          lastUserInteraction = lastMouseUp;
+          delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
         }
-        delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
       }, passiveCapture);
 
+      document.addEventListener('touchstart', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        lastTouchDown = dateNow();
+        currentTouchDown = true;
+        lastUserInteraction = lastTouchDown;
+      }, passiveCapture);
+
+      document.addEventListener('touchmove', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        lastTouchDown = dateNow();
+        currentTouchDown = true;
+        lastUserInteraction = lastTouchDown;
+      }, passiveCapture);
+
+      document.addEventListener('touchend', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (currentTouchDown) {
+          lastTouchUp = dateNow();
+          currentTouchDown = false;
+          lastUserInteraction = lastTouchUp;
+          delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
+        }
+      }, passiveCapture);
+
+      document.addEventListener('touchcancel', (evt) => {
+        if (!evt || !evt.isTrusted) return;
+        if (currentTouchDown) {
+          lastTouchUp = dateNow();
+          currentTouchDown = false;
+          lastUserInteraction = lastTouchUp;
+          delayFlushActiveItemsAfterUserActionK_ && delayFlushActiveItemsAfterUserActionK_();
+        }
+      }, passiveCapture);
 
 
       const fp = (renderer) => {
