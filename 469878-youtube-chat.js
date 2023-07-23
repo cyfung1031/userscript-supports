@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.10
+// @version             0.10.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1042,15 +1042,15 @@
         mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
           if (mlg > 1e9) mlg = 9;
           const tid = ++mlg;
-          const keepTrialCond = () => this.atBottom && (tid === mlg) && this.isAttached === true && (this.hostElement || 0).isConnected === true;
+          const keepTrialCond = () => this.atBottom && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
           const runCond = () => this.canScrollToBottom_();
           if (!keepTrialCond()) return;
-          if (runCond()) return this.flushActiveItems_();
+          if (runCond()) return this.flushActiveItems_()|1; // avoid return promise
           await new Promise(r => setTimeout(r, 80));
           if (!keepTrialCond()) return;
-          if (runCond()) return this.flushActiveItems_();
+          if (runCond()) return this.flushActiveItems_()|1;
           await new Promise(requestAnimationFrame);
-          if (runCond()) return this.flushActiveItems_();
+          if (runCond()) return this.flushActiveItems_()|1;
         }
 
         if ((mclp.onScrollItems_ || 0).length === 1) {
@@ -1227,7 +1227,9 @@
         const lcRenderer = lcRendererElm();
         if (lcRenderer) {
           const cnt = (lcRenderer.inst || lcRenderer);
-          cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
+          if (cnt.atBottom && cnt.activeItems_.length >= 1) {
+            cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
+          }
         }
 
       }
