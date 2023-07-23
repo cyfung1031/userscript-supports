@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.3
+// @version     0.4.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -106,6 +106,11 @@
         let keep = false;
         if (KEEP_PLAYER_QUALITY_STICKY) {
           if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
+            keep = true;
+          }
+        }
+        if (!DISABLE_CINEMATICS) {
+          if (key === 'web_cinematic_watch_settings') {
             keep = true;
           }
         }
