@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Live Chat Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.23.0
+// @version             2023.07.23.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/live_chat*
@@ -135,7 +135,7 @@ SOFTWARE.
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
   
-  localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = "1"; // Take Effect If https://greasyfork.org/scripts/470428 is installed
+  // localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = "1"; // Take Effect If https://greasyfork.org/scripts/470428 is installed
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
