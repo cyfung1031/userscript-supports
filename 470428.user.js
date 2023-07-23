@@ -2,7 +2,7 @@
 // @name        Disable all YouTube EXPERIMENT_FLAGS
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.5
+// @version     0.3.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -18,10 +18,16 @@
 
   const DISABLE_CINEMATICS = false;
   const NO_SerializedExperiment = true;
+  const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
+    defaultValue: false,
+    useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
+    externalValue: () => (+localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST ? true : false)
+  };
   // cinematic feature is no longer an experimential feature.
   // It has been officially implemented.
   // To disable cinematics, the user shall use other userscripts or just turn off the option in the video options.
 
+  const getSettingValue = (fm) => fm.useExternal() ? fm.externalValue() : fm.defaultValue;
 
   const win = this instanceof Window ? this : window;
 
@@ -232,6 +238,10 @@
 
           if (key.indexOf('kevlar_') >= 0) {
 
+
+            if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
+            if (key === 'kevlar_should_maintain_stable_list') continue;
+
             if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
               if (key === 'kevlar_system_icons') continue;
             }
@@ -338,6 +348,17 @@
     EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
     EXPERIMENT_FLAGS.web_animated_like = false;
     EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
+
+
+
+    const use_maintain_stable_list = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST);
+
+    if (use_maintain_stable_list) {
+      EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+      EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+    }
+
+
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
   });
