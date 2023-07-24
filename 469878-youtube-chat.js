@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.2
+// @version             0.11.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -49,7 +49,7 @@
   const ENABLE_RAF_HACK_INPUT_RENDERER = true; // TBC
   const ENABLE_RAF_HACK_EMOJI_PICKER = true; // when change the page of emoji picker
 
-  const ENABLE_FONT_PRE_RENDERING_PREFERRED = 1|2|4|8|16;
+  const ENABLE_FONT_PRE_RENDERING_PREFERRED = 1 | 2 | 4 | 8 | 16;
 
   console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
@@ -306,7 +306,6 @@
     }
 
   `: ''
-
 
   let isCssAdded = false;
   function addCssElement() {
@@ -749,6 +748,95 @@
 
     /** @type {(wr: Object | null) => Object | null} */
     const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+
+    const addFontPreRendering = () => {
+
+      groupCollapsed("YouTube Super Fast Chat", " | Fonts Pre-Rendering");
+
+      let efsContainer = document.createElement('elzm-fonts');
+      efsContainer.id = 'elzm-fonts-yk75g'
+
+      const arr = [];
+      let p = document.createElement('elzm-font');
+      arr.push(p);
+
+      if (ENABLE_FONT_PRE_RENDERING & 1) {
+        for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+          p = document.createElement('elzm-font');
+          p.style.fontWeight = size;
+          arr.push(p);
+        }
+      }
+
+      if (ENABLE_FONT_PRE_RENDERING & 2) {
+        for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+          p = document.createElement('elzm-font');
+          p.style.fontFamily = 'Roboto';
+          p.style.fontWeight = size;
+          arr.push(p);
+        }
+      }
+
+      if (ENABLE_FONT_PRE_RENDERING & 4) {
+        for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+          p = document.createElement('elzm-font');
+          p.style.fontFamily = '"YouTube Noto",Roboto,Arial,Helvetica,sans-serif';
+          p.style.fontWeight = size;
+          arr.push(p);
+        }
+      }
+
+
+      if (ENABLE_FONT_PRE_RENDERING & 8) {
+        for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+          p = document.createElement('elzm-font');
+          p.style.fontFamily = '"Noto",Roboto,Arial,Helvetica,sans-serif';
+          p.style.fontWeight = size;
+          arr.push(p);
+        }
+      }
+
+
+      if (ENABLE_FONT_PRE_RENDERING & 16) {
+        for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+          p = document.createElement('elzm-font');
+          p.style.fontFamily = 'sans-serif';
+          p.style.fontWeight = size;
+          arr.push(p);
+        }
+      }
+
+      console.log('number of elzm-font elements', arr.length);
+
+      HTMLElement.prototype.append.apply(efsContainer, arr);
+
+      (document.body || document.documentElement).appendChild(efsContainer);
+
+
+      console.log('elzm-font elements have been added to the page for rendering.');
+
+      console.groupEnd();
+
+    }
+
+    const addCssManaged = () => {
+      if (document.documentElement && document.head) {
+
+        !isCssAdded && addCss();
+        isCssAdded = true;
+
+        if (ENABLE_FONT_PRE_RENDERING) {
+          Promise.resolve().then(addFontPreRendering)
+        }
+
+      }
+    }
 
     const watchUserCSS = () => {
 
@@ -1230,82 +1318,8 @@
 
       if (document.documentElement && document.head) {
 
-        !isCssAdded && addCss();
-        isCssAdded = true;
+        addCssManaged();
 
-        if (ENABLE_FONT_PRE_RENDERING) {
-          groupCollapsed("YouTube Super Fast Chat", " | Fonts Pre-Rendering");
-
-          let efsContainer = document.createElement('elzm-fonts');
-          efsContainer.id = 'elzm-fonts-yk75g'
-
-          const arr = [];
-          let p = document.createElement('elzm-font');
-          arr.push(p);
-
-          if (ENABLE_FONT_PRE_RENDERING & 1) {
-            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-
-              p = document.createElement('elzm-font');
-              p.style.fontWeight = size;
-              arr.push(p);
-            }
-          }
-
-          if (ENABLE_FONT_PRE_RENDERING & 2) {
-            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-
-              p = document.createElement('elzm-font');
-              p.style.fontFamily = 'Roboto';
-              p.style.fontWeight = size;
-              arr.push(p);
-            }
-          }
-
-          if (ENABLE_FONT_PRE_RENDERING & 4) {
-            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-
-              p = document.createElement('elzm-font');
-              p.style.fontFamily = '"YouTube Noto",Roboto,Arial,Helvetica,sans-serif';
-              p.style.fontWeight = size;
-              arr.push(p);
-            }
-          }
-
-
-          if (ENABLE_FONT_PRE_RENDERING & 8) {
-            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-
-              p = document.createElement('elzm-font');
-              p.style.fontFamily = '"Noto",Roboto,Arial,Helvetica,sans-serif';
-              p.style.fontWeight = size;
-              arr.push(p);
-            }
-          }
-
-
-          if (ENABLE_FONT_PRE_RENDERING & 16) {
-            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-
-              p = document.createElement('elzm-font');
-              p.style.fontFamily = 'sans-serif';
-              p.style.fontWeight = size;
-              arr.push(p);
-            }
-          }
-
-          console.log('number of elzm-font elements', arr.length);
-
-          HTMLElement.prototype.append.apply(efsContainer, arr);
-
-          document.documentElement.appendChild(efsContainer);
-
-
-          console.log('elzm-font elements have been added to the page for rendering.');
-
-          console.groupEnd();
-
-        }
       }
       // console.log(document.body===null)
 
@@ -1387,8 +1401,7 @@
           if (isFirstTime) {
             onListRendererAttachedDone = true;
             Promise.resolve().then(watchUserCSS);
-            !isCssAdded && addCss();
-            isCssAdded = true;
+            addCssManaged();
             setupEvents();
           }
 
