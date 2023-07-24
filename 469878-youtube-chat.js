@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.0
+// @version             0.11.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -454,6 +454,25 @@
   const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_PREFERRED && ENABLE_FULL_RENDER_REQUIRED_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
 
 
+  const fxOperator = (proto, propertyName) => {
+    let propertyDescriptorGetter = null;
+    try {
+      propertyDescriptorGetter = Object.getOwnPropertyDescriptor(proto, propertyName).get;
+    } catch (e) { }
+    return typeof propertyDescriptorGetter === 'function' ? (e) => {
+      try {
+
+        return propertyDescriptorGetter.call(dr(e));
+      } catch (e) { }
+      return e[propertyName];
+    } : (e) => e[propertyName];
+  };
+
+  const nodeParent = fxOperator(Node.prototype, 'parentNode');
+  // const nFirstElem = fxOperator(HTMLElement.prototype, 'firstElementChild');
+  const nPrevElem = fxOperator(HTMLElement.prototype, 'previousElementSibling');
+  const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
+  const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
 
   const win = this instanceof Window ? this : window;
 
@@ -516,6 +535,7 @@
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame } = __CONTEXT__;
 
 
+
     class RAFHub {
       constructor() {
         /** @type {number} */
@@ -564,6 +584,24 @@
     }
 
 
+    const sp7 = Symbol();
+
+
+    let dt0 = Date.now() - 2000;
+    const dateNow = () => Date.now() - dt0;
+    // let lastScroll = 0;
+    // let lastLShow = 0;
+    let lastWheel = 0;
+    let lastMouseDown = 0;
+    let lastMouseUp = 0;
+    let currentMouseDown = false;
+    let lastTouchDown = 0;
+    let lastTouchUp = 0;
+    let currentTouchDown = false;
+    let lastUserInteraction = 0;
+
+    let scrollChatFn = null;
+
     ENABLE_FULL_RENDER_REQUIRED && (() => {
 
       document.addEventListener('animationstart', (evt) => {
@@ -601,30 +639,6 @@
 
     })();
 
-    // let delayedAppendParentWS = new WeakSet();
-    // let delayedAppendOperations = [];
-    // let commonAppendParentStackSet = new Set();
-
-    // let firstVisibleItemDetected = false; // deprecated
-
-    const sp7 = Symbol();
-
-
-    let dt0 = Date.now() - 2000;
-    const dateNow = () => Date.now() - dt0;
-    // let lastScroll = 0;
-    // let lastLShow = 0;
-    let lastWheel = 0;
-    let lastMouseDown = 0;
-    let lastMouseUp = 0;
-    let currentMouseDown = false;
-    let lastTouchDown = 0;
-    let lastTouchUp = 0;
-    let currentTouchDown = false;
-    let lastUserInteraction = 0;
-
-    let scrollChatFn = null;
-
     const proxyHelperFn = (dummy) => ({
 
       get(target, prop) {
@@ -654,96 +668,7 @@
 
     });
 
-    const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
 
-      let yd = (this.__dataHost || (this.inst || 0).__dataHost).__data;
-
-      if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
-
-        // let v = yd.containerStyle.privateDoNotAccessOrElseSafeStyleWrappedValue_;
-        let v = `${attrValue}`;
-        // conside a ticker is 101px width
-        // 1% = 1.01px
-        // 0.2% = 0.202px
-
-
-        const ratio1 = (yd.ratio * 100);
-        if (ratio1 > -1) { // avoid NaN
-
-          // countdownDurationMs
-          // 600000 - 0.2%    <1% = 6s>  <0.2% = 1.2s>
-          // 300000 - 0.5%    <1% = 3s>  <0.5% = 1.5s>
-          // 150000 - 1%    <1% = 1.5s>
-          // 75000 - 2%    <1% =0.75s > <2% = 1.5s>
-          // 30000 - 5%    <1% =0.3s > <5% = 1.5s>
-
-          // 99px * 5% = 4.95px
-
-          // 15000 - 10%    <1% =0.15s > <10% = 1.5s>
-
-
-
-
-          // 1% Duration
-
-          let ratio2 = ratio1;
-
-          const ydd = yd.data;
-          const d1 = ydd.durationSec;
-          const d2 = ydd.fullDurationSec;
-
-          if (d1 === d2 && d1 > 1) {
-
-            if (d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
-            else if (d1 > 200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
-            else if (d1 > 100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
-            else if (d1 > 50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
-            else if (d1 > 25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
-            else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
-
-          } else {
-            ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
-          }
-
-          // ratio2 = Math.round(ratio2 * 5) / 5;
-          ratio2 = ratio2.toFixed(1);
-          v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
-
-          if (yd.__style_last__ === v) return;
-          yd.__style_last__ = v;
-          // do not consider any delay here.
-          // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
-
-        }
-
-        HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
-
-
-      } else {
-        HTMLElement.prototype.setAttribute.apply(dr(this), arguments);
-      }
-
-    };
-
-    const fxOperator = (proto, propertyName) => {
-      let propertyDescriptorGetter = null;
-      try {
-        propertyDescriptorGetter = Object.getOwnPropertyDescriptor(proto, propertyName).get;
-      } catch (e) { }
-      return typeof propertyDescriptorGetter === 'function' ? (e) => {
-        try {
-
-          return propertyDescriptorGetter.call(dr(e));
-        } catch (e) { }
-        return e[propertyName];
-      } : (e) => e[propertyName];
-    };
-
-    const nodeParent = fxOperator(Node.prototype, 'parentNode');
-    // const nFirstElem = fxOperator(HTMLElement.prototype, 'firstElementChild');
-    const nPrevElem = fxOperator(HTMLElement.prototype, 'previousElementSibling');
-    const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
-    const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
 
 
     /* globals WeakRef:false */
@@ -898,8 +823,6 @@
 
     }
 
-
-    const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
 
 
@@ -1207,6 +1130,8 @@
       }
       return null;
     }
+
+    const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
 
     customYtElements.onRegistryReady(() => {
@@ -1866,6 +1791,76 @@
 
 
 
+      const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
+
+        let yd = (this.__dataHost || (this.inst || 0).__dataHost).__data;
+  
+        if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
+  
+          // let v = yd.containerStyle.privateDoNotAccessOrElseSafeStyleWrappedValue_;
+          let v = `${attrValue}`;
+          // conside a ticker is 101px width
+          // 1% = 1.01px
+          // 0.2% = 0.202px
+  
+  
+          const ratio1 = (yd.ratio * 100);
+          if (ratio1 > -1) { // avoid NaN
+  
+            // countdownDurationMs
+            // 600000 - 0.2%    <1% = 6s>  <0.2% = 1.2s>
+            // 300000 - 0.5%    <1% = 3s>  <0.5% = 1.5s>
+            // 150000 - 1%    <1% = 1.5s>
+            // 75000 - 2%    <1% =0.75s > <2% = 1.5s>
+            // 30000 - 5%    <1% =0.3s > <5% = 1.5s>
+  
+            // 99px * 5% = 4.95px
+  
+            // 15000 - 10%    <1% =0.15s > <10% = 1.5s>
+  
+  
+  
+  
+            // 1% Duration
+  
+            let ratio2 = ratio1;
+  
+            const ydd = yd.data;
+            const d1 = ydd.durationSec;
+            const d2 = ydd.fullDurationSec;
+  
+            if (d1 === d2 && d1 > 1) {
+  
+              if (d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
+              else if (d1 > 200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
+              else if (d1 > 100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
+              else if (d1 > 50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
+              else if (d1 > 25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
+              else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
+  
+            } else {
+              ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
+            }
+  
+            // ratio2 = Math.round(ratio2 * 5) / 5;
+            ratio2 = ratio2.toFixed(1);
+            v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
+  
+            if (yd.__style_last__ === v) return;
+            yd.__style_last__ = v;
+            // do not consider any delay here.
+            // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
+  
+          }
+  
+          HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
+  
+  
+        } else {
+          HTMLElement.prototype.setAttribute.apply(dr(this), arguments);
+        }
+  
+      };
 
 
       const fp = (renderer) => {
