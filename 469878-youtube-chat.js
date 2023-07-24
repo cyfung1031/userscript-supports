@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.1
+// @version             0.11.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -48,6 +48,10 @@
   const ENABLE_RAF_HACK_DOCKED_MESSAGE = true; // TBC
   const ENABLE_RAF_HACK_INPUT_RENDERER = true; // TBC
   const ENABLE_RAF_HACK_EMOJI_PICKER = true; // when change the page of emoji picker
+
+  const ENABLE_FONT_PRE_RENDERING_PREFERRED = 1|2|4|8|16;
+
+  console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
   function dr(s) {
     // reserved for future use
@@ -245,7 +249,66 @@
 
   ` : '';
 
+  const ENABLE_FONT_PRE_RENDERING = typeof HTMLElement.prototype.append === 'function' ? (ENABLE_FONT_PRE_RENDERING_PREFERRED || 0) : 0;
+  const cssText8_fonts_pre_render = ENABLE_FONT_PRE_RENDERING ? `
 
+    elzm-fonts {
+        visibility: collapse;
+        position: fixed;
+        top: -10px;
+        left: -10px;
+        font-size: 10pt;
+        line-height: 100%;
+        width: 100px;
+        height: 100px;
+        transform: scale(0.1);
+        transform: scale(0.01);
+        transform: scale(0.001);
+        transform-origin: 0 0;
+        contain: strict;
+        display: block;
+
+        user-select: none !important;
+        pointer-events: none !important;
+    }
+
+    elzm-fonts[id]#elzm-fonts-yk75g {
+        user-select: none !important;
+        pointer-events: none !important;
+    }
+
+    elzm-font {
+        visibility: collapse;
+        position: absolute;
+        line-height: 100%;
+        width: 100px;
+        height: 100px;
+        contain: strict;
+        display: block;
+
+        user-select: none !important;
+        pointer-events: none !important;
+    }
+
+    elzm-font::before {
+        visibility: collapse;
+        position: absolute;
+        line-height: 100%;
+        width: 100px;
+        height: 100px;
+        contain: strict;
+        display: block;
+
+        content: '0aZ!@#$~^&*()_-+[]{}|;:><?\\0460\\0301\\0900\\1F00\\0370\\0102\\0100\\28EB2\\28189\\26DA0\\25A9C\\249BB\\23F61\\22E8B\\21927\\21076\\2048E\\1F6F5\\FF37\\F94F\\F0B2\\9F27\\9D9A\\9BEA\\9A6B\\98EC\\9798\\9602\\949D\\9370\\926B\\913A\\8FA9\\8E39\\8CC1\\8B26\\8983\\8804\\8696\\8511\\83BC\\828D\\8115\\7F9A\\7E5B\\7D07\\7B91\\7A2C\\78D2\\776C\\7601\\74AA\\73B9\\7265\\70FE\\6FBC\\6E88\\6D64\\6C3F\\6A9C\\6957\\67FE\\66B3\\6535\\63F2\\628E\\612F\\5FE7\\5E6C\\5CEE\\5B6D\\5A33\\58BC\\575B\\5611\\54BF\\536E\\51D0\\505D\\4F22\\4AD1\\41DB\\3B95\\3572\\2F3F\\26FD\\25A1\\2477\\208D\\1D0A\\1FB\\A1\\A3\\B4\\2CB\\60\\10C\\E22\\A5\\4E08\\B0\\627\\2500\\5E\\201C\\3C\\B7\\23\\26\\3E\\D\\20\\25EE8\\1F235\\FFD7\\FA10\\F92D\\9E8B\\9C3E\\9AE5\\98EB\\971D\\944A\\92BC\\9143\\8F52\\8DC0\\8B2D\\8973\\87E2\\8655\\84B4\\82E8\\814A\\7F77\\7D57\\7BC8\\7A17\\7851\\768C\\7511\\736C\\7166\\6F58\\6D7C\\6B85\\69DD\\6855\\667E\\64D2\\62CF\\6117\\5F6C\\5D9B\\5BBC\\598B\\57B3\\5616\\543F\\528D\\50DD\\4F57\\4093\\3395\\32B5\\31C8\\3028\\2F14\\25E4\\24D1\\2105\\2227\\A8\\2D9\\2CA\\2467\\B1\\2020\\2466\\251C\\266B\\AF\\4E91\\221E\\2464\\2266\\2207\\4E32\\25B3\\2463\\2010\\2103\\3014\\25C7\\24\\25BD\\4E18\\2460\\21D2\\2015\\2193\\4E03\\7E\\25CB\\2191\\25BC\\3D\\500D\\4E01\\25\\30F6\\2605\\266A\\40\\2B\\4E16\\7C\\A9\\4E\\21\\1F1E9\\FEE3\\F0A7\\9F3D\\9DFA\\9C3B\\9A5F\\98C8\\972A\\95B9\\94E7\\9410\\92B7\\914C\\8FE2\\8E2D\\8CAF\\8B5E\\8A02\\8869\\86E4\\8532\\83B4\\82A9\\814D\\7FFA\\7ED7\\7DC4\\7CCC\\7BC3\\7ACA\\797C\\783E\\770F\\760A\\74EF\\73E7\\72DD\\719C\\7005\\6ED8\\6DC3\\6CB2\\6A01\\68E1\\6792\\663A\\64F8\\63BC\\623B\\60FA\\5FD1\\5EA3\\5D32\\5BF5\\5AB2\\5981\\5831\\570A\\5605\\5519\\53FB\\52A2\\5110\\4FE3\\4EB8\\3127\\279C\\2650\\254B\\23E9\\207B\\1D34\\2AE\\176\\221A\\161\\200B\\300C\\4E4C\\1F921\\FF78\\FA0A\\F78A\\9EB9\\9D34\\9BD3\\9A6F\\9912\\97C6\\964E\\950C\\93E4\\92E5\\91F0\\90BB\\8F68\\8E18\\8B6C\\89F6\\889B\\874C\\8602\\84B1\\8378\\826E\\8113\\7FB1\\7EAF\\7D89\\7C20\\7AFB\\7988\\7840\\7705\\75CC\\749A\\73B3\\727F\\7113\\6FE8\\6ED6\\6DD3\\6CDA\\6BBB\\6A31\\6900\\67D9\\66A7\\655D\\6427\\630D\\61C6\\60AC\\5F78\\5E34\\5CE0\\5B80\\5A51\\590B\\57A1\\566F\\5551\\543D\\52DB\\518F\\5032\\3A17\\305C\\2749\\264A\\2567\\2476\\2139\\1EC0\\11AF\\2C8\\1AF\\E17\\2190\\2022\\2502\\2312\\2025\\50';
+
+        user-select: none !important;
+        pointer-events: none !important;
+    }
+
+  `: ''
+
+
+  let isCssAdded = false;
   function addCssElement() {
     let s = document.createElement('style');
     s.id = 'ewRvC';
@@ -253,6 +316,8 @@
   }
 
   const addCss = () => document.head.appendChild(dr(addCssElement())).textContent = `
+
+  ${cssText8_fonts_pre_render}
 
   @supports (contain: layout paint style) {
 
@@ -535,6 +600,13 @@
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame } = __CONTEXT__;
 
 
+    const groupCollapsed = (text1, text2) => {
+
+      console.groupCollapsed(`%c${text1}%c${text2}`,
+        "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;",
+        "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
+      );
+    }
 
     class RAFHub {
       constructor() {
@@ -583,7 +655,6 @@
       }
     }
 
-
     const sp7 = Symbol();
 
 
@@ -610,7 +681,7 @@
           evt.target.classList.remove('dont-render');
           if (scrollChatFn) scrollChatFn();
         }
-  
+
       }, true);
 
       const f = (elm) => {
@@ -1136,8 +1207,107 @@
 
     customYtElements.onRegistryReady(() => {
 
+      let firstCheckedOnYtInit = false;
+
+      const mightFirstCheckOnYtInit = () => {
+        if (firstCheckedOnYtInit) return;
+        firstCheckedOnYtInit = true;
+
+        if (!document.body || !document.head) return;
+
+        if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
+
+        let efsContainer = document.getElementById('elzm-fonts-yk75g');
+        if (efsContainer && efsContainer.parentNode !== document.body) {
+          document.body.appendChild(efsContainer);
+        }
 
 
+      }
+
+      if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
+      // if (!assertor(() => document.getElementById('yt-masthead') === null)) return; 
+
+      if (document.documentElement && document.head) {
+
+        !isCssAdded && addCss();
+        isCssAdded = true;
+
+        if (ENABLE_FONT_PRE_RENDERING) {
+          groupCollapsed("YouTube Super Fast Chat", " | Fonts Pre-Rendering");
+
+          let efsContainer = document.createElement('elzm-fonts');
+          efsContainer.id = 'elzm-fonts-yk75g'
+
+          const arr = [];
+          let p = document.createElement('elzm-font');
+          arr.push(p);
+
+          if (ENABLE_FONT_PRE_RENDERING & 1) {
+            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+              p = document.createElement('elzm-font');
+              p.style.fontWeight = size;
+              arr.push(p);
+            }
+          }
+
+          if (ENABLE_FONT_PRE_RENDERING & 2) {
+            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+              p = document.createElement('elzm-font');
+              p.style.fontFamily = 'Roboto';
+              p.style.fontWeight = size;
+              arr.push(p);
+            }
+          }
+
+          if (ENABLE_FONT_PRE_RENDERING & 4) {
+            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+              p = document.createElement('elzm-font');
+              p.style.fontFamily = '"YouTube Noto",Roboto,Arial,Helvetica,sans-serif';
+              p.style.fontWeight = size;
+              arr.push(p);
+            }
+          }
+
+
+          if (ENABLE_FONT_PRE_RENDERING & 8) {
+            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+              p = document.createElement('elzm-font');
+              p.style.fontFamily = '"Noto",Roboto,Arial,Helvetica,sans-serif';
+              p.style.fontWeight = size;
+              arr.push(p);
+            }
+          }
+
+
+          if (ENABLE_FONT_PRE_RENDERING & 16) {
+            for (const size of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+
+              p = document.createElement('elzm-font');
+              p.style.fontFamily = 'sans-serif';
+              p.style.fontWeight = size;
+              arr.push(p);
+            }
+          }
+
+          console.log('number of elzm-font elements', arr.length);
+
+          HTMLElement.prototype.append.apply(efsContainer, arr);
+
+          document.documentElement.appendChild(efsContainer);
+
+
+          console.log('elzm-font elements have been added to the page for rendering.');
+
+          console.groupEnd();
+
+        }
+      }
+      // console.log(document.body===null)
 
       customElements.whenDefined('yt-live-chat-item-list-renderer').then(() => {
 
@@ -1153,8 +1323,8 @@
         }
 
 
-
-        console.groupCollapsed("YouTube Super Fast Check - yt-live-chat-item-list-renderer hacks");
+        mightFirstCheckOnYtInit();
+        groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-item-list-renderer hacks");
 
         const mclp = cProto;
         try {
@@ -1210,14 +1380,15 @@
 
         let onListRendererAttachedDone = false;
 
-        function setList(itemOffset, items){
+        function setList(itemOffset, items) {
 
           const isFirstTime = onListRendererAttachedDone === false;
 
           if (isFirstTime) {
             onListRendererAttachedDone = true;
             Promise.resolve().then(watchUserCSS);
-            addCss();
+            !isCssAdded && addCss();
+            isCssAdded = true;
             setupEvents();
           }
 
@@ -1267,7 +1438,7 @@
 
           const isTargetItems = HTMLElement.prototype.matches.call(items, '#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer')
 
-          if(!isTargetItems){
+          if (!isTargetItems) {
             console.warn("!isTargetItems");
             return;
           }
@@ -1341,7 +1512,7 @@
             return resId;
           }
 
-          mclp.cancelAsync66 = mclp.cancelAsync66;
+          mclp.cancelAsync66 = mclp.cancelAsync;
           mclp.cancelAsync = function (resId) {
             if (resId <= 6150) {
               this.cancelAsync66(resId);
@@ -1411,6 +1582,155 @@
 
           mclp.flushActiveItems66_ = mclp.flushActiveItems_;
 
+          mclp.flushActiveItems78_ = async function (tid) {
+            try {
+              const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
+              let logger = false;
+              const cnt = this;
+              let immd = cnt.__intermediate_delay__;
+              await new Promise(requestAnimationFrame);
+
+              if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+              if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+
+              mlf++;
+              if (mlg > 1e9) mlg = 9;
+              ++mlg;
+
+              const tmpMaxItemsCount = this.data.maxItemsToDisplay;
+              const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
+              let changeMaxItemsToDisplay = false;
+              const activeItemsLen = this.activeItems_.length;
+              if (activeItemsLen > tmpMaxItemsCount && tmpMaxItemsCount > 0) {
+                logger = true;
+
+                groupCollapsed("YouTube Super Fast Chat", " | flushActiveItems78_");
+
+                console.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
+                if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && lockedMaxItemsToDisplay === tmpMaxItemsCount && lockedMaxItemsToDisplay !== reducedMaxItemsToDisplay) {
+                  console.log('reduce maxitems');
+                  if (tmpMaxItemsCount > reducedMaxItemsToDisplay) {
+                    // as all the rendered chats are already "outdated"
+                    // all old chats shall remove and reduced number of few chats will be rendered
+                    // then restore to the original number
+                    changeMaxItemsToDisplay = true;
+                    this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
+                    console.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
+                  }
+                  this.activeItems_.splice(0, activeItemsLen - this.data.maxItemsToDisplay);
+                  //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+
+                  console.log('new this.activeItems_.length > N', this.activeItems_.length);
+                } else {
+                  this.activeItems_.splice(0, activeItemsLen - (tmpMaxItemsCount < 900 ? tmpMaxItemsCount : 900));
+
+                  console.log('new this.activeItems_.length > N', this.activeItems_.length);
+                }
+              }
+              // it is found that it will render all stacked chats after switching back from background
+              // to avoid lagging in popular livestream with massive chats, trim first before rendering.
+              // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
+
+
+
+              const items = (cnt.$ || 0).items;
+
+              if (USE_WILL_CHANGE_CONTROLLER) {
+                if (contensWillChangeController && contensWillChangeController.element !== items) {
+                  contensWillChangeController.release();
+                  contensWillChangeController = null;
+                }
+                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
+              }
+              const wcController = contensWillChangeController;
+              cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
+              wcController && wcController.beforeOper();
+              await Promise.resolve();
+              const len1 = cnt.activeItems_.length;
+              cnt.flushActiveItems66_();
+              const len2 = cnt.activeItems_.length;
+              const bAsync = len1 !== len2;
+              await Promise.resolve();
+              if (wcController) {
+                if (bAsync) {
+                  cnt.async(() => {
+                    wcController.afterOper();
+                  });
+                } else {
+                  wcController.afterOper();
+                }
+              }
+              if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
+                this.data.maxItemsToDisplay = tmpMaxItemsCount;
+
+                logger && console.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
+                //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+              } else if (changeMaxItemsToDisplay) {
+
+                logger && console.log(`'maxItemsToDisplay' cannot be restored`, {
+                  maxItemsToDisplay: this.data.maxItemsToDisplay,
+                  reducedMaxItemsToDisplay,
+                  originalMaxItemsToDisplay: tmpMaxItemsCount
+                });
+              }
+              logger && console.log('[End]')
+
+              logger && console.groupEnd();
+
+              if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+
+
+                const ff = () => {
+
+                  if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                  //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                  if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
+                    cnt.scrollToBottom_();
+
+                    Promise.resolve().then(() => {
+
+                      if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                      if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
+                    });
+
+
+                  }
+                }
+
+                ff();
+
+
+                Promise.resolve().then(ff);
+
+                // requestAnimationFrame(ff);
+              } else if (true) { // it might not be sticky to bottom when there is a full refresh.
+
+                const knt = cnt;
+                if (!scrollChatFn) {
+                  const cnt = knt;
+                  const f = () => {
+                    const itemScroller = cnt.itemScroller;
+                    if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
+                    if (!cnt.atBottom) {
+                      cnt.scrollToBottom_();
+                    } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
+                      itemScroller.scrollTop = itemScroller.scrollHeight;
+                    }
+                  };
+                  scrollChatFn = () => Promise.resolve().then(f).then(f);
+                }
+
+                if (!ENABLE_FULL_RENDER_REQUIRED) scrollChatFn();
+              }
+
+              return 1;
+
+
+            } catch (e) {
+              console.warn(e);
+            }
+          }
+
           mclp.flushActiveItems77_ = async function () {
             try {
 
@@ -1423,121 +1743,21 @@
               // 4 times to maxItems to avoid frequent trimming.
               // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
 
-              this.activeItems_.length > this.data.maxItemsToDisplay * 4 && this.data.maxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay - 1);
+              const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
+              this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
               if (cnt.canScrollToBottom_()) {
-                let immd = cnt.__intermediate_delay__;
-                await new Promise(requestAnimationFrame);
-                if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
-
-                mlf++;
-                if (mlg > 1e9) mlg = 9;
-                ++mlg;
-
-                const oMaxItemsToDisplay = this.data.maxItemsToDisplay;
-                const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
-                let changeMaxItemsToDisplay = false;
-                if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && this.activeItems_.length > this.data.maxItemsToDisplay) {
-                  if (this.data.maxItemsToDisplay > reducedMaxItemsToDisplay) {
-                    // as all the rendered chats are already "outdated"
-                    // all old chats shall remove and reduced number of few chats will be rendered
-                    // then restore to the original number
-                    changeMaxItemsToDisplay = true;
-                    this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
-                  }
-                  this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
-                  //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+                if (cnt.mutexPromiseFA77) await cnt.mutexPromiseFA77;
+                if (tid !== mlf) return;
+                let qResolve = null;
+                cnt.mutexPromiseFA77 = new Promise(resolve => { qResolve = resolve; })
+                let res;
+                try {
+                  res = await cnt.flushActiveItems78_(tid);
+                } catch (e) {
+                  console.warn(e);
                 }
-
-                // it is found that it will render all stacked chats after switching back from background
-                // to avoid lagging in popular livestream with massive chats, trim first before rendering.
-                // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
-
-
-
-                const items = (cnt.$ || 0).items;
-
-                if (USE_WILL_CHANGE_CONTROLLER) {
-                  if (contensWillChangeController && contensWillChangeController.element !== items) {
-                    contensWillChangeController.release();
-                    contensWillChangeController = null;
-                  }
-                  if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-                }
-                const wcController = contensWillChangeController;
-                cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
-                wcController && wcController.beforeOper();
-                await Promise.resolve();
-                const len1 = cnt.activeItems_.length;
-                cnt.flushActiveItems66_();
-                const len2 = cnt.activeItems_.length;
-                let bAsync = len1 !== len2;
-                await Promise.resolve();
-                if (wcController) {
-                  if (bAsync) {
-                    cnt.async(() => {
-                      wcController.afterOper();
-                    });
-                  } else {
-                    wcController.afterOper();
-                  }
-                }
-                if (changeMaxItemsToDisplay) {
-                  if (this.data.maxItemsToDisplay === reducedMaxItemsToDisplay) {
-                    this.data.maxItemsToDisplay = oMaxItemsToDisplay;
-                    //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
-                  }
-                }
-
-
-                if (!ENABLE_NO_SMOOTH_TRANSFORM) {
-
-
-                  const ff = () => {
-
-                    if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
-                      cnt.scrollToBottom_();
-
-                      Promise.resolve().then(() => {
-
-                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                        if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                      });
-
-
-                    }
-                  }
-
-                  ff();
-
-
-                  Promise.resolve().then(ff);
-
-                  // requestAnimationFrame(ff);
-                } else if (true) { // it might not be sticky to bottom when there is a full refresh.
-
-                  const knt = cnt;
-                  if (!scrollChatFn) {
-                    const cnt = knt;
-                    const f = () => {
-                      const itemScroller = cnt.itemScroller;
-                      if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
-                      if (!cnt.atBottom) {
-                        cnt.scrollToBottom_();
-                      } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
-                        itemScroller.scrollTop = itemScroller.scrollHeight;
-                      }
-                    };
-                    scrollChatFn = () => Promise.resolve().then(f).then(f);
-                  }
-
-                  if (!ENABLE_FULL_RENDER_REQUIRED) scrollChatFn();
-                }
-
-
-                return 1;
+                qResolve && qResolve();
+                return res;
               } else {
                 // cnt.flushActiveItems66_();
                 // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
@@ -1559,7 +1779,11 @@
             }
 
             const cntData = ((cnt || 0).data || 0);
-            if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
+            if (cntData.maxItemsToDisplay944 === undefined) {
+              cntData.maxItemsToDisplay944 = null;
+              if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
+              cntData.maxItemsToDisplay944 = cntData.maxItemsToDisplay || null;
+            }
 
             // ignore previous __intermediate_delay__ and create a new one
             cnt.__intermediate_delay__ = new Promise(resolve => {
@@ -1794,72 +2018,72 @@
       const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
 
         let yd = (this.__dataHost || (this.inst || 0).__dataHost).__data;
-  
+
         if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
-  
+
           // let v = yd.containerStyle.privateDoNotAccessOrElseSafeStyleWrappedValue_;
           let v = `${attrValue}`;
           // conside a ticker is 101px width
           // 1% = 1.01px
           // 0.2% = 0.202px
-  
-  
+
+
           const ratio1 = (yd.ratio * 100);
           if (ratio1 > -1) { // avoid NaN
-  
+
             // countdownDurationMs
             // 600000 - 0.2%    <1% = 6s>  <0.2% = 1.2s>
             // 300000 - 0.5%    <1% = 3s>  <0.5% = 1.5s>
             // 150000 - 1%    <1% = 1.5s>
             // 75000 - 2%    <1% =0.75s > <2% = 1.5s>
             // 30000 - 5%    <1% =0.3s > <5% = 1.5s>
-  
+
             // 99px * 5% = 4.95px
-  
+
             // 15000 - 10%    <1% =0.15s > <10% = 1.5s>
-  
-  
-  
-  
+
+
+
+
             // 1% Duration
-  
+
             let ratio2 = ratio1;
-  
+
             const ydd = yd.data;
             const d1 = ydd.durationSec;
             const d2 = ydd.fullDurationSec;
-  
+
             if (d1 === d2 && d1 > 1) {
-  
+
               if (d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
               else if (d1 > 200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
               else if (d1 > 100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
               else if (d1 > 50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
               else if (d1 > 25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
               else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
-  
+
             } else {
               ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
             }
-  
+
             // ratio2 = Math.round(ratio2 * 5) / 5;
             ratio2 = ratio2.toFixed(1);
             v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
-  
+
             if (yd.__style_last__ === v) return;
             yd.__style_last__ = v;
             // do not consider any delay here.
             // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
-  
+
           }
-  
+
           HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
-  
-  
+
+
         } else {
           HTMLElement.prototype.setAttribute.apply(dr(this), arguments);
         }
-  
+
       };
 
 
@@ -1883,7 +2107,8 @@
 
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
-        console.groupCollapsed("YouTube Super Fast Check - yt-live-chat-ticker-... hacks");
+        mightFirstCheckOnYtInit();
+        groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
 
         for (const tag of tags) {
@@ -1976,8 +2201,8 @@
 
         customElements.whenDefined("yt-live-chat-message-input-renderer").then(() => {
 
-
-          console.groupCollapsed("YouTube Super Fast Check - yt-live-chat-message-input-renderer hacks");
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-input-renderer hacks");
           console.log("[Begin]");
           (() => {
 
@@ -2044,7 +2269,8 @@
 
         customElements.whenDefined("yt-emoji-picker-renderer").then(() => {
 
-          console.groupCollapsed("YouTube Super Fast Check - yt-emoji-picker-renderer hacks");
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-picker-renderer hacks");
           console.log("[Begin]");
           (() => {
 
@@ -2108,7 +2334,8 @@
 
         customElements.whenDefined("yt-live-chat-docked-message").then(() => {
 
-          console.groupCollapsed("YouTube Super Fast Check - yt-live-chat-docked-message hacks");
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-docked-message hacks");
           console.log("[Begin]");
           (() => {
 
@@ -2174,7 +2401,7 @@
               }
 
               cProto.onDockableMessagesChanged = function () {
-                // console.log('cProto.onDockableMessagesChanged', tag) // yt-live-chat-docked-message 
+                // console.log('cProto.onDockableMessagesChanged', tag) // yt-live-chat-docked-message
                 this.dockableMessages.length && !this.intersectRAF && (this.intersectRAF = rafHub.request(this.boundCheckIntersections))
               }
 
