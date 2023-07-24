@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.16
+// @version             0.10.17
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -171,16 +171,16 @@
 
   const cssText7c_will_change_unset = FORCE_WILL_CHANGE_UNSET ? `
 
+    /* remove YouTube constant will-change */
+    /* constant value will slow down the performance; default auto */
+
     /* www-player.css */
     html .ytp-contextmenu,
     html .ytp-settings-menu {
         will-change: unset;
     }
 
-    /* live_chat_polymer.js */
-    html .toggle-button.tp-yt-paper-toggle-button,
-    html #primaryProgress.tp-yt-paper-progress,#secondaryProgress.tp-yt-paper-progress,
-    html #onRadio.tp-yt-paper-radio-button,
+    /* frequently matched elements */
     html .fill.yt-interaction,
     html .stroke.yt-interaction,
     html .yt-spec-touch-feedback-shape__fill,
@@ -188,9 +188,23 @@
         will-change: unset;
     }
 
-    /* desktop_polymer_enable_wil_icons.js */
+    /* live_chat_polymer.js */
+    /*
+    html .toggle-button.tp-yt-paper-toggle-button,
+    html #primaryProgress.tp-yt-paper-progress,
+    html #secondaryProgress.tp-yt-paper-progress,
+    html #onRadio.tp-yt-paper-radio-button,
     html .fill.yt-interaction,
     html .stroke.yt-interaction,
+    html .yt-spec-touch-feedback-shape__fill,
+    html .yt-spec-touch-feedback-shape__stroke {
+        will-change: unset;
+    }
+    */
+
+    /* desktop_polymer_enable_wil_icons.js */
+    /* html .fill.yt-interaction,
+    html .stroke.yt-interaction, */
     html tp-yt-app-header::before,
     html tp-yt-iron-list,
     html #items.tp-yt-iron-list > *,
@@ -212,9 +226,9 @@
     html #player-container.ytd-video-preview,
     html #primaryProgress.tp-yt-paper-progress,
     html #secondaryProgress.tp-yt-paper-progress,
-    html ytd-miniplayer[enabled],
+    html ytd-miniplayer[enabled] /* ,
     html .yt-spec-touch-feedback-shape__fill,
-    html .yt-spec-touch-feedback-shape__stroke {
+    html .yt-spec-touch-feedback-shape__stroke */ {
         will-change: unset;
     }
 
