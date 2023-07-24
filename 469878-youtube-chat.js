@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.3
+// @version             0.11.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -826,15 +826,12 @@
     }
 
     const addCssManaged = () => {
-      if (document.documentElement && document.head) {
-
-        !isCssAdded && addCss();
+      if (!isCssAdded && document.documentElement && document.head) {
         isCssAdded = true;
-
+        addCss();
         if (ENABLE_FONT_PRE_RENDERING) {
           Promise.resolve().then(addFontPreRendering)
         }
-
       }
     }
 
@@ -1304,6 +1301,8 @@
         if (!document.body || !document.head) return;
 
         if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
+
+        addCssManaged();
 
         let efsContainer = document.getElementById('elzm-fonts-yk75g');
         if (efsContainer && efsContainer.parentNode !== document.body) {
