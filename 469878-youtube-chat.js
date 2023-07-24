@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.5
+// @version             0.11.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -50,6 +50,8 @@
   const ENABLE_RAF_HACK_EMOJI_PICKER = true; // when change the page of emoji picker
 
   const ENABLE_FONT_PRE_RENDERING_PREFERRED = 1 | 2 | 4 | 8 | 16;
+
+  const NO_BACKDROP_FILTER_WHEN_MENU_SHOWN = true;
 
   console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
@@ -305,7 +307,14 @@
         pointer-events: none !important;
     }
 
-  `: ''
+  `: '';
+
+  const cssText9_no_backdrop_filter_when_menu_shown = NO_BACKDROP_FILTER_WHEN_MENU_SHOWN ? `
+    tp-yt-iron-dropdown.yt-live-chat-app ytd-menu-popup-renderer  {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+  `: '';
 
   let isCssAdded = false;
   function addCssElement() {
@@ -317,6 +326,8 @@
   const addCss = () => document.head.appendChild(dr(addCssElement())).textContent = `
 
   ${cssText8_fonts_pre_render}
+
+  ${cssText9_no_backdrop_filter_when_menu_shown}
 
   @supports (contain: layout paint style) {
 
