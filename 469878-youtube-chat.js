@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.11.4
+// @version             0.11.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2029,7 +2029,7 @@
 
       const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
 
-        let yd = (this.__dataHost || (this.inst || 0).__dataHost).__data;
+        let yd = (this.__dataHost || (this.inst || 0).__dataHost || 0).__data;
 
         if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
 
