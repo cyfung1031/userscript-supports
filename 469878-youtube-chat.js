@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.14
+// @version             0.10.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -36,14 +36,13 @@
   const ENABLE_FULL_RENDER_REQUIRED_PREFERRED = true;
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;
 
+  const FIX_SHOW_MORE_BUTTON_LOCATION = true;
+  const FIX_INPUT_PANEL_OVERFLOW_ISSUE = true;
+  const FIX_INPUT_PANEL_BORDER_ISSUE = true;
+  const SET_CONTAIN_FOR_CHATROOM = true;
 
-  let cssText1 = '';
-  let cssText2 = '';
-  let cssText3 = '';
-  let cssText4 = '';
-  let cssText5 = '';
-  let cssText6 = '';
-  let cssText7 = '';
+  const FORCE_CONTENT_VISIBILITY_UNSET = true;
+  const FORCE_WILL_CHANGE_UNSET = true;
 
   function dr(s) {
     // reserved for future use
@@ -51,161 +50,136 @@
     // return window.deWeakJS ? window.deWeakJS(s) : s;
   }
 
+  const cssText3_smooth_transform_position = ENABLE_NO_SMOOTH_TRANSFORM ? `
 
-  if (ENABLE_NO_SMOOTH_TRANSFORM) {
+    #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
+        position: static !important;
+    }
 
-    cssText3 = `
+  `: '';
 
-      #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
-          position: static !important;
-      }
-  `
-    cssText4 =
+  const cssText4_smooth_transform_forced_props = ENABLE_NO_SMOOTH_TRANSFORM ? `
 
+    /* optional */
+    #item-offset.style-scope.yt-live-chat-item-list-renderer {
+        height: auto !important;
+        min-height: unset !important;
+    }
 
-      `
+    #items.style-scope.yt-live-chat-item-list-renderer {
+        transform: translateY(0px) !important;
+    }
 
+    /* optional */
 
-      /* optional */
-      #item-offset.style-scope.yt-live-chat-item-list-renderer {
-      height: auto !important;
-      min-height: unset !important;
-      }
+  `: '';
 
-      #items.style-scope.yt-live-chat-item-list-renderer {
-      transform: translateY(0px) !important;
-      }
-
-      /* optional */
-
-    `
-  }
-
-  cssText5 = `
-
-
+  const cssText5 = SET_CONTAIN_FOR_CHATROOM ? `
 
     /* ------------------------------------------------------------------------------------------------------------- */
 
     yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image, yt-live-chat-author-chip #chat-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer #image img {
-      contain: layout style;
+        contain: layout style;
     }
 
     #items.style-scope.yt-live-chat-item-list-renderer {
-      contain: layout paint style;
+        contain: layout paint style;
     }
 
     #item-offset.style-scope.yt-live-chat-item-list-renderer {
-      contain: style;
+        contain: style;
     }
 
     #item-scroller.style-scope.yt-live-chat-item-list-renderer {
-      contain: size style;
+        contain: size style;
     }
 
     #contents.style-scope.yt-live-chat-item-list-renderer, #chat.style-scope.yt-live-chat-renderer, img.style-scope.yt-img-shadow[width][height] {
-      contain: size layout paint style;
+        contain: size layout paint style;
     }
 
     .style-scope.yt-live-chat-ticker-renderer[role="button"][aria-label], .style-scope.yt-live-chat-ticker-renderer[role="button"][aria-label] > #container {
-      contain: layout paint style;
+        contain: layout paint style;
     }
 
     yt-live-chat-text-message-renderer.style-scope.yt-live-chat-item-list-renderer, yt-live-chat-membership-item-renderer.style-scope.yt-live-chat-item-list-renderer, yt-live-chat-paid-message-renderer.style-scope.yt-live-chat-item-list-renderer, yt-live-chat-banner-manager.style-scope.yt-live-chat-item-list-renderer {
-      contain: layout style;
+        contain: layout style;
     }
 
     tp-yt-paper-tooltip[style*="inset"][role="tooltip"] {
-      contain: layout paint style;
+        contain: layout paint style;
     }
 
     /* ------------------------------------------------------------------------------------------------------------- */
 
-  `
+  ` : '';
 
+  const cssText6b_show_more_button = FIX_SHOW_MORE_BUTTON_LOCATION ? `
 
-  cssText6 = `
+    yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer{
+        top: 4px;
+        transition-property: top;
+        bottom: unset;
+    }
 
+    yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer[disabled]{
+        top: -42px;
+    }
 
-      yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
-      pointer-events: none !important;
-      }
+  `: '';
 
-      #continuations, #continuations * {
-          contain: strict;
-          position: fixed;
-          top: 2px;
-          height: 1px;
-          width: 2px;
-          height: 1px;
-          visibility: collapse;
-      }
+  const cssText6c_input_panel_overflow = FIX_INPUT_PANEL_OVERFLOW_ISSUE ? `
 
-      yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer{
-          top: 4px;
-          transition-property: top;
-          bottom: unset;
-      }
+    #input-panel #picker-buttons yt-live-chat-icon-toggle-button-renderer#product-picker {
+        contain: layout style;
+    }
 
-      yt-live-chat-renderer[has-action-panel-renderer] #show-more.yt-live-chat-item-list-renderer[disabled]{
-          top: -42px;
-      }
+    #chat.yt-live-chat-renderer ~ #panel-pages.yt-live-chat-renderer {
+        overflow: visible;
+    }
 
-      html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer:not(:empty) {
-          --yt-live-chat-action-panel-top-border: none;
-      }
+  `: '';
 
-      html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer.iron-selected > *:first-child {
-          border-top: 1px solid var(--yt-live-chat-panel-pages-border-color);
-      }
+  const cssText6d_input_panel_border = FIX_INPUT_PANEL_BORDER_ISSUE ? `
 
-      html #panel-pages.yt-live-chat-renderer {
-          border-top: 0;
-          border-bottom: 0;
-      }
+    html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer:not(:empty) {
+        --yt-live-chat-action-panel-top-border: none;
+    }
 
-      #input-panel #picker-buttons yt-live-chat-icon-toggle-button-renderer#product-picker {
-          /*
-          overflow: hidden;
-          contain: layout paint style;
-          */
-          contain: layout style;
-      }
+    html #panel-pages.yt-live-chat-renderer > #input-panel.yt-live-chat-renderer.iron-selected > *:first-child {
+        border-top: 1px solid var(--yt-live-chat-panel-pages-border-color);
+    }
 
-      #chat.yt-live-chat-renderer ~ #panel-pages.yt-live-chat-renderer {
-          overflow: visible;
-      }
+    html #panel-pages.yt-live-chat-renderer {
+        border-top: 0;
+        border-bottom: 0;
+    }
 
+  `: '';
 
-  `
+  const cssText7b_content_visibility_unset = FORCE_CONTENT_VISIBILITY_UNSET ? `
 
-  cssText7 = `
+    img,
+    yt-img-shadow[height][width],
+    yt-img-shadow {
+        content-visibility: visible !important;
+    }
 
+  `  : '';
 
-      .ytp-contextmenu[class],
-      .toggle-button.tp-yt-paper-toggle-button[class],
-      .yt-spec-touch-feedback-shape__fill[class],
-      .fill.yt-interaction[class],
-      .ytp-videowall-still-info-content[class],
-      .ytp-suggestion-image[class] {
+  const cssText7c_will_change_unset = FORCE_WILL_CHANGE_UNSET ? `
+
+    .ytp-contextmenu[class],
+    .toggle-button.tp-yt-paper-toggle-button[class],
+    .yt-spec-touch-feedback-shape__fill[class],
+    .fill.yt-interaction[class],
+    .ytp-videowall-still-info-content[class],
+    .ytp-suggestion-image[class] {
         will-change: unset !important;
-      }
+    }
 
-      img {
-        content-visibility: visible !important;
-      }
+    ` : '';
 
-      yt-img-shadow[height][width],
-      yt-img-shadow {
-        content-visibility: visible !important;
-      }
-
-      yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
-          overflow-y: scroll;
-          padding-right: 0;
-      }
-
-  `
 
   function addCssElement() {
     let s = document.createElement('style')
@@ -215,120 +189,136 @@
 
   const addCss = () => document.head.appendChild(dr(addCssElement())).textContent = `
 
-
-  @supports (contain: layout paint style) and (content-visibility: auto) and (contain-intrinsic-size: auto var(--wsr94)) {
-
-      ${cssText1}
-  }
-
   @supports (contain: layout paint style) {
 
-      ${cssText2}
-
-
-      ${cssText5}
+    ${cssText5}
 
   }
 
   @supports (color: var(--general)) {
 
-      html {
+    html {
         --yt-live-chat-item-list-renderer-padding: 0px 0px;
-      }
+    }
 
-      ${cssText3}
+    ${cssText3_smooth_transform_position}
 
-      ${cssText7}
+    ${cssText7c_will_change_unset}
 
+    ${cssText7b_content_visibility_unset}
 
-      ${cssText4}
+    yt-live-chat-item-list-renderer:not([allow-scroll]) #item-scroller.yt-live-chat-item-list-renderer {
+        overflow-y: scroll;
+        padding-right: 0;
+    }
 
-      ${cssText6}
+    ${cssText4_smooth_transform_forced_props}
+
+    yt-icon[icon="down_arrow"] > *, yt-icon-button#show-more > * {
+        pointer-events: none !important;
+    }
+
+    #continuations, #continuations * {
+        contain: strict;
+        position: fixed;
+        top: 2px;
+        height: 1px;
+        width: 2px;
+        height: 1px;
+        visibility: collapse;
+    }
+
+    ${cssText6b_show_more_button}
+
+    ${cssText6d_input_panel_border}
+
+    ${cssText6c_input_panel_overflow}
 
   }
 
 
   @supports (overflow-anchor: auto) {
 
-      .no-anchor * {
-          overflow-anchor: none;
-      }
-      .no-anchor > item-anchor {
-          overflow-anchor: auto;
-      }
+    .no-anchor * {
+        overflow-anchor: none;
+    }
+    .no-anchor > item-anchor {
+        overflow-anchor: auto;
+    }
 
-      item-anchor {
+    item-anchor {
 
-          height:1px;
-          width: 100%;
-          transform: scaleY(0.00001);
-          transform-origin:0 0;
-          contain: strict;
-          opacity:0;
-          display:flex;
-          position:relative;
-          flex-shrink:0;
-          flex-grow:0;
-          margin-bottom:0;
-          overflow:hidden;
-          box-sizing:border-box;
-          visibility: visible;
-          content-visibility: visible;
-          contain-intrinsic-size: auto 1px;
-          pointer-events:none !important;
+        height:1px;
+        width: 100%;
+        transform: scaleY(0.00001);
+        transform-origin:0 0;
+        contain: strict;
+        opacity:0;
+        display:flex;
+        position:relative;
+        flex-shrink:0;
+        flex-grow:0;
+        margin-bottom:0;
+        overflow:hidden;
+        box-sizing:border-box;
+        visibility: visible;
+        content-visibility: visible;
+        contain-intrinsic-size: auto 1px;
+        pointer-events:none !important;
 
-      }
+    }
 
-      #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
-          overflow-anchor: initial !important; /* whenever ENABLE_OVERFLOW_ANCHOR or not */
-      }
+    #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
+        overflow-anchor: initial !important; /* whenever ENABLE_OVERFLOW_ANCHOR or not */
+    }
 
-      html item-anchor {
+    html item-anchor {
 
-          height: 1px;
-          width: 1px;
-          top: auto;
-          left: auto;
-          right: auto;
-          bottom: auto;
-          transform: translateY(-1px);
-          position: absolute;
-          z-index: -1;
+        height: 1px;
+        width: 1px;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        transform: translateY(-1px);
+        position: absolute;
+        z-index: -1;
 
-      }
+    }
 
   }
 
   @supports (color: var(--pre-rendering)) {
 
-      @keyframes dontRenderAnimation {
-          0% {
-              background-position-x: 3px;
-          }
-          100% {
-              background-position-x: 4px;
-          }
-      }
+    @keyframes dontRenderAnimation {
+        0% {
+            background-position-x: 3px;
+        }
+        100% {
+            background-position-x: 4px;
+        }
+    }
 
-      /*html[dont-render-enabled] */ .dont-render{
-          visibility: collapse !important;
-          transform: scale(0.01) !important;
-          transform: scale(0.00001) !important;
-          transform: scale(0.0000001) !important;
-          transform-origin: 0 0 !important;
-          z-index:-1 !important;
-          contain: strict !important;
-          box-sizing: border-box !important;
+    /*html[dont-render-enabled] */ .dont-render{
 
-          height: 1px !important;
-          height: 0.1px !important;
-          height: 0.01px !important;
-          height: 0.0001px !important;
-          height: 0.000001px !important;
+        visibility: collapse !important;
+        transform: scale(0.01) !important;
+        transform: scale(0.00001) !important;
+        transform: scale(0.0000001) !important;
+        transform-origin: 0 0 !important;
+        z-index:-1 !important;
+        contain: strict !important;
+        box-sizing: border-box !important;
 
-          animation: dontRenderAnimation 1ms linear 80ms 1 normal forwards !important;
+        height: 1px !important;
+        height: 0.1px !important;
+        height: 0.01px !important;
+        height: 0.0001px !important;
+        height: 0.000001px !important;
 
-      }
+        animation: dontRenderAnimation 1ms linear 80ms 1 normal forwards !important;
+
+    }
 
   }
 
