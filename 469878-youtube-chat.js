@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.10.15
+// @version             0.10.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -50,6 +50,7 @@
     // return window.deWeakJS ? window.deWeakJS(s) : s;
   }
 
+  // necessity of cssText3_smooth_transform_position to be checked.
   const cssText3_smooth_transform_position = ENABLE_NO_SMOOTH_TRANSFORM ? `
 
     #item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer {
@@ -58,6 +59,7 @@
 
   `: '';
 
+  // fallback if dummy style fn fails
   const cssText4_smooth_transform_forced_props = ENABLE_NO_SMOOTH_TRANSFORM ? `
 
     /* optional */
@@ -169,20 +171,64 @@
 
   const cssText7c_will_change_unset = FORCE_WILL_CHANGE_UNSET ? `
 
-    .ytp-contextmenu[class],
-    .toggle-button.tp-yt-paper-toggle-button[class],
-    .yt-spec-touch-feedback-shape__fill[class],
-    .fill.yt-interaction[class],
+    /* www-player.css */
+    html .ytp-contextmenu,
+    html .ytp-settings-menu {
+        will-change: unset;
+    }
+
+    /* live_chat_polymer.js */
+    html .toggle-button.tp-yt-paper-toggle-button,
+    html #primaryProgress.tp-yt-paper-progress,#secondaryProgress.tp-yt-paper-progress,
+    html #onRadio.tp-yt-paper-radio-button,
+    html .fill.yt-interaction,
+    html .stroke.yt-interaction,
+    html .yt-spec-touch-feedback-shape__fill,
+    html .yt-spec-touch-feedback-shape__stroke {
+        will-change: unset;
+    }
+
+    /* desktop_polymer_enable_wil_icons.js */
+    html .fill.yt-interaction,
+    html .stroke.yt-interaction,
+    html tp-yt-app-header::before,
+    html tp-yt-iron-list,
+    html #items.tp-yt-iron-list > *,
+    html #onRadio.tp-yt-paper-radio-button,
+    html .toggle-button.tp-yt-paper-toggle-button,
+    html ytd-thumbnail-overlay-toggle-button-renderer[use-expandable-tooltip] #label.ytd-thumbnail-overlay-toggle-button-renderer,
+    html #items.ytd-post-multi-image-renderer,
+    html #items.ytd-horizontal-card-list-renderer,
+    html #items.yt-horizontal-list-renderer,
+    html #left-arrow.yt-horizontal-list-renderer,
+    html #right-arrow.yt-horizontal-list-renderer,
+    html #items.ytd-video-description-infocards-section-renderer,
+    html #items.ytd-video-description-music-section-renderer,
+    html #chips.ytd-feed-filter-chip-bar-renderer,
+    html #chips.yt-chip-cloud-renderer,
+    html #items.ytd-merch-shelf-renderer,
+    html #items.ytd-product-details-image-carousel-renderer,
+    html ytd-video-preview,
+    html #player-container.ytd-video-preview,
+    html #primaryProgress.tp-yt-paper-progress,
+    html #secondaryProgress.tp-yt-paper-progress,
+    html ytd-miniplayer[enabled],
+    html .yt-spec-touch-feedback-shape__fill,
+    html .yt-spec-touch-feedback-shape__stroke {
+        will-change: unset;
+    }
+
+    /* other */
     .ytp-videowall-still-info-content[class],
     .ytp-suggestion-image[class] {
         will-change: unset !important;
     }
 
-    ` : '';
+  ` : '';
 
 
   function addCssElement() {
-    let s = document.createElement('style')
+    let s = document.createElement('style');
     s.id = 'ewRvC';
     return s;
   }
@@ -332,6 +378,8 @@
 
   if (!IntersectionObserver) return console.error("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.")
 
+  const assertor = (f) => f() || console.assert(false, f + "");
+
   let ENABLE_FULL_RENDER_REQUIRED_CAPABLE = false;
   const isContainSupport = CSS.supports('contain', 'layout paint style');
   if (!isContainSupport) {
@@ -374,7 +422,7 @@
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
       let mx = 16; // MAX TRIAL
-      const frameId = 'vanillajs-iframe-v1'
+      const frameId = 'vanillajs-iframe-v1';
       let frame = document.getElementById(frameId);
       let removeIframeFn = null;
       if (!frame) {
@@ -454,7 +502,7 @@
 
       Node.prototype.__appendChild932__ = function () {
         this.__appendChild931__.apply(this, arguments);
-        return Node.prototype.appendChild.apply(this, arguments)
+        return Node.prototype.appendChild.apply(this, arguments);
       }
 
 
@@ -496,7 +544,7 @@
         return true;
       },
       has(target, prop) {
-        return (prop in target)
+        return (prop in target);
       },
       deleteProperty(target, prop) {
         return true;
@@ -565,8 +613,8 @@
           }
 
           // ratio2 = Math.round(ratio2 * 5) / 5;
-          ratio2 = ratio2.toFixed(1)
-          v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`)
+          ratio2 = ratio2.toFixed(1);
+          v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
 
           if (yd.__style_last__ === v) return;
           yd.__style_last__ = v;
@@ -592,7 +640,7 @@
       return typeof propertyDescriptorGetter === 'function' ? (e) => {
         try {
 
-          return propertyDescriptorGetter.call(dr(e))
+          return propertyDescriptorGetter.call(dr(e));
         } catch (e) { }
         return e[propertyName];
       } : (e) => e[propertyName];
@@ -650,9 +698,9 @@
 
               }
             }
-          })
+          });
 
-        })
+        });
 
       }
 
@@ -680,12 +728,11 @@
       mutObserver.observe(document.documentElement, {
         childList: true,
         subtree: false
-      })
-
+      });
       mutObserver.observe(document.head, {
         childList: true,
         subtree: false
-      })
+      });
       mutObserver.observe(document.body, {
         childList: true,
         subtree: false
@@ -704,8 +751,9 @@
         paddingTop: ''
       };
 
+      const dummyStyleFn = (k) => (function () { const style = this[sp7]; return style[k](...arguments); });
       for (const k of ['toString', 'getPropertyPriority', 'getPropertyValue', 'item', 'removeProperty', 'setProperty']) {
-        dummy1v[k] = ((k) => (function () { const style = this[sp7]; return style[k](...arguments); }))(k)
+        dummy1v[k] = dummyStyleFn(k);
       }
 
       const dummy1p = proxyHelperFn(dummy1v);
@@ -742,7 +790,7 @@
             this.active = false;
             this.element.style.willChange = '';
           }
-        })
+        });
       }
 
       release() {
@@ -759,20 +807,22 @@
 
     customYtElements.onRegistryReady(() => {
 
-
-      let scrollWillChangeController = null;
       let contensWillChangeController = null;
 
       // as it links to event handling, it has to be injected using immediateCallback
       customYtElements.whenRegistered('yt-live-chat-item-list-renderer', (cProto) => {
 
+        console.groupCollapsed("YouTube Super Fast Check - list-renderer hacks 01");
 
         const mclp = cProto;
-        console.assert(typeof mclp.scrollToBottom_ === 'function')
-        console.assert(typeof mclp.scrollToBottom66_ !== 'function')
-        console.assert(typeof mclp.flushActiveItems_ === 'function')
-        console.assert(typeof mclp.flushActiveItems66_ !== 'function')
-        console.assert(typeof mclp.async === 'function')
+        try {
+          assertor(() => typeof mclp.scrollToBottom_ === 'function');
+          assertor(() => typeof mclp.flushActiveItems_ === 'function');
+          assertor(() => typeof mclp.canScrollToBottom_ === 'function');
+          assertor(() => typeof mclp.setAtBottom === 'function');
+          assertor(() => typeof mclp.scrollToBottom66_ === 'undefined');
+          assertor(() => typeof mclp.flushActiveItems66_ === 'undefined');
+        } catch (e) { }
 
 
         mclp.__intermediate_delay__ = null;
@@ -798,6 +848,9 @@
             this.__intermediate_delay__ = null;
             this.clearList66();
           };
+          console.log("clearList", "OK");
+        } else {
+          console.log("clearList", "NG");
         }
 
 
@@ -836,6 +889,9 @@
             });
           }
 
+          console.log("showNewItems_", "OK");
+        } else {
+          console.log("showNewItems_", "NG");
         }
 
 
@@ -939,7 +995,7 @@
 
                         if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                         if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                      })
+                      });
 
 
                     }
@@ -948,7 +1004,7 @@
                   ff();
 
 
-                  Promise.resolve().then(ff)
+                  Promise.resolve().then(ff);
 
                   // requestAnimationFrame(ff);
                 } else if (true) { // it might not be sticky to bottom when there is a full refresh.
@@ -1006,6 +1062,9 @@
             });
 
           }
+          console.log("flushActiveItems_", "OK");
+        } else {
+          console.log("flushActiveItems_", "NG");
         }
 
         if ((mclp.async || 0).length === 2) {
@@ -1028,6 +1087,9 @@
 
           }
 
+          console.log("async", "OK");
+        } else {
+          console.log("async", "NG");
         }
 
         mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
@@ -1116,6 +1178,9 @@
               });
             });
           }
+          console.log("onScrollItems_", "OK");
+        } else {
+          console.log("onScrollItems_", "NG");
         }
 
         if ((mclp.handleLiveChatActions_ || 0).length === 1) {
@@ -1157,23 +1222,24 @@
               });
             });
           }
-
+          console.log("handleLiveChatActions_", "OK");
+        } else {
+          console.log("handleLiveChatActions_", "NG");
         }
+        console.groupEnd();
 
 
 
-
-      })
+      });
 
     });
 
     const getProto = (element) => {
-      let proto = null;
       if (element) {
-        if (element.inst) proto = element.inst.constructor.prototype;
-        else proto = element.constructor.prototype;
+        const cnt = element.inst || element;
+        return cnt.constructor.prototype || null;
       }
-      return proto || null;
+      return null;
     }
 
     let done = 0;
@@ -1205,7 +1271,7 @@
           lcRenderer = document.querySelector('yt-live-chat-item-list-renderer.yt-live-chat-renderer');
           lcRendererWR = lcRenderer ? mWeakRef(lcRenderer) : null;
         }
-        return lcRenderer
+        return lcRenderer;
       };
 
       const delayFlushActiveItemsAfterUserActionK_ = () => {
@@ -1362,6 +1428,19 @@
       const mclp = getProto(document.querySelector('yt-live-chat-item-list-renderer'));
       if (mclp && mclp.attached) {
 
+        console.groupCollapsed("YouTube Super Fast Check - list-renderer hacks 02");
+
+        try {
+          assertor(() => typeof mclp.attached === 'function');
+          assertor(() => typeof mclp.detached === 'function');
+          assertor(() => typeof mclp.canScrollToBottom_ === 'function');
+          assertor(() => typeof mclp.isSmoothScrollEnabled_ === 'function');
+          assertor(() => typeof mclp.maybeResizeScrollContainer_ === 'function');
+          assertor(() => typeof mclp.refreshOffsetContainerHeight_ === 'function');
+          assertor(() => typeof mclp.smoothScroll_ === 'function');
+          assertor(() => typeof mclp.resetSmoothScroll_ === 'function');
+        } catch (e) { }
+
         mclp.attached66 = mclp.attached;
         mclp.attached = function () {
           let m2 = document.querySelector('#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer');
@@ -1407,10 +1486,15 @@
           mclp.resetSmoothScroll_ = function () {
             //
           }
+          console.log("ENABLE_NO_SMOOTH_TRANSFORM", "OK");
+        } else {
+          console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
         }
 
+        console.groupEnd();
+
       } else {
-        console.warn(`proto.attached for yt-live-chat-item-list-renderer is unavailable.`)
+        console.warn(`proto.attached for yt-live-chat-item-list-renderer is unavailable.`);
       }
 
 
@@ -1526,108 +1610,32 @@
 
       const fp = (renderer) => {
         const cnt = renderer.inst || renderer;
+        assertor(() => typeof (cnt || 0).is === 'string');
+        assertor(() => ((cnt || 0).hostElement || 0).nodeType === 1);
         const container = (cnt.$ || 0).container;
         if (container) {
+          assertor(() => (container || 0).nodeType === 1);
+          assertor(() => typeof container.setAttribute === 'function');
           container.setAttribute = tickerContainerSetAttribute;
+        } else {
+          console.warn(`"container" does not exist in ${cnt.is}`);
         }
       };
       const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
         "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
+
+      console.groupCollapsed("YouTube Super Fast Check - Ticker hacks");
+      console.log("Begin");
       for (const tag of tags) {
         const dummy = document.createElement(tag);
 
         const cProto = getProto(dummy);
         if (!cProto || !cProto.attached) {
-          console.warn(`proto.attached for ${tag} is unavailable.`)
+          console.warn(`proto.attached for ${tag} is unavailable.`);
           continue;
         }
 
-        const __updateTimeout__ = cProto.updateTimeout;
-
-        const canDoUpdateTimeoutReplacement = (() => {
-
-          if (dummy.countdownMs < 1 && dummy.lastCountdownTimeMs < 1 && dummy.countdownMs < 1 && dummy.countdownDurationMs < 1) {
-            return typeof dummy.setContainerWidth === 'function' && typeof dummy.slideDown === 'function';
-          }
-          return false;
-
-        })(dummy.inst || dummy) && ((__updateTimeout__ + "").indexOf("window.requestAnimationFrame(this.updateTimeout.bind(this))") > 0);
-
-
-
-        if (canDoUpdateTimeoutReplacement) {
-
-          const killTicker = (cnt) => {
-            if ("auto" === cnt.hostElement.style.width) cnt.setContainerWidth();
-            cnt.slideDown()
-          };
-
-          cProto.__ratio__ = null;
-          cProto._updateTimeout21_ = function (a) {
-
-            this.countdownMs -= (a - (this.lastCountdownTimeMs || 0));
-
-            let currentRatio = this.__ratio__;
-            let tdv = this.countdownMs / this.countdownDurationMs;
-            let nextRatio = Math.round(tdv * 500) / 500; // might generate 0.143000000001
-
-            const validCountDown = nextRatio > 0;
-            const isAttached = this.isAttached;
-
-            if (!validCountDown) {
-
-              this.lastCountdownTimeMs = null;
-
-              this.countdownMs = 0;
-              this.__ratio__ = null;
-              this.ratio = 0;
-
-              if (isAttached) Promise.resolve(this).then(killTicker);
-
-            } else if (!isAttached) {
-
-              this.lastCountdownTimeMs = null;
-
-            } else {
-
-              this.lastCountdownTimeMs = a;
-
-              const ratioDiff = currentRatio - nextRatio;  // 0.144 - 0.142 = 0.002
-              if (ratioDiff < 0.001 && ratioDiff > -1e-6) {
-                // ratioDiff = 0
-
-              } else {
-                // ratioDiff = 0.002 / 0.004 ....
-                // OR ratioDiff < 0
-
-                this.__ratio__ = nextRatio;
-
-                this.ratio = nextRatio;
-              }
-
-              return true;
-            }
-
-          };
-
-          cProto._updateTimeout21_ = function (a) {
-            this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-            this.ratio = this.countdownMs / this.countdownDurationMs;
-            if (this.isAttached && this.countdownMs) {
-              this.lastCountdownTimeMs = a;
-              return true;
-            } else {
-              this.lastCountdownTimeMs = null;
-              if (this.isAttached) {
-                ("auto" === this.hostElement.style.width && this.setContainerWidth(), this.slideDown())
-              }
-            }
-          }
-
-
-        }
-
-        cProto.attached77 = cProto.attached
+        cProto.attached77 = cProto.attached;
 
         cProto.attached = function () {
           fp(this.hostElement || this);
@@ -1637,9 +1645,9 @@
         for (const elm of document.getElementsByTagName(tag)) {
           fp(elm);
         }
-
-
       }
+      console.log("End");
+      console.groupEnd();
 
     };
 
@@ -1656,10 +1664,11 @@
           tmObserver.takeRecords();
           tmObserver = null;
           Promise.resolve(q).then((q) => {
+            console.debug('#items.yt-live-chat-item-list-renderer is appended.');
             // confirm Promis.resolve() is resolveable
             // execute main without direct blocking
             main(q);
-          })
+          });
         }
 
       });
