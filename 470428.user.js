@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.5
+// @version     0.4.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -56,7 +56,7 @@
   // kevlar_tuner_visibility_time_between_jobs_ms
 
   // kevlar_tuner_default_comments_delay
-  // kevlar_tuner_run_default_comments_delay 
+  // kevlar_tuner_run_default_comments_delay
 
   let settled = null;
   // cinematic feature is no longer an experimential feature.
@@ -190,8 +190,8 @@
         looperFn();
       },
       /**
-       * 
-       * @param {Window} __CONTEXT__ 
+       *
+       * @param {Window} __CONTEXT__
        */
       setupForCleanContext(__CONTEXT__) {
 
@@ -285,10 +285,10 @@
 
           if (!DISABLE_CINEMATICS) {
 
- 
+
               if(key ==='kevlar_measure_ambient_mode_idle' || key ==='kevlar_watch_cinematics_invisible'  || key === 'web_cinematic_theater_mode' || key ==='web_cinematic_fullscreen' ){
                 continue;
-              } 
+              }
 
 
             let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
@@ -366,6 +366,15 @@
 
 
           } else {
+
+            if(kl7===1 && kl5===1 && kl2 === 0 && kl3 ===0){
+              if(key === 'live_chat_web_enable_command_handler') continue;
+
+            }
+            if(kl7 ===1 && kl5===4 && kl3 ===2 && kl2 ===1 ){
+
+              if(key === 'shorts_desktop_watch_while_p2') continue;
+            }
 
             if (key === 'web_button_rework') continue;
 
