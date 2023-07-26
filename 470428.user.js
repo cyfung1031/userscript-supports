@@ -41,6 +41,8 @@
     externalValue: () => (+localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH ? true : false)
   };
 
+  const ALLOW_ALL_LIVE_CHATS_FLAGS = false;
+
 
 
   // TBC
@@ -121,6 +123,17 @@
 
   }
 
+  const all_live_chat_flags = `live_chat_banner_expansion_fix
+  live_chat_enable_mod_view
+  live_chat_enable_qna_banner_overflow_menu_actions
+  live_chat_enable_qna_channel
+  live_chat_enable_send_button_in_slow_mode
+  live_chat_filter_emoji_suggestions
+  live_chat_increased_min_height
+  live_chat_over_playlist
+  live_chat_web_enable_command_handler
+  live_chat_web_use_emoji_manager_singleton
+  live_chat_whole_message_clickable`.trim().split(/\s+/)
 
   const hLooper = ((fn) => {
 
@@ -300,6 +313,7 @@
             }
           }
 
+
           if (key.indexOf('kevlar_') >= 0) {
 
             if (kl === 22) {
@@ -366,6 +380,26 @@
 
 
           } else {
+
+
+            if (ALLOW_ALL_LIVE_CHATS_FLAGS && all_live_chat_flags.indexOf(key) >= 0) {
+              continue;
+              /*
+               * 
+  live_chat_banner_expansion_fix
+  live_chat_enable_mod_view
+  live_chat_enable_qna_banner_overflow_menu_actions
+  live_chat_enable_qna_channel
+  live_chat_enable_send_button_in_slow_mode
+  live_chat_filter_emoji_suggestions
+  live_chat_increased_min_height
+  live_chat_over_playlist
+  live_chat_web_enable_command_handler
+  live_chat_web_use_emoji_manager_singleton
+  live_chat_whole_message_clickable
+  
+  */
+            }
 
             if(kl7===1 && kl5===1 && kl2 === 0 && kl3 ===0){
               if(key === 'live_chat_web_enable_command_handler') continue;
