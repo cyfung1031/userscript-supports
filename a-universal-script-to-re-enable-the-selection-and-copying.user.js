@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.15.0.3
+// @version             1.16.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -13,6 +13,11 @@
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @exclude             https://github.dev/*
 // @exclude             https://www.photopea.com/*
+// @exclude             https://drive.google.com/*
+// @exclude             https://mail.google.com/*
+// @exclude             https://www.google.com/maps/*
+// @exclude             https://www.dropbox.com/*
+// @exclude             https://outlook.live.com/mail/*
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/selection-copier.png
 // @grant               GM_registerMenuCommand
 // @grant               GM_unregisterMenuCommand
@@ -172,6 +177,24 @@
         }
     }
 
+    /*
+    const whiteListForCustomContextMenu = [
+        'https://drive.google.com/',
+        'https://mail.google.com/',
+        'https://www.google.com/maps/',
+        'https://www.dropbox.com/',
+        'https://outlook.live.com/mail/'
+    ];
+    const isCustomContextMenuAllowedFn = () => {
+        const href = location.href;
+        for (h of whiteListForCustomContextMenu) {
+            if (href.startsWith(h)) return true;
+        }
+        return false;
+    }
+    */
+    const isCustomContextMenuAllowedFn = () => { return false; }
+    let isCustomContextMenuAllowed = null;
     const $ = {
         utSelectionColorHack: 'msmtwejkzrqa',
         utTapHighlight: 'xfcklblvkjsj',
@@ -384,6 +407,10 @@
             const target = evt.target;
             switch (j) {
                 case 6: // dragstart
+
+                    if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
+                    if (isCustomContextMenuAllowed) return false;
+
                     if ($.enableDragging) return false;
                     if (target instanceof Element && target.hasAttribute('draggable')) {
                         $.enableDragging = true;
@@ -392,6 +419,10 @@
                     // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
                     return true;
                 case 3: // contextmenu
+
+                    if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
+                    if (isCustomContextMenuAllowed) return false;
+
                     if (target instanceof Element) {
                         switch (target.nodeName) {
                             case 'IMG':
@@ -423,8 +454,15 @@
                     return false;
                 case 0: // keydown
                 case 1: // keyup
+
+                    if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
+                    if (isCustomContextMenuAllowed) return false;
                     return (evt.keyCode === 67 && (evt.ctrlKey || evt.metaKey) && !evt.altKey && !evt.shiftKey && $.isAnySelection() === true);
                 case 2: // copy
+
+                    if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
+                    if (isCustomContextMenuAllowed) return false;
+
                     if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
                     if (evt.cancelable === false || evt.defaultPrevented === true) return true;
 
