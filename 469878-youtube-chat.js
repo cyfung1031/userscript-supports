@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.3
+// @version             0.20.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -342,16 +342,16 @@
   const cssText10_show_more_blinker = ENABLE_SHOW_MORE_BLINKER ? `
 
     @keyframes blinker-miuzp {
-        0%, 70%, 100% {
+        0%, 60%, 100% {
             opacity: 1;
         }
-        35% {
-            opacity: 0.7;
+        30% {
+            opacity: 0.6;
         }
     }
 
     yt-icon-button#show-more.has-new-messages-miuzp {
-        animation: blinker-miuzp 2s linear infinite;      
+        animation: blinker-miuzp 1.74s linear infinite;      
     }
 
   `: '';
