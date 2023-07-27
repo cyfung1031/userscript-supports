@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.2
+// @version             0.20.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -74,6 +74,8 @@
   const SHOW_PARTICIPANT_CHANGES_IN_CONSOLE = false;          // Just too annoying to show them all in popular chat
   const CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT = true;  // Only consider changes in renderable content (not concerned with the last chat message of the participants)
   const PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED = true;
+
+  const ENABLE_SHOW_MORE_BLINKER = true;                      // BLINK WHEN NEW MESSAGES COME
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -337,6 +339,23 @@
     }
   `: '';
 
+  const cssText10_show_more_blinker = ENABLE_SHOW_MORE_BLINKER ? `
+
+    @keyframes blinker-miuzp {
+        0%, 70%, 100% {
+            opacity: 1;
+        }
+        35% {
+            opacity: 0.7;
+        }
+    }
+
+    yt-icon-button#show-more.has-new-messages-miuzp {
+        animation: blinker-miuzp 2s linear infinite;      
+    }
+
+  `: '';
+
 
   const addCss = () => `
 
@@ -476,6 +495,8 @@
     }
 
   }
+
+  ${cssText10_show_more_blinker}
 
   `;
 
@@ -2218,6 +2239,8 @@
 
             assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.137.81'));
 
+            let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
+
             let contensWillChangeController = null;
 
             mclp.flushActiveItems66_ = mclp.flushActiveItems_;
@@ -2394,12 +2417,26 @@
                   let res;
                   try {
                     res = await cnt.flushActiveItems78_(tid);
+                    if (hasMoreMessageState === 1) {
+                      hasMoreMessageState = 0;
+                      const showMore = cnt.$['show-more'];
+                      if (showMore) {
+                        showMore.classList.remove('has-new-messages-miuzp');
+                      }
+                    }
                   } catch (e) {
                     console.warn(e);
                   }
                   qResolve && qResolve();
                   return res;
                 } else {
+                  if (hasMoreMessageState === 0) {
+                    hasMoreMessageState = 1;
+                    const showMore = cnt.$['show-more'];
+                    if (showMore) {
+                      showMore.classList.add('has-new-messages-miuzp');
+                    }
+                  }
                   // cnt.flushActiveItems66_();
                   // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
                   return 2;
