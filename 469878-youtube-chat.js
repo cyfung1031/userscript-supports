@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.1
+// @version             0.20.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -73,7 +73,7 @@
   const DO_PARTICIPANT_LIST_HACKS = true;                     // TRUE for the majority
   const SHOW_PARTICIPANT_CHANGES_IN_CONSOLE = false;          // Just too annoying to show them all in popular chat
   const CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT = true;  // Only consider changes in renderable content (not concerned with the last chat message of the participants)
-
+  const PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED = true;
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -454,7 +454,7 @@
         }
     }
 
-    /*html[dont-render-enabled] */ .dont-render{
+    .dont-render {
 
         visibility: collapse !important;
         transform: scale(0.01) !important;
@@ -840,7 +840,6 @@
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame } = __CONTEXT__;
 
 
@@ -890,18 +889,25 @@
 
       const { notifyPath7081 } = (() => {
 
+        const mutexParticipants = new Mutex();
+
+        let uvid = 0;
+        let r95dm = 0;
+        let c95dm = -1;
 
         const foundMap = (base, content) => {
-
-          let lastSearch = 0;
-          let founds = base.map(baseEntry => {
-            let search = content.indexOf(baseEntry, lastSearch);
-            if (search < 0) return false;
-            lastSearch = search + 1;
-            return true;
-          });
-          return founds;
-
+          /*
+            let lastSearch = 0;
+            let founds = base.map(baseEntry => {
+              let search = content.indexOf(baseEntry, lastSearch);
+              if (search < 0) return false;
+              lastSearch = search + 1;
+              return true;
+            });
+            return founds;
+          */
+          const contentSet = new Set(content);
+          return base.map(baseEntry => contentSet.has(baseEntry));
 
         }
 
@@ -921,12 +927,8 @@
             }
           };
           const releaser = () => {
-            beforeParticipants = null;
             participants = null;
-            idsBefore = null;
-            idsAfter = null;
           }
-
 
           let foundsForAfter = foundMap(idsAfter, idsBefore);
           let foundsForBefore = foundMap(idsBefore, idsAfter);
@@ -934,7 +936,6 @@
           let indexSplices = [];
           let contentUpdates = [];
           for (let i = 0, j = 0; i < foundsForBefore.length || j < foundsForAfter.length;) {
-
             if (beforeParticipants[i] === participants[j]) {
               i++; j++;
             } else if (idsBefore[i] === idsAfter[j]) {
@@ -947,7 +948,6 @@
                 if (foundsForAfter[q] === false) addedCount++;
                 else break;
               }
-
               let removedCount = 0;
               for (let q = i; q < foundsForBefore.length; q++) {
                 if (foundsForBefore[q] === false) removedCount++;
@@ -961,19 +961,18 @@
                 addedCount: addedCount,
                 removed: removedCount >= 1 ? beforeParticipants.slice(i, i + removedCount) : []
               }, handler1));
-
               i += removedCount;
               j += addedCount;
-
             }
           }
+          foundsForBefore = null;
+          foundsForAfter = null;
+          idsBefore = null;
+          idsAfter = null;
+          beforeParticipants = null;
           return { indexSplices, contentUpdates, releaser };
 
-
         }
-
-        const mutexParticipants = new Mutex();
-
 
         /*
 
@@ -1005,12 +1004,12 @@
             // liveChatPaidMessageRenderer
             /*
 
-            'yt-live-chat-participant-renderer' utilizes the following:
-            authorName.simpleText: string
-            authorPhoto.thumbnails: Object{url:string, width:int, height:int} []
-            authorBadges[].liveChatAuthorBadgeRenderer.icon.iconType: string
-            authorBadges[].liveChatAuthorBadgeRenderer.tooltip: string
-            authorBadges[].liveChatAuthorBadgeRenderer.accessibility.accessibilityData: Object{label:string}
+              'yt-live-chat-participant-renderer' utilizes the following:
+              authorName.simpleText: string
+              authorPhoto.thumbnails: Object{url:string, width:int, height:int} []
+              authorBadges[].liveChatAuthorBadgeRenderer.icon.iconType: string
+              authorBadges[].liveChatAuthorBadgeRenderer.tooltip: string
+              authorBadges[].liveChatAuthorBadgeRenderer.accessibility.accessibilityData: Object{label:string}
 
             */
             if (keys.length !== 1) {
@@ -1045,13 +1044,18 @@
           return p1 !== p2; // always true
         }
 
-        let uvid = 0;
-
         function notifyPath7081(path) { // cnt "yt-live-chat-participant-list-renderer"
 
-          let stack = new Error().stack;
-          if (path !== "participantsManager.participants" || stack.indexOf('.onParticipantsChanged') < 0) {
-            return this.__notifyPath5036__.apply(this, arguments);
+          if (PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED) {
+            if (path !== "participantsManager.participants") {
+              return this.__notifyPath5036__.apply(this, arguments);
+            }
+            if (c95dm === r95dm) return;
+          } else {
+            const stack = new Error().stack;
+            if (path !== "participantsManager.participants" || stack.indexOf('.onParticipantsChanged') < 0) {
+              return this.__notifyPath5036__.apply(this, arguments);
+            }
           }
 
           if (uvid > 1e8) uvid = uvid % 100;
@@ -1060,12 +1064,65 @@
           const cnt = this; // "yt-live-chat-participant-list-renderer"
           mutexParticipants.lockWith(lockResolve => {
 
-            if (tid !== uvid) {
+            const participants00 = cnt.participantsManager.participants;
+
+            if (tid !== uvid || typeof (participants00 || 0).splice !== 'function') {
               lockResolve();
               return;
             }
 
-            const participants = cnt.participantsManager.participants.slice(0);
+            let doUpdate = false;
+
+            if (PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED) {
+
+              if (!participants00.r94dm) {
+                participants00.r94dm = 1;
+                if (++r95dm > 1e9) r95dm = 9;
+                participants00.push = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.push.apply(this, arguments);
+                }
+                participants00.pop = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.pop.apply(this, arguments);
+                }
+                participants00.shift = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.shift.apply(this, arguments);
+                }
+                participants00.unshift = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.unshift.apply(this, arguments);
+                }
+                participants00.splice = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.splice.apply(this, arguments);
+                }
+                participants00.sort = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.sort.apply(this, arguments);
+                }
+                participants00.reverse = function () {
+                  if (++r95dm > 1e9) r95dm = 9;
+                  return Array.prototype.reverse.apply(this, arguments);
+                }
+              }
+
+              if (c95dm !== r95dm) {
+                c95dm = r95dm;
+                doUpdate = true;
+              }
+
+            } else {
+              doUpdate = true;
+            }
+
+            if (!doUpdate) {
+              lockResolve();
+              return;
+            }
+
+            const participants = participants00.slice(0);
             const beforeParticipants = beforeParticipantsMap.get(cnt) || [];
             beforeParticipantsMap.set(cnt, participants);
 
@@ -1196,7 +1253,6 @@
             });
 
           });
-
 
         }
 
