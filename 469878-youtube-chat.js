@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.0
+// @version             0.20.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -10,7 +10,6 @@
 // @match               https://www.youtube.com/live_chat*
 // @match               https://www.youtube.com/live_chat_replay*
 // @author              CY Fung
-// @require             https://greasyfork.org/scripts/465819-api-for-customelements-in-youtube/code/API%20for%20CustomElements%20in%20YouTube.js?version=1215280
 // @run-at              document-start
 // @grant               none
 // @unwrap
@@ -82,9 +81,6 @@
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.")
-
-  if (!customYtElements) return console.error("library 'customYtElements' is required.")
-
 
   // necessity of cssText3_smooth_transform_position to be checked.
   const cssText3_smooth_transform_position = ENABLE_NO_SMOOTH_TRANSFORM ? `
@@ -587,10 +583,46 @@
   }
 
 
+  const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
+  const onRegistryReady = (callback) => {
+    if (typeof customElements === 'undefined') {
+      if (!('__CE_registry' in document)) {
+        // https://github.com/webcomponents/polyfills/
+        Object.defineProperty(document, '__CE_registry', {
+          get() {
+            // return undefined
+          },
+          set(nv) {
+            if (typeof nv == 'object') {
+              delete this.__CE_registry;
+              this.__CE_registry = nv;
+              this.dispatchEvent(new CustomEvent(EVENT_KEY_ON_REGISTRY_READY));
+            }
+            return true;
+          },
+          enumerable: false,
+          configurable: true
+        })
+      }
+      let eventHandler = (evt) => {
+        document.removeEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+        const f = callback;
+        callback = null;
+        eventHandler = null;
+        f();
+      };
+      document.addEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+    } else {
+      callback();
+    }
+  };
+
+  const promiseForCustomYtElementsReady = new Promise(onRegistryReady);
+
   /* globals WeakRef:false */
 
   /** @type {(o: Object | null) => WeakRef | null} */
-  const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null); // typeof InvalidVar == 'undefined'
+  const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
 
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
@@ -834,12 +866,12 @@
 
 
       /**
-   
+
        h.onParticipantsChanged = function() {
           this.notifyPath("participantsManager.participants")
       }
-   
-   
+
+
       at h.onParticipantsChanged (live_chat_polymer.js:8334:41)
       at e.<anonymous> (live_chat_polymer.js:1637:69)
       at e.Bb [as __shady_dispatchEvent] (webcomponents-sd.js:46:110)
@@ -850,7 +882,7 @@
       at b._flushProperties (live_chat_polymer.js:1597:200)
       at a._invalidateProperties (live_chat_polymer.js:1718:69)
       at a.notifyPath (live_chat_polymer.js:1741:182)
-   
+
       */
 
 
@@ -944,9 +976,9 @@
 
 
         /*
-     
+
         customElements.get("yt-live-chat-participant-renderer").prototype.notifyPath=function(){  console.log(123);  console.log(new Error().stack)}
-     
+
         VM63631:1 Error
         at customElements.get.notifyPath (<anonymous>:1:122)
         at e.forwardRendererStamperChanges_ (live_chat_polymer.js:4453:35)
@@ -958,7 +990,7 @@
         at b._flushProperties (live_chat_polymer.js:1597:200)
         at a._invalidateProperties (live_chat_polymer.js:1718:69)
         at a.notifyPath (live_chat_polymer.js:1741:182)
-     
+
         */
 
         function convertToIds(participants) {
@@ -972,14 +1004,14 @@
             // liveChatParticipantRenderer - livestream channel owner [no authorExternalChannelId]
             // liveChatPaidMessageRenderer
             /*
-     
+
             'yt-live-chat-participant-renderer' utilizes the following:
             authorName.simpleText: string
             authorPhoto.thumbnails: Object{url:string, width:int, height:int} []
             authorBadges[].liveChatAuthorBadgeRenderer.icon.iconType: string
             authorBadges[].liveChatAuthorBadgeRenderer.tooltip: string
             authorBadges[].liveChatAuthorBadgeRenderer.accessibility.accessibilityData: Object{label:string}
-     
+
             */
             if (keys.length !== 1) {
               console.warn('Error(0xFA42): convertToIds', participant);
@@ -1256,11 +1288,6 @@
             if (beforeParticipantsMap.has(cnt)) return;
             hostElement.classList.add('n9fJ3');
 
-            if (cnt.isAttached !== true && (!cnt.__dataEnabled || !cnt.__dataReady)) {
-              // somehow it is a bug in Waterfox Classic.
-              return;
-            }
-
             assertor(() => (cnt.__dataEnabled === true && cnt.__dataReady === true));
             if (typeof cnt.notifyPath !== 'function' || typeof cnt.__notifyPath5036__ !== 'undefined') {
               console.warn("ERROR(0xE318): yt-live-chat-participant-list-renderer")
@@ -1297,7 +1324,9 @@
 
           if (onPageElements.length >= 1) {
             for (const s of onPageElements) {
-              fpPList(s);
+              if ((s.inst || s).isAttached === true) {
+                fpPList(s);
+              }
             }
           }
 
@@ -1305,7 +1334,7 @@
 
       };
 
-      customYtElements.onRegistryReady(onRegistryReadyForDataManipulation);
+      promiseForCustomYtElementsReady.then(onRegistryReadyForDataManipulation);
 
 
     })();
@@ -1855,7 +1884,7 @@
         }
 
         if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
-        // if (!assertor(() => document.getElementById('yt-masthead') === null)) return; 
+        // if (!assertor(() => document.getElementById('yt-masthead') === null)) return;
 
         if (document.documentElement && document.head) {
 
@@ -2018,11 +2047,11 @@
             return this.detached331();
           }
 
-          let t31_items = document.querySelector('#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer');
-          let t31_itemOffset = t31_items ? nodeParent(t31_items) : null;
-
-          if (t31_items && t31_itemOffset) {
-            setList(t31_itemOffset, t31_items);
+          const t29s = document.querySelectorAll("yt-live-chat-item-list-renderer");
+          for (const t29 of t29s) {
+            if ((t29.inst || t29).isAttached === true) {
+              t29.attached419();
+            }
           }
 
           if ((mclp.async || 0).length === 2 && (mclp.cancelAsync || 0).length === 1) {
@@ -2681,7 +2710,9 @@
             }
 
             for (const elm of document.getElementsByTagName(tag)) {
-              fpTicker(elm);
+              if ((elm || elm.inst).isAttached === true) {
+                fpTicker(elm);
+              }
             }
 
             if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
@@ -2979,7 +3010,7 @@
 
       }
 
-      customYtElements.onRegistryReady(onRegistryReadyForDOMOperations);
+      promiseForCustomYtElementsReady.then(onRegistryReadyForDOMOperations);
 
 
     })();
