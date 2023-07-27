@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.6
+// @version     0.4.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -386,19 +386,19 @@
               continue;
               /*
                * 
-  live_chat_banner_expansion_fix
-  live_chat_enable_mod_view
-  live_chat_enable_qna_banner_overflow_menu_actions
-  live_chat_enable_qna_channel
-  live_chat_enable_send_button_in_slow_mode
-  live_chat_filter_emoji_suggestions
-  live_chat_increased_min_height
-  live_chat_over_playlist
-  live_chat_web_enable_command_handler
-  live_chat_web_use_emoji_manager_singleton
-  live_chat_whole_message_clickable
-  
-  */
+              live_chat_banner_expansion_fix
+              live_chat_enable_mod_view
+              live_chat_enable_qna_banner_overflow_menu_actions
+              live_chat_enable_qna_channel
+              live_chat_enable_send_button_in_slow_mode
+              live_chat_filter_emoji_suggestions
+              live_chat_increased_min_height
+              live_chat_over_playlist
+              live_chat_web_enable_command_handler
+              live_chat_web_use_emoji_manager_singleton
+              live_chat_whole_message_clickable
+              
+              */
             }
 
             if(kl7===1 && kl5===1 && kl2 === 0 && kl3 ===0){
