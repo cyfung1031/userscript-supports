@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.23.0
+// @version             2023.07.29.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -225,7 +225,8 @@ SOFTWARE.
     // Assign the Promise constructor to a local variable
     const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__;
 
-    const onPromiseErrorFn = (e) => { Promise.resolve(e).then(e => console.error(e)); }; // Promise will be resolved for Promise.all
+    const consoleError = e => console.error(e);
+    const onPromiseErrorFn = (e) => { Promise.resolve(e).then(consoleError); }; // Promise will be resolved for Promise.all
 
     let isAnyVideoJustStartedWaiting = 0;
     let countAnyVideoJustPaused = 0; // for video is fetching data
@@ -487,7 +488,7 @@ SOFTWARE.
       if (sHandlers.length === 0) { // no handler functions
         // requestAnimationFrame when the page is active
         // execution interval is no less than AnimationFrame
-      } else if (dexActivePage) {
+      } else if (!noActiveMediaForAWhile && dexActivePage) {
 
         // retFP: looping for all functions. First error leads resolve non-reachable;
         // the particular [$busy] will not reset to 0 normally
@@ -515,24 +516,26 @@ SOFTWARE.
       Promise.resolve().then(executeNow);
     }, true); // capturing event - to let it runs before all everything else.
 
+    let clearResolveAt = 0;
     setInterval(() => {
-      if (intervalTimerResolve !== null) {
+      if (intervalTimerResolve !== null && Date.now() >= clearResolveAt) {
         intervalTimerResolve();
         intervalTimerResolve = null;
       }
-    }, UNDERCLOCK);
+    }, 10);
     const pTimerFn = resolve => { intervalTimerResolve = resolve };
 
     (async () => {
       while (true) {
-        bgExecutionAt = Date.now() + 160;
+        const tickerNow = Date.now();
+        clearResolveAt = tickerNow + UNDERCLOCK;
         if (noActiveMediaForAWhile) {
-          await new Promise(pTimerFn); // CPU
-          afInterupter = null;
-          toResetFuncHandlers = false;
-          dexActivePage = false;
+          // no need to tamer the execution by rAF
+          await new Promise(pTimerFn); // CPU; time throttled
         } else {
-          const pTimer = new Promise(pTimerFn); // CPU
+          if (countAnyVideoJustPaused > 0) clearResolveAt = 0;
+          const pTimer = new Promise(pTimerFn); // CPU; time throttled
+          bgExecutionAt = tickerNow + 160;
           if (!isAnyVideoJustStartedWaiting) await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
           await pTimer; // resolve by timer@10ms
           if (afInterupter === null) {
@@ -555,6 +558,27 @@ SOFTWARE.
       }
     })();
 
+    const onCountAnyVideoJustPausedEqualsTo8 = () => {
+      if (countAnyVideoJustPaused > 0) {
+        /** @type {NodeListOf<HTMLMediaElement | HTMLVideoElement >} */
+        let medias = document.querySelectorAll('video[src], audio[src]');
+        let mp = true;
+        for (const media of medias) {
+          if (media.paused !== true && media.readyState >= 3) {
+            mp = false;
+            break;
+          }
+        }
+        if (!mp) {
+          countAnyVideoJustPaused = 0;
+          noActiveMediaForAWhile = false;
+          Promise.resolve().then(executeNow);
+        } else {
+          noActiveMediaForAWhile = true;
+        }
+      }
+    };
+
     setInterval(() => {
       if (countAnyVideoJustPaused > 0) {
         // videoIsPaused = 2 => 125ms
@@ -562,26 +586,7 @@ SOFTWARE.
         if (countAnyVideoJustPaused < 16) {
           countAnyVideoJustPaused++;
           if (countAnyVideoJustPaused === 8 && !isAnyVideoJustStartedWaiting) {  // 875ms
-            Promise.resolve().then(() => {
-              if (countAnyVideoJustPaused > 0) {
-                /** @type {NodeListOf<HTMLMediaElement | HTMLVideoElement >} */
-                let medias = document.querySelectorAll('video[src], audio[src]');
-                let mp = true;
-                for (const media of medias) {
-                  if (media.paused !== true && media.readyState >= 3) {
-                    mp = false;
-                    break;
-                  }
-                }
-                if (!mp) {
-                  countAnyVideoJustPaused = 0;
-                  noActiveMediaForAWhile = false;
-                  Promise.resolve().then(executeNow);
-                } else {
-                  noActiveMediaForAWhile = true;
-                }
-              }
-            })
+            Promise.resolve().then(onCountAnyVideoJustPausedEqualsTo8);
           }
         }
       }
