@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.8.2
+// @version             0.9.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -133,25 +133,39 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
+/**
+    @typedef {string} HandleText
+    * \@[-_a-zA-Z0-9.]{3,30}
+*/
+
+/**
+    @typedef {string} ChannelId
+    UC[-_a-zA-Z0-9+=.]+
+*/
+
+/**
+    @typedef {string} DisplayName
+    * Display Name
+*/
 
 /**
     @typedef DisplayNameResultObject
     @type {Object}
-    @property {string} title
-    @property {string?} externalId
+    @property {DisplayName} title
+    @property {DisplayName} langTitle
+    @property {ChannelId?} externalId
     @property {string[]} ownerUrls
     @property {string} channelUrl
     @property {string} vanityChannelUrl
     @property {boolean|undefined} verified123
-
 */
 
 /**
     @typedef ChannelIdToHandleResult
     @type {Object}
-    @property {string} handleText
+    @property {HandleText} handleText
     @property {boolean} justPossible
- */
+*/
 
 (function (__CONTEXT__) {
     'use strict';
@@ -160,6 +174,8 @@ SOFTWARE.
     const USE_TIMEOUT_SIGNAL = false;
     const USE_CHANNEL_META = true;
     const CHANGE_FOR_SHORTS_CHANNEL_NAME = false;
+    const USE_LANG_SPECIFIC_NAME = true;
+    const UPDATE_PIN_NAME = true; // for USE_LANG_SPECIFIC_NAME
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -373,14 +389,12 @@ SOFTWARE.
     const mutex = new OrderedMutex();
 
     /**
-   * @typedef { AsyncValue<T> | T} AsyncOrResolvedValue<T>
-   * @template T
-   */
+     * @typedef { AsyncValue<T> | T} AsyncOrResolvedValue<T>
+     * @template T */
 
-    //
     /**
      * usage: cache the network result per web application instance.
-     *  @type {Map<string, AsyncOrResolvedValue<DisplayNameResultObject>>} */
+     *  @type {Map<ChannelId, AsyncOrResolvedValue<DisplayNameResultObject>>} */
     const displayNameResStore = new Map();
 
     /**
@@ -390,14 +404,18 @@ SOFTWARE.
 
     /**
      * usage: for \@Mention inside comments in YouTube Mobile that without hyperlinks for channelId.
-     *  @type {Map<string, AsyncOrResolvedValue<string>>} */
+     *  @type {Map<HandleText, AsyncOrResolvedValue<ChannelId>>} */
     const handleToChannelId = new Map();
 
     /**
      * usage: in RSS fetching, no handle text will be obtained from the response. inject the handle into the response.
-     * @type {Map<string, ChannelIdToHandleResult>} */
+     * @type {Map<ChannelId, ChannelIdToHandleResult>} */
     const channelIdToHandle = new Map();
 
+    /**
+     * usage: replace handle to lang-specific display name
+     * @type {Map<HandleText, DisplayName>} */
+    const langPreferredDisplayNameMap = new Map();
 
     /**
      * AsyncValue
@@ -485,6 +503,42 @@ SOFTWARE.
 
         let signal = timeoutSignal(4000);
 
+        const requestBody = {
+            "context": {
+                "client": {
+                    "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
+                    "clientName": "MWEB", // "WEB", "MWEB"
+                    "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
+                    "originalUrl": `https://m.youtube.com/channel/${channelId}`,
+                    "playerType": "UNIPLAYER",
+                    "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
+                    "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR"
+                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "mainAppWebInfo": {
+                        "graftUrl": `/channel/${channelId}`,
+                        "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                        "isWebNativeShareAvailable": true
+                    }
+                },
+                "user": {
+                    "lockedSafetyMode": false
+                },
+                "request": {
+                    "useSsl": true,
+                    "internalExperimentFlags": [],
+                    "consistencyTokenJars": []
+                }
+            },
+            "browseId": `${channelId}`
+        };
+
+        if (USE_LANG_SPECIFIC_NAME && cfg.HL && cfg.GL) {
+            Object.assign(requestBody.context.client, {
+                "hl": cfg.HL,
+                "gl": cfg.GL,
+            });
+        }
+
         fetch(new Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
             "method": "POST",
             "mode": "same-origin",
@@ -507,34 +561,7 @@ SOFTWARE.
 
                 "Accept": "application/json",
             },
-            "body": JSON.stringify({
-                "context": {
-                    "client": {
-                        "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
-                        "clientName": "MWEB", // "WEB", "MWEB"
-                        "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
-                        "originalUrl": `https://m.youtube.com/channel/${channelId}`,
-                        "playerType": "UNIPLAYER",
-                        "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
-                        "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR"
-                        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "mainAppWebInfo": {
-                            "graftUrl": `/channel/${channelId}`,
-                            "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                            "isWebNativeShareAvailable": true
-                        }
-                    },
-                    "user": {
-                        "lockedSafetyMode": false
-                    },
-                    "request": {
-                        "useSsl": true,
-                        "internalExperimentFlags": [],
-                        "consistencyTokenJars": []
-                    }
-                },
-                "browseId": `${channelId}`
-            })
+            "body": JSON.stringify(requestBody)
         })).then(res => {
             signal && signal.clearTimeout && signal.clearTimeout();
             signal = null;
@@ -543,6 +570,36 @@ SOFTWARE.
             return res.json();
         }).then(resJson => {
             let resultInfo = ((resJson || 0).metadata || 0).channelMetadataRenderer;
+            let title = resultInfo.title;
+            if (title) {
+
+                resultInfo.title = '';
+                resultInfo.langTitle = title;
+
+                if (cfg.ownerProfileUrl && cfg.ownerChannelName && cfg.ownerChannelName !== title) {
+                    let matched = false;
+
+                    if (cfg.ownerProfileUrl.endsWith(`/channel/${channelId}`)) matched = true;
+                    else {
+
+                        for (const ownerUrl of resultInfo.ownerUrls) {
+                            if (ownerUrl.endsWith(cfg.ownerProfileUrl)) {
+                                matched = true;
+                                break;
+                            }
+                        }
+
+
+                    }
+
+
+                    if (matched) {
+                        resultInfo.title = cfg.ownerChannelName;
+                    }
+                }
+
+            }
+
             onResulted(resultInfo);
             onResulted = null;
         }).catch(onError);
@@ -673,7 +730,9 @@ SOFTWARE.
 
                 if (object) {
 
-                    if (object.handleText === name) channelIdToHandle.delete(mt);
+                    const handleText = object.handleText;
+
+                    if (handleText === name) channelIdToHandle.delete(mt);
                     else {
                         object.justPossible = false; // ignore @handle checking
 
@@ -681,11 +740,16 @@ SOFTWARE.
                             "title": name,
                             "externalId": mt,
                             "ownerUrls": [
-                                `http://www.youtube.com/${object.handleText}`
+                                `http://www.youtube.com/${handleText}`
                             ],
                             "channelUrl": uri,
-                            "vanityChannelUrl": `http://www.youtube.com/${object.handleText}`
+                            "vanityChannelUrl": `http://www.youtube.com/${handleText}`
                         };
+
+                        if (USE_LANG_SPECIFIC_NAME) {
+                            const langPreferredDisplayName = langPreferredDisplayNameMap.get(handleText);
+                            if (langPreferredDisplayName && name !== langPreferredDisplayName) res.langTitle = langPreferredDisplayName;
+                        }
 
                     }
                 }
@@ -766,9 +830,9 @@ SOFTWARE.
 
                 cacheHandleToChannel(resultInfo, channelId);
 
-                const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
+                const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
 
-                const displayNameRes = { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
+                const displayNameRes = { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
 
                 setResult(displayNameRes);
             }, e => {
@@ -905,7 +969,7 @@ SOFTWARE.
      */
     const verifyAndConvertHandle = (currentDisplayed, fetchResult) => {
 
-        const { title, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
+        const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
 
         const currentDisplayTrimmed = currentDisplayed.trim();
         let match = false;
@@ -1023,6 +1087,34 @@ SOFTWARE.
         traverse(parentNode);
     }
 
+    function updatePinnedCommentBadge(md, title, langTitle) {
+
+
+        let setPinnedCommentBadge = false;
+        if (((((md.pinnedCommentBadge || 0).pinnedCommentBadgeRenderer || 0).label || 0).runs || 0).length === 2) {
+            setPinnedCommentBadge = true;
+        }
+        if (setPinnedCommentBadge) {
+            let idx = 0;
+            let jdx = -1;
+            for (const textRun of md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label.runs) {
+                if (textRun.text === title) {
+                    jdx = idx;
+                    break;
+                }
+                idx++;
+            }
+            if (jdx >= 0) {
+                const runs = md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label.runs.slice(0);
+                runs[jdx] = Object.assign({}, runs[jdx], { text: langTitle });
+                md.pinnedCommentBadge = Object.assign({}, md.pinnedCommentBadge);
+                md.pinnedCommentBadge.pinnedCommentBadgeRenderer = Object.assign({}, md.pinnedCommentBadge.pinnedCommentBadgeRenderer);
+                md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label = Object.assign({}, md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label, { runs });
+            }
+        }
+
+    }
+
     /**
      *
      * @param {ParentNode} parentNode
@@ -1069,7 +1161,8 @@ SOFTWARE.
 
         if (fetchResult === null) return;
 
-        const { title, externalId } = fetchResult;
+        const { title, langTitle, externalId } = fetchResult;
+        const titleForDisplay = langTitle || title;
         if (externalId !== channelId) return; // channel id must be the same
 
         if (commentText.isConnected !== true) return; // already removed
@@ -1080,7 +1173,7 @@ SOFTWARE.
 
             const searchTrimmed = search.trim();
             if (searchTrimmed === handleText) { // ensure integrity after getDisplayName
-                contentText.text = search.replace(searchTrimmed, "@" + title);
+                contentText.text = search.replace(searchTrimmed, "@" + titleForDisplay); // mention
 
                 findTextNodes(commentText, (textnode) => {
                     if (textnode.nodeValue.indexOf(search) >= 0) {
@@ -1129,8 +1222,8 @@ SOFTWARE.
 
                 if (fetchResult === null) return;
 
-                const { title, externalId } = fetchResult;
-
+                const { title, langTitle, externalId } = fetchResult;
+                const titleForDisplay = langTitle || title;
                 if (externalId !== mt) return; // channel id must be the same
 
                 // anchor href might be changed by external
@@ -1142,16 +1235,29 @@ SOFTWARE.
 
                 findTextNodes(displayTextDOM, (textnode) => {
                     if (textnode.nodeValue === airaLabel) {
-                        textnode.nodeValue = title;
+                        textnode.nodeValue = titleForDisplay;
                         found = true;
                         return true;
                     }
                 });
 
                 if (!found) return;
-                anchor.setAttribute('aria-label', title);
-                runs[0].text = title;
+                anchor.setAttribute('aria-label', titleForDisplay);
+                runs[0].text = titleForDisplay;
 
+                if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
+                    const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
+                    const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
+                    const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
+                    const tc = spanText ? spanText.textContent : '';
+                    updatePinnedCommentBadge(parentNodeData, title, langTitle);
+                    if (tc && tc === spanText.textContent) {
+                        let idx = tc.indexOf(title);
+                        if (idx >= 0) {
+                            spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
+                        }
+                    }
+                }
 
                 const contentTexts = (parentNodeData.contentText || 0).runs;
                 if (contentTexts && contentTexts.length >= 2) {
@@ -1210,8 +1316,8 @@ SOFTWARE.
 
             if (fetchResult === null) return;
 
-            const { title, externalId } = fetchResult;
-
+            const { title, langTitle, externalId } = fetchResult;
+            const titleForDisplay = langTitle || title;
             if (externalId !== mt) return; // channel id must be the same
 
             // anchor href might be changed by external
@@ -1225,7 +1331,7 @@ SOFTWARE.
                 if (authorText.simpleText !== currentDisplayed) return;
                 const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
                 const cSimpleText = ((parentNodeData.authorText || 0).simpleText || '');
-                if (currentDisplayTrimmed && currentDisplayed !== title && cSimpleText === currentDisplayed) {
+                if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
 
                     // the inside hyperlinks will be only converted if its parent author name is handle
                     const contentTexts = (parentNodeData.contentText || 0).runs;
@@ -1242,13 +1348,18 @@ SOFTWARE.
                         setBadge = true;
                     }
                     // parentNode.data = Object.assign({}, { jkrgx: 1 });
-                    md.authorText = Object.assign({}, md.authorText, { simpleText: currentDisplayed.replace(currentDisplayTrimmed, title) });
+                    md.authorText = Object.assign({}, md.authorText, { simpleText: currentDisplayed.replace(currentDisplayTrimmed, titleForDisplay) });
                     if (setBadge) {
                         md.authorCommentBadge = Object.assign({}, md.authorCommentBadge);
                         md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
-                        md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: title });
+                        md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
 
                     }
+
+                    if (UPDATE_PIN_NAME) {
+                        updatePinnedCommentBadge(md, title, langTitle);
+                    }
+
                     if (funcPromises.length >= 1) {
                         let funcs = await Promise.all(funcPromises);
 
@@ -1328,7 +1439,8 @@ SOFTWARE.
 
                         if (fetchResult === null) return;
 
-                        const { title, externalId } = fetchResult;
+                        const { title, langTitle, externalId } = fetchResult;
+                        const titleForDisplay = langTitle || title;
                         if (externalId !== browseId) return; // channel id must be the same
 
                         let hDom = pDom;
@@ -1338,15 +1450,15 @@ SOFTWARE.
                         const runs = (((hData || 0).channelTitleText || 0).runs || 0);
                         if (runs && runs.length === 1 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
 
-                            let runs2 = [Object.assign({}, runs[0], { text: title })];
+                            let runs2 = [Object.assign({}, runs[0], { text: titleForDisplay })];
 
 
                             /*
-                            runs.push({text: title, bold: true, "fontColor": "black",
+                                runs.push({text: title, bold: true, "fontColor": "black",
  
-                        size: "SIZE_DEFAULT",
-                        style: "STYLE_TEXT",
-                                      });
+                                    size: "SIZE_DEFAULT",
+                                    style: "STYLE_TEXT",
+                                });
                             */
 
                             hDomController.data = Object.assign({}, hDomController.data, { channelTitleText: { runs: runs2 }, rSk0e: 1 });
@@ -1367,6 +1479,15 @@ SOFTWARE.
 
     let firstDOMCheck = false;
     const firstDOMChecker = isMobile ? () => {
+
+        let playerMicroformatRenderer = null;
+        try {
+            playerMicroformatRenderer = window.ytInitialPlayerResponse.microformat.playerMicroformatRenderer
+        } catch (e) { }
+        if (playerMicroformatRenderer && playerMicroformatRenderer.ownerChannelName && playerMicroformatRenderer.ownerProfileUrl) {
+            cfg.ownerChannelName = playerMicroformatRenderer.ownerChannelName;
+            cfg.ownerProfileUrl = playerMicroformatRenderer.ownerProfileUrl.replace(/[\S]+youtube.com\//, 'youtube.com/');
+        }
 
         const channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
         const channelNameCData = !channelNameDOM ? null : (channelNameDOM.inst || channelNameDOM || 0).data;
@@ -1416,7 +1537,6 @@ SOFTWARE.
             let mainFormattedNameUrl = null;
             let mainChannelText = null;
             let mainFormattedNameText = null;
-
             try {
                 mainChannelUrl = channelNameCData.channelName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
                 mainFormattedNameUrl = channelNameCData.formattedName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
@@ -1426,9 +1546,16 @@ SOFTWARE.
 
             if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
 
-                let m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.test(mainChannelUrl);
+                let m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.exec(mainChannelUrl);
 
                 if (m && m[1] && mainChannelText !== m[1]) {
+
+                    const channelHandle = m[1];
+                    if (/[^-_a-zA-Z0-9.]/.test(mainChannelText)) {
+                        langPreferredDisplayNameMap.set(channelHandle, mainChannelText);
+                    }
+
+                } else {
 
                     let channelId = obtainChannelId(mainChannelUrl);
                     if (channelId) {
@@ -1595,7 +1722,8 @@ SOFTWARE.
 
                         if (fetchResult === null) return;
 
-                        const { title, externalId } = fetchResult;
+                        const { title, langTitle, externalId } = fetchResult;
+                        const titleForDisplay = langTitle || title;
                         if (externalId !== channelId) return; // channel id must be the same
 
                         const anchorElement = s;
@@ -1603,7 +1731,7 @@ SOFTWARE.
 
                         if (anchorElement.isConnected === true && anchorTextNode.isConnected === true && anchorElement.contains(anchorTextNode) && anchorTextNode.nodeValue === p && s.getAttribute('href') === href) {
 
-                            anchorTextNode.nodeValue = `${p.substring(0, index)}${q.replace(h, title)}`;
+                            anchorTextNode.nodeValue = `${p.substring(0, index)}${q.replace(h, titleForDisplay)}`;
 
                         }
 
@@ -1614,7 +1742,7 @@ SOFTWARE.
         });
 
     }
-    const domCheckerForDescription = isMobile ? ()=>{
+    const domCheckerForDescription = isMobile ? () => {
         // example https://m.youtube.com/watch?v=jKt4Ah47L7Q
         for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
             s.setAttribute('dxcPj', '');
@@ -1795,7 +1923,7 @@ SOFTWARE.
         const app = getPageApp(evt);
         console.assert(app);
         const ytcfg = ((window || 0).ytcfg || 0);
-        getYtConfig(cfg, ytcfg, ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION']);
+        getYtConfig(cfg, ytcfg, ['INNERTUBE_API_KEY', 'INNERTUBE_CLIENT_VERSION', 'HL', 'GL']);
         setupOnPageFetched(app);
     });
 
