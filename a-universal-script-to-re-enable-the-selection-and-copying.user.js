@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.16.0.0
+// @version             1.17.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -113,10 +113,15 @@
 // @description:am    የቀኝ ጠቋሚውን ምቀይረህ ለማውረድ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ, ቅጥ ወይም የጽሁፍ መጻፊያውን ለመርዝ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ. መልክዎ ከፍተኛ ስለሆነ: Alt አውታርክ ጽሁፍ መርዝ መርጃዎን.
 // @description:km    ដាក់អនុញ្ញាតឱ្យចុចត្រូវលើរបារអង្គចុចស្ដាប់, បិទ, ជ្រើសរើសអត្ថបទ, ម៉ឺនុយចុចស្ដាប់, ការចម្អិនអត្ថបទ, ការជ្រើសរើសអត្ថបទ, ចុចត្រូវលើរបាររូបភាព និងបន្ថែមមនុស្សពីអត្ថបទ: Alt កិច្ចការតម្រូវការចម្អិនអត្ថបទ។
 // ==/UserScript==
-(function $$() {
+(async function () {
     'use strict';
 
     const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
+    if (!(uWin instanceof Window)) return;
+
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor;// YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     /** @type {() => Selection | null} */
     const getSelection = uWin.getSelection.bind(uWin) || Error()();
@@ -125,14 +130,18 @@
     /** @type {(elt: Element, pseudoElt?: string | null) => CSSStyleDeclaration} */
     const getComputedStyle = uWin.getComputedStyle.bind(uWin) || Error()();
 
-    if (!document || !document.documentElement) return requestAnimationFrame($$); // this is tampermonkey bug?? not sure
-    //console.log('script at', location)
+    const originalFocusFn = HTMLElement.prototype.focus;
 
-    /** @type {globalThis.PromiseConstructor} */
-    const Promise = (async () => { })().constructor;// YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.  
+    let maxTrial = 16;
+    while (!document || !document.documentElement) {
+        await new Promise(requestAnimationFrame);
+        if (--maxTrial < 0) return;
+    }
 
     const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
     const $nil = () => { };
+
+    let focusNotAllowedUntil = 0;
 
     function isLatestBrowser() {
         let res;
@@ -254,10 +263,10 @@
         },
 
         /**
-         * 
-         * @param {string} cssStyle 
-         * @param {Node?} container 
-         * @returns 
+         *
+         * @param {string} cssStyle
+         * @param {Node?} container
+         * @returns
          */
         createCSSElement: function (cssStyle, container) {
             const css = document.createElement('style'); // slope: DOM throughout
@@ -277,10 +286,10 @@
         },
 
         /**
-         * 
-         * @param {Function} originalFunc 
-         * @param {string} pName 
-         * @returns 
+         *
+         * @param {Function} originalFunc
+         * @param {string} pName
+         * @returns
          */
         createFuncReplacer: function (originalFunc) {
             const id = ++$.ksFuncReplacerCounterId;
@@ -338,6 +347,7 @@
             const elmStyle = getComputedStyle(elm);
             let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
             if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
+            document.documentElement.setAttribute($.utTapHighlight, "");
         },
 
         clipDataProcess: function (clipboardData) {
@@ -579,9 +589,9 @@
         },
 
         /**
-         * 
-         * @param {Event} evt 
-         * @param {boolean} toPreventDefault 
+         *
+         * @param {Event} evt
+         * @param {boolean} toPreventDefault
          */
         eventCancel: function (evt, toPreventDefault) {
             $.bypass = true;
@@ -820,9 +830,9 @@
         },
 
         /**
-         * 
-         * @param {Node | null} node 
-         * @returns 
+         *
+         * @param {Node | null} node
+         * @returns
          */
         rootHTML: (node) => {
 
@@ -872,18 +882,18 @@
             }
 
             *:hover>img[src]{pointer-events:auto !important;}
- 
+
             [${$.utSelectionColorHack}] :not(input):not(textarea)::selection{ background-color: Highlight !important; color: HighlightText !important;}
             [${$.utSelectionColorHack}] :not(input):not(textarea)::-moz-selection{ background-color: Highlight !important; color: HighlightText !important;}
             [${$.utTapHighlight}] *{ -webkit-tap-highlight-color: rgba(0, 0, 0, 0.18) !important;}
- 
+
             [${$.utHoverTextWrap}]>[${$.utNonEmptyElmPrevElm}]{pointer-events:none !important;}
             [${$.utHoverTextWrap}]>*{z-index:inherit !important;}
- 
+
             html[${$.utLpSelection}] *:hover, html[${$.utLpSelection}] *:hover * { cursor:text !important;}
             html[${$.utLpSelection}] :not(input):not(textarea)::selection {background-color: rgba(255, 156, 179, 0.5) !important;}
             html[${$.utLpSelection}] :not(input):not(textarea)::-moz-selection {background-color: rgba(255, 156, 179, 0.5) !important;}
- 
+
             img[${$.utHoverBlock}="4"]{display:none !important;}
             [${$.utHoverBlock}="7"]{padding:0 !important;overflow:hidden !important;}
             [${$.utHoverBlock}="7"]>img[${$.utHoverBlock}="4"]:first-child{
@@ -912,7 +922,7 @@
                 border-radius: inherit !important;
                 background:none !important;
             }
- 
+
             `.trim();
             $.createCSSElement(cssStyleOnReady, document.documentElement);
         },
@@ -922,9 +932,9 @@
             const nMap = new WeakMap();
 
             /**
-             * 
-             * @param {HTMLElement} elm 
-             * @returns 
+             *
+             * @param {HTMLElement} elm
+             * @returns
              */
             function elmParam(elm) {
                 let mElm = nMap.get(elm);
@@ -933,10 +943,10 @@
             }
 
             /**
-             * 
-             * @param {DOMRect} rect1 
-             * @param {DOMRect} rect2 
-             * @returns 
+             *
+             * @param {DOMRect} rect1
+             * @param {DOMRect} rect2
+             * @returns
              */
             function overlapArea(rect1, rect2) {
 
@@ -1003,7 +1013,7 @@
                 @property {HTMLImageElement} elm The Image Element
                 @property {number} lastTime lastTime
                 @property {number} cid_fade cid for fade
-            
+
             */
 
             /** @type { NImg[] } */
@@ -1154,14 +1164,14 @@
                         const cmpVal = targetElm.compareDocumentPosition(imgElm)
 
                         /*
-                            
+
                             1: The two nodes do not belong to the same document.
                             2: p1 is positioned after p2.
                             4: p1 is positioned before p2.
                             8: p1 is positioned inside p2.
                             16: p2 is positioned inside p1.
                             32: The two nodes has no relationship, or they are two attributes on the same element.
-                            
+
                         */
 
                         if (cmpVal & 8 || cmpVal & 16) return;
@@ -1282,17 +1292,27 @@
 
         // },
 
+        mousedownFocus: (evt) => {
+            focusNotAllowedUntil = Date.now() + 4;
+        },
+
+        mouseupFocus: (evt) => {
+            focusNotAllowedUntil = 0;
+        },
+
         MenuEnable: (
             class MenuEnable {
 
                 /**
-                 * 
-                 * @param {string} textToEnable 
-                 * @param {string} textToDisable 
-                 * @param {Function} callback 
-                 * @param {boolean?} initalEnable 
+                 *
+                 * @param {string} textToEnable
+                 * @param {string} textToDisable
+                 * @param {Function} callback
+                 * @param {boolean?} initalEnable
                  */
                 constructor(textToEnable, textToDisable, callback, initalEnable) {
+                    /** @type {number|string|null} */
+                    this.h = null;
                     /** @type {string} */
                     this.textToEnable = textToEnable;
                     /** @type {string} */
@@ -1304,7 +1324,7 @@
                 }
 
                 unregister() {
-                    (this.h >= 0) ? (GM_unregisterMenuCommand(this.h), (this.h = 0)) : 0;
+                    (this.h !== null) ? (GM_unregisterMenuCommand(this.h), (this.h = null)) : null;
                 }
 
                 register(text) {
@@ -1392,11 +1412,11 @@
         ),
 
         /**
-         * 
-         * @param {string} gm_name 
-         * @param {string} textToEnable 
-         * @param {string} textToDisable 
-         * @param {Function} callback 
+         *
+         * @param {string} gm_name
+         * @param {string} textToEnable
+         * @param {string} textToDisable
+         * @param {Function} callback
          */
         gm_status_fn: async function (gm_name, textToEnable, textToDisable, callback) {
 
@@ -1484,11 +1504,13 @@
             }
             const evtType = (evt || 0).type
             if (evtType === 'mousedown') {
+                $.mousedownFocus(evt);
                 $.acrAuxDown(evt);
                 if (evt.defaultPrevented !== true) {
                     $.mainListenerPress(evt);
                 }
             } else if (evtType === 'mouseup') {
+                $.mouseupFocus(evt);
                 $.acrAuxUp(evt);
                 if (evt.defaultPrevented !== true) {
                     $.mainListenerRelease(evt);
@@ -1532,7 +1554,7 @@
         mainListenerRelease: (evt) => { // Capture Event; (mouseup - desktop)
             //  $.holdingElm=null;
             //   console.log('up',evt.target)
-            if ($.delayMouseUpTasks === 0) { // skip if it is already queued 
+            if ($.delayMouseUpTasks === 0) { // skip if it is already queued
                 if (evt.button === 2) $.delayMouseUpTasks |= 1;
                 if ($.enableDragging === true) $.delayMouseUpTasks |= 2;
                 if ($.delayMouseUpTasks > 0) {
@@ -1575,6 +1597,19 @@
             // callback
         });
 
+        $.gm_status_fn("gm_remain_focus_on_mousedown", "To Enable `Remain Focus On MouseDown`", "To Disable `Remain Focus On MouseDown`", () => {
+            $.gm_remain_focus_on_mousedown = 0;
+            // callback
+        });
+
+    }
+
+    if (typeof originalFocusFn === 'function' && HTMLElement.prototype.focus === originalFocusFn && originalFocusFn.length === 0) {
+        const f = HTMLElement.prototype.focus = function () {
+            if (focusNotAllowedUntil && $.gm_remain_focus_on_mousedown && focusNotAllowedUntil > Date.now()) return;
+            return originalFocusFn.apply(this, arguments);
+        }
+        f.toString = originalFocusFn.toString.bind(originalFocusFn);
     }
 
 
