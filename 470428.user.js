@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.7
+// @version     0.4.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -299,9 +299,9 @@
           if (!DISABLE_CINEMATICS) {
 
 
-              if(key ==='kevlar_measure_ambient_mode_idle' || key ==='kevlar_watch_cinematics_invisible'  || key === 'web_cinematic_theater_mode' || key ==='web_cinematic_fullscreen' ){
-                continue;
-              }
+            if (key === 'kevlar_measure_ambient_mode_idle' || key === 'kevlar_watch_cinematics_invisible' || key === 'web_cinematic_theater_mode' || key === 'web_cinematic_fullscreen') {
+              continue;
+            }
 
 
             let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
@@ -315,6 +315,9 @@
 
 
           if (key.indexOf('kevlar_') >= 0) {
+            if (kl7 === 2 && kl5 === 2 && kl2 === 1 && kl3 === 1) {
+              if (key === 'kevlar_rendererstamper_event_listener') continue; // https://github.com/cyfung1031/userscript-supports/issues/11
+            }
 
             if (kl === 22) {
               // kevlar_enable_up_arrow - no use
@@ -385,7 +388,7 @@
             if (ALLOW_ALL_LIVE_CHATS_FLAGS && all_live_chat_flags.indexOf(key) >= 0) {
               continue;
               /*
-               * 
+               *
               live_chat_banner_expansion_fix
               live_chat_enable_mod_view
               live_chat_enable_qna_banner_overflow_menu_actions
@@ -397,17 +400,17 @@
               live_chat_web_enable_command_handler
               live_chat_web_use_emoji_manager_singleton
               live_chat_whole_message_clickable
-              
+
               */
             }
 
-            if(kl7===1 && kl5===1 && kl2 === 0 && kl3 ===0){
-              if(key === 'live_chat_web_enable_command_handler') continue;
+            if (kl7 === 1 && kl5 === 1 && kl2 === 0 && kl3 === 0) {
+              if (key === 'live_chat_web_enable_command_handler') continue;
 
             }
-            if(kl7 ===1 && kl5===4 && kl3 ===2 && kl2 ===1 ){
+            if (kl7 === 1 && kl5 === 4 && kl3 === 2 && kl2 === 1) {
 
-              if(key === 'shorts_desktop_watch_while_p2') continue;
+              if (key === 'shorts_desktop_watch_while_p2') continue;
             }
 
             if (key === 'web_button_rework') continue;
@@ -469,8 +472,8 @@
       EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
     }
 
-    if(use_defer_detach){
-      EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach= true;
+    if (use_defer_detach) {
+      EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach = true;
     }
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
