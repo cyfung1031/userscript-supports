@@ -28,7 +28,7 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.11
+// @version             0.1.12
 // @license             MIT License
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -219,7 +219,7 @@ SOFTWARE.
     };
 
     cids.timeVJS = setInterval(() => {
-      if (!cids.finish && ('Polymer' in window)) cids.finish = setTimeout(finishFn, 40);
+      if (!cids.finish && ('Polymer' in window)) cids.finish = setTimeout(finishFn, 400);
       setVJS();
     }, 1);
 
