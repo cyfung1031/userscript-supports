@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.0
+// @version             0.9.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -921,7 +921,9 @@ SOFTWARE.
      *
      * @param {Element} ytElm
      */
-    const resetWhenDataChanged = (ytElm) => {
+    const resetWhenDataChanged = (ths) => {
+        const cnt = ths.inst || ths || 0;
+        const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
         if (ytElm instanceof Element) {
             const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
             if ((anchors || 0).length >= 1 && ((ytElm.inst || ytElm).data || 0).jkrgx !== 1) {
@@ -1301,15 +1303,26 @@ SOFTWARE.
                 });
             }
 
-            const oldDataChanged = parentNodeController.dataChanged;
-            if (typeof oldDataChanged === 'function' && !oldDataChanged.jkrgx) {
-                let newDataChanged = dataChangedFuncStore.get(oldDataChanged);
-                if (!newDataChanged) {
-                    newDataChanged = dataChangeFuncProducer(oldDataChanged);
-                    newDataChanged.jkrgx = 1;
-                    dataChangedFuncStore.set(oldDataChanged, newDataChanged);
+            let oldDataChangedFn = parentNodeController.dataChanged;
+            if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
+                let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
+                if (!newDataChangedFn) {
+                    newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
+                    newDataChangedFn.jkrgx = 1;
+                    dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
                 }
-                parentNodeController.dataChanged = newDataChanged;
+                parentNodeController.dataChanged = newDataChangedFn;
+            }
+
+            oldDataChangedFn = parentNodeController.hostElement.dataChanged;
+            if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
+                let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
+                if (!newDataChangedFn) {
+                    newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
+                    newDataChangedFn.jkrgx = 1;
+                    dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
+                }
+                parentNodeController.hostElement.dataChanged = newDataChangedFn;
             }
 
             const fetchResult = await getDisplayName(mt);
