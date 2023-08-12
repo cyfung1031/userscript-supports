@@ -28,7 +28,7 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.12
+// @version             0.1.13
 // @license             MIT License
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -200,6 +200,7 @@ SOFTWARE.
     };
 
     const finishFn = () => {
+      cids.finish = 0;
       setVJS();
       try {
         document.getElementById('zihrS').remove();
@@ -218,8 +219,26 @@ SOFTWARE.
 
     };
 
+    function fastenFinishFn() {
+      if (cids.finish > 0) {
+        clearInterval(cids.finish);
+        cids.finish = setTimeout(finishFn, 40);
+      }
+    }
+
+    function preFinishFn() {
+      let mo = new MutationObserver(function () {
+        Promise.resolve().then(fastenFinishFn)
+        mo.disconnect();
+        mo.takeRecords();
+        mo = null;
+      });
+      mo.observe(document, { subtree: true, childList: true });
+      return setTimeout(finishFn, 400);
+    }
+
     cids.timeVJS = setInterval(() => {
-      if (!cids.finish && ('Polymer' in window)) cids.finish = setTimeout(finishFn, 400);
+      if (!cids.finish && ('Polymer' in window)) cids.finish = preFinishFn();
       setVJS();
     }, 1);
 
