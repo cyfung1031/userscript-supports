@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.4
+// @version             0.20.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1338,7 +1338,7 @@
 
 
           assertor(() => fnIntegrity(cProto.attached, '0.32.22')) // just warning
-          assertor(() => fnIntegrity(cProto.flushRenderStamperComponentBindings_, '0.385.233')) // just warning
+          assertor(() => fnIntegrity(cProto.flushRenderStamperComponentBindings_, '0.386.233')) // just warning
 
 
           cProto.flushRenderStamperComponentBindings66_ = cProto.flushRenderStamperComponentBindings_;
