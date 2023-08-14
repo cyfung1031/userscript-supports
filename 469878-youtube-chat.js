@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.6
+// @version             0.20.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -950,7 +950,7 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = __CONTEXT__;
 
-    flagsFnOnInterval(setInterval, clearInterval);
+    if(flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
 
     (() => {
       // data manipulation
@@ -1390,6 +1390,16 @@
 
 
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-participant-list-renderer hacks");
+
+          const fgsArr = ['kevlar_tuner_should_test_maintain_stable_list', 'kevlar_should_maintain_stable_list', 'kevlar_tuner_should_test_reuse_components', 'kevlar_tuner_should_reuse_components'];
+          const fgs = {};
+          for (const key of fgsArr) fgs[key] = undefined;
+
+          try {
+            const EXPERIMENT_FLAGS = ytcfg.data_.EXPERIMENT_FLAGS;
+            for (const key of fgsArr) fgs[key] = EXPERIMENT_FLAGS[key];
+          } catch (e) { }
+          console.log(`EXPERIMENT_FLAGS: ${JSON.stringify(fgs, null, 2)}`);
 
           const canDoReplacement = (() => {
             if (typeof cProto.__notifyPath5035__ === 'function' && cProto.__notifyPath5035__.name !== 'dummy5035') {
