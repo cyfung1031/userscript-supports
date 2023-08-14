@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.8
+// @version     0.4.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -332,18 +332,20 @@
             }
 
 
-            if (!use_maintain_stable_list) {
+            // if (!use_maintain_stable_list) {
 
-              if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
-              if (key === 'kevlar_should_maintain_stable_list') continue;
-              if (key === 'kevlar_tuner_should_maintain_stable_list') continue; // fallback
-            }
-            if (!use_maintain_reuse_components) {
+            if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
+            if (key === 'kevlar_should_maintain_stable_list') continue;
+            if (key === 'kevlar_tuner_should_maintain_stable_list') continue; // fallback
+            // }
+            // if (!use_maintain_reuse_components) {
 
-              if (key === 'kevlar_tuner_should_test_reuse_components') continue;
-              if (key === 'kevlar_tuner_should_reuse_components') continue;
-              if (key === 'kevlar_should_reuse_components') continue; // fallback
-            }
+            if (key === 'kevlar_tuner_should_test_reuse_components') continue;
+            if (key === 'kevlar_tuner_should_reuse_components') continue;
+            if (key === 'kevlar_should_reuse_components') continue; // fallback
+            // }
+
+            if (key === 'kevlar_tuner_should_defer_detach') continue;
 
             if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
               if (key === 'kevlar_system_icons') continue;
@@ -477,6 +479,19 @@
     }
 
     // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
+
+    EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
+    EXPERIMENT_FLAGS.kevlar_clear_duplicate_pref_cookie = true;
+    // EXPERIMENT_FLAGS.kevlar_unified_player_clear_watch_next_killswitch = true;
+    EXPERIMENT_FLAGS.kevlar_player_playlist_use_local_index = true;
+    // EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
+    // EXPERIMENT_FLAGS.kevlar_player_update_killswitch = true;
+
+    EXPERIMENT_FLAGS.web_secure_pref_cookie_killswitch = true;
+    EXPERIMENT_FLAGS.ytidb_clear_optimizations_killswitch = true;
+    // EXPERIMENT_FLAGS.defer_overlays = true;
+    
+
   });
 
   hLooper.start();
