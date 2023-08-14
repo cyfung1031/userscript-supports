@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.5
+// @version             0.20.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -76,6 +76,9 @@
   const PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED = true;
 
   const ENABLE_SHOW_MORE_BLINKER = true;                      // BLINK WHEN NEW MESSAGES COME
+
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = true;             // faster stampDomArray_ for participants list creation
+  const ENABLE_FLAGS_REUSE_COMPONENTS = true;
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -847,8 +850,8 @@
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, cancelAnimationFrame } = fc;
-      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame };
+      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = fc;
+      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       return res;
@@ -858,11 +861,96 @@
     }
   };
 
+  const flagsFnOnInterval = (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) ? (() => {
+
+    const flags = () => {
+      try {
+        return ytcfg.data_.EXPERIMENT_FLAGS;
+      } catch (e) { }
+      return null;
+    };
+
+    const flagsForced = () => {
+      try {
+        return ytcfg.data_.EXPERIMENTS_FORCED_FLAGS;
+      } catch (e) { }
+      return null;
+    };
+
+    const flagsFn = (EXPERIMENT_FLAGS) => {
+
+      if (!EXPERIMENT_FLAGS) return;
+
+      if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+        EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+      }
+
+      if (ENABLE_FLAGS_REUSE_COMPONENTS) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+      }
+
+    };
+
+    const uf = (EXPERIMENT_FLAGS) => {
+      if (EXPERIMENT_FLAGS === undefined) EXPERIMENT_FLAGS = flags();
+      if (EXPERIMENT_FLAGS) {
+        flagsFn(EXPERIMENT_FLAGS);
+        flagsFn(flagsForced());
+      }
+    }
+
+    uf();
+
+    const flagsFnOnInterval = (setInterval, clearInterval) => {
+
+      uf();
+      let cidFlags = 0;
+      let kd = 0;
+      new Promise(flagResolve => {
+
+        const flagTimer = () => {
+          const EXPERIMENT_FLAGS = flags();
+          if (!EXPERIMENT_FLAGS) return;
+          uf(EXPERIMENT_FLAGS);
+          if (kd > 0) return;
+          kd = 1;
+          const delay1000 = new Promise(resolve => setTimeout(resolve, 1000));
+          const moDeferred = new Promise(resolve => {
+            let mo = new MutationObserver(() => {
+              if (mo) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+                resolve();
+              }
+            });
+            mo.observe(document, { subtree: true, childList: true });
+          });
+          Promise.race([delay1000, moDeferred]).then(flagResolve);
+        };
+
+        uf();
+        cidFlags = setInterval(flagTimer, 1);
+      }).then(() => {
+        if (cidFlags > 0) clearInterval(cidFlags);
+        cidFlags = 0;
+        uf();
+      });
+
+    }
+
+    return flagsFnOnInterval;
+
+  })() : null;
+
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = __CONTEXT__;
 
+    flagsFnOnInterval(setInterval, clearInterval);
 
     (() => {
       // data manipulation
