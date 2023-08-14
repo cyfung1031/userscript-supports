@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.7
+// @version             0.20.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1584,6 +1584,8 @@
 
       let scrollChatFn = null;
 
+      let skipDontRender = true; // true first; false by flushActiveItems_
+
       ENABLE_FULL_RENDER_REQUIRED && (() => {
 
         document.addEventListener('animationstart', (evt) => {
@@ -1597,7 +1599,9 @@
 
         const f = (elm) => {
           if (elm && elm.nodeType === 1) {
-            elm.classList.add('dont-render');
+            if (!skipDontRender) {
+              elm.classList.add('dont-render');
+            }
           }
         }
 
@@ -2409,7 +2413,9 @@
                 wcController && wcController.beforeOper();
                 await Promise.resolve();
                 const len1 = cnt.activeItems_.length;
+                skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
                 cnt.flushActiveItems66_();
+                skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
                 const len2 = cnt.activeItems_.length;
                 const bAsync = len1 !== len2;
                 await Promise.resolve();
