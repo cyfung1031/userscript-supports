@@ -2,7 +2,7 @@
 // @name                YtDLS: YouTube Dual Language Subtitle (Modified)
 // @name:zh-CN          YtDLS: Youtube 双语字幕（改）
 // @name:zh-TW          YtDLS: Youtube 雙語字幕（改）
-// @version             2.0.5
+// @version             2.0.6
 // @description         Enhances YouTube with dual language subtitles.
 // @description:zh-CN   为YouTube添加双语字幕增强功能。
 // @description:zh-TW   增強YouTube的雙語字幕功能。
@@ -11,7 +11,7 @@
 // @match               https://www.youtube.com/*
 // @match               https://m.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini|webp|webm)[^\/]*$/
-// @require             https://cdn.jsdelivr.net/npm/ajax-hook@3.0.1/dist/ajaxhook.min.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/ajax-hook@813bba9059da84e18219d8b9a4f8fe9c7f59a77f/dist/ajaxhook.min.js
 // @grant               none
 // @unwrap
 // @allFrames           true
