@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.9
+// @version     0.4.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -279,7 +279,7 @@
     }
     const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = settled;
 
-    const setFalseFn = (EXPERIMENT_FLAGS) => {
+    const setterFn = (EXPERIMENT_FLAGS) => {
 
 
       for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
@@ -453,44 +453,46 @@
         }
       }
 
+
+      EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
+      EXPERIMENT_FLAGS.web_animated_like = false;
+      EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
+  
+      if (use_maintain_stable_list) {
+        if (EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) {
+          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+          EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
+        }
+      }
+  
+      if (use_maintain_reuse_components) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+        EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
+      }
+  
+      if (use_defer_detach) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach = true;
+      }
+  
+      // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
+  
+      EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
+      EXPERIMENT_FLAGS.kevlar_clear_duplicate_pref_cookie = true;
+      // EXPERIMENT_FLAGS.kevlar_unified_player_clear_watch_next_killswitch = true;
+      EXPERIMENT_FLAGS.kevlar_player_playlist_use_local_index = true;
+      // EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
+      // EXPERIMENT_FLAGS.kevlar_player_update_killswitch = true;
+  
+      EXPERIMENT_FLAGS.web_secure_pref_cookie_killswitch = true;
+      EXPERIMENT_FLAGS.ytidb_clear_optimizations_killswitch = true;
+      // EXPERIMENT_FLAGS.defer_overlays = true;
+
     }
 
-    setFalseFn(EXPERIMENT_FLAGS);
-    if (config_.EXPERIMENTS_FORCED_FLAGS) setFalseFn(config_.EXPERIMENTS_FORCED_FLAGS);
-
-    EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
-    EXPERIMENT_FLAGS.web_animated_like = false;
-    EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
-
-    if (use_maintain_stable_list) {
-      EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
-      EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-      EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
-    }
-
-    if (use_maintain_reuse_components) {
-      EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
-      EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
-      EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
-    }
-
-    if (use_defer_detach) {
-      EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach = true;
-    }
-
-    // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
-
-    EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
-    EXPERIMENT_FLAGS.kevlar_clear_duplicate_pref_cookie = true;
-    // EXPERIMENT_FLAGS.kevlar_unified_player_clear_watch_next_killswitch = true;
-    EXPERIMENT_FLAGS.kevlar_player_playlist_use_local_index = true;
-    // EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
-    // EXPERIMENT_FLAGS.kevlar_player_update_killswitch = true;
-
-    EXPERIMENT_FLAGS.web_secure_pref_cookie_killswitch = true;
-    EXPERIMENT_FLAGS.ytidb_clear_optimizations_killswitch = true;
-    // EXPERIMENT_FLAGS.defer_overlays = true;
-    
+    setterFn(EXPERIMENT_FLAGS);
+    if (config_.EXPERIMENTS_FORCED_FLAGS) setterFn(config_.EXPERIMENTS_FORCED_FLAGS);
 
   });
 
