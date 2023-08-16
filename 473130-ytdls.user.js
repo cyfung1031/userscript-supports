@@ -2,7 +2,7 @@
 // @name                YtDLS: YouTube Dual Language Subtitle (Modified)
 // @name:zh-CN          YtDLS: Youtube 双语字幕（改）
 // @name:zh-TW          YtDLS: Youtube 雙語字幕（改）
-// @version             2.0.4
+// @version             2.0.5
 // @description         Enhances YouTube with dual language subtitles.
 // @description:zh-CN   为YouTube添加双语字幕增强功能。
 // @description:zh-TW   增強YouTube的雙語字幕功能。
@@ -10,6 +10,7 @@
 // @author              Coink Wang
 // @match               https://www.youtube.com/*
 // @match               https://m.youtube.com/*
+// @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini|webp|webm)[^\/]*$/
 // @require             https://cdn.jsdelivr.net/npm/ajax-hook@3.0.1/dist/ajaxhook.min.js
 // @grant               none
 // @unwrap
@@ -34,6 +35,16 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
 (function () {
     let localeLangFn = () => document.documentElement.lang || navigator.language || 'en' // follow the language used in YouTube Page
     // localeLangFn = () => 'zh'  // uncomment this line to define the language you wish here
+
+    function isValidForHook() {
+        try {
+            if (location.pathname === '/live_chat' || location.pathname === '/live_chat_replay') return false;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    if (!isValidForHook()) return;
 
     const Promise = (async () => { })().constructor
     const _ah = ah
@@ -65,6 +76,7 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
                     /** @type {string} */
                     const originalReqUrl = response.config.url
                     if (!originalReqUrl.includes('/api/timedtext') || originalReqUrl.includes('&translate_h00ked')) return defaultAction()
+                    if (typeof ytcfg !== 'object') return defaultAction() // not a valid youtube page
                     let defaultJson = null
                     if (response.response) {
                         const jsonResponse = JSON.parse(response.response)
