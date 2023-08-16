@@ -2,7 +2,7 @@
 // @name                YtDLS: YouTube Dual Language Subtitle (Modified)
 // @name:zh-CN          YtDLS: Youtube 双语字幕（改）
 // @name:zh-TW          YtDLS: Youtube 雙語字幕（改）
-// @version             2.0.6
+// @version             2.0.7
 // @description         Enhances YouTube with dual language subtitles.
 // @description:zh-CN   为YouTube添加双语字幕增强功能。
 // @description:zh-TW   增強YouTube的雙語字幕功能。
@@ -55,11 +55,11 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
         let enableFullWidthSpaceSeparation = true
         function encodeFullwidthSpace(text) {
             if (!enableFullWidthSpaceSeparation) return text
-            return text.replace(/\n/g, '\n1\n').replace(/\u3000/g, '\n2\n')
+            return text.replace(/\n/g, '\n®\n').replace(/\u3000/g, '\n©\n')
         }
         function decodeFullwidthSpace(text) {
             if (!enableFullWidthSpaceSeparation) return text
-            return text.replace(/\n2\n/g, '\u3000').replace(/\n1\n/g, '\n')
+            return text.replace(/\n©\n/g, '\u3000').replace(/\n®\n/g, '\n')
         }
         let requestDeferred = Promise.resolve()
         _ah.proxy({
