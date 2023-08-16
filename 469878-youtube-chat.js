@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.8
+// @version             0.20.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -77,7 +77,8 @@
 
   const ENABLE_SHOW_MORE_BLINKER = true;                      // BLINK WHEN NEW MESSAGES COME
 
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = true;             // faster stampDomArray_ for participants list creation
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = false;                            // default: false due to https://greasyfork.org/scripts/469878/discussions/197267
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = true;       // faster stampDomArray_ for participants list creation
   const ENABLE_FLAGS_REUSE_COMPONENTS = true;
 
   const { IntersectionObserver } = __CONTEXT__;
@@ -545,8 +546,7 @@
     }
     let itz = `${f.length}.${s}.${w}`;
     if (!d) {
-      console.log(itz);
-      return null;
+      return itz;
     } else {
       return itz === d;
     }
@@ -882,8 +882,10 @@
       if (!EXPERIMENT_FLAGS) return;
 
       if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
-        EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
-        EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+        if (EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) {
+          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+        }
       }
 
       if (ENABLE_FLAGS_REUSE_COMPONENTS) {
@@ -1434,20 +1436,30 @@
 
           console.log(`Data Manipulation Boost = ${canDoReplacement}`);
 
-
           assertor(() => fnIntegrity(cProto.attached, '0.32.22')) // just warning
-          assertor(() => fnIntegrity(cProto.flushRenderStamperComponentBindings_, '0.386.233')) // just warning
-
-
-          cProto.flushRenderStamperComponentBindings66_ = cProto.flushRenderStamperComponentBindings_;
-
-          cProto.flushRenderStamperComponentBindings_ = function () {
-            // console.log('flushRenderStamperComponentBindings_')
-            this.flushRenderStamperComponentBindings66_();
-            if (this.resolveForDOMRendering781) {
-              this.resolveForDOMRendering781();
-              this.resolveForDOMRendering781 = null;
+          if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
+            let fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
+            let s = fiRSCB.split('.');
+            if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
+              console.log("flushRenderStamperComponentBindings_ - OK", fiRSCB);
+            } else {
+              console.log("flushRenderStamperComponentBindings_ - failed", fiRSCB);
             }
+          } else {
+            console.log("flushRenderStamperComponentBindings_ - not found");
+          }
+          // assertor(() => fnIntegrity(cProto.flushRenderStamperComponentBindings_, '0.386.233')) // just warning
+
+          if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
+            cProto.flushRenderStamperComponentBindings66_ = cProto.flushRenderStamperComponentBindings_;
+            cProto.flushRenderStamperComponentBindings_ = function () {
+              // console.log('flushRenderStamperComponentBindings_')
+              this.flushRenderStamperComponentBindings66_();
+              if (this.resolveForDOMRendering781) {
+                this.resolveForDOMRendering781();
+                this.resolveForDOMRendering781 = null;
+              }
+            };
           }
 
           cProto.__getAllParticipantsDOMRenderedLength__ = function () {
@@ -1494,6 +1506,39 @@
             fpPList(this.hostElement || this);
             this.__attached412__.apply(this, arguments);
           };
+
+
+          if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST) {
+
+            /** @type {boolean | (()=>boolean)} */
+            let toUseMaintainStableList = () => ytcfg.data_.EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true;
+            if (typeof cProto.stampDomArray_ === 'function' && cProto.stampDomArray_.length === 6 && !cProto.stampDomArray_.nIegT && !cProto.stampDomArray66_) {
+
+              let lastMessageDate = 0;
+              cProto.stampDomArray66_ = cProto.stampDomArray_;
+
+              cProto.stampDomArray_ = function (...args) {
+                if (args[0] && args[0].length > 0 && args[1] === "participants" && args[2] && args[3] === true && !args[5]) {
+                  if (typeof toUseMaintainStableList === 'function') {
+                    toUseMaintainStableList = toUseMaintainStableList();
+                  }
+                  args[5] = toUseMaintainStableList;
+                  let currentDate = Date.now();
+                  if (currentDate - lastMessageDate > 80) {
+                    lastMessageDate = currentDate;
+                    console.log('maintain_stable_list for participants list', toUseMaintainStableList);
+                  }
+                }
+                return this.stampDomArray66_.apply(this, args);
+              }
+
+              cProto.stampDomArray_.nIegT = 1;
+
+            }
+            console.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - YES`);
+          } else {
+            console.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - NO`);
+          }
 
           console.groupEnd();
 
