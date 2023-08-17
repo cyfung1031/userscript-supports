@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.9
+// @version             0.20.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -75,11 +75,21 @@
   const CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT = true;  // Only consider changes in renderable content (not concerned with the last chat message of the participants)
   const PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED = true;
 
+  // show more button
   const ENABLE_SHOW_MORE_BLINKER = true;                      // BLINK WHEN NEW MESSAGES COME
 
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = false;                            // default: false due to https://greasyfork.org/scripts/469878/discussions/197267
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = true;       // faster stampDomArray_ for participants list creation
+  // faster stampDomArray_ for participants list creation
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL = 1;          // 0 - OFF; 1 - ON; 2 - ON(PARTICIPANTS_LIST ONLY)
+  const USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET = false;
+
+  // reuse yt components
   const ENABLE_FLAGS_REUSE_COMPONENTS = true;
+
+  // =======================================================================================================
+
+  // AUTOMAICALLY DETERMINED
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;                            
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;      
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -478,8 +488,9 @@
     }
 
     .dont-render {
-
-        visibility: collapse !important;
+        /* visibility: collapse !important; */
+        /* visibility: collapse will make innerText become "" which conflicts with BetterStreamChat; see https://greasyfork.org/scripts/469878/discussions/197267 */
+        
         transform: scale(0.01) !important;
         transform: scale(0.00001) !important;
         transform: scale(0.0000001) !important;
@@ -596,6 +607,10 @@
   const nPrevElem = fxOperator(HTMLElement.prototype, 'previousElementSibling');
   const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
   const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
+
+  const elemInnerText = {
+    status:0
+  }; // to resolve conflict with BetterStreamChat
 
 
   const groupCollapsed = (text1, text2) => {
@@ -814,6 +829,40 @@
   })();
 
 
+
+    /*
+  function innerTextFixFn() {
+
+    if (elemInnerText.status) return;
+    elemInnerText.status = 1;
+
+
+    const pd = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText');
+    if (!pd) return;
+    if (pd.configurable !== true) return;
+    const getterFn = pd.get;
+    if (typeof getterFn !== 'function') return;
+    const getterGn = function () {
+      const resultText = getterFn.apply(this, arguments);
+      if (!resultText&& elemInnerText.status === 1) {
+        const html = this.innerHTML;
+        console.log(1234, html)
+        if (html) {
+          elemInnerText.status = 2;
+          console.log(new Error().stack)
+
+        }
+      }
+      return resultText;
+    }
+    let np = Object.assign({}, pd, { get: getterGn });
+    console.log(124, np)
+    Object.defineProperty(HTMLElement.prototype, 'innerText', np);
+    console.log(125, Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText').get)
+
+  }    */
+
+
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -882,7 +931,7 @@
       if (!EXPERIMENT_FLAGS) return;
 
       if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
-        if (EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) {
+        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
           EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
           EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
         }
@@ -1511,7 +1560,7 @@
           if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST) {
 
             /** @type {boolean | (()=>boolean)} */
-            let toUseMaintainStableList = () => ytcfg.data_.EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true;
+            let toUseMaintainStableList = USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? (() => ytcfg.data_.EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) : true;
             if (typeof cProto.stampDomArray_ === 'function' && cProto.stampDomArray_.length === 6 && !cProto.stampDomArray_.nIegT && !cProto.stampDomArray66_) {
 
               let lastMessageDate = 0;
@@ -1645,6 +1694,7 @@
         const f = (elm) => {
           if (elm && elm.nodeType === 1) {
             if (!skipDontRender) {
+              // innerTextFixFn();
               elm.classList.add('dont-render');
             }
           }
