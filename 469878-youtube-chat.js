@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.21.0
+// @version             0.22.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -86,19 +86,22 @@
   const ENABLE_FLAGS_REUSE_COMPONENTS = true;
 
   // images <Group#I01>
-  const AUTHOR_PHOTO_SINGLE_THUMBNAIL = 1; // 0 - disable; 1- smallest; 2- largest
-  const EMOJI_IMAGE_SINGLE_THUMBNAIL = 1; // 0 - disable; 1- smallest; 2- largest
-  const LEAST_IMAGE_SIZE = 48; // minium size = 48px
+  const AUTHOR_PHOTO_SINGLE_THUMBNAIL = 1;  // 0 - disable; 1- smallest; 2- largest
+  const EMOJI_IMAGE_SINGLE_THUMBNAIL = 1;   // 0 - disable; 1- smallest; 2- largest
+  const LEAST_IMAGE_SIZE = 48;              // minium size = 48px
 
-  const ENABLE_PRELOAD_THUMBNAIL = true;
-  const ENABLE_BASE_PREFETCHING = true;
+  const ENABLE_BASE_PREFETCHING = true;               // (SUB-)DOMAIN | dns-prefetch & preconnect
+  const ENABLE_PRELOAD_THUMBNAIL = true;              // subresource (prefetch) [LINK for Images]
+  const PREFETCH_LIMITED_SIZE_EMOJI = 512;            // DO NOT CHANGE THIS
+  const PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO = 68;      // DO NOT CHANGE THIS
 
-  const FIX_SETSRC_AND_THUMBNAILCHANGE_ = true;
-  const FIX_THUMBNAIL_DATACHANGED = true;
-  const REMOVE_PRELOADAVATARFORADDACTION = true;
+  const FIX_SETSRC_AND_THUMBNAILCHANGE_ = true;       // Function Replacement for yt-img-shadow....
+  const FIX_THUMBNAIL_DATACHANGED = true;             // Function Replacement for yt-live-chat-author-badge-renderer..dataChanged
+  const REMOVE_PRELOADAVATARFORADDACTION = true;      // Function Replacement for yt-live-chat-renderer..preloadAvatarForAddAction
 
-  const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true; // important [depends on <Group#I01>]
-  const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true; // [depends on <Group#I01>]
+  const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true;     // important [depends on <Group#I01>]
+  const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true;  // [depends on <Group#I01>]
+
 
   // =======================================================================================================
 
@@ -907,6 +910,74 @@
   }    */
 
 
+  function setThumbnails(config) {
+
+    const { baseObject, thumbnails, flag0, imageLinks } = config;
+
+    if (flag0 || (ENABLE_PRELOAD_THUMBNAIL && imageLinks)) {
+
+
+      if (thumbnails && thumbnails.length > 0) {
+        if (flag0 > 0 && thumbnails.length > 1) {
+          let pSize = 0;
+          let newThumbnails = [];
+          for (const thumbnail of thumbnails) {
+            if (!thumbnail || !thumbnail.url) continue;
+            const squarePhoto = thumbnail.width === thumbnail.height && typeof thumbnail.width === 'number';
+            const condSize = pSize <= 0 || (flag0 === 1 ? pSize > thumbnail.width : pSize < thumbnail.width);
+            const leastSizeFulfilled = squarePhoto ? thumbnail.width >= LEAST_IMAGE_SIZE : true;
+            if ((!squarePhoto || condSize) && leastSizeFulfilled) {
+              newThumbnails.push(thumbnail);
+              if (imageLinks) imageLinks.add(thumbnail.url);
+            }
+            if (squarePhoto && condSize && leastSizeFulfilled) {
+              pSize = thumbnail.width;
+            }
+          }
+          if (thumbnails.length !== newThumbnails.length && thumbnails === baseObject.thumbnails && newThumbnails.length > 0) {
+            baseObject.thumbnails = newThumbnails;
+          } else {
+            newThumbnails.length = 0;
+          }
+          newThumbnails = null;
+        } else {
+          for (const thumbnail of thumbnails) {
+            if (thumbnail && thumbnail.url) {
+              if (imageLinks) imageLinks.add(thumbnail.url);
+            }
+          }
+        }
+      }
+
+    }
+  }
+
+  function fixLiveChatItem(item, imageLinks) {
+    const liveChatTextMessageRenderer = (item || 0).liveChatTextMessageRenderer || 0;
+    if (liveChatTextMessageRenderer) {
+      const messageRuns = (liveChatTextMessageRenderer.message || 0).runs || 0;
+      if (messageRuns && messageRuns.length > 0) {
+        for (const run of messageRuns) {
+          const emojiImage = (((run || 0).emoji || 0).image || 0);
+          setThumbnails({
+            baseObject: emojiImage,
+            thumbnails: emojiImage.thumbnails,
+            flag0: EMOJI_IMAGE_SINGLE_THUMBNAIL,
+            imageLinks
+          });
+        }
+      }
+      const authorPhoto = liveChatTextMessageRenderer.authorPhoto || 0;
+      setThumbnails({
+        baseObject: authorPhoto,
+        thumbnails: authorPhoto.thumbnails,
+        flag0: AUTHOR_PHOTO_SINGLE_THUMBNAIL,
+        imageLinks
+      });
+    }
+  }
+
+
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -1679,7 +1750,8 @@
           }
 
           cProto.__getAllParticipantsDOMRenderedLength__ = function () {
-            const container = this.$.participants;
+            const container = ((this || 0).$ || 0).participants;
+            if (!container) return 0;
             return HTMLElement.prototype.querySelectorAll.call(container, 'yt-live-chat-participant-renderer').length;
           }
 
@@ -2611,6 +2683,7 @@
 
             mclp.flushActiveItems78_ = async function (tid) {
               try {
+                if (tid !== mlf) return;
                 const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
                 let logger = false;
                 const cnt = this;
@@ -2674,114 +2747,50 @@
                 cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
                 wcController && wcController.beforeOper();
                 await Promise.resolve();
-                const len1 = cnt.activeItems_.length;
+                const acItems = cnt.activeItems_;
+                const len1 = acItems.length;
+                if(!len1) console.warn('cnt.activeItems_.length = 0');
                 let waitFor = [];
-                if (cnt.activeItems_.length > 0) {
 
-                  function setThumbnails(config) {
-                    const { baseObject, thumbnails, flag0 } = config;
-                    if (thumbnails && thumbnails.length > 0) {
-                      if (flag0 > 0) {
-                        let pSize = 0;
-                        let newThumbnails = [];
-                        for (const thumbnail of thumbnails) {
-                          if (!thumbnail || !thumbnail.url) continue;
-                          const squarePhoto = thumbnail.width === thumbnail.height && typeof thumbnail.width === 'number';
-                          const condSize = pSize <= 0 || (flag0 === 1 ? pSize > thumbnail.width : pSize < thumbnail.width);
-                          const leastSizeFulfilled = squarePhoto ? thumbnail.width >= LEAST_IMAGE_SIZE : true;
-                          if ((!squarePhoto || condSize) && leastSizeFulfilled) {
-                            newThumbnails.push(thumbnail);
-                            imageLinks.add(thumbnail.url);
-                          }
-                          if (squarePhoto && condSize && leastSizeFulfilled) {
-                            pSize = thumbnail.width;
-                          }
-                        }
-                        if (thumbnails.length !== newThumbnails.length && thumbnails === baseObject.thumbnails && newThumbnails.length > 0) {
-                          baseObject.thumbnails = newThumbnails;
-                        } else {
-                          newThumbnails.length = 0;
-                        }
-                        newThumbnails = null;
-                      } else {
-                        for (const thumbnail of thumbnails) {
-                          if (thumbnail && thumbnail.url) {
-                            imageLinks.add(thumbnail.url);
-                          }
-                        }
-                      }
-                    }
+
+                /** @type {Set<string>} */
+                const imageLinks = new Set();
+
+                if (ENABLE_PRELOAD_THUMBNAIL || EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL) {
+                  for (const item of acItems) {
+                    fixLiveChatItem(item, imageLinks);
                   }
-
-                  /** @type {Set<string>} */
-                  const imageLinks = new Set();
-                  for (const item of cnt.activeItems_) {
-                    const liveChatTextMessageRenderer = (item || 0).liveChatTextMessageRenderer || 0;
-                    if (!liveChatTextMessageRenderer) continue;
-
-                    const messageRuns = (liveChatTextMessageRenderer.message || 0).runs || 0;
-
-                    if (messageRuns && messageRuns.length > 0) {
-                      for (const run of messageRuns) {
-                        const emojiImage = (((run || 0).emoji || 0).image || 0);
-                        const emojiThumbnails = (emojiImage.thumbnails || 0);
-
-                        setThumbnails({
-                          baseObject: emojiImage,
-                          thumbnails: emojiThumbnails,
-                          flag0: EMOJI_IMAGE_SINGLE_THUMBNAIL,
-
-                        });
-
-                      }
-                    }
-
-                    const authorPhoto = liveChatTextMessageRenderer.authorPhoto || 0;
-                    const authorPhotoThumbnails = (authorPhoto.thumbnails || 0);
-
-                    setThumbnails({
-                      baseObject: authorPhoto,
-                      thumbnails: authorPhotoThumbnails,
-                      flag0: AUTHOR_PHOTO_SINGLE_THUMBNAIL,
-
-                    });
- 
-                  }
-
-                  if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4))) {
-                    if (emojiPrefetched.size > 512) emojiPrefetched.clear();
-                    if (authorPhotoPrefetched.size > 68) authorPhotoPrefetched.clear();
-                    imageLinks.forEach(imageLink => {
-                      let d = false;
-                      const isEmoji = imageLink.includes('/emoji/');
-                      const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
-
-                      if (!pretechedSet.has(imageLink)) {
-                        pretechedSet.add(imageLink);
-                        d = true;
-                      }
-                      if (d) {
-                        const rel = kptPF & 8 ? 'subresource' : kptPF & 4 ? 'prefetch' : '';
-                        if (rel) {
-                          waitFor.push(linker(null, rel, imageLink, 'image'));
-                        }
-                      }
-
-
-                    })
-                  }
-
-                  // console.log(cnt.activeItems_)
-                  // console.log([...imageLinks.values()])
                 }
-                skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
+                if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4)) && imageLinks.size > 0) {
+                  if (emojiPrefetched.size > PREFETCH_LIMITED_SIZE_EMOJI) emojiPrefetched.clear();
+                  if (authorPhotoPrefetched.size > PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO) authorPhotoPrefetched.clear();
+                  imageLinks.forEach(imageLink => {
+                    let d = false;
+                    const isEmoji = imageLink.includes('/emoji/');
+                    const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
+                    if (!pretechedSet.has(imageLink)) {
+                      pretechedSet.add(imageLink);
+                      d = true;
+                    }
+                    if (d) {
+                      const rel = kptPF & 8 ? 'subresource' : kptPF & 4 ? 'prefetch' : '';
+                      if (rel) {
+                        waitFor.push(linker(null, rel, imageLink, 'image'));
+                      }
+                    }
+                  })
+                }
+                  
+                skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
                 // console.log('ss1', Date.now())
                 if (waitFor.length > 0) {
                   await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
                 }
+                waitFor.length = 0;
+                waitFor = null;
                 // console.log('ss2', Date.now())
                 cnt.flushActiveItems66_();
-                skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
+                skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
                 const len2 = cnt.activeItems_.length;
                 const bAsync = len1 !== len2;
                 await Promise.resolve();
@@ -2865,55 +2874,44 @@
               }
             }
 
-            mclp.flushActiveItems77_ = async function () {
-              try {
+            mclp.flushActiveItems77_ = function () {
 
-                const cnt = this;
-                if (mlf > 1e9) mlf = 9;
-                let tid = ++mlf;
-                if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+              return new Promise(resResolve => {
+                try {
+                  const cnt = this;
+                  if (mlf > 1e9) mlf = 9;
+                  let tid = ++mlf;
+                  const hostElement = cnt.hostElement || cnt;
+                  if (tid !== mlf || cnt.isAttached === false || hostElement.isConnected === false) return resResolve();
+                  if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return resResolve();
 
-                // 4 times to maxItems to avoid frequent trimming.
-                // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
+                  // 4 times to maxItems to avoid frequent trimming.
+                  // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
 
-                const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
-                this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
-                if (cnt.canScrollToBottom_()) {
-                  if (cnt.mutexPromiseFA77) await cnt.mutexPromiseFA77;
-                  if (tid !== mlf) return;
-                  let qResolve = null;
-                  cnt.mutexPromiseFA77 = new Promise(resolve => { qResolve = resolve; })
-                  let res;
-                  try {
-                    res = await cnt.flushActiveItems78_(tid);
-                    if (hasMoreMessageState === 1) {
-                      hasMoreMessageState = 0;
-                      const showMore = cnt.$['show-more'];
-                      if (showMore) {
-                        showMore.classList.remove('has-new-messages-miuzp');
-                      }
-                    }
-                  } catch (e) {
-                    console.warn(e);
+                  const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
+                  this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
+                  if (cnt.canScrollToBottom_()) {
+                    cnt.mutexPromiseFA78 = (cnt.mutexPromiseFA78 || Promise.resolve())
+                      .then(() => cnt.flushActiveItems78_(tid)) // async function
+                      .then((asyncResult) => {
+                        resResolve(asyncResult); // either undefined or 1
+                        resResolve = null;
+                      }).catch((e) => {
+                        console.warn(e);
+                        if (resResolve) resResolve();
+                      });
+                  } else {
+                    resResolve(2);
+                    resResolve = null;
                   }
-                  qResolve && qResolve();
-                  return res;
-                } else {
-                  if (hasMoreMessageState === 0) {
-                    hasMoreMessageState = 1;
-                    const showMore = cnt.$['show-more'];
-                    if (showMore) {
-                      showMore.classList.add('has-new-messages-miuzp');
-                    }
-                  }
-                  // cnt.flushActiveItems66_();
-                  // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
-                  return 2;
+                } catch (e) {
+                  console.warn(e);
+                  if (resResolve) resResolve();
                 }
-              } catch (e) {
-                console.warn(e);
-              }
+
+
+              });
+
             }
 
             mclp.flushActiveItems_ = function () {
@@ -2935,10 +2933,30 @@
 
               // ignore previous __intermediate_delay__ and create a new one
               cnt.__intermediate_delay__ = new Promise(resolve => {
-                cnt.flushActiveItems77_().then(rt => {
-                  if (rt === 1) resolve(1); // success, scroll to bottom
-                  else if (rt === 2) resolve(2); // success, trim
+                cnt.flushActiveItems77_().then(rt => {  // either undefined or 1 or 2
+                  if (rt === 1) {
+                    resolve(1); // success, scroll to bottom
+                    if (hasMoreMessageState === 1) {
+                      hasMoreMessageState = 0;
+                      const showMore = (cnt.$ || 0)['show-more'];
+                      if (showMore) {
+                        showMore.classList.remove('has-new-messages-miuzp');
+                      }
+                    }
+                  }
+                  else if (rt === 2) {
+                    resolve(2); // success, trim
+                    if (hasMoreMessageState === 0) {
+                      hasMoreMessageState = 1;
+                      const showMore = cnt.$['show-more'];
+                      if (showMore) {
+                        showMore.classList.add('has-new-messages-miuzp');
+                      }
+                    }
+                  }
                   else resolve(-1); // skip
+                }).catch(e => {
+                  console.warn(e);
                 });
               });
 
@@ -3156,125 +3174,43 @@
             console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
           }
 
-          if (typeof mclp.handleAddChatItemAction_ === 'function' && !mclp.handleAddChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) {
+          if (typeof mclp.handleAddChatItemAction_ === 'function' && !mclp.handleAddChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION && (EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL)) {
 
-
-
-            function setThumbnails(config) {
-              const { baseObject, thumbnails, flag0 } = config;
-              if (thumbnails && thumbnails.length > 0) {
-                if (flag0 > 0) {
-                  let pSize = 0;
-                  let newThumbnails = [];
-                  for (const thumbnail of thumbnails) {
-                    if (!thumbnail || !thumbnail.url) continue;
-                    const squarePhoto = thumbnail.width === thumbnail.height && typeof thumbnail.width === 'number';
-                    const condSize = pSize <= 0 || (flag0 === 1 ? pSize > thumbnail.width : pSize < thumbnail.width);
-                    const leastSizeFulfilled = squarePhoto ? thumbnail.width >= LEAST_IMAGE_SIZE : true;
-                    if ((!squarePhoto || condSize) && leastSizeFulfilled) {
-                      newThumbnails.push(thumbnail);
-                      // imageLinks.add(thumbnail.url);
-                    }
-                    if (squarePhoto && condSize && leastSizeFulfilled) {
-                      pSize = thumbnail.width;
-                    }
-                  }
-                  if (thumbnails.length !== newThumbnails.length && thumbnails === baseObject.thumbnails && newThumbnails.length > 0) {
-                    baseObject.thumbnails = newThumbnails;
-                  } else {
-                    newThumbnails.length = 0;
-                  }
-                  newThumbnails = null;
-                } else {
-                  for (const thumbnail of thumbnails) {
-                    if (thumbnail && thumbnail.url) {
-                   //   imageLinks.add(thumbnail.url);
-                    }
-                  }
-                }
-              }
-            }
-
-
-            function fixLiveChatItem(a){
-
-
-              const liveChatTextMessageRenderer = ((a || 0).item || 0).liveChatTextMessageRenderer || 0;
-              if (liveChatTextMessageRenderer) {
-
-
-                const messageRuns = (liveChatTextMessageRenderer.message || 0).runs || 0;
-
-                if (messageRuns && messageRuns.length > 0) {
-                  for (const run of messageRuns) {
-                    const emojiImage = (((run || 0).emoji || 0).image || 0);
-                    const emojiThumbnails = (emojiImage.thumbnails || 0);
-
-                    setThumbnails({
-                      baseObject: emojiImage,
-                      thumbnails: emojiThumbnails,
-                      flag0: EMOJI_IMAGE_SINGLE_THUMBNAIL,
-
-                    });
-
-                  }
-                }
-
-                const authorPhoto = liveChatTextMessageRenderer.authorPhoto || 0;
-                setThumbnails({
-                  baseObject:authorPhoto,
-                  thumbnails:authorPhoto.thumbnails,
-                  flag0: AUTHOR_PHOTO_SINGLE_THUMBNAIL,
-                })
-              }
-
-            }
             mclp.handleAddChatItemAction66_ = mclp.handleAddChatItemAction_;
             mclp.handleAddChatItemAction_ = function (a) {
-
               try {
-                if (arguments.length >= 1 && a && typeof a === 'object' && !('length' in a)) {
-                  fixLiveChatItem(a);
+                if (a && typeof a === 'object' && !('length' in a)) {
+                  fixLiveChatItem(a.item, null);
                   console.assert(arguments[0] === a);
                 }
-
-              } catch (e) { }
+              } catch (e) { console.warn(e) }
               return this.handleAddChatItemAction66_.apply(this, arguments);
             }
 
+            if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+          } else {
 
-            if(FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
-          }else{
-
-
-            if(FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+            if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
           }
 
 
-          if (typeof mclp.handleReplaceChatItemAction_ === 'function' && !mclp.handleReplaceChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) {
+          if (typeof mclp.handleReplaceChatItemAction_ === 'function' && !mclp.handleReplaceChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT && (EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL)) {
 
             mclp.handleReplaceChatItemAction66_ = mclp.handleReplaceChatItemAction_;
-            mclp.handleReplaceChatItemAction_ = function (k) {
+            mclp.handleReplaceChatItemAction_ = function (a) {
               try {
-                if (k && k.replacementItem) {
-                  let a = k.replacementItem;
-                  if (a && typeof a === 'object' && !('length' in a)) {
-                    fixLiveChatItem(a);
-                    console.assert(arguments[0] === a);
-                  }
+                if (a && typeof a === 'object' && !('length' in a)) {
+                  fixLiveChatItem(a.replacementItem, null);
+                  console.assert(arguments[0] === a);
                 }
-              } catch (e) { }
+              } catch (e) { console.warn(e) }
               return this.handleReplaceChatItemAction66_.apply(this, arguments);
             }
 
+            if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
+          } else {
 
-
-            if(FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
-
-          }else{
-
-
-            if(FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
+            if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
           }
 
           console.log("[End]");
@@ -3691,7 +3627,7 @@
 
         }
 
-        if(FIX_SETSRC_AND_THUMBNAILCHANGE_){
+        if (FIX_SETSRC_AND_THUMBNAILCHANGE_) {
 
 
           customElements.whenDefined("yt-img-shadow").then(() => {
@@ -3710,64 +3646,39 @@
                 return;
               }
 
-              if(typeof cProto.thumbnailChanged_ === 'function' && !cProto.thumbnailChanged66_){
+              if (typeof cProto.thumbnailChanged_ === 'function' && !cProto.thumbnailChanged66_) {
 
                 cProto.thumbnailChanged66_ = cProto.thumbnailChanged_;
-                cProto.thumbnailChanged_ = function(a){
+                cProto.thumbnailChanged_ = function (a) {
 
-                  if(this.oldThumbnail_){
+                  if (this.oldThumbnail_) {
 
                     /*
                     console.log('old', this.oldThumbnail_.thumbnails)
                     console.log('new', this.thumbnail.thumbnails)
                     console.log(3466, this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails)
                     */
-                    if( this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
+                    if (this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
                   }
-                  return this.thumbnailChanged66_.apply(this,arguments)
+                  return this.thumbnailChanged66_.apply(this, arguments)
 
                 }
                 console.log("cProto.thumbnailChanged_ - OK");
 
-              }else{
+              } else {
                 console.log("cProto.thumbnailChanged_ - NG");
 
               }
-              if(typeof cProto.setSrc_ === 'function' && !cProto.setSrc66_){
-                console.log("cProto.setSrc_ - OK");
+              if (typeof cProto.setSrc_ === 'function' && !cProto.setSrc66_) {
 
                 cProto.setSrc66_ = cProto.setSrc_;
-                cProto.setSrc_ = function(a){
-
-
-                  
-                  let toSet = true;
-
-                  if(this.$.img.src=== a) toSet = false; 
-                  else{
-
-                    /*
-                    const isEmoji = a.includes('/emoji/');
-                    const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
-  
-  
-                    if(pretechedSet.size>0){
-                      if(!pretechedSet.has(a)) toSet = false; 
-                    }
-                    */
-                    
-                  }
-
-
-                  // console.log( toSet, this.$.img.src=== a, this.$.img.src, a)
-
-                  if(!toSet) return;
-
-                  return this.setSrc66_.apply(this,arguments)
-
+                cProto.setSrc_ = function (a) {
+                  if ((((this || 0).$ || 0).img || 0).src === a) return;
+                  return this.setSrc66_.apply(this, arguments)
                 }
 
-              }else{
+                console.log("cProto.setSrc_ - OK");
+              } else {
 
                 console.log("cProto.setSrc_ - NG");
               }
