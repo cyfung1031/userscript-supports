@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.10
+// @version     0.4.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -42,6 +42,8 @@
   };
 
   const ALLOW_ALL_LIVE_CHATS_FLAGS = false;
+
+  const USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET = false;
 
 
 
@@ -459,7 +461,7 @@
       EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
   
       if (use_maintain_stable_list) {
-        if (EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) {
+        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
           EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
           EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
           EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
