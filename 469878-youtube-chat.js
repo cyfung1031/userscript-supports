@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.20.10
+// @version             0.21.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -85,11 +85,60 @@
   // reuse yt components
   const ENABLE_FLAGS_REUSE_COMPONENTS = true;
 
+  // images <Group#I01>
+  const AUTHOR_PHOTO_SINGLE_THUMBNAIL = 1; // 0 - disable; 1- smallest; 2- largest
+  const EMOJI_IMAGE_SINGLE_THUMBNAIL = 1; // 0 - disable; 1- smallest; 2- largest
+  const LEAST_IMAGE_SIZE = 48; // minium size = 48px
+
+  const ENABLE_PRELOAD_THUMBNAIL = true;
+  const ENABLE_BASE_PREFETCHING = true;
+
+  const FIX_SETSRC_AND_THUMBNAILCHANGE_ = true;
+  const FIX_THUMBNAIL_DATACHANGED = true;
+  const REMOVE_PRELOADAVATARFORADDACTION = true;
+
+  const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true; // important [depends on <Group#I01>]
+  const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true; // [depends on <Group#I01>]
+
   // =======================================================================================================
 
   // AUTOMAICALLY DETERMINED
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;                            
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;      
+
+  // image sizing code
+  // (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null)
+  
+
+//   function KC(a, b, c, d) {
+//     d = void 0 === d ? "width" : d;
+//     if (!a || !a.length)
+//         return null;
+//     if (z("kevlar_tuner_should_always_use_device_pixel_ratio")) {
+//         var e = window.devicePixelRatio;
+//         z("kevlar_tuner_should_clamp_device_pixel_ratio") ? e = Math.min(e, zl("kevlar_tuner_clamp_device_pixel_ratio")) : z("kevlar_tuner_should_use_thumbnail_factor") && (e = zl("kevlar_tuner_thumbnail_factor"));
+//         HC = e
+//     } else
+//         HC || (HC = window.devicePixelRatio);
+//     e = HC;
+//     z("kevlar_tuner_should_always_use_device_pixel_ratio") ? b *= e : 1 < e && (b *= e);
+//     if (z("kevlar_tuner_min_thumbnail_quality"))
+//         return a[0].url || null;
+//     e = a.length;
+//     if (z("kevlar_tuner_max_thumbnail_quality"))
+//         return a[e - 1].url || null;
+//     if (c)
+//         for (var h = 0; h < e; h++)
+//             if (0 <= a[h].url.indexOf(c))
+//                 return a[h].url || null;
+//     for (c = 0; c < e; c++)
+//         if (a[c][d] >= b)
+//             return a[c].url || null;
+//     for (b = e - 1; 0 < b; b--)
+//         if (a[b][d])
+//             return a[b].url || null;
+//     return a[0].url || null
+// }
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -495,7 +544,7 @@
         transform: scale(0.00001) !important;
         transform: scale(0.0000001) !important;
         transform-origin: 0 0 !important;
-        z-index:-1 !important;
+        z-index: -1 !important;
         contain: strict !important;
         box-sizing: border-box !important;
 
@@ -607,11 +656,6 @@
   const nPrevElem = fxOperator(HTMLElement.prototype, 'previousElementSibling');
   const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
   const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
-
-  const elemInnerText = {
-    status:0
-  }; // to resolve conflict with BetterStreamChat
-
 
   const groupCollapsed = (text1, text2) => {
 
@@ -995,6 +1039,36 @@
     return flagsFnOnInterval;
 
   })() : null;
+  
+
+  let kptPF = null;
+  const emojiPrefetched = new Set();
+  const authorPhotoPrefetched = new Set();
+
+  function linker(link, rel, href, _as){
+    return new Promise(resolve=>{
+      if (!link) link = document.createElement('link');
+      link.rel = rel;
+      if (_as) link.setAttribute('as', _as);
+      link.onload = function () {
+        resolve({
+          link: this,
+          success: true
+        })
+        this.remove();
+      };
+      link.onerror = function () {
+        resolve({
+          link: this,
+          success: false
+        });
+        this.remove();
+      };
+      link.href = href;
+      document.head.appendChild(link);
+      link= null;
+    });
+  }
 
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
@@ -1002,6 +1076,54 @@
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = __CONTEXT__;
 
     if(flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
+
+    function basePrefetching() {
+
+      new Promise(resolve => {
+
+        if (document.readyState !== 'loading') {
+          resolve();
+        } else {
+          win.addEventListener("DOMContentLoaded", resolve, false);
+        }
+
+      }).then(() => {
+        const arr = [
+          'https://www.youtube.com', 'https://youtube.com', 'https://googlevideo.com',
+          'https://googleapis.com', 'https://www.youtube.com', 'https://accounts.youtube.com',
+          'https://www.gstatic.com', 'https://ggpht.com',
+          'https://yt3.ggpht.com', 'https://yt4.ggpht.com'
+        ];
+        for (const h of arr) {
+
+          let link = null;
+          if (kptPF === null) {
+            link = document.createElement('link');
+            if (link.relList && link.relList.supports) {
+              kptPF = (link.relList.supports('dns-prefetch') ? 1 : 0) + (link.relList.supports('preconnect') ? 2 : 0) + (link.relList.supports('prefetch') ? 4 : 0) + (link.relList.supports('subresource') ? 8 : 0)
+            } else {
+              kptPF = 0;
+            }
+            console.log('kptPF', kptPF)
+          }
+          if (ENABLE_BASE_PREFETCHING) {
+            if (kptPF & 1) {
+              linker(link, 'dns-prefetch', h);
+              link = null;
+            }
+            if (kptPF & 2) {
+              linker(link, 'preconnect', h);
+              link = null;
+            }
+          }
+
+        }
+      })
+
+
+    }
+
+    basePrefetching();
 
     (() => {
       // data manipulation
@@ -1426,11 +1548,56 @@
         function dummy5035(a, b, c) { }
         function dummy411(a, b, c) { }
 
+
+        if (REMOVE_PRELOADAVATARFORADDACTION) {
+
+          customElements.whenDefined("yt-live-chat-renderer").then(() => {
+
+            const tag = "yt-live-chat-renderer";
+            const cProto = getProto(document.createElement(tag));
+
+            groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
+
+            if (typeof cProto.preloadAvatarForAddAction === 'function' && !cProto.preloadAvatarForAddAction66 && cProto.preloadAvatarForAddAction.length === 1) {
+
+              cProto.preloadAvatarForAddAction66 = cProto.preloadAvatarForAddAction;
+              cProto.preloadAvatarForAddAction = function () {
+                //  ===== skip  =====
+
+                // if (a.item) {
+                //   a = a.item;
+                //   var b = Object.keys(a)[0];
+                //   a = a[b];
+                //   b = KC(this.get("authorPhoto.thumbnails", a), 24);
+                //   "string" === typeof b && (this.preloadImage(b),
+                //     a.authorPhoto.webThumbnailDetailsExtensionData = {
+                //       isPreloaded: !0
+                //     })
+                // }
+
+                //  ===== skip  =====
+              }
+              console.log("cProto.preloadAvatarForAddAction - OK");
+            } else {
+              console.log("cProto.preloadAvatarForAddAction - NG");
+
+            }
+            console.groupEnd();
+
+            // cProto.preloadImage = function (){
+            //   // although we do in flushItem; just avoid being used by other usages ...
+            // }
+
+          });
+
+        }
+
+
         customElements.whenDefined("yt-live-chat-participant-list-renderer").then(() => {
 
           if (!DO_PARTICIPANT_LIST_HACKS) return;
 
-          const tag = "yt-live-chat-participant-list-renderer"
+          const tag = "yt-live-chat-participant-list-renderer";
           const cProto = getProto(document.createElement(tag));
           if (!cProto || typeof cProto.attached !== 'function') {
             // for _registered, proto.attached shall exist when the element is defined.
@@ -2508,7 +2675,111 @@
                 wcController && wcController.beforeOper();
                 await Promise.resolve();
                 const len1 = cnt.activeItems_.length;
+                let waitFor = [];
+                if (cnt.activeItems_.length > 0) {
+
+                  function setThumbnails(config) {
+                    const { baseObject, thumbnails, flag0 } = config;
+                    if (thumbnails && thumbnails.length > 0) {
+                      if (flag0 > 0) {
+                        let pSize = 0;
+                        let newThumbnails = [];
+                        for (const thumbnail of thumbnails) {
+                          if (!thumbnail || !thumbnail.url) continue;
+                          const squarePhoto = thumbnail.width === thumbnail.height && typeof thumbnail.width === 'number';
+                          const condSize = pSize <= 0 || (flag0 === 1 ? pSize > thumbnail.width : pSize < thumbnail.width);
+                          const leastSizeFulfilled = squarePhoto ? thumbnail.width >= LEAST_IMAGE_SIZE : true;
+                          if ((!squarePhoto || condSize) && leastSizeFulfilled) {
+                            newThumbnails.push(thumbnail);
+                            imageLinks.add(thumbnail.url);
+                          }
+                          if (squarePhoto && condSize && leastSizeFulfilled) {
+                            pSize = thumbnail.width;
+                          }
+                        }
+                        if (thumbnails.length !== newThumbnails.length && thumbnails === baseObject.thumbnails && newThumbnails.length > 0) {
+                          baseObject.thumbnails = newThumbnails;
+                        } else {
+                          newThumbnails.length = 0;
+                        }
+                        newThumbnails = null;
+                      } else {
+                        for (const thumbnail of thumbnails) {
+                          if (thumbnail && thumbnail.url) {
+                            imageLinks.add(thumbnail.url);
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  /** @type {Set<string>} */
+                  const imageLinks = new Set();
+                  for (const item of cnt.activeItems_) {
+                    const liveChatTextMessageRenderer = (item || 0).liveChatTextMessageRenderer || 0;
+                    if (!liveChatTextMessageRenderer) continue;
+
+                    const messageRuns = (liveChatTextMessageRenderer.message || 0).runs || 0;
+
+                    if (messageRuns && messageRuns.length > 0) {
+                      for (const run of messageRuns) {
+                        const emojiImage = (((run || 0).emoji || 0).image || 0);
+                        const emojiThumbnails = (emojiImage.thumbnails || 0);
+
+                        setThumbnails({
+                          baseObject: emojiImage,
+                          thumbnails: emojiThumbnails,
+                          flag0: EMOJI_IMAGE_SINGLE_THUMBNAIL,
+
+                        });
+
+                      }
+                    }
+
+                    const authorPhoto = liveChatTextMessageRenderer.authorPhoto || 0;
+                    const authorPhotoThumbnails = (authorPhoto.thumbnails || 0);
+
+                    setThumbnails({
+                      baseObject: authorPhoto,
+                      thumbnails: authorPhotoThumbnails,
+                      flag0: AUTHOR_PHOTO_SINGLE_THUMBNAIL,
+
+                    });
+ 
+                  }
+
+                  if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4))) {
+                    if (emojiPrefetched.size > 512) emojiPrefetched.clear();
+                    if (authorPhotoPrefetched.size > 68) authorPhotoPrefetched.clear();
+                    imageLinks.forEach(imageLink => {
+                      let d = false;
+                      const isEmoji = imageLink.includes('/emoji/');
+                      const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
+
+                      if (!pretechedSet.has(imageLink)) {
+                        pretechedSet.add(imageLink);
+                        d = true;
+                      }
+                      if (d) {
+                        const rel = kptPF & 8 ? 'subresource' : kptPF & 4 ? 'prefetch' : '';
+                        if (rel) {
+                          waitFor.push(linker(null, rel, imageLink, 'image'));
+                        }
+                      }
+
+
+                    })
+                  }
+
+                  // console.log(cnt.activeItems_)
+                  // console.log([...imageLinks.values()])
+                }
                 skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
+                // console.log('ss1', Date.now())
+                if (waitFor.length > 0) {
+                  await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
+                }
+                // console.log('ss2', Date.now())
                 cnt.flushActiveItems66_();
                 skipDontRender = (((cnt.$ || 0).items || 0).childElementCount || 0) === 0;
                 const len2 = cnt.activeItems_.length;
@@ -2883,6 +3154,127 @@
             console.log("ENABLE_NO_SMOOTH_TRANSFORM", "OK");
           } else {
             console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
+          }
+
+          if (typeof mclp.handleAddChatItemAction_ === 'function' && !mclp.handleAddChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) {
+
+
+
+            function setThumbnails(config) {
+              const { baseObject, thumbnails, flag0 } = config;
+              if (thumbnails && thumbnails.length > 0) {
+                if (flag0 > 0) {
+                  let pSize = 0;
+                  let newThumbnails = [];
+                  for (const thumbnail of thumbnails) {
+                    if (!thumbnail || !thumbnail.url) continue;
+                    const squarePhoto = thumbnail.width === thumbnail.height && typeof thumbnail.width === 'number';
+                    const condSize = pSize <= 0 || (flag0 === 1 ? pSize > thumbnail.width : pSize < thumbnail.width);
+                    const leastSizeFulfilled = squarePhoto ? thumbnail.width >= LEAST_IMAGE_SIZE : true;
+                    if ((!squarePhoto || condSize) && leastSizeFulfilled) {
+                      newThumbnails.push(thumbnail);
+                      // imageLinks.add(thumbnail.url);
+                    }
+                    if (squarePhoto && condSize && leastSizeFulfilled) {
+                      pSize = thumbnail.width;
+                    }
+                  }
+                  if (thumbnails.length !== newThumbnails.length && thumbnails === baseObject.thumbnails && newThumbnails.length > 0) {
+                    baseObject.thumbnails = newThumbnails;
+                  } else {
+                    newThumbnails.length = 0;
+                  }
+                  newThumbnails = null;
+                } else {
+                  for (const thumbnail of thumbnails) {
+                    if (thumbnail && thumbnail.url) {
+                   //   imageLinks.add(thumbnail.url);
+                    }
+                  }
+                }
+              }
+            }
+
+
+            function fixLiveChatItem(a){
+
+
+              const liveChatTextMessageRenderer = ((a || 0).item || 0).liveChatTextMessageRenderer || 0;
+              if (liveChatTextMessageRenderer) {
+
+
+                const messageRuns = (liveChatTextMessageRenderer.message || 0).runs || 0;
+
+                if (messageRuns && messageRuns.length > 0) {
+                  for (const run of messageRuns) {
+                    const emojiImage = (((run || 0).emoji || 0).image || 0);
+                    const emojiThumbnails = (emojiImage.thumbnails || 0);
+
+                    setThumbnails({
+                      baseObject: emojiImage,
+                      thumbnails: emojiThumbnails,
+                      flag0: EMOJI_IMAGE_SINGLE_THUMBNAIL,
+
+                    });
+
+                  }
+                }
+
+                const authorPhoto = liveChatTextMessageRenderer.authorPhoto || 0;
+                setThumbnails({
+                  baseObject:authorPhoto,
+                  thumbnails:authorPhoto.thumbnails,
+                  flag0: AUTHOR_PHOTO_SINGLE_THUMBNAIL,
+                })
+              }
+
+            }
+            mclp.handleAddChatItemAction66_ = mclp.handleAddChatItemAction_;
+            mclp.handleAddChatItemAction_ = function (a) {
+
+              try {
+                if (arguments.length >= 1 && a && typeof a === 'object' && !('length' in a)) {
+                  fixLiveChatItem(a);
+                  console.assert(arguments[0] === a);
+                }
+
+              } catch (e) { }
+              return this.handleAddChatItemAction66_.apply(this, arguments);
+            }
+
+
+            if(FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+          }else{
+
+
+            if(FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+          }
+
+
+          if (typeof mclp.handleReplaceChatItemAction_ === 'function' && !mclp.handleReplaceChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) {
+
+            mclp.handleReplaceChatItemAction66_ = mclp.handleReplaceChatItemAction_;
+            mclp.handleReplaceChatItemAction_ = function (k) {
+              try {
+                if (k && k.replacementItem) {
+                  let a = k.replacementItem;
+                  if (a && typeof a === 'object' && !('length' in a)) {
+                    fixLiveChatItem(a);
+                    console.assert(arguments[0] === a);
+                  }
+                }
+              } catch (e) { }
+              return this.handleReplaceChatItemAction66_.apply(this, arguments);
+            }
+
+
+
+            if(FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
+
+          }else{
+
+
+            if(FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
           }
 
           console.log("[End]");
@@ -3297,6 +3689,208 @@
 
           });
 
+        }
+
+        if(FIX_SETSRC_AND_THUMBNAILCHANGE_){
+
+
+          customElements.whenDefined("yt-img-shadow").then(() => {
+
+            mightFirstCheckOnYtInit();
+            groupCollapsed("YouTube Super Fast Chat", " | yt-img-shadow hacks");
+            console.log("[Begin]");
+            (() => {
+
+              const tag = "yt-img-shadow"
+              const dummy = document.createElement(tag);
+
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
+
+              if(typeof cProto.thumbnailChanged_ === 'function' && !cProto.thumbnailChanged66_){
+
+                cProto.thumbnailChanged66_ = cProto.thumbnailChanged_;
+                cProto.thumbnailChanged_ = function(a){
+
+                  if(this.oldThumbnail_){
+
+                    /*
+                    console.log('old', this.oldThumbnail_.thumbnails)
+                    console.log('new', this.thumbnail.thumbnails)
+                    console.log(3466, this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails)
+                    */
+                    if( this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
+                  }
+                  return this.thumbnailChanged66_.apply(this,arguments)
+
+                }
+                console.log("cProto.thumbnailChanged_ - OK");
+
+              }else{
+                console.log("cProto.thumbnailChanged_ - NG");
+
+              }
+              if(typeof cProto.setSrc_ === 'function' && !cProto.setSrc66_){
+                console.log("cProto.setSrc_ - OK");
+
+                cProto.setSrc66_ = cProto.setSrc_;
+                cProto.setSrc_ = function(a){
+
+
+                  
+                  let toSet = true;
+
+                  if(this.$.img.src=== a) toSet = false; 
+                  else{
+
+                    /*
+                    const isEmoji = a.includes('/emoji/');
+                    const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
+  
+  
+                    if(pretechedSet.size>0){
+                      if(!pretechedSet.has(a)) toSet = false; 
+                    }
+                    */
+                    
+                  }
+
+
+                  // console.log( toSet, this.$.img.src=== a, this.$.img.src, a)
+
+                  if(!toSet) return;
+
+                  return this.setSrc66_.apply(this,arguments)
+
+                }
+
+              }else{
+
+                console.log("cProto.setSrc_ - NG");
+              }
+
+            })();
+
+            console.log("[End]");
+
+            console.groupEnd();
+
+          });
+
+        }
+
+        if(FIX_THUMBNAIL_DATACHANGED){
+
+
+
+          customElements.whenDefined("yt-live-chat-author-badge-renderer").then(() => {
+
+            mightFirstCheckOnYtInit();
+            groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-author-badge-renderer hacks");
+            console.log("[Begin]");
+            (() => {
+
+              const tag = "yt-live-chat-author-badge-renderer"
+              const dummy = document.createElement(tag);
+
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
+
+
+              if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && fnIntegrity(cProto.dataChanged) === '1.159.97') {
+
+
+
+                cProto.dataChanged86 = cProto.dataChanged;
+                cProto.dataChanged = function(a){
+
+/*
+
+        for (var b = xC(Z(this.hostElement).querySelector("#image")); b.firstChild; )
+            b.removeChild(b.firstChild);
+        if (a)
+            if (a.icon) {
+                var c = document.createElement("yt-icon");
+                "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.icon = "yt-sys-icons:shield-filled",
+                c.defaultToFilled = !0) : c.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                b.appendChild(c)
+            } else if (a.customThumbnail) {
+                c = document.createElement("img");
+                var d;
+                (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
+                b.appendChild(c),
+                c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail",a.customThumbnail))
+            }
+
+            */
+
+                  const image = ((this||0).$||0).image
+                  if (image && a && image.firstElementChild) {
+                    let exisiting = image.firstElementChild;
+                    if (exisiting === image.lastElementChild) {
+
+
+                      if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
+
+                        var c = exisiting;
+                        if ("MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge) {
+                          if (c.icon !== "yt-sys-icons:shield-filled") c.icon = "yt-sys-icons:shield-filled";
+                          if (c.defaultToFilled !== true) c.defaultToFilled = true;
+                        } else {
+                          let p = "live-chat-badges:" + a.icon.iconType.toLowerCase();;
+                          if (c.icon !== p) c.icon = p;
+                          if (c.defaultToFilled !== false) c.defaultToFilled = false;
+                        }
+                        return;
+                          
+                         
+                      } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
+
+                        var c = exisiting;
+                        if(a.customThumbnail.thumbnails.map(e=>e.url).includes(c.src)){
+
+                          c.setAttribute("alt", this.hostElement.ariaLabel || "");
+                          return;
+                        }
+                        /*
+                        
+                        var d;
+                        (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
+                          
+
+                          c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail", a.customThumbnail))
+                          */
+                      }
+ 
+
+                    }
+                  }
+                  return this.dataChanged86.apply(this,arguments)
+
+                }
+                console.log("cProto.dataChanged - OK");
+
+              }else{
+                assertor(() => fnIntegrity(cProto.dataChanged, '1.159.97'));
+                console.log("cProto.dataChanged - NG");
+
+              }
+
+            })();
+
+            console.log("[End]");
+
+            console.groupEnd();
+
+          });
+
+          
         }
 
 
