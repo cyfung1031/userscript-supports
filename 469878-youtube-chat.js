@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.22.0
+// @version             0.22.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -46,7 +46,7 @@
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
   const USE_WILL_CHANGE_CONTROLLER = false;               // FALSE for the majority
-  const ENABLE_FULL_RENDER_REQUIRED_PREFERRED = true;     // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
+  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = true;     // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
@@ -561,6 +561,31 @@
 
     }
 
+    #sk35z {
+      display: block !important;
+
+      visibility: collapse !important;
+
+      transform: scale(0.01) !important;
+      transform: scale(0.00001) !important;
+      transform: scale(0.0000001) !important;
+      transform-origin: 0 0 !important;
+      z-index: -1 !important;
+      contain: strict !important;
+      box-sizing: border-box !important;
+
+      height: 1px !important;
+      height: 0.1px !important;
+      height: 0.01px !important;
+      height: 0.0001px !important;
+      height: 0.000001px !important;
+
+      position: absolute !important;
+      top: -1000px !important;
+      left: -1000px !important;
+
+    }
+
   }
 
   ${cssText10_show_more_blinker}
@@ -618,12 +643,12 @@
 
   console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
-  let ENABLE_FULL_RENDER_REQUIRED_CAPABLE = false;
+  let ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE = false;
   const isContainSupport = CSS.supports('contain', 'layout paint style');
   if (!isContainSupport) {
     console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
   } else {
-    ENABLE_FULL_RENDER_REQUIRED_CAPABLE = true;
+    ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE = true;
   }
 
   let ENABLE_OVERFLOW_ANCHOR_CAPABLE = false;
@@ -637,7 +662,7 @@
   const NOT_FIREFOX = !CSS.supports('-moz-appearance', 'none'); // 1. Firefox does not have the flicking issue; 2. Firefox's OVERFLOW_ANCHOR is less effective than Chromium's.
 
   const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && ENABLE_OVERFLOW_ANCHOR_CAPABLE && ENABLE_NO_SMOOTH_TRANSFORM;
-  const ENABLE_FULL_RENDER_REQUIRED = ENABLE_FULL_RENDER_REQUIRED_PREFERRED && ENABLE_FULL_RENDER_REQUIRED_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
+  const ENABLE_DELAYED_CHAT_OCCURRENCE = ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED && ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
 
 
   const fxOperator = (proto, propertyName) => {
@@ -1110,7 +1135,6 @@
     return flagsFnOnInterval;
 
   })() : null;
-  
 
   let kptPF = null;
   const emojiPrefetched = new Set();
@@ -1159,36 +1183,64 @@
         }
 
       }).then(() => {
-        const arr = [
-          'https://www.youtube.com', 'https://youtube.com', 'https://googlevideo.com',
-          'https://googleapis.com', 'https://www.youtube.com', 'https://accounts.youtube.com',
+        const hostL1 = [
+          'https://www.youtube.com', 'https://googlevideo.com',
+          'https://googleapis.com', 'https://accounts.youtube.com',
           'https://www.gstatic.com', 'https://ggpht.com',
           'https://yt3.ggpht.com', 'https://yt4.ggpht.com'
         ];
-        for (const h of arr) {
 
-          let link = null;
-          if (kptPF === null) {
-            link = document.createElement('link');
-            if (link.relList && link.relList.supports) {
-              kptPF = (link.relList.supports('dns-prefetch') ? 1 : 0) + (link.relList.supports('preconnect') ? 2 : 0) + (link.relList.supports('prefetch') ? 4 : 0) + (link.relList.supports('subresource') ? 8 : 0)
-            } else {
-              kptPF = 0;
-            }
-            console.log('kptPF', kptPF)
+        const hostL2 = [
+          'https://youtube.com',
+          'https://fonts.googleapis.com', 'https://fonts.gstatic.com'
+        ];
+
+        let link = null;
+
+        function kn() {
+
+          link = document.createElement('link');
+          if (link.relList && link.relList.supports) {
+            kptPF = (link.relList.supports('dns-prefetch') ? 1 : 0) + (link.relList.supports('preconnect') ? 2 : 0) + (link.relList.supports('prefetch') ? 4 : 0) + (link.relList.supports('subresource') ? 8 : 0) + (link.relList.supports('preload') ? 16 : 0)
+          } else {
+            kptPF = 0;
           }
+
+          groupCollapsed("YouTube Super Fast Chat", " | PREFETCH SUPPORTS");
+          if (ENABLE_BASE_PREFETCHING) console.log('dns-prefetch', (kptPF & 1) ? 'OK' : 'NG');
+          if (ENABLE_BASE_PREFETCHING) console.log('preconnect', (kptPF & 2) ? 'OK' : 'NG');
+          if (ENABLE_PRELOAD_THUMBNAIL) console.log('prefetch', (kptPF & 4) ? 'OK' : 'NG');
+          // console.log('subresource', (kptPF & 8) ? 'OK' : 'NG');
+          if (ENABLE_PRELOAD_THUMBNAIL) console.log('preload', (kptPF & 16) ? 'OK' : 'NG');
+          console.groupEnd();
+
+        }
+
+        for (const h of hostL1) {
+
+          if (kptPF === null) kn();
           if (ENABLE_BASE_PREFETCHING) {
-            if (kptPF & 1) {
-              linker(link, 'dns-prefetch', h);
-              link = null;
-            }
+            // if (kptPF & 1) {
+            //   linker(link, 'dns-prefetch', h);
+            //   link = null;
+            // }
             if (kptPF & 2) {
               linker(link, 'preconnect', h);
               link = null;
             }
           }
-
         }
+
+        for (const h of hostL2) {
+          if (kptPF === null) kn();
+          if (ENABLE_BASE_PREFETCHING) {
+            if (kptPF & 1) {
+              linker(link, 'dns-prefetch', h);
+              link = null;
+            }
+          }
+        }
+
       })
 
 
@@ -1918,8 +1970,9 @@
       let scrollChatFn = null;
 
       let skipDontRender = true; // true first; false by flushActiveItems_
+      let allowDontRender = null;
 
-      ENABLE_FULL_RENDER_REQUIRED && (() => {
+      ENABLE_DELAYED_CHAT_OCCURRENCE && (() => {
 
         document.addEventListener('animationstart', (evt) => {
 
@@ -1932,7 +1985,7 @@
 
         const f = (elm) => {
           if (elm && elm.nodeType === 1) {
-            if (!skipDontRender) {
+            if (!skipDontRender && allowDontRender === true) {
               // innerTextFixFn();
               elm.classList.add('dont-render');
             }
@@ -2170,6 +2223,8 @@
 
       })();
 
+      let sk35zResolveFn = null;
+
       const { setupMutObserver } = (() => {
 
         const mutFn = (items) => {
@@ -2183,6 +2238,10 @@
         const mutObserver = new MutationObserver((mutations) => {
           const items = (mutations[0] || 0).target;
           if (!items) return;
+          if (sk35zResolveFn) {
+            sk35zResolveFn();
+            sk35zResolveFn = null;
+          }
           mutFn(items);
         });
 
@@ -2234,6 +2293,182 @@
             //     subtree: false
             // })
 
+            if (ENABLE_DELAYED_CHAT_OCCURRENCE) {
+
+              promiseForCustomYtElementsReady.then(() => {
+
+                customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
+
+                  setTimeout(() => {
+
+                    /** @type {HTMLTemplateElement} */
+                    let skz = document.createElement('yt-live-chat-text-message-renderer');
+
+                    let cz1 = null;
+
+                    if (skz && 'data' in skz && 'attached' in skz) {
+
+                      const deferredZy1 = new Promise(resolve => {
+
+                        skz.attached = function () {
+                          cz1 = HTMLElement.prototype.querySelector.call(skz, '#message img') !== null;
+                          resolve(skz.textContent);
+                        }
+                        skz.detached = function () {
+
+                        }
+
+                      });
+                      skz.id = 'sk35z';
+                      skz.data = {
+                        "message": {
+                          "runs": [
+                            {
+                              "text": "em2o"
+                            },
+                            {
+                              "emoji": {
+                                "emojiId": "cm35z",
+                                "shortcuts": [
+                                  ":_s:",
+                                  ":s:"
+                                ],
+                                "searchTerms": [
+                                  "_s",
+                                  "s"
+                                ],
+                                "image": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "data:image/webp;base64,UklGRjAB",
+                                      "width": 48,
+                                      "height": 48
+                                    }
+                                  ],
+                                  "accessibility": {
+                                    "accessibilityData": {
+                                      "label": "s"
+                                    }
+                                  }
+                                },
+                                "isCustomEmoji": true
+                              }
+                            },
+                            {
+                              "text": "ji"
+                            }
+                          ]
+                        },
+                        "authorName": {
+                          "simpleText": "N"
+                        },
+                        "authorPhoto": {
+                          "thumbnails": [
+                            {
+                              "url": "data:image/webp;base64,UklGRjAB",
+                              "width": 64,
+                              "height": 64
+                            }
+                          ]
+                        },
+                        "contextMenuEndpoint": {
+                          "commandMetadata": {
+                            "webCommandMetadata": {
+                              "ignoreNavigation": true
+                            }
+                          },
+                          "liveChatItemContextMenuEndpoint": {
+                            "params": "123=="
+                          }
+                        },
+                        "id": "sk35z",
+                        "timestampUsec": "1232302352350000",
+                        "authorBadges": [
+                          {
+                            "liveChatAuthorBadgeRenderer": {
+                              "customThumbnail": {
+                                "thumbnails": [
+                                  {
+                                    "url": "data:image/webp;base64,UklGRjAB",
+                                    "width": 16,
+                                    "height": 16
+                                  },
+                                  {
+                                    "url": "data:image/webp;base64,UklGRjAB",
+                                    "width": 32,
+                                    "height": 32
+                                  }
+                                ]
+                              },
+                              "tooltip": "T",
+                              "accessibility": {
+                                "accessibilityData": {
+                                  "label": "E"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "authorExternalChannelId": "A",
+                        "contextMenuAccessibility": {
+                          "accessibilityData": {
+                            "label": "E"
+                          }
+                        },
+                        "timestampText": {
+                          "simpleText": "0:43"
+                        }
+                      };
+       
+
+                      sk35zResolveFn = null;
+                      const deferredMutation = new Promise(resolve => {
+                        sk35zResolveFn = resolve;
+                        HTMLElement.prototype.appendChild.call(m2, skz);
+                      });
+
+                      Promise.all([deferredZy1, deferredMutation]).then(async (res) => {
+                        const [zy1, _] = res;
+                        function fn() {
+                          const zy2 = skz.textContent;
+                          const cz2 = HTMLElement.prototype.querySelector.call(skz, '#message img') !== null;
+                          if (typeof zy1 === 'string' && typeof zy2 === 'string') {
+                            allowDontRender = zy1 === zy2 && cz1 === cz2; // '0:43N​em2oji'
+                          }
+                          if (allowDontRender === false) {
+
+                            console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+                              "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+                              "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+                            );
+
+                            console.warn(`%cWarning:\n\tYou might have added a userscript or extension that stops YouTube Super Fast Chat's quick loading.\n\tTo figure out which one affects the script, turn them off one by one and let the author know.`, 'color: #bada55');
+
+                            console.groupEnd();
+                          } else if (allowDontRender === true) {
+                            return true;
+                          }
+                        }
+                        await new Promise(r => setTimeout(r, 1));
+                        if (fn()) {
+                          await new Promise(r => requestAnimationFrame(r));
+                          if (fn()) {
+                            skz.remove();
+                            skz.textContent = '';
+                            console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #11ad44; color: #102624; padding: 2px 4px');
+                          }
+                        }
+                      });
+
+                    }
+
+                  }, 1);
+
+                })
+
+              })
+
+            }
 
 
           }
@@ -2764,21 +2999,30 @@
                 if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4)) && imageLinks.size > 0) {
                   if (emojiPrefetched.size > PREFETCH_LIMITED_SIZE_EMOJI) emojiPrefetched.clear();
                   if (authorPhotoPrefetched.size > PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO) authorPhotoPrefetched.clear();
-                  imageLinks.forEach(imageLink => {
-                    let d = false;
-                    const isEmoji = imageLink.includes('/emoji/');
-                    const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
-                    if (!pretechedSet.has(imageLink)) {
-                      pretechedSet.add(imageLink);
-                      d = true;
-                    }
-                    if (d) {
-                      const rel = kptPF & 8 ? 'subresource' : kptPF & 4 ? 'prefetch' : '';
-                      if (rel) {
-                        waitFor.push(linker(null, rel, imageLink, 'image'));
+
+                  // reference: https://github.com/Yuanfang-fe/Blog-X/issues/34
+                  const rel = kptPF & 8 ? 'subresource' : kptPF & 16 ? 'preload' : kptPF & 4 ? 'prefetch' : '';
+                  // preload performs the high priority fetching.
+                  // prefetch delays the chat display if the video resoruce is demanding.
+
+                  if (rel) {
+
+                    imageLinks.forEach(imageLink => {
+                      let d = false;
+                      const isEmoji = imageLink.includes('/emoji/');
+                      const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
+                      if (!pretechedSet.has(imageLink)) {
+                        pretechedSet.add(imageLink);
+                        d = true;
                       }
-                    }
-                  })
+                      if (d) {
+                        waitFor.push(linker(null, rel, imageLink, 'image'));
+
+                      }
+                    })
+
+                  }
+
                 }
                   
                 skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
@@ -2863,7 +3107,7 @@
                     scrollChatFn = () => Promise.resolve().then(f).then(f);
                   }
 
-                  if (!ENABLE_FULL_RENDER_REQUIRED) scrollChatFn();
+                  if (!ENABLE_DELAYED_CHAT_OCCURRENCE) scrollChatFn();
                 }
 
                 return 1;
