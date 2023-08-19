@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.4
+// @version             0.23.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2008,7 +2008,7 @@
                   }
                   args[5] = toUseMaintainStableList;
                   let currentDate = Date.now();
-                  if (currentDate - lastMessageDate > 80) {
+                  if (currentDate - lastMessageDate > 440) {
                     lastMessageDate = currentDate;
                     console.log('maintain_stable_list for participants list', toUseMaintainStableList);
                   }
@@ -2406,7 +2406,7 @@
             });
             mutFn(m2);
 
-            let isFirstList = firstList;
+            const isFirstList = firstList;
             firstList = false;
 
             if (ENABLE_OVERFLOW_ANCHOR) {
