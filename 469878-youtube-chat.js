@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.1
+// @version             0.23.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -488,6 +488,7 @@
     initial-value: 0%;
   }
 
+  /*
   .run-ticker {
     background:linear-gradient(90deg, var(--ticker-c1),var(--ticker-c1) var(--ticker-rtime),var(--ticker-c2) var(--ticker-rtime),var(--ticker-c2));
   }
@@ -501,6 +502,18 @@
   yt-live-chat-ticker-renderer[class] #items[class] > *[class] > #container.run-ticker-forced[class]
   {
     background:linear-gradient(90deg, var(--ticker-c1),var(--ticker-c1) var(--ticker-rtime),var(--ticker-c2) var(--ticker-rtime),var(--ticker-c2)) !important;
+  }
+  */
+
+  .run-ticker {
+    --ticker-bg:linear-gradient(90deg, var(--ticker-c1),var(--ticker-c1) var(--ticker-rtime),var(--ticker-c2) var(--ticker-rtime),var(--ticker-c2));
+  }
+
+  .run-ticker,
+  yt-live-chat-ticker-renderer #items > * > #container.run-ticker,
+  yt-live-chat-ticker-renderer[class] #items[class] > *[class] > #container.run-ticker[class]
+  {
+    background: var(--ticker-bg) !important;
   }
 
 
@@ -3704,29 +3717,6 @@
           } else {
             console.warn(`"container" does not exist in ${cnt.is}`);
           }
-
-          if (container && ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
-            const cProto = cnt.constructor.prototype;
-            if (!('__tickerBackgroundInitialChecked__' in cProto)) {
-              cProto.__tickerBackgroundInitialChecked__ = true;
-              if (runTickerClassName === 'run-ticker') {
-                container.classList.add('run-ticker-test');
-                const evaluated = `${window.getComputedStyle(container).background}`;
-                container.classList.remove('run-ticker-test');
-                if (evaluated.indexOf('0.') < 4) {
-                  // not fulfilling
-                  // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box 
-                  runTickerClassName = 'run-ticker-forced';
-                  console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-                    "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-                    "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-                  );
-                  console.warn(`%cWarning:\n\tYou might have added a userscript or extension that hacks ticker background too.\n\tYouTube Super Fast Chat will override it for you.`, 'color: #bada55');
-                  console.groupEnd();
-                }
-              }
-            }
-          }
         };
 
 
@@ -3822,6 +3812,27 @@
               });
             };
 
+            // cProto._checkTickerBackgroundChanged = doAnimator ? function () {
+            //   if (runTickerClassName === 'run-ticker') {
+            //     const container = (this.$ || 0).container || 0;
+            //     if (!container) return;
+            //     container.classList.add('run-ticker-test');
+            //     const evaluated = `${window.getComputedStyle(container).background}`;
+            //     container.classList.remove('run-ticker-test');
+            //     if (evaluated.indexOf('0.') < 4) {
+            //       // not fulfilling
+            //       // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box 
+            //       runTickerClassName = 'run-ticker-forced';
+            //       console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+            //         "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+            //         "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+            //       );
+            //       console.warn(`%cWarning:\n\tYou might have added a userscript or extension that hacks ticker background too.\n\tYouTube Super Fast Chat will override it for you.`, 'color: #bada55');
+            //       console.groupEnd();
+            //     }
+            //   }
+            // } : null;
+
             cProto._makeAnimator = doAnimator ? function () {
               if (this._r782) return;
               // if (!this.isAttached) return;
@@ -3833,6 +3844,13 @@
                 const c1 = this.colorFromDecimal(da.startBackgroundColor);
                 const c2 = this.colorFromDecimal(da.endBackgroundColor);
                 if (typeof c1 !== 'string' || typeof c2 !== 'string') return console.warn('c1, c2 is not a string');
+
+                // if (!this.__tickerBackgroundInitialChecked__) {
+                //   this.constructor.prototype.__tickerBackgroundInitialChecked__ = true;
+                //   console.log('__tickerBackgroundInitialChecked__')
+                //   this._checkTickerBackgroundChanged();
+                // }
+
                 aElement.style.setProperty('--ticker-c1', c1);
                 aElement.style.setProperty('--ticker-c2', c2);
                 aElement.classList.add(runTickerClassName);
