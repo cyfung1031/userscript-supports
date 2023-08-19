@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.5
+// @version             0.23.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2867,13 +2867,14 @@
       const onRegistryReadyForDOMOperations = () => {
         let firstCheckedOnYtInit = false;
 
+        const assertorURL = () => assertor(() => location.pathname.startsWith('/live_chat') && (location.search.indexOf('continuation=') > 0 || location.search.indexOf('v=') > 0));
+
         const mightFirstCheckOnYtInit = () => {
           if (firstCheckedOnYtInit) return;
           firstCheckedOnYtInit = true;
 
           if (!document.body || !document.head) return;
-
-          if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
+          if (!assertorURL()) return;
 
           addCssManaged();
 
@@ -2882,32 +2883,26 @@
             document.body.appendChild(efsContainer);
           }
 
+        };
 
-        }
-
-        if (!assertor(() => location.pathname.startsWith('/live_chat') && location.search.indexOf('continuation=') >= 0)) return;
+        if (!assertorURL()) return;
         // if (!assertor(() => document.getElementById('yt-masthead') === null)) return;
 
         if (document.documentElement && document.head) {
-
           addCssManaged();
-
         }
         // console.log(document.body===null)
 
         customElements.whenDefined('yt-live-chat-item-list-renderer').then(() => {
 
-
           const tag = "yt-live-chat-item-list-renderer"
           const dummy = document.createElement(tag);
-
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
-
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-item-list-renderer hacks");
