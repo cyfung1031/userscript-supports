@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.1.0
+// @version             2.2.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -72,6 +72,33 @@
 
   function enableAV1() {
 
+
+    // This is the setting to force AV1
+    // localStorage['yt-player-av1-pref'] = '8192';
+    try {
+      Object.defineProperty(localStorage.constructor.prototype, 'yt-player-av1-pref', {
+        get() {
+          if (this === localStorage) return '8192';
+          return this.getItem('yt-player-av1-pref');
+        },
+        set(nv) {
+          this.setItem('yt-player-av1-pref', nv);
+          return true;
+        },
+        enumerable: true,
+        configurable: true
+      });
+    } catch (e) {
+      // localStorage['yt-player-av1-pref'] = '8192';
+    }
+
+    if (localStorage['yt-player-av1-pref'] !== '8192') {
+
+      console.log('Use YouTube AV1 is not supported in your browser.');
+      return;
+    }
+
+
     console.debug("force-youtube-av1", "AV1 enabled");
 
     let firstDa = true;
@@ -114,13 +141,6 @@
     });
 
 
-    // This is the setting to force AV1
-    // localStorage['yt-player-av1-pref'] = '8192';
-    try{
-      Object.defineProperty(localStorage, 'yt-player-av1-pref', { value: '8192', writable: true, enumerable: true, configurable: true });
-    }catch(e){
-      localStorage['yt-player-av1-pref'] = '8192';
-    }
 
     function typeTest(type) {
 
