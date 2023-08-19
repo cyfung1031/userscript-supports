@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.1
+// @version     0.5.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -117,7 +117,7 @@
             keep = true;
             if (typeof value === 'string' && +value > 2) {
               keep = true;
-              value = '4'
+              if (+value > 4) value = '4';
             } else {
               keep = false;
             }
@@ -130,7 +130,7 @@
           } else if (key === 'html5_log_ssdai_fallback_ads' || key === 'html5_deprecate_adservice') {
             keep = false;
           } else {
-
+            if (!key.includes('deprecat')) keep = true;
           }
 
 
@@ -147,15 +147,73 @@
           }
         }
 
-        if (KEEP_PLAYER_QUALITY_STICKY) {
-          if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
+        // if(key.includes('sticky')){
+
+          // console.log(5599,key)
+        // }
+
+        if (key.includes('_timeout') && typeof value === 'string') {
+          const valur = (value, k) => {
+            if (+value === 0) value = k;
+            else if (+value > +k) value = k;
+            return value;
+          }
+          if (key === 'check_navigator_accuracy_timeout_ms') {
+            value = valur(value, '4');
+            keep = true;
+          } else if (key === 'html5_ad_timeout_ms') {
+            value = valur(value, '4');
+            keep = true;
+          } else if (key === 'html5_ads_preroll_lock_timeout_delay_ms') {
+            // value = valur(value, '4');
+            // keep = true;
+            keep = false;
+          } else if (key === 'html5_slow_start_timeout_delay_ms') {
+            value = valur(value, '4');
+            keep = true;
+          } else if (key === 'variable_buffer_timeout_ms') {
+            // value = valur(value, '4');
+            // keep = true;
+            keep = false;
+          } else {
+            if (+value > 3000) value = '3000';
             keep = true;
           }
         }
-        if (!DISABLE_CINEMATICS) {
-          if (key === 'web_cinematic_watch_settings') {
+
+
+        if(KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')){
+
+
+          if(key === 'html5_onesie_sticky_server_side'){
+            keep = false;
+
+          }else if(key ==='html5_perf_cap_override_sticky'){
             keep = true;
+  
+          }else if (key ==='html5_ustreamer_cap_override_sticky'){
+            keep = true;
+
+          
+          }else if(key ==='html5_exponential_memory_for_sticky'){
+            keep = true;
+  
+          }else{
+            keep = true;
+
           }
+
+        }
+
+        if(key.startsWith('h5_expr_')){
+          // by userscript
+          keep = true;
+        } else if(key.includes('deprecat')){
+          keep = false;
+        }
+
+        if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
+          keep = true;
         }
         if (keep) res.push(`${key}=${value}`);
       }
