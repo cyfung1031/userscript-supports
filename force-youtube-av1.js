@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             1.0.9
+// @version             2.0.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -34,13 +34,33 @@
 // @grant               none
 // @run-at              document-start
 // @license             MIT
-// @compatible          chrome
-// @compatible          firefox
-// @compatible          opera
+//
+// @compatible          firefox Violentmonkey
+// @compatible          firefox Tampermonkey
+// @compatible          firefox FireMonkey
+// @compatible          chrome Violentmonkey
+// @compatible          chrome Tampermonkey
+// @compatible          opera Violentmonkey
+// @compatible          opera Tampermonkey
+// @compatible          safari Stay
+// @compatible          edge Violentmonkey
+// @compatible          edge Tampermonkey
+// @compatible          brave Violentmonkey
+// @compatible          brave Tampermonkey
+//
 // @unwrap
 // @allFrames           true
 // @inject-into         page
 // ==/UserScript==
+
+/**
+ * 
+ * CAUTION:
+ *   This script will alter your site preference setting localStorage['yt-player-av1-pref'].
+ *   The modified setting will remain even if you have disabled or uninstalled the script.
+ * 
+ */
+
 
 (function (__Promise__) {
   'use strict';
@@ -57,7 +77,11 @@
 
     // This is the setting to force AV1
     // localStorage['yt-player-av1-pref'] = '8192';
-    Object.defineProperty(localStorage, 'yt-player-av1-pref', { value: '8192', writable: true, enumerable: true, configurable: true });
+    try{
+      Object.defineProperty(localStorage, 'yt-player-av1-pref', { value: '8192', writable: true, enumerable: true, configurable: true });
+    }catch(e){
+      localStorage['yt-player-av1-pref'] = '8192';
+    }
 
     function typeTest(type) {
 

@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 y VP9 en YouTube
 // @description:es      Desactivar AV1 y VP9 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             1.0.3
+// @version             2.0.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -44,71 +44,4 @@
 // @inject-into         page
 // ==/UserScript==
 
-(function () {
-    'use strict';
-  
-    console.debug("disable-youtube-av1-and-vp9", "injected");
-  
-    function disableAV1() {
-  
-      console.debug("disable-youtube-av1-and-vp9", "AV1 disabled");
-  
-  
-      // This is the setting to disable AV1
-      // localStorage['yt-player-av1-pref'] = '-1';
-      Object.defineProperty(localStorage, 'yt-player-av1-pref', { value: '-1', writable: true, enumerable: true, configurable: true });
-  
-      function typeTest(type) {
-  
-  
-        let disallowed_types = ['vp8', 'vp9', 'av1', 'av01', 'vp09'];
-        for (const disallowed_type of disallowed_types) {
-          if (type.includes(disallowed_type)) return false;
-        }
-  
-        let force_allow_types = ['hev1'];
-        for (const force_allow_type of force_allow_types) {
-          if (type.includes(force_allow_type)) return true;
-        }
-  
-      }
-  
-      // return a custom MIME type checker that can defer to the original function
-      function makeModifiedTypeChecker(origChecker) {
-        // Check if a video type is allowed
-        return function (type) {
-          let res = undefined;
-          if (type === undefined) res = false;
-          else {
-            res = typeTest(type);
-          }
-          if (res === undefined) res = origChecker.apply(this, arguments);
-  
-          // console.debug(20, type, res)
-  
-          return res;
-        };
-      }
-  
-      // Override video element canPlayType() function
-      const proto = (HTMLVideoElement || 0).prototype;
-      if (proto && typeof proto.canPlayType == 'function') {
-        proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
-      }
-  
-      // Override media source extension isTypeSupported() function
-      const mse = window.MediaSource;
-      // Check for MSE support before use
-      if (mse && typeof mse.isTypeSupported == 'function') {
-        mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
-      }
-  
-    }
-  
-  
-    disableAV1();
-  
-  
-  
-  
-  })();
+console.log("Disable YouTube AV1 and VP9", "This script is abandoned by the author. Please uninstall it.");
