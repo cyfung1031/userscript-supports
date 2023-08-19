@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.6
+// @version             0.23.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -722,7 +722,7 @@
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
 
-  if (ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
+  if (!!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
 
     let te4 = setTimeout(() => { }); // dummy; skip timerId only;
     if (te4 < 3) {
@@ -796,6 +796,8 @@
   const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && ENABLE_OVERFLOW_ANCHOR_CAPABLE && ENABLE_NO_SMOOTH_TRANSFORM;
   const ENABLE_DELAYED_CHAT_OCCURRENCE = ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED && ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
 
+  let hasTimerModified = null;
+  const DO_CHECK_TICKER_BACKGROUND_OVERRIDED = !!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF || ENABLE_RAF_HACK_TICKERS;
 
   const fxOperator = (proto, propertyName) => {
     let propertyDescriptorGetter = null;
@@ -2669,8 +2671,9 @@
 
             }
 
-            if (isFirstList) {
+            if (isFirstList && DO_CHECK_TICKER_BACKGROUND_OVERRIDED) {
               setTimeout(() => {
+                if (!hasTimerModified) return;
                 const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
                 if (!tickerRenderer) return;
 
@@ -3876,7 +3879,7 @@
 
             }
 
-            const doAnimator = ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && typeof CSS === 'object' && typeof CSS.registerProperty === 'function';
+            const doAnimator = !!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && typeof CSS === 'object' && typeof CSS.registerProperty === 'function';
 
             const doRAFHack = rafHackState === 2;
 
@@ -4187,7 +4190,9 @@
 
             const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
 
-            cProto.startCountdown = (doRAFHack || doAnimator) ? function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+            const doTimerFnModification = (doRAFHack || doAnimator);
+
+            cProto.startCountdown = doTimerFnModification ? function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
 
               // a.durationSec [s] => countdownMs [ms]
               // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
@@ -4241,7 +4246,7 @@
 
             } : cProto.startCountdown;
 
-            cProto.updateTimeout = (doRAFHack || doAnimator) ? function (a) {
+            cProto.updateTimeout = doTimerFnModification ? function (a) {
 
               if (this._r782) return;
 
@@ -4277,7 +4282,7 @@
             } : cProto.updateTimeout;
 
             // let ez = 0;
-            cProto.isAnimationPausedChanged = (doRAFHack || doAnimator) ? function (a, b) {
+            cProto.isAnimationPausedChanged = doTimerFnModification ? function (a, b) {
 
               if (this._r782) return;
 
@@ -4420,7 +4425,9 @@
 
             }
 
-            if (ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
+            if (doTimerFnModification === true) hasTimerModified = true;
+
+            if (!!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
               console.log('ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF', tag, doAnimator ? 'OK' : 'NG');
             }
 
