@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.3.1
+// @version             2.4.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -63,40 +63,14 @@
 
   console.debug("force-youtube-av1", "injected");
 
-  function enableAV1() {
 
 
-    // This is the setting to force AV1
-    // localStorage['yt-player-av1-pref'] = '8192';
-    try {
-      Object.defineProperty(localStorage.constructor.prototype, 'yt-player-av1-pref', {
-        get() {
-          if (this === localStorage) return '8192';
-          return this.getItem('yt-player-av1-pref');
-        },
-        set(nv) {
-          this.setItem('yt-player-av1-pref', nv);
-          return true;
-        },
-        enumerable: true,
-        configurable: true
-      });
-    } catch (e) {
-      // localStorage['yt-player-av1-pref'] = '8192';
-    }
-
-    if (localStorage['yt-player-av1-pref'] !== '8192') {
-
-      console.log('Use YouTube AV1 is not supported in your browser.');
-      return;
-    }
-
-
-    console.debug("force-youtube-av1", "AV1 enabled");
+  const flagConfig = () => {
 
     let firstDa = true;
+    let cid = 0;
     const { setInterval, clearInterval, setTimeout } = window;
-    let cid = setInterval.call(window, () => {
+    const tn = () => {
 
       const da = (window.ytcfg && window.ytcfg.data_) ? window.ytcfg.data_ : null;
       if (!da) return;
@@ -104,13 +78,16 @@
       const isFirstDa = firstDa;
       firstDa = false;
 
-      const EXPERIMENT_FLAGS = da.EXPERIMENT_FLAGS || null;
-      if (EXPERIMENT_FLAGS) {
-        EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
-        EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
-        EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
-        // EXPERIMENT_FLAGS.html5_perf_cap_override_sticky = true;
-        // EXPERIMENT_FLAGS.html5_perserve_av1_perf_cap = true;
+      for (const EXPERIMENT_FLAGS of [da.EXPERIMENT_FLAGS, da.EXPERIMENTS_FORCED_FLAGS]) {
+
+        if (EXPERIMENT_FLAGS) {
+          EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
+          EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
+          EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
+          // EXPERIMENT_FLAGS.html5_perf_cap_override_sticky = true;
+          // EXPERIMENT_FLAGS.html5_perserve_av1_perf_cap = true;
+        }
+
       }
 
       if (isFirstDa) {
@@ -122,7 +99,9 @@
           mo.takeRecords();
           mo = null;
           setTimeout(() => {
-            clearInterval.call(window, cid);
+            cid && clearInterval.call(window, cid);
+            cid = 0;
+            tn();
           })
         });
         mo.observe(document, { subtree: true, childList: true });
@@ -131,13 +110,18 @@
       }
 
 
-    });
+    };
+    cid = setInterval.call(window, tn);
 
+  };
+
+
+  const supportedFormatsConfig = () => {
 
 
     function typeTest(type) {
 
-      if (typeof type ==='string' && type.startsWith('video/')) {
+      if (typeof type === 'string' && type.startsWith('video/')) {
         if (type.includes('av01')) {
           if (/codecs[^\w]+av01\b/.test(type)) return true;
         } else if (type.includes('av1')) {
@@ -177,18 +161,50 @@
       mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
     }
 
+
   }
 
+  function enableAV1() {
 
 
-  function callback(result) {
-
-    if (result && result.supported && result.smooth) enableAV1();
-    else {
-      console.warn("force-youtube-av1", 'Your browser does not support AV1. You might conside to use the latest version of Google Chrome or Mozilla FireFox.');
-
+    // This is the setting to force AV1
+    // localStorage['yt-player-av1-pref'] = '8192';
+    try {
+      Object.defineProperty(localStorage.constructor.prototype, 'yt-player-av1-pref', {
+        get() {
+          if (this === localStorage) return '8192';
+          return this.getItem('yt-player-av1-pref');
+        },
+        set(nv) {
+          this.setItem('yt-player-av1-pref', nv);
+          return true;
+        },
+        enumerable: true,
+        configurable: true
+      });
+    } catch (e) {
+      // localStorage['yt-player-av1-pref'] = '8192';
     }
+
+    if (localStorage['yt-player-av1-pref'] !== '8192') {
+
+      console.warn('Use YouTube AV1 is not supported in your browser.');
+      return;
+    }
+
+
+    console.debug("force-youtube-av1", "AV1 enabled");
+
+
+    flagConfig();
+    supportedFormatsConfig();
+
+
+
   }
+
+
+
 
   let promise = null;
 
@@ -213,7 +229,16 @@
     promise = null;
   }
 
-  (promise || Promise.resolve(0)).then(callback).catch(callback);
+
+  const callback = (result) => {
+
+    if (result && result.supported && result.smooth) enableAV1();
+    else {
+      console.warn("force-youtube-av1", 'Your browser does not support AV1. You might conside to use the latest version of Google Chrome or Mozilla FireFox.');
+    }
+  };
+
+  (promise || Promise.resolve(0)).catch(callback).then(callback);
 
 
 

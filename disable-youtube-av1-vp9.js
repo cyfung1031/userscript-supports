@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 y VP9 en YouTube
 // @description:es      Desactivar AV1 y VP9 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.0.1
+// @version             2.4.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -44,4 +44,155 @@
 // @inject-into         page
 // ==/UserScript==
 
-console.log("Disable YouTube AV1 and VP9", "This script is abandoned by the author. Please uninstall it.");
+
+(function () {
+  'use strict';
+
+  console.debug("disable-youtube-av1-and-vp9", "injected");
+
+
+
+  const flagConfig = () => {
+
+    let firstDa = true;
+    let cid = 0;
+    const { setInterval, clearInterval, setTimeout } = window;
+    const tn = () => {
+
+      const da = (window.ytcfg && window.ytcfg.data_) ? window.ytcfg.data_ : null;
+      if (!da) return;
+
+      const isFirstDa = firstDa;
+      firstDa = false;
+
+      for (const EXPERIMENT_FLAGS of [da.EXPERIMENT_FLAGS, da.EXPERIMENTS_FORCED_FLAGS]) {
+
+        if (EXPERIMENT_FLAGS) {
+          EXPERIMENT_FLAGS.html5_disable_av1_hdr = true;
+          EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = true;
+        }
+
+      }
+
+      if (isFirstDa) {
+
+
+        let mo = new MutationObserver(() => {
+
+          mo.disconnect();
+          mo.takeRecords();
+          mo = null;
+          setTimeout(() => {
+            cid && clearInterval.call(window, cid);
+            cid = 0;
+            tn();
+          })
+        });
+        mo.observe(document, { subtree: true, childList: true });
+
+
+      }
+
+
+    };
+    cid = setInterval.call(window, tn);
+
+  };
+
+  const supportedFormatsConfig = () => {
+
+    function typeTest(type) {
+
+      if (typeof type === 'string' && type.startsWith('video/')) {
+
+        if (type.includes('vp9')) {
+          if (/codecs[^\w]+vp9\b/.test(type)) return false;
+        } else if (type.includes('vp09')) {
+          if (/codecs[^\w]+vp09\b/.test(type)) return false;
+        } else if (type.includes('av01')) {
+          if (/codecs[^\w]+av01\b/.test(type)) return false;
+        } else if (type.includes('av1')) {
+          if (/codecs[^\w]+av1\b/.test(type)) return false;
+        }
+      }
+
+    }
+
+    // return a custom MIME type checker that can defer to the original function
+    function makeModifiedTypeChecker(origChecker) {
+      // Check if a video type is allowed
+      return function (type) {
+        let res = undefined;
+        if (type === undefined) res = false;
+        else {
+          res = typeTest(type);
+        }
+        if (res === undefined) res = origChecker.apply(this, arguments);
+
+        // console.debug(20, type, res)
+
+        return res;
+      };
+    }
+
+    // Override video element canPlayType() function
+    const proto = (HTMLVideoElement || 0).prototype;
+    if (proto && typeof proto.canPlayType == 'function') {
+      proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+    }
+
+    // Override media source extension isTypeSupported() function
+    const mse = window.MediaSource;
+    // Check for MSE support before use
+    if (mse && typeof mse.isTypeSupported == 'function') {
+      mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+    }
+
+  };
+
+  function disableAV1() {
+
+
+
+
+    // This is the setting to disable AV1
+    // localStorage['yt-player-av1-pref'] = '-1';
+    try {
+      Object.defineProperty(localStorage.constructor.prototype, 'yt-player-av1-pref', {
+        get() {
+          if (this === localStorage) return '-1';
+          return this.getItem('yt-player-av1-pref');
+        },
+        set(nv) {
+          this.setItem('yt-player-av1-pref', nv);
+          return true;
+        },
+        enumerable: true,
+        configurable: true
+      });
+    } catch (e) {
+      // localStorage['yt-player-av1-pref'] = '-1';
+    }
+
+    if (localStorage['yt-player-av1-pref'] !== '-1') {
+
+      console.warn('Disable YouTube AV1 and VP9', '"yt-player-av1-pref = -1" is not supported in your browser.');
+      return;
+    }
+
+    console.debug("disable-youtube-av1-and-vp9", "AV1 disabled by yt-player-av1-pref = -1");
+
+
+  }
+
+
+  disableAV1();
+
+  flagConfig();
+  supportedFormatsConfig();
+
+
+
+
+})();
+
