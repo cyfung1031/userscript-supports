@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.2.0
+// @version             2.2.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -53,13 +53,6 @@
 // @inject-into         page
 // ==/UserScript==
 
-/**
- * 
- * CAUTION:
- *   This script will alter your site preference setting localStorage['yt-player-av1-pref'].
- *   The modified setting will remain even if you have disabled or uninstalled the script.
- * 
- */
 
 
 (function (__Promise__) {
