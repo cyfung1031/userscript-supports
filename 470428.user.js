@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.11
+// @version     0.5.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -25,6 +25,7 @@
   const KEEP_PLAYER_QUALITY_STICKY = true; // see https://greasyfork.org/scripts/471033/
   const DISABLE_serializedExperimentIds = true;
   const DISABLE_serializedExperimentFlags = true;
+  const IGNORE_VIDEO_SOURCE_RELATED = true;
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
@@ -108,6 +109,16 @@
         let key = m[2];
         let value = m[3];
         let keep = false;
+        if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
+          if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
+          else if (key === 'fix_h5_toggle_button_a11y') keep = true;
+          else if (key === 'h5_companion_enable_adcpn_macro_substitution_for_click_pings') keep = false;
+          else if (key === 'h5_enable_generic_error_logging_event') keep = false;
+          else if (key === 'h5_enable_unified_csi_preroll') keep = true;
+          else if (key === 'h5_reset_cache_and_filter_before_update_masthead') keep = true;
+          else if (key === 'web_player_enable_premium_hbr_in_h5_api') keep = true;
+          else keep = true;
+        }
         if (KEEP_PLAYER_QUALITY_STICKY) {
           if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
             keep = true;
@@ -315,8 +326,24 @@
             }
           }
 
+          if (key.indexOf('html5_') === 0) {
 
-          if (key.indexOf('kevlar_') >= 0) {
+
+            if (IGNORE_VIDEO_SOURCE_RELATED) {
+              continue;
+            }
+
+            // if(IGNORE_VIDEO_SOURCE_RELATED){
+            //   if(key ==='html5_enable_vp9_fairplay') continue;
+            //   if(key ==='html5_disable_av1_hdr') continue;
+            //   if(key ==='html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported') continue;
+            //   if(key ==='html5_account_onesie_format_selection_during_format_filter') continue;
+            //   if(key ==='html5_prefer_hbr_vp9_over_av1') continue;
+            // }
+
+          } else if (key.indexOf('kevlar_') === 0) {
+
+
             if (kl7 === 2 && kl5 === 2 && kl2 === 1 && kl3 === 1) {
               if (key === 'kevlar_rendererstamper_event_listener') continue; // https://github.com/cyfung1031/userscript-supports/issues/11
             }
@@ -459,7 +486,7 @@
       EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
       EXPERIMENT_FLAGS.web_animated_like = false;
       EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
-  
+
       if (use_maintain_stable_list) {
         if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
           EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
@@ -467,26 +494,26 @@
           EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
         }
       }
-  
+
       if (use_maintain_reuse_components) {
         EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
         EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
         EXPERIMENT_FLAGS.kevlar_should_reuse_components = true; // fallback
       }
-  
+
       if (use_defer_detach) {
         EXPERIMENT_FLAGS.kevlar_tuner_should_defer_detach = true;
       }
-  
+
       // EXPERIMENT_FLAGS.kevlar_prefetch_data_augments_network_data = true; // TBC
-  
+
       EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
       EXPERIMENT_FLAGS.kevlar_clear_duplicate_pref_cookie = true;
       // EXPERIMENT_FLAGS.kevlar_unified_player_clear_watch_next_killswitch = true;
       EXPERIMENT_FLAGS.kevlar_player_playlist_use_local_index = true;
       // EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
       // EXPERIMENT_FLAGS.kevlar_player_update_killswitch = true;
-  
+
       EXPERIMENT_FLAGS.web_secure_pref_cookie_killswitch = true;
       EXPERIMENT_FLAGS.ytidb_clear_optimizations_killswitch = true;
       // EXPERIMENT_FLAGS.defer_overlays = true;
