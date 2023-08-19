@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.22.1
+// @version             0.23.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -39,14 +39,14 @@
 ((__CONTEXT__) => {
   'use strict';
 
-  const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to 25 messages when there are too many unrendered messages
-  const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying 90 messages is already sufficient.
-  const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush 25 latest messages then incrementally added back to 90 messages
+  const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
+  const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient.
+  const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages
 
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
   const USE_WILL_CHANGE_CONTROLLER = false;               // FALSE for the majority
-  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = true;     // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
+  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = true;  // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
@@ -58,10 +58,10 @@
   const FORCE_WILL_CHANGE_UNSET = true;                   // Will-change should be always UNSET (auto) for high performance and low energy impact.
 
   // Replace requestAnimationFrame timers with custom implementation
-  const ENABLE_RAF_HACK_TICKERS = true;         // When there is a ticker
-  const ENABLE_RAF_HACK_DOCKED_MESSAGE = true;  // To be confirmed
-  const ENABLE_RAF_HACK_INPUT_RENDERER = true;  // To be confirmed
-  const ENABLE_RAF_HACK_EMOJI_PICKER = true;    // When changing the page of the emoji picker
+  const ENABLE_RAF_HACK_TICKERS = true;           // When there is a ticker
+  const ENABLE_RAF_HACK_DOCKED_MESSAGE = true;    // To be confirmed
+  const ENABLE_RAF_HACK_INPUT_RENDERER = true;    // To be confirmed
+  const ENABLE_RAF_HACK_EMOJI_PICKER = true;      // When changing the page of the emoji picker
 
   // Force rendering all the character subsets of the designated font(s) before messages come (Pre-Rendering of Text)
   const ENABLE_FONT_PRE_RENDERING_PREFERRED = 1 | 2 | 4 | 8 | 16;
@@ -79,7 +79,7 @@
   const ENABLE_SHOW_MORE_BLINKER = true;                      // BLINK WHEN NEW MESSAGES COME
 
   // faster stampDomArray_ for participants list creation
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL = 1;          // 0 - OFF; 1 - ON; 2 - ON(PARTICIPANTS_LIST ONLY)
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL = 1;            // 0 - OFF; 1 - ON; 2 - ON(PARTICIPANTS_LIST ONLY)
   const USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET = false;
 
   // reuse yt components
@@ -102,16 +102,72 @@
   const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true;     // important [depends on <Group#I01>]
   const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true;  // [depends on <Group#I01>]
 
+  const ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF = 'steps'   // false OR '', 'linear', 'steps'
+  // << if ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF >>
+  // BROWSER SUPPORT: Chrome 75+, Edge 79+, Safari 13.1+, Firefox 63+, Opera 62+
+  const TICKER_MAX_STEPS_LIMIT = 500;                       //  NOT LESS THAN 5 STEPS!!
+  // [limiting 500 max steps] is recommended for "confortable visual change"
+  //      min. step increment 0.2% => max steps: 500 =>  800ms per each update
+  //      min. step increment 0.5% => max steps: 200 => 1000ms per each update
+  //      min. step increment 1.0% => max steps: 100 => 1000ms per each update
+  //      min. step increment 2.5% => max steps:  40 => 1000ms per each update
+  //      min. step increment 5.0% => max steps:  20 => 1250ms per each update
+  const ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX = true;    // for video playback's ticker issue. [ Playback Replay - Pause at Middle - Backwards Seeking ]
+  // << end >>
+
+  // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
+  /*
+
+    ### Time Approach
+
+    // all below values can make the time interval > 250ms
+    // 250ms (practical value) refers to the minimum frequency for timeupdate in most browsers (typically, shorter timeupdate interval in modern browsers)
+    if (totalDuration > 400000) stepInterval = 0.2;  // 400000ms with 0.2% increment => 800ms
+    else if (totalDuration > 200000) stepInterval = 0.5; // 200000ms with 0.5% increment => 1000ms
+    else if (totalDuration > 100000) stepInterval = 1; // 100000ms with 1% increment => 1000ms
+    else if (totalDuration > 50000) stepInterval = 2; // 50000ms with 2% increment => 1000ms
+    else if (totalDuration > 25000) stepInterval = 5; // 25000ms with 5% increment => 1250ms
+    
+    ### Pixel Check
+    // Target Max Pixel Increment < 5px for Short Period Ticker (Rapid Background Change)
+    // Assume total width <= 99px for short period ticker, like small donation & member welcome
+    99px * 5% = 4.95px < 5px [Condition Fulfilled]
+
+    ### Example - totalDuration = 280000
+    totalDuration 280000
+    stepInterval 0.5
+    numOfSteps = Math.round(100 / stepInterval) = 200
+    time interval = 280000 / 200 = 1400ms <acceptable>
+
+    ### Example - totalDuration = 18000
+    totalDuration 18000
+    stepInterval 5
+    numOfSteps = Math.round(100 / stepInterval) = 20
+    time interval = 18000 / 20 = 900ms <acceptable>
+
+    ### Example - totalDuration = 5000
+    totalDuration 5000
+    stepInterval 5
+    numOfSteps = Math.round(100 / stepInterval) = 20
+    time interval = 5000 / 20 = 250ms <threshold value>
+
+    ### Example - totalDuration = 3600
+    totalDuration 3600
+    stepInterval 5
+    numOfSteps = Math.round(100 / stepInterval) = 20
+    time interval = 3600 / 20 = 180ms <reasonable for 3600ms ticker>
+
+  */
 
   // =======================================================================================================
 
   // AUTOMAICALLY DETERMINED
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;                            
-  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;      
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;
+  const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;
 
   // image sizing code
   // (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null)
-  
+
 
 //   function KC(a, b, c, d) {
 //     d = void 0 === d ? "width" : d;
@@ -417,13 +473,23 @@
     }
 
     yt-icon-button#show-more.has-new-messages-miuzp {
-        animation: blinker-miuzp 1.74s linear infinite;      
+        animation: blinker-miuzp 1.74s linear infinite;
     }
 
   `: '';
 
 
   const addCss = () => `
+
+  @property --ticker-rtime {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+  }
+
+  .run-ticker {
+    background:linear-gradient(90deg, var(--ticker-c1),var(--ticker-c1) var(--ticker-rtime),var(--ticker-c2) var(--ticker-rtime),var(--ticker-c2));
+  }
 
   ${cssText8_fonts_pre_render}
 
@@ -542,7 +608,7 @@
     .dont-render {
         /* visibility: collapse !important; */
         /* visibility: collapse will make innerText become "" which conflicts with BetterStreamChat; see https://greasyfork.org/scripts/469878/discussions/197267 */
-        
+
         transform: scale(0.01) !important;
         transform: scale(0.00001) !important;
         transform: scale(0.0000001) !important;
@@ -599,6 +665,16 @@
   const hkey_script = 'mchbwnoasqph';
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
+
+  if (ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
+
+    let te4 = setTimeout(() => { }); // dummy; skip timerId only;
+    if (te4 < 3) {
+      setTimeout(() => { });
+      setTimeout(() => { });
+    }
+
+  }
 
 
   function dr(s) {
@@ -1043,6 +1119,7 @@
       const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+      res.animate = HTMLElement.prototype.animate;
       return res;
     } catch (e) {
       console.warn(e);
@@ -1168,7 +1245,14 @@
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate } = __CONTEXT__;
+
+    let aeConstructor = null;
+
+    // << if ENABLE_VIDEO_PROGRESS_STATE_FIX >>
+    let pairForPauseResume = 0; // each increasion = number of ticker
+    let pairForPauseResumeM = 0;
+    // << end >>
 
     if(flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
 
@@ -2225,6 +2309,8 @@
 
       let sk35zResolveFn = null;
 
+      let firstList = true;
+
       const { setupMutObserver } = (() => {
 
         const mutFn = (items) => {
@@ -2260,6 +2346,8 @@
             });
             mutFn(m2);
 
+            let isFirstList = firstList;
+            firstList = false;
 
             if (ENABLE_OVERFLOW_ANCHOR) {
 
@@ -2293,7 +2381,7 @@
             //     subtree: false
             // })
 
-            if (ENABLE_DELAYED_CHAT_OCCURRENCE) {
+            if (ENABLE_DELAYED_CHAT_OCCURRENCE && isFirstList) {
 
               promiseForCustomYtElementsReady.then(() => {
 
@@ -2419,7 +2507,7 @@
                           "simpleText": "0:43"
                         }
                       };
-       
+
 
                       sk35zResolveFn = null;
                       const deferredMutation = new Promise(resolve => {
@@ -2467,6 +2555,57 @@
                 })
 
               })
+
+            }
+
+
+            if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
+
+              (() => {
+
+                const tag = 'yt-iframed-player-events-relay'
+                const dummy = document.createElement(tag);
+
+                const cProto = getProto(dummy);
+                if (!cProto || !cProto.handlePostMessage_) {
+                  console.warn(`proto.handlePostMessage_ for ${tag} is unavailable.`);
+                  return;
+                }
+
+                if (typeof cProto.handlePostMessage_ === 'function' && !cProto.handlePostMessage66_) {
+
+                  cProto.handlePostMessage66_ = cProto.handlePostMessage_;
+
+                  cProto.handlePostMessage_ = function (a) {
+
+                    const da = (a || 0).data || 0;
+                    if (typeof da === 'object') {
+
+                      // console.log('handlePostMessage_', da)
+                      const qc = da['yt-player-state-change'];
+                      if (qc === 3) { // pause
+                        pairForPauseResume++;
+                        pairForPauseResumeM++;
+                      } else if (qc === 1) { // pause
+                        pairForPauseResume++;
+                        pairForPauseResumeM++;
+                      } else if (qc === 2) {
+                        pairForPauseResume++;
+                        pairForPauseResumeM++;
+                      }
+                      if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
+                      if (pairForPauseResumeM > 1e9) pairForPauseResumeM = pairForPauseResumeM % 1e4;
+                      return this.handlePostMessage66_(a);
+
+                    }
+
+
+                  }
+
+                }
+
+
+              })();
 
             }
 
@@ -3024,7 +3163,7 @@
                   }
 
                 }
-                  
+
                 skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
                 // console.log('ss1', Date.now())
                 if (waitFor.length > 0) {
@@ -3240,7 +3379,7 @@
             let qid = 0;
             mclp.atBottomChanged_ = function (a) {
               let tid = ++qid;
-              var b = this;
+              let b = this;
               a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
                 if (tid !== qid) return;
                 U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
@@ -3496,31 +3635,38 @@
               let ratio2 = ratio1;
 
               const ydd = yd.data;
-              const d1 = ydd.durationSec;
-              const d2 = ydd.fullDurationSec;
+              if (ydd) {
 
-              if (d1 === d2 && d1 > 1) {
+                const d1 = ydd.durationSec;
+                const d2 = ydd.fullDurationSec;
 
-                if (d1 > 400) ratio2 = Math.round(ratio2 * 5) / 5; // 0.2%
-                else if (d1 > 200) ratio2 = Math.round(ratio2 * 2) / 2; // 0.5%
-                else if (d1 > 100) ratio2 = Math.round(ratio2 * 1) / 1; // 1%
-                else if (d1 > 50) ratio2 = Math.round(ratio2 * 0.5) / 0.5; // 2%
-                else if (d1 > 25) ratio2 = Math.round(ratio2 * 0.2) / 0.2; // 5% (max => 99px * 5% = 4.95px)
-                else ratio2 = Math.round(ratio2 * 0.2) / 0.2;
+                // @ step timing [min. 0.2%]
+                let numOfSteps = 500;
+                if ((d1 === d2 || (d1 + 1 === d2)) && d1 > 1) {
+                  if (d2 > 400) numOfSteps = 500; // 0.2%
+                  else if (d2 > 200) numOfSteps = 200; // 0.5%
+                  else if (d2 > 100) numOfSteps = 100; // 1%
+                  else if (d2 > 50) numOfSteps = 50; // 2%
+                  else if (d2 > 25) numOfSteps = 20; // 5% (max => 99px * 5% = 4.95px)
+                  else numOfSteps = 20;
+                }
+                if (numOfSteps > TICKER_MAX_STEPS_LIMIT) numOfSteps = TICKER_MAX_STEPS_LIMIT;
+                if (numOfSteps < 5) numOfSteps = 5;
 
-              } else {
-                ratio2 = Math.round(ratio2 * 5) / 5; // 0.2% (min)
+                const rd = numOfSteps / 100.0;
+
+                ratio2 = Math.round(ratio2 * rd) / rd;
+
+                // ratio2 = Math.round(ratio2 * 5) / 5;
+                ratio2 = ratio2.toFixed(1);
+                v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
+
+                if (yd.__style_last__ === v) return;
+                yd.__style_last__ = v;
+                // do not consider any delay here.
+                // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
+
               }
-
-              // ratio2 = Math.round(ratio2 * 5) / 5;
-              ratio2 = ratio2.toFixed(1);
-              v = v.replace(`${ratio1}%`, `${ratio2}%`).replace(`${ratio1}%`, `${ratio2}%`);
-
-              if (yd.__style_last__ === v) return;
-              yd.__style_last__ = v;
-              // do not consider any delay here.
-              // it shall be inside the looping for all properties changes. all the css background ops are in the same microtask.
-
             }
 
             HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
@@ -3547,6 +3693,7 @@
           }
         };
 
+
         const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
           "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
 
@@ -3556,6 +3703,11 @@
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
           console.log("[Begin]");
+
+          // << if ENABLE_VIDEO_PROGRESS_STATE_FIX >>
+          let isMainVideoOngoing = null;
+          let mainVideoLastProgress = null;
+          // << end >>
 
           for (const tag of tags) {
             const dummy = document.createElement(tag);
@@ -3579,64 +3731,563 @@
               }
             }
 
+
+            let rafHackState = 0;
+
+            let isTimingFunctionHackable = false;
+
+            let urt = 0;
+
+            if (typeof cProto.startCountdown === 'function' && typeof cProto.updateTimeout === 'function' && typeof cProto.isAnimationPausedChanged === 'function') {
+
+              // console.log('startCountdown', typeof cProto.startCountdown)
+              // console.log('updateTimeout', typeof cProto.updateTimeout)
+              // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
+
+              isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
+
+            } else {
+              console.log(`Skip Timing Function Modification for ${tag}`);
+              continue;
+            }
+
+
             if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
 
               // cancelable - this.rafId < isAnimationPausedChanged >
+              rafHackState = 1;
 
-              let doHack = false;
+              if (isTimingFunctionHackable) {
+                rafHackState = 2;
 
-              if (typeof cProto.startCountdown === 'function' && typeof cProto.updateTimeout === 'function' && typeof cProto.isAnimationPausedChanged === 'function') {
-
-                console.log('startCountdown', typeof cProto.startCountdown)
-                console.log('updateTimeout', typeof cProto.updateTimeout)
-                console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
-
-                doHack = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
-
+              } else {
+                rafHackState = 4;
               }
-              if (doHack) {
 
-                cProto.startCountdown = function (a, b) {
-                  // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
-                  if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-                  b = void 0 === b ? 0 : b;
-                  void 0 !== a && (this.countdownMs = 1E3 * a,
-                    this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
-                    this.ratio = 1,
-                    this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = performance.now(),
-                      this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
+            }
+
+            const doAnimator = ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && typeof CSS === 'object' && typeof CSS.registerProperty === 'function';
+
+            const doRAFHack = rafHackState === 2;
+
+            cProto._throwOut = function () {
+              this._r782 = 1;
+              Promise.resolve().then(() => {
+                this.detached();
+                this.data = null;
+                if (this.__dataClientsReady === true) this.__dataClientsReady = false;
+                if (this.__dataEnabled === true) this.__dataEnabled = false;
+                if (this.__dataReady === true) this.__dataReady = false;
+                const hm = this.hostElement || this;
+                if (hm.parentNode) hm.remove();
+                if (hm.firstChild) hm.textContent = '';
+              }).catch(e => {
+                console.warn(e);
+              });
+            };
+
+            cProto._makeAnimator = doAnimator ? function () {
+              if (this._r782) return;
+              // if (!this.isAttached) return;
+              if (!this._runnerAE) {
+                const aElement = (this.$ || 0).container;
+                if (!aElement) return console.warn("this.$.container is undefined");
+                const da = this.data;
+                if (!da || !da.startBackgroundColor || !da.endBackgroundColor) return console.warn("this.data is undefined or incorrect");
+                const c1 = this.colorFromDecimal(da.startBackgroundColor);
+                const c2 = this.colorFromDecimal(da.endBackgroundColor);
+                if (typeof c1 !== 'string' || typeof c2 !== 'string') return console.warn('c1, c2 is not a string');
+                aElement.style.setProperty('--ticker-c1', c1);
+                aElement.style.setProperty('--ticker-c2', c2);
+                aElement.classList.add('run-ticker');
+                const p = (this.countdownMs / this.countdownDurationMs) * 100;
+                // this._aeStartV = this.countdownMs;
+                // this._aeStartT = this.countdownDurationMs;
+                if (!(p >= 0 && p <= 100)) {
+                  console.warn('incorrect time ratio', p);
+                } else {
+                  /*
+                  const u0 = p.toFixed(4) + '%';
+                  this._runnerAE = animate.call(aElement,
+                    [
+                      { '--ticker-rtime': u0 },
+                      { '--ticker-rtime': '0%' }
+                    ]
+                    ,
+                    {
+                      fill: "forwards",
+                      duration: this.countdownMs,
+                      easing: "linear"
+                    }
+                  );
+                  */
+
+                  let timingFn = 'linear';
+
+                  const totalDuration = this.countdownDurationMs;
+
+                  if (ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF === 'steps') {
+
+                    // @ step timing [min. 0.2%]
+                    let stepInterval = 0.2; // unit: %
+                    if (totalDuration > 400000) stepInterval = 0.2;
+                    else if (totalDuration > 200000) stepInterval = 0.5;
+                    else if (totalDuration > 100000) stepInterval = 1;
+                    else if (totalDuration > 50000) stepInterval = 2;
+                    else if (totalDuration > 25000) stepInterval = 5;
+                    else stepInterval = 5;
+
+                    let numOfSteps = Math.round(100 / stepInterval);
+
+                    if (numOfSteps > TICKER_MAX_STEPS_LIMIT) numOfSteps = TICKER_MAX_STEPS_LIMIT;
+                    if (numOfSteps < 5) numOfSteps = 5;
+
+                    timingFn = `steps(${numOfSteps}, end)`;
+
+                  }
+
+
+
+                  this._runnerAE = animate.call(aElement,
+                    [
+                      { '--ticker-rtime': '100%' },
+                      { '--ticker-rtime': '0%' }
+                    ]
+                    ,
+                    {
+                      fill: "forwards",
+                      duration: totalDuration,
+                      easing: timingFn
+                    }
+                  );
+
+                  this._runnerAE.onfinish = () => {
+                    if (this.isAttached === true && !this._r782 && ((this.$ || 0).container || 0).isConnected === true) {
+                      this._aeFinished();
+                    }
+                  }
+
+                  let bq = (1.0 - (this.countdownMs / totalDuration)) * totalDuration;
+                  if (bq >= 0 && bq <= totalDuration) {
+
+                    this._runnerAE.currentTime = bq
+                  } else {
+                    console.warn('Error on setting _runnerAE.currentTime!');
+                  }
+
+
+                  aeConstructor = this._runnerAE.constructor; // constructor is from iframe
+                  return this._runnerAE;
+                }
+              } else {
+                if (!aeConstructor) return console.warn('aeConstructor is undefined');
+                // assume just time update
+                const ae = this._runnerAE;
+                if (!(ae instanceof aeConstructor)) return console.warn('this._runnerAE is not Animation');
+                if (ae.playState !== 'paused') console.warn('ae.playState !== paused');
+                let p = (this.countdownMs / this.countdownDurationMs) * 100;
+                if (!(p >= 0 && p <= 100)) {
+                  console.warn('incorrect time ratio', p);
+                } else {
+                  // let u0 = p.toFixed(4) + '%'
+                  /*
+                  ae.effect.setKeyframes([
+                    { '--ticker-rtime': u0 },
+                    { '--ticker-rtime': '0%' }
+                  ]);
+                  ae.effect.updateTiming({ duration: this.countdownMs });
+                  */
+                  // ae.currentTime = 0;
+
+
+
+                  let bq = (1.0 - (this.countdownMs / this.countdownDurationMs)) * this.countdownDurationMs;
+                  if (bq >= 0 && bq <= this.countdownDurationMs) {
+
+                    this._runnerAE.currentTime = bq
+                  } else {
+                    console.warn('Error on setting _runnerAE.currentTime!');
+                  }
+
+
+                  ae.play();
+                  return ae;
+                }
+              }
+            } : null;
+
+            cProto._aeFinished = doAnimator ? function () {
+
+              if (this._r782) return;
+
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
+
+              if (doAnimator) {
+                if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
+
+                let lc = window.performance.now();
+                this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
+                if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+                this.lastCountdownTimeMs = lc;
+                if (this.countdownMs > 10) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs); // just warning.
+
+                this.countdownMs = 0;
+                (this.lastCountdownTimeMs = null,
+                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                    this.slideDown()));
+
+
+              } else {
+                console.warn('unexpected issue')
+              }
+            } : null;
+
+
+            if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
+
+              if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
+                urt++;
+                assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
+                cProto.handlePauseReplay66 = cProto.handlePauseReplay;
+                cProto.handlePauseReplay = function () {
+                  if (this.isAttached) {
+
+                    if (pairForPauseResumeM === 0) {
+                      pairForPauseResume++;
+                      if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
+                    }
+                    // console.log('handlePauseReplay');
+                    // console.log('handlePauseReplay', pairForPauseResume);
+                    const r = this.handlePauseReplay66.apply(this, arguments);
+                    isMainVideoOngoing = false;
+                    return r;
+                  }
                 };
+              } else {
+                console.log('Error for setting cProto.handlePauseReplay', tag)
+              }
 
-                cProto.updateTimeout = function (a) {
-                  // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
-                  if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-                  this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-                  this.ratio = this.countdownMs / this.countdownDurationMs;
-                  this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
-                    this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = null,
-                      this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                        this.slideDown()))
+              if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handlePauseReplay.length === 0) {
+                urt++;
+                assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
+                cProto.handleResumeReplay66 = cProto.handleResumeReplay;
+                cProto.handleResumeReplay = function () {
+                  if (this.isAttached) {
+
+                    if (pairForPauseResumeM === 0) {
+                      pairForPauseResume++;
+                      if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
+                    }
+                    // console.log('handleResumeReplay');
+                    // console.log('handleResumeReplay', pairForPauseResume);
+                    const r = this.handleResumeReplay66.apply(this, arguments);
+                    isMainVideoOngoing = true;
+                    return r;
+
+                  }
                 };
+              } else {
+                console.log('Error for setting cProto.handleResumeReplay', tag)
+              }
 
-                cProto.isAnimationPausedChanged = function (a, b) {
+              if (typeof cProto.handleReplayProgress === 'function' && !cProto.handleReplayProgress66 && cProto.handleReplayProgress.length === 1) {
+                urt++;
+                assertor(() => fnIntegrity(cProto.handleReplayProgress, '1.16.13'));
+                cProto.handleReplayProgress66 = cProto.handleReplayProgress;
+                cProto.handleReplayProgress = function (a) {
+                  if (this.isAttached) {
+                    const p = mainVideoLastProgress;
+                    mainVideoLastProgress = a;
+                    if (isMainVideoOngoing === false) { // ignore isMainVideoOngoing === null ?
+                      const d = a - p;
+                      if (d > 0 && d < 0.28) isMainVideoOngoing = true; // timeupdate
+                      // 0.28 is due to
+                      //    - most browsers will fire the timeupdate event between 4 to 60 times per second
+                      //    - i.e. timeupdate roughly every 15-250 milliseconds
+                    }
+                    let promiseResult = null;
+                    if (this.isAnimationPaused) {
+                      // unstable state for isMainVideoOngoing; delay required
+                      // all the tickers' handleReplayProgress are executed in the same microtask
+                      // execute after result returned
+                      const lz1 = pairForPauseResume;
+                      Promise.resolve().then(() => {
+                        return promiseResult
+                      }).then(() => {
+
+
+                        if (isMainVideoOngoing === true && this.isAnimationPaused) {
+                          const lz2 = pairForPauseResume;
+                          // console.log( 10044000, lz1, lz2 , mainVideoLastProgress - a, isMainVideoOngoing  )
+                          if (lz1 === lz2 && mainVideoLastProgress !== null && mainVideoLastProgress - a >= -1e-5) this.isAnimationPaused = false; // trigger isAnimationPausedChanged
+                        }
+
+                      });
+                    }
+
+                    const lq1 = pairForPauseResume;
+                    promiseResult = Promise.resolve().then(() => {
+                      const lq2 = pairForPauseResume;
+
+                      if (lq1 === lq2) {
+                        this.handleReplayProgress66(a);
+                      }
+
+
+                    })
+
+                  }
+                };
+              } else {
+                console.log('Error for setting cProto.handleReplayProgress', tag)
+              }
+
+            }
+
+            const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
+
+            cProto.startCountdown = (doRAFHack || doAnimator) ? function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+
+              // a.durationSec [s] => countdownMs [ms]
+              // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+              // lastCountdownTimeMs => raf ongoing
+              // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
+
+              if (this._r782) return;
+
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
+
+              if (doAnimator) {
+                b = void 0 === b ? 0 : b;
+                if (void 0 !== a) {
+                  this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
+                  this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
+                  if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
+                    this.lastCountdownTimeMs = performance.now()
+                    this.rafId = 1
+                    if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
+                    this.detlaSincePausedSecs = 0;
+                    const ae = this._makeAnimator();
+                    if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+
+                    // console.log(539, isMainVideoOngoing)
+                    if (this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
+                      // << This is mainly for [PlayBack Replay] backwards >>
+                      // fix the case when the main video is paused but due to seeking the tickers are added
+                      // play first then pause immediately to allow the visual effect of initial state
+                      // don't forget to set the "playerProgressSec"
+                      // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
+                      this.playerProgressSec = mainVideoLastProgress; // save the progress first
+                      this.isAnimationPaused = true; // trigger isAnimationPausedChanged
+                      this.detlaSincePausedSecs = 0;
+                      this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
+                    }
+                  }
+                }
+              } else {
+                // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
+                if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+                b = void 0 === b ? 0 : b;
+                void 0 !== a && (this.countdownMs = 1E3 * a,
+                  this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
+                  this.ratio = 1,
+                  this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = performance.now(),
+                    this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
+              }
+
+            } : cProto.startCountdown;
+
+            cProto.updateTimeout = (doRAFHack || doAnimator) ? function (a) {
+
+              if (this._r782) return;
+
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
+
+              if (doAnimator) {
+                if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+                if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+                if (this.isAttached && this.countdownMs) {
+                  this.lastCountdownTimeMs = a
+                  const ae = this._makeAnimator(); // request raf
+                  if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+                } else {
+                  (this.lastCountdownTimeMs = null,
+                    this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                      this.slideDown()));
+                }
+              } else {
+                // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
+                if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+                this.ratio = this.countdownMs / this.countdownDurationMs;
+                this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
+                  this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = null,
+                    this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                      this.slideDown()))
+              }
+
+            } : cProto.updateTimeout;
+
+            // let ez = 0;
+            cProto.isAnimationPausedChanged = (doRAFHack || doAnimator) ? function (a, b) {
+
+              if (this._r782) return;
+
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
+              let forceNoDetlaSincePausedSecs783 = this._forceNoDetlaSincePausedSecs783;
+              this._forceNoDetlaSincePausedSecs783 = 0;
+
+              Promise.resolve().then(() => {
+
+                if (doAnimator) {
+
+                  const playState = (this._runnerAE || 0).playState;
+                  if (a && playState === 'running') {
+
+                  } else if (!a && playState !== 'running' && b) {
+
+                  } else {
+                    return;
+                  }
+                }
+
+                // if (Math.abs(this.detlaSincePausedSecs) < 0.01) this.detlaSincePausedSecs = 0;
+                if (doAnimator) {
+                  const pu = () => { // running -> pause
+                    this._runnerAE.pause()
+                    let lc = window.performance.now();
+                    this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
+                    if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+                    this.lastCountdownTimeMs = lc;
+                  };
+                  const wa = () => { // pause -> running
+                    if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
+                    a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
+                    this.detlaSincePausedSecs = 0;
+                    this.updateTimeout(a);
+                    this.lastCountdownTimeMs = window.performance.now();
+                  };
+                  a ? (this._runnerAE && pu()) : (!a && b && wa());
+                } else {
+                  // ez++;
+                  // if(ez> 1e9) ez=9;
                   if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
                   a ? rafHub.cancel(this.rafId) : !a && b && (a = this.lastCountdownTimeMs || 0,
                     this.detlaSincePausedSecs && (a = (this.lastCountdownTimeMs || 0) + 1E3 * this.detlaSincePausedSecs,
                       this.detlaSincePausedSecs = 0),
                     this.boundUpdateTimeout37_(a),
                     this.lastCountdownTimeMs = window.performance.now())
-                };
+                }
 
-                console.log('RAF_HACK_TICKERS', tag, "OK")
-              } else if (tag === 'yt-live-chat-ticker-renderer') {
+              }).catch(e => {
+                console.log(e);
+              });
 
-                // no timer function to be set on yt-live-chat-ticker-renderer
 
-              } else {
 
-                console.log('RAF_HACK_TICKERS', tag, "NG")
+            } : cProto.isAnimationPausedChanged;
+
+
+            if (doAnimator) {
+
+              assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.81.31'));
+
+              let dummyValueForStyleReturn = null;
+
+              cProto.computeContainerStyle66 = cProto.computeContainerStyle;
+              cProto.computeContainerStyle = function (a, b) {
+
+                if (this._r782) return;
+
+                if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                  this._throwOut();
+                  return;
+                }
+
+                const fullDurationSec = a ? a.fullDurationSec : 0;
+                if (fullDurationSec > 0 && typeof b === 'number') {
+
+                  // usually zero
+
+                  // let currentDuationSrc = b * fullDurationSec; // a.durationSec
+
+                  // console.log(231, fullDurationSec, b, currentDuationSrc, a.durationSec);
+
+                  /*
+                  if (a.mdsz && typeof a.mdst) return a.mdst;
+                  a.mdsz = 1;
+
+
+
+                  let c1 = this.colorFromDecimal(a.startBackgroundColor);
+                  let c2 = this.colorFromDecimal(a.endBackgroundColor);
+
+                  let ratio = currentDuationSrc / fullDurationSec;
+
+                  let m = (ratio * 100).toFixed(1);
+
+
+                  let s = `--background:linear-gradient(90deg, ${c1},${c1} ${m}%,${c2} ${m}%,${c2});`
+                  let ro = {
+                    "privateDoNotAccessOrElseSafeStyleWrappedValue_": s,
+                    "implementsGoogStringTypedString": true
+                  };
+
+                  ro.getTypedStringValue = ro.toString = function () { return this.privateDoNotAccessOrElseSafeStyleWrappedValue_ };
+
+                  a.mdst = s;
+
+                  return ro;
+                  */
+                }
+
+
+
+                // return this.computeContainerStyle66.apply(this, arguments);
+
+                if (dummyValueForStyleReturn === null) {
+
+                  let s = `--nx:82;`
+                  let ro = {
+                    "privateDoNotAccessOrElseSafeStyleWrappedValue_": s,
+                    "implementsGoogStringTypedString": true
+                  };
+
+                  ro.getTypedStringValue = ro.toString = function () { return this.privateDoNotAccessOrElseSafeStyleWrappedValue_ };
+
+
+                  dummyValueForStyleReturn = ro;
+
+
+                }
+
+
+                return dummyValueForStyleReturn;
+
+
               }
 
+            }
+
+            if (ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF) {
+              console.log('ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF', tag, doAnimator ? 'OK' : 'NG');
+            }
+
+            if (!doAnimator && (rafHackState === 2 || rafHackState === 4)) {
+              console.log('RAF_HACK_TICKERS', tag, doRAFHack ? "OK" : "NG");
             }
 
           }
@@ -3644,7 +4295,7 @@
           console.groupEnd();
 
 
-        })
+        });
 
 
         if (ENABLE_RAF_HACK_INPUT_RENDERER && rafHub !== null) {
@@ -3814,24 +4465,25 @@
               if (doHack) {
 
                 cProto.checkIntersections = function () {
-                  console.log('cProto.checkIntersections', tag)
+                  // console.log('cProto.checkIntersections', tag)
                   if (this.dockableMessages.length) {
                     this.intersectRAF = rafHub.request(this.boundCheckIntersections);
-                    var a = this.dockableMessages[0]
+                    let a = this.dockableMessages[0]
                       , b = this.hostElement.getBoundingClientRect();
                     a = a.getBoundingClientRect();
-                    var c = a.top - b.top
+                    let c = a.top - b.top
                       , d = 8 >= c;
                     c = 8 >= c - this.hostElement.clientHeight;
                     if (d) {
-                      for (var e; d;) {
+                      let e;
+                      for (; d;) {
                         e = this.dockableMessages.shift();
                         d = this.dockableMessages[0];
                         if (!d)
                           break;
                         d = d.getBoundingClientRect();
                         c = d.top - b.top;
-                        var f = 8 >= c;
+                        let f = 8 >= c;
                         if (8 >= c - a.height)
                           if (f)
                             a = d;
@@ -3895,15 +4547,9 @@
                 cProto.thumbnailChanged66_ = cProto.thumbnailChanged_;
                 cProto.thumbnailChanged_ = function (a) {
 
-                  if (this.oldThumbnail_) {
+                  if (this.oldThumbnail_ && this.thumbnail && this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
+                  if (!this.oldThumbnail_ && !this.thumbnail) return;
 
-                    /*
-                    console.log('old', this.oldThumbnail_.thumbnails)
-                    console.log('new', this.thumbnail.thumbnails)
-                    console.log(3466, this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails)
-                    */
-                    if (this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
-                  }
                   return this.thumbnailChanged66_.apply(this, arguments)
 
                 }
@@ -3993,7 +4639,7 @@
 
                       if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
 
-                        var c = exisiting;
+                        let c = exisiting;
                         if ("MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge) {
                           if (c.icon !== "yt-sys-icons:shield-filled") c.icon = "yt-sys-icons:shield-filled";
                           if (c.defaultToFilled !== true) c.defaultToFilled = true;
@@ -4003,26 +4649,26 @@
                           if (c.defaultToFilled !== false) c.defaultToFilled = false;
                         }
                         return;
-                          
-                         
+
+
                       } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
 
-                        var c = exisiting;
+                        let c = exisiting;
                         if(a.customThumbnail.thumbnails.map(e=>e.url).includes(c.src)){
 
                           c.setAttribute("alt", this.hostElement.ariaLabel || "");
                           return;
                         }
                         /*
-                        
+
                         var d;
                         (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
-                          
+
 
                           c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail", a.customThumbnail))
                           */
                       }
- 
+
 
                     }
                   }
@@ -4045,7 +4691,7 @@
 
           });
 
-          
+
         }
 
 
