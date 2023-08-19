@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.2
+// @version             0.23.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -97,7 +97,7 @@
 
   const FIX_SETSRC_AND_THUMBNAILCHANGE_ = true;       // Function Replacement for yt-img-shadow....
   const FIX_THUMBNAIL_DATACHANGED = true;             // Function Replacement for yt-live-chat-author-badge-renderer..dataChanged
-  const REMOVE_PRELOADAVATARFORADDACTION = true;      // Function Replacement for yt-live-chat-renderer..preloadAvatarForAddAction
+  // const REMOVE_PRELOADAVATARFORADDACTION = false;      // Function Replacement for yt-live-chat-renderer..preloadAvatarForAddAction
 
   const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true;     // important [depends on <Group#I01>]
   const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true;  // [depends on <Group#I01>]
@@ -127,7 +127,7 @@
     else if (totalDuration > 100000) stepInterval = 1; // 100000ms with 1% increment => 1000ms
     else if (totalDuration > 50000) stepInterval = 2; // 50000ms with 2% increment => 1000ms
     else if (totalDuration > 25000) stepInterval = 5; // 25000ms with 5% increment => 1250ms
-    
+
     ### Pixel Check
     // Target Max Pixel Increment < 5px for Short Period Ticker (Rapid Background Change)
     // Assume total width <= 99px for short period ticker, like small donation & member welcome
@@ -1782,6 +1782,9 @@
         function dummy411(a, b, c) { }
 
 
+        /*
+         // removed due to https://greasyfork.org/scripts/469878/discussions/197781
+         // cProto.preloadAvatarForAddAction should not be changed.
         if (REMOVE_PRELOADAVATARFORADDACTION) {
 
           customElements.whenDefined("yt-live-chat-renderer").then(() => {
@@ -1824,6 +1827,7 @@
           });
 
         }
+        */
 
 
         customElements.whenDefined("yt-live-chat-participant-list-renderer").then(() => {
@@ -3821,7 +3825,7 @@
             //     container.classList.remove('run-ticker-test');
             //     if (evaluated.indexOf('0.') < 4) {
             //       // not fulfilling
-            //       // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box 
+            //       // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
             //       runTickerClassName = 'run-ticker-forced';
             //       console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
             //         "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
