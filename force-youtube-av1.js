@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.0.1
+// @version             2.1.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -73,6 +73,45 @@
   function enableAV1() {
 
     console.debug("force-youtube-av1", "AV1 enabled");
+
+    let firstDa = true;
+    const { setInterval, clearInterval, setTimeout } = window;
+    let cid = setInterval.call(window, () => {
+
+      const da = (window.ytcfg && window.ytcfg.data_) ? window.ytcfg.data_ : null;
+      if (!da) return;
+
+      const isFirstDa = firstDa;
+      firstDa = false;
+
+      const EXPERIMENT_FLAGS = da.EXPERIMENT_FLAGS || null;
+      if (EXPERIMENT_FLAGS) {
+        EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
+        EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
+        EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
+        // EXPERIMENT_FLAGS.html5_perf_cap_override_sticky = true;
+        // EXPERIMENT_FLAGS.html5_perserve_av1_perf_cap = true;
+      }
+
+      if (isFirstDa) {
+
+
+        let mo = new MutationObserver(() => {
+
+          mo.disconnect();
+          mo.takeRecords();
+          mo = null;
+          setTimeout(() => {
+            clearInterval.call(window, cid);
+          })
+        });
+        mo.observe(document, { subtree: true, childList: true });
+
+
+      }
+
+
+    });
 
 
     // This is the setting to force AV1
