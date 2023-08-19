@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.3.0
+// @version             2.3.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -137,7 +137,7 @@
 
     function typeTest(type) {
 
-      if (type.startsWith('video/')) {
+      if (typeof type ==='string' && type.startsWith('video/')) {
         if (type.includes('av01')) {
           if (/codecs[^\w]+av01\b/.test(type)) return true;
         } else if (type.includes('av1')) {
