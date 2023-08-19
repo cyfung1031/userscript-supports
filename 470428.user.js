@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.0
+// @version     0.5.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -109,7 +109,32 @@
         let key = m[2];
         let value = m[3];
         let keep = false;
-        if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
+
+
+        if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
+
+          if (key === 'html5_skip_slow_ad_delay_ms') {
+            keep = true;
+            if (typeof value === 'string' && +value > 2) {
+              keep = true;
+              value = '4'
+            } else {
+              keep = false;
+            }
+          } else if (key === 'html5_player_preload_ad_fix') {
+            keep = true;
+          } else if (key.includes('_ad_') || key.includes('_ads_')) {
+            keep = false;
+          } else if (key === 'html5_ssdai_adfetch_dynamic_timeout_ms') {
+            keep = false;
+          } else if (key === 'html5_log_ssdai_fallback_ads' || key === 'html5_deprecate_adservice') {
+            keep = false;
+          } else {
+
+          }
+
+
+        } else if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
           if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
           else if (key === 'fix_h5_toggle_button_a11y') keep = true;
           else if (key === 'h5_companion_enable_adcpn_macro_substitution_for_click_pings') keep = false;
@@ -117,8 +142,11 @@
           else if (key === 'h5_enable_unified_csi_preroll') keep = true;
           else if (key === 'h5_reset_cache_and_filter_before_update_masthead') keep = true;
           else if (key === 'web_player_enable_premium_hbr_in_h5_api') keep = true;
-          else keep = true;
+          else {
+            if (!key.includes('deprecat')) keep = true;
+          }
         }
+
         if (KEEP_PLAYER_QUALITY_STICKY) {
           if (key === 'html5_exponential_memory_for_sticky' || key.startsWith('h5_expr_')) {
             keep = true;
