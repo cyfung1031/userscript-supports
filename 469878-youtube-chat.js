@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.3
+// @version             0.23.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -416,8 +416,8 @@
         contain: strict;
         display: block;
 
-        user-select: none !important;
         pointer-events: none !important;
+        user-select: none !important;
     }
 
     elzm-fonts[id]#elzm-fonts-yk75g {
@@ -514,6 +514,33 @@
   yt-live-chat-ticker-renderer[class] #items[class] > *[class] > #container.run-ticker[class]
   {
     background: var(--ticker-bg) !important;
+  }
+
+  yt-live-chat-ticker-dummy777-item-renderer {
+    background: #00000001;
+  }
+
+  yt-live-chat-ticker-dummy777-item-renderer[dummy777] {
+    position: fixed !important;
+    top: -1000px !important;
+    left: -1000px !important;
+    font-size: 1px !important;
+    color: transparent !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+    contain: strict !important;
+    box-sizing: border-box !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    max-width: 1px !important;
+    max-height: 1px !important;
+    overflow: hidden !important;
+    visibility: collapse !important;
+    display: none !important;
+  }
+
+  yt-live-chat-ticker-dummy777-item-renderer #container {
+    background: inherit;
   }
 
 
@@ -631,7 +658,7 @@
         }
     }
 
-    .dont-render {
+    .dont-render[class] {
         /* visibility: collapse !important; */
         /* visibility: collapse will make innerText become "" which conflicts with BetterStreamChat; see https://greasyfork.org/scripts/469878/discussions/197267 */
 
@@ -650,6 +677,9 @@
         height: 0.000001px !important;
 
         animation: dontRenderAnimation 1ms linear 80ms 1 normal forwards !important;
+
+        pointer-events: none !important;
+        user-select: none !important;
 
     }
 
@@ -2639,6 +2669,61 @@
 
             }
 
+            if (isFirstList) {
+              setTimeout(() => {
+                const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
+                if (!tickerRenderer) return;
+
+                const items = (tickerRenderer.$ || 0).items || 0;
+                if (!items) return;
+                const template = document.createElement('template');
+                template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
+                modern="" aria-label="¥1,000" role="button" tabindex="0" id="Chw777" style="width: 94px; overflow: hidden;"
+                dimmed="" [dummy777]>
+                <div id="container" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer"
+                  style="--background:linear-gradient(90deg, rgba(1,2,3,1),rgba(1,2,3,1) 7%,rgba(4,0,0,1) 7%,rgba(4,0,0,1));">
+                  <div id="content" class="style-scope yt-live-chat-ticker-dummy777-item-renderer" style="color: rgb(255, 255, 255);">
+                    <yt-img-shadow777 id="author-photo" height="24" width="24"
+                      class="style-scope yt-live-chat-ticker-dummy777-item-renderer no-transition"
+                      style="background-color: transparent;" loaded=""><img id="img"
+                        draggable="false" class="style-scope yt-img-shadow" alt="I" height="24" width="24"
+                        src="data:image/webp;base64,UklGRjAB"></yt-img-shadow777>
+              
+                    <span id="text" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer">¥1,000</span>
+                  </div>
+                </div>
+              </yt-live-chat-ticker-dummy777-item-renderer>`;
+                const dummy777 = template.content.firstElementChild;
+                items.appendChild(dummy777);
+                Promise.resolve(dummy777).then((dummy777) => {
+                  let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
+                  if (container.isConnected === true) {
+
+                    const evaluated = `${window.getComputedStyle(container).background}`;
+
+                    container = null;
+                    dummy777.remove();
+                    dummy777.textContent = '';
+                    dummy777 = null;
+
+                    if (evaluated.indexOf('0.') < 4) {
+
+                      // not fulfilling
+                      // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
+
+                      console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+                        "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+                        "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+                      );
+                      console.warn(`%cWarning:\n\tYou might have added a userscript or extension that also modifies the ticker background.\n\tYouTube Super Fast Chat is taking over.`, 'color: #bada55');
+                      console.groupEnd();
+
+                    }
+                  }
+                });
+
+              }, 800);
+            }
 
           }
         }
