@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 en YouTube
 // @description:es      Desactivar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.1.1
+// @version             2.3.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -80,17 +80,16 @@
       return;
     }
 
+
+
     function typeTest(type) {
 
-
-      let disallowed_types = ['vp8', 'vp9', 'av1', 'av01'];
-      for (const disallowed_type of disallowed_types) {
-        if (type.includes(disallowed_type)) return false;
-      }
-
-      let force_allow_types = ['hev1'];
-      for (const force_allow_type of force_allow_types) {
-        if (type.includes(force_allow_type)) return true;
+      if (type.startsWith('video/')) {
+        if (type.includes('av01')) {
+          if (/codecs[^\w]+av01\b/.test(type)) return false;
+        } else if (type.includes('av1')) {
+          if (/codecs[^\w]+av1\b/.test(type)) return false;
+        }
       }
 
     }

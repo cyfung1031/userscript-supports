@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.2.1
+// @version             2.3.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -137,18 +137,12 @@
 
     function typeTest(type) {
 
-
-      let disallowed_types = ['vp8', 'vp9'];
-      // mp4a is a container for AAC. In most cases (<192kbps), Opus is better than AAC.
-      // vp09 will be also disabled if av1 is enabled.
-      for (const disallowed_type of disallowed_types) {
-        if (type.includes(disallowed_type)) return false;
-      }
-
-      let force_allow_types = ['av1', 'av01', 'hev1'];
-      // av1 is currently supported by Firefox and Chrome except Edge
-      for (const force_allow_type of force_allow_types) {
-        if (type.includes(force_allow_type)) return true;
+      if (type.startsWith('video/')) {
+        if (type.includes('av01')) {
+          if (/codecs[^\w]+av01\b/.test(type)) return true;
+        } else if (type.includes('av1')) {
+          if (/codecs[^\w]+av1\b/.test(type)) return true;
+        }
       }
 
     }
@@ -186,7 +180,6 @@
   }
 
 
-  let promise = null;
 
   function callback(result) {
 
@@ -197,6 +190,7 @@
     }
   }
 
+  let promise = null;
 
   try {
     promise = navigator.mediaCapabilities.decodingInfo({
@@ -214,14 +208,12 @@
         samplerate: 44100,
         bitrate: 255236,
       }
-    }).then(callback).catch(callback);
-
+    });
   } catch (e) {
     promise = null;
   }
 
-  if (!promise) promise = Promise.resolve(0).then(callback).catch(callback);
-
+  (promise || Promise.resolve(0)).then(callback).catch(callback);
 
 
 
