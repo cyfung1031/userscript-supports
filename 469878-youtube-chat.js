@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.8
+// @version             0.23.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3903,6 +3903,8 @@
               Promise.resolve().then(() => {
                 this.detached();
                 this.data = null;
+                this.countdownMs = 0;
+                this.lastCountdownTimeMs = null;
                 if (this.__dataClientsReady === true) this.__dataClientsReady = false;
                 if (this.__dataEnabled === true) this.__dataEnabled = false;
                 if (this.__dataReady === true) this.__dataReady = false;
@@ -4091,9 +4093,17 @@
                 if (this.countdownMs > 10) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs); // just warning.
 
                 this.countdownMs = 0;
-                (this.lastCountdownTimeMs = null,
-                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                    this.slideDown()));
+                this.lastCountdownTimeMs = null;
+
+                if (this.isAttached) {
+                  if (Date.now() - windowShownAt < 80) {
+                    // no animation if the video page is switched from background to foreground
+                    this.hostElement.style.display = 'none';
+                  } else {
+                    "auto" === this.hostElement.style.width && this.setContainerWidth();
+                    this.slideDown();
+                  }
+                }
 
 
               } else {
@@ -4206,6 +4216,16 @@
             const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
 
             const doTimerFnModification = (doRAFHack || doAnimator);
+
+            let windowShownAt = 0;
+            if (doTimerFnModification) {
+
+              window.addEventListener('visibilitychange', () => {
+                if(document.visibilityState==='visible') windowShownAt = Date.now();
+                else windowShownAt = 0;
+              }, false);
+
+            }
 
             cProto.startCountdown = doTimerFnModification ? function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
 

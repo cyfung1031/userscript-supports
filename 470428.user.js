@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.2
+// @version     0.6.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -89,6 +89,9 @@
 
   function fixSerializedExperiment(conf) {
 
+    const supportAV1 = window.MediaSource.isTypeSupported('video/webm; codecs=av01.0.05M.08');
+    const supportVP9 = window.MediaSource.isTypeSupported('video/webm; codecs=vp09.01.20.08.01.01.01.01.00');
+
     if (DISABLE_serializedExperimentIds && typeof conf.serializedExperimentIds === 'string') {
       let ids = conf.serializedExperimentIds.split(',');
       let newIds = [];
@@ -104,7 +107,8 @@
     if (DISABLE_serializedExperimentFlags && typeof conf.serializedExperimentFlags === 'string') {
       const fg = conf.serializedExperimentFlags;
       const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
-      let res = [];
+
+      let mRes = new Map();
       for (let m; m = rx.exec(fg);) {
         let key = m[2];
         let value = m[3];
@@ -149,7 +153,7 @@
 
         // if(key.includes('sticky')){
 
-          // console.log(5599,key)
+        // console.log(5599,key)
         // }
 
         if (key.includes('_timeout') && typeof value === 'string') {
@@ -182,41 +186,136 @@
         }
 
 
-        if(KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')){
+        if (KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')) {
 
 
-          if(key === 'html5_onesie_sticky_server_side'){
+          if (key === 'html5_onesie_sticky_server_side') {
             keep = false;
 
-          }else if(key ==='html5_perf_cap_override_sticky'){
-            keep = true;
-  
-          }else if (key ==='html5_ustreamer_cap_override_sticky'){
+          } else if (key === 'html5_perf_cap_override_sticky') {
             keep = true;
 
-          
-          }else if(key ==='html5_exponential_memory_for_sticky'){
+          } else if (key === 'html5_ustreamer_cap_override_sticky') {
             keep = true;
-  
-          }else{
+
+
+          } else if (key === 'html5_exponential_memory_for_sticky') {
+            keep = true;
+
+          } else {
             keep = true;
 
           }
 
         }
 
-        if(key.startsWith('h5_expr_')){
+        if (key === 'html5_streaming_xhr_time_based_consolidation_ms') keep = true;
+        if (key === 'html5_bypass_contention_secs') keep = true;
+
+        if (key === 'vp9_drm_live') keep = true;
+        if (key === 'html5_log_rebuffer_reason') keep = false;
+        if (key === 'html5_enable_audio_track_log') keep = false;
+
+        if (key.startsWith('h5_expr_')) {
           // by userscript
           keep = true;
-        } else if(key.includes('deprecat')){
+        } else if (key.includes('deprecat')) {
           keep = false;
         }
+
+        if (key === 'html5_safari_desktop_eme_min_version') keep = true;
+
+        if (key === 'html5_disable_av1') keep = true;
+        if (key === 'html5_disable_av1_hdr') keep = true;
+        if (key === 'html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported') keep = true;
+        if (key === 'html5_account_onesie_format_selection_during_format_filter') keep = true;
+        if (key === 'html5_prefer_hbr_vp9_over_av1') keep = true;
 
         if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
           keep = true;
         }
-        if (keep) res.push(`${key}=${value}`);
+        if (keep) mRes.set(key, value);
       }
+
+      if (supportAV1 === false && localStorage['yt-player-av1-pref'] === '-1') {
+
+        mRes.set('html5_disable_av1', 'true');
+        mRes.set('html5_disable_av1_hdr', 'true');
+        mRes.set('html5_prefer_hbr_vp9_over_av1', 'true');
+
+
+
+      } else if (supportAV1 === true && supportVP9 === true && localStorage['yt-player-av1-pref'] === '8192') {
+
+        mRes.set('html5_disable_av1', 'false');
+        mRes.set('html5_disable_av1_hdr', 'false');
+        mRes.set('html5_prefer_hbr_vp9_over_av1', 'false');
+      }
+
+
+      // html5_perf_cap_override_sticky = true;
+      // html5_perserve_av1_perf_cap = true;
+
+
+      mRes.set('html5_enable_server_format_filter', 'true')
+      mRes.set('html5_use_ump', 'true')
+
+      mRes.set('html5_live_defrag_only_h264_playbacks', 'true')
+      mRes.set('html5_live_defrag_only_h264_formats', 'true')
+
+      mRes.set('html5_disable_protected_hdr', 'false')
+      mRes.set('html5_disable_vp9_encrypted', 'false')
+      mRes.set('html5_ignore_h264_framerate_cap', 'true')
+
+      mRes.set('html5_allow_asmjs', 'true')
+      mRes.set('html5_defer_modules_on_ads_only', 'true')
+      mRes.set('html5_use_drm_retry', 'true')
+      mRes.set('html5_delta_encode_fexp', 'true')
+      mRes.set('html5_only_send_cas_health_pings', 'true')
+
+      mRes.set('html5_modify_caption_vss_logging', 'true')
+      mRes.set('html5_allow_zero_duration_ads_on_timeline', 'true')
+      mRes.set('html5_reset_daistate_on_audio_codec_change', 'true')
+      mRes.set('html5_enable_safari_fairplay', 'true')
+
+      mRes.set('html5_safari_fairplay_ignore_hdcp', 'true')
+
+      mRes.set('html5_enable_vp9_fairplay', 'true')
+      mRes.set('html5_eme_loader_sync', 'true')
+
+      mRes.set('html5_enable_same_language_id_matching', 'true');
+      mRes.set('html5_enable_new_hvc_enc', 'true')
+      mRes.set('html5_enable_ssap', 'true')
+      mRes.set('html5_enable_short_gapless', 'true')
+      mRes.set('html5_enable_aac51', 'true')
+      mRes.set('html5_enable_ssap_entity_id', 'true')
+
+      mRes.set('html5_high_res_logging_always', 'true')
+      mRes.set('html5_local_playsinline', 'true')
+      mRes.set('html5_disable_media_element_loop_on_tv', 'true')
+      mRes.set('html5_native_audio_track_switching', 'true')
+
+      mRes.set('html5_format_hybridization', 'true')
+      mRes.set('html5_disable_encrypted_vp9_live_non_2k_4k', 'false')
+
+      mRes.set('html5_default_ad_gain', 'false')
+      mRes.set('html5_use_sabr_requests_for_debugging', 'false')
+      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      mRes.set('html5_sabr_live_ultra_low_latency', 'true')
+
+
+
+
+      mRes.set('html5_modern_vp9_mime_type', 'true')
+
+
+
+
+
+      const res = [];
+      mRes.forEach((value, key) => {
+        res.push(`${key}=${value}`);
+      });
       conf.serializedExperimentFlags = res.join('&');
     }
 

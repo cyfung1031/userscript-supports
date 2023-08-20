@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.0
+// @version             2.4.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -81,11 +81,9 @@
       for (const EXPERIMENT_FLAGS of [da.EXPERIMENT_FLAGS, da.EXPERIMENTS_FORCED_FLAGS]) {
 
         if (EXPERIMENT_FLAGS) {
-          EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
-          EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
-          EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
-          // EXPERIMENT_FLAGS.html5_perf_cap_override_sticky = true;
-          // EXPERIMENT_FLAGS.html5_perserve_av1_perf_cap = true;
+          // EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
+          // EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
+          // EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
         }
 
       }
@@ -123,9 +121,9 @@
 
       if (typeof type === 'string' && type.startsWith('video/')) {
         if (type.includes('av01')) {
-          if (/codecs[^\w]+av01\b/.test(type)) return true;
+          if (/codecs[\x20-\x7F]+\bav01\b/.test(type)) return true;
         } else if (type.includes('av1')) {
-          if (/codecs[^\w]+av1\b/.test(type)) return true;
+          if (/codecs[\x20-\x7F]+\bav1\b/.test(type)) return true;
         }
       }
 
@@ -196,7 +194,7 @@
     console.debug("force-youtube-av1", "AV1 enabled");
 
 
-    flagConfig();
+    // flagConfig();
     supportedFormatsConfig();
 
 

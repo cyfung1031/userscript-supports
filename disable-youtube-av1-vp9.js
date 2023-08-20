@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 y VP9 en YouTube
 // @description:es      Desactivar AV1 y VP9 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.0
+// @version             2.4.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -68,8 +68,8 @@
       for (const EXPERIMENT_FLAGS of [da.EXPERIMENT_FLAGS, da.EXPERIMENTS_FORCED_FLAGS]) {
 
         if (EXPERIMENT_FLAGS) {
-          EXPERIMENT_FLAGS.html5_disable_av1_hdr = true;
-          EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = true;
+          // EXPERIMENT_FLAGS.html5_disable_av1_hdr = true;
+          // EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = true;
         }
 
       }
@@ -106,13 +106,13 @@
       if (typeof type === 'string' && type.startsWith('video/')) {
 
         if (type.includes('vp9')) {
-          if (/codecs[^\w]+vp9\b/.test(type)) return false;
+          if (/codecs[\x20-\x7F]+\bvp9\b/.test(type)) return false;
         } else if (type.includes('vp09')) {
-          if (/codecs[^\w]+vp09\b/.test(type)) return false;
+          if (/codecs[\x20-\x7F]+\bvp09\b/.test(type)) return false;
         } else if (type.includes('av01')) {
-          if (/codecs[^\w]+av01\b/.test(type)) return false;
+          if (/codecs[\x20-\x7F]+\bav01\b/.test(type)) return false;
         } else if (type.includes('av1')) {
-          if (/codecs[^\w]+av1\b/.test(type)) return false;
+          if (/codecs[\x20-\x7F]+\bav1\b/.test(type)) return false;
         }
       }
 
@@ -188,7 +188,7 @@
 
   disableAV1();
 
-  flagConfig();
+  // flagConfig();
   supportedFormatsConfig();
 
 
