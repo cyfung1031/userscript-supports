@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.25.1
+// @version             0.25.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -117,6 +117,14 @@
 
   const FIX_TOOLTIP_DISPLAY = true;
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY = true;
+  const USE_VANILLA_DEREF = true;
+  const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
+  const FIX_MENU_REOPEN_RENDER_PERFORMANCE = true;
+  const FIX_MENU_CAPTURE_SCROLL = true;
+  const FIX_MENU_POSITION_DUE_TO_SCROLLING = true;        // Change this to false if you want the menu location locked. true for refit & alllow scrolling when menu shows
+
+  const RAF_FIX_keepScrollClamped = true;
+  const RAF_FIX_scrollIncrementally = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -1783,55 +1791,6 @@
         function dummy5035(a, b, c) { }
         function dummy411(a, b, c) { }
 
-
-        /*
-         // removed due to https://greasyfork.org/scripts/469878/discussions/197781
-         // cProto.preloadAvatarForAddAction should not be changed.
-        if (REMOVE_PRELOADAVATARFORADDACTION) {
-
-          customElements.whenDefined("yt-live-chat-renderer").then(() => {
-
-            const tag = "yt-live-chat-renderer";
-            const cProto = getProto(document.createElement(tag));
-
-            groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
-
-            if (typeof cProto.preloadAvatarForAddAction === 'function' && !cProto.preloadAvatarForAddAction66 && cProto.preloadAvatarForAddAction.length === 1) {
-
-              cProto.preloadAvatarForAddAction66 = cProto.preloadAvatarForAddAction;
-              cProto.preloadAvatarForAddAction = function () {
-                //  ===== skip  =====
-
-                // if (a.item) {
-                //   a = a.item;
-                //   var b = Object.keys(a)[0];
-                //   a = a[b];
-                //   b = KC(this.get("authorPhoto.thumbnails", a), 24);
-                //   "string" === typeof b && (this.preloadImage(b),
-                //     a.authorPhoto.webThumbnailDetailsExtensionData = {
-                //       isPreloaded: !0
-                //     })
-                // }
-
-                //  ===== skip  =====
-              }
-              console.log("cProto.preloadAvatarForAddAction - OK");
-            } else {
-              console.log("cProto.preloadAvatarForAddAction - NG");
-
-            }
-            console.groupEnd();
-
-            // cProto.preloadImage = function (){
-            //   // although we do in flushItem; just avoid being used by other usages ...
-            // }
-
-          });
-
-        }
-        */
-
-
         customElements.whenDefined("yt-live-chat-participant-list-renderer").then(() => {
 
           if (!DO_PARTICIPANT_LIST_HACKS) return;
@@ -1893,12 +1852,12 @@
 
           assertor(() => fnIntegrity(cProto.attached, '0.32.22')) // just warning
           if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
-            let fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
-            let s = fiRSCB.split('.');
+            const fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
+            const s = fiRSCB.split('.');
             if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
-              console.log("flushRenderStamperComponentBindings_ - OK", fiRSCB);
+              console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
             } else {
-              console.log("flushRenderStamperComponentBindings_ - failed", fiRSCB);
+              console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - Failed`);
             }
           } else {
             console.log("flushRenderStamperComponentBindings_ - not found");
@@ -2006,7 +1965,7 @@
             }
           }
 
-        });
+        }).catch(console.warn);
 
       };
 
@@ -2587,7 +2546,7 @@
 
                   }, 1);
 
-                })
+                }).catch(console.warn);
 
               })
 
@@ -3685,7 +3644,7 @@
           console.log("[End]");
           console.groupEnd();
 
-        });
+        }).catch(console.warn);
 
 
         const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
@@ -4448,7 +4407,84 @@
           console.groupEnd();
 
 
-        });
+        }).catch(console.warn);
+
+        customElements.whenDefined('yt-live-chat-ticker-renderer').then(() => {
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-renderer hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "yt-live-chat-ticker-renderer"
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+            if (RAF_FIX_keepScrollClamped) {
+
+              // to be improved
+
+              if (typeof cProto.keepScrollClamped === 'function' && !cProto.keepScrollClamped72 && fnIntegrity(cProto.keepScrollClamped) === '0.17.10') {
+
+                cProto.keepScrollClamped72 = cProto.keepScrollClamped;
+                cProto.keepScrollClamped = function () {
+                  this._bound_keepScrollClamped = this._bound_keepScrollClamped || this.keepScrollClamped.bind(this);
+                  this.scrollClampRaf = requestAnimationFrame(this._bound_keepScrollClamped);
+                  this.maybeClampScroll()
+                }
+
+                console.log('RAF_FIX: keepScrollClamped', tag, "OK")
+              } else {
+
+                assertor(() => fnIntegrity(cProto.keepScrollClamped, '0.17.10'));
+                console.log('RAF_FIX: keepScrollClamped', tag, "NG")
+              }
+
+            }
+
+
+            if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.44.32' && fnIntegrity(cProto.scrollIncrementally) === '1.82.43') {
+              // to be replaced by animator
+
+              cProto.startScrolling = function (a) {
+                this.scrollStopHandle && this.cancelAsync(this.scrollStopHandle);
+                this.asyncHandle && cancelAnimationFrame(this.asyncHandle);
+                this.lastFrameTimestamp = this.scrollStartTime = performance.now();
+                this.scrollRatePixelsPerSecond = a;
+                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+                this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally)
+              };
+
+              cProto.scrollIncrementally = function (a) {
+                var b = a - (this.lastFrameTimestamp || 0);
+                this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+                this.maybeClampScroll();
+                this.updateArrows();
+                this.lastFrameTimestamp = a;
+                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+                0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              };
+
+              console.log('RAF_FIX: scrollIncrementally', tag, "OK")
+            } else {
+              assertor(() => fnIntegrity(cProto.startScrolling, '1.44.32'));
+              assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
+              console.log('RAF_FIX: scrollIncrementally', tag, "NG")
+            }
+
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+        }).catch(console.warn);
 
 
         if (ENABLE_RAF_HACK_INPUT_RENDERER && rafHub !== null) {
@@ -4672,7 +4708,7 @@
 
             console.groupEnd();
 
-          });
+          }).catch(console.warn);
 
         }
 
@@ -4732,7 +4768,7 @@
 
             console.groupEnd();
 
-          });
+          }).catch(console.warn);
 
         }
 
@@ -4842,7 +4878,7 @@
 
             console.groupEnd();
 
-          });
+          }).catch(console.warn);
 
 
         }
@@ -4890,7 +4926,7 @@
 
             console.groupEnd();
 
-          });
+          }).catch(console.warn);
 
 
 
@@ -5010,9 +5046,348 @@
 
             console.groupEnd();
 
-          });
+          }).catch(console.warn);
 
         }
+
+
+        customElements.whenDefined('tp-yt-iron-dropdown').then(() => {
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | tp-yt-iron-dropdown hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "tp-yt-iron-dropdown";
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+
+            if (USE_VANILLA_DEREF && typeof cProto.__deraf === 'function' && cProto.__deraf.length === 2 && !cProto.__deraf34 && fnIntegrity(cProto.__deraf) === '2.42.24') {
+              cProto.__deraf_hn__ = function (sId, fn) {
+                const rhKey = `_rafHandler_${sId}`;
+                const m = this[rhKey] || (this[rhKey] = new WeakMap());
+                if (m.has(fn)) return m.get(fn);
+                const resFn = () => {
+                  this.__rafs[sId] = null;
+                  fn.call(this)
+                };
+                m.set(fn, resFn);
+                m.set(resFn, resFn);
+                return resFn;
+              };
+              cProto.__deraf34 = cProto.__deraf;
+              cProto.__deraf = function (a, b) { // sId, fn
+                let c = this.__rafs;
+                null !== c[a] && cancelAnimationFrame(c[a]);
+                c[a] = requestAnimationFrame(this.__deraf_hn__(a, b));
+              };
+              console.log("USE_VANILLA_DEREF - OK");
+            } else {
+              console.log("USE_VANILLA_DEREF - NG");
+            }
+
+            if (FIX_DROPDOWN_DERAF && typeof cProto.__deraf === 'function' && cProto.__deraf.length === 2 && !cProto.__deraf66) {
+              cProto.__deraf66 = cProto.__deraf;
+              cProto.__deraf = function (sId, fn) {
+                if (this.__byPassRAF__) {
+                  Promise.resolve().then(() => {
+                    fn.call(this);
+                  });
+                }
+                let r = this.__deraf66.apply(this, arguments);
+                return r;
+              }
+              console.log("FIX_DROPDOWN_DERAF - OK");
+            } else {
+              console.log("FIX_DROPDOWN_DERAF - NG");
+            }
+
+
+            if (FIX_MENU_REOPEN_RENDER_PERFORMANCE && typeof cProto.__openedChanged === 'function' && !cProto.__mtChanged__ && fnIntegrity(cProto.__openedChanged) === '0.46.20') {
+
+              let lastClose = null;
+              let lastOpen = null;
+              let cid = 0;
+              const delay1 = 200; // try and error => min 160ms
+              const delay2 = 1;
+
+              cProto.__mtChanged__ = function (b) {
+
+                Promise.resolve().then(() => {
+                  this._applyFocus();
+                }).then(() => {
+                  b ? this._renderOpened() : this._renderClosed();
+                }).catch(console.warn);
+
+              };
+
+              const __moChanged__ =  ()=> {
+                if (!cid) return;
+                // console.log(553, !!lastOpen, !!lastClose);
+                cid = 0;
+                if (lastOpen && !lastClose && lastOpen.isAttached) {
+                  lastOpen.__mtChanged__(1)
+                } else if (lastClose && !lastOpen && lastClose.isAttached) {
+                  lastClose.__mtChanged__(0);
+                }
+                lastOpen = null;
+                lastClose = null;
+              };
+
+
+              if (typeof cProto._openedChanged === 'function' && !cProto._openedChanged66) {
+                cProto._openedChanged66 = cProto._openedChanged;
+                cProto._openedChanged = function () {
+                  // this.__byPassRAF__ = !lastOpen ? true : false; // or just true?
+                  this.__byPassRAF__ = true;
+                  let r = this._openedChanged66.apply(this, arguments);
+                  this.__byPassRAF__ = false;
+                  return r;
+                }
+              }
+
+              const pSetGet = (key, pdThis, pdBase) => {
+                // note: this is not really a standard way for the getOwnPropertyDescriptors; but it is sufficient to make the job done
+                return {
+                  get: (pdThis[key] || 0).get || (pdBase[key] || 0).get,
+                  set: (pdThis[key] || 0).set || (pdBase[key] || 0).set
+                };
+              };
+
+              cProto.__modifiedMenuPropsFn__ = function () {
+                const pdThis = Object.getOwnPropertyDescriptors(this.constructor.prototype)
+                const pdBase = Object.getOwnPropertyDescriptors(this)
+
+                const pdAutoFitOnAttach = pSetGet('autoFitOnAttach', pdThis, pdBase);
+                const pdExpandSizingTargetForScrollbars = pSetGet('expandSizingTargetForScrollbars', pdThis, pdBase);
+                const pdAllowOutsideScroll = pSetGet('allowOutsideScroll', pdThis, pdBase);
+
+                if (pdAutoFitOnAttach.get || pdAutoFitOnAttach.set) {
+                  console.warn('there is setter/getter for autoFitOnAttach');
+                  return;
+                }
+                if (pdExpandSizingTargetForScrollbars.get || pdExpandSizingTargetForScrollbars.set) {
+                  console.warn('there is setter/getter for expandSizingTargetForScrollbars');
+                  return;
+                }
+                if (!pdAllowOutsideScroll.get || !pdAllowOutsideScroll.set) {
+                  console.warn('there is NO setter-getter for allowOutsideScroll');
+                  return;
+                }
+
+                let { autoFitOnAttach, expandSizingTargetForScrollbars, allowOutsideScroll } = this;
+
+                this.__AllowOutsideScrollPD__ = pdAllowOutsideScroll;
+
+                Object.defineProperties(this, {
+                  autoFitOnAttach: {
+                    get() {
+                      if (this._modifiedMenuPropOn062__) return true;
+                      return autoFitOnAttach;
+                    },
+                    set(nv) {
+                      autoFitOnAttach = nv;
+                      return true;
+                    },
+                    enumerable: true,
+                    configurable: true
+                  }, expandSizingTargetForScrollbars: {
+                    get() {
+                      if (this._modifiedMenuPropOn062__) return true;
+                      return expandSizingTargetForScrollbars;
+                    },
+                    set(nv) {
+                      expandSizingTargetForScrollbars = nv;
+                      return true;
+                    },
+                    enumerable: true,
+                    configurable: true
+                  }, allowOutsideScroll: {
+                    get() {
+                      if (this._modifiedMenuPropOn062__) return true;
+                      return allowOutsideScroll;
+                    },
+                    set(nv) {
+                      allowOutsideScroll = nv;
+                      this.__AllowOutsideScrollPD__.set.call(this, nv);
+                      return true;
+                    },
+                    enumerable: true,
+                    configurable: true
+                  }
+                })
+              };
+
+              /*
+                 // ***** position() to be changed. *****
+                tp-yt-iron-dropdown[class], tp-yt-iron-dropdown[class] #contentWrapper, tp-yt-iron-dropdown[class] ytd-menu-popup-renderer[class] {
+                
+                    overflow: visible !important;
+                    min-width: max-content !important;
+                    max-width: max-content !important;
+                    max-height: max-content !important;
+                    min-height: max-content !important;
+                    white-space: nowrap;
+                }
+
+              */
+
+              cProto.__openedChanged = function () {
+                // this.removeAttribute('horizontal-align')
+                // this.removeAttribute('vertical-align')
+                if (typeof this.__menuTypeCheck__ !== 'boolean') {
+                  this.__menuTypeCheck__ = true;
+                  if (FIX_MENU_POSITION_DUE_TO_SCROLLING) {
+                    this._modifiedMenuPropOn062__ = false;
+                    // console.log(513, this.positionTarget && this.positionTarget.classList.contains('yt-live-chat-text-message-renderer'))
+                    // this.autoFitOnAttach = true;
+                    // this.expandSizingTargetForScrollbars = true;
+                    // this.allowOutsideScroll = true;
+                    // console.log(519,Object.getOwnPropertyDescriptors(this.constructor.prototype))
+                    this.__modifiedMenuPropsFn__();
+                    // this.constrain= function(){}
+                    // this.position= function(){}
+                    
+                    // this.autoFitOnAttach = true;
+                    // this.expandSizingTargetForScrollbars = true;
+                    // this.allowOutsideScroll = true;
+                  }
+                }
+                if (FIX_MENU_POSITION_DUE_TO_SCROLLING && this.opened) {
+                  let newValue = null;
+                  if (this.positionTarget && this.positionTarget.classList.contains('yt-live-chat-text-message-renderer')) {
+                    if (this._modifiedMenuPropOn062__ === false) {
+                      newValue = true;
+                    }
+                  } else if (this._modifiedMenuPropOn062__ === true) {
+                    newValue = false;
+                  }
+                  if (newValue !== null) {
+                    const beforeAllowOutsideScroll = this.allowOutsideScroll;
+                    this._modifiedMenuPropOn062__ = newValue;
+                    const afterAllowOutsideScroll = this.allowOutsideScroll;
+                    if (beforeAllowOutsideScroll !== afterAllowOutsideScroll) this.__AllowOutsideScrollPD__.set.call(this, afterAllowOutsideScroll);
+                  }
+                }
+
+                if (this.opened) {
+
+                  Promise.resolve().then(() => {
+
+                    this._prepareRenderOpened();
+                  }).then(() => {
+                    this._manager.addOverlay(this);
+                    if (this._manager._overlays.length === 1) {
+                      lastOpen = this;
+                      lastClose = null;
+                    } else {
+                      return 1;
+                    }
+                    // if (cid) {
+                    //   clearTimeout(cid);
+                    //   cid = -1;
+                    //   this.__moChanged__();
+                    //   cid = 0;
+                    // } else {
+                    //   cid = -1;
+                    //   this.__moChanged__();
+                    //   cid = 0;
+                    // }
+                    // cid = cid > 0 ? clearTimeout(cid) : 0;
+                    // console.log(580, this.positionTarget && this.positionTarget.classList.contains('yt-live-chat-text-message-renderer'))
+                    // cid = cid || setTimeout(__moChanged__, delay1);
+                    cid = cid || requestAnimationFrame(__moChanged__);
+                  }).then((r) => {
+
+                    if (r) this.__mtChanged__(1);
+                  }).catch(console.warn);
+
+                } else {
+                  Promise.resolve().then(() => {
+                    this._manager.removeOverlay(this);
+                    if (this._manager._overlays.length === 0) {
+                      lastClose = this;
+                      lastOpen = null;
+                    } else {
+                      return 1;
+                    }
+                    // cid = cid > 0 ? clearTimeout(cid) : 0;
+                    // console.log(581, this.positionTarget && this.positionTarget.classList.contains('yt-live-chat-text-message-renderer'))
+                    // cid = cid || setTimeout(__moChanged__, delay1);
+                    cid = cid || requestAnimationFrame(__moChanged__);
+                  }).then((r) => {
+                    if (r) this.__mtChanged__(0);
+                  }).catch(console.warn);
+
+                }
+
+              }
+              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE - OK");
+
+            } else {
+
+              assertor(() => fnIntegrity(cProto.__openedChanged, '0.46.20'));
+              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANC - NG");
+
+            }
+
+
+            if(FIX_MENU_CAPTURE_SCROLL && typeof cProto.__onCaptureScroll === 'function' && !cProto.__onCaptureScroll66){
+
+              cProto.__onCaptureScroll66 = cProto.__onCaptureScroll;
+
+              cProto.__onCaptureScroll = function(a){
+ 
+                const q = true;
+                if(this.scrollAction === 'lock'  && q && this.opened){
+
+                  // console.log(9107, this.scrollAction, this.__isAnimating, this.opened, a); // lock; __isAnimating = false
+                  async function af() {
+                    this.__isAnimating && this._finishRenderOpened();
+                    if (!this.opened) return;
+                    this.__restoreScrollPosition();
+                    await new Promise(r => requestAnimationFrame(r));
+                    if (!this.opened) return;
+                    this.opened && this.__isAnimating && this._finishRenderOpened();
+                    if (!this.opened) return;
+                    this.__restoreScrollPosition();
+                    await new Promise(r => requestAnimationFrame(r));
+                    if (!this.opened) return;
+                    this.opened && this.__isAnimating && this._finishRenderOpened();
+                    if (!this.opened) return;
+                    this.opened && !this.__isAnimating && this.refit();
+                  }
+                  Promise.resolve().then(af);
+
+                   return cProto.__onCaptureScroll66.apply(this, arguments);
+                }else{
+
+                  // console.log(9102, this.scrollAction, this.__isAnimating, this.opened, a); // lock
+
+                  return cProto.__onCaptureScroll66.apply(this, arguments);
+                }
+              }
+              console.log("FIX_MENU_CAPTURE_SCROLL - OK");
+            }else{
+              console.log("FIX_MENU_CAPTURE_SCROLL - NG");
+              
+            }
+
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+        }).catch(console.warn);
+
 
 
 
