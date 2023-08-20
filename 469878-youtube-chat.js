@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.25.0
+// @version             0.25.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4867,46 +4867,19 @@
                 return;
               }
 
-              if (typeof cProto.attached === 'function' && !cProto.attached57 && typeof cProto.detached === 'function' && !cProto.detached57) {
+              if (typeof cProto.attached === 'function' && typeof cProto.detached === 'function' && cProto._readyClients && cProto._attachDom && cProto.ready && !cProto._readyClients43) {
 
+                cProto._readyClients43 = cProto._readyClients;
+                cProto._readyClients = function () {
+                  let r = cProto._readyClients43.apply(this, arguments);
+                  if (this.$ && this.$$ && this.$.tooltip) this.root = null; // fix this.root = null != (b = a.root) ? b : this.host
+                  return r;
+                }
 
-                const mf = (tytp) => {
-                  const tooltip = (((tytp || 0).$ || 0).tooltip || 0);
-                  if (tooltip && tytp.root !== null) {
-                    delete tytp.root;
-                    tytp.root = null;
-                  }
-                };
-                const mz = new MutationObserver((muts) => {
-                  for (const mut of muts) {
-                    const tytp = mut.target;
-                    if (tytp) tytp.isAttached === true && mf(tytp);
-                  }
-                });
-
-                cProto.attached57 = cProto.attached;
-                cProto.attached = function () {
-                  const p = this.attached57();
-                  if (this.hostElement !== undefined) return p;
-                  mf(this);
-                  mz.observe(this, { subtree: false, childList: true })
-                  return p;
-                };
-
-                cProto.detached57 = cProto.detached;
-                cProto.detached = function () {
-                  const p = this.detached57();
-                  if (this.hostElement !== undefined) return p;
-                  const tytp = this;
-                  if (tytp.root !== null) {
-                    delete tytp.root;
-                    tytp.root = null;
-                  }
-                };
-                console.log("tp-yt-paper-tooltip - OK");
+                console.log("_readyClients - OK");
 
               } else {
-                console.log("tp-yt-paper-tooltip - NG");
+                console.log("_readyClients - NG");
 
               }
 
