@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.9
+// @version             0.24.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -115,6 +115,8 @@
   const ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX = true;    // for video playback's ticker issue. [ Playback Replay - Pause at Middle - Backwards Seeking ]
   // << end >>
 
+  const FIX_TOOLTIP_DISPLAY = true;
+
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
 
@@ -170,35 +172,35 @@
   // (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null)
 
 
-//   function KC(a, b, c, d) {
-//     d = void 0 === d ? "width" : d;
-//     if (!a || !a.length)
-//         return null;
-//     if (z("kevlar_tuner_should_always_use_device_pixel_ratio")) {
-//         var e = window.devicePixelRatio;
-//         z("kevlar_tuner_should_clamp_device_pixel_ratio") ? e = Math.min(e, zl("kevlar_tuner_clamp_device_pixel_ratio")) : z("kevlar_tuner_should_use_thumbnail_factor") && (e = zl("kevlar_tuner_thumbnail_factor"));
-//         HC = e
-//     } else
-//         HC || (HC = window.devicePixelRatio);
-//     e = HC;
-//     z("kevlar_tuner_should_always_use_device_pixel_ratio") ? b *= e : 1 < e && (b *= e);
-//     if (z("kevlar_tuner_min_thumbnail_quality"))
-//         return a[0].url || null;
-//     e = a.length;
-//     if (z("kevlar_tuner_max_thumbnail_quality"))
-//         return a[e - 1].url || null;
-//     if (c)
-//         for (var h = 0; h < e; h++)
-//             if (0 <= a[h].url.indexOf(c))
-//                 return a[h].url || null;
-//     for (c = 0; c < e; c++)
-//         if (a[c][d] >= b)
-//             return a[c].url || null;
-//     for (b = e - 1; 0 < b; b--)
-//         if (a[b][d])
-//             return a[b].url || null;
-//     return a[0].url || null
-// }
+  //   function KC(a, b, c, d) {
+  //     d = void 0 === d ? "width" : d;
+  //     if (!a || !a.length)
+  //         return null;
+  //     if (z("kevlar_tuner_should_always_use_device_pixel_ratio")) {
+  //         var e = window.devicePixelRatio;
+  //         z("kevlar_tuner_should_clamp_device_pixel_ratio") ? e = Math.min(e, zl("kevlar_tuner_clamp_device_pixel_ratio")) : z("kevlar_tuner_should_use_thumbnail_factor") && (e = zl("kevlar_tuner_thumbnail_factor"));
+  //         HC = e
+  //     } else
+  //         HC || (HC = window.devicePixelRatio);
+  //     e = HC;
+  //     z("kevlar_tuner_should_always_use_device_pixel_ratio") ? b *= e : 1 < e && (b *= e);
+  //     if (z("kevlar_tuner_min_thumbnail_quality"))
+  //         return a[0].url || null;
+  //     e = a.length;
+  //     if (z("kevlar_tuner_max_thumbnail_quality"))
+  //         return a[e - 1].url || null;
+  //     if (c)
+  //         for (var h = 0; h < e; h++)
+  //             if (0 <= a[h].url.indexOf(c))
+  //                 return a[h].url || null;
+  //     for (c = 0; c < e; c++)
+  //         if (a[c][d] >= b)
+  //             return a[c].url || null;
+  //     for (b = e - 1; 0 < b; b--)
+  //         if (a[b][d])
+  //             return a[b].url || null;
+  //     return a[0].url || null
+  // }
 
   const { IntersectionObserver } = __CONTEXT__;
 
@@ -1036,39 +1038,6 @@
 
 
 
-    /*
-  function innerTextFixFn() {
-
-    if (elemInnerText.status) return;
-    elemInnerText.status = 1;
-
-
-    const pd = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText');
-    if (!pd) return;
-    if (pd.configurable !== true) return;
-    const getterFn = pd.get;
-    if (typeof getterFn !== 'function') return;
-    const getterGn = function () {
-      const resultText = getterFn.apply(this, arguments);
-      if (!resultText&& elemInnerText.status === 1) {
-        const html = this.innerHTML;
-        console.log(1234, html)
-        if (html) {
-          elemInnerText.status = 2;
-          console.log(new Error().stack)
-
-        }
-      }
-      return resultText;
-    }
-    let np = Object.assign({}, pd, { get: getterGn });
-    console.log(124, np)
-    Object.defineProperty(HTMLElement.prototype, 'innerText', np);
-    console.log(125, Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText').get)
-
-  }    */
-
-
   function setThumbnails(config) {
 
     const { baseObject, thumbnails, flag0, imageLinks } = config;
@@ -1275,8 +1244,8 @@
   const emojiPrefetched = new Set();
   const authorPhotoPrefetched = new Set();
 
-  function linker(link, rel, href, _as){
-    return new Promise(resolve=>{
+  function linker(link, rel, href, _as) {
+    return new Promise(resolve => {
       if (!link) link = document.createElement('link');
       link.rel = rel;
       if (_as) link.setAttribute('as', _as);
@@ -1296,7 +1265,7 @@
       };
       link.href = href;
       document.head.appendChild(link);
-      link= null;
+      link = null;
     });
   }
 
@@ -1312,7 +1281,7 @@
     let pairForPauseResumeM = 0;
     // << end >>
 
-    if(flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
+    if (flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
 
     function basePrefetching() {
 
@@ -3236,7 +3205,7 @@
                 await Promise.resolve();
                 const acItems = cnt.activeItems_;
                 const len1 = acItems.length;
-                if(!len1) console.warn('cnt.activeItems_.length = 0');
+                if (!len1) console.warn('cnt.activeItems_.length = 0');
                 let waitFor = [];
 
 
@@ -4221,7 +4190,7 @@
             if (doTimerFnModification) {
 
               window.addEventListener('visibilitychange', () => {
-                if(document.visibilityState==='visible') windowShownAt = Date.now();
+                if (document.visibilityState === 'visible') windowShownAt = Date.now();
                 else windowShownAt = 0;
               }, false);
 
@@ -4763,7 +4732,7 @@
 
         }
 
-        if(FIX_THUMBNAIL_DATACHANGED){
+        if (FIX_THUMBNAIL_DATACHANGED) {
 
 
 
@@ -4789,29 +4758,29 @@
 
 
                 cProto.dataChanged86 = cProto.dataChanged;
-                cProto.dataChanged = function(a){
+                cProto.dataChanged = function (a) {
 
-/*
+                  /*
+                  
+                    for (var b = xC(Z(this.hostElement).querySelector("#image")); b.firstChild; )
+                        b.removeChild(b.firstChild);
+                    if (a)
+                        if (a.icon) {
+                            var c = document.createElement("yt-icon");
+                            "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.icon = "yt-sys-icons:shield-filled",
+                            c.defaultToFilled = !0) : c.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                            b.appendChild(c)
+                        } else if (a.customThumbnail) {
+                            c = document.createElement("img");
+                            var d;
+                            (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
+                            b.appendChild(c),
+                            c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail",a.customThumbnail))
+                        }
+                  
+                  */
 
-        for (var b = xC(Z(this.hostElement).querySelector("#image")); b.firstChild; )
-            b.removeChild(b.firstChild);
-        if (a)
-            if (a.icon) {
-                var c = document.createElement("yt-icon");
-                "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.icon = "yt-sys-icons:shield-filled",
-                c.defaultToFilled = !0) : c.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                b.appendChild(c)
-            } else if (a.customThumbnail) {
-                c = document.createElement("img");
-                var d;
-                (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
-                b.appendChild(c),
-                c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail",a.customThumbnail))
-            }
-
-            */
-
-                  const image = ((this||0).$||0).image
+                  const image = ((this || 0).$ || 0).image
                   if (image && a && image.firstElementChild) {
                     let exisiting = image.firstElementChild;
                     if (exisiting === image.lastElementChild) {
@@ -4834,7 +4803,7 @@
                       } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
 
                         let c = exisiting;
-                        if(a.customThumbnail.thumbnails.map(e=>e.url).includes(c.src)){
+                        if (a.customThumbnail.thumbnails.map(e => e.url).includes(c.src)) {
 
                           c.setAttribute("alt", this.hostElement.ariaLabel || "");
                           return;
@@ -4852,12 +4821,12 @@
 
                     }
                   }
-                  return this.dataChanged86.apply(this,arguments)
+                  return this.dataChanged86.apply(this, arguments)
 
                 }
                 console.log("cProto.dataChanged - OK");
 
-              }else{
+              } else {
                 assertor(() => fnIntegrity(cProto.dataChanged, '1.159.97'));
                 console.log("cProto.dataChanged - NG");
 
@@ -4873,6 +4842,83 @@
 
 
         }
+
+
+        if (FIX_TOOLTIP_DISPLAY) {
+
+
+          customElements.whenDefined("tp-yt-paper-tooltip").then(() => {
+
+            mightFirstCheckOnYtInit();
+            groupCollapsed("YouTube Super Fast Chat", " | tp-yt-paper-tooltip hacks");
+            console.log("[Begin]");
+            (() => {
+
+              const tag = "tp-yt-paper-tooltip"
+              const dummy = document.createElement(tag);
+
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
+
+              if (typeof cProto.attached === 'function' && !cProto.attached57 && typeof cProto.detached === 'function' && !cProto.detached57) {
+
+
+                const mf = (tytp) => {
+                  const tooltip = (((tytp || 0).$ || 0).tooltip || 0);
+                  if (tooltip && tytp.root !== null) {
+                    delete tytp.root;
+                    tytp.root = null;
+                  }
+                };
+                const mz = new MutationObserver((muts) => {
+                  for (const mut of muts) {
+                    const tytp = mut.target;
+                    if (tytp) tytp.isAttached === true && mf(tytp);
+                  }
+                });
+
+                cProto.attached57 = cProto.attached;
+                cProto.attached = function () {
+                  const p = this.attached57();
+                  if (this.hostElement !== undefined) return p;
+                  mf(this);
+                  mz.observe(this, { subtree: false, childList: true })
+                  return p;
+                };
+
+                cProto.detached57 = cProto.detached;
+                cProto.detached = function () {
+                  const p = this.detached57();
+                  if (this.hostElement !== undefined) return p;
+                  const tytp = this;
+                  if (tytp.root !== null) {
+                    delete tytp.root;
+                    tytp.root = null;
+                  }
+                };
+                console.log("tp-yt-paper-tooltip - OK");
+
+              } else {
+                console.log("tp-yt-paper-tooltip - NG");
+
+              }
+
+
+            })();
+
+            console.log("[End]");
+
+            console.groupEnd();
+
+          });
+
+
+
+        }
+
 
 
       }
