@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.0.0
+// @version     1.0.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -27,6 +27,8 @@
   const DISABLE_serializedExperimentFlags = true;
   const IGNORE_VIDEO_SOURCE_RELATED = true;
   const NO_REFRESH = true;
+  const ENABLE_MINOR_CHAT_FEATURE_UPGRADE = true;
+  const ENABLE_EMOJI_PICKER_NEW_STYLE = false;
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
@@ -106,11 +108,116 @@
       conf.serializedExperimentIds = newIds.join(',');
     }
 
+    const mez = (mRes)=>{
+
+      mRes.set('html5_disable_low_pipeline', 'false');
+      mRes.set('html5_min_startup_buffered_ad_media_duration_secs', '0')
+
+      if (supportAV1 === false && localStorage['yt-player-av1-pref'] === '-1') {
+
+        mRes.set('html5_disable_av1', 'true');
+        mRes.set('html5_disable_av1_hdr', 'true');
+        mRes.set('html5_prefer_hbr_vp9_over_av1', 'true');
+
+
+
+      } else if (supportAV1 === true && supportVP9 === true && localStorage['yt-player-av1-pref'] === '8192') {
+
+        mRes.set('html5_disable_av1', 'false');
+        mRes.set('html5_disable_av1_hdr', 'false');
+        mRes.set('html5_prefer_hbr_vp9_over_av1', 'false');
+      }
+
+
+      // html5_perf_cap_override_sticky = true;
+      // html5_perserve_av1_perf_cap = true;
+
+
+      mRes.set('html5_enable_server_format_filter', 'true')
+      mRes.set('html5_use_ump', 'true')
+
+      mRes.set('html5_live_defrag_only_h264_playbacks', 'true')
+      mRes.set('html5_live_defrag_only_h264_formats', 'true')
+
+      mRes.set('html5_disable_protected_hdr', 'false')
+      mRes.set('html5_disable_vp9_encrypted', 'false')
+      mRes.set('html5_ignore_h264_framerate_cap', 'true')
+
+      mRes.set('html5_allow_asmjs', 'true')
+      mRes.set('html5_defer_modules_on_ads_only', 'true')
+      mRes.set('html5_use_drm_retry', 'true')
+      mRes.set('html5_delta_encode_fexp', 'true')
+      mRes.set('html5_only_send_cas_health_pings', 'true')
+
+      mRes.set('html5_modify_caption_vss_logging', 'true')
+      mRes.set('html5_allow_zero_duration_ads_on_timeline', 'true')
+      mRes.set('html5_reset_daistate_on_audio_codec_change', 'true')
+      mRes.set('html5_enable_safari_fairplay', 'true')
+
+      mRes.set('html5_safari_fairplay_ignore_hdcp', 'true')
+
+      mRes.set('html5_enable_vp9_fairplay', 'true')
+      mRes.set('html5_eme_loader_sync', 'true')
+
+      mRes.set('html5_enable_same_language_id_matching', 'true');
+      mRes.set('html5_enable_new_hvc_enc', 'true')
+      mRes.set('html5_enable_ssap', 'true')
+      mRes.set('html5_enable_short_gapless', 'true')
+      mRes.set('html5_enable_aac51', 'true')
+      mRes.set('html5_enable_ssap_entity_id', 'true')
+
+      mRes.set('html5_high_res_logging_always', 'true')
+      mRes.set('html5_local_playsinline', 'true')
+      mRes.set('html5_disable_media_element_loop_on_tv', 'true')
+      mRes.set('html5_native_audio_track_switching', 'true')
+
+      mRes.set('html5_format_hybridization', 'true')
+      mRes.set('html5_disable_encrypted_vp9_live_non_2k_4k', 'false')
+
+      mRes.set('html5_default_ad_gain', 'false')
+      mRes.set('html5_use_sabr_requests_for_debugging', 'false')
+      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      mRes.set('html5_sabr_live_ultra_low_latency', 'true')
+
+      mRes.set('html5_sabr_live_low_latency', 'true')
+      mRes.set('html5_sabr_live', 'true')
+      mRes.set('html5_sabr_post_live', 'true')
+      mRes.set('html5_sabr_premiere', 'true')
+
+      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
+
+
+
+      mRes.set('html5_enable_subsegment_readahead_v3', 'true')
+      mRes.set('html5_ultra_low_latency_subsegment_readahead', 'true')
+      mRes.set('html5_disable_move_pssh_to_moov', 'true')
+
+
+
+      mRes.set('html5_modern_vp9_mime_type', 'true')
+
+
+
+
+
+
+    }
+
+    const qrz = (mRes)=>{
+
+      const res = [];
+      mRes.forEach((value, key) => {
+        res.push(`${key}=${value}`);
+      });
+      return res.join('&');
+    }
+
     if (DISABLE_serializedExperimentFlags && typeof conf.serializedExperimentFlags === 'string') {
       const fg = conf.serializedExperimentFlags;
       const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
 
-      let mRes = new Map();
+      const mRes = new Map();
       for (let m; m = rx.exec(fg);) {
         let key = m[2];
         let value = m[3];
@@ -252,104 +359,10 @@
         if (keep) mRes.set(key, value);
       }
 
-      mRes.set('html5_disable_low_pipeline', 'false');
-      mRes.set('html5_min_startup_buffered_ad_media_duration_secs', '0')
+      mez(mRes);
 
-      if (supportAV1 === false && localStorage['yt-player-av1-pref'] === '-1') {
+      conf.serializedExperimentFlags = qrz(mRes);
 
-        mRes.set('html5_disable_av1', 'true');
-        mRes.set('html5_disable_av1_hdr', 'true');
-        mRes.set('html5_prefer_hbr_vp9_over_av1', 'true');
-
-
-
-      } else if (supportAV1 === true && supportVP9 === true && localStorage['yt-player-av1-pref'] === '8192') {
-
-        mRes.set('html5_disable_av1', 'false');
-        mRes.set('html5_disable_av1_hdr', 'false');
-        mRes.set('html5_prefer_hbr_vp9_over_av1', 'false');
-      }
-
-
-      // html5_perf_cap_override_sticky = true;
-      // html5_perserve_av1_perf_cap = true;
-
-
-      mRes.set('html5_enable_server_format_filter', 'true')
-      mRes.set('html5_use_ump', 'true')
-
-      mRes.set('html5_live_defrag_only_h264_playbacks', 'true')
-      mRes.set('html5_live_defrag_only_h264_formats', 'true')
-
-      mRes.set('html5_disable_protected_hdr', 'false')
-      mRes.set('html5_disable_vp9_encrypted', 'false')
-      mRes.set('html5_ignore_h264_framerate_cap', 'true')
-
-      mRes.set('html5_allow_asmjs', 'true')
-      mRes.set('html5_defer_modules_on_ads_only', 'true')
-      mRes.set('html5_use_drm_retry', 'true')
-      mRes.set('html5_delta_encode_fexp', 'true')
-      mRes.set('html5_only_send_cas_health_pings', 'true')
-
-      mRes.set('html5_modify_caption_vss_logging', 'true')
-      mRes.set('html5_allow_zero_duration_ads_on_timeline', 'true')
-      mRes.set('html5_reset_daistate_on_audio_codec_change', 'true')
-      mRes.set('html5_enable_safari_fairplay', 'true')
-
-      mRes.set('html5_safari_fairplay_ignore_hdcp', 'true')
-
-      mRes.set('html5_enable_vp9_fairplay', 'true')
-      mRes.set('html5_eme_loader_sync', 'true')
-
-      mRes.set('html5_enable_same_language_id_matching', 'true');
-      mRes.set('html5_enable_new_hvc_enc', 'true')
-      mRes.set('html5_enable_ssap', 'true')
-      mRes.set('html5_enable_short_gapless', 'true')
-      mRes.set('html5_enable_aac51', 'true')
-      mRes.set('html5_enable_ssap_entity_id', 'true')
-
-      mRes.set('html5_high_res_logging_always', 'true')
-      mRes.set('html5_local_playsinline', 'true')
-      mRes.set('html5_disable_media_element_loop_on_tv', 'true')
-      mRes.set('html5_native_audio_track_switching', 'true')
-
-      mRes.set('html5_format_hybridization', 'true')
-      mRes.set('html5_disable_encrypted_vp9_live_non_2k_4k', 'false')
-
-      mRes.set('html5_default_ad_gain', 'false')
-      mRes.set('html5_use_sabr_requests_for_debugging', 'false')
-      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
-      mRes.set('html5_sabr_live_ultra_low_latency', 'true')
-
-      mRes.set('html5_sabr_live_low_latency', 'true')
-      mRes.set('html5_sabr_live', 'true')
-      mRes.set('html5_sabr_post_live', 'true')
-      mRes.set('html5_sabr_premiere', 'true')
-
-      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
-      mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
-
-
-
-      mRes.set('html5_enable_subsegment_readahead_v3', 'true')
-      mRes.set('html5_ultra_low_latency_subsegment_readahead', 'true')
-      mRes.set('html5_disable_move_pssh_to_moov', 'true')
-
-
-
-      mRes.set('html5_modern_vp9_mime_type', 'true')
-
-
-
-
-
-
-
-      const res = [];
-      mRes.forEach((value, key) => {
-        res.push(`${key}=${value}`);
-      });
-      conf.serializedExperimentFlags = res.join('&');
     }
 
   }
@@ -732,23 +745,32 @@
 
 
 
-      EXPERIMENT_FLAGS.enable_native_live_chat_on_kevlar = true;
-      EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
-      EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
-      EXPERIMENT_FLAGS.live_chat_colored_usernames = true;
-      EXPERIMENT_FLAGS.live_chat_simple_color_usernames = true;
+      // EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
+      // EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
+      // EXPERIMENT_FLAGS.live_chat_colored_usernames = true;
+      // EXPERIMENT_FLAGS.live_chat_simple_color_usernames = true;
       // live_chat_hide_avatars
-      EXPERIMENT_FLAGS.live_chat_enable_qna_replay = true;
-      EXPERIMENT_FLAGS.live_chat_aggregation = true;
-      EXPERIMENT_FLAGS.live_chat_web_use_emoji_manager_singleton = true;
-      EXPERIMENT_FLAGS.enable_docked_chat_messages = true;
+      if(ENABLE_MINOR_CHAT_FEATURE_UPGRADE){
 
-      EXPERIMENT_FLAGS.live_chat_taller_emoji_picker = true;
-      EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle = true;
+        EXPERIMENT_FLAGS.enable_native_live_chat_on_kevlar = true;
 
+        EXPERIMENT_FLAGS.live_chat_enable_qna_replay = true;
+        EXPERIMENT_FLAGS.live_chat_aggregation = true;
+        EXPERIMENT_FLAGS.live_chat_web_use_emoji_manager_singleton = true;
+        EXPERIMENT_FLAGS.enable_docked_chat_messages = true;
 
-      EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle_remain_open_on_send = true;
-      EXPERIMENT_FLAGS.live_chat_web_input_update = true;
+      }
+
+      // EXPERIMENT_FLAGS.live_chat_taller_emoji_picker = true;
+      // EXPERIMENT_FLAGS.live_chat_web_input_update = true;
+
+      if(ENABLE_EMOJI_PICKER_NEW_STYLE){
+
+        EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle = true;
+        EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle_remain_open_on_send = true;
+        EXPERIMENT_FLAGS.live_chat_taller_emoji_picker = false;
+
+      }
 
 
 
