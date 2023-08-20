@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.25.2
+// @version             0.25.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -116,15 +116,17 @@
   // << end >>
 
   const FIX_TOOLTIP_DISPLAY = true;
-  const FIX_CLICKING_MESSAGE_MENU_DISPLAY = true;
+  const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // BROKEN !!! TO BE FIXED
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
   const FIX_MENU_REOPEN_RENDER_PERFORMANCE = true;
-  const FIX_MENU_CAPTURE_SCROLL = true;
+  // const FIX_MENU_CAPTURE_SCROLL = true;
   const FIX_MENU_POSITION_DUE_TO_SCROLLING = true;        // Change this to false if you want the menu location locked. true for refit & alllow scrolling when menu shows
 
   const RAF_FIX_keepScrollClamped = true;
   const RAF_FIX_scrollIncrementally = true;
+
+  const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -4932,7 +4934,7 @@
 
         }
 
-        if (FIX_CLICKING_MESSAGE_MENU_DISPLAY) {
+        if (FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK) {
 
 
           customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
@@ -4962,13 +4964,19 @@
                   // console.log(evt, 1, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
 
                   muz = 0;
-                  if (!evt || !evt.isTrusted || !this.hasAttribute('menu-visible')) return;
-                  if ((nsz = document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))) {
-                    if (evt.target.closest('[menu-visible]')) {
-                      muz = Date.now();
-                      evt.stopImmediatePropagation();
-                      evt.stopPropagation();
+                  const hostElement = this.hostElement || this;
+                  if (!evt || !evt.isTrusted || !hostElement.hasAttribute('menu-visible')) return;
+                  if (!hostElement.contains(evt.target)) return;
+                  let targetDropDown = null;
+                  for(const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')){
+                    if(dropdown && dropdown.positionTarget && (this.hostElement||this).contains( dropdown.positionTarget)){
+                      targetDropDown = dropdown;
                     }
+                  }
+                  if ((nsz = targetDropDown)) {
+                    muz = Date.now();
+                    evt.stopImmediatePropagation();
+                    evt.stopPropagation();
                   }
 
                 };
@@ -4981,7 +4989,10 @@
                   const ksz = nsz;
                   nsz = null;
 
-                  if (ksz && evt.target.closest('[menu-visible]')) {
+                  const hostElement = this.hostElement || this;
+                  if (!evt || !evt.isTrusted || !hostElement.hasAttribute('menu-visible')) return;
+
+                  if (ksz) {
                     muz = Date.now();
                     evt.stopImmediatePropagation();
                     evt.stopPropagation();
@@ -5237,8 +5248,65 @@
                 }
 
               */
+              if (FIX_MENU_POSITION_N_SIZING_ON_SHOWN && typeof cProto.position === 'function' && !cProto.position34 && typeof cProto.refit === 'function') {
+
+                let m34 = 0;
+                cProto.__refitByPosition__ = function () {
+                  m34++;
+                  if (m34 <= 0) m34 = 0;
+                  if(m34 !== 1) return;
+                  const hostElement = this.hostElement || this;
+                  if (document.visibilityState === 'visible') {
+                    const sizingTarget = this.sizingTarget;
+                    if (!sizingTarget) {
+                      m34 = 0;
+                      return;
+                    }
+                    hostElement.style.visibility = 'collapse';
+                    sizingTarget.style.visibility = 'collapse';
+                    const fn = () => {
+
+                      requestAnimationFrame(() => {
+                        if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) this.refit();
+                        setTimeout(() => {
+                          if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) this.refit();
+                          m34--;
+                          if (m34 <= 0) {
+                            hostElement.style.visibility = '';
+                            sizingTarget.style.visibility = '';
+                            m34 = 0;
+                          } else {
+                            fn();
+                          }
+                        }, 1);
+                      });
+                    }
+                    fn();
+                  } else {
+                    m34 = 0;
+                  }
+                }
+                cProto.position34 = cProto.position
+                cProto.position = function () {
+                  if(this._positionInitialize_){
+                    this._positionInitialize_ = 0;
+                    this.__refitByPosition__();
+                  }
+                  let r = cProto.position34.apply(this, arguments);
+                  return r;
+                }
+                console.log("FIX_MENU_POSITION_ON_SHOWN - OK");
+
+              } else {
+
+                console.log("FIX_MENU_POSITION_ON_SHOWN - NG");
+
+              }
+
+
 
               cProto.__openedChanged = function () {
+                this._positionInitialize_ = 1;
                 // this.removeAttribute('horizontal-align')
                 // this.removeAttribute('vertical-align')
                 if (typeof this.__menuTypeCheck__ !== 'boolean') {
@@ -5258,6 +5326,7 @@
                     // this.expandSizingTargetForScrollbars = true;
                     // this.allowOutsideScroll = true;
                   }
+                   this.sizingTarget
                 }
                 if (FIX_MENU_POSITION_DUE_TO_SCROLLING && this.opened) {
                   let newValue = null;
@@ -5338,46 +5407,46 @@
             }
 
 
-            if(FIX_MENU_CAPTURE_SCROLL && typeof cProto.__onCaptureScroll === 'function' && !cProto.__onCaptureScroll66){
+            // if(FIX_MENU_CAPTURE_SCROLL && typeof cProto.__onCaptureScroll === 'function' && !cProto.__onCaptureScroll66){
 
-              cProto.__onCaptureScroll66 = cProto.__onCaptureScroll;
+            //   cProto.__onCaptureScroll66 = cProto.__onCaptureScroll;
 
-              cProto.__onCaptureScroll = function(a){
+            //   cProto.__onCaptureScroll = function(a){
  
-                const q = true;
-                if(this.scrollAction === 'lock'  && q && this.opened){
+            //     const q = true;
+            //     if(this.scrollAction === 'lock'  && q && this.opened){
 
-                  // console.log(9107, this.scrollAction, this.__isAnimating, this.opened, a); // lock; __isAnimating = false
-                  async function af() {
-                    this.__isAnimating && this._finishRenderOpened();
-                    if (!this.opened) return;
-                    this.__restoreScrollPosition();
-                    await new Promise(r => requestAnimationFrame(r));
-                    if (!this.opened) return;
-                    this.opened && this.__isAnimating && this._finishRenderOpened();
-                    if (!this.opened) return;
-                    this.__restoreScrollPosition();
-                    await new Promise(r => requestAnimationFrame(r));
-                    if (!this.opened) return;
-                    this.opened && this.__isAnimating && this._finishRenderOpened();
-                    if (!this.opened) return;
-                    this.opened && !this.__isAnimating && this.refit();
-                  }
-                  Promise.resolve().then(af);
+            //       // console.log(9107, this.scrollAction, this.__isAnimating, this.opened, a); // lock; __isAnimating = false
+            //       async function af() {
+            //         this.__isAnimating && this._finishRenderOpened();
+            //         if (!this.opened) return;
+            //         this.__restoreScrollPosition();
+            //         await new Promise(r => requestAnimationFrame(r));
+            //         if (!this.opened) return;
+            //         this.opened && this.__isAnimating && this._finishRenderOpened();
+            //         if (!this.opened) return;
+            //         this.__restoreScrollPosition();
+            //         await new Promise(r => requestAnimationFrame(r));
+            //         if (!this.opened) return;
+            //         this.opened && this.__isAnimating && this._finishRenderOpened();
+            //         if (!this.opened) return;
+            //         this.opened && !this.__isAnimating && this.refit();
+            //       }
+            //       Promise.resolve().then(af);
 
-                   return cProto.__onCaptureScroll66.apply(this, arguments);
-                }else{
+            //        return cProto.__onCaptureScroll66.apply(this, arguments);
+            //     }else{
 
-                  // console.log(9102, this.scrollAction, this.__isAnimating, this.opened, a); // lock
+            //       // console.log(9102, this.scrollAction, this.__isAnimating, this.opened, a); // lock
 
-                  return cProto.__onCaptureScroll66.apply(this, arguments);
-                }
-              }
-              console.log("FIX_MENU_CAPTURE_SCROLL - OK");
-            }else{
-              console.log("FIX_MENU_CAPTURE_SCROLL - NG");
+            //       return cProto.__onCaptureScroll66.apply(this, arguments);
+            //     }
+            //   }
+            //   console.log("FIX_MENU_CAPTURE_SCROLL - OK");
+            // }else{
+            //   console.log("FIX_MENU_CAPTURE_SCROLL - NG");
               
-            }
+            // }
 
 
           })();
