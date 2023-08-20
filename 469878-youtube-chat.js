@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.24.0
+// @version             0.25.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -116,6 +116,7 @@
   // << end >>
 
   const FIX_TOOLTIP_DISPLAY = true;
+  const FIX_CLICKING_MESSAGE_MENU_DISPLAY = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -2417,6 +2418,9 @@
               promiseForCustomYtElementsReady.then(() => {
 
                 customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
+
+
+                  
 
                   setTimeout(() => {
 
@@ -4916,6 +4920,124 @@
           });
 
 
+
+        }
+
+        if (FIX_CLICKING_MESSAGE_MENU_DISPLAY) {
+
+
+          customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
+
+
+            mightFirstCheckOnYtInit();
+            groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-text-message-renderer hacks");
+            console.log("[Begin]");
+            (() => {
+
+              const tag = "yt-live-chat-text-message-renderer"
+              const dummy = document.createElement(tag);
+
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
+
+              if (typeof cProto.attached === 'function' && !cProto.attached57 && typeof cProto.detached === 'function' && !cProto.detached57) {
+ 
+
+                cProto.attached57 = cProto.attached;
+                let muz = 0;
+                let nsz = null;
+                cProto.mdHandler = function (evt) {
+                  // console.log(evt, 1, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
+
+                  muz = 0;
+                  if (!evt || !evt.isTrusted || !this.hasAttribute('menu-visible')) return;
+                  if ((nsz = document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))) {
+                    if (evt.target.closest('[menu-visible]')) {
+                      muz = Date.now();
+                      evt.stopImmediatePropagation();
+                      evt.stopPropagation();
+                    }
+                  }
+
+                };
+
+                cProto.muHandler = function (evt) {
+                  // console.log(evt, 7, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
+                  if (!evt || !evt.isTrusted || !muz) return;
+                  muz = 0;
+
+                  const ksz = nsz;
+                  nsz = null;
+
+                  if (ksz && evt.target.closest('[menu-visible]')) {
+                    muz = Date.now();
+                    evt.stopImmediatePropagation();
+                    evt.stopPropagation();
+                    document.body.click();
+                  }
+
+                };
+
+                cProto.ckHandler = function (evt) {
+                  // console.log(evt, 3, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
+
+                  if (!evt || !evt.isTrusted || !muz) return;
+                  if (Date.now() - muz < 40) {
+                    muz = Date.now();
+                    evt.stopImmediatePropagation();
+                    evt.stopPropagation();
+                  }
+
+                };
+                cProto.tapHandler = function (evt) {
+                  // console.log(evt, 2, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
+
+                  if (!evt || !evt.isTrusted || !muz) return;
+                  if (Date.now() - muz < 40) {
+                    muz = Date.now();
+                    evt.stopImmediatePropagation();
+                    evt.stopPropagation();
+                  }
+
+                };
+                cProto.attached = function () {
+                  const p = this.attached57();
+                  const hostElement = this.hostElement || this;
+                  hostElement.addEventListener('mousedown', this.mdHandler, true);
+                  hostElement.addEventListener('mouseup', this.muHandler, true);
+                  hostElement.addEventListener('tap', this.tapHandler, true);
+                  hostElement.addEventListener('click', this.ckHandler, true);
+                  return p;
+                };
+
+                cProto.detached57 = cProto.detached;
+                cProto.detached = function () {
+                  const p = this.detached57();
+                  const hostElement = this.hostElement || this;
+                  hostElement.removeEventListener('mousedown', this.mdHandler, true);
+                  hostElement.removeEventListener('mouseup', this.muHandler, true);
+                  hostElement.removeEventListener('tap', this.tapHandler, true);
+                  hostElement.removeEventListener('click', this.ckHandler, true);
+                  return p;
+                };
+                console.log("yt-live-chat-text-message-renderer - OK");
+
+              } else {
+                console.log("yt-live-chat-text-message-renderer - NG");
+
+              }
+
+
+            })();
+
+            console.log("[End]");
+
+            console.groupEnd();
+
+          });
 
         }
 
