@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.0.1
+// @version     1.0.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -29,6 +29,8 @@
   const NO_REFRESH = true;
   const ENABLE_MINOR_CHAT_FEATURE_UPGRADE = true;
   const ENABLE_EMOJI_PICKER_NEW_STYLE = false;
+  const ENABLE_BADGE_STYLE = false;
+
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
@@ -545,6 +547,8 @@
 
           if (!DISABLE_CINEMATICS) {
 
+            // web_watch_cinematics_disabled_by_default
+            // web_watch_cinematics_preferred_reduced_motion_default_disabled
 
             if (key === 'kevlar_measure_ambient_mode_idle' || key === 'kevlar_watch_cinematics_invisible' || key === 'web_cinematic_theater_mode' || key === 'web_cinematic_fullscreen') {
               continue;
@@ -666,7 +670,7 @@
               live_chat_web_enable_command_handler
               live_chat_web_use_emoji_manager_singleton
               live_chat_whole_message_clickable
- 
+
               */
             }
 
@@ -710,7 +714,11 @@
               if (key === 'enable_mixed_direction_formatted_strings') continue;
             }
 
+            if(key ==='enable_unknown_lact_fix_on_html5') continue;
+
           }
+
+          if(key==='live_chat_chunk_across_update_interval') continue;
 
           if (key === 'enable_native_live_chat_on_kevlar') continue;
 
@@ -735,6 +743,85 @@
           if (key === 'enable_web_cosmetic_refresh_hashtag_page') continue;
           if (key === 'kevlar_watch_metadata_refresh_description_lines') continue;
 
+
+
+
+          if(key==='enable_service_ajax_csn') continue;
+
+          if(key==='kevlar_use_vimio_behavior')continue;
+
+          if(key==='web_use_cache_for_image_fallback') continue;
+          if(key==='kevlar_woffle_fallback_image')continue;
+          if(key==='yt_img_shadow_trigger_show_on_visible') continue;
+          if(key==='kevlar_thumbnail_bg') continue;
+          if(key==='web_rounded_thumbnails')continue;
+
+
+
+          if(key==='kevlar_rendererstamper_event_listener') continue;
+
+          if(key==='dialog_behavior_no_tap_killswitch')continue;
+
+          if(key==='handle_service_request_actions') continue;
+
+          if(key === 'live_chat_whole_message_clickable') continue;
+
+          if(key === 'live_chat_require_space_for_autocomplete_emoji') continue;
+
+          if(key==='kevlar_keyboard_button_focus') continue;
+
+          if(key==='live_chat_emoji_picker_toggle_state')continue;
+          if(key==='super_sticker_emoji_picker_category_button_icon_filled')continue;
+          if(key==='enable_super_chat_buy_flow_revamp_web') continue;
+
+
+          if(key==='web_modern_buttons') continue;
+
+          
+          if(key==='web_modern_dialogs') continue;
+          if(key==='live_chat_disable_chat_feed_animation') continue;
+          if(key==='live_chat_overflow_hide_chat') continue;
+          if(key==='web_darker_dark_theme_live_chat')continue;
+          if(key==='live_chat_channel_activity')continue;
+          if(key==='live_chat_emoji_picker_restyle_remain_open_on_click_to_input_area')continue;
+          if(key==='live_chat_top_chat_sampling_enabled') continue;
+
+          if(key==='live_chat_enable_mod_view')continue;
+          if(key==='live_chat_web_enable_command_handler_action_handling')continue;
+          if(key==='web_modern_dialogs')continue;
+          if(key==='web_modern_dialog_layout')continue;
+          if(key==='web_modern_typography')continue;
+
+          if(key==='kevlar_disable_component_resizing_support') continue;
+          if(key==='web_rounded_thumbnails') continue;
+          if(key==='enable_quiz_desktop_animation')continue;
+          if(key==='kevlar_thumbnail_fluid')continue;
+          if(key==='web_enable_playlist_video_lockup_equalizer')continue;
+          if(key==='web_modern_collections_v2') continue;
+          if(key==='animated_live_badge_icon') continue;
+          if(key==='use_color_palettes_modern_collections_v2') continue;
+          if(key==='web_amsterdam_post_mvp_playlists')continue;
+          if(key==='enable_desktop_search_bigger_thumbs')continue;
+          if(key==='web_animated_actions') continue;
+          if(key==='mweb_animated_actions') continue;
+          if(key==='enable_desktop_amsterdam_info_panels') continue;
+
+          if(key==='kevlar_modern_sd')continue;
+          if(key==='problem_walkthrough_sd')continue;
+          if(key==='polymer_video_renderer_defer_menu')continue;
+
+
+          if(key==='enable_html5_teal_ad_badge') continue;
+          if(key==='kevlar_ytb_live_badges') continue;
+          if(key==='live_chat_enable_new_moderator_badge') continue;
+          if(key==='live_chat_prepend_badges') continue;
+          if(key==='live_chat_bold_color_usernames') continue;
+          if(key==='render_custom_emojis_as_small_images') continue;
+
+          if(key==='web_enable_dynamic_metadata') continue;
+
+
+          
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
         }
@@ -744,6 +831,25 @@
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
 
 
+      
+      EXPERIMENT_FLAGS.defer_menus = true;
+      EXPERIMENT_FLAGS.defer_overlays = true;
+      EXPERIMENT_FLAGS.faster_load_overlay = true;
+      EXPERIMENT_FLAGS.disable_moving_thumbs_handling = true;
+      EXPERIMENT_FLAGS.polymer_video_renderer_defer_menu = true;
+      EXPERIMENT_FLAGS.web_announce_stop_seeing_this_ad_text_a11y_bugfix = true;
+
+      EXPERIMENT_FLAGS.disable_chips_intersection_observer = true;
+
+      EXPERIMENT_FLAGS.live_chat_top_chat_sampling_enabled = true;
+
+      EXPERIMENT_FLAGS.kevlar_dropdown_fix = true;
+
+      EXPERIMENT_FLAGS.debug_forward_web_query_parameters = false;
+      EXPERIMENT_FLAGS.cancel_pending_navs =true;
+      EXPERIMENT_FLAGS.web_no_lock_on_touchstart_killswitch = false;
+      
+
 
       // EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
       // EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
@@ -752,12 +858,26 @@
       // live_chat_hide_avatars
       if(ENABLE_MINOR_CHAT_FEATURE_UPGRADE){
 
+        
+        
+        // EXPERIMENT_FLAGS.mweb_wiz_skip_render = true;
+        // EXPERIMENT_FLAGS.kevlar_wiz_prototype_enable_all_components= true;
+        // EXPERIMENT_FLAGS.kevlar_wiz_enable_on_demand_alternative_components= true;
+
+        EXPERIMENT_FLAGS.web_enable_dynamic_metadata = true;
+
+        EXPERIMENT_FLAGS.web_supports_animations_api = true;
+        EXPERIMENT_FLAGS.smartimation_background = true;
+        EXPERIMENT_FLAGS.register_web_smartimations_component = true;
+
         EXPERIMENT_FLAGS.enable_native_live_chat_on_kevlar = true;
 
         EXPERIMENT_FLAGS.live_chat_enable_qna_replay = true;
         EXPERIMENT_FLAGS.live_chat_aggregation = true;
         EXPERIMENT_FLAGS.live_chat_web_use_emoji_manager_singleton = true;
-        EXPERIMENT_FLAGS.enable_docked_chat_messages = true;
+        // EXPERIMENT_FLAGS.enable_docked_chat_messages = true;
+
+        EXPERIMENT_FLAGS.live_chat_mention_regex_update = true;
 
       }
 
@@ -772,6 +892,20 @@
 
       }
 
+      if(ENABLE_BADGE_STYLE) {
+        
+        EXPERIMENT_FLAGS.enable_html5_teal_ad_badge = true;
+        EXPERIMENT_FLAGS.kevlar_ytb_live_badges = true;
+        EXPERIMENT_FLAGS.live_chat_enable_new_moderator_badge = true;
+        EXPERIMENT_FLAGS.live_chat_prepend_badges=true;
+
+        EXPERIMENT_FLAGS.live_chat_bold_color_usernames =true;
+        EXPERIMENT_FLAGS.render_custom_emojis_as_small_images =true;
+        
+        
+      }
+
+      // EXPERIMENT_FLAGS.kevlar_wiz_prototype_enable_all_components = true;
 
 
       EXPERIMENT_FLAGS.html5_allow_asmjs = true;
