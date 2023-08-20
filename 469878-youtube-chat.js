@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.23.7
+// @version             0.23.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3879,7 +3879,22 @@
 
             }
 
-            const doAnimator = !!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && typeof CSS === 'object' && typeof CSS.registerProperty === 'function';
+            const isCSSPropertySupported = () => {
+
+              if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return;
+              const documentElement = document.documentElement;
+              if (!documentElement) {
+                console.warn('document.documentElement is not found');
+                return false;
+              }
+              if (`${window.getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
+                return false;
+              }
+              return true;
+
+            };
+
+            const doAnimator = !!ATTEMPT_TO_REPLACE_TICKER_EASING_TO_KEF && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
 
             const doRAFHack = rafHackState === 2;
 
