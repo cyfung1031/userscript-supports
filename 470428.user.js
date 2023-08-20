@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.0
+// @version     0.6.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -26,6 +26,7 @@
   const DISABLE_serializedExperimentIds = true;
   const DISABLE_serializedExperimentFlags = true;
   const IGNORE_VIDEO_SOURCE_RELATED = true;
+  const NO_REFRESH = true;
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
     useExternal: () => typeof localStorage.EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST !== 'undefined',
@@ -529,6 +530,7 @@
           } else if (key.indexOf('kevlar_') === 0) {
 
 
+
             if (kl7 === 2 && kl5 === 2 && kl2 === 1 && kl3 === 1) {
               if (key === 'kevlar_rendererstamper_event_listener') continue; // https://github.com/cyfung1031/userscript-supports/issues/11
             }
@@ -666,6 +668,23 @@
           EXPERIMENT_FLAGS[key] = false;
         }
       }
+
+
+
+      if (NO_REFRESH) {
+
+        EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_standardized_body_typography = false;
+        EXPERIMENT_FLAGS.kevlar_refresh_gesture = false;
+
+
+      }
+
+      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
+      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = true;
+      EXPERIMENT_FLAGS.enable_web_cosmetic_refresh_hashtag_page = true;
+      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_description_lines = true;
+
+
 
 
       EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
