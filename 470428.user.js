@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.1
+// @version     1.0.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -82,7 +82,8 @@
   const Promise = ((async () => { })()).constructor;
 
   let isMainWindow = false;
-  let mzFlagDetected = new Set();
+  let mzFlagDetected1 = new Set();
+  let mzFlagDetected2 = new Set();
   let zPlayerKevlar = false;
   try {
     isMainWindow = window.document === window.top.document
@@ -118,7 +119,19 @@
 
         if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
 
-          if (key === 'html5_skip_slow_ad_delay_ms') {
+
+          if (key === 'html5_live_use_alternate_bandwidth_window_sizes') {
+            keep = true;
+          }
+          else if (key === 'html5_live_ultra_low_latency_bandwidth_window') {
+            keep = true;
+          }
+          else if (key === 'html5_live_low_latency_bandwidth_window') {
+            keep = true;
+          }
+          else if (key === 'html5_live_normal_latency_bandwidth_window') {
+            keep = true;
+          } else if (key === 'html5_skip_slow_ad_delay_ms') {
             keep = true;
             if (typeof value === 'string' && +value > 2) {
               keep = true;
@@ -210,6 +223,7 @@
 
         }
 
+
         if (key === 'html5_streaming_xhr_time_based_consolidation_ms') keep = true;
         if (key === 'html5_bypass_contention_secs') keep = true;
 
@@ -237,6 +251,9 @@
         }
         if (keep) mRes.set(key, value);
       }
+
+      mRes.set('html5_disable_low_pipeline', 'false');
+      mRes.set('html5_min_startup_buffered_ad_media_duration_secs', '0')
 
       if (supportAV1 === false && localStorage['yt-player-av1-pref'] === '-1') {
 
@@ -304,10 +321,25 @@
       mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
       mRes.set('html5_sabr_live_ultra_low_latency', 'true')
 
+      mRes.set('html5_sabr_live_low_latency', 'true')
+      mRes.set('html5_sabr_live', 'true')
+      mRes.set('html5_sabr_post_live', 'true')
+      mRes.set('html5_sabr_premiere', 'true')
+
+      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
+
+
+
+      mRes.set('html5_enable_subsegment_readahead_v3', 'true')
+      mRes.set('html5_ultra_low_latency_subsegment_readahead', 'true')
+      mRes.set('html5_disable_move_pssh_to_moov', 'true')
 
 
 
       mRes.set('html5_modern_vp9_mime_type', 'true')
+
+
 
 
 
@@ -349,31 +381,43 @@
       let config_ = null;
       let EXPERIMENT_FLAGS = null;
       try {
-        config_ = yt.config_;
-        EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS
+        config_ = yt.config_ || ytcfg.data_;
       } catch (e) { }
+      if (!config_) return;
+      EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS || 0;
 
       if (EXPERIMENT_FLAGS) {
 
-        fn(EXPERIMENT_FLAGS, config_);
 
-        if (microDisconnectFn) {
-          let isYtLoaded = false;
-          try {
-            isYtLoaded = typeof ytcfg.set === 'function';
-          } catch (e) { }
-          if (isYtLoaded) {
-            microDisconnectFn();
+        if (!settled) {
+          settled = {
+            use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
+            use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS),
+            use_defer_detach: getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
           }
+          if (settled.use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
+          if (settled.use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
+          if (settled.use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
+        }
+
+        fn(config_);
+      }
+
+      if (EXPERIMENT_FLAGS && microDisconnectFn) {
+
+
+        let isYtLoaded = false;
+        try {
+          isYtLoaded = typeof ytcfg.set === 'function';
+        } catch (e) { }
+        if (isYtLoaded) {
+          microDisconnectFn();
         }
 
       }
 
-      let playerKevlar = null;
+      const playerKevlar = (config_.WEB_PLAYER_CONTEXT_CONFIGS || 0).WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH || 0;
 
-      try {
-        playerKevlar = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
-      } catch (e) { }
 
       if (playerKevlar && !zPlayerKevlar) {
         zPlayerKevlar = true;
@@ -462,26 +506,17 @@
     };
 
     return controller;
-  })((EXPERIMENT_FLAGS, config_) => {
+  })((config_) => {
 
-    if (!EXPERIMENT_FLAGS) return;
+    if (!config_.EXPERIMENT_FLAGS) return;
 
-    if (!settled) {
-      settled = {
-        use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
-        use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS),
-        use_defer_detach: getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
-      }
-      if (settled.use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
-      if (settled.use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
-      if (settled.use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
-    }
+
     const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = settled;
 
-    const setterFn = (EXPERIMENT_FLAGS) => {
+    // i don't know why it requires to be extracted function.
+    const mex = (EXPERIMENT_FLAGS, mzFlagDetected, fEntries) => {
 
-
-      for (const [key, value] of Object.entries(EXPERIMENT_FLAGS)) {
+      for (const [key, value] of fEntries) {
 
 
         if (value === true) {
@@ -618,7 +653,7 @@
               live_chat_web_enable_command_handler
               live_chat_web_use_emoji_manager_singleton
               live_chat_whole_message_clickable
-
+ 
               */
             }
 
@@ -664,12 +699,69 @@
 
           }
 
+          if (key === 'enable_native_live_chat_on_kevlar') continue;
+
+          if (key === 'live_chat_author_name_color_usernames') continue;
+          if (key === 'live_chat_seed_color_usernames') continue;
+          if (key === 'live_chat_colored_usernames') continue;
+          if (key === 'live_chat_simple_color_usernames') continue;
+          if (key === 'web_button_rework_with_live') continue;
+          if (key === 'live_chat_hide_avatars') continue;
+          if (key === 'live_chat_enable_qna_replay') continue;
+          if (key === 'live_chat_aggregation') continue;
+          if (key === 'live_chat_web_use_emoji_manager_singleton') continue;
+          if (key === 'enable_docked_chat_messages') continue;
+          if (key === 'live_chat_taller_emoji_picker') continue;
+          if (key === 'live_chat_emoji_picker_restyle') continue;
+          if (key === 'live_chat_emoji_picker_restyle_remain_open_on_send') continue;
+          if (key === 'live_chat_web_input_update') continue;
+          if (key === 'live_chat_enable_send_button_in_slow_mode') continue;
+
+          if (key === 'kevlar_watch_metadata_refresh_no_old_primary_data') continue;
+          if (key === 'kevlar_watch_metadata_refresh_no_old_secondary_data') continue;
+          if (key === 'enable_web_cosmetic_refresh_hashtag_page') continue;
+          if (key === 'kevlar_watch_metadata_refresh_description_lines') continue;
+
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
         }
       }
+    }
+
+    const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
 
 
+
+      EXPERIMENT_FLAGS.enable_native_live_chat_on_kevlar = true;
+      EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
+      EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
+      EXPERIMENT_FLAGS.live_chat_colored_usernames = true;
+      EXPERIMENT_FLAGS.live_chat_simple_color_usernames = true;
+      // live_chat_hide_avatars
+      EXPERIMENT_FLAGS.live_chat_enable_qna_replay = true;
+      EXPERIMENT_FLAGS.live_chat_aggregation = true;
+      EXPERIMENT_FLAGS.live_chat_web_use_emoji_manager_singleton = true;
+      EXPERIMENT_FLAGS.enable_docked_chat_messages = true;
+
+      EXPERIMENT_FLAGS.live_chat_taller_emoji_picker = true;
+      EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle = true;
+
+
+      EXPERIMENT_FLAGS.live_chat_emoji_picker_restyle_remain_open_on_send = true;
+      EXPERIMENT_FLAGS.live_chat_web_input_update = true;
+
+
+
+      EXPERIMENT_FLAGS.html5_allow_asmjs = true;
+      EXPERIMENT_FLAGS.html5_honor_caption_availabilities_in_audio_track = true;
+      EXPERIMENT_FLAGS.web_player_hide_nitrate_promo_tooltip = true;
+      EXPERIMENT_FLAGS.html5_enable_vod_slar_with_notify_pacf = true;
+      EXPERIMENT_FLAGS.html5_recognize_predict_start_cue_point = true;
+      EXPERIMENT_FLAGS.enable_player_logging_lr_home_infeed_ads = false;
+
+      EXPERIMENT_FLAGS.log_gel_compression_latency = true;
+      EXPERIMENT_FLAGS.log_gel_compression_latency_lr = true;
+      EXPERIMENT_FLAGS.log_jspb_serialize_latency = true;
 
       if (NO_REFRESH) {
 
@@ -679,10 +771,10 @@
 
       }
 
-      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
-      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = true;
-      EXPERIMENT_FLAGS.enable_web_cosmetic_refresh_hashtag_page = true;
-      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_description_lines = true;
+      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
+      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = true;
+      // EXPERIMENT_FLAGS.enable_web_cosmetic_refresh_hashtag_page = true;
+      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_description_lines = true;
 
 
 
@@ -722,10 +814,20 @@
       EXPERIMENT_FLAGS.ytidb_clear_optimizations_killswitch = true;
       // EXPERIMENT_FLAGS.defer_overlays = true;
 
-    }
 
-    setterFn(EXPERIMENT_FLAGS);
-    if (config_.EXPERIMENTS_FORCED_FLAGS) setterFn(config_.EXPERIMENTS_FORCED_FLAGS);
+    }
+    const setterFn = (EXPERIMENT_FLAGS, mzFlagDetected) => {
+
+      const fEntries = Object.entries(EXPERIMENT_FLAGS);
+      mex(EXPERIMENT_FLAGS, mzFlagDetected, fEntries);
+      mey(EXPERIMENT_FLAGS, mzFlagDetected);
+
+    };
+
+    setterFn(config_.EXPERIMENT_FLAGS, mzFlagDetected1);
+
+    if (config_.EXPERIMENTS_FORCED_FLAGS) setterFn(config_.EXPERIMENTS_FORCED_FLAGS, mzFlagDetected2);
+
 
   });
 
