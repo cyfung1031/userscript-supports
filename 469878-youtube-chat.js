@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.5
+// @version             0.30.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5225,15 +5225,35 @@
               cProto.showContextMenu37_ = cProto.showContextMenu_;
               cProto.showContextMenu37 = cProto.showContextMenu;
 
+              function deepCopy(obj, skipKeys) {
+                skipKeys = skipKeys || [];
+                if (!obj || typeof obj !== 'object') return obj;
+                if (Array.isArray(obj)) {
+                  return obj.map(item => deepCopy(item, skipKeys));
+                }
+                const copy = {};
+                for (let key in obj) {
+                  if (!skipKeys.includes(key)) {
+                    copy[key] = deepCopy(obj[key], skipKeys);
+                  }
+                }
+                return copy;
+              }
 
               const wm37 = new WeakMap();
               cProto.showContextMenu = function (a) {
                 const endpoint = (this.data || 0).contextMenuEndpoint || 0;
                 if (endpoint) {
-                  const resolvedEndpoint = wm37.get(endpoint);
+                  let resolvedEndpoint = wm37.get(endpoint);
                   if (resolvedEndpoint) {
-                    this.showContextMenu37_(a);
+                    resolvedEndpoint = deepCopy(resolvedEndpoint);
+                    // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
+                    Promise.resolve(resolvedEndpoint).then(() => {
+                      this.showContextMenu37_(resolvedEndpoint);
+                    });
                     return;
+                    //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
+                    //return;
                   }
                 }
                 return this.showContextMenu37(a);
@@ -5242,6 +5262,7 @@
               cProto.showContextMenu_ = function (a) {
                 const endpoint = (this.data || 0).contextMenuEndpoint || 0;
                 if (endpoint) {
+                  a = deepCopy(a);
                   wm37.set(endpoint, a);
                 }
                 return this.showContextMenu37_(a);
