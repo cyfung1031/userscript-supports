@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.4
+// @version             0.30.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5220,40 +5220,43 @@
             }
 
 
-          if(FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 && typeof cProto.showContextMenu ==='function' && typeof cProto.showContextMenu_ ==='function' && !cProto.showContextMenu37  && !cProto.showContextMenu37_  && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length===1 ){
+            if (FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
 
-            cProto.showContextMenu37_ = cProto.showContextMenu_;
-            cProto.showContextMenu37 = cProto.showContextMenu;
+              cProto.showContextMenu37_ = cProto.showContextMenu_;
+              cProto.showContextMenu37 = cProto.showContextMenu;
 
 
-            const wm37 = new WeakMap();
-            cProto.showContextMenu = function (a) {
-              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-              if (endpoint) {
-                const resolvedEndpoint = wm37.get(endpoint);
-                if (resolvedEndpoint) this.showContextMenu37_(a);
+              const wm37 = new WeakMap();
+              cProto.showContextMenu = function (a) {
+                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                if (endpoint) {
+                  const resolvedEndpoint = wm37.get(endpoint);
+                  if (resolvedEndpoint) {
+                    this.showContextMenu37_(a);
+                    return;
+                  }
+                }
+                return this.showContextMenu37(a);
               }
-              return this.showContextMenu37(a);
-            } 
 
-            cProto.showContextMenu_ = function (a) {
-              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-              if (endpoint) {
-                wm37.set(endpoint, a);
+              cProto.showContextMenu_ = function (a) {
+                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                if (endpoint) {
+                  wm37.set(endpoint, a);
+                }
+                return this.showContextMenu37_(a);
               }
-              return this.showContextMenu37_(a);
+
+
+              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 - OK");
+
+
+
+            } else {
+
+              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 -  NG");
+
             }
-
-
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 - OK");
-
-
-
-          } else {
-
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 -  NG");
-
-          }
 
 
 
