@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.2
+// @version             0.30.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -131,7 +131,7 @@
   const RAF_FIX_keepScrollClamped = true;
   const RAF_FIX_scrollIncrementally = true;
 
-  const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = true;       // correct size and position when the menu dropdown opens
+  const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -928,6 +928,43 @@
   };
 
   const promiseForCustomYtElementsReady = new Promise(onRegistryReady);
+
+  const renderReadyPn = typeof ResizeObserver !== 'undefined' ? (sizingTarget) => {
+
+    return new Promise(resolve => {
+
+      let ro = new ResizeObserver(entries => {
+        if (entries && entries.length >= 1) {
+          resolve();
+          ro.disconnect();
+          ro = null;
+        }
+      });
+      ro.observe(sizingTarget);
+
+
+
+    });
+
+  } : (sizingTarget) => {
+
+
+    return new Promise(resolve => {
+
+      let io = new IntersectionObserver(entries => {
+        if (entries && entries.length >= 1) {
+          resolve();
+          io.disconnect();
+          io = null;
+        }
+      });
+      io.observe(sizingTarget);
+
+
+
+    });
+
+  };
 
   /* globals WeakRef:false */
 
@@ -2651,7 +2688,7 @@
                       style="background-color: transparent;" loaded=""><img id="img"
                         draggable="false" class="style-scope yt-img-shadow" alt="I" height="24" width="24"
                         src="${dummyImgURL}"></yt-img-shadow777>
-              
+
                     <span id="text" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer">¥1,000</span>
                   </div>
                 </div>
@@ -2684,7 +2721,7 @@
                     console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND (Overriding other scripting)', 'background-color: #7eb32b; color: #102624; padding: 2px 4px');
 
                   } else {
-                    
+
                     console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
                   }
                 }
@@ -4837,7 +4874,7 @@
               cProto.dataChanged = function (a) {
 
                 /*
-                
+
                   for (var b = xC(Z(this.hostElement).querySelector("#image")); b.firstChild; )
                       b.removeChild(b.firstChild);
                   if (a)
@@ -4853,7 +4890,7 @@
                           b.appendChild(c),
                           c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail",a.customThumbnail))
                       }
-                
+
                 */
 
                 const image = ((this || 0).$ || 0).image
@@ -5368,7 +5405,7 @@
             /*
                // ***** position() to be changed. *****
               tp-yt-iron-dropdown[class], tp-yt-iron-dropdown[class] #contentWrapper, tp-yt-iron-dropdown[class] ytd-menu-popup-renderer[class] {
-              
+
                   overflow: visible !important;
                   min-width: max-content !important;
                   max-width: max-content !important;
@@ -5397,7 +5434,7 @@
                   if (HTMLElement.prototype.querySelector.call(sizingTarget, 'yt-icon:empty')) {
                     useVisibilityCollapse = false;
                   }
-                  
+
                   if (useVisibilityCollapse) {
                     hostElement.style.visibility = 'collapse';
                     sizingTarget.style.visibility = 'collapse';
@@ -5405,36 +5442,32 @@
                     hostElement.setAttribute('rNgzQ', '');
                     sizingTarget.setAttribute('rNgzQ', '');
                   }
-                  
-                  const fn = () => {
 
-                    const isPageVisible = document.visibilityState === 'visible';
-                    const f = () => {
-                      if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) this.refit();
-                      setTimeout(() => {
-                        if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) this.refit();
-                        m34--;
-                        if (m34 <= 0) {
+                  const gn = () => {
 
-                          
-                          if (useVisibilityCollapse) {
-                            hostElement.style.visibility = '';
-                            sizingTarget.style.visibility = '';
-                          } else {
-                            hostElement.removeAttribute('rNgzQ');
-                            sizingTarget.removeAttribute('rNgzQ');
-                          }
-                          
-
-                          m34 = 0;
-                        } else {
-                          fn();
-                        }
-                      }, 1);
-                    };
-                    isPageVisible ? requestAnimationFrame(f) : setTimeout(f, 16);
+                    if (useVisibilityCollapse) {
+                      hostElement.style.visibility = '';
+                      sizingTarget.style.visibility = '';
+                    } else {
+                      hostElement.removeAttribute('rNgzQ');
+                      sizingTarget.removeAttribute('rNgzQ');
+                    }
                   }
-                  fn();
+
+                  const an = async () => {
+                    while (m34 >= 1) {
+                      await renderReadyPn(sizingTarget);
+                      if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) {
+                        if (sizingTarget.matches('ytd-menu-popup-renderer[slot="dropdown-content"].yt-live-chat-app')) this.refit();
+                      }
+                      m34--;
+                    }
+                    m34 = 0;
+                    Promise.resolve().then(gn);
+                  }
+                  an();
+
+
                 } else {
                   m34 = 0;
                 }
