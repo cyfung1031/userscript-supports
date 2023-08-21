@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.6
+// @version             0.31.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -121,10 +121,12 @@
   // << end >>
 
   const FIX_TOOLTIP_DISPLAY = true;
-  const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
-  const FIX_MENU_REOPEN_RENDER_PERFORMANCE = true;        // to be checked. showContextMenu_ delayed due to request of parameter.
+
+  
+  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 = true;
+  const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;
   // const FIX_MENU_CAPTURE_SCROLL = true;
   const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
 
@@ -132,6 +134,9 @@
   const RAF_FIX_scrollIncrementally = true;
 
   const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
+
+  const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;
+
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -183,8 +188,6 @@
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;
   const CHAT_MENU_SCROLL_UNLOCKING = CHAT_MENU_REFIT_ALONG_SCROLLING >= 1;
-  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 = FIX_MENU_REOPEN_RENDER_PERFORMANCE;
-  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 = FIX_MENU_REOPEN_RENDER_PERFORMANCE;
   let runTickerClassName = 'run-ticker';
 
   const dummyImgURL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
@@ -5174,7 +5177,6 @@
         }
 
 
-
         customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
 
 
@@ -5192,6 +5194,29 @@
               return;
             }
 
+            /*
+
+
+
+                remarks:
+                            
+                const w=new Set();
+                setInterval(()=>{
+                for(const a of document.getElementsByTagName('*')) if(a.shouldSupportWholeItemClick) w.add(a.is||''); 
+                console.log([...w.keys()]);
+                },800);
+
+                            
+                [
+                "yt-live-chat-ticker-sponsor-item-renderer",
+                "yt-live-chat-banner-header-renderer",
+                "yt-live-chat-text-message-renderer",
+                "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+                "ytd-sponsorships-live-chat-header-renderer",
+                "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
+                ]
+              
+            */
 
             cProto.isClickableChatRow111 = function () {
               return (
@@ -5220,65 +5245,6 @@
             }
 
 
-            if (FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
-
-              cProto.showContextMenu37_ = cProto.showContextMenu_;
-              cProto.showContextMenu37 = cProto.showContextMenu;
-
-              function deepCopy(obj, skipKeys) {
-                skipKeys = skipKeys || [];
-                if (!obj || typeof obj !== 'object') return obj;
-                if (Array.isArray(obj)) {
-                  return obj.map(item => deepCopy(item, skipKeys));
-                }
-                const copy = {};
-                for (let key in obj) {
-                  if (!skipKeys.includes(key)) {
-                    copy[key] = deepCopy(obj[key], skipKeys);
-                  }
-                }
-                return copy;
-              }
-
-              const wm37 = new WeakMap();
-              cProto.showContextMenu = function (a) {
-                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                if (endpoint) {
-                  let resolvedEndpoint = wm37.get(endpoint);
-                  if (resolvedEndpoint) {
-                    resolvedEndpoint = deepCopy(resolvedEndpoint);
-                    // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
-                    Promise.resolve(resolvedEndpoint).then(() => {
-                      this.showContextMenu37_(resolvedEndpoint);
-                    });
-                    return;
-                    //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
-                    //return;
-                  }
-                }
-                return this.showContextMenu37(a);
-              }
-
-              cProto.showContextMenu_ = function (a) {
-                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                if (endpoint) {
-                  a = deepCopy(a);
-                  wm37.set(endpoint, a);
-                }
-                return this.showContextMenu37_(a);
-              }
-
-
-              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 - OK");
-
-
-
-            } else {
-
-              console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 -  NG");
-
-            }
-
 
 
           })();
@@ -5289,6 +5255,130 @@
 
         }).catch(console.warn);
 
+
+      }
+
+
+
+      if (CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN) {
+
+
+        /*
+
+        const w=new Set(); for(const a of document.getElementsByTagName('*')) if(a.showContextMenu && a.showContextMenu_) w.add(a.is||''); console.log([...w.keys()])
+
+        */
+
+        let pTags = [];
+        const sTags = [
+          "yt-live-chat-ticker-sponsor-item-renderer",
+          "yt-live-chat-banner-header-renderer",
+          "yt-live-chat-text-message-renderer",
+          "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+          "ytd-sponsorships-live-chat-header-renderer",
+          "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
+        ];
+
+        for (const tag of sTags) {
+          pTags.push(customElements.whenDefined(tag));
+        }
+
+
+        Promise.all(pTags).then(() => {
+
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
+          console.log("[Begin]");
+
+          for (const tag of sTags) {
+
+
+
+            (() => {
+
+              const dummy = document.createElement(tag);
+
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
+
+
+
+
+              if (typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
+
+                cProto.showContextMenu37_ = cProto.showContextMenu_;
+                cProto.showContextMenu37 = cProto.showContextMenu;
+    
+                function deepCopy(obj, skipKeys) {
+                  skipKeys = skipKeys || [];
+                  if (!obj || typeof obj !== 'object') return obj;
+                  if (Array.isArray(obj)) {
+                    return obj.map(item => deepCopy(item, skipKeys));
+                  }
+                  const copy = {};
+                  for (let key in obj) {
+                    if (!skipKeys.includes(key)) {
+                      copy[key] = deepCopy(obj[key], skipKeys);
+                    }
+                  }
+                  return copy;
+                }
+    
+                const wm37 = new WeakMap();
+                cProto.showContextMenu = function (a) {
+                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                  if (endpoint) {
+                    let resolvedEndpoint = wm37.get(endpoint);
+                    if (resolvedEndpoint) {
+                      resolvedEndpoint = deepCopy(resolvedEndpoint);
+                      // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
+                      Promise.resolve(resolvedEndpoint).then(() => {
+                        this.showContextMenu37_(resolvedEndpoint);
+                      });
+                      return;
+                      //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
+                      //return;
+                    }
+                  }
+                  return this.showContextMenu37(a);
+                }
+    
+                cProto.showContextMenu_ = function (a) {
+                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                  if (endpoint) {
+                    a = deepCopy(a);
+                    wm37.set(endpoint, a);
+                  }
+                  return this.showContextMenu37_(a);
+                }
+    
+    
+                console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
+    
+    
+    
+              } else {
+    
+                console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN -  NG", tag);
+    
+              }
+
+
+            })();
+
+          }
+
+
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+        }).catch(console.warn);
       }
 
 
