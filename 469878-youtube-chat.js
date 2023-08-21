@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.3
+// @version             0.30.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -124,7 +124,7 @@
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
-  const FIX_MENU_REOPEN_RENDER_PERFORMANCE = true;
+  const FIX_MENU_REOPEN_RENDER_PERFORMANCE = true;        // to be checked. showContextMenu_ delayed due to request of parameter.
   // const FIX_MENU_CAPTURE_SCROLL = true;
   const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
 
@@ -183,6 +183,8 @@
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;
   const CHAT_MENU_SCROLL_UNLOCKING = CHAT_MENU_REFIT_ALONG_SCROLLING >= 1;
+  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 = FIX_MENU_REOPEN_RENDER_PERFORMANCE;
+  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 = FIX_MENU_REOPEN_RENDER_PERFORMANCE;
   let runTickerClassName = 'run-ticker';
 
   const dummyImgURL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
@@ -5218,6 +5220,43 @@
             }
 
 
+          if(FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 && typeof cProto.showContextMenu ==='function' && typeof cProto.showContextMenu_ ==='function' && !cProto.showContextMenu37  && !cProto.showContextMenu37_  && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length===1 ){
+
+            cProto.showContextMenu37_ = cProto.showContextMenu_;
+            cProto.showContextMenu37 = cProto.showContextMenu;
+
+
+            const wm37 = new WeakMap();
+            cProto.showContextMenu = function (a) {
+              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+              if (endpoint) {
+                const resolvedEndpoint = wm37.get(endpoint);
+                if (resolvedEndpoint) this.showContextMenu37_(a);
+              }
+              return this.showContextMenu37(a);
+            } 
+
+            cProto.showContextMenu_ = function (a) {
+              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+              if (endpoint) {
+                wm37.set(endpoint, a);
+              }
+              return this.showContextMenu37_(a);
+            }
+
+
+            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 - OK");
+
+
+
+          } else {
+
+            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_2 -  NG");
+
+          }
+
+
+
           })();
 
           console.log("[End]");
@@ -5287,7 +5326,7 @@
           }
 
 
-          if (FIX_MENU_REOPEN_RENDER_PERFORMANCE && typeof cProto.__openedChanged === 'function' && !cProto.__mtChanged__ && fnIntegrity(cProto.__openedChanged) === '0.46.20') {
+          if (FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 && typeof cProto.__openedChanged === 'function' && !cProto.__mtChanged__ && fnIntegrity(cProto.__openedChanged) === '0.46.20') {
 
             let lastClose = null;
             let lastOpen = null;
@@ -5583,12 +5622,12 @@
               }
 
             }
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE - OK");
+            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 - OK");
 
           } else {
 
             assertor(() => fnIntegrity(cProto.__openedChanged, '0.46.20'));
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANC - NG");
+            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANC_1 - NG");
 
           }
 
