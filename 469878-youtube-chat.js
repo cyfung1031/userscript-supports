@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.30.1
+// @version             0.30.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -748,6 +748,17 @@
 
     }
 
+  }
+
+  [rNgzQ] {
+    opacity: 0.1 !important;
+    opacity: 0.01 !important;
+    opacity: 0.001 !important;
+    opacity: 0.0001 !important;
+    opacity: 0.00001 !important;
+    opacity: 0.00000001 !important;
+
+    pointer-events: none !important;
   }
 
   ${cssText10_show_more_blinker}
@@ -5381,8 +5392,20 @@
                     m34 = 0;
                     return;
                   }
-                  hostElement.style.visibility = 'collapse';
-                  sizingTarget.style.visibility = 'collapse';
+
+                  let useVisibilityCollapse = true;
+                  if (HTMLElement.prototype.querySelector.call(sizingTarget, 'yt-icon:empty')) {
+                    useVisibilityCollapse = false;
+                  }
+                  
+                  if (useVisibilityCollapse) {
+                    hostElement.style.visibility = 'collapse';
+                    sizingTarget.style.visibility = 'collapse';
+                  } else {
+                    hostElement.setAttribute('rNgzQ', '');
+                    sizingTarget.setAttribute('rNgzQ', '');
+                  }
+                  
                   const fn = () => {
 
                     const isPageVisible = document.visibilityState === 'visible';
@@ -5392,8 +5415,17 @@
                         if (this.opened && this.isAttached && sizingTarget.isConnected === true && sizingTarget === this.sizingTarget) this.refit();
                         m34--;
                         if (m34 <= 0) {
-                          hostElement.style.visibility = '';
-                          sizingTarget.style.visibility = '';
+
+                          
+                          if (useVisibilityCollapse) {
+                            hostElement.style.visibility = '';
+                            sizingTarget.style.visibility = '';
+                          } else {
+                            hostElement.removeAttribute('rNgzQ');
+                            sizingTarget.removeAttribute('rNgzQ');
+                          }
+                          
+
                           m34 = 0;
                         } else {
                           fn();
