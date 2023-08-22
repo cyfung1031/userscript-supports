@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.41.0
+// @version             0.41.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4032,8 +4032,7 @@
                 }
 
 
-
-                this._runnerAE = animate.call(aElement,
+                const ae =  animate.call(aElement,
                   [
                     { '--ticker-rtime': '100%' },
                     { '--ticker-rtime': '0%' }
@@ -4046,23 +4045,34 @@
                   }
                 );
 
-                this._runnerAE.onfinish = () => {
+                this._runnerAE = ae;
+
+                ae.onfinish = ()=>{
+                  this.onfinish = null;
                   if (this.isAttached === true && !this._r782 && ((this.$ || 0).container || 0).isConnected === true) {
                     this._aeFinished();
                   }
                 }
 
                 let bq = (1.0 - (this.countdownMs / totalDuration)) * totalDuration;
+               
                 if (bq >= 0 && bq <= totalDuration) {
-
-                  this._runnerAE.currentTime = bq
+                  
+                  if (bq > totalDuration - 1) {
+                    ae.currentTime = bq;
+                    setTimeout(() => {
+                      if (this._runnerAE === ae && ae.onfinish) ae.onfinish();
+                    }, 1);
+                  } else {
+                    ae.currentTime = bq;
+                  }
                 } else {
                   console.warn('Error on setting _runnerAE.currentTime!');
                 }
 
 
-                aeConstructor = this._runnerAE.constructor; // constructor is from iframe
-                return this._runnerAE;
+                aeConstructor = ae.constructor; // constructor is from iframe
+                return ae;
               }
             } else {
               if (!aeConstructor) return console.warn('aeConstructor is undefined');
