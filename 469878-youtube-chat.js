@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.40.1
+// @version             0.41.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3921,6 +3921,13 @@
           cProto._throwOut = function () {
             this._r782 = 1;
             Promise.resolve().then(() => {
+              if (typeof this.requestRemoval === 'function') {
+                const id = (this.data || 0).id;
+                if (!id) this.data = { id: 1 };
+                try {
+                  this.requestRemoval();
+                } catch (e) { }
+              }
               this.detached();
               this.data = null;
               this.countdownMs = 0;
@@ -4116,10 +4123,21 @@
               this.lastCountdownTimeMs = null;
 
               if (this.isAttached) {
-                if (Date.now() - windowShownAt < 80) {
+                let fastRemoved = false;
+                if (Date.now() - windowShownAt < 80 && typeof this.requestRemoval === 'function') {
                   // no animation if the video page is switched from background to foreground
-                  this.hostElement.style.display = 'none';
-                } else {
+                  // this.hostElement.style.display = 'none';
+                  const id = (this.data || 0).id || 0;
+                  if (!id) this.data = { id: 1 }
+                  try {
+                    this.requestRemoval();
+                    fastRemoved = true;
+                  } catch (e) {
+
+                  }
+                }
+
+                if (!fastRemoved) {
                   "auto" === this.hostElement.style.width && this.setContainerWidth();
                   this.slideDown();
                 }
