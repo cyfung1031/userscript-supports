@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.31.1
+// @version             0.40.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -124,18 +124,24 @@
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
 
-  
-  const FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 = true;
-  const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;
+
+  const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;        // cache the menu data and used for the next reopen
+  const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;        // avoid multiple requests on the same time
+
+  const BOOST_MENU_OPENCHANGED_RENDERING = true;
+  const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // click again = close
+  const PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN = true; // require CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true
   // const FIX_MENU_CAPTURE_SCROLL = true;
   const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
 
   const RAF_FIX_keepScrollClamped = true;
   const RAF_FIX_scrollIncrementally = true;
 
+  // << if BOOST_MENU_OPENCHANGED_RENDERING >>
   const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
 
-  const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;
+  const DE_JSONPRUNE_FOR_readyStateChangeHandler_ = 1; // jsonPrune for Ad-Blocking is not applicable to live_chat streaming
+  // << end >>
 
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
@@ -248,6 +254,8 @@
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+  let jsonParseFix = null;
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
   if (typeof WebAssembly !== 'object') return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for passive and once
@@ -1327,6 +1335,7 @@
   }
 
 
+
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -1368,6 +1377,9 @@
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       res.animate = HTMLElement.prototype.animate;
+      jsonParseFix = {
+        _JSON: fc.JSON, _parse: fc.JSON.parse
+      }
       return res;
     } catch (e) {
       console.warn(e);
@@ -5259,78 +5271,312 @@
       }
 
 
+      if (PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN) {
 
-      if (CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN) {
+        document.addEventListener('mousedown', function (evt) {
+
+          const maxloopDOMTreeElements = 4;
+          const maxloopYtCompontents = 4;
+          let j1 = 0;
+          let j2 = 0;
+          let target = (evt || 0).target || 0;
+          if (!target) return;
 
 
-        /*
+          while (target instanceof HTMLElement) {
+            if (++j1 > maxloopDOMTreeElements) break;
+            if (typeof (target.is || (target.inst || 0).is || null) === 'string') break;
+            target = nodeParent(target);
+          }
+          const components = [];
+          while (target instanceof HTMLElement) {
+            if (++j2 > maxloopYtCompontents) break;
+            if (typeof (target.is || (target.inst || 0).is || null) === 'string') {
+              components.push(target);
+            }
+            if (typeof (target.inst || target).showContextMenu === 'function') break;
+            target = target.parentComponent || (target.inst || 0).parentComponent || null;
+          }
+          if (!(target instanceof HTMLElement)) return;
+          const targetCnt = target.inst || target;
+          if (typeof targetCnt.handleGetContextMenuResponse_ !== 'function' || typeof targetCnt.handleGetContextMenuError !== 'function') {
+            console.log('Error Found: handleGetContextMenuResponse_ OR handleGetContextMenuError is not defined on a component with showContextMenu')
+            return;
+          }
 
-        const w=new Set(); for(const a of document.getElementsByTagName('*')) if(a.showContextMenu && a.showContextMenu_) w.add(a.is||''); console.log([...w.keys()])
+          const endpoint = (targetCnt.data || 0).contextMenuEndpoint
+          if (!endpoint) return;
+          if (targetCnt.opened || !targetCnt.isAttached) return;
 
-        */
+          if (typeof targetCnt.__cacheResolvedEndpointData__ !== 'function') {
+            console.log(`preRequest for showContextMenu in ${targetCnt.is} is not yet supported.`)
+          }
 
-        let pTags = [];
-        const sTags = [
-          "yt-live-chat-ticker-sponsor-item-renderer",
-          "yt-live-chat-banner-header-renderer",
-          "yt-live-chat-text-message-renderer",
-          "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
-          "ytd-sponsorships-live-chat-header-renderer",
-          "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
-        ];
+          let doPreRequest = false;
+          if (components.length >= 2 && components[0].id === 'menu-button' && (target.$ || 0)['menu-button'] === components[0]) {
+            doPreRequest = true;
+          } else if (components.length === 1 && components[0] === target) {
+            doPreRequest = true;
+          } else if (components.length >= 2 && components[0].id === 'author-photo' && (target.$ || 0)['author-photo'] === components[0]) {
+            doPreRequest = true;
+          }
+          if (doPreRequest === false) {
+            console.log('doPreRequest = fasle on showContextMenu', components);
+            return;
+          }
+
+          if (targetCnt.__getCachedEndpointData__(endpoint)) return;
+
+          if (!targetCnt.__showContextMenu_mutex_unlock_isEmpty__()) {
+            console.log('preRequest on showContextMenu aborted due to stacked network request');
+            return;
+          }
+
+
+          const onSuccess = (a) => {
+            /*
+
+              dQ() && (a = a.response);
+              a.liveChatItemContextMenuSupportedRenderers && a.liveChatItemContextMenuSupportedRenderers.menuRenderer && this.showContextMenu_(a.liveChatItemContextMenuSupportedRenderers.menuRenderer);
+              a.actions && Eu(this.hostElement, "yt-live-chat-actions", [a.actions])
+              
+            */
+
+            a = a.response || a;
+
+            if (!a) {
+              console.log('unexpected error in prerequest for showContextMenu.onSuccess');
+              return;
+            }
+
+            let z = null;
+            a.liveChatItemContextMenuSupportedRenderers && a.liveChatItemContextMenuSupportedRenderers.menuRenderer && (z = a.liveChatItemContextMenuSupportedRenderers.menuRenderer);
+
+            if (z) {
+              a = z;
+              targetCnt.__cacheResolvedEndpointData__(endpoint, a, true);
+            }
+
+          };
+          const onFailure = (a) => {
+
+            /*
+
+              if (a instanceof Error || a instanceof Object || a instanceof String)
+                  var b = a;
+              hq(new xm("Error encountered calling GetLiveChatItemContextMenu",b))
+
+            */
+
+            targetCnt.__cacheResolvedEndpointData__(endpoint, null);
+            // console.log('onFailure', a)
+
+          };
+
+          if (doPreRequest) {
+
+            let propertyCounter = 0;
+            let p1unlock = null;
+            const p1 = new Promise(r => {
+              p1unlock = r;
+            });
+            const p1Timeout = 800;
+            const proxyKey = '__$$__proxy_to_this__$$__' + Date.now();
+
+            try {
+
+              const onSuccessHelperFn = function () {
+                p1unlock && p1unlock();
+                p1unlock = null;
+                if (propertyCounter !== 5) {
+                  console.log('Error in prerequest for showContextMenu.onSuccessHelperFn')
+                  return;
+                }
+                if (this[proxyKey] !== targetCnt) {
+                  console.log('Error in prerequest for showContextMenu.this');
+                  return;
+                }
+                onSuccess(...arguments);
+              };
+              const onFailureHelperFn = function () {
+                p1unlock && p1unlock();
+                p1unlock = null;
+                if (propertyCounter !== 5) {
+                  console.log('Error in prerequest for showContextMenu.onFailureHelperFn')
+                  return;
+                }
+                if (this[proxyKey] !== targetCnt) {
+                  console.log('Error in prerequest for showContextMenu.this');
+                  return;
+                }
+                onFailure(...arguments);
+
+              }
+              const fakeTargetCnt = new Proxy({
+                __showContextMenu_forceNativeRequest__: 1,
+                __showContextMenu_sync_mode_request__: 1,
+                get handleGetContextMenuResponse_() {
+                  propertyCounter += 2;
+                  return onSuccessHelperFn;
+                },
+                get handleGetContextMenuError() {
+                  propertyCounter += 3;
+                  return onFailureHelperFn;
+                }
+              }, {
+                get(_, key, receiver) {
+                  if (key in _) return _[key];
+                  if (key === proxyKey) return targetCnt;
+
+                  let giveNative = false;
+                  if (key in targetCnt) {
+                    if (key === 'data') giveNative = true;
+                    else if (typeof targetCnt[key] === 'function') giveNative = true;
+                  }
+                  if (giveNative) return targetCnt[key];
+                }
+              });
+
+              const fakeEvent = (() => {
+                const { target, bubbles, cancelable, cancelBubble, srcElement, timeStamp, defaultPrevented, currentTarget, composed } = evt;
+                const nf = function () { }
+                const [stopPropagation, stopImmediatePropagation, preventDefault] = [nf, nf, nf];
+
+                return {
+                  type: 'tap',
+                  eventPhase: 0,
+                  isTrusted: false,
+                  __composed: true,
+                  bubbles, cancelable, cancelBubble, timeStamp,
+                  target, srcElement, defaultPrevented, currentTarget, composed,
+                  stopPropagation, stopImmediatePropagation, preventDefault
+                };
+              })(evt);
+              targetCnt.showContextMenu.call(fakeTargetCnt, fakeEvent);
+
+
+            } catch (e) {
+              console.warn(e);
+              propertyCounter = 7;
+
+            }
+            if (propertyCounter !== 5) {
+              console.log('Error in prerequest for showContextMenu', propertyCounter);
+              return;
+            }
+            targetCnt.__showContextMenu_assign_lock__(p1);
+            setTimeout(() => {
+              p1unlock && p1unlock();
+              p1unlock = null;
+            }, p1Timeout);
+          }
+
+
+
+
+
+
+        }, true);
+
+
+      }
+
+
+
+      /*
+
+      const w=new Set(); for(const a of document.getElementsByTagName('*')) if(a.showContextMenu && a.showContextMenu_) w.add(a.is||''); console.log([...w.keys()])
+
+      */
+
+      let pTags = [];
+      const sTags = [
+        "yt-live-chat-ticker-sponsor-item-renderer",
+        "yt-live-chat-banner-header-renderer",
+        "yt-live-chat-text-message-renderer",
+        "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+        "ytd-sponsorships-live-chat-header-renderer",
+        "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
+      ];
+
+      for (const tag of sTags) {
+        pTags.push(customElements.whenDefined(tag));
+      }
+
+
+      Promise.all(pTags).then(() => {
+
+
+        mightFirstCheckOnYtInit();
+        groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
+        console.log("[Begin]");
 
         for (const tag of sTags) {
-          pTags.push(customElements.whenDefined(tag));
-        }
-
-
-        Promise.all(pTags).then(() => {
-
-
-          mightFirstCheckOnYtInit();
-          groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
-          console.log("[Begin]");
-
-          for (const tag of sTags) {
 
 
 
-            (() => {
+          (() => {
 
-              const dummy = document.createElement(tag);
+            const dummy = document.createElement(tag);
 
-              const cProto = getProto(dummy);
-              if (!cProto || !cProto.attached) {
-                console.warn(`proto.attached for ${tag} is unavailable.`);
-                return;
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+
+
+
+            if (CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
+
+              cProto.showContextMenu37_ = cProto.showContextMenu_;
+              cProto.showContextMenu37 = cProto.showContextMenu;
+
+              function deepCopy(obj, skipKeys) {
+                skipKeys = skipKeys || [];
+                if (!obj || typeof obj !== 'object') return obj;
+                if (Array.isArray(obj)) {
+                  return obj.map(item => deepCopy(item, skipKeys));
+                }
+                const copy = {};
+                for (let key in obj) {
+                  if (!skipKeys.includes(key)) {
+                    copy[key] = deepCopy(obj[key], skipKeys);
+                  }
+                }
+                return copy;
               }
 
-
-
-
-              if (typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
-
-                cProto.showContextMenu37_ = cProto.showContextMenu_;
-                cProto.showContextMenu37 = cProto.showContextMenu;
-    
-                function deepCopy(obj, skipKeys) {
-                  skipKeys = skipKeys || [];
-                  if (!obj || typeof obj !== 'object') return obj;
-                  if (Array.isArray(obj)) {
-                    return obj.map(item => deepCopy(item, skipKeys));
-                  }
-                  const copy = {};
-                  for (let key in obj) {
-                    if (!skipKeys.includes(key)) {
-                      copy[key] = deepCopy(obj[key], skipKeys);
-                    }
-                  }
-                  return copy;
+              /*
+              const wm37 = new WeakMap();
+              cProto.__showContextMenu_forceNativeRequest__ = 0;
+              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
+                if (a) {
+                  if (doDeepCopy) a = deepCopy(a);
+                  wm37.set(endpoint, a);
+                } else {
+                  wm37.remove(endpoint);
                 }
-    
-                const wm37 = new WeakMap();
-                cProto.showContextMenu = function (a) {
-                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+              }
+              cProto.__showContextMenuNetworkRequestMutex__ = null;
+              cProto.__showContextMenuNetworkRequestMutexResolve__  = null;
+              cProto.showContextMenu = function (a) {
+                if(this.__showContextMenu_forceNativeRequest__){
+                  return this.showContextMenu37(a);
+                }
+                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                if (!endpoint) {
+                  return this.showContextMenu37(a);
+                }
+                this.__showContextMenuNetworkRequestMutex__ = (this.__showContextMenuNetworkRequestMutex__ || Promise.resolve())
+                .then(()=>new Promise(lockResolve=>{
+
+                  if (endpoint !== (this.data || 0).contextMenuEndpoint || 0){
+                    lockResolve();
+                    return;
+                  }
+
                   if (endpoint) {
                     let resolvedEndpoint = wm37.get(endpoint);
                     if (resolvedEndpoint) {
@@ -5339,47 +5585,300 @@
                       Promise.resolve(resolvedEndpoint).then(() => {
                         this.showContextMenu37_(resolvedEndpoint);
                       });
+                      lockResolve();
                       return;
                       //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
                       //return;
                     }
-                  }
-                  return this.showContextMenu37(a);
-                }
-    
-                cProto.showContextMenu_ = function (a) {
+
+                    this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
+                      this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
+      
+                    }).then((a)=>{
+
                   const endpoint = (this.data || 0).contextMenuEndpoint || 0;
                   if (endpoint) {
-                    a = deepCopy(a);
-                    wm37.set(endpoint, a);
+                    const f = this.__cacheResolvedEndpointData__
+                    if (typeof f === 'function') f(endpoint, a, true);
                   }
+                   this.showContextMenu37_(a);
+                   lockResolve();
+
+                    }).catch(console.warn)
+
+                  }else{
+
+                    this.__showContextMenuNetworkRequestMutexResolve__ = null;
+                    this.showContextMenu37(a);
+                    lockResolve();
+                  }
+
+
+
+
+                })).catch(console.warn);
+              }
+
+              cProto.showContextMenu_ = function (a) {
+
+                let resolve = this.__showContextMenuNetworkRequestMutexResolve__;
+                this.__showContextMenuNetworkRequestMutexResolve__= null;
+
+                if (resolve) {
+                  resolve(a);
+                } else {
                   return this.showContextMenu37_(a);
                 }
-    
-    
-                console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
-    
-    
-    
-              } else {
-    
-                console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN -  NG", tag);
-    
+
+              }
+              */
+
+
+              const wm37 = new WeakMap();
+              cProto.__showContextMenu_forceNativeRequest__ = 0;
+              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
+                if (a) {
+                  if (doDeepCopy) a = deepCopy(a);
+                  wm37.set(endpoint, a);
+                } else {
+                  wm37.remove(endpoint);
+                }
+              }
+              cProto.__getCachedEndpointData__ = function (endpoint) {
+                endpoint = endpoint || (this.data || 0).contextMenuEndpoint || 0;
+                if (endpoint) return wm37.get(endpoint);
+                return null;
+              }
+              cProto.__showCachedContextMenu__ = function (resolvedEndpoint) { // non-null
+
+                resolvedEndpoint = deepCopy(resolvedEndpoint);
+                // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
+                Promise.resolve(resolvedEndpoint).then(() => {
+                  this.__showContextMenu_skip_cacheResolvedEndpointData__ = 1;
+                  this.showContextMenu_(resolvedEndpoint);
+                  this.__showContextMenu_skip_cacheResolvedEndpointData__ = 0;
+                });
+
+
+
+              }
+              cProto.showContextMenu = function (a) {
+                if (!this.__showContextMenu_forceNativeRequest__) {
+                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                  if (endpoint) {
+                    const resolvedEndpoint = this.__getCachedEndpointData__(endpoint);
+                    if (resolvedEndpoint) {
+                      this.__showCachedContextMenu__(resolvedEndpoint);
+                      return;
+                    }
+                  }
+                }
+                return this.showContextMenu37(a);
+              }
+
+              cProto.showContextMenu_ = function (a) {
+                if (!this.__showContextMenu_skip_cacheResolvedEndpointData__) {
+                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                  if (endpoint) {
+                    const f = this.__cacheResolvedEndpointData__;
+                    if (typeof f === 'function') f(endpoint, a, true);
+                  }
+                }
+                return this.showContextMenu37_(a);
               }
 
 
-            })();
-
-          }
 
 
+              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
 
-          console.log("[End]");
 
-          console.groupEnd();
 
-        }).catch(console.warn);
-      }
+            } else {
+
+              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN -  NG", tag);
+
+            }
+
+
+
+
+
+
+            if (ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu47 && !cProto.showContextMenu47_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
+
+              cProto.showContextMenu47_ = cProto.showContextMenu_;
+              cProto.showContextMenu47 = cProto.showContextMenu;
+
+              const mutex = new Mutex();
+              let __showContextMenu_mutex_unlock__ = null;
+              cProto.__showContextMenu_mutex_unlock_isEmpty__ = () => {
+                return __showContextMenu_mutex_unlock__ === null;
+              }
+              cProto.__showContextMenu_assign_lock__ = function (p) {
+
+
+                mutex.lockWith(unlock => {
+                  p.then(unlock);
+                });
+
+              }
+              let lastShowMenuTarget = null;
+              cProto.showContextMenu = function (a) {
+                lastShowMenuTarget = this;
+
+                if (this.__showContextMenu_sync_mode_request__) {
+
+                  return this.showContextMenu47(a);
+                } else {
+
+
+                  mutex.lockWith(unlock => {
+                    if (lastShowMenuTarget !== this) {
+                      unlock();
+                      return;
+                    }
+
+                    setTimeout(unlock, 800); // in case network failure
+                    __showContextMenu_mutex_unlock__ = unlock;
+                    try {
+                      this.showContextMenu47(a);
+                    } catch (e) {
+                      console.warn(e);
+                      unlock(); // in case function script error
+                    }
+
+                  });
+
+                }
+
+
+              }
+
+
+              cProto.showContextMenu_ = function (a) {
+
+                if (__showContextMenu_mutex_unlock__ && this === lastShowMenuTarget) {
+                  __showContextMenu_mutex_unlock__();
+                  __showContextMenu_mutex_unlock__ = null;
+                }
+                return this.showContextMenu47_(a);
+
+              }
+
+              /*
+              const wm37 = new WeakMap();
+              cProto.__showContextMenu_forceNativeRequest__ = 0;
+              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
+                if (a) {
+                  if (doDeepCopy) a = deepCopy(a);
+                  wm37.set(endpoint, a);
+                } else {
+                  wm37.remove(endpoint);
+                }
+              }
+              cProto.__showContextMenuNetworkRequestMutex__ = null;
+              cProto.__showContextMenuNetworkRequestMutexResolve__  = null;
+              cProto.showContextMenu = function (a) {
+                if(this.__showContextMenu_forceNativeRequest__){
+                  return this.showContextMenu37(a);
+                }
+                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                if (!endpoint) {
+                  return this.showContextMenu37(a);
+                }
+                this.__showContextMenuNetworkRequestMutex__ = (this.__showContextMenuNetworkRequestMutex__ || Promise.resolve())
+                .then(()=>new Promise(lockResolve=>{
+
+                  if (endpoint !== (this.data || 0).contextMenuEndpoint || 0){
+                    lockResolve();
+                    return;
+                  }
+
+                  if (endpoint) {
+                    let resolvedEndpoint = wm37.get(endpoint);
+                    if (resolvedEndpoint) {
+                      resolvedEndpoint = deepCopy(resolvedEndpoint);
+                      // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
+                      Promise.resolve(resolvedEndpoint).then(() => {
+                        this.showContextMenu37_(resolvedEndpoint);
+                      });
+                      lockResolve();
+                      return;
+                      //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
+                      //return;
+                    }
+
+                    this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
+                      this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
+      
+                    }).then((a)=>{
+
+                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                  if (endpoint) {
+                    const f = this.__cacheResolvedEndpointData__
+                    if (typeof f === 'function') f(endpoint, a, true);
+                  }
+                   this.showContextMenu37_(a);
+                   lockResolve();
+
+                    }).catch(console.warn)
+
+                  }else{
+
+                    this.__showContextMenuNetworkRequestMutexResolve__ = null;
+                    this.showContextMenu37(a);
+                    lockResolve();
+                  }
+
+
+
+
+                })).catch(console.warn);
+              }
+
+              cProto.showContextMenu_ = function (a) {
+
+                let resolve = this.__showContextMenuNetworkRequestMutexResolve__;
+                this.__showContextMenuNetworkRequestMutexResolve__= null;
+
+                if (resolve) {
+                  resolve(a);
+                } else {
+                  return this.showContextMenu37_(a);
+                }
+
+              }
+              */
+
+
+
+
+              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - OK", tag);
+
+
+
+            } else {
+
+              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU -  NG", tag);
+
+            }
+
+
+
+
+          })();
+
+        }
+
+
+
+        console.log("[End]");
+
+        console.groupEnd();
+
+      }).catch(console.warn);
+
 
 
       customElements.whenDefined('tp-yt-iron-dropdown').then(() => {
@@ -5440,7 +5939,7 @@
           }
 
 
-          if (FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 && typeof cProto.__openedChanged === 'function' && !cProto.__mtChanged__ && fnIntegrity(cProto.__openedChanged) === '0.46.20') {
+          if (BOOST_MENU_OPENCHANGED_RENDERING && typeof cProto.__openedChanged === 'function' && !cProto.__mtChanged__ && fnIntegrity(cProto.__openedChanged) === '0.46.20') {
 
             let lastClose = null;
             let lastOpen = null;
@@ -5736,7 +6235,7 @@
               }
 
             }
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANCE_1 - OK");
+            console.log("BOOST_MENU_OPENCHANGED_RENDERING - OK");
 
           } else {
 
@@ -5824,16 +6323,67 @@
       }).catch(console.warn);
 
 
-
-
     }
+
+
+
 
     promiseForCustomYtElementsReady.then(onRegistryReadyForDOMOperations);
 
+    const fixJsonParse = () => {
 
 
 
+      if (jsonParseFix && typeof JSON.parse === 'function' && !JSON.parse68) {
+
+        let { _parse, _JSON } = jsonParseFix;
+
+
+        let error = 0;
+        try {
+          _parse.apply(JSON, ["{}"])
+          _JSON = JSON;
+        } catch (e) {
+          error = 1;
+        }
+        if (error === 1) {
+
+          try {
+            _parse.apply(_JSON, ["{}"])
+          } catch (e) {
+            error = 2;
+          }
+          if (error === 2) {
+            return;
+          }
+        }
+
+
+        JSON.parse68 = JSON.parse;
+
+        JSON.parse = function parse(a, b) {
+          const stack = (new Error()).stack;
+          if (stack.includes('.readyStateChangeHandler_')) return _parse.apply(_JSON, arguments);
+          return this.parse68(...arguments);
+        };
+
+        JSON.parse.toString = function () {
+          return JSON.parse68.toString();
+        };
+
+        jsonParseFix = null;
+
+      }
+
+    }
+
+    if (DE_JSONPRUNE_FOR_readyStateChangeHandler_) {
+      promiseForCustomYtElementsReady.then(fixJsonParse);
+      fixJsonParse();
+    }
 
   });
+
+
 
 })({ IntersectionObserver });
