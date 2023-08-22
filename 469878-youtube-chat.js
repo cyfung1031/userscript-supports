@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.31.0
+// @version             0.31.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5618,7 +5618,7 @@
                     m34 = 0;
                     Promise.resolve().then(gn);
                   }
-                  an();
+                  setTimeout(an, 4); // wait those resizing function calls
 
 
                 } else {
