@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.41.1
+// @version             0.41.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4060,9 +4060,9 @@
                   
                   if (bq > totalDuration - 1) {
                     ae.currentTime = bq;
-                    setTimeout(() => {
-                      if (this._runnerAE === ae && ae.onfinish) ae.onfinish();
-                    }, 1);
+                    // setTimeout(() => {
+                    //   if (this._runnerAE === ae && ae.onfinish) ae.onfinish();
+                    // }, 1);
                   } else {
                     ae.currentTime = bq;
                   }
