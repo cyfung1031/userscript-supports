@@ -39,6 +39,38 @@ __errorCode21167__ || (() => {
     /** @type {{ globalThis.PromiseConstructor}} */
     const Promise = ((async () => { })()).constructor;
 
+    let __recordId_new = 1;
+    let abortCounter = 0;
+
+    const kPattern = (num) => {
+        const letters = 'abcdefghijklmnopqrstuvwxyz';
+        const k = num % 9;
+        const j = Math.floor(num / 9);
+        const letter = letters[j];
+        return `${letter}${k + 1}`;
+    }
+
+    const kHash = (n) => {
+        if (n < 0 || n > 54755) {
+            throw new Error('Number out of range');
+        }
+
+        const nValue = 9 * 26; // precompute this value since it's constant
+
+        // Simplified equation, combined terms
+        let hashBase = (n * 9173) % 54756;
+        // ((54756 - n) * 9173 + (n) * 7919 + (n) * 5119) % 54756;`
+
+        let hash = '';
+        for (let i = 0; i < 2; i++) {
+            const t = hashBase % nValue;
+            hash = kPattern(t) + hash;
+            hashBase = Math.floor(hashBase / nValue);
+        }
+
+        return hash;
+    }
+
     const cleanContext = async (win, gmWindow) => {
         /** @param {Window} fc */
         const sanitize = (fc) => {
@@ -110,7 +142,7 @@ __errorCode21167__ || (() => {
         const console = Object.assign({}, window.console);
         /** @type {JSON.parse} */
         const jParse = window.JSON.parse.bind(window.JSON);
-        const jParseCatched = function (val) {
+        const jParseCatched = (val) => {
             let res = null;
             try {
                 res = jParse(val);
@@ -159,18 +191,21 @@ __errorCode21167__ || (() => {
         const messageRecords = [];
         let messageRecordsOnCurrentAccount = null;
 
-        function addRecord(record) {
-            if (!currentAccount || !currentUser || !record || record.$account_uid) {
-                console.log('addRecord aborted');
-                return;
+        const findRecordIndexByRId = (rid) => {
+
+            if (!rid) return null;
+            for (let i = 0; i < messageRecords.length; i++) {
+                const record = messageRecords[i];
+                if (record.$recordId && rid === record.$recordId) {
+                    return i;
+                }
             }
+            return -1;
+
+        }
 
 
-            record.$account_uid = getUserId();
-            record.$record_time_ms = Date.now(); // Local Time
-
-            messageRecords.push(record);
-            messageRecordsOnCurrentAccount.push(record);
+        const updateGMRecord = () => {
 
             Promise.resolve().then(() => {
                 GM.setValue(GM_RECORD_KEY, jStringify({
@@ -178,6 +213,46 @@ __errorCode21167__ || (() => {
                     records: messageRecords
                 }));
             });
+
+        }
+
+        const fixOverRecords = () => {
+            messageRecords.splice(0, Math.floor(messageRecords.length / 2));
+            let rid = 1;
+            for (const record of messageRecords) {
+                record.$recordId = rid;
+                messageRecords.push(record);
+                rid++;
+            }
+            __recordId_new = rid;
+            keep.length = 0;
+            keep = null;
+            updateGMRecord();
+        }
+
+        const addRecord = (record) => {
+            if (!currentAccount || !currentUser || !record || record.$account_uid) {
+                console.log('addRecord aborted');
+                return;
+            }
+
+            record.$account_uid = getUserId();
+
+            const recordId = __recordId_new;
+            record.$recordId = recordId;
+
+            record.$recorded_at = Date.now(); // Local Time
+            messageRecords.push(record);
+            __recordId_new++;
+            messageRecordsOnCurrentAccount.push(record);
+
+
+            if (messageRecords.length > 52000 || __recordId_new > 52000) {
+                Promise.resolve().then(fixOverRecords);
+            }
+
+
+            return recordId;
 
         }
 
@@ -205,7 +280,7 @@ __errorCode21167__ || (() => {
 
 
 
-        function setRecordsByJSONString(newValue, initial) {
+        const setRecordsByJSONString = (newValue, initial) => {
 
             const tObj = jParseCatched(newValue || '{}');
             if (!tObj || !tObj.version || !tObj.records) tObj = { version: 1, records: [] };
@@ -221,17 +296,21 @@ __errorCode21167__ || (() => {
             }
 
             if (messageRecords.length > 0) messageRecords.length = 0;
-
+            __recordId_new = 1;
+            let rid = 1;
             for (const record of tObj.records) {
+                if (record.$recordId >= rid) rid = record.$recordId + 1;
                 messageRecords.push(record);
+                __recordId_new++;
             }
+            __recordId_new = rid;
             messageRecordsOnCurrentAccount = messageRecords.filter(entry => entry.$account_uid === currentAccount);
 
 
 
         }
 
-        function onAccountDetectedOrChanged() {
+        const onAccountDetectedOrChanged = () => {
 
             messageRecordsOnCurrentAccount = messageRecords.filter(entry => entry.$account_uid === currentAccount);
 
@@ -239,7 +318,7 @@ __errorCode21167__ || (() => {
 
 
         let rzt = 0;
-        let gmValueListenerId = GM_addValueChangeListener(GM_RECORD_KEY, function (key, oldValue, newValue, remote) {
+        let gmValueListenerId = GM_addValueChangeListener(GM_RECORD_KEY, (key, oldValue, newValue, remote) => {
             let tid = ++rzt;
 
             requestAnimationFrame(() => {
@@ -265,7 +344,7 @@ __errorCode21167__ || (() => {
 
         })
 
-        function arrayTypeFix(a) {
+        const arrayTypeFix = (a) => {
             return a === null || a === undefined ? [] : a;
         }
         function onRequest(_body) {
@@ -278,7 +357,7 @@ __errorCode21167__ || (() => {
                 return;
             }
 
-            if(!('messages' in bodyObject)) {
+            if (!('messages' in bodyObject)) {
                 console.log('invalid format of JSON body')
                 return;
             }
@@ -299,14 +378,63 @@ __errorCode21167__ || (() => {
             let conversation_id = bodyObject.conversation_id;
             if (!conversation_id) conversation_id = "***"
 
-            const onAbort =  (evt, signal, newChatId) =>{
+            let recordIds = null;
+
+            const onAbort = (evt, signal, newChatId) => {
+
+                if (typeof newChatId === 'string' && newChatId) {
+
+                    const cd002 = !!recordIds && recordIds.length === 1 && recordIds[0] > 0;
+                    console.log('condition 002', cd002);
+
+                    if (cd002) {
+                        const rid = recordIds[0];
+                        const idx = findRecordIndexByRId(rid);
+
+                        if (idx === null || idx < 0 || !messageRecords[idx] || messageRecords[idx].conversation_id !== '***') {
+                            console.warn('error found in onAbort');
+                        } else {
+                            messageRecords[idx].conversation_id = newChatId
+                
+                            console.log(`record#${rid} is updated with conversation_id = "${newChatId}"`)
+                        }
+
+                    }
+
+                }
+
+                if (recordIds && recordIds.length >= 1) {
+
+                    const completionTime = evt.__aborted_at__ > 0 ? evt.__aborted_at__ : 0;
+
+                    if (completionTime) {
+                        for (const rid of recordIds) {
+                            const idx = findRecordIndexByRId(rid);
+                            if (idx === null || idx < 0 || !messageRecords[idx]) {
+                                console.warn('completionTime found in onAbort');
+                            } else if (messageRecords[idx].conversation_id === '***') {
+                                // TBC
+                            } else {
+                                messageRecords[idx].$completed_at = completionTime;
+                            }
+                        }
+                    }
+
+                }
+
+
+
+
+                updateGMRecord();
 
                 console.log('messageHandler: onAbort', evt, signal, newChatId);
             };
 
             const uid = ++__uid;
 
-            const onResponse = (response, info)=>{
+            const onResponse = (response, info) => {
+
+                const { requestTime, responseTime } = info;
 
                 response.lockedBodyStream.then((body) => {
 
@@ -319,16 +447,25 @@ __errorCode21167__ || (() => {
                     return;
                 }
 
+                if (recordIds !== null) {
+                    console.warn('recordIds !== null');
+                }
+                recordIds = [];
                 for (const message of messages) {
 
-                    addRecord({
+                    const rid = addRecord({
                         model,
                         conversation_id,
-                        message
-                    })
-
+                        message,
+                        $requested_at: requestTime, 
+                        $responsed_at: responseTime
+                    });
+                    recordIds.push(rid);
 
                 }
+
+                updateGMRecord();
+
 
                 console.log(bodyObject)
                 console.log(response, info)
@@ -355,7 +492,7 @@ __errorCode21167__ || (() => {
             }
 
 
-        } 
+        }
 
 
         uWin.__fetch247__ = uWin.fetch;
@@ -382,11 +519,15 @@ __errorCode21167__ || (() => {
                     if (b && b.signal) {
 
                         const signal = b.signal;
+                        const tid = ++abortCounter;
                         signal.addEventListener('abort', (evt) => {
+                            evt.__aborted_at__ = Date.now();
+                            const aid = abortCounter;
+                            ++abortCounter;
 
-                            console.log('onabort', evt, signal)
+                            console.log('onabort', aid, tid, evt, signal)
 
-                            if (_onAbort) {
+                            if (aid === tid && _onAbort) {
                                 _onAbort(evt, signal);
                             }
 
@@ -440,20 +581,21 @@ __errorCode21167__ || (() => {
                         let promise = new Promise(resolve => {
                             resolveFn = resolve;
                         })
-                        __newChatIdResolveFn__ = function (x) {
-                            __newChatIdResolveFn__ = null;
+                        __newChatIdResolveFn__ = (x) => {
                             resolveFn && resolveFn(x);
                             resolveFn = null;
                         };
                         setTimeout(() => {
                             resolveFn && resolveFn();
                             resolveFn = null;
-                            __newChatIdResolveFn__ = null;
-                            console.log('__newChatIdResolveFn__ clear')
                         }, 16);
 
                         // 777ms -> 781ms => 16ms shall be sufficient
                         promise.then((newChatId) => {
+                            if (__newChatIdResolveFn__ === null) {
+                                console.warn('unexpected error');
+                                return;
+                            }
                             __newChatIdResolveFn__ = null;
 
                             newChatId = newChatId || null;
@@ -544,7 +686,7 @@ __errorCode21167__ || (() => {
 
         let attachedGroup = null;
 
-        function setupMyGroup(myGroup) {
+        const setupMyGroup = (myGroup) => {
 
             const buttonText = document.evaluate(xpathExpression, myGroup, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             buttonText.textContent = '\u{1F4D9}';
@@ -560,7 +702,7 @@ __errorCode21167__ || (() => {
 
         }
 
-        function onElementFound(matchedElement) {
+        const onElementFound = (matchedElement) => {
 
 
 
@@ -574,7 +716,7 @@ __errorCode21167__ || (() => {
 
                 let myGroup = group.cloneNode(true);
                 group.parentNode.insertBefore(myGroup, group);
-                setupMyGroup(myGroup)
+                setupMyGroup(myGroup);
 
                 attachedGroup = myGroup;
             } else {
@@ -584,7 +726,7 @@ __errorCode21167__ || (() => {
 
         }
 
-        function setupMRAM() {
+        const setupMRAM = () => {
 
             const mram = document.createElement('mr-activity-measure');
             mram.setAttribute('m', '')
@@ -634,7 +776,7 @@ __errorCode21167__ || (() => {
             document.documentElement.appendChild(mram);
         }
 
-        function findAndHandleElement() {
+        const findAndHandleElement = () => {
             if (!observer) return;
             if (wType === 0) {
 
@@ -812,3 +954,20 @@ __errorCode21167__ || (() => {
 
 
 })();
+
+
+/**
+ * 
+ 
+
+$record_time_ms:  1692831419486
+$requested_at:    1692831418865
+$responsed_at:    1692831419485
+create_time:      1692831782.061773
+
+
+server time is now() + 6 minutes
+
+ * 
+ * 
+ */
