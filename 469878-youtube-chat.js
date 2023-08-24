@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.41.2
+// @version             0.41.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -126,6 +126,7 @@
 
 
   const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;        // cache the menu data and used for the next reopen
+  const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = true; // pause auto scroll faster when the context menu is about to show
   const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;        // avoid multiple requests on the same time
 
   const BOOST_MENU_OPENCHANGED_RENDERING = true;
@@ -5728,6 +5729,40 @@
 
             }
 
+
+
+            if (ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu48 && !cProto.showContextMenu48_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
+
+
+              cProto.showContextMenu48 = cProto.showContextMenu;
+
+
+              cProto.showContextMenu = function (a) {
+
+                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+                if (endpoint && typeof this.is === 'string' && this.menuVisible === false && this.menuOpen === false) {
+
+                  const parentComponent = this.parentComponent;
+                  if (parentComponent && parentComponent.is === 'yt-live-chat-item-list-renderer' && parentComponent.contextMenuOpen === false && parentComponent.allowScroll === true) {
+                    parentComponent.allowScroll = false;
+                  }
+                }
+
+                return this.showContextMenu48.apply(this, arguments);
+
+              }
+
+
+
+              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - OK", tag);
+
+
+
+            } else {
+
+              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU -  NG", tag);
+
+            }
 
 
 
