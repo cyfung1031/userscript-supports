@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.0
+// @version             0.51.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4676,8 +4676,10 @@
                     Promise.resolve(p).then(clickFade);
                     return;
                   }
-                  if (is.startsWith('yt-live-chat-ticker-')) return;
-                  if (!is.endsWith('-renderer')) return;
+                  if (is !== 'yt-live-chat-ticker-renderer') {
+                    if (is.startsWith('yt-live-chat-ticker-')) return;
+                    if (!is.endsWith('-renderer')) return;
+                  }
 
                 } else {
                   if ((p.nodeName || '').includes('BUTTON')) return;
