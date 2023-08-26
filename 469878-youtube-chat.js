@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.4
+// @version             0.51.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -149,7 +149,10 @@
   const CHANGE_DATA_FLUSH_ASYNC = true;
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
-  const DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION = true;
+  const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
+  // 0 = default Yt animation background [= no fix]; 
+  // 1 = disable default animation background [= keep special animation]; 
+  // 2 = disable all animation backgrounds [= no animation backbround]
 
   const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
 
@@ -6987,7 +6990,7 @@
 
 
 
-      if (DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION) {
+      if (INTERACTIVITY_BACKGROUND_ANIMATION >= 1) {
 
 
 
@@ -7009,21 +7012,23 @@
             }
 
 
-            if (DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION && typeof cProto.maybeLoadAnimationBackground === 'function' && !cProto.maybeLoadAnimationBackground77 && cProto.maybeLoadAnimationBackground.length === 0) {
+            if (INTERACTIVITY_BACKGROUND_ANIMATION >= 1 && typeof cProto.maybeLoadAnimationBackground === 'function' && !cProto.maybeLoadAnimationBackground77 && cProto.maybeLoadAnimationBackground.length === 0) {
 
               cProto.maybeLoadAnimationBackground77 = cProto.maybeLoadAnimationBackground;
               cProto.maybeLoadAnimationBackground = function () {
-                if (this.useAnimationBackground === true) {
-                  console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
-                  this.useAnimationBackground = false;
+                if (this.useAnimationBackground === true && !this.__bypassDisableAnimationBackground__) {
+                  if (INTERACTIVITY_BACKGROUND_ANIMATION === 2 || (INTERACTIVITY_BACKGROUND_ANIMATION === 1 && !this.lottieAnimation)) {
+                    console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
+                    this.useAnimationBackground = false;
+                  }
                 }
                 return this.maybeLoadAnimationBackground77.apply(this, arguments);
               }
 
-              console.log("DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION - OK");
+              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION${INTERACTIVITY_BACKGROUND_ANIMATION} - OK`);
 
             } else {
-              console.log("DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION - NG");
+              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION${INTERACTIVITY_BACKGROUND_ANIMATION} - NG`);
 
             }
 
