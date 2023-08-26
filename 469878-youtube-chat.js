@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.50.1
+// @version             0.51.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -150,6 +150,8 @@
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
   const DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION = true;
+
+  const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -4615,6 +4617,79 @@
             assertor(() => fnIntegrity(cProto.startScrolling, '1.44.32'));
             assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
             console.log('RAF_FIX: scrollIncrementally', tag, "NG")
+          }
+
+
+          if (CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED && typeof cProto.attached === 'function' && !cProto.attached37 && typeof cProto.detached === 'function' && !cProto.detached37) {
+
+            cProto.attached37 = cProto.attached;
+            cProto.detached37 = cProto.detached;
+
+            let naohzId = 0;
+            cProto.__naohzId__ = 0;
+            cProto.attached = function () {
+              Promise.resolve().then(() => {
+
+                const hostElement = this.hostElement || this;
+                if (!(hostElement instanceof HTMLElement)) return;
+                if (!HTMLElement.prototype.matches.call(hostElement, '.yt-live-chat-renderer')) return;
+                const ironPage = HTMLElement.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
+                // or #chat-messages
+                if (!ironPage) return;
+                this.__naohzId__ = ++naohzId;
+                ironPage.setAttribute('naohz', `${+this.__naohzId__}`);
+
+                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
+                ironPage.addEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
+
+              });
+              return this.attached37.apply(this, arguments);
+            };
+            cProto.detached = function () {
+              Promise.resolve().then(() => {
+
+                const ironPage = document.querySelector(`iron-pages[naohz="${+this.__naohzId__}"]`);
+                if (!ironPage) return;
+
+                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
+
+              });
+              return this.detached37.apply(this, arguments);
+            };
+
+            const clickFade = (p)=>{
+
+              let u = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
+              if (u) u.click();
+            };
+            cProto.messageBoxClickHandlerForFade = async (evt) => {
+
+              const target = (evt || 0).target || 0;
+              evt = null;
+              if (!target) return;
+
+              for (let p = target; p instanceof HTMLElement; p = nodeParent(p)) {
+                const is = p.is;
+                if (typeof is === 'string' && is) {
+
+                  if (is === 'iron-pages' || is === 'yt-live-chat-renderer' || is === 'yt-live-chat-app') {
+                    Promise.resolve(p).then(clickFade);
+                    return;
+                  }
+                  if (is.startsWith('yt-live-chat-ticker-')) return;
+                  if (!is.endsWith('-renderer')) return;
+
+                } else {
+                  if ((p.nodeName || '').includes('BUTTON')) return;
+                }
+
+              }
+            };
+
+            console.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - OK")
+
+          } else {
+            console.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - NG")
           }
 
 
