@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.3
+// @version             0.51.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6769,6 +6769,11 @@
               rafHandleHolder.push(() => {
                 if (qta === ct_handles_[objectId]) {
                   try {
+                    console.log("unsubscribed", this, {
+                      callbacks, callbackObj,
+                      client: ct_clients_[objectId],
+                      handle: ct_handles_[objectId]
+                    });
                     w && "function" === typeof w.dispose && w.dispose();
                     delete ct_clients_[objectId];
                     delete ct_handles_[objectId];
