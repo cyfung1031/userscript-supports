@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.2
+// @version             0.51.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4073,10 +4073,10 @@
 
                 this._runnerAE = ae;
 
-                ae.onfinish = () => {
+                ae.onfinish = (event) => {
                   this.onfinish = null;
                   if (this.isAttached === true && !this._r782 && ((this.$ || 0).container || 0).isConnected === true) {
-                    this._aeFinished();
+                    this._aeFinished(event);
                   }
                 }
 
@@ -4137,7 +4137,7 @@
             }
           } : null;
 
-          cProto._aeFinished = doAnimator ? function () {
+          cProto._aeFinished = doAnimator ? function (event) {
 
             if (this._r782) return;
 
@@ -4153,7 +4153,7 @@
               this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
               if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
               this.lastCountdownTimeMs = lc;
-              if (this.countdownMs > 10) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs); // just warning.
+              if (this.countdownMs > 10) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
 
               this.countdownMs = 0;
               this.lastCountdownTimeMs = null;
