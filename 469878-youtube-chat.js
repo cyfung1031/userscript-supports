@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.41.3
+// @version             0.50.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -144,6 +144,12 @@
   const DE_JSONPRUNE_FOR_readyStateChangeHandler_ = 1; // jsonPrune for Ad-Blocking is not applicable to live_chat streaming
   // << end >>
 
+  const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = true;
+
+  const CHANGE_DATA_FLUSH_ASYNC = true;
+  const CHANGE_MANAGER_UNSUBSCRIBE = true;
+
+  const DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -1393,6 +1399,22 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate } = __CONTEXT__;
 
+
+
+    let foregroundPromiseForLiveChatFlush = null;
+
+    const getForegroundPromiseForLiveChatFlush = () => {
+      if (document.visibilityState === 'visible') return Promise.resolve();
+      else {
+        return (foregroundPromiseForLiveChatFlush = (foregroundPromiseForLiveChatFlush || new Promise(resolve => {
+          requestAnimationFrame(() => {
+            foregroundPromiseForLiveChatFlush = null;
+            resolve();
+          });
+        })));
+      }
+    }
+
     let aeConstructor = null;
 
     // << if ENABLE_VIDEO_PROGRESS_STATE_FIX >>
@@ -1449,6 +1471,7 @@
         /** @type {FrameRequestCallback} */
         this.bCallback = this.mCallback.bind(this);
         this.pClear = () => funcs.clear();
+        this.keepRAF = false;
       }
       /** @param {DOMHighResTimeStamp} highResTime */
       mCallback(highResTime) {
@@ -1473,7 +1496,7 @@
           }
           if (this.rid > 0) {
             this.funcs.delete(cid);
-            if (this.funcs.size === 0) {
+            if (this.funcs.size === 0 && !this.keepRAF) {
               cancelAnimationFrame(this.rid);
               this.rid = 0;
             }
@@ -4033,7 +4056,7 @@
                 }
 
 
-                const ae =  animate.call(aElement,
+                const ae = animate.call(aElement,
                   [
                     { '--ticker-rtime': '100%' },
                     { '--ticker-rtime': '0%' }
@@ -4048,7 +4071,7 @@
 
                 this._runnerAE = ae;
 
-                ae.onfinish = ()=>{
+                ae.onfinish = () => {
                   this.onfinish = null;
                   if (this.isAttached === true && !this._r782 && ((this.$ || 0).container || 0).isConnected === true) {
                     this._aeFinished();
@@ -4056,9 +4079,9 @@
                 }
 
                 let bq = (1.0 - (this.countdownMs / totalDuration)) * totalDuration;
-               
+
                 if (bq >= 0 && bq <= totalDuration) {
-                  
+
                   if (bq > totalDuration - 1) {
                     ae.currentTime = bq;
                     // setTimeout(() => {
@@ -5240,14 +5263,14 @@
 
 
                 remarks:
-                            
+
                 const w=new Set();
                 setInterval(()=>{
-                for(const a of document.getElementsByTagName('*')) if(a.shouldSupportWholeItemClick) w.add(a.is||''); 
+                for(const a of document.getElementsByTagName('*')) if(a.shouldSupportWholeItemClick) w.add(a.is||'');
                 console.log([...w.keys()]);
                 },800);
 
-                            
+
                 [
                 "yt-live-chat-ticker-sponsor-item-renderer",
                 "yt-live-chat-banner-header-renderer",
@@ -5256,7 +5279,7 @@
                 "ytd-sponsorships-live-chat-header-renderer",
                 "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
                 ]
-              
+
             */
 
             cProto.isClickableChatRow111 = function () {
@@ -5368,7 +5391,7 @@
               dQ() && (a = a.response);
               a.liveChatItemContextMenuSupportedRenderers && a.liveChatItemContextMenuSupportedRenderers.menuRenderer && this.showContextMenu_(a.liveChatItemContextMenuSupportedRenderers.menuRenderer);
               a.actions && Eu(this.hostElement, "yt-live-chat-actions", [a.actions])
-              
+
             */
 
             a = a.response || a;
@@ -5622,7 +5645,7 @@
 
                     this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
                       this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
-      
+
                     }).then((a)=>{
 
                   const endpoint = (this.data || 0).contextMenuEndpoint || 0;
@@ -5874,7 +5897,7 @@
 
                     this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
                       this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
-      
+
                     }).then((a)=>{
 
                   const endpoint = (this.data || 0).contextMenuEndpoint || 0;
@@ -6384,6 +6407,545 @@
         console.groupEnd();
 
       }).catch(console.warn);
+
+
+      if (LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY) {
+
+
+        customElements.whenDefined("yt-live-chat-renderer").then(() => {
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "yt-live-chat-renderer"
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+
+            if (typeof cProto._flushProperties === 'function' && !cProto._flushProperties22 && cProto._flushProperties.length === 0) {
+
+              cProto.flushPendingCount = 0;
+              cProto._flushProperties22 = cProto._flushProperties;
+
+              cProto._flushProperties = function () {
+                if (foregroundPromiseForLiveChatFlush) return;
+                this.flushPendingCount++;
+                const tid = this.flushPendingCount;
+                getForegroundPromiseForLiveChatFlush().then(() => {
+                  if (tid !== this.flushPendingCount) return;
+                  // console.log('_flushProperties22', Date.now())
+                  this._flushProperties22();
+                });
+              };
+
+
+              console.log("cProto._flushProperties - OK");
+
+            } else {
+              console.log("cProto._flushProperties - NG");
+
+            }
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+        }).catch(console.warn);
+
+
+      }
+
+
+
+
+
+
+      /*
+
+
+
+
+
+          var FU = function() {
+              var a = this;
+              this.nextHandle_ = 1;
+              this.clients_ = {};
+              this.JSC$10323_callbacks_ = {};
+              this.unsubscribeAsyncHandles_ = {};
+              this.subscribe = vl(function(b, c, d) {
+                  var e = Geb(b);
+                  if (e in a.clients_)
+                      e in a.unsubscribeAsyncHandles_ && Jq.cancel(a.unsubscribeAsyncHandles_[e]);
+                  else {
+                      a: {
+                          var h = Geb(b), l;
+                          for (l in a.unsubscribeAsyncHandles_) {
+                              var m = a.clients_[l];
+                              if (m instanceof KO) {
+                                  delete a.clients_[l];
+                                  delete a.JSC$10323_callbacks_[l];
+                                  Jq.cancel(a.unsubscribeAsyncHandles_[l]);
+                                  delete a.unsubscribeAsyncHandles_[l];
+                                  i6a(m);
+                                  m.objectId_ = new FQa(h);
+                                  m.register();
+                                  d = m;
+                                  break a
+                              }
+                          }
+                          d.objectSource = b.invalidationId.objectSource;
+                          d.objectId = h;
+                          if (b = b.webAuthConfigurationData)
+                              b.multiUserSessionIndex && (d.sessionIndex = parseInt(b.multiUserSessionIndex, 10)),
+                              b.pageId && (d.pageId = b.pageId);
+                          d = new KO(d,a.handleInvalidationData_.bind(a));
+                          d.register()
+                      }
+                      a.clients_[e] = d;
+                      a.JSC$10323_callbacks_[e] = {}
+                  }
+                  d = a.nextHandle_++;
+                  a.JSC$10323_callbacks_[e][d] = c;
+                  return d
+              })
+          };
+          FU.prototype.unsubscribe = function(a, b) {
+              var c = Geb(a);
+              if (c in this.JSC$10323_callbacks_ && (delete this.JSC$10323_callbacks_[c][b],
+              !this.JSC$10323_callbacks_[c].length)) {
+                  var d = this.clients_[c];
+                  b = Jq.run(function() {
+                      ei(d);
+                      delete this.clients_[c];
+                      delete this.unsubscribeAsyncHandles_[c]
+                  }
+                  .bind(this));
+                  this.unsubscribeAsyncHandles_[c] = b
+              }
+          }
+          ;
+
+
+      */
+
+
+
+
+      const onManagerFound = (dummyManager) => {
+        if (!dummyManager || typeof dummyManager !== 'object') return;
+
+        const mgrProto = dummyManager.constructor.prototype;
+
+        let keyCallbackStore = '';
+        for (const [key, v] of Object.entries(dummyManager)) {
+          if (key.includes('_callbacks_')) keyCallbackStore = key;
+        }
+
+        if (!keyCallbackStore || typeof mgrProto.unsubscribe !== 'function' || mgrProto.unsubscribe.length !== 2) return;
+
+        if (mgrProto.unsubscribe16) return;
+
+        mgrProto.unsubscribe16 = mgrProto.unsubscribe;
+
+        groupCollapsed("YouTube Super Fast Chat", " | *live-chat-manager* hacks");
+        console.log("[Begin]");
+
+
+        // const isEmptyObject = (a) => Object.keys(a).length === 0;
+        const isEmptyObject = (obj) => {
+          for (let key in obj) {
+            if (obj.hasOwnProperty(key)) return false;
+          }
+          return true;
+        }
+
+        const idMapper = new Map();
+
+        const convertId = function (objectId) {
+          if (!objectId || typeof objectId !== 'string') return null;
+
+          let result = idMapper.get(objectId)
+          if (result) return result;
+          result = atob(objectId.replace(/-/g, "+").replace(/_/g, "/"));
+          idMapper.set(objectId, result)
+          return result;
+        }
+
+
+        const rafHandleHolder = [];
+
+        let pzw = 0;
+        let lza = 0;
+        const genRAF = () => {
+
+          pzw = requestAnimationFrame(() => {
+            pzw = 0;
+            if (rafHandleHolder.length === 1) {
+              const f = rafHandleHolder[0];
+              rafHandleHolder.length = 0;
+              f();
+            } else if (rafHandleHolder.length > 1) {
+              let arr = rafHandleHolder.slice(0)
+              rafHandleHolder.length = 0;
+              for (const fn of arr) fn();
+            }
+          });
+        };
+
+
+        if (CHANGE_MANAGER_UNSUBSCRIBE) {
+
+          const checkIntegrityForSubscribe = (mgr) => {
+            if (mgr
+              && typeof mgr.unsubscribe16 === 'function' && mgr.unsubscribe16.length === 2
+              && typeof mgr.subscribe18 === 'function' && (mgr.subscribe18.length === 0 || mgr.subscribe18.length === 3)) {
+
+              const ns = new Set(Object.keys(mgr));
+              const ms = new Set(Object.keys(mgr.constructor.prototype));
+
+              if (ns.size >= 6 && ms.size >= 4) {
+                // including 'subscribe18'
+                // 'unsubscribe16', 'subscribe19'
+
+                let r = 0;
+                for (const k of ['nextHandle_', 'clients_', keyCallbackStore, 'unsubscribeAsyncHandles_', 'subscribe', 'subscribe18']) {
+                  r += ns.has(k) ? 1 : 0;
+                }
+                for (const k of ['unsubscribe', 'handleInvalidationData_', 'unsubscribe16', 'subscribe19']) {
+                  r += ms.has(k) ? 1 : 0;
+                }
+                if (r === 10) {
+                  const isObject = (c) => (c || 0).constructor === Object;
+
+                  if (isObject(mgr['clients_']) && isObject(mgr[keyCallbackStore]) && isObject(mgr['unsubscribeAsyncHandles_'])) {
+
+                    return true;
+                  }
+
+
+                }
+
+              }
+
+
+            }
+            return false;
+          }
+
+          mgrProto.subscribe19 = function (o, f, opts) {
+
+            const ct_clients_ = this.clients_ || 0;
+            const ct_handles_ = this.unsubscribeAsyncHandles_ || 0;
+
+            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return this.subscribe18.apply(this, arguments);
+
+            let objectId = ((o || 0).invalidationId || 0).objectId;
+            if (!objectId) return this.subscribe18.apply(this, arguments);
+            objectId = convertId(objectId);
+
+            console.log('subscribe', objectId, ct_clients_[objectId], arguments);
+
+            if (ct_clients_[objectId]) {
+              if (ct_handles_[objectId] < 0) delete ct_handles_[objectId];
+            }
+
+            return this.subscribe18.apply(this, arguments);
+          }
+
+          mgrProto.unsubscribe = function (o, d) {
+            if (!this.subscribe18 && typeof this.subscribe === 'function') {
+              this.subscribe18 = this.subscribe;
+              this.subscribe = this.subscribe19;
+              this.__doCustomSubscribe__ = checkIntegrityForSubscribe(this);
+            }
+            const ct_clients_ = this.clients_;
+            const ct_handles_ = this.unsubscribeAsyncHandles_;
+            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return this.unsubscribe16.apply(this, arguments);
+
+            let objectId = ((o || 0).invalidationId || 0).objectId;
+            if (!objectId) return this.unsubscribe16.apply(this, arguments);
+
+            objectId = convertId(objectId);
+
+
+            console.log('unsubscribe', objectId, ct_clients_[objectId], arguments);
+
+            const callbacks = this[keyCallbackStore] || 0;
+            const callbackObj = callbacks[objectId] || 0;
+
+
+            if (callbackObj && (delete callbackObj[d], isEmptyObject(callbackObj))) {
+              const w = ct_clients_[objectId];
+              --lza;
+              if (lza < -1e9) lza = -1;
+              const qta = lza;
+              rafHandleHolder.push(() => {
+                if (qta === ct_handles_[objectId]) {
+                  w && "function" === typeof w.dispose && w.dispose();
+                  delete ct_clients_[objectId];
+                  delete ct_handles_[objectId];
+                }
+              });
+              ct_handles_[objectId] = qta;
+              if (pzw === 0) genRAF();
+            }
+          }
+
+
+          console.log("CHANGE_MANAGER_UNSUBSCRIBE - OK")
+
+        } else {
+
+          console.log("CHANGE_MANAGER_UNSUBSCRIBE - NG")
+        }
+
+        console.log("[End]");
+
+        console.groupEnd();
+
+      }
+
+
+
+      /*
+
+
+              a.prototype.async = function(e, h) {
+                  return 0 < h ? Iq.run(e.bind(this), h) : ~Kq.run(e.bind(this))
+              }
+              ;
+              a.prototype.cancelAsync = function(e) {
+                  0 > e ? Kq.cancel(~e) : Iq.cancel(e)
+              }
+
+      */
+
+
+
+      customElements.whenDefined("yt-invalidation-continuation").then(() => {
+
+        let __dummyManager__ = null;
+
+        mightFirstCheckOnYtInit();
+        groupCollapsed("YouTube Super Fast Chat", " | yt-invalidation-continuation hacks");
+        console.log("[Begin]");
+        (() => {
+
+          const tag = "yt-invalidation-continuation"
+          const dummy = document.createElement(tag);
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+          const dummyManager = (dummy.inst || dummy).manager_ || 0;
+          __dummyManager__ = dummyManager;
+
+          if (CHANGE_DATA_FLUSH_ASYNC && typeof cProto.async === 'function' && !cProto.async71 && cProto.async.length === 2 && typeof cProto.cancelAsync === 'function' && !cProto.cancelAsync71 && cProto.cancelAsync.length === 1) {
+
+
+            const rafHub = new RAFHub();
+
+            rafHub.keepRAF = true;
+            cProto.async71 = cProto.async;
+            cProto.cancelAsync71 = cProto.cancelAsync;
+
+            // mostly for subscription timeoutMs 10000ms
+            let mcw = 1; // 1, 3, 5, ...
+            let arr = new Map();
+
+            let __asyncInited__ = 0;
+            let __timeoutStartId__ = null;
+            const __asyncInit__ = () => {
+
+              if (__asyncInited__) return;
+              __asyncInited__ = 1;
+
+              __timeoutStartId__ = setTimeout(() => { });
+              mcw = __timeoutStartId__ * 2 + 1;
+
+              setInterval(() => {
+
+                if (!arr.length) return;
+
+                const p = Date.now();
+                let deleteKeys = [];
+                arr.forEach((entry, key) => {
+
+
+                  if (entry.cid === -1) {
+                    entry.cid = -2;
+                  } else if (entry.cid === -2) {
+
+                    let offset = p - entry.add
+                    if (offset < 0) offset = 0;
+                    let delay2 = entry.delay - offset;
+                    if (delay2 < 0) delay2 = 0;
+                    entry.cid = setTimeout(entry.q(), delay2);
+                    entry.q = null;
+
+                  } else if (entry.add + entry.delay < p) {
+                    deleteKeys.push(key);
+
+                  }
+
+                })
+
+                for (const key of deleteKeys) arr.delete(key);
+
+              }, 2000)
+
+            }
+
+
+
+
+            cProto.async = function (e, h) {
+
+              if (!(0 < h)) return this.async71(e, h); // unknown timing Fn
+
+              if (h < 8000) return this.async71(e, h) * 2; // native setTimeout
+
+              if (typeof h !== 'number') return this.async71(e, h); // exceptional case
+
+
+              if (!this.__asyncInited__) {
+                this.__asyncInited__ = 1;
+                __asyncInit__();
+              }
+              mcw += 2; // 2K+3, 2K+4, ...
+              if (mcw > 1e9) mcw = mcw % 1e4;
+              const cid = mcw;
+              const q = () => {
+                return () => {
+                  console.log('async h > 8000');
+                  e.call(this);
+                }
+              }
+              // setTimeout(q, delay)
+              arr.set(cid, {
+                cid: -1, // -1 -> -2 -> cid
+                add: Date.now(),
+                q,
+                delay: h
+              });
+              // console.log('cid-async', cid)
+              return cid;
+
+            }
+
+
+            cProto.cancelAsync = function (e) {
+
+              if (typeof e !== 'number') return this.cancelAsync71(e); // exceptional case
+
+              // console.log('cid-unasync', e)
+
+              if (0 > e) return this.cancelAsync71(e); // unknown timing fn
+
+              if (e > __timeoutStartId__ * 2) { // __timeoutStartId__ is recorded and min is 2K+1
+
+                if ((e % 2) === 0) return this.cancelAsync71(e / 2); // 2(K+1), 2(K+2), ...
+
+                if (!arr.has(e)) return; // duplciated cancel
+
+                const entry = arr.get(e);
+                if (entry.cid < 0) {
+                  entry.cid = 0;
+                  arr.delete(e);
+                } else {
+                  clearTimeout(entry.cid); // cid >= 1
+                  entry.cid = 0;
+                  arr.delete(e);
+                }
+
+              } else {
+
+                return this.cancelAsync71(e);
+
+              }
+
+            }
+
+            console.log("CHANGE_DATA_FLUSH_ASYNC - OK");
+
+          } else {
+            console.log("CHANGE_DATA_FLUSH_ASYNC - NG");
+
+          }
+
+        })();
+
+        console.log("[End]");
+
+        console.groupEnd();
+
+
+
+        onManagerFound(__dummyManager__);
+
+      }).catch(console.warn);
+
+
+
+
+      if (DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION) {
+
+
+
+        customElements.whenDefined("yt-live-interactivity-component-background").then(() => {
+
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-interactivity-component-background hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "yt-live-interactivity-component-background"
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+
+            if (DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION && typeof cProto.maybeLoadAnimationBackground === 'function' && !cProto.maybeLoadAnimationBackground77 && cProto.maybeLoadAnimationBackground.length === 0) {
+
+              cProto.maybeLoadAnimationBackground77 = cProto.maybeLoadAnimationBackground;
+              cProto.maybeLoadAnimationBackground = function () {
+                if (this.useAnimationBackground === true) this.useAnimationBackground = false;
+              }
+
+              console.log("DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION - OK");
+
+            } else {
+              console.log("DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION - NG");
+
+            }
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+
+        }).catch(console.warn);
+
+      }
 
 
     }
