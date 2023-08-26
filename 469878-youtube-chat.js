@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.5
+// @version             0.51.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7016,13 +7016,25 @@
 
               cProto.maybeLoadAnimationBackground77 = cProto.maybeLoadAnimationBackground;
               cProto.maybeLoadAnimationBackground = function () {
-                if (this.useAnimationBackground === true && !this.__bypassDisableAnimationBackground__) {
-                  if (INTERACTIVITY_BACKGROUND_ANIMATION === 2 || (INTERACTIVITY_BACKGROUND_ANIMATION === 1 && !this.lottieAnimation)) {
-                    console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
-                    this.useAnimationBackground = false;
+                let toRun = true;
+                if (!this.__bypassDisableAnimationBackground__) {
+                  if (INTERACTIVITY_BACKGROUND_ANIMATION === 1) {
+                    if (!this.lottieAnimation) {
+                      if (this.useAnimationBackground === true) {
+                        console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
+                      }
+                      toRun = false;
+                    }
+                  } else if (INTERACTIVITY_BACKGROUND_ANIMATION === 2) {
+                    if (this.useAnimationBackground === true) {
+                      console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
+                      this.useAnimationBackground = false;
+                    }
                   }
                 }
-                return this.maybeLoadAnimationBackground77.apply(this, arguments);
+                if (toRun) {
+                  return this.maybeLoadAnimationBackground77.apply(this, arguments);
+                }
               }
 
               console.log(`INTERACTIVITY_BACKGROUND_ANIMATION${INTERACTIVITY_BACKGROUND_ANIMATION} - OK`);
