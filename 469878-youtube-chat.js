@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.1
+// @version             0.51.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4639,8 +4639,8 @@
                 this.__naohzId__ = ++naohzId;
                 ironPage.setAttribute('naohz', `${+this.__naohzId__}`);
 
-                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
-                ironPage.addEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
+                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                ironPage.addEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
 
               });
               return this.attached37.apply(this, arguments);
@@ -4651,13 +4651,13 @@
                 const ironPage = document.querySelector(`iron-pages[naohz="${+this.__naohzId__}"]`);
                 if (!ironPage) return;
 
-                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, {capture: false, passive: true});
+                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
 
               });
               return this.detached37.apply(this, arguments);
             };
 
-            const clickFade = (p)=>{
+            const clickFade = (p) => {
 
               let u = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
               if (u) u.click();
@@ -5454,6 +5454,7 @@
             return;
           }
 
+          if (typeof targetCnt.__getCachedEndpointData__ !== 'function') return;
           if (targetCnt.__getCachedEndpointData__(endpoint)) return;
 
           if (!targetCnt.__showContextMenu_mutex_unlock_isEmpty__()) {
@@ -7007,7 +7008,11 @@
 
               cProto.maybeLoadAnimationBackground77 = cProto.maybeLoadAnimationBackground;
               cProto.maybeLoadAnimationBackground = function () {
-                if (this.useAnimationBackground === true) this.useAnimationBackground = false;
+                if (this.useAnimationBackground === true) {
+                  console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
+                  this.useAnimationBackground = false;
+                }
+                return this.maybeLoadAnimationBackground77.apply(this, arguments);
               }
 
               console.log("DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION - OK");
