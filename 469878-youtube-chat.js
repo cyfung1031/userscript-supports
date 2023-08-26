@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.50.0
+// @version             0.50.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6652,7 +6652,7 @@
             if (!objectId) return this.subscribe18.apply(this, arguments);
             objectId = convertId(objectId);
 
-            console.log('subscribe', objectId, ct_clients_[objectId], arguments);
+            // console.log('subscribe', objectId, ct_clients_[objectId], arguments);
 
             if (ct_clients_[objectId]) {
               if (ct_handles_[objectId] < 0) delete ct_handles_[objectId];
@@ -6677,7 +6677,7 @@
             objectId = convertId(objectId);
 
 
-            console.log('unsubscribe', objectId, ct_clients_[objectId], arguments);
+            // console.log('unsubscribe', objectId, ct_clients_[objectId], arguments);
 
             const callbacks = this[keyCallbackStore] || 0;
             const callbackObj = callbacks[objectId] || 0;
@@ -6690,9 +6690,13 @@
               const qta = lza;
               rafHandleHolder.push(() => {
                 if (qta === ct_handles_[objectId]) {
-                  w && "function" === typeof w.dispose && w.dispose();
-                  delete ct_clients_[objectId];
-                  delete ct_handles_[objectId];
+                  try {
+                    w && "function" === typeof w.dispose && w.dispose();
+                    delete ct_clients_[objectId];
+                    delete ct_handles_[objectId];
+                  } catch (e) {
+                    console.warn(e);
+                  }
                 }
               });
               ct_handles_[objectId] = qta;
