@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.52.2
+// @version             0.52.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4160,7 +4160,7 @@
               this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
               if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
               this.lastCountdownTimeMs = lc;
-              if (this.countdownMs > 10) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
+              if (this.countdownMs > 76) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
 
               this.countdownMs = 0;
               this.lastCountdownTimeMs = null;
