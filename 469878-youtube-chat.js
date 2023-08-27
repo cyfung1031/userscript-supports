@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.8
+// @version             0.51.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -777,6 +777,10 @@
 
   [rNgzQ] {
     opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
     pointer-events: none !important;
   }
 
@@ -5199,6 +5203,13 @@
               const hostElement = kurMPC.hostElement || kurMPC;
               if (!hostElement.hasAttribute('menu-visible')) return;
               if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
+
+
+                /*
+                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
+                if(parentButton) return;
+                */
+
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
@@ -5220,6 +5231,12 @@
 
               if (!evt || !evt.isTrusted || !muzTimestamp) return;
               if (Date.now() - muzTimestamp < 40) {
+
+                /*
+                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
+                if(parentButton) return;
+                */
+
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
@@ -5232,6 +5249,12 @@
 
               if (!evt || !evt.isTrusted || !muzTimestamp) return;
               if (Date.now() - muzTimestamp < 40) {
+
+                /*
+                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
+                if(parentButton) return;
+                */
+
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
@@ -5271,15 +5294,34 @@
           document.addEventListener('mousedown', function (evt) {
 
             if (!evt || !evt.isTrusted || !evt.target) return;
+
+
+
             muzTimestamp = 0;
             nszDropdown = null;
+
+            /*
+            const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
+            if(parentButton){
+              const kurMPC = HTMLElement.prototype.closest.call(parentButton, '[whole-message-clickable]') || 0;
+              if(kurMPC){
+                evt.preventDefault();
+                evt.stopImmediatePropagation();
+                evt.stopPropagation();
+              }
+              return;
+            }
+            */
 
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
             if (!kurMP) return;
             const kurMPC = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0;
 
+            if(!kurMPC || !kurMPC.hasAttribute('whole-message-clickable')) return;
+
             if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPC, evt.target)) return;
+
 
             let targetDropDown = null;
             for (const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')) {
@@ -5290,11 +5332,17 @@
 
             if (!targetDropDown) return;
 
-            const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
-
+            
+            /*
             if (parentButton) {
+              evt.preventDefault();
+              evt.stopImmediatePropagation();
+              evt.stopPropagation();
+              currentMenuPivotWR = mWeakRef(kurMPC);
               return;
             } 
+            */
+            
             if ((nszDropdown = targetDropDown)) {
               muzTimestamp = Date.now();
               evt.stopImmediatePropagation();
