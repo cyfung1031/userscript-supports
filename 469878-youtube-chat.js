@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.6
+// @version             0.51.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -776,13 +776,7 @@
   }
 
   [rNgzQ] {
-    opacity: 0.1 !important;
-    opacity: 0.01 !important;
-    opacity: 0.001 !important;
-    opacity: 0.0001 !important;
-    opacity: 0.00001 !important;
-    opacity: 0.00000001 !important;
-
+    opacity: 0 !important;
     pointer-events: none !important;
   }
 
@@ -6249,6 +6243,7 @@
                     return;
                   }
 
+                  /*
                   let useVisibilityCollapse = true;
                   if (HTMLElement.prototype.querySelector.call(sizingTarget, 'yt-icon:empty')) {
                     useVisibilityCollapse = false;
@@ -6261,9 +6256,12 @@
                     hostElement.setAttribute('rNgzQ', '');
                     sizingTarget.setAttribute('rNgzQ', '');
                   }
+                  */
+                  hostElement.setAttribute('rNgzQ', '');
+                  sizingTarget.setAttribute('rNgzQ', '');
 
                   const gn = () => {
-
+                    /*
                     if (useVisibilityCollapse) {
                       hostElement.style.visibility = '';
                       sizingTarget.style.visibility = '';
@@ -6271,6 +6269,9 @@
                       hostElement.removeAttribute('rNgzQ');
                       sizingTarget.removeAttribute('rNgzQ');
                     }
+                    */
+                    hostElement.removeAttribute('rNgzQ');
+                    sizingTarget.removeAttribute('rNgzQ');
                   }
 
                   const an = async () => {
