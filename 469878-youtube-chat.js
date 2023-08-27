@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.9
+// @version             0.51.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -544,6 +544,14 @@
 
   `: '';
 
+  const cssText11_entire_message_clickable = FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK ? `
+    
+    .yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
+      pointer-events: none !important;
+    }
+
+  `: '';
+
 
   const addCss = () => `
 
@@ -780,9 +788,7 @@
     pointer-events: none !important;
   }
 
-  .yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
-    pointer-events: none !important;
-  }
+  ${cssText11_entire_message_clickable}
 
   ${cssText10_show_more_blinker}
 
@@ -5318,7 +5324,7 @@
             if (!kurMP) return;
             const kurMPC = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0;
 
-            if(!kurMPC || !kurMPC.hasAttribute('whole-message-clickable')) return;
+            if (!kurMPC || !kurMPC.hasAttribute('whole-message-clickable')) return;
 
             if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPC, evt.target)) return;
 
@@ -5332,7 +5338,7 @@
 
             if (!targetDropDown) return;
 
-            
+
             /*
             if (parentButton) {
               evt.preventDefault();
@@ -5342,7 +5348,7 @@
               return;
             } 
             */
-            
+
             if ((nszDropdown = targetDropDown)) {
               muzTimestamp = Date.now();
               evt.stopImmediatePropagation();
