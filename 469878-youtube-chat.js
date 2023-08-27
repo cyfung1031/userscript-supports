@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.52.0
+// @version             0.52.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -144,7 +144,7 @@
   const DE_JSONPRUNE_FOR_readyStateChangeHandler_ = 1; // jsonPrune for Ad-Blocking is not applicable to live_chat streaming
   // << end >>
 
-  const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = true;
+  // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
 
   const CHANGE_DATA_FLUSH_ASYNC = true;
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
@@ -5376,6 +5376,22 @@
         }
 
 
+        // yt-live-chat-paid-message-renderer ??
+
+/*
+
+[...(new Set([...document.querySelectorAll('*')].filter(e=>e.is&&('shouldSupportWholeItemClick' in e)).map(e=>e.is))).keys()]
+
+
+"yt-live-chat-ticker-paid-message-item-renderer"
+"yt-live-chat-ticker-paid-sticker-item-renderer"
+"yt-live-chat-paid-message-renderer"
+"yt-live-chat-text-message-renderer"
+"yt-live-chat-paid-sticker-renderer"
+
+*/
+        
+        // https://www.youtube.com/watch?v=oQzFi1NO7io
         customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
 
 
@@ -6552,6 +6568,7 @@
       }).catch(console.warn);
 
 
+      /*
       if (LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY) {
 
 
@@ -6606,6 +6623,7 @@
 
 
       }
+      */
 
 
 
