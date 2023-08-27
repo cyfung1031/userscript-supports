@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.7
+// @version             0.51.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5277,9 +5277,9 @@
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
             if (!kurMP) return;
-            const kurMPC = kurMP.closest('[menu-visible]') || 0;
+            const kurMPC = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0;
 
-            if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !kurMPC.contains(evt.target)) return;
+            if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPC, evt.target)) return;
 
             let targetDropDown = null;
             for (const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')) {
@@ -5288,6 +5288,13 @@
               }
             }
 
+            if (!targetDropDown) return;
+
+            const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
+
+            if (parentButton) {
+              return;
+            } 
             if ((nszDropdown = targetDropDown)) {
               muzTimestamp = Date.now();
               evt.stopImmediatePropagation();
