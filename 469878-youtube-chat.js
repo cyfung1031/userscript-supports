@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.10
+// @version             0.51.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6833,18 +6833,28 @@
               const qta = lza;
               rafHandleHolder.push(() => {
                 if (qta === ct_handles_[objectId]) {
+                  const o = {
+                    callbacks, callbackObj,
+                    client: ct_clients_[objectId],
+                    handle: ct_handles_[objectId]
+                  };
+                  let p = 0;
                   try {
-                    console.log("unsubscribed", this, {
-                      callbacks, callbackObj,
-                      client: ct_clients_[objectId],
-                      handle: ct_handles_[objectId]
-                    });
-                    w && "function" === typeof w.dispose && w.dispose();
-                    delete ct_clients_[objectId];
-                    delete ct_handles_[objectId];
+                    if (ct_clients_[objectId] === w) {
+                      w && "function" === typeof w.dispose && w.dispose();
+                      delete ct_clients_[objectId];
+                      delete ct_handles_[objectId];
+                      p = 1;
+                    } else {
+                      // w && "function" === typeof w.dispose && w.dispose();
+                      // delete ct_clients_[objectId];
+                      // delete ct_handles_[objectId];
+                      p = 2;
+                    }
                   } catch (e) {
                     console.warn(e);
                   }
+                  console.log(`unsubscribed: ${p}`, this, o);
                 }
               });
               ct_handles_[objectId] = qta;
