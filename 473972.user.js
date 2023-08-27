@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.1.2
+// @version     0.2.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -217,7 +217,7 @@
       const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      res.animate = HTMLElement.prototype.animate;
+      res.animate = fc.HTMLElement.prototype.animate;
       return res;
     } catch (e) {
       console.warn(e);

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.51.11
+// @version             0.52.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1392,7 +1392,7 @@
       const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      res.animate = HTMLElement.prototype.animate;
+      res.animate = fc.HTMLElement.prototype.animate;
       jsonParseFix = {
         _JSON: fc.JSON, _parse: fc.JSON.parse
       }
