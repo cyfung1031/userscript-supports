@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.29.0
+// @version             2023.08.27.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -228,15 +228,10 @@ SOFTWARE.
     const consoleError = e => console.error(e);
     const onPromiseErrorFn = (e) => { Promise.resolve(e).then(consoleError); }; // Promise will be resolved for Promise.all
 
-    let isAnyVideoJustStartedWaiting = 0;
-    let countAnyVideoJustPaused = 0; // for video is fetching data
-    let noActiveMediaForAWhile = false; // only when there is any video is fetching data
-
     // Define a flag to indicate whether the function handlers need to be reset
     let toResetFuncHandlers = false;
     let intervalTimerResolve = null;
 
-    const pq = new Map();
     const [sb, rm] = (() => {
 
       let mi = INT_INITIAL_VALUE; // skip first {INT_INITIAL_VALUE} cids to avoid browser not yet initialized
@@ -262,60 +257,6 @@ SOFTWARE.
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
 
             const hasArgs = args.length > 0;
-            let doNativeFn = false;
-            if (isAnyVideoJustStartedWaiting > 0 && !hasArgs && prop === 'timeout') {
-              if (ms < 16) {
-                doNativeFn = true;
-              }
-            } else if (countAnyVideoJustPaused > 0 && !hasArgs && prop === 'timeout') { // no exceptional case for hasArgs can be found
-
-              // 0, 10
-              // 20 (rare)
-              // 100
-              // 250, 1000, 10000, 20000
-              if (ms <= 16 && !noActiveMediaForAWhile) {
-                // typical example for ms: 0, 10 [no undefined was found]
-                doNativeFn = true;
-
-              } else if (ms <= 20) {
-                // 20ms, TBC
-                ms = 20;
-
-              } else if (ms <= 40) {
-                // TBC
-                ms = 40;
-
-              } else if (ms <= 80) {
-                // TBC
-                ms = 80;
-
-              } else if (ms <= 200) {
-                // 100ms
-                ms = 200;
-
-              } else if (ms < 800) {
-                // 250ms
-                // no modification
-                // for video resume by user
-              } else {
-                // 1000ms, 10000ms, 20000ms
-                if (noActiveMediaForAWhile) {
-                  if (ms < 8000) ms = 32000;
-                  else if (ms < 80000) ms = 320000;
-                  else ms = ms + 380000;
-                }
-              }
-
-            }
-            if (doNativeFn) {
-              const jd = mi;
-              const cid = setTimeout(() => {
-                func();
-                Promise.resolve().then(() => pq.delete(jd));
-              }, ms);
-              pq.set(mi, cid);
-              return mi;
-            }
 
             let handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
             handler[$busy] || (handler[$busy] = 0);
@@ -340,14 +281,6 @@ SOFTWARE.
         const o = sb.get(jd);
         if (typeof o !== 'object') { // to clear the same cid is unlikely to happen || requiring nativeFn is unlikely to happen
           let action = jd <= INT_INITIAL_VALUE;
-          if (!action) {
-            const cid = pq.get(jd);
-            if (cid > 0) {
-              action = true;
-              pq.delete(jd);
-              jd = cid;
-            }
-          }
           if (action) {
             const nativeFn = this.nativeFn; // de::this
             nativeFn(jd); // only for clearTimeout & clearInterval
@@ -434,8 +367,54 @@ SOFTWARE.
 
     }
 
+    const getRAFHelper = () => {
+      const asc = document.createElement('a-f');
+      if (!('onanimationiteration' in asc)) {
+        return (resolve) => requestAnimationFrame(afInterupter = resolve);
+      }
+      asc.id = 'a-f';
+      let qr = null;
+      asc.onanimationiteration = function () {
+        if (qr !== null) {
+          qr();
+          qr = null;
+        }
+      }
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyFrames aF1 {
+          0% {
+            order: 0;
+          }
+          100% {
+            order: 6;
+          }
+        }
+        #a-f[id] {
+          visibility: collaspe !important;
+          position: fixed !important;
+          top: -100px !important;
+          left: -100px !important;
+          margin:0 !important;
+          padding:0 !important;
+          outline:0 !important;
+          border:0 !important;
+          z-index:-1 !important;
+          width: 0px !important;
+          height: 0px !important;
+          contain: strict !important;
+          pointer-events: none !important;
+          animation: 1ms steps(2) 0ms infinite alternate forwards running aF1 !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+      document.documentElement.insertBefore(asc, document.documentElement.firstChild);
+      return (resolve) => (qr = afInterupter = resolve);
+    };
+
+
     /** @type {(resolve: () => void)}  */
-    const infiniteLooper = (resolve) => requestAnimationFrame(afInterupter = resolve); // rAF will not execute if document is hidden
+    const infiniteLooper = getRAFHelper(); // rAF will not execute if document is hidden
 
     /** @type {(aHandlers: Function[])}  */
     const microTaskExecutionActivePage = (aHandlers) => Promise.all(aHandlers.map(pf));
@@ -488,7 +467,7 @@ SOFTWARE.
       if (sHandlers.length === 0) { // no handler functions
         // requestAnimationFrame when the page is active
         // execution interval is no less than AnimationFrame
-      } else if (!noActiveMediaForAWhile && dexActivePage) {
+      } else if (dexActivePage) {
 
         // retFP: looping for all functions. First error leads resolve non-reachable;
         // the particular [$busy] will not reset to 0 normally
@@ -509,9 +488,6 @@ SOFTWARE.
 
     // Add an event listener for when YouTube finishes navigating to a new page and set the flag to reset the function handlers
     document.addEventListener("yt-navigate-finish", () => {
-      isAnyVideoJustStartedWaiting = 0; // reset
-      countAnyVideoJustPaused = 0; // reset; no weaker tamer after navigation until video is paused afterwards.
-      noActiveMediaForAWhile = false; // reset first
       toResetFuncHandlers = true; // ensure all function handlers can be executed after YouTube navigation.
       Promise.resolve().then(executeNow);
     }, true); // capturing event - to let it runs before all everything else.
@@ -529,67 +505,30 @@ SOFTWARE.
       while (true) {
         const tickerNow = Date.now();
         clearResolveAt = tickerNow + UNDERCLOCK;
-        if (noActiveMediaForAWhile) {
-          // no need to tamer the execution by rAF
-          await new Promise(pTimerFn); // CPU; time throttled
+        const pTimer = new Promise(pTimerFn); // CPU; time throttled
+        bgExecutionAt = tickerNow + 160;
+        await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
+        await pTimer; // resolve by timer@10ms
+        if (afInterupter === null) {
+          // triggered by setInterval
+          dexActivePage = false;
         } else {
-          if (countAnyVideoJustPaused > 0) clearResolveAt = 0;
-          const pTimer = new Promise(pTimerFn); // CPU; time throttled
-          bgExecutionAt = tickerNow + 160;
-          if (!isAnyVideoJustStartedWaiting) await new Promise(infiniteLooper); // resolve by rAF or timer@250ms
-          await pTimer; // resolve by timer@10ms
-          if (afInterupter === null) {
-            // triggered by setInterval
-            dexActivePage = false;
-          } else {
-            // triggered by rAF
-            afInterupter = null;
-            if (dexActivePage === false) toResetFuncHandlers = true;
-            dexActivePage = true;
-          }
-          if (toResetFuncHandlers) {
-            // true if page change from hidden to visible OR yt-finish
-            toResetFuncHandlers = false;
-            for (const eb of sb.values()) eb.handler[$busy] = 0; // including the functions with error
-          }
+          // triggered by rAF
+          afInterupter = null;
+          if (dexActivePage === false) toResetFuncHandlers = true;
+          dexActivePage = true;
+        }
+        if (toResetFuncHandlers) {
+          // true if page change from hidden to visible OR yt-finish
+          toResetFuncHandlers = false;
+          for (const eb of sb.values()) eb.handler[$busy] = 0; // including the functions with error
         }
         const sHandlers = await nextTickExecutionMT1();
         await nextTickExecutionMT2(sHandlers);
       }
     })();
 
-    const onCountAnyVideoJustPausedEqualsTo8 = () => {
-      if (countAnyVideoJustPaused > 0) {
-        /** @type {NodeListOf<HTMLMediaElement | HTMLVideoElement >} */
-        let medias = document.querySelectorAll('video[src], audio[src]');
-        let mp = true;
-        for (const media of medias) {
-          if (media.paused !== true && media.readyState >= 3) {
-            mp = false;
-            break;
-          }
-        }
-        if (!mp) {
-          countAnyVideoJustPaused = 0;
-          noActiveMediaForAWhile = false;
-          Promise.resolve().then(executeNow);
-        } else {
-          noActiveMediaForAWhile = true;
-        }
-      }
-    };
-
     setInterval(() => {
-      if (countAnyVideoJustPaused > 0) {
-        // videoIsPaused = 2 => 125ms
-        // videoIsPaused = 3 => 250ms ...
-        if (countAnyVideoJustPaused < 16) {
-          countAnyVideoJustPaused++;
-          if (countAnyVideoJustPaused === 8 && !isAnyVideoJustStartedWaiting) {  // 875ms
-            Promise.resolve().then(onCountAnyVideoJustPausedEqualsTo8);
-          }
-        }
-      }
       if (nonResponsiveResolve !== null) {
         nonResponsiveResolve();
         return;
@@ -611,86 +550,6 @@ SOFTWARE.
     // 4 times per second for background execution - to keep YouTube application functional
     // if there is Timer Throttling for background running, the execution become the same as native setTimeout & setInterval.
 
-
-    const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
-
-    document.addEventListener('pause', function (evt) {
-      // for changing quality, 'abort' + 'emptied' will be triggered instead.
-      // quality change: 'abort'  'emptied'  'play'  'waiting' 'loadeddata'
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        // the video paused might not be the main video; i.e. weaker tamer will apply to non-watch page (like home page)
-        // networkState will be useful to filter out no source or fully loaded video
-        // weaker tamer focuses on the video is loading (fetching from the server)
-        // execute whatever videoIsPaused is.
-        countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false; // as there is user action to trigger pause
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('abort', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false; // as there is user action to trigger abort
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('emptied', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false; // as there is user action to trigger emptied
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('play', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false; // videoIsPaused remains unchanged
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('waiting', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && target.readyState <= 2) {
-        isAnyVideoJustStartedWaiting = 1;
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('loadedmetadata', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false;
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('loadeddata', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement) {
-        if (countAnyVideoJustPaused > 0) countAnyVideoJustPaused = 1;
-        noActiveMediaForAWhile = false;
-        executeNow();
-      }
-    }, passiveCapture);
-
-    document.addEventListener('playing', function (evt) {
-      const target = (evt || 0).target;
-      if (target instanceof HTMLVideoElement && target.readyState >= 3) {
-        isAnyVideoJustStartedWaiting = 0;
-        countAnyVideoJustPaused = 0;
-        noActiveMediaForAWhile = false;
-        executeNow();
-      }
-    }, passiveCapture);
 
   })
 
