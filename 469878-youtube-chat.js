@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.1
+// @version             0.53.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6807,20 +6807,17 @@
 
         let pzw = 0;
         let lza = 0;
-        const genRAF = () => {
-
-          pzw = requestAnimationFrame(() => {
-            pzw = 0;
-            if (rafHandleHolder.length === 1) {
-              const f = rafHandleHolder[0];
-              rafHandleHolder.length = 0;
-              f();
-            } else if (rafHandleHolder.length > 1) {
-              let arr = rafHandleHolder.slice(0)
-              rafHandleHolder.length = 0;
-              for (const fn of arr) fn();
-            }
-          });
+        const rafHandlerFn = () => {
+          pzw = 0;
+          if (rafHandleHolder.length === 1) {
+            const f = rafHandleHolder[0];
+            rafHandleHolder.length = 0;
+            f();
+          } else if (rafHandleHolder.length > 1) {
+            const arr = rafHandleHolder.slice(0);
+            rafHandleHolder.length = 0;
+            for (const fn of arr) fn();
+          }
         };
 
 
@@ -6937,7 +6934,9 @@
                 }
               });
               ct_handles_[objectId] = qta;
-              if (pzw === 0) genRAF();
+              if (pzw === 0) {
+                pzw = requestAnimationFrame(rafHandlerFn);
+              }
             }
           }
 
