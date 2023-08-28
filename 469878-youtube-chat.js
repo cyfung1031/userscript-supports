@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.52.3
+// @version             0.53.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -136,7 +136,7 @@
   const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
 
   const RAF_FIX_keepScrollClamped = true;
-  const RAF_FIX_scrollIncrementally = true;
+  const RAF_FIX_scrollIncrementally = 2;            // 0: no action; 1: basic fix; 2: also fix scroll position
 
   // << if BOOST_MENU_OPENCHANGED_RENDERING >>
   const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
@@ -4609,17 +4609,52 @@
               this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally)
             };
 
-            cProto.scrollIncrementally = function (a) {
-              var b = a - (this.lastFrameTimestamp || 0);
-              this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
-              this.maybeClampScroll();
-              this.updateArrows();
-              this.lastFrameTimestamp = a;
-              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
-            };
+            if (RAF_FIX_scrollIncrementally === 2) {
 
-            console.log('RAF_FIX: scrollIncrementally', tag, "OK")
+              // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
+
+              cProto.scrollIncrementally = function (a) {
+                const b = a - (this.lastFrameTimestamp || 0);
+                const rate = this.scrollRatePixelsPerSecond
+                const q = b / 1E3 * (rate || 0);
+
+                const sl = this.$.items.scrollLeft;
+                // console.log(rate, sl, q)
+                if (this.lastFrameTimestamp == this.scrollStartTime) {
+
+                } else if (q > -1e-5 && q < 1e-5) {
+
+                } else {
+                  let cond1 = sl > 0 && rate > 0 && q > 0;
+                  let cond2 = sl > 0 && rate < 0 && q < 0;
+                  let cond3 = sl < 1e-5 && sl > -1e-5 && rate > 0 && q > 0;
+                  if (cond1 || cond2 || cond3) {
+                    this.$.items.scrollLeft += q;
+                    this.maybeClampScroll();
+                    this.updateArrows();
+                  }
+                }
+
+                this.lastFrameTimestamp = a;
+                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+                0 < this.$.items.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              };
+
+            } else {
+
+              cProto.scrollIncrementally = function (a) {
+                const b = a - (this.lastFrameTimestamp || 0);
+                this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+                this.maybeClampScroll();
+                this.updateArrows();
+                this.lastFrameTimestamp = a;
+                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+                0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              };
+
+            }
+
+            console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
             assertor(() => fnIntegrity(cProto.startScrolling, '1.44.32'));
             assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
