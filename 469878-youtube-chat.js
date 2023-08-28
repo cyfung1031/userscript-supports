@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.3
+// @version             0.53.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1409,27 +1409,15 @@
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate } = __CONTEXT__;
 
 
-
-    let foregroundPromiseForLiveChatFlush = null;
-
-    const getForegroundPromiseForLiveChatFlush = () => {
-      if (document.visibilityState === 'visible') return Promise.resolve();
-      else {
-        return (foregroundPromiseForLiveChatFlush = (foregroundPromiseForLiveChatFlush || new Promise(resolve => {
-          requestAnimationFrame(() => {
-            foregroundPromiseForLiveChatFlush = null;
-            resolve();
-          });
-        })));
-      }
-    }
+    let rafPromiseForTickers = null;
+    const getRafPromiseForTickers = () => (rafPromiseForTickers = (rafPromiseForTickers || new Promise(resolve => {
+      requestAnimationFrame(() => {
+        rafPromiseForTickers = null;
+        resolve();
+      });
+    })));
 
     let aeConstructor = null;
-
-    // << if ENABLE_VIDEO_PROGRESS_STATE_FIX >>
-    let pairForPauseResume = 0; // each increasion = number of ticker
-    let pairForPauseResumeM = 0;
-    // << end >>
 
     // << __openedChanged82 >>
     let currentMenuPivotWR = null;
@@ -2692,18 +2680,6 @@
 
                     // console.log('handlePostMessage_', da)
                     const qc = da['yt-player-state-change'];
-                    if (qc === 3) { // pause
-                      pairForPauseResume++;
-                      pairForPauseResumeM++;
-                    } else if (qc === 1) { // pause
-                      pairForPauseResume++;
-                      pairForPauseResumeM++;
-                    } else if (qc === 2) {
-                      pairForPauseResume++;
-                      pairForPauseResumeM++;
-                    }
-                    if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
-                    if (pairForPauseResumeM > 1e9) pairForPauseResumeM = pairForPauseResumeM % 1e4;
                     return this.handlePostMessage66_(a);
 
                   }
@@ -4195,22 +4171,22 @@
 
           if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
 
+            cProto.rtk = 0;
+
             if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
               urt++;
               assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
               cProto.handlePauseReplay66 = cProto.handlePauseReplay;
               cProto.handlePauseReplay = function () {
                 if (this.isAttached) {
-
-                  if (pairForPauseResumeM === 0) {
-                    pairForPauseResume++;
-                    if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
-                  }
-                  // console.log('handlePauseReplay');
-                  // console.log('handlePauseReplay', pairForPauseResume);
-                  const r = this.handlePauseReplay66.apply(this, arguments);
-                  isMainVideoOngoing = false;
-                  return r;
+                  if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
+                  const tid = ++this.rtk;
+                  getRafPromiseForTickers().then(() => {
+                    if (tid === this.rtk) {
+                      this.handlePauseReplay66();
+                      isMainVideoOngoing = false;
+                    }
+                  })
                 }
               };
             } else {
@@ -4223,17 +4199,14 @@
               cProto.handleResumeReplay66 = cProto.handleResumeReplay;
               cProto.handleResumeReplay = function () {
                 if (this.isAttached) {
-
-                  if (pairForPauseResumeM === 0) {
-                    pairForPauseResume++;
-                    if (pairForPauseResume > 1e9) pairForPauseResume = pairForPauseResume % 1e4;
-                  }
-                  // console.log('handleResumeReplay');
-                  // console.log('handleResumeReplay', pairForPauseResume);
-                  const r = this.handleResumeReplay66.apply(this, arguments);
-                  isMainVideoOngoing = true;
-                  return r;
-
+                  if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
+                  const tid = ++this.rtk;
+                  getRafPromiseForTickers().then(() => {
+                    if (tid === this.rtk) {
+                      this.handleResumeReplay66();
+                      isMainVideoOngoing = true;
+                    }
+                  })
                 }
               };
             } else {
@@ -4246,46 +4219,13 @@
               cProto.handleReplayProgress66 = cProto.handleReplayProgress;
               cProto.handleReplayProgress = function (a) {
                 if (this.isAttached) {
-                  const p = mainVideoLastProgress;
                   mainVideoLastProgress = a;
-                  if (isMainVideoOngoing === false) { // ignore isMainVideoOngoing === null ?
-                    const d = a - p;
-                    if (d > 0 && d < 0.28) isMainVideoOngoing = true; // timeupdate
-                    // 0.28 is due to
-                    //    - most browsers will fire the timeupdate event between 4 to 60 times per second
-                    //    - i.e. timeupdate roughly every 15-250 milliseconds
-                  }
-                  let promiseResult = null;
-                  if (this.isAnimationPaused) {
-                    // unstable state for isMainVideoOngoing; delay required
-                    // all the tickers' handleReplayProgress are executed in the same microtask
-                    // execute after result returned
-                    const lz1 = pairForPauseResume;
-                    Promise.resolve().then(() => {
-                      return promiseResult
-                    }).then(() => {
-
-
-                      if (isMainVideoOngoing === true && this.isAnimationPaused) {
-                        const lz2 = pairForPauseResume;
-                        // console.log( 10044000, lz1, lz2 , mainVideoLastProgress - a, isMainVideoOngoing  )
-                        if (lz1 === lz2 && mainVideoLastProgress !== null && mainVideoLastProgress - a >= -1e-5) this.isAnimationPaused = false; // trigger isAnimationPausedChanged
-                      }
-
-                    });
-                  }
-
-                  const lq1 = pairForPauseResume;
-                  promiseResult = Promise.resolve().then(() => {
-                    const lq2 = pairForPauseResume;
-
-                    if (lq1 === lq2) {
-                      this.handleReplayProgress66(a);
+                  const tid = ++this.rtk;
+                  getRafPromiseForTickers().then(() => {
+                    if (tid === this.rtk) {
+                      this.handleReplayProgress66(mainVideoLastProgress);
                     }
-
-
                   })
-
                 }
               };
             } else {
@@ -4335,7 +4275,6 @@
                   const ae = this._makeAnimator();
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
-                  // console.log(539, isMainVideoOngoing)
                   if (this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
                     // << This is mainly for [PlayBack Replay] backwards >>
                     // fix the case when the main video is paused but due to seeking the tickers are added
@@ -5444,19 +5383,19 @@
 
         // yt-live-chat-paid-message-renderer ??
 
-/*
-
-[...(new Set([...document.querySelectorAll('*')].filter(e=>e.is&&('shouldSupportWholeItemClick' in e)).map(e=>e.is))).keys()]
-
-
-"yt-live-chat-ticker-paid-message-item-renderer"
-"yt-live-chat-ticker-paid-sticker-item-renderer"
-"yt-live-chat-paid-message-renderer"
-"yt-live-chat-text-message-renderer"
-"yt-live-chat-paid-sticker-renderer"
-
-*/
+        /*
         
+        [...(new Set([...document.querySelectorAll('*')].filter(e=>e.is&&('shouldSupportWholeItemClick' in e)).map(e=>e.is))).keys()]
+        
+        
+        "yt-live-chat-ticker-paid-message-item-renderer"
+        "yt-live-chat-ticker-paid-sticker-item-renderer"
+        "yt-live-chat-paid-message-renderer"
+        "yt-live-chat-text-message-renderer"
+        "yt-live-chat-paid-sticker-renderer"
+        
+        */
+
         // https://www.youtube.com/watch?v=oQzFi1NO7io
         customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
 
@@ -6634,62 +6573,6 @@
       }).catch(console.warn);
 
 
-      /*
-      if (LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY) {
-
-
-        customElements.whenDefined("yt-live-chat-renderer").then(() => {
-
-          mightFirstCheckOnYtInit();
-          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
-          console.log("[Begin]");
-          (() => {
-
-            const tag = "yt-live-chat-renderer"
-            const dummy = document.createElement(tag);
-
-            const cProto = getProto(dummy);
-            if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
-              return;
-            }
-
-
-            if (typeof cProto._flushProperties === 'function' && !cProto._flushProperties22 && cProto._flushProperties.length === 0) {
-
-              cProto.flushPendingCount = 0;
-              cProto._flushProperties22 = cProto._flushProperties;
-
-              cProto._flushProperties = function () {
-                if (foregroundPromiseForLiveChatFlush) return;
-                this.flushPendingCount++;
-                const tid = this.flushPendingCount;
-                getForegroundPromiseForLiveChatFlush().then(() => {
-                  if (tid !== this.flushPendingCount) return;
-                  // console.log('_flushProperties22', Date.now())
-                  this._flushProperties22();
-                });
-              };
-
-
-              console.log("cProto._flushProperties - OK");
-
-            } else {
-              console.log("cProto._flushProperties - NG");
-
-            }
-
-          })();
-
-          console.log("[End]");
-
-          console.groupEnd();
-
-        }).catch(console.warn);
-
-
-      }
-      */
 
 
 
