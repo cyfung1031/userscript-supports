@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.2
+// @version             0.53.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4159,11 +4159,11 @@
               let lc = window.performance.now();
               this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
               if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-              this.lastCountdownTimeMs = lc;
+              this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
               if (this.countdownMs > 76) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
 
               this.countdownMs = 0;
-              this.lastCountdownTimeMs = null;
+              this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null;
 
               if (this.isAttached) {
                 let fastRemoved = false;
@@ -4328,7 +4328,7 @@
                 this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
                 this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
                 if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
-                  this.lastCountdownTimeMs = performance.now()
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
                   this.rafId = 1
                   if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
                   this.detlaSincePausedSecs = 0;
@@ -4356,12 +4356,13 @@
               void 0 !== a && (this.countdownMs = 1E3 * a,
                 this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
                 this.ratio = 1,
-                this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = performance.now(),
+                this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
                   this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
             }
 
           } : cProto.startCountdown;
 
+          // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
           cProto.updateTimeout = doTimerFnModification ? function (a) {
 
             if (this._r782) return;
@@ -4373,24 +4374,28 @@
 
             if (doAnimator) {
               if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
-              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              }
               if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
               if (this.isAttached && this.countdownMs) {
                 this.lastCountdownTimeMs = a
                 const ae = this._makeAnimator(); // request raf
                 if (!ae) console.warn('Error in startCountdown._makeAnimator()');
               } else {
-                (this.lastCountdownTimeMs = null,
+                (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
                   this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
                     this.slideDown()));
               }
             } else {
               // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
               if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              }
               this.ratio = this.countdownMs / this.countdownDurationMs;
               this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
-                this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = null,
+                this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
                   this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
                     this.slideDown()))
             }
@@ -4430,14 +4435,14 @@
                   let lc = window.performance.now();
                   this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
                   if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-                  this.lastCountdownTimeMs = lc;
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
                 };
                 const wa = () => { // pause -> running
                   if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
                   a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
                   this.detlaSincePausedSecs = 0;
                   this.updateTimeout(a);
-                  this.lastCountdownTimeMs = window.performance.now();
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now();
                 };
                 a ? (this._runnerAE && pu()) : (!a && b && wa());
               } else {
@@ -4448,7 +4453,7 @@
                   this.detlaSincePausedSecs && (a = (this.lastCountdownTimeMs || 0) + 1E3 * this.detlaSincePausedSecs,
                     this.detlaSincePausedSecs = 0),
                   this.boundUpdateTimeout37_(a),
-                  this.lastCountdownTimeMs = window.performance.now())
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now())
               }
 
             }).catch(e => {
