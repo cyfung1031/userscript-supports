@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.5
+// @version             0.53.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2685,7 +2685,6 @@
                     if (qc === 2) { playerState = 2 }
                     else if (qc === 3) { playerState = 3 }
                     else if (qc === 1) { playerState = 1 }
-                    console.log(qc)
                     return this.handlePostMessage66_(a);
 
                   }
@@ -4287,7 +4286,8 @@
                   const ae = this._makeAnimator();
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
-                  if (this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
+                  if (playerState === 2 && this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
+
                     // << This is mainly for [PlayBack Replay] backwards >>
                     // fix the case when the main video is paused but due to seeking the tickers are added
                     // play first then pause immediately to allow the visual effect of initial state
@@ -4297,6 +4297,7 @@
                     this.isAnimationPaused = true; // trigger isAnimationPausedChanged
                     this.detlaSincePausedSecs = 0;
                     this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
+
                   }
                 }
               }
