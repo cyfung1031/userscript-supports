@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.4
+// @version             0.53.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1417,6 +1417,8 @@
       });
     })));
 
+    let playerState = null;
+
     let aeConstructor = null;
 
     // << __openedChanged82 >>
@@ -2680,6 +2682,10 @@
 
                     // console.log('handlePostMessage_', da)
                     const qc = da['yt-player-state-change'];
+                    if (qc === 2) { playerState = 2 }
+                    else if (qc === 3) { playerState = 3 }
+                    else if (qc === 1) { playerState = 1 }
+                    console.log(qc)
                     return this.handlePostMessage66_(a);
 
                   }
@@ -4178,13 +4184,16 @@
               assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
               cProto.handlePauseReplay66 = cProto.handlePauseReplay;
               cProto.handlePauseReplay = function () {
+                if (playerState !== 2) return;
                 if (this.isAttached) {
                   if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
                   const tid = ++this.rtk;
                   getRafPromiseForTickers().then(() => {
                     if (tid === this.rtk) {
-                      this.handlePauseReplay66();
-                      isMainVideoOngoing = false;
+                      if (playerState === 2) {
+                        this.handlePauseReplay66();
+                        isMainVideoOngoing = false;
+                      }
                     }
                   })
                 }
@@ -4198,13 +4207,16 @@
               assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
               cProto.handleResumeReplay66 = cProto.handleResumeReplay;
               cProto.handleResumeReplay = function () {
+                if (playerState === 2) return;
                 if (this.isAttached) {
                   if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
                   const tid = ++this.rtk;
                   getRafPromiseForTickers().then(() => {
                     if (tid === this.rtk) {
-                      this.handleResumeReplay66();
-                      isMainVideoOngoing = true;
+                      if (playerState === 3 || playerState === 1) {
+                        this.handleResumeReplay66();
+                        isMainVideoOngoing = true;
+                      }
                     }
                   })
                 }
