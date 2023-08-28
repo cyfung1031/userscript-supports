@@ -17,198 +17,198 @@
 
 const __errorCode21167__ = (() => {
 
-    try {
-        Promise.resolve('\u{1F4D9}', ((async () => { })()).constructor);
-    } catch (e) {
-        console.log('%cUnsupported Browser', 'background-color: #FAD02E; color: #333; padding: 4px 8px; font-weight: bold; border-radius: 4px;');
-        return 0x3041;
-    }
+  try {
+    Promise.resolve('\u{1F4D9}', ((async () => { })()).constructor);
+  } catch (e) {
+    console.log('%cUnsupported Browser', 'background-color: #FAD02E; color: #333; padding: 4px 8px; font-weight: bold; border-radius: 4px;');
+    return 0x3041;
+  }
 
-    if (typeof GM_addValueChangeListener !== 'function' || typeof GM !== 'object' || typeof (GM || 0).setValue !== 'function') {
-        console.log('%cUnsupported UserScript Manager', 'background-color: #FAD02E; color: #333; padding: 4px 8px; font-weight: bold; border-radius: 4px;');
-        return 0x3042;
-    }
+  if (typeof GM_addValueChangeListener !== 'function' || typeof GM !== 'object' || typeof (GM || 0).setValue !== 'function') {
+    console.log('%cUnsupported UserScript Manager', 'background-color: #FAD02E; color: #333; padding: 4px 8px; font-weight: bold; border-radius: 4px;');
+    return 0x3042;
+  }
 
-    return 0;
+  return 0;
 })();
 
 __errorCode21167__ || (() => {
 
-    /** @type {Window} */
-    const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-    /** @type {{ globalThis.PromiseConstructor}} */
-    const Promise = ((async () => { })()).constructor;
+  /** @type {Window} */
+  const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+  /** @type {{ globalThis.PromiseConstructor}} */
+  const Promise = ((async () => { })()).constructor;
 
-    let __recordId_new = 1;
-    let abortCounter = 0;
+  let __recordId_new = 1;
+  let abortCounter = 0;
 
-    let userOpenAction = null;
+  let userOpenAction = null;
 
-    const kPattern = (num) => {
-        const letters = 'abcdefghijklmnopqrstuvwxyz';
-        const k = num % 9;
-        const j = Math.floor(num / 9);
-        const letter = letters[j];
-        return `${letter}${k + 1}`;
+  const kPattern = (num) => {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    const k = num % 9;
+    const j = Math.floor(num / 9);
+    const letter = letters[j];
+    return `${letter}${k + 1}`;
+  }
+
+  const kHash = (n) => {
+    if (n < 0 || n > 54755) {
+      throw new Error('Number out of range');
     }
 
-    const kHash = (n) => {
-        if (n < 0 || n > 54755) {
-            throw new Error('Number out of range');
-        }
+    const nValue = 9 * 26; // precompute this value since it's constant
 
-        const nValue = 9 * 26; // precompute this value since it's constant
+    // Simplified equation, combined terms
+    let hashBase = (n * 9173) % 54756;
+    // ((54756 - n) * 9173 + (n) * 7919 + (n) * 5119) % 54756;`
 
-        // Simplified equation, combined terms
-        let hashBase = (n * 9173) % 54756;
-        // ((54756 - n) * 9173 + (n) * 7919 + (n) * 5119) % 54756;`
-
-        let hash = '';
-        for (let i = 0; i < 2; i++) {
-            const t = hashBase % nValue;
-            hash = kPattern(t) + hash;
-            hashBase = Math.floor(hashBase / nValue);
-        }
-
-        return hash;
+    let hash = '';
+    for (let i = 0; i < 2; i++) {
+      const t = hashBase % nValue;
+      hash = kPattern(t) + hash;
+      hashBase = Math.floor(hashBase / nValue);
     }
 
-    const cleanContext = async (win, gmWindow) => {
-        /** @param {Window} fc */
-        const sanitize = (fc) => {
-            const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = fc;
-            const res = { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame };
-            for (let k in res) res[k] = res[k].bind(win); // necessary
-            return res;
+    return hash;
+  }
+
+  const cleanContext = async (win, gmWindow) => {
+    /** @param {Window} fc */
+    const sanitize = (fc) => {
+      const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = fc;
+      const res = { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame };
+      for (let k in res) res[k] = res[k].bind(win); // necessary
+      return res;
+    }
+    if (gmWindow && typeof gmWindow === 'object' && gmWindow.GM_info && gmWindow.GM) {
+      let isIsolatedContext = (
+        (gmWindow.requestAnimationFrame !== win.requestAnimationFrame) &&
+        (gmWindow.cancelAnimationFrame !== win.cancelAnimationFrame) &&
+        (gmWindow.setTimeout !== win.setTimeout) &&
+        (gmWindow.setInterval !== win.setInterval) &&
+        (gmWindow.clearTimeout !== win.clearTimeout) &&
+        (gmWindow.clearInterval !== win.clearInterval)
+      );
+      if (isIsolatedContext) {
+        return sanitize(gmWindow);
+      }
+    }
+    const waitFn = requestAnimationFrame; // shall have been binded to window
+    try {
+      let mx = 16; // MAX TRIAL
+      const frameId = 'vanillajs-iframe-v1'
+      let frame = document.getElementById(frameId);
+      let removeIframeFn = null;
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = 'vanillajs-iframe-v1';
+        frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
+        let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
+        n.appendChild(frame);
+        while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
+        const root = document.documentElement;
+        root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+        removeIframeFn = (setTimeout) => {
+          const removeIframeOnDocumentReady = (e) => {
+            e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+            win = null;
+            setTimeout(() => {
+              n.remove();
+              n = null;
+            }, 200);
+          }
+          if (document.readyState !== 'loading') {
+            removeIframeOnDocumentReady();
+          } else {
+            win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+          }
         }
-        if (gmWindow && typeof gmWindow === 'object' && gmWindow.GM_info && gmWindow.GM) {
-            let isIsolatedContext = (
-                (gmWindow.requestAnimationFrame !== win.requestAnimationFrame) &&
-                (gmWindow.cancelAnimationFrame !== win.cancelAnimationFrame) &&
-                (gmWindow.setTimeout !== win.setTimeout) &&
-                (gmWindow.setInterval !== win.setInterval) &&
-                (gmWindow.clearTimeout !== win.clearTimeout) &&
-                (gmWindow.clearInterval !== win.clearInterval)
-            );
-            if (isIsolatedContext) {
-                return sanitize(gmWindow);
-            }
+      }
+      while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
+      const fc = frame.contentWindow;
+      if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
+      const res = sanitize(fc);
+      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+      return res;
+    } catch (e) {
+      console.warn(e);
+      return null;
+    }
+  };
+
+  cleanContext(uWin, window).then((__CONTEXT__) => {
+
+    const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = __CONTEXT__;
+
+    const console = Object.assign({}, window.console);
+    /** @type {JSON.parse} */
+    const jParse = window.JSON.parse.bind(window.JSON);
+    const jParseCatched = (val) => {
+      let res = null;
+      try {
+        res = jParse(val);
+      } catch (e) { }
+      return res;
+    }
+    const jStringify = window.JSON.stringify.bind(window.JSON);
+
+    const GM_RECORD_KEY = 'TOTAL_MESSAGE_RECORDS';
+
+    let __foregroundActivityMeasure = 0;
+    let __totalActivityMeasure = 0;
+    const foregroundActivityMeasureInterval = 500;
+    const amiUL = foregroundActivityMeasureInterval * 1.1;
+    const amiLL = foregroundActivityMeasureInterval * 0.9;
+    const activityMeasure = {
+      get foreground() {
+        return __foregroundActivityMeasure;
+      },
+
+      get background() {
+        return activityMeasure.total - activityMeasure.foreground;
+      },
+      get total() {
+        return Math.round(__totalActivityMeasure)
+      }
+    }
+
+
+    let __uid = 0;
+
+    let message_cap = null;
+
+    let message_cap_window = null;
+    let categories = null;
+    let models = null;
+    let currentAccount = null;
+    let currentUser = null;
+    const getUserId = () => currentAccount && currentUser ? `${currentAccount}.${currentUser}` : '';
+
+    const dummyObject = {};
+    for (const [key, value] of Object.entries(console)) {
+      if (typeof value === 'function' && typeof dummyObject[key] !== 'function') {
+        console[key] = value.bind(window.console);
+      }
+    }
+
+    const messageRecords = [];
+    let messageRecordsOnCurrentAccount = null;
+
+    const findRecordIndexByRId = (rid) => {
+
+      if (!rid) return null;
+      for (let i = 0; i < messageRecords.length; i++) {
+        const record = messageRecords[i];
+        if (record.$recordId && rid === record.$recordId) {
+          return i;
         }
-        const waitFn = requestAnimationFrame; // shall have been binded to window
-        try {
-            let mx = 16; // MAX TRIAL
-            const frameId = 'vanillajs-iframe-v1'
-            let frame = document.getElementById(frameId);
-            let removeIframeFn = null;
-            if (!frame) {
-                frame = document.createElement('iframe');
-                frame.id = 'vanillajs-iframe-v1';
-                frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
-                let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-                n.appendChild(frame);
-                while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
-                const root = document.documentElement;
-                root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
-                removeIframeFn = (setTimeout) => {
-                    const removeIframeOnDocumentReady = (e) => {
-                        e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-                        win = null;
-                        setTimeout(() => {
-                            n.remove();
-                            n = null;
-                        }, 200);
-                    }
-                    if (document.readyState !== 'loading') {
-                        removeIframeOnDocumentReady();
-                    } else {
-                        win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-                    }
-                }
-            }
-            while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
-            const fc = frame.contentWindow;
-            if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-            const res = sanitize(fc);
-            if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-            return res;
-        } catch (e) {
-            console.warn(e);
-            return null;
-        }
-    };
+      }
+      return -1;
 
-    cleanContext(uWin, window).then((__CONTEXT__) => {
+    }
 
-        const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = __CONTEXT__;
-
-        const console = Object.assign({}, window.console);
-        /** @type {JSON.parse} */
-        const jParse = window.JSON.parse.bind(window.JSON);
-        const jParseCatched = (val) => {
-            let res = null;
-            try {
-                res = jParse(val);
-            } catch (e) { }
-            return res;
-        }
-        const jStringify = window.JSON.stringify.bind(window.JSON);
-
-        const GM_RECORD_KEY = 'TOTAL_MESSAGE_RECORDS';
-
-        let __foregroundActivityMeasure = 0;
-        let __totalActivityMeasure = 0;
-        const foregroundActivityMeasureInterval = 500;
-        const amiUL = foregroundActivityMeasureInterval * 1.1;
-        const amiLL = foregroundActivityMeasureInterval * 0.9;
-        const activityMeasure = {
-            get foreground() {
-                return __foregroundActivityMeasure;
-            },
-
-            get background() {
-                return activityMeasure.total - activityMeasure.foreground;
-            },
-            get total() {
-                return Math.round(__totalActivityMeasure)
-            }
-        }
-
-
-        let __uid = 0;
-
-        let message_cap = null;
-
-        let message_cap_window = null;
-        let categories = null;
-        let models = null;
-        let currentAccount = null;
-        let currentUser = null;
-        const getUserId = () => currentAccount && currentUser ? `${currentAccount}.${currentUser}` : '';
-
-        const dummyObject = {};
-        for (const [key, value] of Object.entries(console)) {
-            if (typeof value === 'function' && typeof dummyObject[key] !== 'function') {
-                console[key] = value.bind(window.console);
-            }
-        }
-
-        const messageRecords = [];
-        let messageRecordsOnCurrentAccount = null;
-
-        const findRecordIndexByRId = (rid) => {
-
-            if (!rid) return null;
-            for (let i = 0; i < messageRecords.length; i++) {
-                const record = messageRecords[i];
-                if (record.$recordId && rid === record.$recordId) {
-                    return i;
-                }
-            }
-            return -1;
-
-        }
-
-        const cssStyleText = () => `
+    const cssStyleText = () => `
 
         :root {
             --mr-background-color: #2a5c47;
@@ -501,734 +501,857 @@ __errorCode21167__ || (() => {
 
         `;
 
-        const addCssText = () => {
-            if (document.querySelector('#mr-style811')) return;
-            const style = document.createElement('style');
-            style.id = 'mr-style811';
-            style.textContent = cssStyleText();
-            document.head.appendChild(style);
+    const addCssText = () => {
+      if (document.querySelector('#mr-style811')) return;
+      const style = document.createElement('style');
+      style.id = 'mr-style811';
+      style.textContent = cssStyleText();
+      document.head.appendChild(style);
+
+    }
+
+
+    const updateGMRecord = () => {
+
+      Promise.resolve().then(() => {
+        GM.setValue(GM_RECORD_KEY, jStringify({
+          version: 1,
+          records: messageRecords
+        }));
+      });
+
+    }
+
+    const updateMessageRecordsOnCurrentAccount = () => {
+      messageRecordsOnCurrentAccount = messageRecords.filter(entry => entry.$account_uid === `${currentAccount}.${currentUser}`);
+    }
+
+    const fixOverRecords = () => {
+      messageRecords.splice(0, Math.floor(messageRecords.length / 2));
+      let rid = 1;
+      for (const record of messageRecords) {
+        record.$recordId = rid;
+        messageRecords.push(record);
+        rid++;
+      }
+      __recordId_new = rid;
+      keep.length = 0;
+      keep = null;
+
+      updateMessageRecordsOnCurrentAccount();
+      updateGMRecord();
+    }
+
+    const addRecord = (record) => {
+      if (!currentAccount || !currentUser || !record || record.$account_uid) {
+        console.log('addRecord aborted');
+        return;
+      }
+
+      record.$account_uid = getUserId();
+
+      const recordId = __recordId_new;
+      record.$recordId = recordId;
+
+      record.$recorded_at = Date.now(); // Local Time
+      messageRecords.push(record);
+      __recordId_new++;
+      messageRecordsOnCurrentAccount.push(record);
+
+
+      if (messageRecords.length > 3600 || __recordId_new > 3600) {
+        // around 4MB
+        Promise.resolve().then(fixOverRecords);
+      }
+
+
+      return recordId;
+
+    }
+
+
+
+    Object.assign(uWin, {
+      $$mr$$getMessageRecords() {
+        return messageRecords;
+      },
+      $$mr$$getMessageRecordsFromGM() {
+        return GM.getValue(GM_RECORD_KEY);
+      },
+      $$mr$$clearMessageRecords() {
+        return GM.deleteValue(GM_RECORD_KEY);
+      },
+      $$mr$$getUserId() {
+        const r = getUserId();
+        if (!r) console.log(`!! ${currentAccount}.${currentUser} !!`)
+        return r;
+      },
+      $$mr$$activityMeasure() {
+        return Object.assign({}, activityMeasure)
+      }
+    });
+
+
+
+    const setRecordsByJSONString = (newValue, initial) => {
+
+      const tObj = jParseCatched(newValue || '{}');
+      if (!tObj || !tObj.version || !tObj.records) tObj = { version: 1, records: [] };
+
+      if (tObj.version !== 1) {
+        if (initial) {
+          GM.deleteValue(GM_RECORD_KEY);
+          // and wait change confirmed by listener
+        } else {
+          console.warn('record version is incorrect. please reload the page.');
+        }
+        return;
+      }
+
+      if (messageRecords.length > 0) messageRecords.length = 0;
+      __recordId_new = 1;
+      let rid = 1;
+      for (const record of tObj.records) {
+        if (record.$recordId >= rid) rid = record.$recordId + 1;
+        messageRecords.push(record);
+        __recordId_new++;
+      }
+      __recordId_new = rid;
+      updateMessageRecordsOnCurrentAccount();
+
+
+
+    }
+
+    const onAccountDetectedOrChanged = () => {
+
+      updateMessageRecordsOnCurrentAccount();
+
+
+    }
+
+
+    let rzt = 0;
+    let gmValueListenerId = GM_addValueChangeListener(GM_RECORD_KEY, (key, oldValue, newValue, remote) => {
+      let tid = ++rzt;
+
+      requestAnimationFrame(() => {
+        if (tid !== rzt) return;
+        setRecordsByJSONString(newValue)
+
+      });
+    });
+
+    Promise.resolve().then(() => GM.getValue(GM_RECORD_KEY)).then(result => {
+      //
+
+      result = result || '{}';
+
+      if (typeof result !== 'string') {
+        console.log('GM.getValue aborted')
+        return;
+      }
+
+      GM.setValue()
+      setRecordsByJSONString(result, true)
+
+
+    })
+
+    const arrayTypeFix = (a) => {
+      return a === null || a === undefined ? [] : a;
+    }
+
+    const getRequestQuotaString = () => {
+
+      let num = null;
+
+      if (document.documentElement.getAttribute('mr-request-model') === 'gpt-4') {
+
+
+        num = messageRecordsOnCurrentAccount.filter(entry => {
+          return typeof entry.model === 'string' && entry.model.startsWith('gpt-4') && (entry.$recorded_at || entry.$record_time_ms || 0) > (Date.now() - (6 * 1000 * 60) - message_cap_window * 60 * 1000)
+
+        }).length;
+
+        + ' out of ' + message_cap;
+
+        let p1 = document.querySelector('#mr-msg-p1')
+        let p2 = document.querySelector('#mr-msg-p2')
+
+        if (p1 && p2) {
+          p1.textContent = `${num}`
+          p2.textContent = ' out of ' + message_cap;
+        }
+
+
+      } else if (document.documentElement.getAttribute('mr-request-model') === 'gpt-3') {
+
+
+
+        num = messageRecordsOnCurrentAccount.filter(entry => {
+          return typeof entry.model === 'string' && entry.model.startsWith('text-davinci-002-render-sha') && (entry.$recorded_at || entry.$record_time_ms || 0) > (Date.now() - (6 * 1000 * 60) - 24 * 60 * 60 * 1000)
+
+        }).length;
+
+        let p1 = document.querySelector('#mr-msg-p1')
+        let p2 = document.querySelector('#mr-msg-p2')
+
+        if (p1 && p2) {
+          p1.textContent = `${num}`
+          p2.textContent = ` in past 24 hours`;
+        }
+
+
+
+
+      } else {
+
+        let p1 = document.querySelector('#mr-msg-p1')
+        let p2 = document.querySelector('#mr-msg-p2')
+
+        if (p1 && p2) {
+          p1.textContent = '';
+          p2.textContent = '';
+        }
+
+        // return '';
+      }
+
+
+    }
+
+    function onRequest(_body) {
+
+      const body = _body;
+
+      const bodyObject = jParseCatched(body);
+      if (!bodyObject) {
+        console.log('invalid JSON object');
+        return;
+      }
+
+      if (!('messages' in bodyObject)) {
+        console.log('invalid format of JSON body')
+        return;
+      }
+
+      const model = typeof bodyObject.model === 'string' ? bodyObject.model : null;
+      const messages = arrayTypeFix(bodyObject.messages);
+
+      if (!model || !messages || typeof (messages || 0).length !== 'number') {
+        console.log('invalid format of JSON body')
+        return;
+      }
+
+      if (!currentAccount) {
+        console.log('No account information is found. Message Record aborted.')
+        return;
+      }
+
+      let conversation_id = bodyObject.conversation_id;
+      if (!conversation_id) conversation_id = "***"
+
+      let recordIds = null;
+
+
+      let request_model = '';
+      if (typeof model === 'string' && (model === 'text-davinci-002-render-sha' || model.startsWith('text-davinci-002-render-sha'))) {
+
+
+        request_model = 'gpt-3';
+      } else if (typeof model === 'string' && (model === 'gpt-4' || model.startsWith('gpt-4'))) {
+
+        request_model = 'gpt-4';
+
+      }
+
+      if (request_model) {
+
+
+        try {
+          document.documentElement.setAttribute('mr-request-model', request_model);
+          getRequestQuotaString();
+          document.documentElement.setAttribute('mr-request-state', 'request');
+          document.querySelector('.mr-progress-bar').classList.add('mr-progress-bar-show');
+
+        } catch (e) { }
+
+        if (userOpenAction === null && attachedGroup && attachedGroup.isConnected === true && isChatBubbleOpened() === false) {
+          const myGroup = attachedGroup;
+          myGroupClicked(myGroup);
+        }
+
+
+
+      } else {
+
+
+        try {
+          document.documentElement.setAttribute('mr-request-model', '')
+          getRequestQuotaString();
+          document.querySelector('.mr-progress-bar').classList.remove('mr-progress-bar-show');
+
+        } catch (e) { }
+
+
+
+      }
+
+
+
+
+      const onAbort = (evt, signal, newChatId) => {
+
+        if (typeof newChatId === 'string' && newChatId) {
+
+          const cd002 = !!recordIds && recordIds.length === 1 && recordIds[0] > 0;
+          console.log('condition 002', cd002);
+
+          if (cd002) {
+            const rid = recordIds[0];
+            const idx = findRecordIndexByRId(rid);
+
+            if (idx === null || idx < 0 || !messageRecords[idx] || messageRecords[idx].conversation_id !== '***') {
+              console.warn('error found in onAbort');
+            } else {
+              messageRecords[idx].conversation_id = newChatId
+
+              console.log(`record#${rid} is updated with conversation_id = "${newChatId}"`)
+            }
+
+          }
+
+        }
+
+        if (recordIds && recordIds.length >= 1) {
+
+          const completionTime = evt.__aborted_at__ > 0 ? evt.__aborted_at__ : 0;
+
+          if (completionTime) {
+            for (const rid of recordIds) {
+              const idx = findRecordIndexByRId(rid);
+              if (idx === null || idx < 0 || !messageRecords[idx]) {
+                console.warn('completionTime found in onAbort');
+              } else if (messageRecords[idx].conversation_id === '***') {
+                // TBC
+              } else {
+                messageRecords[idx].$completed_at = completionTime;
+              }
+            }
+          }
 
         }
 
 
-        const updateGMRecord = () => {
 
-            Promise.resolve().then(() => {
-                GM.setValue(GM_RECORD_KEY, jStringify({
-                    version: 1,
-                    records: messageRecords
-                }));
-            });
+
+        updateGMRecord();
+
+
+        if (document.documentElement.getAttribute('mr-request-state') === 'response') document.documentElement.setAttribute('mr-request-state', '')
+
+
+        console.log('messageHandler: onAbort', evt, signal, newChatId);
+      };
+
+      const uid = ++__uid;
+
+      const onResponse = (response, info) => {
+
+        const { requestTime, responseTime } = info;
+
+        // response.lockedBodyStream.then((body) => {
+
+        //   // console.log(13, body)
+
+        // })
+
+        if (!currentAccount) {
+          console.log('No account information is found. Message Record aborted.')
+          return;
+        }
+
+        if (recordIds !== null) {
+          console.warn('recordIds !== null');
+        }
+        recordIds = [];
+        for (const message of messages) {
+
+          const rid = addRecord({
+            model,
+            conversation_id,
+            message,
+            $requested_at: requestTime,
+            $responsed_at: responseTime
+          });
+          recordIds.push(rid);
 
         }
 
-        const updateMessageRecordsOnCurrentAccount = () => {
-            messageRecordsOnCurrentAccount = messageRecords.filter(entry => entry.$account_uid === `${currentAccount}.${currentUser}`);
-        }
+        updateGMRecord();
 
-        const fixOverRecords = () => {
-            messageRecords.splice(0, Math.floor(messageRecords.length / 2));
-            let rid = 1;
-            for (const record of messageRecords) {
-                record.$recordId = rid;
-                messageRecords.push(record);
-                rid++;
+        if (document.documentElement.getAttribute('mr-request-state') === 'request') document.documentElement.setAttribute('mr-request-state', 'response')
+
+        try {
+
+          getRequestQuotaString();
+        } catch (e) { }
+
+        // console.log(bodyObject)
+        // console.log(response, info)
+        // console.log({
+        //   message_cap, message_cap_window,
+        //   categories,
+        //   models
+        // })
+
+      }
+
+      return {
+        uid,
+        model,
+        conversation_id,
+        message_cap, message_cap_window,
+        categories,
+        bodyObject,
+
+        messages,
+        onAbort,
+        onResponse,
+
+      }
+
+
+    }
+
+
+    uWin.__fetch247__ = uWin.fetch;
+
+    let onceRgStr = false;
+
+    let __newChatIdResolveFn__ = null;
+
+    const authJsonPn = function () {
+
+      const target = this['$a039$'] || this;
+      return new Promise((resolve, reject) => {
+
+        target.json().then((result) => {
+
+
+          const __jsonRes__ = result;
+
+
+          if (typeof (__jsonRes__ || 0).user === 'object' && (__jsonRes__.user || 0).id) {
+            currentUser = `${(__jsonRes__.user || 0).id}`;
+            // console.log('user??', currentUser)
+            // __NEXT_DATA__.props.pageProps.user.id // document.cookie.__puid
+          }
+
+
+          // console.log(566, result)
+          resolve(result)
+        }).catch(reject)
+
+      })
+    }
+
+    const jsonPnForGetRequest = function () {
+
+      const target = this['$a039$'] || this;
+      return new Promise((resolve, reject) => {
+
+        target.json().then((result) => {
+
+
+          const __jsonRes__ = result;
+
+
+
+          if (typeof (__jsonRes__ || 0).accounts === 'object') {
+
+            const tmpSet = new Set();
+            if (((__jsonRes__ || 0).accounts || 0).length > 0) {
+
+              for (const account of __jsonRes__.accounts) {
+                tmpSet.add(`${account.account_id}.${account.account_user_id}`);
+              }
+
+            } else {
+
+              for (let [key, account] of Object.entries(__jsonRes__.accounts)) {
+                account = account.account || account;
+                tmpSet.add(`${account.account_id}.${account.account_user_id}`);
+
+              }
+
             }
-            __recordId_new = rid;
-            keep.length = 0;
-            keep = null;
+            if (tmpSet.size !== 1) {
+              console.log('account detection failed')
+            } else {
+              let acc = [...tmpSet.keys()][0];
+              if (acc !== currentAccount) {
 
-            updateMessageRecordsOnCurrentAccount();
-            updateGMRecord();
-        }
-
-        const addRecord = (record) => {
-            if (!currentAccount || !currentUser || !record || record.$account_uid) {
-                console.log('addRecord aborted');
-                return;
-            }
-
-            record.$account_uid = getUserId();
-
-            const recordId = __recordId_new;
-            record.$recordId = recordId;
-
-            record.$recorded_at = Date.now(); // Local Time
-            messageRecords.push(record);
-            __recordId_new++;
-            messageRecordsOnCurrentAccount.push(record);
-
-
-            if (messageRecords.length > 3600 || __recordId_new > 3600) {
-                // around 4MB
-                Promise.resolve().then(fixOverRecords);
-            }
-
-
-            return recordId;
-
-        }
-
-
-
-        Object.assign(uWin, {
-            $$mr$$getMessageRecords() {
-                return messageRecords;
-            },
-            $$mr$$getMessageRecordsFromGM() {
-                return GM.getValue(GM_RECORD_KEY);
-            },
-            $$mr$$clearMessageRecords() {
-                return GM.deleteValue(GM_RECORD_KEY);
-            },
-            $$mr$$getUserId() {
-                const r = getUserId();
-                if (!r) console.log(`!! ${currentAccount}.${currentUser} !!`)
-                return r;
-            },
-            $$mr$$activityMeasure() {
-                return Object.assign({}, activityMeasure)
-            }
-        });
-
-
-
-        const setRecordsByJSONString = (newValue, initial) => {
-
-            const tObj = jParseCatched(newValue || '{}');
-            if (!tObj || !tObj.version || !tObj.records) tObj = { version: 1, records: [] };
-
-            if (tObj.version !== 1) {
-                if (initial) {
-                    GM.deleteValue(GM_RECORD_KEY);
-                    // and wait change confirmed by listener
-                } else {
-                    console.warn('record version is incorrect. please reload the page.');
-                }
-                return;
-            }
-
-            if (messageRecords.length > 0) messageRecords.length = 0;
-            __recordId_new = 1;
-            let rid = 1;
-            for (const record of tObj.records) {
-                if (record.$recordId >= rid) rid = record.$recordId + 1;
-                messageRecords.push(record);
-                __recordId_new++;
-            }
-            __recordId_new = rid;
-            updateMessageRecordsOnCurrentAccount();
-
-
-
-        }
-
-        const onAccountDetectedOrChanged = () => {
-
-            updateMessageRecordsOnCurrentAccount();
-
-
-        }
-
-
-        let rzt = 0;
-        let gmValueListenerId = GM_addValueChangeListener(GM_RECORD_KEY, (key, oldValue, newValue, remote) => {
-            let tid = ++rzt;
-
-            requestAnimationFrame(() => {
-                if (tid !== rzt) return;
-                setRecordsByJSONString(newValue)
-
-            });
-        });
-
-        Promise.resolve().then(() => GM.getValue(GM_RECORD_KEY)).then(result => {
-            //
-
-            result = result || '{}';
-
-            if (typeof result !== 'string') {
-                console.log('GM.getValue aborted')
-                return;
+                currentAccount = acc;
+                onAccountDetectedOrChanged();
+              }
             }
 
-            GM.setValue()
-            setRecordsByJSONString(result, true)
 
+
+          }
+          else if (((__jsonRes__ || 0).categories || 0).length >= 1 && ((__jsonRes__ || 0).models || 0).length >= 1) {
+
+            const jsonRes = __jsonRes__;
+
+
+            try {
+
+              categories = [...jsonRes.categories];
+            } catch (e) { }
+            try {
+              models = [...jsonRes.models];
+
+            } catch (e) { }
+
+            // console.log(233, categories, models)
+
+          }
+
+
+
+
+          // console.log(544, result)
+          resolve(result)
+        }).catch(reject)
+
+      })
+    };
+
+    const message_limit_jsonPn = function () {
+
+      const target = this['$a039$'] || this;
+      return new Promise((resolve, reject) => {
+
+
+        target.clone().text().then(r => {
+
+          // console.log(r)
+          let jr = jParseCatched(r);
+          if (jr) {
+
+            if (jr.message_cap > 0 && jr.message_cap_window > 0) {
+              message_cap = +jr.message_cap;
+              message_cap_window = +jr.message_cap_window;
+            }
+
+          }
 
         })
 
-        const arrayTypeFix = (a) => {
-            return a === null || a === undefined ? [] : a;
-        }
+        target.json().then((result) => {
 
-        const getRequestQuotaString = () => {
+          // console.log(result)
+          resolve(result)
+        }).catch(reject)
 
-            let num = null;
+      })
+    };
 
-            if (document.documentElement.getAttribute('mr-request-model') === 'gpt-4') {
+    uWin.fetch = function (a) {
+      const args = arguments;
+      return new Promise((resolve, reject) => {
+        let doCatch = false;
+        let body = null;
 
+        let _onAbort = null;
 
-                num = messageRecordsOnCurrentAccount.filter(entry => {
-                    return typeof entry.model === 'string' && entry.model.startsWith('gpt-4') && (entry.$recorded_at || entry.$record_time_ms || 0) > (Date.now() - (6 * 1000 * 60) - message_cap_window * 60 * 1000)
+        if (typeof a === 'string' && a.endsWith('/backend-api/conversation')) {
+          const b = args[1] || 0;
+          if (b.method === "POST" && typeof b.body === 'string' && ((b.headers || 0)['Content-Type'] || '').includes('application/json')) {
+            doCatch = true;
+            body = b.body;
 
-                }).length;
+          }
+          if (b && b.signal) {
 
-                + ' out of ' + message_cap;
+            const signal = b.signal;
+            const tid = ++abortCounter;
+            signal.addEventListener('abort', (evt) => {
+              evt.__aborted_at__ = Date.now();
+              const aid = abortCounter;
+              ++abortCounter;
 
-                let p1 = document.querySelector('#mr-msg-p1')
-                let p2 = document.querySelector('#mr-msg-p2')
+              console.log('onabort', aid, tid, evt, signal)
 
-                if (p1 && p2) {
-                    p1.textContent = `${num}`
-                    p2.textContent = ' out of ' + message_cap;
-                }
+              if (aid === tid && _onAbort) {
+                _onAbort(evt, signal);
+              }
 
 
-            } else if (document.documentElement.getAttribute('mr-request-model') === 'gpt-3') {
-
-
-
-                num = messageRecordsOnCurrentAccount.filter(entry => {
-                    return typeof entry.model === 'string' && entry.model.startsWith('text-davinci-002-render-sha') && (entry.$recorded_at || entry.$record_time_ms || 0) > (Date.now() - (6 * 1000 * 60) - 24 * 60 * 60 * 1000)
-
-                }).length;
-
-                let p1 = document.querySelector('#mr-msg-p1')
-                let p2 = document.querySelector('#mr-msg-p2')
-
-                if (p1 && p2) {
-                    p1.textContent = `${num}`
-                    p2.textContent = ` in past 24 hours`;
-                }
-
-
-
-
-            } else {
-
-                let p1 = document.querySelector('#mr-msg-p1')
-                let p2 = document.querySelector('#mr-msg-p2')
-
-                if (p1 && p2) {
-                    p1.textContent = '';
-                    p2.textContent = '';
-                }
-
-                // return '';
-            }
-
-
-        }
-
-        function onRequest(_body) {
-
-            const body = _body;
-
-            const bodyObject = jParseCatched(body);
-            if (!bodyObject) {
-                console.log('invalid JSON object');
-                return;
-            }
-
-            if (!('messages' in bodyObject)) {
-                console.log('invalid format of JSON body')
-                return;
-            }
-
-            const model = typeof bodyObject.model === 'string' ? bodyObject.model : null;
-            const messages = arrayTypeFix(bodyObject.messages);
-
-            if (!model || !messages || typeof (messages || 0).length !== 'number') {
-                console.log('invalid format of JSON body')
-                return;
-            }
-
-            if (!currentAccount) {
-                console.log('No account information is found. Message Record aborted.')
-                return;
-            }
-
-            let conversation_id = bodyObject.conversation_id;
-            if (!conversation_id) conversation_id = "***"
-
-            let recordIds = null;
-
-
-            let request_model = '';
-            if (typeof model === 'string' && (model === 'text-davinci-002-render-sha' || model.startsWith('text-davinci-002-render-sha'))) {
-
-
-                request_model = 'gpt-3';
-            } else if (typeof model === 'string' && (model === 'gpt-4' || model.startsWith('gpt-4'))) {
-
-                request_model = 'gpt-4';
-
-            }
-
-            if (request_model) {
-
-
-                try {
-                    document.documentElement.setAttribute('mr-request-model', request_model);
-                    getRequestQuotaString();
-                    document.documentElement.setAttribute('mr-request-state', 'request');
-                    document.querySelector('.mr-progress-bar').classList.add('mr-progress-bar-show');
-
-                } catch (e) { }
-
-                if (userOpenAction === null && attachedGroup && attachedGroup.isConnected === true && isChatBubbleOpened() === false) {
-                    const myGroup = attachedGroup;
-                    myGroupClicked(myGroup);
-                }
-
-
-
-            } else {
-
-
-                try {
-                    document.documentElement.setAttribute('mr-request-model', '')
-                    getRequestQuotaString();
-                    document.querySelector('.mr-progress-bar').classList.remove('mr-progress-bar-show');
-
-                } catch (e) { }
-
-
-
-            }
-
-
-
-
-            const onAbort = (evt, signal, newChatId) => {
-
-                if (typeof newChatId === 'string' && newChatId) {
-
-                    const cd002 = !!recordIds && recordIds.length === 1 && recordIds[0] > 0;
-                    console.log('condition 002', cd002);
-
-                    if (cd002) {
-                        const rid = recordIds[0];
-                        const idx = findRecordIndexByRId(rid);
-
-                        if (idx === null || idx < 0 || !messageRecords[idx] || messageRecords[idx].conversation_id !== '***') {
-                            console.warn('error found in onAbort');
-                        } else {
-                            messageRecords[idx].conversation_id = newChatId
-
-                            console.log(`record#${rid} is updated with conversation_id = "${newChatId}"`)
-                        }
-
-                    }
-
-                }
-
-                if (recordIds && recordIds.length >= 1) {
-
-                    const completionTime = evt.__aborted_at__ > 0 ? evt.__aborted_at__ : 0;
-
-                    if (completionTime) {
-                        for (const rid of recordIds) {
-                            const idx = findRecordIndexByRId(rid);
-                            if (idx === null || idx < 0 || !messageRecords[idx]) {
-                                console.warn('completionTime found in onAbort');
-                            } else if (messageRecords[idx].conversation_id === '***') {
-                                // TBC
-                            } else {
-                                messageRecords[idx].$completed_at = completionTime;
-                            }
-                        }
-                    }
-
-                }
-
-
-
-
-                updateGMRecord();
-
-
-                if (document.documentElement.getAttribute('mr-request-state') === 'response') document.documentElement.setAttribute('mr-request-state', '')
-
-
-                console.log('messageHandler: onAbort', evt, signal, newChatId);
-            };
-
-            const uid = ++__uid;
-
-            const onResponse = (response, info) => {
-
-                const { requestTime, responseTime } = info;
-
-                response.lockedBodyStream.then((body) => {
-
-                    console.log(13, body)
-
-                })
-
-                if (!currentAccount) {
-                    console.log('No account information is found. Message Record aborted.')
-                    return;
-                }
-
-                if (recordIds !== null) {
-                    console.warn('recordIds !== null');
-                }
-                recordIds = [];
-                for (const message of messages) {
-
-                    const rid = addRecord({
-                        model,
-                        conversation_id,
-                        message,
-                        $requested_at: requestTime,
-                        $responsed_at: responseTime
-                    });
-                    recordIds.push(rid);
-
-                }
-
-                updateGMRecord();
-
-                if (document.documentElement.getAttribute('mr-request-state') === 'request') document.documentElement.setAttribute('mr-request-state', 'response')
-
-                try {
-
-                    getRequestQuotaString();
-                } catch (e) { }
-
-                console.log(bodyObject)
-                console.log(response, info)
-                console.log({
-                    message_cap, message_cap_window,
-                    categories,
-                    models
-                })
-
-            }
-
-            return {
-                uid,
-                model,
-                conversation_id,
-                message_cap, message_cap_window,
-                categories,
-                bodyObject,
-
-                messages,
-                onAbort,
-                onResponse,
-
-            }
-
-
-        }
-
-
-        uWin.__fetch247__ = uWin.fetch;
-
-        let onceRgStr = false;
-
-        let __newChatIdResolveFn__ = null;
-
-        uWin.fetch = function (a) {
-            const args = arguments;
-            return new Promise((resolve, reject) => {
-                let doCatch = false;
-                let body = null;
-
-                let _onAbort = null;
-
-                if (typeof a === 'string' && a.endsWith('/backend-api/conversation')) {
-                    const b = args[1] || 0;
-                    if (b.method === "POST" && typeof b.body === 'string' && ((b.headers || 0)['Content-Type'] || '').includes('application/json')) {
-                        doCatch = true;
-                        body = b.body;
-
-                    }
-                    if (b && b.signal) {
-
-                        const signal = b.signal;
-                        const tid = ++abortCounter;
-                        signal.addEventListener('abort', (evt) => {
-                            evt.__aborted_at__ = Date.now();
-                            const aid = abortCounter;
-                            ++abortCounter;
-
-                            console.log('onabort', aid, tid, evt, signal)
-
-                            if (aid === tid && _onAbort) {
-                                _onAbort(evt, signal);
-                            }
-
-
-
-                        });
-                    }
-                } else if (typeof a === 'string' && a.startsWith('https://events.statsigapi.net/v1/rgstr')) {
-                    if (onceRgStr) {
-                        resolve = null;
-                        reject = null;
-                        return; // no resolve or reject for subsequent requests
-                    }
-                    onceRgStr = true; // no resolve or reject for next request
-                } else if (__newChatIdResolveFn__ && typeof a === 'string' && a.startsWith('https://chat.openai.com/backend-api/conversation/gen_title/')) {
-
-                    let m = /gen_title\/([-0-9a-z]+)(\/|$)/.exec(a);
-                    if (m && m[1]) {
-                        __newChatIdResolveFn__(m[1]);
-                    }
-                }
-
-                const unprocessedFetch = () => {
-
-                    const actualRequest = uWin.__fetch247__.apply(this, args);
-
-                    console.log(269, false, args[0], Object.assign({}, args[1] || {}))
-
-                    actualRequest.then((result) => {
-
-                        if (typeof args[0] === 'string' && args[0].includes('/conversation_limit') && args[1] && args[1].method === 'GET') {
-                            result = new Proxy(result, {
-                                get(target, key, receiver) {
-                                    if (key === 'json' && key in target) {
-                                        const r = target[key];
-
-                                        if (typeof r === 'function') {
-                                            console.log(13222)
-
-                                            return function () {
-
-                                                console.log(13223)
-
-
-                                                return new Promise((resolve, reject) => {
-
-                                                    target.clone().text().then(r => {
-
-                                                        console.log(r)
-                                                        let jr = jParseCatched(r);
-                                                        if (jr) {
-
-                                                            if (jr.message_cap > 0 && jr.message_cap_window > 0) {
-                                                                message_cap = +jr.message_cap;
-                                                                message_cap_window = +jr.message_cap_window;
-                                                            }
-
-                                                        }
-
-                                                    })
-
-                                                    target.json().then((result) => {
-
-                                                        console.log(result)
-                                                        resolve(result)
-                                                    }).catch(reject)
-
-                                                })
-                                            }
-
-                                        }
-                                        return r;
-                                    }
-                                    return target[key];
-
-                                }
-                            })
-                            result.body =
-                                console.log(9999, result);
-                        }
-                        resolve(result);
-
-                    }).catch((error) => {
-                        reject(error);
-                    });
-
-                }
-
-                const messageHandler = doCatch ? onRequest(body) : false;
-                if (!messageHandler) {
-                    unprocessedFetch();
-                    return;
-                }
-                const requireNewChatId = (messageHandler.conversation_id === '***');
-
-                _onAbort = (evt, signal) => {
-
-                    __newChatIdResolveFn__ = null;
-
-                    if (requireNewChatId) {
-                        let resolveFn = null;
-                        let promise = new Promise(resolve => {
-                            resolveFn = resolve;
-                        })
-                        __newChatIdResolveFn__ = (x) => {
-                            resolveFn && resolveFn(x);
-                            resolveFn = null;
-                        };
-                        setTimeout(() => {
-                            resolveFn && resolveFn();
-                            resolveFn = null;
-                        }, 16);
-
-                        // 777ms -> 781ms => 16ms shall be sufficient
-                        promise.then((newChatId) => {
-                            if (__newChatIdResolveFn__ === null) {
-                                console.warn('unexpected error');
-                                return;
-                            }
-                            __newChatIdResolveFn__ = null;
-
-                            newChatId = newChatId || null;
-                            console.log(`newChatId: ${newChatId}`);
-                            messageHandler.onAbort(evt, signal, newChatId);
-                        })
-                    } else {
-
-                        messageHandler.onAbort(evt, signal, false);
-                    }
-
-                }
-
-
-                const requestTime1 = Date.now();
-                const actualRequest = uWin.__fetch247__.apply(this, args);
-                const requestTime2 = Date.now();
-                const requestTime = Math.round((requestTime1 + requestTime2) / 2);
-
-                console.log(269, true, args[0], Object.assign({}, args[1] || {}))
-
-
-
-
-
-
-                actualRequest.then((result) => {
-                    const responseTime = Date.now();
-
-                    let mBodyResolve = null;
-                    const mBody = new Promise(r => {
-                        mBodyResolve = r;
-                    });
-
-                    const pRes = new Proxy(result, {
-                        get(target, property, receiver) {
-                            const r = target[property];
-                            /**
-                             *
-                             * property's get order
-                             *
-                             * then
-                             * status
-                             * then
-                             *
-                             * ----
-                             *
-                             * type
-                             * status
-                             * clone
-                             * headers
-                             * headers
-                             * ok
-                             * body
-                             *
-                             *
-                             */
-                            if (property === 'body') {
-                                mBodyResolve && mBodyResolve(r);
-                                // console.log(667, r);
-                            }
-                            return r;
-                        }
-                    });
-
-                    const mResult = {
-                        headers: result.headers, ok: result.ok, redirected: result.redirected, status: result.status,
-                        statusText: result.statusText, type: result.type, url: result.url, get lockedBodyStream() { return mBody },
-
-                    };
-
-                    resolve(pRes);
-                    Promise.resolve().then(() => {
-                        messageHandler.onResponse(mResult, { requestTime, responseTime });
-                    }).catch(console.warn);
-
-                }).catch((error) => {
-                    reject(error);
-                })
 
             });
+          }
+        } else if (typeof a === 'string' && a.startsWith('https://events.statsigapi.net/v1/rgstr')) {
+          if (onceRgStr) {
+            resolve = null;
+            reject = null;
+            return; // no resolve or reject for subsequent requests
+          }
+          onceRgStr = true; // no resolve or reject for next request
+        } else if (__newChatIdResolveFn__ && typeof a === 'string' && a.startsWith('https://chat.openai.com/backend-api/conversation/gen_title/')) {
+
+          let m = /gen_title\/([-0-9a-z]+)(\/|$)/.exec(a);
+          if (m && m[1]) {
+            __newChatIdResolveFn__(m[1]);
+          }
         }
 
-        const xpathExpression = '//div[@role="presentation"]//div[normalize-space(text())="?"][contains(@class, "h-") and contains(@class, "w-")]';
-        let observer = null;
-        let mct = 0;
-        let wType = 0;
+        const unprocessedFetch = () => {
 
-        let attachedGroup = null;
+          const actualRequest = uWin.__fetch247__.apply(this, args);
 
-
-        function openChatBubble() {
-            const chatBubble = document.querySelector(".mr-message-bubble");
-            if (!chatBubble) return;
-            chatBubble.classList.add('mr-open');
-        }
-
-        function isChatBubbleOpened() {
-            const chatBubble = document.querySelector(".mr-message-bubble");
-            if (!chatBubble) return null;
-            return chatBubble.classList.contains('mr-open');
-        }
-
-        function closeChatBubble() {
-            const chatBubble = document.querySelector(".mr-message-bubble");
-            if (!chatBubble) return;
-            chatBubble.classList.remove('mr-open');
-        }
-
-
-        const myGroupClicked = (myGroup) => {
+          // console.log(269, false, args[0], Object.assign({}, args[1] || {}))
 
 
 
-            const chatBubble = document.querySelector(".mr-message-bubble");
-            if (!chatBubble) return null;
+          actualRequest.then((result) => {
 
-            const msgP = document.querySelector("#mr-msg-p1");
-            if (!msgP || msgP.firstChild === null) return null;
+            if (typeof args[0] === 'string' && args[0].includes('/') && args[1] && args[1].method === 'GET') {
+              result = new Proxy(result, {
+                get(target, key, receiver) {
+                  if (key === '$a039$') return target;
+                  if (key === 'json' && key in target) {
+                    const r = target[key];
 
-            if (!chatBubble.classList.contains('mr-open')) {
-                myGroup.classList.add('mr-clicked');
-                openChatBubble()
+                    if (typeof r === 'function') {
 
-                return true;
+                      if (typeof args[0] === 'string' && args[0].includes('/conversation_limit') && args[1] && args[1].method === 'GET') {
+                        return message_limit_jsonPn;
+                      } else {
 
-            } else {
+                        return jsonPnForGetRequest;
+                      }
 
-                myGroup.classList.remove('mr-clicked');
-                closeChatBubble();
 
-                return false;
+                    }
+                    return r;
+                  }
+                  return target[key];
+
+                }
+              });
+            } else if (args[0].includes('/api/auth/session')) {
+
+              result = new Proxy(result, {
+                get(target, key, receiver) {
+                  if (key === '$a039$') return target;
+                  if (key === 'json' && key in target) {
+                    const r = target[key];
+
+                    if (typeof r === 'function') {
+
+                      return authJsonPn;
+
+                    }
+                    return r;
+                  }
+                  return target[key];
+
+                }
+              });
             }
-            return null;
+            resolve(result);
+
+          }).catch((error) => {
+            reject(error);
+          });
 
         }
 
-        /** @param {HTMLElement} myGroup */
-        const setupMyGroup = (myGroup) => {
+        const messageHandler = doCatch ? onRequest(body) : false;
+        if (!messageHandler) {
+          unprocessedFetch();
+          return;
+        }
+        const requireNewChatId = (messageHandler.conversation_id === '***');
 
-            addCssText();
+        _onAbort = (evt, signal) => {
 
-            const buttonText = document.evaluate(xpathExpression, myGroup, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-            buttonText.textContent = '\u{1F4D9}';
+          __newChatIdResolveFn__ = null;
+
+          if (requireNewChatId) {
+            let resolveFn = null;
+            let promise = new Promise(resolve => {
+              resolveFn = resolve;
+            })
+            __newChatIdResolveFn__ = (x) => {
+              resolveFn && resolveFn(x);
+              resolveFn = null;
+            };
+            setTimeout(() => {
+              resolveFn && resolveFn();
+              resolveFn = null;
+            }, 16);
+
+            // 777ms -> 781ms => 16ms shall be sufficient
+            promise.then((newChatId) => {
+              if (__newChatIdResolveFn__ === null) {
+                console.warn('unexpected error');
+                return;
+              }
+              __newChatIdResolveFn__ = null;
+
+              newChatId = newChatId || null;
+              console.log(`newChatId: ${newChatId}`);
+              messageHandler.onAbort(evt, signal, newChatId);
+            })
+          } else {
+
+            messageHandler.onAbort(evt, signal, false);
+          }
+
+        }
+
+
+        const requestTime1 = Date.now();
+        const actualRequest = uWin.__fetch247__.apply(this, args);
+        const requestTime2 = Date.now();
+        const requestTime = Math.round((requestTime1 + requestTime2) / 2);
+
+        // console.log(269, true, args[0], Object.assign({}, args[1] || {}))
 
 
 
-            const placeholder = document.createElement('div');
 
-            placeholder.classList.add('mr-k33');
-            placeholder.innerHTML = `
+
+
+        actualRequest.then((result) => {
+          const responseTime = Date.now();
+
+          let mBodyResolve = null;
+          const mBody = new Promise(r => {
+            mBodyResolve = r;
+          });
+
+          const pRes = new Proxy(result, {
+            get(target, property, receiver) {
+              const r = target[property];
+              /**
+               *
+               * property's get order
+               *
+               * then
+               * status
+               * then
+               *
+               * ----
+               *
+               * type
+               * status
+               * clone
+               * headers
+               * headers
+               * ok
+               * body
+               *
+               *
+               */
+              if (property === 'body') {
+                mBodyResolve && mBodyResolve(r);
+                // console.log(667, r);
+              }
+              return r;
+            }
+          });
+
+          const mResult = {
+            headers: result.headers, ok: result.ok, redirected: result.redirected, status: result.status,
+            statusText: result.statusText, type: result.type, url: result.url, get lockedBodyStream() { return mBody },
+
+          };
+
+          resolve(pRes);
+          Promise.resolve().then(() => {
+            messageHandler.onResponse(mResult, { requestTime, responseTime });
+          }).catch(console.warn);
+
+        }).catch((error) => {
+          reject(error);
+        })
+
+      });
+    }
+
+    const xpathExpression = '//div[@role="presentation"]//div[normalize-space(text())="?"][contains(@class, "h-") and contains(@class, "w-")]';
+    let observer = null;
+    let mct = 0;
+    let wType = 0;
+
+    let attachedGroup = null;
+
+
+    function openChatBubble() {
+      const chatBubble = document.querySelector(".mr-message-bubble");
+      if (!chatBubble) return;
+      chatBubble.classList.add('mr-open');
+    }
+
+    function isChatBubbleOpened() {
+      const chatBubble = document.querySelector(".mr-message-bubble");
+      if (!chatBubble) return null;
+      return chatBubble.classList.contains('mr-open');
+    }
+
+    function closeChatBubble() {
+      const chatBubble = document.querySelector(".mr-message-bubble");
+      if (!chatBubble) return;
+      chatBubble.classList.remove('mr-open');
+    }
+
+
+    const myGroupClicked = (myGroup) => {
+
+
+
+      const chatBubble = document.querySelector(".mr-message-bubble");
+      if (!chatBubble) return null;
+
+      const msgP = document.querySelector("#mr-msg-p1");
+      if (!msgP || msgP.firstChild === null) return null;
+
+      if (!chatBubble.classList.contains('mr-open')) {
+        myGroup.classList.add('mr-clicked');
+        openChatBubble()
+
+        return true;
+
+      } else {
+
+        myGroup.classList.remove('mr-clicked');
+        closeChatBubble();
+
+        return false;
+      }
+      return null;
+
+    }
+
+    /** @param {HTMLElement} myGroup */
+    const setupMyGroup = (myGroup) => {
+
+      addCssText();
+
+      const buttonText = document.evaluate(xpathExpression, myGroup, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      buttonText.textContent = '\u{1F4D9}';
+
+
+
+      const placeholder = document.createElement('div');
+
+      placeholder.classList.add('mr-k33');
+      placeholder.innerHTML = `
             <div class="mr-message-bubble mr-tri-right mr-round mr-border mr-btm-right">
             <div class="mr-msg-text">
                 <p id="mr-msg-l">count(messages)</p>
@@ -1238,81 +1361,81 @@ __errorCode21167__ || (() => {
           </div>
 
             `
-            myGroup.classList.add('mr-button-container');
+      myGroup.classList.add('mr-button-container');
 
 
-            myGroup.insertBefore(placeholder, myGroup.firstChild);
-
-
-
+      myGroup.insertBefore(placeholder, myGroup.firstChild);
 
 
 
-            myGroup.addEventListener('click', function (evt) {
 
 
 
-                if (!evt || !evt.target) return;
-                if (evt.target.closest('.mr-k33')) return;
-
-                const myGroup = this;
-
-
-                const chatBubble = document.querySelector(".mr-message-bubble");
-                if (!chatBubble) return;
-
-
-                let clickedResult = myGroupClicked(myGroup);
-                if (typeof clickedResult === 'boolean') {
-
-                    if (evt.isTrusted === true) {
-
-                        if (clickedResult) {
-                            userOpenAction = true;
-
-                        } else {
-
-                            userOpenAction = false;
-                        }
-                    }
-                }
+      myGroup.addEventListener('click', function (evt) {
 
 
 
-            })
+        if (!evt || !evt.target) return;
+        if (evt.target.closest('.mr-k33')) return;
+
+        const myGroup = this;
 
 
-        }
-
-        const onElementFound = (matchedElement) => {
-
+        const chatBubble = document.querySelector(".mr-message-bubble");
+        if (!chatBubble) return;
 
 
-            let group = matchedElement.closest('.group');
-            if (!group) {
-                console.log('The group parent of Question Mark Button cannot be found.')
-                return;
-            }
-            if (!attachedGroup) {
+        let clickedResult = myGroupClicked(myGroup);
+        if (typeof clickedResult === 'boolean') {
 
+          if (evt.isTrusted === true) {
 
-                let myGroup = group.cloneNode(true);
-                group.parentNode.insertBefore(myGroup, group);
-                setupMyGroup(myGroup);
+            if (clickedResult) {
+              userOpenAction = true;
 
-                attachedGroup = myGroup;
             } else {
-                group.parentNode.insertBefore(attachedGroup, group);
 
+              userOpenAction = false;
             }
-
+          }
         }
 
-        const setupMRAM = () => {
 
-            const mram = document.createElement('mr-activity-measure');
-            mram.setAttribute('m', '')
-            document.head.appendChild(document.createElement('style')).textContent = `
+
+      })
+
+
+    }
+
+    const onElementFound = (matchedElement) => {
+
+
+
+      let group = matchedElement.closest('.group');
+      if (!group) {
+        console.log('The group parent of Question Mark Button cannot be found.')
+        return;
+      }
+      if (!attachedGroup) {
+
+
+        let myGroup = group.cloneNode(true);
+        group.parentNode.insertBefore(myGroup, group);
+        setupMyGroup(myGroup);
+
+        attachedGroup = myGroup;
+      } else {
+        group.parentNode.insertBefore(attachedGroup, group);
+
+      }
+
+    }
+
+    const setupMRAM = () => {
+
+      const mram = document.createElement('mr-activity-measure');
+      mram.setAttribute('m', '')
+      document.head.appendChild(document.createElement('style')).textContent = `
             mr-activity-measure[m] {
               visibility: collapse !important;
               width: 1px !important;
@@ -1340,201 +1463,112 @@ __errorCode21167__ || (() => {
 
 
             `
-            let lastEt = 0;
-            mram.onanimationiteration = function (evt) {
-                const et = evt.elapsedTime * 1000;
-                if (__totalActivityMeasure > et) {
-                    this.onanimationiteration = null;
-                    return;
-                }
-                const wt = lastEt;
-                lastEt = et;
-                const dt = et - wt;
-                if (dt < amiUL && dt > amiLL) __foregroundActivityMeasure += foregroundActivityMeasureInterval;
+      let lastEt = 0;
+      mram.onanimationiteration = function (evt) {
+        const et = evt.elapsedTime * 1000;
+        if (__totalActivityMeasure > et) {
+          this.onanimationiteration = null;
+          return;
+        }
+        const wt = lastEt;
+        lastEt = et;
+        const dt = et - wt;
+        if (dt < amiUL && dt > amiLL) __foregroundActivityMeasure += foregroundActivityMeasureInterval;
 
-                __totalActivityMeasure = et;
-                // console.log(evt)
-            }
-            document.documentElement.appendChild(mram);
+        __totalActivityMeasure = et;
+        // console.log(evt)
+      }
+      document.documentElement.appendChild(mram);
+    }
+
+    const findAndHandleElement = () => {
+      if (!observer) return;
+      if (wType === 0) {
+
+
+        const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        const matchedElement = result.singleNodeValue;
+
+        if (matchedElement && !wType) {
+          wType = 1;
+
+          // observer.disconnect();
+          // observer.takeRecords();
+          // observer = null;
+          Promise.resolve(matchedElement).then(onElementFound).then(setupMRAM).catch(console.warn);
+
+
         }
 
-        const findAndHandleElement = () => {
-            if (!observer) return;
-            if (wType === 0) {
 
+      } else {
 
-                const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                const matchedElement = result.singleNodeValue;
-
-                if (matchedElement && !wType) {
-                    wType = 1;
-
-                    // observer.disconnect();
-                    // observer.takeRecords();
-                    // observer = null;
-                    Promise.resolve(matchedElement).then(onElementFound).then(setupMRAM).catch(console.warn);
-
-
-                }
-
-
-            } else {
-
-                if (!attachedGroup) return;
-                if (attachedGroup.isConnected) return;
+        if (!attachedGroup) return;
+        if (attachedGroup.isConnected) return;
 
 
 
 
-                const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                const matchedElement = result.singleNodeValue;
+        const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        const matchedElement = result.singleNodeValue;
 
-                if (matchedElement) {
-
-
-                    Promise.resolve(matchedElement).then(onElementFound).catch(console.warn);
-
-                }
+        if (matchedElement) {
 
 
-            }
+          Promise.resolve(matchedElement).then(onElementFound).catch(console.warn);
+
         }
 
-        observer = new MutationObserver(function (mutationsList, observer) {
-            if (!observer) return;
-            let tid = ++mct;
-            requestAnimationFrame(function () {
-                if (tid !== mct) return;
-                findAndHandleElement();
-            });
-        });
 
-        observer.observe(document, { childList: true, subtree: true });
+      }
+    }
 
-        function onReady() {
-            if (!onReady) return;
-            onReady = null;
-            if (!observer) return;
-            if (wType > 0) return;
-            let tf = () => {
+    observer = new MutationObserver(function (mutationsList, observer) {
+      if (!observer) return;
+      let tid = ++mct;
+      requestAnimationFrame(function () {
+        if (tid !== mct) return;
+        findAndHandleElement();
+      });
+    });
 
-                if (!document.querySelector('main')) return tf();
+    observer.observe(document, { childList: true, subtree: true });
 
-                setTimeout(function () {
-                    if (!observer) return;
-                    if (wType > 0) return;
-                    console.log('The Question Mark Button cannot be found.')
-                    observer.disconnect();
-                    observer.takeRecords();
-                    observer = null;
-                }, 1200);
+    function onReady() {
+      if (!onReady) return;
+      onReady = null;
+      if (!observer) return;
+      if (wType > 0) return;
+      let tf = () => {
 
-            };
-            requestAnimationFrame(tf)
-        }
+        if (!document.querySelector('main')) return tf();
 
-        if (document.readyState !== 'loading') {
-            onReady();
-        }
+        setTimeout(function () {
+          if (!observer) return;
+          if (wType > 0) return;
+          console.log('The Question Mark Button cannot be found.')
+          observer.disconnect();
+          observer.takeRecords();
+          observer = null;
+        }, 1200);
 
-        window.addEventListener('load', onReady, false);
+      };
+      requestAnimationFrame(tf)
+    }
 
+    if (document.readyState !== 'loading') {
+      onReady();
+    }
 
-
-
-        ((Response) => {
-
-            Response.prototype.__json7961__ = Response.prototype.json;
-            Response.prototype.json = function () {
-
-                /** @type {globalThis.Response} */
-                const __this__ = this;
-                /** @type {Promise<any>} */
-
-                let jsonPromise = (arguments.length === 0) ? this.__json7961__() : this.__json7961__.apply(__this__, arguments);
-
-                jsonPromise = jsonPromise.then(__jsonRes__ => {
-
-                    //         console.log(123);
-                    //         console.log(__jsonRes__);
-
-
-                    if (typeof (__jsonRes__ || 0).message_cap === 'number') {
-                        // message_cap = __jsonRes__.message_cap;
-                    }
-
-                    if (typeof (__jsonRes__ || 0).user === 'object' && (__jsonRes__.user || 0).id) {
-                        currentUser = `${(__jsonRes__.user || 0).id}`;
-                        // __NEXT_DATA__.props.pageProps.user.id // document.cookie.__puid
-                    }
+    window.addEventListener('load', onReady, false);
 
 
 
-                    if (typeof (__jsonRes__ || 0).accounts === 'object') {
-                        const tmpSet = new Set();
-                        if (((__jsonRes__ || 0).accounts || 0).length > 0) {
-
-                            for (const account of __jsonRes__.accounts) {
-                                tmpSet.add(`${account.account_id}.${account.account_user_id}`);
-                            }
-
-                        } else {
-
-                            for (let [key, account] of Object.entries(__jsonRes__.accounts)) {
-                                account = account.account || account;
-                                tmpSet.add(`${account.account_id}.${account.account_user_id}`);
-
-                            }
-
-                        }
-                        if (tmpSet.size !== 1) {
-                            console.log('account detection failed')
-                        } else {
-                            let acc = [...tmpSet.keys()][0];
-                            if (acc !== currentAccount) {
-
-                                currentAccount = acc;
-                                onAccountDetectedOrChanged();
-                            }
-                        }
+    console.log('script loaded')
 
 
 
-
-                    }
-
-
-                    if (((__jsonRes__ || 0).categories || 0).length >= 1 && ((__jsonRes__ || 0).models || 0).length >= 1) {
-
-                        const jsonRes = __jsonRes__;
-
-
-                        try {
-
-                            categories = [...jsonRes.categories];
-                        } catch (e) { }
-                        try {
-                            models = [...jsonRes.models];
-
-                        } catch (e) { }
-
-
-                    }
-
-                    return __jsonRes__;
-
-                });
-                return jsonPromise;
-
-            };
-        })(uWin.Response);
-
-
-        console.log('script loaded')
-
-
-
-    })
+  })
 
 
 })();
