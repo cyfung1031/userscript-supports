@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.1
+// @version             0.54.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1437,8 +1437,8 @@
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval } = fc;
-      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval };
+      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle } = fc;
+      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       res.animate = fc.HTMLElement.prototype.animate;
@@ -1455,7 +1455,7 @@
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, getComputedStyle } = __CONTEXT__;
 
 
     let rafPromiseForTickers = null;
@@ -2802,7 +2802,7 @@
                 let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
                 if (container.isConnected === true) {
 
-                  const evaluated = `${window.getComputedStyle(container).background}`;
+                  const evaluated = `${getComputedStyle(container).background}`;
 
                   container = null;
                   dummy777.remove();
@@ -3993,7 +3993,7 @@
               console.warn('document.documentElement is not found');
               return false;
             }
-            if (`${window.getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
+            if (`${getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
               return false;
             }
             return true;
@@ -4028,27 +4028,6 @@
               console.warn(e);
             });
           };
-
-          // cProto._checkTickerBackgroundChanged = doAnimator ? function () {
-          //   if (runTickerClassName === 'run-ticker') {
-          //     const container = (this.$ || 0).container || 0;
-          //     if (!container) return;
-          //     container.classList.add('run-ticker-test');
-          //     const evaluated = `${window.getComputedStyle(container).background}`;
-          //     container.classList.remove('run-ticker-test');
-          //     if (evaluated.indexOf('0.') < 4) {
-          //       // not fulfilling
-          //       // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
-          //       runTickerClassName = 'run-ticker-forced';
-          //       console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-          //         "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-          //         "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-          //       );
-          //       console.warn(`%cWarning:\n\tYou might have added a userscript or extension that hacks ticker background too.\n\tYouTube Super Fast Chat will override it for you.`, 'color: #bada55');
-          //       console.groupEnd();
-          //     }
-          //   }
-          // } : null;
 
           cProto._makeAnimator = doAnimator ? function () {
             if (this._r782) return;
