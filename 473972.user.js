@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.0
+// @version     0.4.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -20,6 +20,17 @@
   const FIX_schedulerInstanceInstance_ = true;
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
+
+  // << if FIX_yt_player >>
+
+  // credit to @nopeless (https://greasyfork.org/scripts/471489-youtube-player-perf/)
+  const PERF_471489_ = true;
+  // PERF_471489_ is not exactly the same to Youtube Player perf v0.7
+  // This script uses a much gentle way to tamer the JS engine instead.
+
+  // << end >>
+
+  const steppingScaleN = 200; // transform: scaleX(k/N); 0<k<N
 
   const Promise = (async () => { })().constructor;
 
@@ -101,6 +112,50 @@
 
 
   }
+
+
+  const getzo = (_yt_player) => {
+
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      if (typeof v === 'function' && v.length === 3 && k.length < 3 && (v + "").includes("a.style[b]=c")) {
+
+        return k;
+
+      }
+
+    }
+
+
+  }
+
+
+  const getuG = (_yt_player) => {
+
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+
+      if (p
+        && typeof p.createElement === 'function'
+        && typeof p.detach === 'function' && typeof p.update === 'function'
+        && typeof p.updateValue === 'function'
+      ) {
+
+
+
+        return k;
+
+      }
+
+    }
+
+
+  }
+
 
   let foregroundPromise = null;
 
@@ -735,6 +790,239 @@
             this.j = null
         }
       */
+
+
+
+      const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
+
+      if (keyzo) {
+
+        k = keyzo
+
+        const attrUpdateFn = g[k];
+        g['$$original$$' + k] = attrUpdateFn;
+        g[k] = function (a, b, c) {
+
+          // console.log(140000, a, b, c);
+
+          if (b === "transform") {
+            if (!(a instanceof HTMLElement)) return;
+            if (c.length === 0) {
+
+              if (!a.style.transform) return;
+
+            } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1 + 1e-5) {
+                let vz = Math.round(steppingScaleN * q);
+
+                const aStyle = a.style;
+                const currentValue = aStyle.getPropertyValue('--stepped-scalex');
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes('--stepped-scalex')
+                if (`${currentValue}` === `${vz}`) {
+                  if (u) return;
+                }
+
+                aStyle.setProperty('--stepped-scalex', vz)
+
+
+                if (u) return;
+                c = `scalex(calc(var(--stepped-scalex)/${steppingScaleN}))`;
+
+
+
+
+              }
+
+
+            } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
+
+              let p = c.substring(11, c.length - 3);
+              let q = p.length >= 1 ? parseFloat(p) : NaN;
+
+              if (q !== NaN && typeof q === 'number') {
+
+
+                let vz = q.toFixed(1);
+
+                const aStyle = a.style;
+                const currentValue = (aStyle.getPropertyValue('--stepped-translateX') || '').replace('px', '');
+
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes('--stepped-translateX')
+                if (parseFloat(currentValue).toFixed(1) === vz) {
+                  if (u) return;
+                }
+
+                aStyle.setProperty('--stepped-translateX', vz + 'px')
+
+
+                if (u) return;
+                c = `translateX(var(--stepped-translateX))`;
+
+              }
+
+
+            } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1 + 1e-5) {
+                let vz = Math.round(steppingScaleN * q);
+
+                const aStyle = a.style;
+                const currentValue = aStyle.getPropertyValue('--stepped-scaley');
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes('--stepped-scaley')
+                if (currentValue === `${vz}`) {
+                  if (u) return;
+                }
+
+                aStyle.setProperty('--stepped-scaley', vz)
+
+
+                if (u) return;
+                c = `scaley(calc(var(--stepped-scaley)/${steppingScaleN}))`;
+
+
+
+
+              }
+
+
+            } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
+
+              let p = c.substring(11, c.length - 3);
+              let q = p.length >= 1 ? parseFloat(p) : NaN;
+
+              if (q !== NaN && typeof q === 'number') {
+
+
+                let vz = q.toFixed(1);
+
+                const aStyle = a.style;
+                const currentValue = aStyle.getPropertyValue('--stepped-translateY');
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes('--stepped-translateY')
+                if (currentValue === `${vz}`) {
+                  if (u) return;
+                }
+
+                aStyle.setProperty('--stepped-translateY', vz + 'px')
+
+
+                if (u) return;
+                c = `translateY(var(--stepped-translateY))`;
+
+              }
+
+
+            }
+          } else if (b === "display") {
+
+            const cv = a.style.display;
+            if (!cv && !c) return;
+            if (cv === c) return;
+
+          } else if (b === "width") {
+
+            const cv = a.style.width;
+            if (!cv && !c) return;
+            if (cv === c) return;
+
+          }
+
+          // console.log(130000, a, b, c);
+
+          return attrUpdateFn.call(this, a, b, c);
+        }
+
+
+        /*
+
+            g.zo = function(a, b, c) {
+                if ("string" === typeof b)
+                    (b = yo(a, b)) && (a.style[b] = c);
+                else
+                    for (var d in b) {
+                        c = a;
+                        var e = b[d]
+                          , f = yo(c, d);
+                        f && (c.style[f] = e)
+                    }
+            }
+
+
+        */
+
+
+      }
+
+
+
+      const keyuG =  PERF_471489_ ? getuG(_yt_player) : null;
+
+      if (keyuG) {
+
+        k = keyuG;
+
+        const gk = g[k];
+        const gkp = gk.prototype;
+
+
+        /** @type { Map<string, WeakMap<any, any>> } */
+        const ntLogs = new Map();
+
+        if (typeof gkp.updateValue === 'function' && gkp.updateValue.length === 2 && !gkp.updateValue31) {
+
+          gkp.updateValue31 = gkp.updateValue;
+          gkp.updateValue = function (a, b) {
+            if (typeof a !== 'string') return this.updateValue31(a, b);
+
+            const element = this.element;
+            if (!(element instanceof HTMLElement)) return this.updateValue31(a, b);
+
+            let ntLog = ntLogs.get(a);
+            if (!ntLog) ntLogs.set(a, (ntLog = new WeakMap()));
+
+            let cache = ntLog.get(element);
+            if (cache && cache.value === b) {
+              return;
+            }
+            if (!cache) {
+              ntLog.set(element, cache = { value: b });
+            } else {
+              cache.value = b;
+            }
+
+
+            return this.updateValue31(a, b);
+          }
+
+
+          /*
+            g.k.update = function(a) {
+                for (var b = g.u(Object.keys(a)), c = b.next(); !c.done; c = b.next())
+                    c = c.value,
+                    this.updateValue(c, a[c])
+            }
+            ;
+            g.k.updateValue = function(a, b) {
+                (a = this.Td["{{" + a + "}}"]) && wG(this, a[0], a[1], b)
+            }
+          */
+
+
+        }
+
+
+      }
+
 
 
 
