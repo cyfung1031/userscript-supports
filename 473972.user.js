@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.0
+// @version     0.4.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -74,27 +74,49 @@
 
   const getZq = (_yt_player) => {
 
+    const w = 'Zq';
+
+    let arr = [];
 
     for (const [k, v] of Object.entries(_yt_player)) {
 
       const p = typeof v === 'function' ? v.prototype : 0;
       if (p
-        && typeof p.start === 'function'
-        && typeof p.isActive === 'function'
-        && typeof p.stop === 'function') {
+        && typeof p.start === 'function' && p.start.length === 0
+        && typeof p.isActive === 'function' && p.isActive.length === 0
+        && typeof p.stop === 'function' && p.stop.length === 0
+        && !p.isComplete && !p.getStatus && !p.getResponseHeader && !p.getLastError
+        && !p.send && !p.abort
+        && !p.sample && !p.initialize && !p.fail && !p.getName
+        // && !p.dispose && !p.isDisposed
 
-        return k;
+      ) {
+        arr = addProtoToArr(_yt_player, k, arr) || arr;
+
 
       }
 
     }
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      console.log(`[${w}]`, arr);
+      return arr[0];
+    }
+
+
 
 
   }
 
 
   const getVG = (_yt_player) => {
+    const w = 'VG';
 
+    let arr = [];
 
     for (const [k, v] of Object.entries(_yt_player)) {
 
@@ -104,35 +126,89 @@
         && typeof p.hide === 'function' && p.hide.length === 0
         && typeof p.stop === 'function' && p.stop.length === 0) {
 
-        return k;
+        arr = addProtoToArr(_yt_player, k, arr) || arr;
 
       }
 
     }
+
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      console.log(`[${w}]`, arr);
+      return arr[0];
+    }
+
 
 
   }
 
 
   const getzo = (_yt_player) => {
+    const w = 'zo';
 
+    let arr = [];
 
     for (const [k, v] of Object.entries(_yt_player)) {
 
-      if (typeof v === 'function' && v.length === 3 && k.length < 3 && (v + "").includes("a.style[b]=c")) {
+      if (
+        typeof v === 'function' && v.length === 3 && k.length < 3
+        && (v + "").includes("a.style[b]=c")
+      ) {
 
-        return k;
+        arr.push(k);
 
       }
 
     }
 
 
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      console.log(`[${w}]`, arr);
+      return arr[0];
+    }
+
   }
 
+  const addProtoToArr = (parent, key, arr) => {
+
+
+    let isChildProto = false;
+    for (const sr of arr) {
+      if (parent[key].prototype instanceof parent[sr]) {
+        isChildProto = true;
+        break;
+      }
+    }
+
+    if (isChildProto) return;
+
+    arr = arr.filter(sr => {
+      if (parent[sr].prototype instanceof parent[key]) {
+        return false;
+      }
+      return true;
+    });
+
+    arr.push(key);
+
+    return arr;
+
+
+  }
 
   const getuG = (_yt_player) => {
 
+    const w = 'uG';
+
+    let arr = [];
 
     for (const [k, v] of Object.entries(_yt_player)) {
 
@@ -140,19 +216,30 @@
       const p = typeof v === 'function' ? v.prototype : 0;
 
       if (p
-        && typeof p.createElement === 'function'
-        && typeof p.detach === 'function' && typeof p.update === 'function'
-        && typeof p.updateValue === 'function'
+        && typeof p.createElement === 'function' && p.createElement.length === 2
+        && typeof p.detach === 'function' && p.detach.length === 0
+        && typeof p.update === 'function' && p.update.length === 1
+        && typeof p.updateValue === 'function' && p.updateValue.length === 2
       ) {
 
-
-
-        return k;
+        arr = addProtoToArr(_yt_player, k, arr) || arr;
 
       }
 
     }
 
+
+
+
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      console.log(`[${w}]`, arr);
+      return arr[0];
+    }
 
   }
 
@@ -428,7 +515,7 @@
         let requestingArgs = null;
         let requestingDT = 0;
 
-        let timerId = null;
+        // let timerId = null;
         const entries = [];
         const f = function () {
           requestingFn = this.fn;
@@ -965,7 +1052,7 @@
 
 
 
-      const keyuG =  PERF_471489_ ? getuG(_yt_player) : null;
+      const keyuG = PERF_471489_ ? getuG(_yt_player) : null;
 
       if (keyuG) {
 
