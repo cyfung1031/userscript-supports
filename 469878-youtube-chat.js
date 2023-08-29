@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.53.6
+// @version             0.54.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -155,6 +155,8 @@
   // 2 = disable all animation backgrounds [= no animation backbround]
 
   const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
+
+  const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -552,6 +554,34 @@
 
   `: '';
 
+  const cssText12_nowrap_tooltip = MAX_TOOLTIP_NO_WRAP_WIDTH && typeof MAX_TOOLTIP_NO_WRAP_WIDTH === 'string' ? `
+  
+
+  tp-yt-paper-tooltip[role="tooltip"] {
+    box-sizing: content-box !important; 
+    margin: 0px !important;
+    padding: 0px !important;
+    contain: none !important;
+  }
+
+  tp-yt-paper-tooltip[role="tooltip"] #tooltip[style-target="tooltip"] {
+    box-sizing: content-box !important;
+    display: inline-block;
+    contain: none !important;
+  }
+
+
+  tp-yt-paper-tooltip[role="tooltip"] #tooltip[style-target="tooltip"]{
+    max-width: ${MAX_TOOLTIP_NO_WRAP_WIDTH};
+    width: max-content;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+
+  `: '';
+
 
   const addCss = () => `
 
@@ -787,6 +817,9 @@
     opacity: 0 !important;
     pointer-events: none !important;
   }
+
+  ${cssText12_nowrap_tooltip}
+  
 
   ${cssText11_entire_message_clickable}
 
@@ -1956,11 +1989,34 @@
 
     })();
 
+    const whenDefinedMultiple = (sTags) => {
+
+      sTags = [...((new Set(sTags)).keys())];
+
+      return new Promise((resolve, reject) => {
+
+
+        let pTags = [];
+
+        for (const tag of sTags) {
+          pTags.push(customElements.whenDefined(tag));
+        }
+
+        Promise.all(pTags).then(() => {
+          resolve(sTags);
+        }).catch(reject);
+        pTags.length = null;
+
+      });
+
+    }
 
     const onRegistryReadyForDataManipulation = () => {
 
       function dummy5035(a, b, c) { }
       function dummy411(a, b, c) { }
+
+
 
       customElements.whenDefined("yt-live-chat-participant-list-renderer").then(() => {
 
@@ -4566,50 +4622,42 @@
               this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally)
             };
 
-            if (RAF_FIX_scrollIncrementally === 2) {
+            // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
 
-              // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
+            cProto.scrollIncrementally = (RAF_FIX_scrollIncrementally === 2) ? function (a) {
+              const b = a - (this.lastFrameTimestamp || 0);
+              const rate = this.scrollRatePixelsPerSecond
+              const q = b / 1E3 * (rate || 0);
 
-              cProto.scrollIncrementally = function (a) {
-                const b = a - (this.lastFrameTimestamp || 0);
-                const rate = this.scrollRatePixelsPerSecond
-                const q = b / 1E3 * (rate || 0);
+              const sl = this.$.items.scrollLeft;
+              // console.log(rate, sl, q)
+              if (this.lastFrameTimestamp == this.scrollStartTime) {
 
-                const sl = this.$.items.scrollLeft;
-                // console.log(rate, sl, q)
-                if (this.lastFrameTimestamp == this.scrollStartTime) {
+              } else if (q > -1e-5 && q < 1e-5) {
 
-                } else if (q > -1e-5 && q < 1e-5) {
-
-                } else {
-                  let cond1 = sl > 0 && rate > 0 && q > 0;
-                  let cond2 = sl > 0 && rate < 0 && q < 0;
-                  let cond3 = sl < 1e-5 && sl > -1e-5 && rate > 0 && q > 0;
-                  if (cond1 || cond2 || cond3) {
-                    this.$.items.scrollLeft += q;
-                    this.maybeClampScroll();
-                    this.updateArrows();
-                  }
+              } else {
+                let cond1 = sl > 0 && rate > 0 && q > 0;
+                let cond2 = sl > 0 && rate < 0 && q < 0;
+                let cond3 = sl < 1e-5 && sl > -1e-5 && rate > 0 && q > 0;
+                if (cond1 || cond2 || cond3) {
+                  this.$.items.scrollLeft += q;
+                  this.maybeClampScroll();
+                  this.updateArrows();
                 }
+              }
 
-                this.lastFrameTimestamp = a;
-                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-                0 < this.$.items.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
-              };
-
-            } else {
-
-              cProto.scrollIncrementally = function (a) {
-                const b = a - (this.lastFrameTimestamp || 0);
-                this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
-                this.maybeClampScroll();
-                this.updateArrows();
-                this.lastFrameTimestamp = a;
-                this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-                0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
-              };
-
-            }
+              this.lastFrameTimestamp = a;
+              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+              0 < this.$.items.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+            } : function (a) {
+              const b = a - (this.lastFrameTimestamp || 0);
+              this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+              this.maybeClampScroll();
+              this.updateArrows();
+              this.lastFrameTimestamp = a;
+              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
+              0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+            };
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
@@ -5162,6 +5210,60 @@
 
             }
 
+            /*
+            cProto.updatePosition61 = cProto.updatePosition;
+
+
+            cProto.updatePosition = function () {
+
+
+              if (this._target && this.offsetParent) {
+                var a = this.offset;
+                14 != this.marginTop && 14 == this.offset && (a = this.marginTop);
+                var b = this.offsetParent.getBoundingClientRect()
+                  , c = this._target.getBoundingClientRect()
+                  , d = this.getBoundingClientRect()
+                  , e = (c.width - d.width) / 2
+                  , h = (c.height - d.height) / 2
+                  , l = c.left - b.left
+                  , m = c.top - b.top;
+                switch (this.position) {
+                  case "top":
+                    var p = l + e;
+                    var q = m - d.height - a;
+                    break;
+                  case "bottom":
+                    p = l + e;
+                    q = m + c.height + a;
+                    break;
+                  case "left":
+                    p = l - d.width - a;
+                    q = m + h;
+                    break;
+                  case "right":
+                    p = l + c.width + a,
+                      q = m + h;
+                }
+
+              if(this.ascee) {
+                this.fitToVisibleBounds = false;
+              }
+                this.fitToVisibleBounds ? (b.left + p + d.width > window.innerWidth ? (this.style.right = "0px",
+                  this.style.left = "auto") : (this.style.left = Math.max(0, p) + "px",
+                    this.style.right = "auto"),
+                  b.top + q + d.height > window.innerHeight ? (this.style.bottom = b.height + "px",
+                    this.style.top = "auto") : (this.style.top = Math.max(-b.top, q) + "px",
+                      this.style.bottom = "auto")) : (this.style.left = p + "px",
+                        this.style.top = q + "px")
+              }
+            }
+
+            cProto.updateStyles61 = cProto.updateStyles;
+            cProto.updateStyles= function(){
+              if(this.ascee) return;
+              return this.updateStyles61.apply(this,arguments);
+            }
+            */
 
 
           })();
@@ -5226,8 +5328,11 @@
               const kurMPC = kRef(currentMenuPivotWR) || 0;
               const hostElement = kurMPC.hostElement || kurMPC;
               if (!hostElement.hasAttribute('menu-visible')) return;
-              if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
 
+              const chatBanner = HTMLElement.prototype.closest.call(hostElement, 'yt-live-chat-banner-renderer') || 0;
+              if (chatBanner) return;
+
+              if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
 
                 /*
                 const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
@@ -5346,6 +5451,9 @@
 
             if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPC, evt.target)) return;
 
+            const chatBanner = HTMLElement.prototype.closest.call(kurMPC, 'yt-live-chat-banner-renderer') || 0;
+            if (chatBanner) return;
+
 
             let targetDropDown = null;
             for (const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')) {
@@ -5409,84 +5517,121 @@
         
         */
 
-        // https://www.youtube.com/watch?v=oQzFi1NO7io
-        customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
+
+        whenDefinedMultiple([
+
+          "yt-live-chat-ticker-paid-message-item-renderer",
+          "yt-live-chat-ticker-paid-sticker-item-renderer",
+          "yt-live-chat-paid-message-renderer",
+          "yt-live-chat-text-message-renderer",
+          "yt-live-chat-paid-sticker-renderer",
+
+          "yt-live-chat-ticker-sponsor-item-renderer",
+          "yt-live-chat-banner-header-renderer",
+          "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+          "ytd-sponsorships-live-chat-header-renderer",
+          "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
+
+
+
+
+          "yt-live-chat-auto-mod-message-renderer",
+          "yt-live-chat-text-message-renderer",
+          "yt-live-chat-paid-message-renderer",
+
+          "yt-live-chat-legacy-paid-message-renderer",
+          "yt-live-chat-membership-item-renderer",
+          "yt-live-chat-paid-sticker-renderer",
+          "yt-live-chat-donation-announcement-renderer",
+          "yt-live-chat-moderation-message-renderer",
+          "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+          "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
+          "yt-live-chat-viewer-engagement-message-renderer",
+
+
+
+        ]).then(sTags => {
 
 
           mightFirstCheckOnYtInit();
-          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-text-message-renderer hacks");
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-renderer(s)... hacks");
           console.log("[Begin]");
-          (() => {
+          let doMouseHook = false;
 
-            const tag = "yt-live-chat-text-message-renderer"
-            const dummy = document.createElement(tag);
+          for (const sTag of sTags) {
 
-            const cProto = getProto(dummy);
-            if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
-              return;
-            }
 
-            /*
+            (() => {
 
 
 
-                remarks:
+              const tag = sTag;
+              const dummy = document.createElement(tag);
 
-                const w=new Set();
-                setInterval(()=>{
-                for(const a of document.getElementsByTagName('*')) if(a.shouldSupportWholeItemClick) w.add(a.is||'');
-                console.log([...w.keys()]);
-                },800);
-
-
-                [
-                "yt-live-chat-ticker-sponsor-item-renderer",
-                "yt-live-chat-banner-header-renderer",
-                "yt-live-chat-text-message-renderer",
-                "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
-                "ytd-sponsorships-live-chat-header-renderer",
-                "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
-                ]
-
-            */
-
-            cProto.isClickableChatRow111 = function () {
-              return (
-                this.data && typeof this.shouldSupportWholeItemClick === 'function' && typeof this.hasModerationOverlayVisible === 'function' &&
-                this.data.contextMenuEndpoint && this.wholeMessageClickable && this.shouldSupportWholeItemClick() && !this.hasModerationOverlayVisible()
-              ); // follow .onItemTap(a)
-            }
+              const cProto = getProto(dummy);
+              if (!cProto || !cProto.attached) {
+                console.warn(`proto.attached for ${tag} is unavailable.`);
+                return;
+              }
 
 
-
-            const toHookDocumentMouseDown = typeof cProto.shouldSupportWholeItemClick === 'function' && typeof cProto.hasModerationOverlayVisible === 'function';
-
-            if (toHookDocumentMouseDown) {
-
-              hookDocumentMouseDownSetupFn();
-
-
-              console.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent OK");
-
-
-
-            } else {
-
-              console.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent NG");
-
-            }
+              const dCnt = dummy || dummy.inst || 0;
+              if ('wholeMessageClickable' in dCnt && typeof dCnt.hasModerationOverlayVisible === 'function' && typeof dCnt.shouldSupportWholeItemClick === 'function') {
 
 
 
 
-          })();
+
+
+                cProto.isClickableChatRow111 = function () {
+                  return (
+                    this.data && typeof this.shouldSupportWholeItemClick === 'function' && typeof this.hasModerationOverlayVisible === 'function' &&
+                    this.data.contextMenuEndpoint && this.wholeMessageClickable && this.shouldSupportWholeItemClick() && !this.hasModerationOverlayVisible()
+                  ); // follow .onItemTap(a)
+                }
+
+
+
+                const toHookDocumentMouseDown = typeof cProto.shouldSupportWholeItemClick === 'function' && typeof cProto.hasModerationOverlayVisible === 'function';
+
+                if (toHookDocumentMouseDown) {
+                  doMouseHook = true;
+                }
+
+
+
+                console.log("shouldSupportWholeItemClick Y", tag);
+
+
+              } else {
+
+                console.log("shouldSupportWholeItemClick N", tag);
+              }
+
+
+
+            })();
+
+          }
+
+
+          if (doMouseHook) {
+
+            hookDocumentMouseDownSetupFn();
+
+
+            console.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent OK");
+          }
 
           console.log("[End]");
 
           console.groupEnd();
 
+
         }).catch(console.warn);
+
+
+        // https://www.youtube.com/watch?v=oQzFi1NO7io
 
 
       }
@@ -5711,22 +5856,14 @@
 
       */
 
-      let pTags = [];
-      const sTags = [
+      whenDefinedMultiple([
         "yt-live-chat-ticker-sponsor-item-renderer",
         "yt-live-chat-banner-header-renderer",
         "yt-live-chat-text-message-renderer",
         "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
         "ytd-sponsorships-live-chat-header-renderer",
         "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
-      ];
-
-      for (const tag of sTags) {
-        pTags.push(customElements.whenDefined(tag));
-      }
-
-
-      Promise.all(pTags).then(() => {
+      ]).then(sTags => {
 
 
         mightFirstCheckOnYtInit();
@@ -5884,6 +6021,7 @@
 
 
               }
+
               cProto.showContextMenu = function (a) {
                 if (!this.__showContextMenu_forceNativeRequest__) {
                   const endpoint = (this.data || 0).contextMenuEndpoint || 0;
@@ -5891,6 +6029,7 @@
                     const resolvedEndpoint = this.__getCachedEndpointData__(endpoint);
                     if (resolvedEndpoint) {
                       this.__showCachedContextMenu__(resolvedEndpoint);
+                      a && a.stopPropagation()
                       return;
                     }
                   }
@@ -5908,6 +6047,7 @@
                 }
                 return this.showContextMenu37_(a);
               }
+
 
 
 
