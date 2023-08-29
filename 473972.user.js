@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.0
+// @version     0.3.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -19,14 +19,15 @@
   const NATIVE_CANVAS_ANIMATION = true; // for #cinematics
   const FIX_schedulerInstanceInstance_ = true;
   const FIX_yt_player = true;
+  const FIX_Animation_n_timeline = true;
 
   const Promise = (async () => { })().constructor;
 
   let isMainWindow = false;
-    try {
+  try {
     isMainWindow = window.document === window.top.document
   } catch (e) { }
-  
+
   const onRegistryReady = (callback) => {
     if (typeof customElements === 'undefined') {
       if (!('__CE_registry' in document)) {
@@ -80,6 +81,26 @@
 
   }
 
+
+  const getVG = (_yt_player) => {
+
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+      if (p
+        && typeof p.show === 'function' && p.show.length === 1
+        && typeof p.hide === 'function' && p.hide.length === 0
+        && typeof p.stop === 'function' && p.stop.length === 0) {
+
+        return k;
+
+      }
+
+    }
+
+
+  }
 
   let foregroundPromise = null;
 
@@ -213,8 +234,8 @@
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback } = fc;
-      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback };
+      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle } = fc;
+      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       res.animate = fc.HTMLElement.prototype.animate;
@@ -231,7 +252,17 @@
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle } = __CONTEXT__;
+
+
+
+    let rafPromiseForTickers = null;
+    const getRafPromiseForTickers = () => (rafPromiseForTickers = (rafPromiseForTickers || new Promise(resolve => {
+      requestAnimationFrame((hRes) => {
+        rafPromiseForTickers = null;
+        resolve(hRes);
+      });
+    })));
 
     const promiseForTamerTimeout = new Promise(resolve => {
       promiseForCustomYtElementsReady.then(() => {
@@ -577,6 +608,16 @@
 
 
       let keyZq = getZq(_yt_player);
+      let keyVG = getVG(_yt_player);
+      let buildVG = _yt_player[keyVG];
+      let u = new buildVG({
+        api: {},
+        element: document.createElement('noscript'),
+        api: {},
+        hide: () => { }
+      }, 250);
+      // console.log(keyVG, u)
+      // buildVG.prototype.show = function(){}
       // _yt_player[keyZq] = g.k
 
       if (!keyZq) return;
@@ -701,7 +742,450 @@
 
 
 
+    FIX_Animation_n_timeline && (async () => {
 
+
+      const timeline = await new Promise(resolve => {
+
+        let cid = setInterval(() => {
+          let t = (((document || 0).timeline || 0) || 0);
+          if (t && typeof t._play === 'function') {
+
+            clearInterval(cid);
+            resolve(t);
+          }
+        }, 1);
+
+        promiseForTamerTimeout.then(() => {
+          resolve(null)
+        });
+
+      });
+
+
+      const Animation = await new Promise(resolve => {
+
+        let cid = setInterval(() => {
+          let t = (((window || 0).Animation || 0) || 0);
+          if (t && typeof t === 'function' && t.length === 2 && typeof t.prototype._updatePromises === 'function') {
+
+            clearInterval(cid);
+            resolve(t);
+          }
+        }, 1);
+
+        promiseForTamerTimeout.then(() => {
+          resolve(null)
+        });
+
+      });
+
+      if (!timeline) return;
+      if (!Animation) return;
+
+      const aniProto = Animation.prototype;
+
+      const getXroto = (x) => {
+        try {
+          return x.__proto__;
+        } catch (e) { }
+        return null;
+      }
+      const timProto = getXroto(timeline);
+      if (!timProto) return;
+      if (
+        (
+          typeof timProto.getAnimations === 'function' && typeof timProto.play === 'function' &&
+          typeof timProto._discardAnimations === 'function' && typeof timProto._play === 'function' &&
+          typeof timProto._updateAnimationsPromises === 'function' && !timProto.nofCQ &&
+          typeof aniProto._updatePromises === 'function' && !aniProto.nofYH
+        )
+
+      ) {
+
+        timProto.nofCQ = 1;
+        aniProto.nofYH = 1;
+
+        const originalAnimationsWithPromises = ((_updateAnimationsPromises) => {
+
+
+          /*
+            v.animationsWithPromises = v.animationsWithPromises.filter(function (c) {
+              return c._updatePromises();
+            });
+          */
+
+          const p = Array.prototype.filter;
+
+          let res = null;
+          Array.prototype.filter = function () {
+
+            res = this;
+            return this;
+
+          };
+
+          _updateAnimationsPromises.call({});
+
+          Array.prototype.filter = p;
+
+          if (res && typeof res.length === 'number') {
+            /** @type {any[]} */
+            const _res = res;
+            return _res;
+          }
+
+
+          return null;
+
+
+
+
+        })(timProto._updateAnimationsPromises);
+
+        if (!originalAnimationsWithPromises || typeof originalAnimationsWithPromises.length !== 'number') return;
+
+        // console.log('originalAnimationsWithPromises', originalAnimationsWithPromises)
+
+        aniProto._updatePromises31 = aniProto._updatePromises;
+
+        /*
+        aniProto._updatePromises = function(){
+          console.log('eff',this._oldPlayState, this.playState)
+          return this._updatePromises31.apply(this, arguments)
+        }
+        */
+
+        aniProto._updatePromises = function () {
+          var oldPlayState = this._oldPlayState;
+          var newPlayState = this.playState;
+          // console.log('ett', oldPlayState, newPlayState)
+          if (newPlayState !== oldPlayState) {
+            this._oldPlayState = newPlayState;
+            if (this._readyPromise) {
+              if ("idle" == newPlayState) {
+                this._rejectReadyPromise();
+                this._readyPromise = void 0;
+              } else if ("pending" == oldPlayState) {
+                this._resolveReadyPromise();
+              } else if ("pending" == newPlayState) {
+                this._readyPromise = void 0;
+              }
+            }
+            if (this._finishedPromise) {
+              if ("idle" == newPlayState) {
+                this._rejectFinishedPromise();
+                this._finishedPromise = void 0;
+              } else if ("finished" == newPlayState) {
+                this._resolveFinishedPromise();
+              } else if ("finished" == oldPlayState) {
+                this._finishedPromise = void 0;
+              }
+            }
+          }
+          return this._readyPromise || this._finishedPromise;
+        };
+
+
+        let restartWebAnimationsNextTickFlag = false;
+
+        const looperMethodT = () => {
+
+          const runnerFn = (hRes) => {
+            var b = timeline;
+            b.currentTime = hRes;
+            b._discardAnimations();
+            if (0 == b._animations.length) {
+              restartWebAnimationsNextTickFlag = false;
+            } else {
+              getForegroundPromise().then(runnerFn);
+            }
+          }
+
+          const restartWebAnimationsNextTick = () => {
+            if (!restartWebAnimationsNextTickFlag) {
+              restartWebAnimationsNextTickFlag = true;
+              getRafPromiseForTickers().then(runnerFn);
+            }
+          }
+
+          return { restartWebAnimationsNextTick }
+        };
+
+
+        const looperMethodN = () => {
+
+          const acs = document.createElement('a-f');
+          acs.id = 'a-f';
+
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyFrames aF1 {
+              0% {
+                order: 0;
+              }
+              100% {
+                order: 6;
+              }
+            }
+            #a-f[id] {
+              visibility: collapse !important;
+              position: fixed !important;
+              top: -100px !important;
+              left: -100px !important;
+              margin:0 !important;
+              padding:0 !important;
+              outline:0 !important;
+              border:0 !important;
+              z-index:-1 !important;
+              width: 0px !important;
+              height: 0px !important;
+              contain: strict !important;
+              pointer-events: none !important;
+              animation: 1ms steps(2) 0ms infinite alternate forwards running aF1 !important;
+            }
+          `;
+          (document.head || document.documentElement).appendChild(style);
+
+          document.documentElement.insertBefore(acs, document.documentElement.firstChild);
+
+          const _onanimationiteration = function (evt) {
+            const hRes = evt.timeStamp;
+            var b = timeline;
+            b.currentTime = hRes;
+            b._discardAnimations();
+            if (0 == b._animations.length) {
+              restartWebAnimationsNextTickFlag = false;
+              acs.onanimationiteration = null;
+            } else {
+              acs.onanimationiteration = _onanimationiteration;
+            }
+
+          }
+
+
+
+          const restartWebAnimationsNextTick = () => {
+            if (!restartWebAnimationsNextTickFlag) {
+              restartWebAnimationsNextTickFlag = true;
+              acs.onanimationiteration = _onanimationiteration;
+
+            }
+          }
+
+          return { restartWebAnimationsNextTick }
+        };
+
+
+
+        const { restartWebAnimationsNextTick } = ('onanimationiteration' in document.documentElement) ? looperMethodN() : looperMethodT();
+
+        timProto._play = function (c) {
+          c = new Animation(c, this);
+          this._animations.push(c);
+          restartWebAnimationsNextTick();
+          c._updatePromises();
+          c._animation.play();
+          c._updatePromises();
+          return c
+        }
+
+        const animationsWithPromisesMap = new Set(originalAnimationsWithPromises);
+        originalAnimationsWithPromises.length = 0;
+        originalAnimationsWithPromises.push = null;
+        originalAnimationsWithPromises.splice = null;
+        originalAnimationsWithPromises.slice = null;
+        originalAnimationsWithPromises.indexOf = null;
+        originalAnimationsWithPromises.unshift = null;
+        originalAnimationsWithPromises.shift = null;
+        originalAnimationsWithPromises.pop = null;
+        originalAnimationsWithPromises.filter = null;
+        originalAnimationsWithPromises.forEach = null;
+        originalAnimationsWithPromises.map = null;
+
+
+
+        const _updateAnimationsPromises = () => {
+          animationsWithPromisesMap.forEach(c => {
+            if (!c._updatePromises()) animationsWithPromisesMap.delete(c);
+          })
+          /*
+          v.animationsWithPromises = v.animationsWithPromises.filter(function (c) {
+            return c._updatePromises();
+          });
+          */
+        }
+
+        timProto._updateAnimationsPromises31 = timProto._updateAnimationsPromises;
+
+        timProto._updateAnimationsPromises = _updateAnimationsPromises;
+
+
+        let pdFinished = Object.getOwnPropertyDescriptor(aniProto, 'finished');
+        aniProto.__finished_native_get__ = pdFinished.get;
+        if (typeof pdFinished.get === 'function' && !pdFinished.set && pdFinished.configurable === true && pdFinished.enumerable === true) {
+
+
+          Object.defineProperty(aniProto, 'finished', {
+            get() {
+              this._finishedPromise || (!animationsWithPromisesMap.has(this) && animationsWithPromisesMap.add(this),
+                this._finishedPromise = new Promise((resolve, reject) => {
+                  this._resolveFinishedPromise = function () {
+                    resolve(this)
+                  };
+                  this._rejectFinishedPromise = function () {
+                    reject({
+                      type: DOMException.ABORT_ERR,
+                      name: "AbortError"
+                    })
+                  };
+                }),
+                "finished" == this.playState && this._resolveFinishedPromise());
+              return this._finishedPromise
+            },
+            set: undefined,
+            enumerable: true,
+            configurable: true
+          });
+
+        }
+
+
+
+        let pdReady = Object.getOwnPropertyDescriptor(aniProto, 'ready');
+        aniProto.__ready_native_get__ = pdReady.get;
+        if (typeof pdReady.get === 'function' && !pdReady.set && pdReady.configurable === true && pdReady.enumerable === true) {
+
+          Object.defineProperty(aniProto, 'ready', {
+            get() {
+              this._readyPromise || (!animationsWithPromisesMap.has(this) && animationsWithPromisesMap.add(this),
+                this._readyPromise = new Promise((resolve, reject) => {
+                  this._resolveReadyPromise = function () {
+                    resolve(this)
+                  };
+                  this._rejectReadyPromise = function () {
+                    reject({
+                      type: DOMException.ABORT_ERR,
+                      name: "AbortError"
+                    })
+                  };
+                }),
+                "pending" !== this.playState && this._resolveReadyPromise());
+              return this._readyPromise
+            },
+            set: undefined,
+            enumerable: true,
+            configurable: true
+          });
+
+        }
+
+
+
+
+        /*
+  
+  
+          function f(c) {
+              var b = v.timeline;
+              b.currentTime = c;
+              b._discardAnimations();
+              0 == b._animations.length ? d = !1 : requestAnimationFrame(f)
+          }
+          var h = window.requestAnimationFrame;
+          window.requestAnimationFrame = function(c) {
+              return h(function(b) {
+                  v.timeline._updateAnimationsPromises();
+                  c(b);
+                  v.timeline._updateAnimationsPromises()
+              })
+          }
+          ;
+          v.AnimationTimeline = function() {
+              this._animations = [];
+              this.currentTime = void 0
+          }
+          ;
+          v.AnimationTimeline.prototype = {
+              getAnimations: function() {
+                  this._discardAnimations();
+                  return this._animations.slice()
+              },
+              _updateAnimationsPromises: function() {
+                  v.animationsWithPromises = v.animationsWithPromises.filter(function(c) {
+                      return c._updatePromises()
+                  })
+              },
+              _discardAnimations: function() {
+                  this._updateAnimationsPromises();
+                  this._animations = this._animations.filter(function(c) {
+                      return "finished" != c.playState && "idle" != c.playState
+                  })
+              },
+              _play: function(c) {
+                  c = new v.Animation(c,this);
+                  this._animations.push(c);
+                  v.restartWebAnimationsNextTick();
+                  c._updatePromises();
+                  c._animation.play();
+                  c._updatePromises();
+                  return c
+              },
+              play: function(c) {
+                  c && c.remove();
+                  return this._play(c)
+              }
+          };
+          var d = !1;
+          v.restartWebAnimationsNextTick = function() {
+              d || (d = !0,
+              requestAnimationFrame(f))
+          }
+          ;
+          var a = new v.AnimationTimeline;
+          v.timeline = a;
+          try {
+              Object.defineProperty(window.document, "timeline", {
+                  configurable: !0,
+                  get: function() {
+                      return a
+                  }
+              })
+          } catch (c) {}
+          try {
+              window.document.timeline = a
+          } catch (c) {}
+          
+        */
+
+
+
+        /*
+
+      var g = window.getComputedStyle;
+      Object.defineProperty(window, "getComputedStyle", {
+          configurable: !0,
+          enumerable: !0,
+          value: function() {
+              v.timeline._updateAnimationsPromises();
+              var e = g.apply(this, arguments);
+              h() && (e = g.apply(this, arguments));
+              v.timeline._updateAnimationsPromises();
+              return e
+          }
+      });
+
+      */
+
+
+
+
+      }
+
+
+
+
+    })();
 
 
 
@@ -709,9 +1193,9 @@
 
 
   setupEvents();
-  
-  
-  
+
+
+
   if (isMainWindow) {
 
     console.groupCollapsed(
@@ -727,7 +1211,7 @@
     console.log("This might boost your YouTube performance.");
 
     console.log("CAUTION: This might break your YouTube.");
-    
+
     console.groupEnd();
 
   }
