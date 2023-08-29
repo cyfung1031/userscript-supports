@@ -758,6 +758,7 @@
         api: {},
         hide: () => { }
       }, 250);
+      const timeDelayConstructor = u.delay.constructor; // g.br
       // console.log(keyVG, u)
       // buildVG.prototype.show = function(){}
       // _yt_player[keyZq] = g.k
