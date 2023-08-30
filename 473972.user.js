@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.2
+// @version     0.4.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -20,6 +20,8 @@
   const FIX_schedulerInstanceInstance_ = true;
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
+  const NO_PRELOAD_GENERATE_204 = false;
+  const CHANGE_appendChild = true;
 
   // << if FIX_yt_player >>
 
@@ -38,6 +40,8 @@
   try {
     isMainWindow = window.document === window.top.document
   } catch (e) { }
+
+  let NO_PRELOAD_GENERATE_204_BYPASS = NO_PRELOAD_GENERATE_204 ? false : true;
 
   const onRegistryReady = (callback) => {
     if (typeof customElements === 'undefined') {
@@ -388,10 +392,10 @@
     let rafPromiseForTickers = null;
 
     const getRafPromiseForTickers = () => rafPromiseForTickers || (rafPromiseForTickers = new Promise(resolve => {
-        requestAnimationFrame(hRes => {
-            rafPromiseForTickers = null;
-            resolve(hRes);
-        });
+      requestAnimationFrame(hRes => {
+        rafPromiseForTickers = null;
+        resolve(hRes);
+      });
     }));
 
     const getForegroundPromise = () => {
@@ -400,7 +404,13 @@
       } else {
         return getRafPromiseForTickers();
       }
-    }
+    };
+
+    NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(()=>{
+      setTimeout(()=>{
+        NO_PRELOAD_GENERATE_204_BYPASS = true;
+      }, 1270);
+    });
 
     const promiseForTamerTimeout = new Promise(resolve => {
       promiseForCustomYtElementsReady.then(() => {
@@ -472,6 +482,27 @@
       promiseForTamerTimeout.then(() => {
         clearInterval(cid)
       });
+
+    })();
+
+    CHANGE_appendChild && ( () => {
+
+      HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
+      HTMLElement.prototype.appendChild = function (a) {
+        if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
+          for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
+            if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
+              node.__m848__ = 1;
+              node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
+            }
+          }
+        }
+        if (a instanceof DocumentFragment) {
+          if (a.firstElementChild === null) return a;
+        }
+        return this.appendChild73.apply(this, arguments)
+      }
+
 
     })();
 
@@ -883,10 +914,10 @@
 
         k = keyzo
 
-        const setCSSProp=(()=>{
+        const setCSSProp = (() => {
 
           let animationPropCapable = false;
-          try{
+          try {
             const propName = "--ibxpf"
             const value = 2;
             const keyframes = [{
@@ -899,10 +930,10 @@
               initialValue: 1,
             });
             animationPropCapable = '1' === `${getComputedStyle(document.documentElement).getPropertyValue('--ibxpf')}`
-          }catch(e){}
-          
-          if(!animationPropCapable){
-            return (element, cssProp, value)=>{
+          } catch (e) { }
+
+          if (!animationPropCapable) {
+            return (element, cssProp, value) => {
 
 
               element.style.setProperty(cssProp, value);
@@ -913,57 +944,57 @@
           const propMaps = new Map();
 
           function setCustomCSSProperty(element, propName, value) {
-            let wm=propMaps.get(propName);
-            if(!wm){
+            let wm = propMaps.get(propName);
+            if (!wm) {
 
-              try{
+              try {
                 window.CSS.registerProperty({
                   name: propName,
                   syntax: "*",
                   inherits: false
                 });
-              }catch(e){
+              } catch (e) {
                 console.warn(e);
               }
 
-              propMaps.set(propName, (wm= new WeakMap()));
-            } 
-            
-              // Create the animation keyframes with the provided property and value
-              const keyframes = [{
-                [propName]: value
-              }];
-              
-              let currentAnimation = wm.get(element);
-              if(currentAnimation){
-              
-                  currentAnimation.effect.setKeyframes(keyframes);
-            
-              }else{
-
-              
-                
-                // Set the animation on the element and immediately pause it
-                const animation =  animate.call( element, keyframes, {
-                  duration: 1, // Very short duration as we just want to set the value
-                  fill: 'forwards',
-                  iterationStart: 1,
-                  iterations: 2,
-                  direction: 'alternate'
-                });
-                
-              
-                // animation.currentTime = 1;
-                animation.pause();
-                
-                wm.set(element, animation);
-                
-              
-              }
-            
+              propMaps.set(propName, (wm = new WeakMap()));
             }
-  
-            return setCustomCSSProperty;
+
+            // Create the animation keyframes with the provided property and value
+            const keyframes = [{
+              [propName]: value
+            }];
+
+            let currentAnimation = wm.get(element);
+            if (currentAnimation) {
+
+              currentAnimation.effect.setKeyframes(keyframes);
+
+            } else {
+
+
+
+              // Set the animation on the element and immediately pause it
+              const animation = animate.call(element, keyframes, {
+                duration: 1, // Very short duration as we just want to set the value
+                fill: 'forwards',
+                iterationStart: 1,
+                iterations: 2,
+                direction: 'alternate'
+              });
+
+
+              // animation.currentTime = 1;
+              animation.pause();
+
+              wm.set(element, animation);
+
+
+            }
+
+          }
+
+          return setCustomCSSProperty;
 
 
         })();
@@ -978,9 +1009,9 @@
           let transformType = '';
           let transformValue = 0;
           let transformUnit = '';
-          
+
           let byPassDefaultFn = false;
-          if (b === "transform" && typeof c ==='string') {
+          if (b === "transform" && typeof c === 'string') {
 
             byPassDefaultFn = true;
 
@@ -1036,9 +1067,9 @@
 
             }
 
-            if(transformType){
+            if (transformType) {
 
-              if(transformType === 'scalex' || transformType ==='scaley'){
+              if (transformType === 'scalex' || transformType === 'scaley') {
 
                 const q = transformValue;
 
@@ -1078,19 +1109,19 @@
 
                 const vz = +(Math.round(q * steppingScaleN) / steppingScaleN).toFixed(3);
 
-                c = `${transformType ==='scalex' ? 'scaleX' : 'scaleY' }(${ vz })`
+                c = `${transformType === 'scalex' ? 'scaleX' : 'scaleY'}(${vz})`
                 const cv = aStyle.transform;
 
                 // console.log(157, cv,c)
 
-                if(c === cv) return;
+                if (c === cv) return;
                 // console.log(257, cv,c)
 
                 aStyle.transform = c;
 
                 // return;
-                
-              }else if(transformType ==='translateX' || transformType ==='translateY'){
+
+              } else if (transformType === 'translateX' || transformType === 'translateY') {
 
                 const q = transformValue;
 
@@ -1128,23 +1159,23 @@
 
                 const vz = +q.toFixed(1);
 
-                c = `${transformType}(${ vz }${transformUnit})`
+                c = `${transformType}(${vz}${transformUnit})`
                 const cv = aStyle.transform;
 
                 // console.log(158, cv,c)
 
-                if(c === cv) return;
+                if (c === cv) return;
                 // console.log(258, cv,c)
 
                 aStyle.transform = c;
 
                 // return;
 
-              }else{
+              } else {
                 throw new Error();
               }
 
-            }else{
+            } else {
               // if(beforeMq) a.style.setProperty('--mq-transform', '');
               const cv = aStyle.transform
               if (!c && !cv) return;
@@ -1158,7 +1189,7 @@
             const cv = a.style.display;
             if (!cv && !c) return;
             if (cv === c) return;
-            
+
 
           } else if (b === "width") {
 
@@ -1170,7 +1201,7 @@
 
           // console.log(130000, a, b, c);
 
-          if(byPassDefaultFn) return;
+          if (byPassDefaultFn) return;
           return attrUpdateFn.call(this, a, b, c);
         }
 
@@ -1606,8 +1637,8 @@
 
 
         /*
-  
-  
+
+
           function f(c) {
               var b = v.timeline;
               b.currentTime = c;
@@ -1677,7 +1708,7 @@
           try {
               window.document.timeline = a
           } catch (c) {}
-          
+
         */
 
 
