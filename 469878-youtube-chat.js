@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.5
+// @version             0.54.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -599,6 +599,22 @@
   `: '';
 
 
+  const cssText13_no_text_select_when_menu_visible = `
+    [menu-visible] {
+      --sfc47-text-select: none; 
+    }
+    [menu-visible] #header[id][class],
+    [menu-visible] #content[id][class],
+    [menu-visible] #header[id][class] *,
+    [menu-visible] #content[id][class] * {
+      user-select: var(--sfc47-text-select) !important;
+    }
+    [menu-visible] #menu {
+      --sfc47-text-select: inherit;
+    }
+  `
+
+
   const addCss = () => `
 
     @property --ticker-rtime {
@@ -834,15 +850,16 @@
       pointer-events: none !important;
     }
 
-    ${cssText12_nowrap_tooltip}
     
+    ${cssText10_show_more_blinker}
 
     ${cssText11_entire_message_clickable}
 
-    ${cssText10_show_more_blinker}
+    ${cssText12_nowrap_tooltip}
+
+    ${cssText13_no_text_select_when_menu_visible}
 
   `;
-
 
   const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
 
