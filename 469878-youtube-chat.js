@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.2
+// @version             0.54.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1442,6 +1442,8 @@
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
       res.animate = fc.HTMLElement.prototype.animate;
+      res.addEventListener = fc.EventTarget.prototype.addEventListener;
+      res.removeEventListener = fc.EventTarget.prototype.removeEventListener;
       jsonParseFix = {
         _JSON: fc.JSON, _parse: fc.JSON.parse
       }
@@ -1455,7 +1457,7 @@
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, getComputedStyle } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, getComputedStyle, addEventListener, removeEventListener } = __CONTEXT__;
 
 
     let rafPromiseForTickers = null;
@@ -4678,11 +4680,13 @@
                 const ironPage = HTMLElement.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
                 // or #chat-messages
                 if (!ironPage) return;
+
+                if (this.__naohzId__) removeEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                if (naohzId > 1e9) naohzId = naohzId % 1e4;
                 this.__naohzId__ = ++naohzId;
                 ironPage.setAttribute('naohz', `${+this.__naohzId__}`);
 
-                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
-                ironPage.addEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                addEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
 
               });
               return this.attached37.apply(this, arguments);
@@ -4693,7 +4697,7 @@
                 const ironPage = document.querySelector(`iron-pages[naohz="${+this.__naohzId__}"]`);
                 if (!ironPage) return;
 
-                ironPage.removeEventListener('click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                removeEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
 
               });
               return this.detached37.apply(this, arguments);
@@ -4702,20 +4706,25 @@
             const clickFade = (p) => {
 
               let u = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
-              if (u) u.click();
+              if (u) {
+                u.click();
+              }
             };
             cProto.messageBoxClickHandlerForFade = async (evt) => {
 
               const target = (evt || 0).target || 0;
-              evt = null;
               if (!target) return;
 
               for (let p = target; p instanceof HTMLElement; p = nodeParent(p)) {
                 const is = p.is;
                 if (typeof is === 'string' && is) {
 
+                  if (is === 'yt-live-chat-pinned-message-renderer') {
+                    return;
+                  }
                   if (is === 'iron-pages' || is === 'yt-live-chat-renderer' || is === 'yt-live-chat-app') {
                     Promise.resolve(p).then(clickFade);
+                    evt && evt.stopPropagation();
                     return;
                   }
                   if (is !== 'yt-live-chat-ticker-renderer') {
@@ -5865,7 +5874,11 @@
         "yt-live-chat-text-message-renderer",
         "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
         "ytd-sponsorships-live-chat-header-renderer",
-        "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer"
+        "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
+
+        "yt-live-chat-paid-sticker-renderer",
+        "yt-live-chat-viewer-engagement-message-renderer",
+        "yt-live-chat-paid-message-renderer"
 
 
 
