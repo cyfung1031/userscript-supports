@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.3
+// @version             0.54.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1441,13 +1441,20 @@
       const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle };
       for (let k in res) res[k] = res[k].bind(win); // necessary
       if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      res.animate = fc.HTMLElement.prototype.animate;
-      res.addEventListener = fc.EventTarget.prototype.addEventListener;
-      res.removeEventListener = fc.EventTarget.prototype.removeEventListener;
+
+      /** @type {HTMLElement} */
+      const HTMLElementProto = fc.HTMLElement.prototype;
+      /** @type {EventTarget} */
+      const EventTargetProto = fc.EventTarget.prototype;
       jsonParseFix = {
         _JSON: fc.JSON, _parse: fc.JSON.parse
       }
-      return res;
+      return {
+        ...res,
+        animate: HTMLElementProto.animate,
+        addEventListener: EventTargetProto.addEventListener,
+        removeEventListener: EventTargetProto.removeEventListener
+      };
     } catch (e) {
       console.warn(e);
       return null;
@@ -1608,7 +1615,7 @@
             //   link = null;
             // }
             if (kptPF & 2) {
-              linker(link, 'preconnect', h);
+              // linker(link, 'preconnect', h);
               link = null;
             }
           }
@@ -2007,25 +2014,20 @@
 
     })();
 
-    const whenDefinedMultiple = (sTags) => {
+    const whenDefinedMultiple = async (tags) => {
 
-      sTags = [...((new Set(sTags)).keys())];
+      const sTags = [...new Set(tags)];
+      const len = sTags.length;
 
-      return new Promise((resolve, reject) => {
+      const pTags = new Array(len);
+      for (let i = 0; i < len; i++) {
+        pTags[i] = customElements.whenDefined(sTags[i]);
+      }
 
+      await Promise.all(pTags);
+      pTags.length = 0;
 
-        let pTags = [];
-
-        for (const tag of sTags) {
-          pTags.push(customElements.whenDefined(tag));
-        }
-
-        Promise.all(pTags).then(() => {
-          resolve(sTags);
-        }).catch(reject);
-        pTags.length = null;
-
-      });
+      return sTags;
 
     }
 
@@ -2102,7 +2104,7 @@
           if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
             console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
           } else {
-            console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - Failed`);
+            console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - NG`);
           }
         } else {
           console.log("flushRenderStamperComponentBindings_ - not found");
@@ -3915,8 +3917,12 @@
       };
 
 
-      const tags = ["yt-live-chat-ticker-paid-message-item-renderer", "yt-live-chat-ticker-paid-sticker-item-renderer",
-        "yt-live-chat-ticker-renderer", "yt-live-chat-ticker-sponsor-item-renderer"];
+      const tags = [
+        "yt-live-chat-ticker-paid-message-item-renderer",
+        "yt-live-chat-ticker-paid-sticker-item-renderer",
+        "yt-live-chat-ticker-renderer",
+        "yt-live-chat-ticker-sponsor-item-renderer"
+      ];
 
 
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
@@ -3930,111 +3936,61 @@
         let mainVideoLastProgress = null;
         // << end >>
 
-        for (const tag of tags) {
-          const dummy = document.createElement(tag);
+        let dummyValueForStyleReturn = null;
 
-          const cProto = getProto(dummy);
-          if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
-            continue;
+        const genDummyValueForStyleReturn = () => {
+          let s = `--nx:82;`
+          let ro = {
+            "privateDoNotAccessOrElseSafeStyleWrappedValue_": s,
+            "implementsGoogStringTypedString": true
+          };
+          ro.getTypedStringValue = ro.toString = function () { return this.privateDoNotAccessOrElseSafeStyleWrappedValue_ };
+          return ro;
+        }
+
+        const isCSSPropertySupported = () => {
+
+          // @property --ticker-rtime
+
+          if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return;
+          const documentElement = document.documentElement;
+          if (!documentElement) {
+            console.warn('document.documentElement is not found');
+            return false;
           }
+          if (`${getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
+            return false;
+          }
+          return true;
 
-          cProto.attached77 = cProto.attached;
+        };
 
-          cProto.attached = function () {
+
+        let windowShownAt = -1;
+        const setupEventForWindowShownAt = () => {
+          window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') windowShownAt = Date.now();
+            else windowShownAt = 0;
+          }, false);
+        }
+
+        const dProto = {
+
+          attachedForTickerInit: function () {
+
             fpTicker(this.hostElement || this);
             return this.attached77();
-          }
 
-          for (const elm of document.getElementsByTagName(tag)) {
-            if ((elm || elm.inst).isAttached === true) {
-              fpTicker(elm);
-            }
-          }
+          },
 
 
-          let rafHackState = 0;
+          // doAnimator
 
-          let isTimingFunctionHackable = false;
-
-          let urt = 0;
-
-          if (typeof cProto.startCountdown === 'function' && typeof cProto.updateTimeout === 'function' && typeof cProto.isAnimationPausedChanged === 'function') {
-
-            // console.log('startCountdown', typeof cProto.startCountdown)
-            // console.log('updateTimeout', typeof cProto.updateTimeout)
-            // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
-
-            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
-
-          } else {
-            console.log(`Skip Timing Function Modification for ${tag}`);
-            continue;
-          }
-
-
-          if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
-
-            // cancelable - this.rafId < isAnimationPausedChanged >
-            rafHackState = 1;
-
-            if (isTimingFunctionHackable) {
-              rafHackState = 2;
-
-            } else {
-              rafHackState = 4;
-            }
-
-          }
-
-          const isCSSPropertySupported = () => {
-
-            if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return;
-            const documentElement = document.documentElement;
-            if (!documentElement) {
-              console.warn('document.documentElement is not found');
-              return false;
-            }
-            if (`${getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
-              return false;
-            }
-            return true;
-
-          };
-
-          const doAnimator = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
-
-          const doRAFHack = rafHackState === 2;
-
-          cProto._throwOut = function () {
-            this._r782 = 1;
-            Promise.resolve().then(() => {
-              if (typeof this.requestRemoval === 'function') {
-                const id = (this.data || 0).id;
-                if (!id) this.data = { id: 1 };
-                try {
-                  this.requestRemoval();
-                } catch (e) { }
-              }
-              this.detached();
-              this.data = null;
-              this.countdownMs = 0;
-              this.lastCountdownTimeMs = null;
-              if (this.__dataClientsReady === true) this.__dataClientsReady = false;
-              if (this.__dataEnabled === true) this.__dataEnabled = false;
-              if (this.__dataReady === true) this.__dataReady = false;
-              const hm = this.hostElement || this;
-              if (hm.parentNode) hm.remove();
-              if (hm.firstChild) hm.textContent = '';
-            }).catch(e => {
-              console.warn(e);
-            });
-          };
-
-          cProto._makeAnimator = doAnimator ? function () {
+          _makeAnimator: function () {
             if (this._r782) return;
             // if (!this.isAttached) return;
             if (!this._runnerAE) {
+              /** @type {HTMLElement | null} */
               const aElement = (this.$ || 0).container;
               if (!aElement) return console.warn("this.$.container is undefined");
               const da = this.data;
@@ -4176,9 +4132,9 @@
                 return ae;
               }
             }
-          } : null;
+          },
 
-          cProto._aeFinished = doAnimator ? function (event) {
+          _aeFinished: function (event) {
 
             if (this._r782) return;
 
@@ -4224,95 +4180,41 @@
             } else {
               console.warn('unexpected issue')
             }
-          } : null;
+          },
 
 
-          if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
+          /** @type {()} */
+          _throwOut: function () {
+            this._r782 = 1;
+            Promise.resolve().then(() => {
+              if (typeof this.requestRemoval === 'function') {
+                const id = (this.data || 0).id;
+                if (!id) this.data = { id: 1 };
+                try {
+                  this.requestRemoval();
+                } catch (e) { }
+              }
+              this.detached();
+              this.data = null;
+              this.countdownMs = 0;
+              this.lastCountdownTimeMs = null;
+              if (this.__dataClientsReady === true) this.__dataClientsReady = false;
+              if (this.__dataEnabled === true) this.__dataEnabled = false;
+              if (this.__dataReady === true) this.__dataReady = false;
+              const hm = this.hostElement || this;
+              if (hm.parentNode) hm.remove();
+              if (hm.firstChild) hm.textContent = '';
+            }).catch(e => {
+              console.warn(e);
+            });
+          },
 
-            cProto.rtk = 0;
 
-            if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
-              urt++;
-              assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
-              cProto.handlePauseReplay66 = cProto.handlePauseReplay;
-              cProto.handlePauseReplay = function () {
-                if (playerState !== 2) return;
-                if (this.isAttached) {
-                  if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
-                  const tid = ++this.rtk;
-                  getRafPromiseForTickers().then(() => {
-                    if (tid === this.rtk) {
-                      if (playerState === 2) {
-                        this.handlePauseReplay66();
-                        isMainVideoOngoing = false;
-                      }
-                    }
-                  })
-                }
-              };
-            } else {
-              console.log('Error for setting cProto.handlePauseReplay', tag)
-            }
+          // doTimerFnModification
 
-            if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handlePauseReplay.length === 0) {
-              urt++;
-              assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
-              cProto.handleResumeReplay66 = cProto.handleResumeReplay;
-              cProto.handleResumeReplay = function () {
-                if (playerState === 2) return;
-                if (this.isAttached) {
-                  if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
-                  const tid = ++this.rtk;
-                  getRafPromiseForTickers().then(() => {
-                    if (tid === this.rtk) {
-                      if (playerState === 3 || playerState === 1) {
-                        this.handleResumeReplay66();
-                        isMainVideoOngoing = true;
-                      }
-                    }
-                  })
-                }
-              };
-            } else {
-              console.log('Error for setting cProto.handleResumeReplay', tag)
-            }
 
-            if (typeof cProto.handleReplayProgress === 'function' && !cProto.handleReplayProgress66 && cProto.handleReplayProgress.length === 1) {
-              urt++;
-              assertor(() => fnIntegrity(cProto.handleReplayProgress, '1.16.13'));
-              cProto.handleReplayProgress66 = cProto.handleReplayProgress;
-              cProto.handleReplayProgress = function (a) {
-                if (this.isAttached) {
-                  mainVideoLastProgress = a;
-                  const tid = ++this.rtk;
-                  getRafPromiseForTickers().then(() => {
-                    if (tid === this.rtk) {
-                      this.handleReplayProgress66(mainVideoLastProgress);
-                    }
-                  })
-                }
-              };
-            } else {
-              console.log('Error for setting cProto.handleReplayProgress', tag)
-            }
-
-          }
-
-          const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
-
-          const doTimerFnModification = (doRAFHack || doAnimator);
-
-          let windowShownAt = 0;
-          if (doTimerFnModification) {
-
-            window.addEventListener('visibilitychange', () => {
-              if (document.visibilityState === 'visible') windowShownAt = Date.now();
-              else windowShownAt = 0;
-            }, false);
-
-          }
-
-          cProto.startCountdown = doTimerFnModification ? function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+          /** @type {(a, b)} */
+          startCountdownForTimerFnModA: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
 
             // a.durationSec [s] => countdownMs [ms]
             // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
@@ -4326,49 +4228,48 @@
               return;
             }
 
-            if (doAnimator) {
-              b = void 0 === b ? 0 : b;
-              if (void 0 !== a) {
-                this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
-                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
-                if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
-                  this.rafId = 1
-                  if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
+            // TimerFnModA
+
+            b = void 0 === b ? 0 : b;
+            if (void 0 !== a) {
+              this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
+              this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
+              if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
+                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
+                this.rafId = 1
+                if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
+                this.detlaSincePausedSecs = 0;
+                const ae = this._makeAnimator();
+                if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+
+                if (playerState === 2 && this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
+
+                  // << This is mainly for [PlayBack Replay] backwards >>
+                  // fix the case when the main video is paused but due to seeking the tickers are added
+                  // play first then pause immediately to allow the visual effect of initial state
+                  // don't forget to set the "playerProgressSec"
+                  // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
+                  this.playerProgressSec = mainVideoLastProgress; // save the progress first
+                  this.isAnimationPaused = true; // trigger isAnimationPausedChanged
                   this.detlaSincePausedSecs = 0;
-                  const ae = this._makeAnimator();
-                  if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+                  this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
 
-                  if (playerState === 2 && this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
-
-                    // << This is mainly for [PlayBack Replay] backwards >>
-                    // fix the case when the main video is paused but due to seeking the tickers are added
-                    // play first then pause immediately to allow the visual effect of initial state
-                    // don't forget to set the "playerProgressSec"
-                    // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
-                    this.playerProgressSec = mainVideoLastProgress; // save the progress first
-                    this.isAnimationPaused = true; // trigger isAnimationPausedChanged
-                    this.detlaSincePausedSecs = 0;
-                    this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
-
-                  }
                 }
               }
-            } else {
-              // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
-              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-              b = void 0 === b ? 0 : b;
-              void 0 !== a && (this.countdownMs = 1E3 * a,
-                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
-                this.ratio = 1,
-                this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
-                  this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
             }
 
-          } : cProto.startCountdown;
 
-          // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
-          cProto.updateTimeout = doTimerFnModification ? function (a) {
+          },
+
+
+
+          /** @type {(a, b)} */
+          startCountdownForTimerFnModT: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+
+            // a.durationSec [s] => countdownMs [ms]
+            // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+            // lastCountdownTimeMs => raf ongoing
+            // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
             if (this._r782) return;
 
@@ -4377,38 +4278,83 @@
               return;
             }
 
-            if (doAnimator) {
-              if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
-              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-              }
-              if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-              if (this.isAttached && this.countdownMs) {
-                this.lastCountdownTimeMs = a
-                const ae = this._makeAnimator(); // request raf
-                if (!ae) console.warn('Error in startCountdown._makeAnimator()');
-              } else {
-                (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                    this.slideDown()));
-              }
-            } else {
-              // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
-              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-              }
-              this.ratio = this.countdownMs / this.countdownDurationMs;
-              this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
-                this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                    this.slideDown()))
+            // TimerFnModT
+
+            // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
+            if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+            b = void 0 === b ? 0 : b;
+            void 0 !== a && (this.countdownMs = 1E3 * a,
+              this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
+              this.ratio = 1,
+              this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
+                this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
+
+
+          },
+
+
+          /** @type {(a,)} */
+          updateTimeoutForTimerFnModA: function (a) {
+
+            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+
+            if (this._r782) return;
+
+            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+              this._throwOut();
+              return;
             }
 
-          } : cProto.updateTimeout;
+            // TimerFnModA
 
-          // let ez = 0;
-          cProto.isAnimationPausedChanged = doTimerFnModification ? function (a, b) {
+            if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
+            if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+            }
+            if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+            if (this.isAttached && this.countdownMs) {
+              this.lastCountdownTimeMs = a
+              const ae = this._makeAnimator(); // request raf
+              if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+            } else {
+              (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
+                this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                  this.slideDown()));
+            }
+
+
+          },
+
+          /** @type {(a,)} */
+          updateTimeoutForTimerFnModT: function (a) {
+
+            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+
+            if (this._r782) return;
+
+            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+              this._throwOut();
+              return;
+            }
+
+            // TimerFnModT
+
+            // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
+            if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+            if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+            }
+            this.ratio = this.countdownMs / this.countdownDurationMs;
+            this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
+              this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
+                this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                  this.slideDown()))
+
+
+          },
+
+          /** @type {(a,b)} */
+          isAnimationPausedChangedForTimerFnModA: function (a, b) {
 
             if (this._r782) return;
 
@@ -4421,45 +4367,37 @@
 
             Promise.resolve().then(() => {
 
-              if (doAnimator) {
 
-                const playState = (this._runnerAE || 0).playState;
-                if (a && playState === 'running') {
+              // TimerFnModA
 
-                } else if (!a && playState !== 'running' && b) {
+              const playState = (this._runnerAE || 0).playState;
+              if (a && playState === 'running') {
 
-                } else {
-                  return;
-                }
-              }
+              } else if (!a && playState !== 'running' && b) {
 
-              // if (Math.abs(this.detlaSincePausedSecs) < 0.01) this.detlaSincePausedSecs = 0;
-              if (doAnimator) {
-                const pu = () => { // running -> pause
-                  this._runnerAE.pause()
-                  let lc = window.performance.now();
-                  this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
-                  if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
-                };
-                const wa = () => { // pause -> running
-                  if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
-                  a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
-                  this.detlaSincePausedSecs = 0;
-                  this.updateTimeout(a);
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now();
-                };
-                a ? (this._runnerAE && pu()) : (!a && b && wa());
               } else {
-                // ez++;
-                // if(ez> 1e9) ez=9;
-                if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-                a ? rafHub.cancel(this.rafId) : !a && b && (a = this.lastCountdownTimeMs || 0,
-                  this.detlaSincePausedSecs && (a = (this.lastCountdownTimeMs || 0) + 1E3 * this.detlaSincePausedSecs,
-                    this.detlaSincePausedSecs = 0),
-                  this.boundUpdateTimeout37_(a),
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now())
+                return;
               }
+
+              // TimerFnModA
+
+
+              const pu = () => { // running -> pause
+                this._runnerAE.pause()
+                let lc = window.performance.now();
+                this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
+                if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
+              };
+              const wa = () => { // pause -> running
+                if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
+                a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
+                this.detlaSincePausedSecs = 0;
+                this.updateTimeout(a);
+                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now();
+              };
+              a ? (this._runnerAE && pu()) : (!a && b && wa());
+
 
             }).catch(e => {
               console.log(e);
@@ -4467,87 +4405,248 @@
 
 
 
-          } : cProto.isAnimationPausedChanged;
+          },
 
+
+          /** @type {(a,b)} */
+          isAnimationPausedChangedForTimerFnModT: function (a, b) {
+
+            if (this._r782) return;
+
+            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+              this._throwOut();
+              return;
+            }
+            let forceNoDetlaSincePausedSecs783 = this._forceNoDetlaSincePausedSecs783;
+            this._forceNoDetlaSincePausedSecs783 = 0;
+
+            Promise.resolve().then(() => {
+
+              // TimerFnModT
+
+              // ez++;
+              // if(ez> 1e9) ez=9;
+              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+              a ? rafHub.cancel(this.rafId) : !a && b && (a = this.lastCountdownTimeMs || 0,
+                this.detlaSincePausedSecs && (a = (this.lastCountdownTimeMs || 0) + 1E3 * this.detlaSincePausedSecs,
+                  this.detlaSincePausedSecs = 0),
+                this.boundUpdateTimeout37_(a),
+                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now())
+
+
+            }).catch(e => {
+              console.log(e);
+            });
+
+
+
+          },
+
+
+          /** @type {(a,b)} */
+          computeContainerStyleForAnimatorEnabled: function (a, b) {
+
+            if (this._r782) return;
+
+            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+              this._throwOut();
+              return;
+            }
+
+            return (dummyValueForStyleReturn || (dummyValueForStyleReturn = genDummyValueForStyleReturn()));
+
+          },
+
+
+
+          /** @type {()} */
+          handlePauseReplayForPlaybackProgressState: function () {
+            if (playerState !== 2) return;
+            if (this.isAttached) {
+              if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
+              const tid = ++this.rtk;
+              getRafPromiseForTickers().then(() => {
+                if (tid === this.rtk) {
+                  if (playerState === 2) {
+                    this.handlePauseReplay66();
+                    isMainVideoOngoing = false;
+                  }
+                }
+              })
+            }
+          },
+
+          /** @type {()} */
+          handleResumeReplayForPlaybackProgressState: function () {
+            if (playerState === 2) return;
+            if (this.isAttached) {
+              if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
+              const tid = ++this.rtk;
+              getRafPromiseForTickers().then(() => {
+                if (tid === this.rtk) {
+                  if (playerState === 3 || playerState === 1) {
+                    this.handleResumeReplay66();
+                    isMainVideoOngoing = true;
+                  }
+                }
+              })
+            }
+          },
+
+          /** @type {(a,)} */
+          handleReplayProgressForPlaybackProgressState: function (a) {
+            if (this.isAttached) {
+              mainVideoLastProgress = a;
+              const tid = ++this.rtk;
+              getRafPromiseForTickers().then(() => {
+                if (tid === this.rtk) {
+                  this.handleReplayProgress66(mainVideoLastProgress);
+                }
+              })
+            }
+          }
+
+
+        }
+
+
+        for (const tag of tags) { // ##tag##
+          const dummy = document.createElement(tag);
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            continue;
+          }
+
+          cProto.attached77 = cProto.attached;
+
+          cProto.attached = dProto.attachedForTickerInit;
+
+          let rafHackState = 0;
+
+          let isTimingFunctionHackable = false;
+
+          let urt = 0;
+
+          if (typeof cProto.startCountdown === 'function' && typeof cProto.updateTimeout === 'function' && typeof cProto.isAnimationPausedChanged === 'function') {
+
+            // console.log('startCountdown', typeof cProto.startCountdown)
+            // console.log('updateTimeout', typeof cProto.updateTimeout)
+            // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
+
+            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
+
+          } else {
+            console.log(`Skip Timing Function Modification for ${tag}`);
+            continue;
+          }
+
+
+          if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
+
+            // cancelable - this.rafId < isAnimationPausedChanged >
+            rafHackState = 1;
+
+            if (isTimingFunctionHackable) {
+              rafHackState = 2;
+
+            } else {
+              rafHackState = 4;
+            }
+
+          }
+
+          const doAnimator = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
+
+          const doRAFHack = rafHackState === 2;
+
+          cProto._throwOut = dProto._throwOut;
+
+          cProto._makeAnimator = doAnimator ? dProto._makeAnimator : null;
+
+          cProto._aeFinished = doAnimator ? dProto._aeFinished : null;
+
+
+          if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
+
+
+
+            if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
+              urt++;
+              assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
+            } else {
+              console.log('Error for setting cProto.handlePauseReplay', tag)
+            }
+
+            if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handlePauseReplay.length === 0) {
+              urt++;
+              assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
+            } else {
+              console.log('Error for setting cProto.handleResumeReplay', tag)
+            }
+
+            if (typeof cProto.handleReplayProgress === 'function' && !cProto.handleReplayProgress66 && cProto.handleReplayProgress.length === 1) {
+              urt++;
+              assertor(() => fnIntegrity(cProto.handleReplayProgress, '1.16.13'));
+            } else {
+              console.log('Error for setting cProto.handleReplayProgress', tag)
+            }
+
+
+
+          }
+
+          const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
+
+          if (ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED) {
+
+            cProto.rtk = 0;
+
+            cProto.handlePauseReplay66 = cProto.handlePauseReplay;
+            cProto.handlePauseReplay = dProto.handlePauseReplayForPlaybackProgressState;
+
+            cProto.handleResumeReplay66 = cProto.handleResumeReplay;
+            cProto.handleResumeReplay = dProto.handleResumeReplayForPlaybackProgressState;
+
+            cProto.handleReplayProgress66 = cProto.handleReplayProgress;
+            cProto.handleReplayProgress = dProto.handleReplayProgressForPlaybackProgressState;
+
+          }
+
+          const doTimerFnModification = (doRAFHack || doAnimator);
+
+          if (doAnimator && windowShownAt < 0) {
+            windowShownAt = 0;
+            setupEventForWindowShownAt();
+          }
+
+          if (doTimerFnModification) {
+
+            cProto.startCountdown = (
+              doAnimator ? dProto.startCountdownForTimerFnModA : dProto.startCountdownForTimerFnModT
+            );
+
+            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+            cProto.updateTimeout = (
+              doAnimator ? dProto.updateTimeoutForTimerFnModA : dProto.updateTimeoutForTimerFnModT
+            );
+
+
+            // let ez = 0;
+            cProto.isAnimationPausedChanged = (
+              doAnimator ? dProto.isAnimationPausedChangedForTimerFnModA : dProto.isAnimationPausedChangedForTimerFnModT
+            );
+
+          }
 
           if (doAnimator) {
 
             assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.81.31'));
 
-            let dummyValueForStyleReturn = null;
-
             cProto.computeContainerStyle66 = cProto.computeContainerStyle;
-            cProto.computeContainerStyle = function (a, b) {
 
-              if (this._r782) return;
-
-              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-                this._throwOut();
-                return;
-              }
-
-              const fullDurationSec = a ? a.fullDurationSec : 0;
-              if (fullDurationSec > 0 && typeof b === 'number') {
-
-                // usually zero
-
-                // let currentDuationSrc = b * fullDurationSec; // a.durationSec
-
-                // console.log(231, fullDurationSec, b, currentDuationSrc, a.durationSec);
-
-                /*
-                if (a.mdsz && typeof a.mdst) return a.mdst;
-                a.mdsz = 1;
-
-
-
-                let c1 = this.colorFromDecimal(a.startBackgroundColor);
-                let c2 = this.colorFromDecimal(a.endBackgroundColor);
-
-                let ratio = currentDuationSrc / fullDurationSec;
-
-                let m = (ratio * 100).toFixed(1);
-
-
-                let s = `--background:linear-gradient(90deg, ${c1},${c1} ${m}%,${c2} ${m}%,${c2});`
-                let ro = {
-                  "privateDoNotAccessOrElseSafeStyleWrappedValue_": s,
-                  "implementsGoogStringTypedString": true
-                };
-
-                ro.getTypedStringValue = ro.toString = function () { return this.privateDoNotAccessOrElseSafeStyleWrappedValue_ };
-
-                a.mdst = s;
-
-                return ro;
-                */
-              }
-
-
-
-              // return this.computeContainerStyle66.apply(this, arguments);
-
-              if (dummyValueForStyleReturn === null) {
-
-                let s = `--nx:82;`
-                let ro = {
-                  "privateDoNotAccessOrElseSafeStyleWrappedValue_": s,
-                  "implementsGoogStringTypedString": true
-                };
-
-                ro.getTypedStringValue = ro.toString = function () { return this.privateDoNotAccessOrElseSafeStyleWrappedValue_ };
-
-
-                dummyValueForStyleReturn = ro;
-
-
-              }
-
-
-              return dummyValueForStyleReturn;
-
-
-            }
+            cProto.computeContainerStyle = dProto.computeContainerStyleForAnimatorEnabled;
 
           }
 
@@ -4562,6 +4661,17 @@
           }
 
         }
+
+        const selector = tags.join(', ');
+        const elements = document.querySelectorAll(selector);
+        if (elements.length >= 1) {
+          for (const elm of elements) {
+            if ((elm || elm.inst).isAttached === true) {
+              fpTicker(elm);
+            }
+          }
+        }
+
         console.log("[End]");
         console.groupEnd();
 
@@ -5570,7 +5680,16 @@
           console.log("[Begin]");
           let doMouseHook = false;
 
-          for (const sTag of sTags) {
+          const dProto = {
+            isClickableChatRow111: function () {
+              return (
+                this.data && typeof this.shouldSupportWholeItemClick === 'function' && typeof this.hasModerationOverlayVisible === 'function' &&
+                this.data.contextMenuEndpoint && this.wholeMessageClickable && this.shouldSupportWholeItemClick() && !this.hasModerationOverlayVisible()
+              ); // follow .onItemTap(a)
+            }
+          };
+
+          for (const sTag of sTags) { // ##tag##
 
 
             (() => {
@@ -5595,12 +5714,7 @@
 
 
 
-                cProto.isClickableChatRow111 = function () {
-                  return (
-                    this.data && typeof this.shouldSupportWholeItemClick === 'function' && typeof this.hasModerationOverlayVisible === 'function' &&
-                    this.data.contextMenuEndpoint && this.wholeMessageClickable && this.shouldSupportWholeItemClick() && !this.hasModerationOverlayVisible()
-                  ); // follow .onItemTap(a)
-                }
+                cProto.isClickableChatRow111 = dProto.isClickableChatRow111;
 
 
 
@@ -5648,6 +5762,32 @@
 
       }
 
+
+      const __showContextMenu_assign_lock_with_external_unlock_ = function (targetCnt) {
+
+        let rr = null;
+        const p1 = new Promise(resolve => {
+          rr = resolve;
+        });
+
+        const p1unlock = () => {
+          const f = rr;
+          if (f) {
+            rr = null;
+            f();
+          }
+        }
+
+        return {
+          p1,
+          p1unlock,
+          assignLock: (targetCnt, timeout) => {
+            targetCnt.__showContextMenu_assign_lock__(p1);
+            if (timeout) setTimeout(p1unlock, timeout);
+          }
+        }
+
+      }
 
       if (PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN) {
 
@@ -5703,10 +5843,9 @@
             return;
           }
 
-          if (typeof targetCnt.__getCachedEndpointData__ !== 'function') return;
-          if (targetCnt.__getCachedEndpointData__(endpoint)) return;
+          if (typeof targetCnt.__getCachedEndpointData__ !== 'function' || targetCnt.__getCachedEndpointData__(endpoint)) return;
 
-          if (!targetCnt.__showContextMenu_mutex_unlock_isEmpty__()) {
+          if ((typeof targetCnt.__showContextMenu_mutex_unlock_isEmpty__ === 'function') && !targetCnt.__showContextMenu_mutex_unlock_isEmpty__()) {
             console.log('preRequest on showContextMenu aborted due to stacked network request');
             return;
           }
@@ -5755,18 +5894,14 @@
           if (doPreRequest) {
 
             let propertyCounter = 0;
-            let p1unlock = null;
-            const p1 = new Promise(r => {
-              p1unlock = r;
-            });
+            const pm1 = __showContextMenu_assign_lock_with_external_unlock_(targetCnt);
             const p1Timeout = 800;
             const proxyKey = '__$$__proxy_to_this__$$__' + Date.now();
 
             try {
 
               const onSuccessHelperFn = function () {
-                p1unlock && p1unlock();
-                p1unlock = null;
+                pm1.p1unlock();
                 if (propertyCounter !== 5) {
                   console.log('Error in prerequest for showContextMenu.onSuccessHelperFn')
                   return;
@@ -5778,8 +5913,7 @@
                 onSuccess(...arguments);
               };
               const onFailureHelperFn = function () {
-                p1unlock && p1unlock();
-                p1unlock = null;
+                pm1.p1unlock();
                 if (propertyCounter !== 5) {
                   console.log('Error in prerequest for showContextMenu.onFailureHelperFn')
                   return;
@@ -5843,11 +5977,9 @@
               console.log('Error in prerequest for showContextMenu', propertyCounter);
               return;
             }
-            targetCnt.__showContextMenu_assign_lock__(p1);
-            setTimeout(() => {
-              p1unlock && p1unlock();
-              p1unlock = null;
-            }, p1Timeout);
+
+            pm1.assignLock(targetCnt, p1Timeout);
+
           }
 
 
@@ -5885,12 +6017,174 @@
 
       ]).then(sTags => {
 
+        console.log(123123, sTags)
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
         console.log("[Begin]");
 
-        for (const tag of sTags) {
+
+        const __showContextMenu_mutex__ = new Mutex();
+        let __showContextMenu_mutex_unlock__ = null;
+        let lastShowMenuTarget = null;
+
+        function deepCopy(obj, skipKeys) {
+          skipKeys = skipKeys || [];
+          if (!obj || typeof obj !== 'object') return obj;
+          if (Array.isArray(obj)) {
+            return obj.map(item => deepCopy(item, skipKeys));
+          }
+          const copy = {};
+          for (let key in obj) {
+            if (!skipKeys.includes(key)) {
+              copy[key] = deepCopy(obj[key], skipKeys);
+            }
+          }
+          return copy;
+        }
+
+
+
+        const wm37 = new WeakMap();
+
+        const dProto = {
+
+
+          // CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN
+
+          __cacheResolvedEndpointData__: (endpoint, a, doDeepCopy) => {
+            if (a) {
+              if (doDeepCopy) a = deepCopy(a);
+              wm37.set(endpoint, a);
+            } else {
+              wm37.remove(endpoint);
+            }
+          },
+          __getCachedEndpointData__: function (endpoint) {
+            endpoint = endpoint || (this.data || 0).contextMenuEndpoint || 0;
+            if (endpoint) return wm37.get(endpoint);
+            return null;
+          },
+          /** @type {(resolvedEndpoint: any) => void 0} */
+          __showCachedContextMenu__: function (resolvedEndpoint) { // non-null
+
+            resolvedEndpoint = deepCopy(resolvedEndpoint);
+            // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
+            Promise.resolve(resolvedEndpoint).then(() => {
+              this.__showContextMenu_skip_cacheResolvedEndpointData__ = 1;
+              this.showContextMenu_(resolvedEndpoint);
+              this.__showContextMenu_skip_cacheResolvedEndpointData__ = 0;
+            });
+
+
+          },
+
+
+
+          showContextMenuForCacheReopen: function (a) {
+            if (!this.__showContextMenu_forceNativeRequest__) {
+              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+              if (endpoint) {
+                const resolvedEndpoint = this.__getCachedEndpointData__(endpoint);
+                if (resolvedEndpoint) {
+                  this.__showCachedContextMenu__(resolvedEndpoint);
+                  a && a.stopPropagation()
+                  return;
+                }
+              }
+            }
+            return this.showContextMenu37(a);
+          },
+
+          showContextMenuForCacheReopen_: function (a) {
+            if (!this.__showContextMenu_skip_cacheResolvedEndpointData__) {
+              const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+              if (endpoint) {
+                const f = this.__cacheResolvedEndpointData__;
+                if (typeof f === 'function') f(endpoint, a, true);
+              }
+            }
+            return this.showContextMenu37_(a);
+          },
+
+          // ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU
+
+          showContextMenuWithDisableScroll: function (a) {
+
+            const endpoint = (this.data || 0).contextMenuEndpoint || 0;
+            if (endpoint && typeof this.is === 'string' && this.menuVisible === false && this.menuOpen === false) {
+
+              const parentComponent = this.parentComponent;
+              if (parentComponent && parentComponent.is === 'yt-live-chat-item-list-renderer' && parentComponent.contextMenuOpen === false && parentComponent.allowScroll === true) {
+                parentComponent.allowScroll = false;
+              }
+            }
+
+            return this.showContextMenu48.apply(this, arguments);
+
+          },
+
+          // ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU
+
+          __showContextMenu_mutex_unlock_isEmpty__: () => {
+            return __showContextMenu_mutex_unlock__ === null;
+          },
+
+          __showContextMenu_assign_lock__: function (p) {
+
+            const mutex = __showContextMenu_mutex__;
+
+            mutex.lockWith(unlock => {
+              p.then(unlock);
+            });
+
+          },
+
+          showContextMenuWithMutex: function (a) {
+            lastShowMenuTarget = this;
+
+            if (this.__showContextMenu_sync_mode_request__) {
+
+              return this.showContextMenu47(a);
+            } else {
+
+              const mutex = __showContextMenu_mutex__;
+
+              mutex.lockWith(unlock => {
+                if (lastShowMenuTarget !== this) {
+                  unlock();
+                  return;
+                }
+
+                setTimeout(unlock, 800); // in case network failure
+                __showContextMenu_mutex_unlock__ = unlock;
+                try {
+                  this.showContextMenu47(a);
+                } catch (e) {
+                  console.warn(e);
+                  unlock(); // in case function script error
+                }
+
+              });
+
+            }
+
+
+          },
+
+          showContextMenuWithMutex_: function (a) {
+
+            if (__showContextMenu_mutex_unlock__ && this === lastShowMenuTarget) {
+              __showContextMenu_mutex_unlock__();
+              __showContextMenu_mutex_unlock__ = null;
+            }
+            return this.showContextMenu47_(a);
+
+          }
+
+        }
+
+        for (const tag of sTags) { // ##tag##
 
 
 
@@ -5912,164 +6206,14 @@
               cProto.showContextMenu37_ = cProto.showContextMenu_;
               cProto.showContextMenu37 = cProto.showContextMenu;
 
-              function deepCopy(obj, skipKeys) {
-                skipKeys = skipKeys || [];
-                if (!obj || typeof obj !== 'object') return obj;
-                if (Array.isArray(obj)) {
-                  return obj.map(item => deepCopy(item, skipKeys));
-                }
-                const copy = {};
-                for (let key in obj) {
-                  if (!skipKeys.includes(key)) {
-                    copy[key] = deepCopy(obj[key], skipKeys);
-                  }
-                }
-                return copy;
-              }
-
-              /*
-              const wm37 = new WeakMap();
               cProto.__showContextMenu_forceNativeRequest__ = 0;
-              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
-                if (a) {
-                  if (doDeepCopy) a = deepCopy(a);
-                  wm37.set(endpoint, a);
-                } else {
-                  wm37.remove(endpoint);
-                }
-              }
-              cProto.__showContextMenuNetworkRequestMutex__ = null;
-              cProto.__showContextMenuNetworkRequestMutexResolve__  = null;
-              cProto.showContextMenu = function (a) {
-                if(this.__showContextMenu_forceNativeRequest__){
-                  return this.showContextMenu37(a);
-                }
-                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                if (!endpoint) {
-                  return this.showContextMenu37(a);
-                }
-                this.__showContextMenuNetworkRequestMutex__ = (this.__showContextMenuNetworkRequestMutex__ || Promise.resolve())
-                .then(()=>new Promise(lockResolve=>{
+              cProto.__cacheResolvedEndpointData__ = dProto.__cacheResolvedEndpointData__
+              cProto.__getCachedEndpointData__ = dProto.__getCachedEndpointData__
+              cProto.__showCachedContextMenu__ = dProto.__showCachedContextMenu__
 
-                  if (endpoint !== (this.data || 0).contextMenuEndpoint || 0){
-                    lockResolve();
-                    return;
-                  }
+              cProto.showContextMenu = dProto.showContextMenuForCacheReopen;
 
-                  if (endpoint) {
-                    let resolvedEndpoint = wm37.get(endpoint);
-                    if (resolvedEndpoint) {
-                      resolvedEndpoint = deepCopy(resolvedEndpoint);
-                      // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
-                      Promise.resolve(resolvedEndpoint).then(() => {
-                        this.showContextMenu37_(resolvedEndpoint);
-                      });
-                      lockResolve();
-                      return;
-                      //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
-                      //return;
-                    }
-
-                    this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
-                      this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
-
-                    }).then((a)=>{
-
-                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                  if (endpoint) {
-                    const f = this.__cacheResolvedEndpointData__
-                    if (typeof f === 'function') f(endpoint, a, true);
-                  }
-                   this.showContextMenu37_(a);
-                   lockResolve();
-
-                    }).catch(console.warn)
-
-                  }else{
-
-                    this.__showContextMenuNetworkRequestMutexResolve__ = null;
-                    this.showContextMenu37(a);
-                    lockResolve();
-                  }
-
-
-
-
-                })).catch(console.warn);
-              }
-
-              cProto.showContextMenu_ = function (a) {
-
-                let resolve = this.__showContextMenuNetworkRequestMutexResolve__;
-                this.__showContextMenuNetworkRequestMutexResolve__= null;
-
-                if (resolve) {
-                  resolve(a);
-                } else {
-                  return this.showContextMenu37_(a);
-                }
-
-              }
-              */
-
-
-              const wm37 = new WeakMap();
-              cProto.__showContextMenu_forceNativeRequest__ = 0;
-              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
-                if (a) {
-                  if (doDeepCopy) a = deepCopy(a);
-                  wm37.set(endpoint, a);
-                } else {
-                  wm37.remove(endpoint);
-                }
-              }
-              cProto.__getCachedEndpointData__ = function (endpoint) {
-                endpoint = endpoint || (this.data || 0).contextMenuEndpoint || 0;
-                if (endpoint) return wm37.get(endpoint);
-                return null;
-              }
-              cProto.__showCachedContextMenu__ = function (resolvedEndpoint) { // non-null
-
-                resolvedEndpoint = deepCopy(resolvedEndpoint);
-                // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
-                Promise.resolve(resolvedEndpoint).then(() => {
-                  this.__showContextMenu_skip_cacheResolvedEndpointData__ = 1;
-                  this.showContextMenu_(resolvedEndpoint);
-                  this.__showContextMenu_skip_cacheResolvedEndpointData__ = 0;
-                });
-
-
-
-              }
-
-              cProto.showContextMenu = function (a) {
-                if (!this.__showContextMenu_forceNativeRequest__) {
-                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                  if (endpoint) {
-                    const resolvedEndpoint = this.__getCachedEndpointData__(endpoint);
-                    if (resolvedEndpoint) {
-                      this.__showCachedContextMenu__(resolvedEndpoint);
-                      a && a.stopPropagation()
-                      return;
-                    }
-                  }
-                }
-                return this.showContextMenu37(a);
-              }
-
-              cProto.showContextMenu_ = function (a) {
-                if (!this.__showContextMenu_skip_cacheResolvedEndpointData__) {
-                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                  if (endpoint) {
-                    const f = this.__cacheResolvedEndpointData__;
-                    if (typeof f === 'function') f(endpoint, a, true);
-                  }
-                }
-                return this.showContextMenu37_(a);
-              }
-
-
-
+              cProto.showContextMenu_ = dProto.showContextMenuForCacheReopen_;
 
 
               console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
@@ -6078,7 +6222,7 @@
 
             } else {
 
-              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN -  NG", tag);
+              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - NG", tag);
 
             }
 
@@ -6090,20 +6234,7 @@
               cProto.showContextMenu48 = cProto.showContextMenu;
 
 
-              cProto.showContextMenu = function (a) {
-
-                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                if (endpoint && typeof this.is === 'string' && this.menuVisible === false && this.menuOpen === false) {
-
-                  const parentComponent = this.parentComponent;
-                  if (parentComponent && parentComponent.is === 'yt-live-chat-item-list-renderer' && parentComponent.contextMenuOpen === false && parentComponent.allowScroll === true) {
-                    parentComponent.allowScroll = false;
-                  }
-                }
-
-                return this.showContextMenu48.apply(this, arguments);
-
-              }
+              cProto.showContextMenu = dProto.showContextMenuWithDisableScroll;
 
 
 
@@ -6113,7 +6244,7 @@
 
             } else {
 
-              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU -  NG", tag);
+              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - NG", tag);
 
             }
 
@@ -6126,149 +6257,10 @@
               cProto.showContextMenu47_ = cProto.showContextMenu_;
               cProto.showContextMenu47 = cProto.showContextMenu;
 
-              const mutex = new Mutex();
-              let __showContextMenu_mutex_unlock__ = null;
-              cProto.__showContextMenu_mutex_unlock_isEmpty__ = () => {
-                return __showContextMenu_mutex_unlock__ === null;
-              }
-              cProto.__showContextMenu_assign_lock__ = function (p) {
-
-
-                mutex.lockWith(unlock => {
-                  p.then(unlock);
-                });
-
-              }
-              let lastShowMenuTarget = null;
-              cProto.showContextMenu = function (a) {
-                lastShowMenuTarget = this;
-
-                if (this.__showContextMenu_sync_mode_request__) {
-
-                  return this.showContextMenu47(a);
-                } else {
-
-
-                  mutex.lockWith(unlock => {
-                    if (lastShowMenuTarget !== this) {
-                      unlock();
-                      return;
-                    }
-
-                    setTimeout(unlock, 800); // in case network failure
-                    __showContextMenu_mutex_unlock__ = unlock;
-                    try {
-                      this.showContextMenu47(a);
-                    } catch (e) {
-                      console.warn(e);
-                      unlock(); // in case function script error
-                    }
-
-                  });
-
-                }
-
-
-              }
-
-
-              cProto.showContextMenu_ = function (a) {
-
-                if (__showContextMenu_mutex_unlock__ && this === lastShowMenuTarget) {
-                  __showContextMenu_mutex_unlock__();
-                  __showContextMenu_mutex_unlock__ = null;
-                }
-                return this.showContextMenu47_(a);
-
-              }
-
-              /*
-              const wm37 = new WeakMap();
-              cProto.__showContextMenu_forceNativeRequest__ = 0;
-              cProto.__cacheResolvedEndpointData__ = (endpoint, a, doDeepCopy) => {
-                if (a) {
-                  if (doDeepCopy) a = deepCopy(a);
-                  wm37.set(endpoint, a);
-                } else {
-                  wm37.remove(endpoint);
-                }
-              }
-              cProto.__showContextMenuNetworkRequestMutex__ = null;
-              cProto.__showContextMenuNetworkRequestMutexResolve__  = null;
-              cProto.showContextMenu = function (a) {
-                if(this.__showContextMenu_forceNativeRequest__){
-                  return this.showContextMenu37(a);
-                }
-                const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                if (!endpoint) {
-                  return this.showContextMenu37(a);
-                }
-                this.__showContextMenuNetworkRequestMutex__ = (this.__showContextMenuNetworkRequestMutex__ || Promise.resolve())
-                .then(()=>new Promise(lockResolve=>{
-
-                  if (endpoint !== (this.data || 0).contextMenuEndpoint || 0){
-                    lockResolve();
-                    return;
-                  }
-
-                  if (endpoint) {
-                    let resolvedEndpoint = wm37.get(endpoint);
-                    if (resolvedEndpoint) {
-                      resolvedEndpoint = deepCopy(resolvedEndpoint);
-                      // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
-                      Promise.resolve(resolvedEndpoint).then(() => {
-                        this.showContextMenu37_(resolvedEndpoint);
-                      });
-                      lockResolve();
-                      return;
-                      //this.showContextMenu37_(JSON.parse(JSON.stringify(a)));
-                      //return;
-                    }
-
-                    this.__showContextMenuNetworkRequestMutexResolve__ = new Promise(resolve=>{
-                      this.__showContextMenuNetworkRequestMutexResolve__ = resolve;
-
-                    }).then((a)=>{
-
-                  const endpoint = (this.data || 0).contextMenuEndpoint || 0;
-                  if (endpoint) {
-                    const f = this.__cacheResolvedEndpointData__
-                    if (typeof f === 'function') f(endpoint, a, true);
-                  }
-                   this.showContextMenu37_(a);
-                   lockResolve();
-
-                    }).catch(console.warn)
-
-                  }else{
-
-                    this.__showContextMenuNetworkRequestMutexResolve__ = null;
-                    this.showContextMenu37(a);
-                    lockResolve();
-                  }
-
-
-
-
-                })).catch(console.warn);
-              }
-
-              cProto.showContextMenu_ = function (a) {
-
-                let resolve = this.__showContextMenuNetworkRequestMutexResolve__;
-                this.__showContextMenuNetworkRequestMutexResolve__= null;
-
-                if (resolve) {
-                  resolve(a);
-                } else {
-                  return this.showContextMenu37_(a);
-                }
-
-              }
-              */
-
-
-
+              cProto.__showContextMenu_mutex_unlock_isEmpty__ = dProto.__showContextMenu_mutex_unlock_isEmpty__;
+              cProto.__showContextMenu_assign_lock__ = dProto.__showContextMenu_assign_lock__;
+              cProto.showContextMenu = dProto.showContextMenuWithMutex;
+              cProto.showContextMenu_ = dProto.showContextMenuWithMutex_;
 
               console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - OK", tag);
 
@@ -6276,7 +6268,7 @@
 
             } else {
 
-              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU -  NG", tag);
+              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - NG", tag);
 
             }
 
