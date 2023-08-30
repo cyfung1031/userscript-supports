@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.7
+// @version             0.54.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4072,6 +4072,7 @@
                 }
 
 
+                /** @type {Animation} */
                 const ae = animate.call(aElement,
                   [
                     { '--ticker-rtime': '100%' },
@@ -4089,6 +4090,7 @@
 
                 ae.onfinish = (event) => {
                   this.onfinish = null;
+                  if (this._runnerAE !== ae) return;
                   if (this.isAttached === true && !this._r782 && ((this.$ || 0).container || 0).isConnected === true) {
                     this._aeFinished(event);
                   }
@@ -4160,43 +4162,40 @@
               return;
             }
 
-            if (doAnimator) {
-              if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
+            if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
 
-              let lc = window.performance.now();
-              this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
-              if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-              this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
-              if (this.countdownMs > 76) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
+            let lc = window.performance.now();
+            this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
+            if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+            this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
+            if (this.countdownMs > 76) console.warn('Warning: this.countdownMs is not zero when finished!', this.countdownMs, this, event); // just warning.
 
-              this.countdownMs = 0;
-              this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null;
+            this.countdownMs = 0;
+            this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null;
 
-              if (this.isAttached) {
-                let fastRemoved = false;
-                if (Date.now() - windowShownAt < 80 && typeof this.requestRemoval === 'function') {
-                  // no animation if the video page is switched from background to foreground
-                  // this.hostElement.style.display = 'none';
-                  const id = (this.data || 0).id || 0;
-                  if (!id) this.data = { id: 1 }
-                  try {
-                    this.requestRemoval();
-                    fastRemoved = true;
-                  } catch (e) {
+            if (this.isAttached) {
+              let fastRemoved = false;
+              if (Date.now() - windowShownAt < 80 && typeof this.requestRemoval === 'function') {
+                // no animation if the video page is switched from background to foreground
+                // this.hostElement.style.display = 'none';
+                const id = (this.data || 0).id || 0;
+                if (!id) this.data = { id: 1 }
+                try {
+                  this.requestRemoval();
+                  fastRemoved = true;
+                } catch (e) {
 
-                  }
-                }
-
-                if (!fastRemoved) {
-                  "auto" === this.hostElement.style.width && this.setContainerWidth();
-                  this.slideDown();
                 }
               }
 
-
-            } else {
-              console.warn('unexpected issue')
+              if (!fastRemoved) {
+                "auto" === this.hostElement.style.width && this.setContainerWidth();
+                this.slideDown();
+              }
             }
+
+
+
           },
 
 
