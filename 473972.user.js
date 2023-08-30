@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.1
+// @version     0.4.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -244,19 +244,6 @@
   }
 
 
-  let foregroundPromise = null;
-
-  const getForegroundPromise = () => {
-    if (document.visibilityState === 'visible') return Promise.resolve();
-    else {
-      return foregroundPromise = foregroundPromise || new Promise(resolve => {
-        requestAnimationFrame(() => {
-          foregroundPromise = null;
-          resolve();
-        });
-      });
-    }
-  }
 
   // << if FIX_schedulerInstanceInstance_ >>
 
@@ -399,12 +386,21 @@
 
 
     let rafPromiseForTickers = null;
-    const getRafPromiseForTickers = () => (rafPromiseForTickers = (rafPromiseForTickers || new Promise(resolve => {
-      requestAnimationFrame((hRes) => {
-        rafPromiseForTickers = null;
-        resolve(hRes);
-      });
-    })));
+
+    const getRafPromiseForTickers = () => rafPromiseForTickers || (rafPromiseForTickers = new Promise(resolve => {
+        requestAnimationFrame(hRes => {
+            rafPromiseForTickers = null;
+            resolve(hRes);
+        });
+    }));
+
+    const getForegroundPromise = () => {
+      if (document.visibilityState === 'visible') {
+        return Promise.resolve();
+      } else {
+        return getRafPromiseForTickers();
+      }
+    }
 
     const promiseForTamerTimeout = new Promise(resolve => {
       promiseForCustomYtElementsReady.then(() => {
@@ -887,42 +883,120 @@
 
         k = keyzo
 
+        const setCSSProp=(()=>{
+
+          let animationPropCapable = false;
+          try{
+            const propName = "--ibxpf"
+            const value = 2;
+            const keyframes = [{
+              [propName]: value
+            }];
+            window.CSS.registerProperty({
+              name: "--ibxpf",
+              syntax: "<number>",
+              inherits: false,
+              initialValue: 1,
+            });
+            animationPropCapable = '1' === `${getComputedStyle(document.documentElement).getPropertyValue('--ibxpf')}`
+          }catch(e){}
+          
+          if(!animationPropCapable){
+            return (element, cssProp, value)=>{
+
+
+              element.style.setProperty(cssProp, value);
+
+            }
+          }
+
+          const propMaps = new Map();
+
+          function setCustomCSSProperty(element, propName, value) {
+            let wm=propMaps.get(propName);
+            if(!wm){
+
+              try{
+                window.CSS.registerProperty({
+                  name: propName,
+                  syntax: "*",
+                  inherits: false
+                });
+              }catch(e){
+                console.warn(e);
+              }
+
+              propMaps.set(propName, (wm= new WeakMap()));
+            } 
+            
+              // Create the animation keyframes with the provided property and value
+              const keyframes = [{
+                [propName]: value
+              }];
+              
+              let currentAnimation = wm.get(element);
+              if(currentAnimation){
+              
+                  currentAnimation.effect.setKeyframes(keyframes);
+            
+              }else{
+
+              
+                
+                // Set the animation on the element and immediately pause it
+                const animation =  animate.call( element, keyframes, {
+                  duration: 1, // Very short duration as we just want to set the value
+                  fill: 'forwards',
+                  iterationStart: 1,
+                  iterations: 2,
+                  direction: 'alternate'
+                });
+                
+              
+                // animation.currentTime = 1;
+                animation.pause();
+                
+                wm.set(element, animation);
+                
+              
+              }
+            
+            }
+  
+            return setCustomCSSProperty;
+
+
+        })();
+
+
         const attrUpdateFn = g[k];
         g['$$original$$' + k] = attrUpdateFn;
         g[k] = function (a, b, c) {
 
           // console.log(140000, a, b, c);
 
-          if (b === "transform") {
+          let transformType = '';
+          let transformValue = 0;
+          let transformUnit = '';
+          
+          let byPassDefaultFn = false;
+          if (b === "transform" && typeof c ==='string') {
+
+            byPassDefaultFn = true;
+
+            const aStyle = a.style;
+
+            // let beforeMq = aStyle.getPropertyValue('--mq-transform');
             if (!(a instanceof HTMLElement)) return;
             if (c.length === 0) {
-
-              if (!a.style.transform) return;
 
             } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
               let p = c.substring(7, c.length - 1);
               let q = p.length >= 1 ? parseFloat(p) : -1;
               if (q > -1e-5 && q < 1 + 1e-5) {
-                let vz = Math.round(steppingScaleN * q);
-
-                const aStyle = a.style;
-                const currentValue = aStyle.getPropertyValue('--stepped-scalex');
-
-                const transform = (aStyle.transform || '');
-                const u = transform.includes('--stepped-scalex')
-                if (`${currentValue}` === `${vz}`) {
-                  if (u) return;
-                }
-
-                aStyle.setProperty('--stepped-scalex', vz)
-
-
-                if (u) return;
-                c = `scalex(calc(var(--stepped-scalex)/${steppingScaleN}))`;
-
-
-
-
+                transformType = 'scalex'
+                transformValue = q;
+                transformUnit = '';
               }
 
 
@@ -931,27 +1005,10 @@
               let p = c.substring(11, c.length - 3);
               let q = p.length >= 1 ? parseFloat(p) : NaN;
 
-              if (q !== NaN && typeof q === 'number') {
-
-
-                let vz = q.toFixed(1);
-
-                const aStyle = a.style;
-                const currentValue = (aStyle.getPropertyValue('--stepped-translateX') || '').replace('px', '');
-
-
-                const transform = (aStyle.transform || '');
-                const u = transform.includes('--stepped-translateX')
-                if (parseFloat(currentValue).toFixed(1) === vz) {
-                  if (u) return;
-                }
-
-                aStyle.setProperty('--stepped-translateX', vz + 'px')
-
-
-                if (u) return;
-                c = `translateX(var(--stepped-translateX))`;
-
+              if (typeof q === 'number' && !isNaN(q)) {
+                transformType = 'translateX'
+                transformValue = q;
+                transformUnit = 'px';
               }
 
 
@@ -959,26 +1016,9 @@
               let p = c.substring(7, c.length - 1);
               let q = p.length >= 1 ? parseFloat(p) : -1;
               if (q > -1e-5 && q < 1 + 1e-5) {
-                let vz = Math.round(steppingScaleN * q);
-
-                const aStyle = a.style;
-                const currentValue = aStyle.getPropertyValue('--stepped-scaley');
-
-                const transform = (aStyle.transform || '');
-                const u = transform.includes('--stepped-scaley')
-                if (currentValue === `${vz}`) {
-                  if (u) return;
-                }
-
-                aStyle.setProperty('--stepped-scaley', vz)
-
-
-                if (u) return;
-                c = `scaley(calc(var(--stepped-scaley)/${steppingScaleN}))`;
-
-
-
-
+                transformType = 'scaley'
+                transformValue = q;
+                transformUnit = '';
               }
 
 
@@ -987,35 +1027,138 @@
               let p = c.substring(11, c.length - 3);
               let q = p.length >= 1 ? parseFloat(p) : NaN;
 
-              if (q !== NaN && typeof q === 'number') {
-
-
-                let vz = q.toFixed(1);
-
-                const aStyle = a.style;
-                const currentValue = aStyle.getPropertyValue('--stepped-translateY');
-
-                const transform = (aStyle.transform || '');
-                const u = transform.includes('--stepped-translateY')
-                if (currentValue === `${vz}`) {
-                  if (u) return;
-                }
-
-                aStyle.setProperty('--stepped-translateY', vz + 'px')
-
-
-                if (u) return;
-                c = `translateY(var(--stepped-translateY))`;
-
+              if (typeof q === 'number' && !isNaN(q)) {
+                transformType = 'translateY'
+                transformValue = q;
+                transformUnit = 'px';
               }
 
 
             }
+
+            if(transformType){
+
+              if(transformType === 'scalex' || transformType ==='scaley'){
+
+                const q = transformValue;
+
+
+                /*
+
+                let vz = Math.round(steppingScaleN * q);
+                const customPropName = '--discrete-'+transformType
+
+                const currentValue = aStyle.getPropertyValue(customPropName);
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes(customPropName)
+                if (`${currentValue}` === `${vz}`) {
+                  if (u) return;
+                }
+
+
+                setCSSProp(a,customPropName, vz);
+                // aStyle.setProperty(customPropName, vz)
+
+                let ck = '';
+
+                if (c.length === 9) ck = c;
+                else if (!u) ck = c.replace(/[.\d]+/, '0.5');
+
+                if (ck && beforeMq !== ck) {
+                  aStyle.setProperty('--mq-transform', ck);
+                }
+
+                if (u) return;
+                c = `${transformType}(calc(var(--discrete-${transformType})/${steppingScaleN}))`;
+
+
+
+                */
+
+                const vz = +(Math.round(q * steppingScaleN) / steppingScaleN).toFixed(3);
+
+                c = `${transformType ==='scalex' ? 'scaleX' : 'scaleY' }(${ vz })`
+                const cv = aStyle.transform;
+
+                // console.log(157, cv,c)
+
+                if(c === cv) return;
+                // console.log(257, cv,c)
+
+                aStyle.transform = c;
+
+                // return;
+                
+              }else if(transformType ==='translateX' || transformType ==='translateY'){
+
+                const q = transformValue;
+
+                /*
+
+                let vz = q.toFixed(1);
+                const customPropName = '--discrete-'+transformType
+
+                const aStyle = a.style;
+                const currentValue = (aStyle.getPropertyValue(customPropName) || '').replace('px', '');
+
+
+                const transform = (aStyle.transform || '');
+                const u = transform.includes(customPropName)
+                if (parseFloat(currentValue).toFixed(1) === vz) {
+                  if (u) return;
+                }
+
+                setCSSProp(a,customPropName, vz + 'px');
+                // aStyle.setProperty(customPropName, vz + 'px')
+
+                let ck = '';
+                if (c.length === 15) ck = c;
+                else if (!u) ck = c.replace(/[.\d]+/, '0.5');
+
+                if (ck && beforeMq !== ck) {
+                  aStyle.setProperty('--mq-transform', ck);
+                }
+
+                if (u) return;
+                c = `${transformType}(var(--discrete-${transformType}))`;
+
+                */
+
+
+                const vz = +q.toFixed(1);
+
+                c = `${transformType}(${ vz }${transformUnit})`
+                const cv = aStyle.transform;
+
+                // console.log(158, cv,c)
+
+                if(c === cv) return;
+                // console.log(258, cv,c)
+
+                aStyle.transform = c;
+
+                // return;
+
+              }else{
+                throw new Error();
+              }
+
+            }else{
+              // if(beforeMq) a.style.setProperty('--mq-transform', '');
+              const cv = aStyle.transform
+              if (!c && !cv) return;
+              else if (c === cv) return;
+              aStyle.transform = c;
+              // return;
+            }
+
           } else if (b === "display") {
 
             const cv = a.style.display;
             if (!cv && !c) return;
             if (cv === c) return;
+            
 
           } else if (b === "width") {
 
@@ -1027,6 +1170,7 @@
 
           // console.log(130000, a, b, c);
 
+          if(byPassDefaultFn) return;
           return attrUpdateFn.call(this, a, b, c);
         }
 
@@ -1083,8 +1227,10 @@
               return;
             }
             if (!cache) {
+              this.__oldValueByUpdateValue__ = null;
               ntLog.set(element, cache = { value: b });
             } else {
+              this.__oldValueByUpdateValue__ = cache.value;
               cache.value = b;
             }
 
@@ -1274,7 +1420,7 @@
             if (0 == b._animations.length) {
               restartWebAnimationsNextTickFlag = false;
             } else {
-              getForegroundPromise().then(runnerFn);
+              getRafPromiseForTickers().then(runnerFn);
             }
           }
 
