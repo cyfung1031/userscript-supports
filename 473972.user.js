@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.3
+// @version     0.4.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -22,6 +22,161 @@
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
   const CHANGE_appendChild = true;
+
+  const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
+  const FIX_error_many_stack_keepAliveDuration = 200; // ms
+  const FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than = 8;
+
+  /*
+  window.addEventListener('edm',()=>{
+    let p = [...this.onerror.errorTokens][0].token; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+  });
+
+  window.addEventListener('edn',()=>{
+    let p = [...this.onerror.errorTokens][0].token+"X"; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+  });
+  window.addEventListener('edr',()=>{
+    let p = '123'; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+  });
+*/
+
+
+  ; (() => {
+
+    if (FIX_error_many_stack && self instanceof Window) {
+      // infinite stack due to matchesStackTrace inside objectPrune of AdsBlock
+
+      const pdK = Object.getOwnPropertyDescriptor(window, 'onerror');
+      if (!pdK || (pdK.get && pdK.configurable)) {
+
+      } else {
+        return;
+      }
+
+      let unsupportErrorFix = false;
+
+      let firstHook = true;
+      let busy33 = false;
+
+      let state = 0;
+
+      if (pdK) {
+        delete window['onerror'];
+      }
+
+      const pd = {
+        get() {
+          const stack = (new Error()).stack;
+          // targetStack = stack;
+          let isGetExceptionToken = stack.indexOf('getExceptionToken') >= 0;
+          state = isGetExceptionToken ? 1 : 0;
+          delete Window.prototype['onerror'];
+          let r = pdK ? pdK.get.call(this) : this.onerror;
+          Object.defineProperty(Window.prototype, 'onerror', pd);
+          //        console.log('onerror get', r)
+          return r;
+        },
+        set(nv) {
+          const stack = (new Error()).stack;
+          let isGetExceptionToken = stack.indexOf('getExceptionToken') >= 0;
+          state = state === 1 && isGetExceptionToken ? 2 : 0;
+          /** @type {string?} */
+          let sToken = null;
+          if (unsupportErrorFix || busy33) {
+
+          } else if (typeof nv === 'function' && state === 2) {
+            if (firstHook) {
+              firstHook = false;
+              console.groupCollapsed('Infinite onerror Bug Found');
+              console.log(location.href);
+              console.log(stack);
+              console.log(nv);
+              console.groupEnd();
+            }
+            let _token = null;
+            busy33 = true;
+            String.prototype.includes76 = String.prototype.includes;
+            String.prototype.includes = function (token) {
+              _token = token;
+              return true;
+            }
+            nv('token');
+            String.prototype.includes = String.prototype.includes76;
+            sToken = _token;
+            busy33 = false;
+            if (typeof sToken !== 'string') {
+              unsupportErrorFix = true;
+            }
+          }
+          delete Window.prototype['onerror'];
+          if (typeof sToken === 'string' && sToken.length > 1) {
+            /** @type {string} */
+            const token = sToken;
+            /** @type {OnErrorEventHandler & {errorTokens: Set<string>?} } */
+            const currentOnerror = pdK ? pdK.get.call(this) : this.onerror;
+
+            const now = Date.now();
+            const tokenEntry = {
+              token,
+              expired: now + FIX_error_many_stack_keepAliveDuration
+            }
+            /** @typedef {typeof tokenEntry} TokenEntry */
+
+            /** @type {Set<TokenEntry>} */
+            const errorTokens = currentOnerror.errorTokens;
+
+            if (errorTokens) {
+              if (errorTokens.size > FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than) {
+                for (const entry of errorTokens) {
+                  if (entry.expired < now) {
+                    errorTokens.delete(entry);
+                  }
+                }
+              }
+              errorTokens.add(tokenEntry)
+            } else {
+              /** @type {Set<TokenEntry>} */
+              const errorTokens = new Set([tokenEntry]);
+              /** @type {OnErrorEventHandler & {errorTokens: Set<string>} } */
+              const newOnerror = ((oe) => {
+                const r = function (msg, ...args) {
+                  if (typeof msg === 'string' && errorTokens.size > 0) {
+                    for (const entry of errorTokens) {
+                      if (msg.includes(entry.token)) return true;
+                    }
+                  }
+                  if (typeof oe === 'function') {
+                    return oe.apply(this, arguments);
+                  }
+                };
+                r.errorTokens = errorTokens;
+                return r;
+              })(currentOnerror);
+
+              if (pdK && pdK.set) pdK.set.call(this, newOnerror);
+              else this.onerror = newOnerror;
+            }
+          } else {
+            if (pdK && pdK.set) pdK.set.call(this, nv);
+            else this.onerror = nv;
+          }
+          Object.defineProperty(Window.prototype, 'onerror', pd);
+
+          // console.log('onerror set', nv)
+          return true;
+        },
+        enumerable: true,
+        configurable: true
+      }
+
+      Object.defineProperty(Window.prototype, 'onerror', pd);
+
+
+    }
+
+
+  })();
+
 
   // << if FIX_yt_player >>
 
@@ -406,8 +561,8 @@
       }
     };
 
-    NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(()=>{
-      setTimeout(()=>{
+    NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(() => {
+      setTimeout(() => {
         NO_PRELOAD_GENERATE_204_BYPASS = true;
       }, 1270);
     });
@@ -485,7 +640,7 @@
 
     })();
 
-    CHANGE_appendChild && ( () => {
+    CHANGE_appendChild && (() => {
 
       HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
       HTMLElement.prototype.appendChild = function (a) {
