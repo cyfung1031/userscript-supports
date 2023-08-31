@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.1
+// @version            3.2.2
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -18,7 +18,7 @@
 // @license            MIT
 // @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
 // @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.3.0/dist/index.min.js
-// @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@aa642ca95f62af5673089314928483890f947a6c/library/WinComm.min.js
+// @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
 // @connect            greasyfork.org
