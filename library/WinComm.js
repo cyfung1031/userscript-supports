@@ -142,7 +142,7 @@ SOFTWARE.
    * @memberof WinComm
    * @returns {string} A new communication ID.
    */
-  const newCommunicationId = () => `${(Date.now() % 1000) + 1000}${Math.random().toFixed(4)}`;
+  const newCommunicationId = () => `${String.fromCharCode(Date.now() % 26 + 97)}${Math.floor(Math.random() * 982451653 + 982451653).toString(36)}`;
 
   exports.createInstance = createInstance;
   exports.newCommunicationId = newCommunicationId;
