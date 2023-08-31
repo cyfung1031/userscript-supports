@@ -1,0 +1,1645 @@
+// ==UserScript==
+// @name               Greasy Fork++
+// @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
+// @namespace          https://github.com/iFelix18
+// @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
+// @description        Adds various features and improves the Greasy Fork experience
+// @description:de     Fügt verschiedene Funktionen hinzu und verbessert das Greasy Fork-Erlebnis
+// @description:es     Agrega varias funciones y mejora la experiencia de Greasy Fork
+// @description:fr     Ajoute diverses fonctionnalités et améliore l'expérience Greasy Fork
+// @description:it     Aggiunge varie funzionalità e migliora l'esperienza di Greasy Fork
+// @description:ru     Добавляет различные функции и улучшает работу с Greasy Fork
+// @description:zh-CN  添加各种功能并改善 Greasy Fork 体验
+// @description:zh-TW  加入多種功能並改善Greasy Fork的體驗
+// @description:ja     Greasy Forkの体験を向上させる様々な機能を追加
+// @description:ko     Greasy Fork 경험을 향상시키고 다양한 기능을 추가
+// @copyright          2023, CY Fung (https://greasyfork.org/users/371179); 2021, Davide (https://github.com/iFelix18)
+// @license            MIT
+// @version            3.2.0
+// @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
+// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.3.0/dist/index.min.js
+// @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@aa642ca95f62af5673089314928483890f947a6c/library/WinComm.min.js
+// @match              *://greasyfork.org/*
+// @match              *://sleazyfork.org/*
+// @connect            greasyfork.org
+// @compatible         chrome
+// @compatible         edge
+// @compatible         firefox
+// @compatible         safari
+// @compatible         brave
+// @grant              GM.deleteValue
+// @grant              GM.getValue
+// @grant              GM.notification
+// @grant              GM.registerMenuCommand
+// @grant              GM.setValue
+// @grant              unsafeWindow
+// @run-at             document-start
+// @inject-into        content
+// ==/UserScript==
+
+/* global GM_config, VM, GM, WinComm */
+
+/**
+ * @typedef { typeof import("./library/WinComm.js")  } WinComm
+ */
+
+/** @type {WinComm} */
+const WinComm = this.WinComm;
+
+//  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
+// optimized by CY Fung to remove $ dependency and observe creation
+const UU = (function () {
+    const scriptName = GM.info.script.name;
+    const scriptVersion = GM.info.script.version;
+    const authorMatch = /^(.*?)\s<\S[^\s@]*@\S[^\s.]*\.\S+>$/.exec(GM.info.script.author);
+    const author = authorMatch ? authorMatch[1] : GM.info.script.author;
+    let scriptId = scriptName.toLowerCase().replace(/\s/g, "-");
+    let loggingEnabled = false;
+
+    const log = (message) => {
+        if (loggingEnabled) {
+            console.log(`${scriptName}:`, message);
+        }
+    };
+
+    const error = (message) => {
+        console.error(`${scriptName}:`, message);
+    };
+
+    const warn = (message) => {
+        console.warn(`${scriptName}:`, message);
+    };
+
+    const alert = (message) => {
+        window.alert(`${scriptName}: ${message}`);
+    };
+
+    /** @param {string} text */
+    const short = (text, length) => {
+        const s = text.split(" ");
+        const l = Number(length);
+        return s.length > l
+            ? `${s.slice(0, l).join(" ")} [...]`
+            : text;
+    };
+
+    const addStyle = (css) => {
+        const head = document.head || document.querySelector("head");
+        const style = document.createElement("style");
+        style.textContent = css;
+        head.appendChild(style);
+    };
+
+    const init = async (options = {}) => {
+        scriptId = options.id || scriptId;
+        loggingEnabled = typeof options.logging === "boolean" ? options.logging : false;
+        console.info(
+            `%c${scriptName}\n%cv${scriptVersion}${author ? ` by ${author}` : ""} is running!`,
+            "color:red;font-weight:700;font-size:18px;text-transform:uppercase",
+            ""
+        );
+    };
+
+    return {
+        init,
+        log,
+        error,
+        warn,
+        alert,
+        short,
+        addStyle
+    };
+})();
+
+//  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
+
+
+const mWindow = (() => {
+
+
+    const fields = {
+        hideBlacklistedScripts: {
+            label: 'Hide blacklisted scripts:<br><span>Choose which lists to activate in the section below, press <b>Ctrl + Alt + B</b> to show Blacklisted scripts</span>',
+            section: ['Features'],
+            labelPos: 'right',
+            type: 'checkbox',
+            default: true
+        },
+        hideHiddenScript: {
+            label: 'Hide scripts:<br><span>Add a button to hide the script<br>See and edit the list of hidden scripts below, press <b>Ctrl + Alt + H</b> to show Hidden script',
+            labelPos: 'right',
+            type: 'checkbox',
+            default: true
+        },
+        showInstallButton: {
+            label: 'Install button:<br><span>Add to the scripts list a button to install the script directly</span>',
+            labelPos: 'right',
+            type: 'checkbox',
+            default: true
+        },
+        showTotalInstalls: {
+            label: 'Installations:<br><span>Shows the number of daily and total installations on the user profile</span>',
+            labelPos: 'right',
+            type: 'checkbox',
+            default: true
+        },
+        milestoneNotification: {
+            label: 'Milestone notifications:<br><span>Get notified whenever your total installs got over any of these milestone<br>Separate milestones with a comma, leave blank to turn off notifications</span>',
+            labelPos: 'left',
+            type: 'text',
+            title: 'Separate milestones with a comma!',
+            size: 150,
+            default: '10, 100, 500, 1000, 2500, 5000, 10000, 100000, 1000000'
+        },
+        nonLatins: {
+            label: 'Non-Latin:<br><span>This list blocks all scripts with non-Latin characters in the title/description</span>',
+            section: ['Lists'],
+            labelPos: 'right',
+            type: 'checkbox',
+            default: false // not true
+        },
+        blacklist: {
+            label: 'Blacklist:<br><span>A "non-opinionable" list that blocks all scripts with emoji in the title/description, references to "bots", "cheats" and some online game sites, and other "bullshit"</span>',
+            labelPos: 'right',
+            type: 'checkbox',
+            default: true
+        },
+        customBlacklist: {
+            label: 'Custom Blacklist:<br><span>Personal blacklist defined by a set of unwanted words<br>Separate unwanted words with a comma (example: YouTube, Facebook, pizza), leave blank to disable this list</span>',
+            labelPos: 'left',
+            type: 'text',
+            title: 'Separate unwanted words with a comma!',
+            size: 150,
+            default: ''
+        },
+        hiddenList: {
+            label: 'Hidden Scripts:<br><span>Block individual undesired scripts by their unique IDs<br>Separate IDs with a comma</span>',
+            labelPos: 'left',
+            type: 'textarea',
+            title: 'Separate IDs with a comma!',
+            default: '',
+            save: false
+        },
+        logging: {
+            label: 'Logging',
+            section: ['Developer options'],
+            labelPos: 'right',
+            type: 'checkbox',
+            default: false
+        },
+        debugging: {
+            label: 'Debugging',
+            labelPos: 'right',
+            type: 'checkbox',
+            default: false
+        }
+    }
+
+    const logo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAASFBMVEVHcEwBAQEDAwMAAAACAgIBAQEAAAAREREDAwMBAQH///8WFhYuLi7U1NSdnZ1bW1vExMTq6uqtra309PRERETf399ycnKGhoaVOQEOAAAACnRSTlMAg87/rjLgE1rzhWrqxgAABexJREFUaN61WouSpCAMVPEJKCqi//+nF4IKKig6e1SduzfupEkT8oIkiRlVVdRpnmdlQ0hTZnme1kVV4Zvk96Fla8nH0ZSI8rP0Ks2uwi1Ilv4EURW5K5xS0slhMb/BkD0hrMk/q1HVeSP6QVILMFIY8wagn6ojTV5Xn8RnbFZaoAPQc9bR3gXQ/yaWvYYA8VfKKeXACZVnAE1V9o4on/izWPsb/q9Ji3j5OcrjhiCXohsAQso6lh6QL9qOEd6GAAbKYAInAFAiiqYC5LMeLIaFKeppR3h/BiAkj6CpLuEPmbbHngUBhFZsdAGiaUL5xLBzRrAAZBlk5wpnVJEohHTbuZoAD0uhMUu+uY/bLZHaryBCH4vQCuugbnSoYf5sk+llKWaEETT/Qu2TecmSHaF1KPT6gmkM4hNLLkIR2l/guAZK1fQrS3kVXmChEX5mKb0xICH/gKXrQtf2pbhlyfqFoL/1LUOVEbFwcsuSs5GfAcjJ8dVkknbafpYUfUXSQYWqRP81THcs8fbVMmTVaQU6ENNOdyxNgGRYmFsp2/mQaFiKzGeC1IcVmAjrDjq4LAF9RgdF13CAo3cTDRcAP2OOCjX6UAwCPpbWyGZsCWTMAM0YTGF2Eg0XAD8bramue9jocGVpi5y7LbUUVRO0dRINF2D9bN/PBSqgAizt8gHByJAUddEyTqa7rYF57oZkkgiYj48lYeVTuuh4Hw1A8pWhxr68snQYioOxHSm6A2gq1wuZz68suUMKELst8oCLfAew+rzMecmOLO251wYwa4CDmd4B8GyPM1YDlyXeUp8Gx412A9Chy6vP9cXO0kW+5e6N104vH68sXeW/jwzptss8OihFf1UAY2dVkgDCdQz8dfiv1m3sZek62rcIsJlr/5uADv1bhNqzxrcIb3VIkzz06m9YykMAM39kidIoAG+5R7icHlm6BViUVDqSZknpfd8NZh2MO1Xz+JKlcYsfZeK3UqjBTDRexn680PVoSxMFBiCST6RJJmXzg2FTegaPzyRWRWu9cERAHW4o6jANmPU0Ewwqe36wa8j1wyQLADHyk1FphM760H1sBY/+PtS5ECQTvucHynoapYPiZJKFDoSNnFxZYl0QYG2gQExtcJFN8LNl1voHOA++5yQelh5yVPhRopma8M3OALMO8p0GhgDT+lgKDatBhhvN5gcuRWaZJeQ8CzVBLmBLd2tgdrLND9xFxh9CW8JABYRSNQVYugJYK8rB2bn5gWOmaM4dzmXQVjvuidMzS3YfpEm9uPnBtp5yNFRJLRUTb9OaiN1x+06uk0q4+cG+U+SqCeoKLmMwrYkp1pYWRbUvgoDjDZng7EScG3/wSxAyK7+/Xvrgl974JZ1gp69r1Bc7LvUlXhEIsSxh4lWU5Ecdwixh6lhlhPwvlkyZlpIvCFEspW4B8h9YWguQYOZynzZEsJTvRWBPxwDABnKuXWJY2ovAKu8H9h7gkSXblqqFIB8AHlhyekbGUk2PYUbXtvgAXGnYjfWwNA+QcDHN3+x2Q2rngENgiSeeAUZfjDMVHkSn1m2GGBVwCh0d8NlfhJ4owiyE+VjiPV0WKQ7tHCxD1h6DeQ7PAMKWvUcERtt2PDakkio9f/1pkdcsxMOSLq7ldD5LAJf3BeCaCfQmDl57s/Xak4sHEJiPjOcdN4f61+n8CDDQaX/iIk8KcrOTDqCC4Km3tdw9AeBM1+dq1IqRE0stI8LbWk6K7AmAjYPeX/jEdF/qJtgpX+pDzfH9eCVunFyt1UEQUt8dUHwE2BE6b2f8A8I1WMxqGLQfyqu7I8zmOwBh08TJrfy36+ANw1XcQdrHEXOeWeTf5edRJ7JV+t/o+UKTc+hRxx8oF+lLaxKCvTmw1vcRshcAbGFZ8eFUv4kF4NnHewn5pM91sauv7z9gumDPPNgoobBq54/XHraLGyAZXPLqaFrnzIMpKoeR/3BxY7t6woWY2hYqZZ0u2DOPeZzZr1dP7OUZbk4MVE+wecrmqcn+5vLMevsneP3ncfwDNtu0vRpuz80AAAAASUVORK5CYII='
+
+    const locales = { /* cSpell: disable */
+        de: {
+            downgrade: 'Auf zurückstufen',
+            hide: '❌ Dieses skript ausblenden',
+            install: 'Installieren',
+            notHide: '✔️ Dieses skript nicht ausblenden',
+            milestone: 'Herzlichen Glückwunsch, Ihre Skripte haben den Meilenstein von insgesamt $1 Installationen überschritten!',
+            reinstall: 'Erneut installieren',
+            update: 'Auf aktualisieren'
+        },
+        en: {
+            downgrade: 'Downgrade to',
+            hide: '❌ Hide this script',
+            install: 'Install',
+            notHide: '✔️ Not hide this script',
+            milestone: 'Congrats, your scripts got over the milestone of $1 total installs!',
+            reinstall: 'Reinstall',
+            update: 'Update to'
+        },
+        es: {
+            downgrade: 'Degradar a',
+            hide: '❌ Ocultar este script',
+            install: 'Instalar',
+            notHide: '✔️ No ocultar este script',
+            milestone: '¡Felicidades, sus scripts superaron el hito de $1 instalaciones totales!',
+            reinstall: 'Reinstalar',
+            update: 'Actualizar a'
+        },
+        fr: {
+            downgrade: 'Revenir à',
+            hide: '❌ Cacher ce script',
+            install: 'Installer',
+            notHide: '✔️ Ne pas cacher ce script',
+            milestone: 'Félicitations, vos scripts ont franchi le cap des $1 installations au total!',
+            reinstall: 'Réinstaller',
+            update: 'Mettre à'
+        },
+        it: {
+            downgrade: 'Riporta a',
+            hide: '❌ Nascondi questo script',
+            install: 'Installa',
+            notHide: '✔️ Non nascondere questo script',
+            milestone: 'Congratulazioni, i tuoi script hanno superato il traguardo di $1 installazioni totali!',
+            reinstall: 'Reinstalla',
+            update: 'Aggiorna a'
+        },
+        ru: {
+            downgrade: 'Откатить до',
+            hide: '❌ Скрыть этот скрипт',
+            install: 'Установить',
+            notHide: '✔️ Не скрывать этот сценарий',
+            milestone: 'Поздравляем, ваши скрипты преодолели рубеж в $1 установок!',
+            reinstall: 'Переустановить',
+            update: 'Обновить до'
+        },
+        'zh-CN': {
+            downgrade: '降级到',
+            hide: '❌ 隐藏此脚本',
+            install: '安装',
+            notHide: '✔️ 不隐藏此脚本',
+            milestone: '恭喜，您的脚本超过了 $1 次总安装的里程碑！',
+            reinstall: '重新安装',
+            update: '更新到'
+        },
+        'zh-TW': {
+            downgrade: '降級至',
+            hide: '❌ 隱藏此腳本',
+            install: '安裝',
+            notHide: '✔️ 不隱藏此腳本',
+            milestone: '恭喜，您的腳本安裝總數已超過 $1！',
+            reinstall: '重新安裝',
+            update: '更新至'
+        },
+        'ja': {
+            downgrade: 'ダウングレードする',
+            hide: '❌ このスクリプトを隠す',
+            install: 'インストール',
+            notHide: '✔️ このスクリプトを隠さない',
+            milestone: 'おめでとうございます、あなたのスクリプトの合計インストール回数が $1 を超えました！',
+            reinstall: '再インストール',
+            update: '更新する'
+        },
+        'ko': {
+            downgrade: '다운그레이드하기',
+            hide: '❌ 이 스크립트 숨기기',
+            install: '설치',
+            notHide: '✔️ 이 스크립트 숨기지 않기',
+            milestone: '축하합니다, 스크립트의 총 설치 횟수가 $1을 넘었습니다!',
+            reinstall: '재설치',
+            update: '업데이트하기'
+        }
+
+    };
+
+    const blacklist = [ /* cSpell: disable-next-line */
+        '\\bagar((\\.)?io)?\\b', '\\bagma((\\.)?io)?\\b', '\\baimbot\\b', '\\barras((\\.)?io)?\\b', '\\bbot(s)?\\b', '\\bbubble((\\.)?am)?\\b', '\\bcheat(s)?\\b', '\\bdiep((\\.)?io)?\\b', '\\bfreebitco((\\.)?in)?\\b', '\\bgota((\\.)?io)?\\b', '\\bhack(s)?\\b', '\\bkrunker((\\.)?io)?\\b', '\\blostworld((\\.)?io)?\\b', '\\bmoomoo((\\.)?io)?\\b', '\\broblox(\\.com)?\\b', '\\bshell\\sshockers\\b', '\\bshellshock((\\.)?io)?\\b', '\\bshellshockers\\b', '\\bskribbl((\\.)?io)?\\b', '\\bslither((\\.)?io)?\\b', '\\bsurviv((\\.)?io)?\\b', '\\btaming((\\.)?io)?\\b', '\\bvenge((\\.)?io)?\\b', '\\bvertix((\\.)?io)?\\b', '\\bzombs((\\.)?io)?\\b', '\\p{Extended_Pictographic}'
+    ];
+
+
+    const settingsCSS = `
+  
+    /*
+    #greasyfork-plus label::before {
+      content:'';
+      display:block;
+      position:absolute;
+      left:0;
+      right:0;
+      top:0;
+      bottom:0;
+      z-index:1;
+    }
+    #greasyfork-plus label {
+      position:relative;
+      z-index:0;
+    }
+    */
+  
+    html {
+      color: #222;
+      background: #f9f9f9;
+    }
+  
+  #greasyfork-plus{
+    --config-var-display: flex;
+  }
+  #greasyfork-plus * {
+      font-family:Open Sans,sans-serif,Segoe UI Emoji !important;
+      font-size:12px
+  }
+  #greasyfork-plus .section_header[class] {
+      background-color:#670000;
+      background-image:linear-gradient(#670000,#900);
+      border:1px solid transparent;
+      color:#fff
+  }
+  #greasyfork-plus .field_label[class]{
+      margin-bottom:4px
+  }
+  #greasyfork-plus .field_label[class] span{
+      font-size:95%;
+      font-style:italic;
+      opacity:.8;
+  }
+  #greasyfork-plus .field_label[class] b{
+      color:#670000
+  }
+  #greasyfork-plus_logging_var[class],
+  #greasyfork-plus_debugging_var[class] {
+    --config-var-display: inline-flex;
+  }
+  #greasyfork-plus #greasyfork-plus_logging_var label.field_label[class],
+  #greasyfork-plus #greasyfork-plus_debugging_var label.field_label[class] {
+    margin-bottom:0;
+    align-self: center;
+  }
+  #greasyfork-plus .config_var[class]{
+      display:var(--config-var-display);
+      position: relative;
+  }
+  #greasyfork-plus_customBlacklist_var[class],
+  #greasyfork-plus_hiddenList_var[class],
+  #greasyfork-plus_milestoneNotification_var[class]{
+      flex-direction:column;
+      margin-left:21px;
+  }
+  
+  #greasyfork-plus_customBlacklist_var[class]::before,
+  #greasyfork-plus_hiddenList_var[class]::before,
+  #greasyfork-plus_milestoneNotification_var[class]::before{
+    /* content: "◉"; */
+    content: "◎";
+    position: absolute;
+    left: auto;
+    top: auto;
+    margin-left: -16px;
+  }
+  #greasyfork-plus_field_customBlacklist[class],
+  #greasyfork-plus_field_milestoneNotification[class]{
+      flex:1;
+  }
+  #greasyfork-plus_field_hiddenList[class]{
+      box-sizing:border-box;
+      overflow:hidden;
+      resize:none;
+      width:100%
+  }
+  
+  body > #greasyfork-plus_wrapper:only-child {
+    box-sizing: border-box;
+    overflow: auto;
+    max-height: calc(100vh - 72px);
+    padding: 12px;
+    /* overflow: auto; */
+    scrollbar-gutter: both-edges;
+    background: rgba(127,127,127,0.05);
+    border: 1px solid rgba(127,127,127,0.5);
+  }
+  
+  #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 0 12px 6px 0;
+  }
+  
+  #greasyfork-plus .saveclose_buttons[class] {
+    padding: 4px 14px;
+    margin: 6px;
+  }
+  #greasyfork-plus .section_header_holder#greasyfork-plus_section_2[class] {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    margin: 8px;
+  }
+  #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
+    background: #000;
+    color: #eee;
+  }
+  
+  #greasyfork-plus_header[class]{
+    font-size: 16pt;
+    font-weight: bold;
+  }
+  
+    `;
+
+    const pageCSS = `
+  
+  .script-list li.blacklisted{
+      display:none;
+      background:#321919;
+      color:#e8e6e3
+  }
+  .script-list li.hidden{
+      display:none;
+      background:#321932;
+      color:#e8e6e3
+  }
+  .script-list li.blacklisted a:not(.install-link),.script-list li.hidden a:not(.install-link){
+      color:#ff8484
+  }
+  #script-info.hidden,#script-info.hidden .user-content{
+      background:#321932;
+      color:#e8e6e3
+  }
+  #script-info.hidden a:not(.install-link):not(.install-help-link){
+      color:#ff8484
+  }
+  #script-info.hidden code{
+      background-color:transparent
+  }
+  html {
+    --block-btn-color:#111;
+    --block-btn-bgcolor:#eee;
+  }
+   #script-info.hidden, #script-info.hidden .user-content {
+    --block-btn-color:#eee;
+    --block-btn-bgcolor:#111;
+  }
+  
+  [style-54998]{
+    float:right;
+    font-size: 70%;
+    text-decoration:none;
+  }
+  
+  [style-16377]{
+    cursor:pointer;
+    font-size:70%;
+    white-space:nowrap;
+    border: 1px solid #888;
+    background: var(--block-btn-bgcolor, #eee);
+    color: var(--block-btn-color);
+    border-radius: 4px;
+    padding: 0px 6px;
+    margin: 0 8px;
+  }
+  [style-77329] {
+    cursor: pointer;
+    margin-left: 1ex;
+    white-space: nowrap;
+    float: right;
+    border: 1px solid #888;
+    background: var(--block-btn-bgcolor, #eee);
+    color: var(--block-btn-color);
+    border-radius: 4px;
+    padding: 0px 6px;
+  }
+  
+  a#hyperlink-35389,
+  a#hyperlink-40361,
+  a#hyperlink-35389:visited,
+  a#hyperlink-40361:visited,
+  a#hyperlink-35389:hover,
+  a#hyperlink-40361:hover,
+  a#hyperlink-35389:focus,
+  a#hyperlink-40361:focus,
+  a#hyperlink-35389:active,
+  a#hyperlink-40361:active {
+  
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    appearance: none !important;
+    background: none !important;
+    color:inherit !important;
+  }
+  
+  a#hyperlink-35389{
+    opacity: var(--hyperlink-blacklisted-option-opacity);
+  
+  }
+  a#hyperlink-40361{
+    opacity: var(--hyperlink-hidden-option-opacity);
+  }
+  
+  
+  html {
+  
+    --hyperlink-blacklisted-option-opacity: 0.5;
+    --hyperlink-hidden-option-opacity: 0.5;
+  }
+  
+  
+  .list-option.list-current[class] > a[href] {
+  
+    text-decoration:none;
+  }
+  
+  html {
+    --blacklisted-display: none;
+    --hidden-display: none;
+  }
+  
+  [blacklisted-shown] {
+    --blacklisted-display: list-item;
+    --hyperlink-blacklisted-option-opacity: 1;
+  }
+  [hidden-shown] {
+    --hidden-display: list-item;
+    --hyperlink-hidden-option-opacity: 1;
+  }
+  
+  .script-list li.blacklisted{
+    display: var(--blacklisted-display);
+  
+  }
+  
+  .script-list li.hidden{
+    display: var(--hidden-display);
+  
+  }
+  
+  .install-link.install-status-checking,
+  .install-link.install-status-checking:visited,
+  .install-link.install-status-checking:active,
+  .install-link.install-status-checking:hover,
+  .install-help-link.install-status-checking {
+    background-color: #405458;
+  }
+  
+    `
+
+    const window = {};
+
+    /** @param {typeof WinComm.createInstance} createInstance */
+    function contentScriptText(shObject, createInstance) {
+
+        /*
+         *
+    
+        return new Promise((resolve, reject) => {
+          const external = unsafeWindow.external;
+          console.log(334, external)
+          const scriptHandler = GM.info.scriptHandler;
+          if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey' ) {
+            external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
+            return;
+          }
+    
+          if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
+            external.Tampermonkey.isInstalled(name, namespace, (data) => {
+              (data.installed) ? resolve(data.version) : resolve();
+            });
+            return;
+          }
+    
+          resolve();
+        });
+    
+        */
+
+
+        const { scriptHandler, scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
+
+        const wincomm = createInstance(communicationId);
+
+        const external = window.external;
+
+        if (external[scriptHandler]) 1;
+        else if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey') scriptHandler = 'Violentmonkey';
+        else if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') scriptHandler = 'Tampermonkey';
+
+        const manager = external[scriptHandler];
+
+        if (!manager) {
+
+            wincomm.send('userScriptManagerNotDetected', {
+                code: 1
+            });
+            return;
+
+        }
+
+
+        const pnIsInstalled2 = (type, scriptName, scriptNamespace) => new Promise((resolve, reject) => {
+            const result = manager.isInstalled(scriptName, scriptNamespace);
+            if (result instanceof Promise) {
+                result.then((result) => resolve({
+                    type,
+                    result: typeof result === 'string' ? { version: result } : result
+                })).catch(reject);
+            } else {
+                resolve({
+                    type,
+                    result: typeof result === 'string' ? { version: result } : result
+                })
+            }
+
+        }).catch(console.warn);
+
+
+        const pnIsInstalled3 = (type, scriptName, scriptNamespace) => new Promise((resolve, reject) => {
+            try {
+                manager.isInstalled(scriptName, scriptNamespace, (result) => {
+                    resolve({
+                        type,
+                        result: typeof result === 'string' ? { version: result } : result
+                    })
+
+                });
+            } catch (e) {
+                reject(e);
+            }
+        }).catch(console.warn);
+
+
+
+        const enableScriptInstallChecker = (r) => {
+
+            const { type, result } = r;
+            let version = result.version;
+            // console.log(type, result, version)
+            if (version !== scriptVersion) return;
+
+            const pnIsInstalled = type < 25 ? pnIsInstalled2 : pnIsInstalled3;
+
+            wincomm.hook('_$GreasyFork$Msg$OnScriptInstallCheck', {
+
+                'installedVersion.req': (d, evt) => {
+                    pnIsInstalled(type, d.data.name, d.data.namespace).then((r) => {
+                        if (r && 'result' in r) {
+                            wincomm.response(evt, 'installedVersion.res', {
+                                version: r.result ? (r.result.version || '') : ''
+                            });
+                        }
+                    })
+                }
+
+            });
+
+            wincomm.send('ready', { type });
+
+            // console.log('enableScriptInstallChecker', r)
+
+
+        }
+
+        const kl = manager.isInstalled.length;
+
+        if (!(kl === 2 || kl === 3)) return;
+        const puds = kl === 2 ? [
+            pnIsInstalled2(21, scriptName, scriptNamespace),
+            pnIsInstalled2(20, scriptName, '')
+        ] : [
+            pnIsInstalled3(31, scriptName, scriptNamespace),
+            pnIsInstalled3(30, scriptName, '')
+        ];
+
+        Promise.all(puds).then((rs) => {
+            const [r1, r0] = rs;
+            if (r0 && r0.result && r0.result.version) enableScriptInstallChecker(r0); // '3.1.4'
+            else if (r1 && r1.result && r1.result.version) enableScriptInstallChecker(r1);
+        });
+
+
+
+        // console.log(327, shObject, scriptHandler);
+
+    }
+
+
+
+    return { fields, logo, locales, blacklist, settingsCSS, pageCSS, contentScriptText }
+
+
+
+})();
+
+(async () => {
+
+    function fixValue(key, def, test) {
+        return GM.getValue(key, def).then((v) => test(v) || GM.deleteValue(key))
+    }
+
+    const isScriptFirstUse = await GM.getValue('firstUse', true);
+    await Promise.all([
+        fixValue('hiddenList', [], v => v && typeof v === 'object' && typeof v.length === 'number' && (v.length === 0 || typeof v[0] === 'number')),
+        fixValue('lastMilestone', 0, v => v && typeof v === 'number' && v >= 0)
+    ])
+
+    const id = 'greasyfork-plus';
+    const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
+    const fields = mWindow.fields;
+    const logo = mWindow.logo;
+    const nonLatins = /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu;
+    const blacklist = new RegExp(mWindow.blacklist.join('|'), 'giu');
+    const hiddenList = await GM.getValue('hiddenList', []);
+    const lang = document.documentElement.lang;
+    const locales = mWindow.locales;
+
+    const gmc = new GM_config({
+        id,
+        title,
+        fields,
+        css: mWindow.settingsCSS,
+        events: {
+            init: () => {
+                gmc.initializedResolve && gmc.initializedResolve();
+                gmc.initializedResolve = null;
+                if (!Array.isArray(hiddenList)) {
+                    GM.deleteValue('hiddenList');
+                    setTimeout(() => window.location.reload(false), 500);
+                }
+
+            },
+            /** @param {Document} document */
+            open: async (document) => {
+                const textarea = document.querySelector(`#${id}_field_hiddenList`);
+
+                const hiddenList = await GM.getValue('hiddenList', []);
+                const unsavedHiddenList = gmc.get('hiddenList') !== '' ? gmc.get('hiddenList').split(',').map(Number) : [];
+
+                if ((hiddenList.filter(item => !unsavedHiddenList.includes(item)).length > 0 || unsavedHiddenList.filter(item => !hiddenList.includes(item)).length > 0) && hiddenList.length !== 0) {
+                    gmc.fields.hiddenList.value = hiddenList.sort((a, b) => a - b).join(', ');
+
+                    gmc.close();
+                    gmc.open();
+                }
+
+                const resize = (target) => {
+                    target.style.height = '';
+                    target.style.height = `${target.scrollHeight}px`;
+                };
+
+                if (textarea) {
+                    resize(textarea);
+                    textarea.addEventListener('input', (event) => resize(event.target));
+
+                }
+
+                document.body.addEventListener('mousedown', (event) => {
+                    if (event.detail > 1 && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && !event.defaultPrevented) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.stopImmediatePropagation();
+                    }
+                }, true);
+            },
+            save: async (forgotten) => {
+                const unsavedHiddenList = forgotten.hiddenList !== '' ? forgotten.hiddenList.split(',').map(Number).filter((element) => element !== 0) : undefined;
+
+                if (gmc.isOpen) {
+                    await GM.setValue('hiddenList', Array.from(unsavedHiddenList));
+
+                    UU.alert('settings saved');
+                    gmc.close();
+                    setTimeout(() => window.location.reload(false), 500);
+                }
+            }
+        }
+    });
+    gmc.initialized = new Promise(r => (gmc.initializedResolve = r));
+    await gmc.initialized.then();
+
+    if (typeof GM.registerMenuCommand === 'function') {
+        GM.registerMenuCommand('Configure', () => gmc.open());
+        GM.registerMenuCommand('Reset Everything', () => {
+            Promise.all([
+                GM.deleteValue('hiddenList'),
+                GM.deleteValue('lastMilestone'),
+                GM.deleteValue('firstUse')
+            ]).then(() => {
+                setTimeout(() => window.location.reload(false), 50);
+            })
+        });
+    }
+
+    UU.init({ id, logging: gmc.get('logging') });
+    UU.log(nonLatins);
+    UU.log(blacklist);
+    UU.log(hiddenList);
+
+    const _VM = (typeof VM !== 'undefined' ? VM : null) || {
+        shortcut: {
+            register: () => { }
+        }
+    };
+    let avoidDuplication = 0;
+    const avoidDuplicationF = () => {
+        const p = avoidDuplication;
+        avoidDuplication = Date.now();
+        if (avoidDuplication - p < 30) return false;
+        return true;
+    }
+    const shortcuts = [
+        ['ctrlcmd-alt-s', () => avoidDuplicationF() && gmc.open()],
+        ['ctrlcmd-alt-ß', () => avoidDuplicationF() && gmc.open()],
+        ['ctrlcmd-alt-b', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
+        ['ctrlcmd-alt-∫', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
+        ['ctrlcmd-alt-h', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')],
+        ['ctrlcmd-alt-˙', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')]
+    ]
+    for (const [scKey, scFn] of shortcuts) {
+        _VM.shortcut.register(scKey, scFn);
+    }
+
+    const addSettingsToMenu = () => {
+        const nav = document.querySelector('#site-nav > nav')
+        if (!nav) return;
+
+        const scriptName = GM.info.script.name;
+        const scriptVersion = GM.info.script.version;
+        const menu = document.createElement('li');
+        menu.classList.add(id);
+        menu.setAttribute('alt', `${scriptName} ${scriptVersion}`);
+        menu.setAttribute('title', `${scriptName} ${scriptVersion}`);
+        const link = document.createElement('a');
+        link.setAttribute('href', '#');
+        link.textContent = GM.info.script.name;
+        menu.appendChild(link);
+        nav.insertBefore(menu, document.querySelector('#site-nav > nav > li:first-of-type'));
+
+        menu.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            gmc.open();
+        });
+    };
+
+
+    const toggleListDisplayingItem = (t) => {
+
+        const m = document.documentElement;
+
+        const p = t + '-shown';
+        let currentIsShown = m.hasAttribute(p)
+        if (!currentIsShown) {
+            m.setAttribute(p, '')
+        } else {
+            m.removeAttribute(p)
+        }
+
+    }
+
+    const createListOptionGroup = () => {
+
+        const html = `<div class="list-option-group" id="${id}-options">${GM.info.script.name} Lists:<ul>
+      <li class="list-option blacklisted"><a href="#" id="hyperlink-35389"></a></li>
+      <li class="list-option hidden"><a href="#" id="hyperlink-40361"></a></li>
+      </ul></div>`;
+        const firstOptionGroup = document.querySelector('.list-option-groups > div');
+        firstOptionGroup && firstOptionGroup.insertAdjacentHTML('beforebegin', html);
+
+        const blacklistedOption = document.querySelector(`#${id}-options li.blacklisted`);
+        blacklistedOption && blacklistedOption.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            toggleListDisplayingItem('blacklisted');
+        }, false);
+
+        const hiddenOption = document.querySelector(`#${id}-options li.hidden`);
+        hiddenOption && hiddenOption.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            toggleListDisplayingItem('hidden');
+        }, false);
+
+    }
+
+    const addOptions = () => {
+
+        const gn = () => {
+
+            let aBlackList = document.querySelector('#hyperlink-35389');
+            let aHidden = document.querySelector('#hyperlink-40361');
+            if (!aBlackList || !aHidden) return;
+            aBlackList.textContent = `Blacklisted scripts (${document.querySelectorAll('.script-list li.blacklisted').length})`;
+            aHidden.textContent = `Hidden scripts (${document.querySelectorAll('.script-list li.hidden').length})`
+
+        }
+        const callback = (entries) => {
+            if (entries && entries.length >= 1) requestAnimationFrame(gn);
+        }
+
+        const setupScriptList = async () => {
+            let scriptList;
+            let i = 8;
+            while (i-- > 0) {
+                scriptList = document.querySelector('.script-list li')
+                if (scriptList) scriptList = scriptList.closest('.script-list')
+                if (scriptList) break;
+                await new Promise(r => requestAnimationFrame(r))
+            }
+            if (!scriptList) return;
+            createListOptionGroup();
+            const mo = new MutationObserver(callback);
+            mo.observe(scriptList, { childList: true, subtree: true });
+            gn();
+        }
+        setupScriptList();
+
+    };
+
+
+    /**
+     * Get script data from Greasy Fork API
+     *
+     * @param {number} id Script ID
+     * @returns {Promise} Script data
+     */
+    let networkMP1 = Promise.resolve();
+    let networkMP2 = Promise.resolve();
+    let previousIsCache = false;
+    // let ss = [];
+    // var sum = function(nums) {
+    //   var total = 0;
+    //   for (var i = 0, len = nums.length; i < len; i++) total += nums[i];
+    //   return total;
+    // };
+    const getScriptData = async (id, noCache) => {
+        if (!(id >= 0)) return Promise.resolve()
+        const url = `https://${window.location.hostname}/scripts/${id}.json`;
+        return new Promise((resolve, reject) => {
+
+            networkMP1 = networkMP1.then(() => new Promise(unlock => {
+
+                const maxAgeInSeconds = 900;
+                const rd = previousIsCache ? 1 : Math.floor(Math.random() * 80 + 80);
+                let fetchStart = 0;
+                new Promise(r => setTimeout(r, rd))
+                    .then(() => {
+                        fetchStart = Date.now();
+                    })
+                    .then(() => fetch(url, noCache ? {
+                        method: 'GET',
+                        cache: 'reload',
+                        credentials: 'omit',
+                        headers: new Headers({
+                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                        })
+                    } : {
+                        method: 'GET',
+                        cache: 'force-cache',
+                        credentials: 'omit',
+                        headers: new Headers({
+                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                        }),
+                    }))
+                    .then((response) => {
+
+                        let fetchStop = Date.now();
+                        // const dd = fetchStop - fetchStart;
+                        // dd (cache) = {min: 1, max: 8, avg: 3.7}
+                        // dd (normal) = {min: 136, max: 316, avg: 162.62}
+
+                        // ss.push(dd)
+                        // ss.maxValue = Math.max(...ss);
+                        // ss.minValue = Math.min(...ss);
+                        // ss.avgValue = sum(ss)/ss.length;
+                        // console.log(dd)
+                        // console.log(ss)
+                        previousIsCache = (fetchStop - fetchStart) < (3.7 + 162.62) / 2;
+                        UU.log(`${response.status}: ${response.url}`)
+                        // UU.log(response)
+                        if (response.ok === true) {
+                            unlock();
+                            return response.json()
+                        }
+                        if (response.status === 503) {
+                            return new Promise(r => setTimeout(r, 270 + rd)).then(() => {
+                                unlock();
+                                return getScriptData(id, true);
+                            });
+                        }
+                        console.warn(response);
+                        new Promise(r => setTimeout(r, 470)).then(unlock); // reload later
+                    })
+                    .then((data) => resolve(data))
+                    .catch((e) => {
+                        unlock();
+                        UU.log(id, url)
+                        console.warn(e)
+                        // reject(e)
+                    })
+
+            })).catch(() => { })
+
+        });
+    }
+
+    /**
+     * Get user data from Greasy Fork API
+     *
+     * @param {string} userID User ID
+     * @returns {Promise} User data
+     */
+    const getUserData = (userID, noCache) => {
+
+        if (!(userID >= 0)) return Promise.resolve()
+
+        const url = `https://${window.location.hostname}/users/${userID}.json`;
+        return new Promise((resolve, reject) => {
+
+
+            networkMP2 = networkMP2.then(() => new Promise(unlock => {
+
+                const maxAgeInSeconds = 900;
+                const rd = Math.floor(Math.random() * 80 + 80);
+
+                new Promise(r => setTimeout(r, rd))
+                    .then(() => fetch(url, noCache ? {
+                        method: 'GET',
+                        cache: 'reload',
+                        credentials: 'omit',
+                        headers: new Headers({
+                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                        })
+                    } : {
+                        method: 'GET',
+                        cache: 'force-cache',
+                        credentials: 'omit',
+                        headers: new Headers({
+                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                        }),
+                    }))
+                    .then((response) => {
+                        UU.log(`${response.status}: ${response.url}`)
+                        if (response.ok === true) {
+                            unlock();
+                            return response.json()
+                        }
+                        if (response.status === 503) {
+                            return new Promise(r => setTimeout(r, 270 + rd)).then(() => {
+                                unlock();
+                                return getUserData(userID, true); // reload later
+                            });
+                        }
+                        console.warn(response);
+                        new Promise(r => setTimeout(r, 470)).then(unlock);
+                    })
+                    .then((data) => resolve(data))
+                    .catch((e) => {
+                        setTimeout(() => {
+                            unlock()
+                        }, 270)
+                        UU.log(userID, url)
+                        console.warn(e)
+                        // reject(e)
+                    })
+
+
+
+            })).catch(() => { })
+
+        });
+    }
+    const getTotalInstalls = (data) => {
+        if (!data || !data.scripts) return;
+        return new Promise((resolve, reject) => {
+            const totalInstalls = [];
+
+            data.scripts.forEach((element) => {
+                totalInstalls.push(parseInt(element.total_installs, 10));
+            });
+
+            resolve(totalInstalls.reduce((a, b) => a + b, 0));
+        });
+    };
+
+
+    const communicationId = WinComm.newCommunicationId();
+    const wincomm = WinComm.createInstance(communicationId);
+
+
+    const isInstalled = (script) => {
+        return new Promise((resolve, reject) => {
+
+            promiseScriptCheck.then(d => {
+
+                if (!d) return null;
+
+                const data = d.data;
+                const al = data.type % 10;
+                if (al === 0) {
+                    // no namespace
+                    resolve([null, script.name, '']);
+                } else if (al === 1) {
+                    // namespace
+
+                    if (!script.namespace) {
+
+                        getScriptData(script.id).then((script) => {
+                            resolve([null, script.name, script.namespace]);
+                        });
+
+                    } else {
+
+                        resolve([null, script.name, script.namespace]);
+                    }
+
+                }
+
+
+            })
+
+
+        }).then((res) => {
+
+
+            return new Promise((resolve, reject) => {
+
+                if (!res) return '';
+
+
+                const [_, name, namespace] = res;
+                wincomm.request('installedVersion.req', {
+                    name,
+                    namespace
+                }).then(d => {
+                    resolve(d.data.version)
+                })
+
+            })
+
+        })
+
+        /*
+        const external = unsafeWindow.external;
+        const scriptHandler = GM.info.scriptHandler;
+        if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey') {
+          external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
+          return;
+        }
+  
+        if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
+          external.Tampermonkey.isInstalled(name, namespace, (data) => {
+            (data.installed) ? resolve(data.version) : resolve();
+          });
+          return;
+        }
+        */
+
+
+    };
+
+    const compareVersions = (v1, v2) => {
+        if (!v1 || !v2) return NaN;
+        if (v1 === null || v2 === null) return NaN;
+        if (v1 === v2) return 0;
+
+        const sv1 = v1.split('.').map((index) => parseInt(index));
+        const sv2 = v2.split('.').map((index) => parseInt(index));
+
+        for (let index = 0; index < Math.max(sv1.length, sv2.length); index++) {
+            if (isNaN(sv1[index]) || isNaN(sv2[index])) return NaN;
+            if (sv1[index] > sv2[index]) return 1;
+            if (sv1[index] < sv2[index]) return -1;
+        }
+
+        return 0;
+    };
+
+
+    /**
+     * Return label for the hide script button
+     *
+     * @param {boolean} hidden Is hidden
+     * @returns {string} Label
+     */
+    const blockLabel = (hidden) => {
+        return hidden ? (locales[lang] ? locales[lang].notHide : locales.en.notHide) : (locales[lang] ? locales[lang].hide : locales.en.hide)
+    }
+
+    /**
+     * Return label for the install button
+     *
+     * @param {number} update Update value
+     * @returns {string} Label
+     */
+    const installLabel = (update) => {
+        switch (update) {
+            case 0: {
+                return locales[lang] ? locales[lang].reinstall : locales.en.reinstall
+            }
+            case 1: {
+                return locales[lang] ? locales[lang].update : locales.en.update
+            }
+            case -1: {
+                return locales[lang] ? locales[lang].downgrade : locales.en.downgrade
+            }
+            default: {
+                return locales[lang] ? locales[lang].install : locales.en.install
+            }
+        }
+    }
+
+    const hideBlacklistedScript = (element, list) => {
+        if (!element) return;
+        const scriptLink = element.querySelector('.script-link')
+
+        const name = scriptLink ? scriptLink.textContent : '';
+        const descriptionElem = element.querySelector('.script-description')
+        const description = descriptionElem ? descriptionElem.textContent : '';
+
+        if (!name) return;
+
+        switch (list) {
+            case 'nonLatins':
+                if ((nonLatins.test(name) || nonLatins.test(description)) && !element.classList.contains('blacklisted')) {
+                    element.classList.add('blacklisted', 'non-latins');
+                    if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
+                        let scriptLink = element.querySelector('.script-link');
+                        if (scriptLink) { scriptLink.textContent += ' (non-latin)'; }
+                    }
+                }
+                break;
+            case 'blacklist':
+                if ((blacklist.test(name) || blacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                    element.classList.add('blacklisted', 'blacklist');
+                    if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
+                        let scriptLink = element.querySelector('.script-link');
+                        if (scriptLink) { scriptLink.textContent += ' (blacklist)'; }
+                    }
+                }
+                break;
+            case 'customBlacklist': {
+                const customBlacklist = new RegExp(gmc.get('customBlacklist').replace(/\s/g, '').split(',').join('|'), 'giu');
+                if ((customBlacklist.test(name) || customBlacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                    element.classList.add('blacklisted', 'custom-blacklist');
+                    if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
+                        let scriptLink = element.querySelector('.script-link');
+                        if (scriptLink) { scriptLink.textContent += ' (custom-blacklist)'; }
+                    }
+                }
+                break;
+            }
+            default:
+                UU.log('No blacklists');
+                break;
+        }
+    };
+
+    const hideHiddenScript = (element, id, list) => {
+        id = +id;
+        if (!(id >= 0)) return;
+
+        const isInHiddenList = () => hiddenList.indexOf(id) !== -1;
+        const updateScriptLink = (shouldHide) => {
+            if (gmc.get('hideHiddenScript') && gmc.get('debugging')) {
+                let scriptLink = element.querySelector('.script-link');
+                if (scriptLink) {
+                    if (shouldHide) {
+                        scriptLink.innerHTML += ' (hidden)';
+                    } else {
+                        scriptLink.innerHTML = scriptLink.innerHTML.replace(' (hidden)', '');
+                    }
+                }
+            }
+        };
+
+        // Check for initial state and set it
+        if (isInHiddenList()) {
+            element.classList.add('hidden');
+            updateScriptLink(true);
+        }
+
+        // Add button to hide the script
+        const insertButtonHTML = (selector, html) => {
+            const target = element.querySelector(selector);
+            if (!target) return;
+            let p = document.createElement('template');
+            p.innerHTML = html;
+            target.parentNode.insertBefore(p.content.firstChild, target.nextSibling);
+        };
+
+        const isHidden = element.classList.contains('hidden');
+        const blockButtonHTML = `<span class=block-button role=button style-16377>${blockLabel(isHidden)}</span>`;
+        const blockButtonHeaderHTML = `<span class=block-button role=button style-77329 style="">${blockLabel(isHidden)}</span>`;
+
+        insertButtonHTML('.badge-js, .badge-css', blockButtonHTML);
+        insertButtonHTML('header h2', blockButtonHeaderHTML);
+
+        // Add event listener
+        const button = element.querySelector('.block-button');
+        if (button) {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                if (!isInHiddenList()) {
+                    hiddenList.push(id);
+                    GM.setValue('hiddenList', hiddenList);
+
+                    element.classList.add('hidden');
+                    updateScriptLink(true);
+
+                } else {
+                    const index = hiddenList.indexOf(id);
+                    hiddenList.splice(index, 1);
+                    GM.setValue('hiddenList', hiddenList);
+
+                    element.classList.remove('hidden');
+                    updateScriptLink(false);
+                }
+
+                const blockBtn = element.querySelector('.block-button');
+                if (blockBtn) blockBtn.textContent = blockLabel(element.classList.contains('hidden'));
+            });
+        }
+    };
+
+    const insertButtonHTML = (element, selector, html) => {
+        const target = element.querySelector(selector);
+        if (!target) return;
+        let p = document.createElement('template');
+        p.innerHTML = html;
+        let button = p.content.firstChild
+        target.parentNode.insertBefore(button, target.nextSibling);
+        return button;
+    };
+
+    const addInstallButton = (element, url) => {
+        return insertButtonHTML(element, '.badge-js, .badge-css', `<a class="install-link" href="${url}" style-54998></a>`);
+    };
+
+    const showInstallButton = async (scriptID, element) => {
+
+
+        // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
+        let _script = null;
+        if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
+
+            const version = element.getAttribute('data-script-version') || ''
+            const name = element.getAttribute('data-script-name') || ''
+            let scriptFilename = version ? `${scriptID}-${version}` : '';
+            _script = {
+                id: +scriptID,
+                name: name,
+                code_url: `https://greasyfork.org/scripts/${scriptID}/code/${scriptFilename}.user.js`,
+                version: version
+            }
+
+        }
+
+        const script = _script || (await getScriptData(scriptID));
+        if (!script) return;
+        const button = addInstallButton(element, script.code_url);
+        button.classList.add('install-status-checking');
+        button.textContent = `${installLabel()} ${script.version}`;
+
+        const installed = await isInstalled(script)
+
+
+        const update = compareVersions(script.version, installed);  // NaN  1  -1  0
+
+        const label = installLabel(update);
+
+        button.textContent = `${label} ${script.version}`;
+        button.classList.remove('install-status-checking');
+
+    }
+
+
+    const foundScriptList = async (scriptList) => {
+
+        let rid = 0;
+        let g = () => {
+            if (!scriptList || scriptList.isConnected !== true) return;
+
+            const scriptElements = scriptList.querySelectorAll('li[data-script-id]:not([e8kk])');
+
+            for (const element of scriptElements) {
+                element.setAttribute('e8kk', '1');
+
+                const scriptID = +element.getAttribute('data-script-id');
+                if (!(scriptID > 0)) continue;
+
+                // blacklisted scripts
+                if (gmc.get('nonLatins')) hideBlacklistedScript(element, 'nonLatins');
+                if (gmc.get('blacklist')) hideBlacklistedScript(element, 'blacklist');
+                if (gmc.get('customBlacklist')) hideBlacklistedScript(element, 'customBlacklist');
+
+                // hidden scripts
+                if (gmc.get('hideHiddenScript')) hideHiddenScript(element, scriptID, true);
+
+                // install button
+                if (gmc.get('showInstallButton')) {
+                    showInstallButton(scriptID, element)
+                }
+            }
+
+        }
+        let f = (entries) => {
+            const tid = ++rid
+            if (entries && entries.length) requestAnimationFrame(() => {
+                if (tid === rid) g();
+            });
+        }
+        let mo = new MutationObserver(f);
+        mo.observe(scriptList, { subtree: true, childList: true });
+
+        g();
+
+    }
+
+    let promiseScriptCheckResolve = null;
+    const promiseScriptCheck = new Promise(resolve => {
+        promiseScriptCheckResolve = resolve
+    });
+
+    const onReady = async () => {
+
+        const gminfo = GM.info || 0;
+        if (gminfo) {
+
+            const gminfoscript = gminfo.script || 0;
+
+
+            const scriptHandlerObject = {
+                scriptHandler: gminfo.scriptHandler || '',
+                scriptName: gminfoscript.name || '',
+                scriptVersion: gminfoscript.version || '',
+                scriptNamespace: gminfoscript.namespace || '',
+                communicationId
+            };
+
+
+            wincomm.hook('_$GreasyFork$Msg$OnScriptInstallFeedback',
+                {
+
+                    ready: (d, evt) => promiseScriptCheckResolve(d),
+                    userScriptManagerNotDetected: (d, evt) => promiseScriptCheckResolve(null),
+                    'installedVersion.res': wincomm.handleResponse
+
+
+                })
+
+
+            document.head.appendChild(document.createElement('script')).textContent = `;(${mWindow.contentScriptText})(${JSON.stringify(scriptHandlerObject)}, ${WinComm.createInstance});`;
+
+
+        }
+
+
+        addSettingsToMenu();
+
+
+        setTimeout(() => {
+            let installBtn = document.querySelector('a[data-script-id][data-script-version]')
+            let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
+            if (scriptID > 0) {
+                getScriptData(scriptID, true);
+            } else {
+
+
+                const userLink = document.querySelector('#site-nav .user-profile-link a[href]');
+                let userID = userLink ? userLink.getAttribute('href') : '';
+
+                userID = userID ? /users\/(\d+)/.exec(userID) : null;
+                if (userID) userID = userID[1];
+                if (userID) {
+                    userID = +userID;
+                    if (userID > 0) {
+                        getUserData(userID, true);
+                    }
+                }
+
+
+            }
+        }, 740);
+
+        const userLink = document.querySelector('.user-profile-link a[href]');
+        const userID = userLink ? userLink.getAttribute('href') : undefined;
+
+        // blacklisted scripts / hidden scripts / install button
+        if (window.location.pathname !== userID && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
+
+            const scriptList = document.querySelector('.script-list');
+            if (scriptList) {
+                foundScriptList(scriptList);
+            } else {
+                const timeout = Date.now() + 3000;
+                /** @type {MutationObserver | null} */
+                let mo = null;
+                const mutationCallbackForScriptList = () => {
+                    if (!mo) return;
+                    const scriptList = document.querySelector('.script-list');
+                    if (scriptList) {
+                        mo.disconnect();
+                        mo.takeRecords();
+                        mo = null;
+                        foundScriptList(scriptList);
+                    } else if (Date.now() > timeout) {
+                        mo.disconnect();
+                        mo.takeRecords();
+                        mo = null;
+                    }
+                }
+                mo = new MutationObserver(mutationCallbackForScriptList);
+                mo.observe(document, { subtree: true, childList: true });
+            }
+
+
+            // hidden scripts on details page
+            const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
+            if (gmc.get('hideHiddenScript') && installLinkElement) {
+                const id = +installLinkElement.getAttribute('data-script-id');
+                hideHiddenScript(document.querySelector('#script-info'), id, false);
+            }
+
+            // add options and style for blacklisted/hidden scripts
+            if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
+                addOptions();
+                UU.addStyle(mWindow.pageCSS);
+            }
+        }
+
+        // total installs
+        if (gmc.get('showTotalInstalls') && document.querySelector('#user-script-list')) {
+            const dailyInstalls = [];
+            const totalInstalls = [];
+
+            const dailyInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-daily-installs');
+            for (const element of dailyInstallElements) {
+                dailyInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
+            }
+
+            const totalInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-total-installs');
+            for (const element of totalInstallElements) {
+                totalInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
+            }
+
+            const dailyInstallsSum = dailyInstalls.reduce((a, b) => a + b, 0);
+            const totalInstallsSum = totalInstalls.reduce((a, b) => a + b, 0);
+
+            const convertLi = (li) => {
+
+                if (!li) return null;
+                const a = li.firstElementChild
+                if (a === null) return li;
+                if (a === li.lastElementChild && a.nodeName === 'A') return a;
+
+
+                return null;
+            }
+
+            const dailyOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(1)'));
+            dailyOption && dailyOption.insertAdjacentHTML('beforeend', `<span> (${dailyInstallsSum.toLocaleString()})</span>`);
+
+            const totalOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(2)'));
+            totalOption && totalOption.insertAdjacentHTML('beforeend', `<span> (${totalInstallsSum.toLocaleString()})</span>`);
+        }
+
+        // milestone notification
+        if (gmc.get('milestoneNotification')) {
+            const milestones = gmc.get('milestoneNotification').replace(/\s/g, '').split(',').map(Number);
+
+            if (!userID) return;
+
+            const userData = await getUserData(+userID.match(/\d+(?=\D)/g));
+            if (!userData) return;
+
+            const [totalInstalls, lastMilestone] = await Promise.all([
+                getTotalInstalls(userData),
+                GM.getValue('lastMilestone', 0)]);
+
+            const milestone = milestones.filter(milestone => totalInstalls >= milestone).pop();
+
+            UU.log(`total installs are "${totalInstalls}", milestone reached is "${milestone}", last milestone reached is "${lastMilestone}"`);
+
+            if (milestone <= lastMilestone) return;
+
+            if (milestone && milestone >= 0) {
+
+
+                GM.setValue('lastMilestone', milestone);
+
+                const lang = document.documentElement.lang;
+                const text = (locales[lang] ? locales[lang].milestone : locales.en.milestone).replace('$1', milestone.toLocaleString());
+
+                if (typeof GM.notification === 'function') {
+                    GM.notification({
+                        text,
+                        title: GM.info.script.name,
+                        image: logo,
+                        onclick: () => {
+                            window.location = `https://${window.location.hostname}${userID}#user-script-list-section`;
+                        }
+                    });
+                } else {
+                    UU.alert(text);
+                }
+
+            }
+
+        }
+
+        if (isScriptFirstUse) GM.setValue('firstUse', false).then(() => {
+            gmc.open();
+        });
+
+    }
+
+
+
+    Promise.resolve().then(() => {
+        if (document.readyState !== 'loading') {
+            onReady();
+        } else {
+            window.addEventListener("DOMContentLoaded", onReady, false);
+        }
+    });
+
+})();
