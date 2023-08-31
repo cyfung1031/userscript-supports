@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name               Greasy Fork++
-// @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @namespace          https://github.com/iFelix18
+// @version            3.2.1
+// @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
 // @description:de     Fügt verschiedene Funktionen hinzu und verbessert das Greasy Fork-Erlebnis
@@ -15,7 +16,6 @@
 // @description:ko     Greasy Fork 경험을 향상시키고 다양한 기능을 추가
 // @copyright          2023, CY Fung (https://greasyfork.org/users/371179); 2021, Davide (https://github.com/iFelix18)
 // @license            MIT
-// @version            3.2.0
 // @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
 // @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.3.0/dist/index.min.js
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@aa642ca95f62af5673089314928483890f947a6c/library/WinComm.min.js
@@ -714,21 +714,38 @@ const mWindow = (() => {
         return GM.getValue(key, def).then((v) => test(v) || GM.deleteValue(key))
     }
 
+    function numberArr(arrVal) {
+        if (!arrVal || typeof arrVal.length !== 'number') return [];
+        return arrVal.filter(e => typeof e === 'number' && !isNaN(e))
+    }
+
     const isScriptFirstUse = await GM.getValue('firstUse', true);
     await Promise.all([
         fixValue('hiddenList', [], v => v && typeof v === 'object' && typeof v.length === 'number' && (v.length === 0 || typeof v[0] === 'number')),
         fixValue('lastMilestone', 0, v => v && typeof v === 'number' && v >= 0)
     ])
 
+    function createRE(t, ...opt) {
+        try {
+            return new RegExp(t, ...opt);
+        } catch (e) { }
+        return null;
+    }
+
     const id = 'greasyfork-plus';
     const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
     const fields = mWindow.fields;
     const logo = mWindow.logo;
     const nonLatins = /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu;
-    const blacklist = new RegExp(mWindow.blacklist.join('|'), 'giu');
-    const hiddenList = await GM.getValue('hiddenList', []);
+    const blacklist = createRE((mWindow.blacklist || []).join('|'), 'giu');
+    const hiddenList = numberArr(await GM.getValue('hiddenList', []));
     const lang = document.documentElement.lang;
     const locales = mWindow.locales;
+
+    function hiddenListStrToArr(str) {
+        if (!str || typeof str !== 'string') str = '';
+        return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
+    }
 
     const gmc = new GM_config({
         id,
@@ -739,24 +756,29 @@ const mWindow = (() => {
             init: () => {
                 gmc.initializedResolve && gmc.initializedResolve();
                 gmc.initializedResolve = null;
-                if (!Array.isArray(hiddenList)) {
-                    GM.deleteValue('hiddenList');
-                    setTimeout(() => window.location.reload(false), 500);
-                }
 
             },
             /** @param {Document} document */
             open: async (document) => {
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
-                const hiddenList = await GM.getValue('hiddenList', []);
-                const unsavedHiddenList = gmc.get('hiddenList') !== '' ? gmc.get('hiddenList').split(',').map(Number) : [];
+                const hiddenSet = new Set(numberArr(await GM.getValue('hiddenList', [])));
+                if (hiddenSet.size !== 0) {
+                    const unsavedHiddenList = hiddenListStrToArr(gmc.get('hiddenList'));
+                    const unsavedHiddenSet = new Set(unsavedHiddenList);
 
-                if ((hiddenList.filter(item => !unsavedHiddenList.includes(item)).length > 0 || unsavedHiddenList.filter(item => !hiddenList.includes(item)).length > 0) && hiddenList.length !== 0) {
-                    gmc.fields.hiddenList.value = hiddenList.sort((a, b) => a - b).join(', ');
+                    const hasDifferentItems = [...hiddenSet].some(item => !unsavedHiddenSet.has(item)) || [...unsavedHiddenSet].some(item => !hiddenSet.has(item));
 
-                    gmc.close();
-                    gmc.open();
+                    if (hasDifferentItems) {
+
+                        gmc.fields.hiddenList.value = [...hiddenSet].sort((a, b) => a - b).join(', ');
+
+                        gmc.close();
+                        gmc.open();
+
+                    }
+
+
                 }
 
                 const resize = (target) => {
@@ -779,10 +801,9 @@ const mWindow = (() => {
                 }, true);
             },
             save: async (forgotten) => {
-                const unsavedHiddenList = forgotten.hiddenList !== '' ? forgotten.hiddenList.split(',').map(Number).filter((element) => element !== 0) : undefined;
 
                 if (gmc.isOpen) {
-                    await GM.setValue('hiddenList', Array.from(unsavedHiddenList));
+                    await GM.setValue('hiddenList', hiddenListStrToArr(forgotten.hiddenList));
 
                     UU.alert('settings saved');
                     gmc.close();
@@ -793,6 +814,7 @@ const mWindow = (() => {
     });
     gmc.initialized = new Promise(r => (gmc.initializedResolve = r));
     await gmc.initialized.then();
+    const customBlacklistRE = createRE((gmc.get('customBlacklist') || '').replace(/\s/g, '').split(',').join('|'), 'giu');
 
     if (typeof GM.registerMenuCommand === 'function') {
         GM.registerMenuCommand('Configure', () => gmc.open());
@@ -1246,7 +1268,7 @@ const mWindow = (() => {
                 }
                 break;
             case 'blacklist':
-                if ((blacklist.test(name) || blacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                if (blacklist && (blacklist.test(name) || blacklist.test(description)) && !element.classList.contains('blacklisted')) {
                     element.classList.add('blacklisted', 'blacklist');
                     if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
                         let scriptLink = element.querySelector('.script-link');
@@ -1255,8 +1277,8 @@ const mWindow = (() => {
                 }
                 break;
             case 'customBlacklist': {
-                const customBlacklist = new RegExp(gmc.get('customBlacklist').replace(/\s/g, '').split(',').join('|'), 'giu');
-                if ((customBlacklist.test(name) || customBlacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                const customBlacklist = customBlacklistRE;
+                if (customBlacklist && (customBlacklist.test(name) || customBlacklist.test(description)) && !element.classList.contains('blacklisted')) {
                     element.classList.add('blacklisted', 'custom-blacklist');
                     if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
                         let scriptLink = element.querySelector('.script-link');
