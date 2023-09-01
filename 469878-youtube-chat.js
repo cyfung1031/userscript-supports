@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.8
+// @version             0.54.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -141,7 +141,7 @@
   // << if BOOST_MENU_OPENCHANGED_RENDERING >>
   const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
 
-  const DE_JSONPRUNE_FOR_readyStateChangeHandler_ = 1; // jsonPrune for Ad-Blocking is not applicable to live_chat streaming
+  const CHECK_JSONPRUNE = true;                        // This is a bug in Brave
   // << end >>
 
   // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
@@ -269,7 +269,7 @@
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-  let jsonParseFix = null;
+  // let jsonParseFix = null;
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
   if (typeof WebAssembly !== 'object') return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for passive and once
@@ -1463,9 +1463,9 @@
       const HTMLElementProto = fc.HTMLElement.prototype;
       /** @type {EventTarget} */
       const EventTargetProto = fc.EventTarget.prototype;
-      jsonParseFix = {
-        _JSON: fc.JSON, _parse: fc.JSON.parse
-      }
+      // jsonParseFix = {
+      //   _JSON: fc.JSON, _parse: fc.JSON.parse
+      // }
       return {
         ...res,
         animate: HTMLElementProto.animate,
@@ -4701,6 +4701,22 @@
         console.log("[Begin]");
         (() => {
 
+          /* pending!!
+          
+          handleLiveChatAction
+
+          removeTickerItemById
+
+          _itemsChanged
+          itemsChanged
+
+          handleMarkChatItemAsDeletedAction
+          handleMarkChatItemsByAuthorAsDeletedAction
+          handleRemoveChatItemByAuthorAction
+          
+          
+          */
+
           const tag = "yt-live-chat-ticker-renderer"
           const dummy = document.createElement(tag);
 
@@ -7282,54 +7298,34 @@
 
     const fixJsonParse = () => {
 
+      let p1 = window.onerror;
+
+      try {
+        JSON.parse("{}");
+      } catch (e) {
+        console.warn(e);
+      }
+  
+      let p2 = window.onerror;
+  
+      if (p1 !== p2) {
 
 
-      if (jsonParseFix && typeof JSON.parse === 'function' && !JSON.parse68) {
+        console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | JS Engine Issue Found"}`,
+        "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+        "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+      );
 
-        let { _parse, _JSON } = jsonParseFix;
+      console.warn("\nJSON.parse is hacked (e.g. Brave's script injection) which causes window.onerror changes on every JSON.parse call.\nPlease install https://greasyfork.org/scripts/473972-youtube-js-engine-tamer to fix the issue.\n");
 
-
-        let error = 0;
-        try {
-          _parse.apply(JSON, ["{}"])
-          _JSON = JSON;
-        } catch (e) {
-          error = 1;
-        }
-        if (error === 1) {
-
-          try {
-            _parse.apply(_JSON, ["{}"])
-          } catch (e) {
-            error = 2;
-          }
-          if (error === 2) {
-            return;
-          }
-        }
-
-
-        JSON.parse68 = JSON.parse;
-
-        JSON.parse = function parse(a, b) {
-          const stack = (new Error()).stack;
-          if (stack.includes('.readyStateChangeHandler_')) return _parse.apply(_JSON, arguments);
-          return this.parse68(...arguments);
-        };
-
-        JSON.parse.toString = function () {
-          return JSON.parse68.toString();
-        };
-
-        jsonParseFix = null;
+      console.groupEnd();
 
       }
 
     }
 
-    if (DE_JSONPRUNE_FOR_readyStateChangeHandler_) {
+    if (CHECK_JSONPRUNE) {
       promiseForCustomYtElementsReady.then(fixJsonParse);
-      fixJsonParse();
     }
 
   });

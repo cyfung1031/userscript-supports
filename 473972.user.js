@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.6
+// @version     0.4.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -49,6 +49,7 @@
 
   let fix_error_many_stack_state = !FIX_error_many_stack ? 0 : skipAdsDetection.has(location.pathname) ? 2 : 1;
 
+  if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
 
   ; fix_error_many_stack_state === 2 && (() => {
 
@@ -92,9 +93,9 @@
 
     let p2 = window.onerror;
 
-    if (p1 !== p2) fix_error_many_stack_state = 0;
+    if (p1 !== p2) return (fix_error_many_stack_state = -1); // p1 != p2
 
-    if (fix_error_many_stack_state === 0) return;
+    if (fix_error_many_stack_state == 0) return;
 
     // the following will only execute when Brave's scriptlets.js is executed.
 
@@ -112,14 +113,9 @@
       delete objectPrune._findOwner;
     }
 
-
-    JSON.parseProxy = JSON.parse;
-
-
-
     fix_error_many_stack_state = 1;
-
-
+    JSON.parse.stackNeedleDetails = stackNeedleDetails;
+    JSON.parse.objectPrune = objectPrune;
 
   })();
 
@@ -142,6 +138,13 @@
     window.onerror = p1;
 
     if (fix_error_many_stack_state === 0) return;
+
+    fix_error_many_stack_state = -1; // p1 != p2
+    
+
+  })();
+
+  fix_error_many_stack_state === -1 && (()=>{
 
     // the following will only execute when Brave's scriptlets.js is executed.
 
