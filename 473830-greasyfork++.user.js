@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.2
+// @version            3.2.3
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1385,11 +1385,11 @@ const mWindow = (() => {
 
             const version = element.getAttribute('data-script-version') || ''
             const name = element.getAttribute('data-script-name') || ''
-            let scriptFilename = version ? `${scriptID}-${version}` : '';
+            let scriptFilename = `${encodeURI(name)}.user.js`;
             _script = {
                 id: +scriptID,
                 name: name,
-                code_url: `https://greasyfork.org/scripts/${scriptID}/code/${scriptFilename}.user.js`,
+                code_url: `https://greasyfork.org/scripts/${scriptID}/code/${scriptFilename}`,
                 version: version
             }
 
