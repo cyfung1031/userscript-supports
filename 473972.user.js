@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.7
+// @version     0.4.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -51,6 +51,50 @@
 
   if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
 
+
+  ; fix_error_many_stack_state === 1 && (() => {
+
+
+    let p1 = winError00;
+
+    let stackNeedleDetails = null;
+
+    Object.defineProperty(Object.prototype, 'matchAll', {
+      get() {
+        stackNeedleDetails = this;
+        return true;
+      },
+      enumerable: true,
+      configurable: true
+    });
+
+    try {
+      JSON.parse("{}");
+    } catch (e) {
+      console.warn(e)
+      fix_error_many_stack_state = 0;
+    }
+
+    delete Object.prototype['matchAll'];
+
+    let p2 = window.onerror;
+
+    window.onerror = p1;
+
+    if (fix_error_many_stack_state === 0) return;
+
+    if (stackNeedleDetails) {
+      JSON.parse.stackNeedleDetails = stackNeedleDetails;
+      stackNeedleDetails.matchAll = true;
+    }
+
+    if (p1 === p2) return (fix_error_many_stack_state = 0);
+
+    // p1!==p2
+    fix_error_many_stack_state = !stackNeedleDetails ? 4 : 3;
+
+  })();
+
   ; fix_error_many_stack_state === 2 && (() => {
 
 
@@ -93,7 +137,7 @@
 
     let p2 = window.onerror;
 
-    if (p1 !== p2) return (fix_error_many_stack_state = -1); // p1 != p2
+    if (p1 !== p2) return (fix_error_many_stack_state = 4); // p1 != p2
 
     if (fix_error_many_stack_state == 0) return;
 
@@ -113,13 +157,13 @@
       delete objectPrune._findOwner;
     }
 
-    fix_error_many_stack_state = 1;
+    fix_error_many_stack_state = 3;
     JSON.parse.stackNeedleDetails = stackNeedleDetails;
     JSON.parse.objectPrune = objectPrune;
 
   })();
 
-  ; fix_error_many_stack_state === 1 && (() => {
+  ; fix_error_many_stack_state === 3 && (() => {
 
 
     let p1 = winError00;
@@ -139,12 +183,12 @@
 
     if (fix_error_many_stack_state === 0) return;
 
-    fix_error_many_stack_state = -1; // p1 != p2
-    
+    fix_error_many_stack_state = 4; // p1 != p2
+
 
   })();
 
-  fix_error_many_stack_state === -1 && (()=>{
+  fix_error_many_stack_state === 4 && (() => {
 
     // the following will only execute when Brave's scriptlets.js is executed.
 
