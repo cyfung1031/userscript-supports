@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.9
+// @version             0.54.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4231,49 +4231,52 @@
 
           /** @type {(a, b)} */
           startCountdownForTimerFnModA: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+            try {
+              // a.durationSec [s] => countdownMs [ms]
+              // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+              // lastCountdownTimeMs => raf ongoing
+              // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
-            // a.durationSec [s] => countdownMs [ms]
-            // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
-            // lastCountdownTimeMs => raf ongoing
-            // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
+              if (this._r782) return;
 
-            if (this._r782) return;
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
-              return;
-            }
+              // TimerFnModA
 
-            // TimerFnModA
-
-            b = void 0 === b ? 0 : b;
-            if (void 0 !== a) {
-              this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
-              this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
-              if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
-                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
-                this.rafId = 1
-                if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
-                this.detlaSincePausedSecs = 0;
-                const ae = this._makeAnimator();
-                if (!ae) console.warn('Error in startCountdown._makeAnimator()');
-
-                if (playerState === 2 && this.isAnimationPaused === void 0 && ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
-
-                  // << This is mainly for [PlayBack Replay] backwards >>
-                  // fix the case when the main video is paused but due to seeking the tickers are added
-                  // play first then pause immediately to allow the visual effect of initial state
-                  // don't forget to set the "playerProgressSec"
-                  // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
-                  this.playerProgressSec = mainVideoLastProgress; // save the progress first
-                  this.isAnimationPaused = true; // trigger isAnimationPausedChanged
+              b = void 0 === b ? 0 : b;
+              if (void 0 !== a) {
+                this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
+                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
+                if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
+                  this.rafId = 1
+                  if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
                   this.detlaSincePausedSecs = 0;
-                  this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
+                  const ae = this._makeAnimator();
+                  if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
+                  if (playerState === 2 && this.isAnimationPaused === void 0 && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__ && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
+
+                    // << This is mainly for [PlayBack Replay] backwards >>
+                    // fix the case when the main video is paused but due to seeking the tickers are added
+                    // play first then pause immediately to allow the visual effect of initial state
+                    // don't forget to set the "playerProgressSec"
+                    // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
+                    this.playerProgressSec = mainVideoLastProgress; // save the progress first
+                    this.isAnimationPaused = true; // trigger isAnimationPausedChanged
+                    this.detlaSincePausedSecs = 0;
+                    this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
+
+                  }
                 }
               }
-            }
 
+            } catch (e) {
+              console.warn(e);
+            }
 
           },
 
@@ -4281,30 +4284,33 @@
 
           /** @type {(a, b)} */
           startCountdownForTimerFnModT: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+            try {
+              // a.durationSec [s] => countdownMs [ms]
+              // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+              // lastCountdownTimeMs => raf ongoing
+              // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
-            // a.durationSec [s] => countdownMs [ms]
-            // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
-            // lastCountdownTimeMs => raf ongoing
-            // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
+              if (this._r782) return;
 
-            if (this._r782) return;
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
-              return;
+              // TimerFnModT
+
+              // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
+              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+              b = void 0 === b ? 0 : b;
+              void 0 !== a && (this.countdownMs = 1E3 * a,
+                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
+                this.ratio = 1,
+                this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
+                  this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
+
+            } catch (e) {
+              console.warn(e);
             }
-
-            // TimerFnModT
-
-            // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
-            if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-            b = void 0 === b ? 0 : b;
-            void 0 !== a && (this.countdownMs = 1E3 * a,
-              this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
-              this.ratio = 1,
-              this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
-                this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
-
 
           },
 
@@ -4312,30 +4318,36 @@
           /** @type {(a,)} */
           updateTimeoutForTimerFnModA: function (a) {
 
-            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+            try {
 
-            if (this._r782) return;
+              // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
-              return;
-            }
+              if (this._r782) return;
 
-            // TimerFnModA
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
 
-            if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
-            if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-            }
-            if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-            if (this.isAttached && this.countdownMs) {
-              this.lastCountdownTimeMs = a
-              const ae = this._makeAnimator(); // request raf
-              if (!ae) console.warn('Error in startCountdown._makeAnimator()');
-            } else {
-              (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                  this.slideDown()));
+              // TimerFnModA
+
+              if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
+              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              }
+              if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+              if (this.isAttached && this.countdownMs) {
+                this.lastCountdownTimeMs = a
+                const ae = this._makeAnimator(); // request raf
+                if (!ae) console.warn('Error in startCountdown._makeAnimator()');
+              } else {
+                (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
+                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                    this.slideDown()));
+              }
+
+            } catch (e) {
+              console.warn(e);
             }
 
 
@@ -4344,29 +4356,34 @@
           /** @type {(a,)} */
           updateTimeoutForTimerFnModT: function (a) {
 
-            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+            try {
 
-            if (this._r782) return;
+              // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
-              return;
+              if (this._r782) return;
+
+              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
+                this._throwOut();
+                return;
+              }
+
+              // TimerFnModT
+
+              // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
+              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
+                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              }
+              this.ratio = this.countdownMs / this.countdownDurationMs;
+              this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
+                this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
+                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
+                    this.slideDown()))
+
+
+            } catch (e) {
+              console.warn(e);
             }
-
-            // TimerFnModT
-
-            // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
-            if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-            if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-              this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
-            }
-            this.ratio = this.countdownMs / this.countdownDurationMs;
-            this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
-              this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                  this.slideDown()))
-
-
           },
 
           /** @type {(a,b)} */
@@ -4383,36 +4400,26 @@
 
             Promise.resolve().then(() => {
 
+              if (a) {
+                if (this._runnerAE && this._runnerAE.playState === 'running') {
 
-              // TimerFnModA
+                  this._runnerAE.pause()
+                  let lc = window.performance.now();
+                  this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
+                  if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
+                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
+                }
 
-              const playState = (this._runnerAE || 0).playState;
-              if (a && playState === 'running') {
-
-              } else if (!a && playState !== 'running' && b) {
-
-              } else {
-                return;
-              }
-
-              // TimerFnModA
+              } else if (!a && b) {
 
 
-              const pu = () => { // running -> pause
-                this._runnerAE.pause()
-                let lc = window.performance.now();
-                this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
-                if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
-              };
-              const wa = () => { // pause -> running
                 if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
                 a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
                 this.detlaSincePausedSecs = 0;
                 this.updateTimeout(a);
                 this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now();
-              };
-              a ? (this._runnerAE && pu()) : (!a && b && wa());
+
+              }
 
 
             }).catch(e => {
@@ -4614,6 +4621,7 @@
           }
 
           const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
+          cProto.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__ = ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED;
 
           if (ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED) {
 
@@ -7305,20 +7313,20 @@
       } catch (e) {
         console.warn(e);
       }
-  
+
       let p2 = window.onerror;
-  
+
       if (p1 !== p2) {
 
 
         console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | JS Engine Issue Found"}`,
-        "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-        "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-      );
+          "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+          "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+        );
 
-      console.warn("\nJSON.parse is hacked (e.g. Brave's script injection) which causes window.onerror changes on every JSON.parse call.\nPlease install https://greasyfork.org/scripts/473972-youtube-js-engine-tamer to fix the issue.\n");
+        console.warn("\nJSON.parse is hacked (e.g. Brave's script injection) which causes window.onerror changes on every JSON.parse call.\nPlease install https://greasyfork.org/scripts/473972-youtube-js-engine-tamer to fix the issue.\n");
 
-      console.groupEnd();
+        console.groupEnd();
 
       }
 
