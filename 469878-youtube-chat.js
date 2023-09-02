@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.0
+// @version             0.58.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1542,7 +1542,7 @@
     let lastPlayerProgress = null;
     let relayCount = 0;
     let playerEventsByIframeRelay = false;
-    let isFirstPlayProgress = true;
+    let isPlayProgressTriggered = false;
     let waitForInitialDataCompletion = 0;
 
 
@@ -2903,8 +2903,8 @@
 
                   if (waitForInitialDataCompletion === 1) return;
 
-                  if (isFirstPlayProgress) {
-                    isFirstPlayProgress = false;
+                  if (!isPlayProgressTriggered) {
+                    isPlayProgressTriggered = true;
 
                     if ('yt-player-video-progress' in da) {
                       waitForInitialDataCompletion = 1;
@@ -4458,7 +4458,7 @@
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
 
-                  if (this.isAnimationPaused !== true && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
+                  if (isPlayProgressTriggered && this.isAnimationPaused !== true && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
 
 
 
