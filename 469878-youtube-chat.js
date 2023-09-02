@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.54.10
+// @version             0.58.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -146,7 +146,10 @@
 
   // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
 
-  const CHANGE_DATA_FLUSH_ASYNC = true;
+  const CHANGE_DATA_FLUSH_ASYNC = false;                
+  // CHANGE_DATA_FLUSH_ASYNC is disabled due to bug report: https://greasyfork.org/scripts/469878-youtube-super-fast-chat/discussions/199479
+  // to be further investigated
+
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
   const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
@@ -878,6 +881,22 @@
 
   }
 
+
+  function deepCopy(obj, skipKeys) {
+    skipKeys = skipKeys || [];
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+      return obj.map(item => deepCopy(item, skipKeys));
+    }
+    const copy = {};
+    for (let key in obj) {
+      if (!skipKeys.includes(key)) {
+        copy[key] = deepCopy(obj[key], skipKeys);
+      }
+    }
+    return copy;
+  }
+
   class Mutex {
 
     constructor() {
@@ -892,6 +911,32 @@
     }
 
   }
+
+  const PromiseExternal = ((resolve_, reject_) => {
+    const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+    return class PromiseExternal extends Promise {
+      constructor(cb = h) {
+        super(cb);
+        if (cb === h) {
+          /** @type {(value: any) => void} */
+          this.resolve = resolve_;
+          /** @type {(reason?: any) => void} */
+          this.reject = reject_;
+        }
+      }
+    };
+  })();
+
+  /** @type {typeof PromiseExternal.prototype | null} */
+  let relayPromise = null;
+
+
+  /** @type {typeof PromiseExternal.prototype | null} */
+  let onPlayStateChangePromise = null;
+
+
+
+  let playEventsStack = Promise.resolve();
 
   function dr(s) {
     // reserved for future use
@@ -1493,6 +1538,14 @@
     })));
 
     let playerState = null;
+    let _playerState = null;
+    let lastPlayerProgress = null;
+    let relayCount = 0;
+    let playerEventsByIframeRelay = false;
+    let isFirstPlayProgress = true;
+    let waitForInitialDataCompletion = 0;
+
+
 
     let aeConstructor = null;
 
@@ -2768,19 +2821,170 @@
 
                 cProto.handlePostMessage66_ = cProto.handlePostMessage_;
 
-                cProto.handlePostMessage_ = function (a) {
+                cProto.handlePostMessage67_ = function (a) {
 
-                  const da = (a || 0).data || 0;
-                  if (typeof da === 'object') {
+                  const da = a.data;
 
-                    // console.log('handlePostMessage_', da)
-                    const qc = da['yt-player-state-change'];
-                    if (qc === 2) { playerState = 2 }
-                    else if (qc === 3) { playerState = 3 }
-                    else if (qc === 1) { playerState = 1 }
+
+
+                  playEventsStack = playEventsStack.then(() => {
+
+
+
+                    if ('yt-player-state-change' in da) {
+
+                      const qc = da['yt-player-state-change'];
+
+
+                      let isQcChanged = false;
+
+                      if (qc === 2) { isQcChanged = qc !== _playerState; _playerState = 2; relayCount = 0; } // paused
+                      else if (qc === 3) { isQcChanged = qc !== _playerState; _playerState = 3; } // playing
+                      else if (qc === 1) { isQcChanged = qc !== _playerState; _playerState = 1; } // playing
+
+
+                      if ((isQcChanged) && playerState !== _playerState) {
+                        playerEventsByIframeRelay = true;
+                        onPlayStateChangePromise = new Promise((resolve) => {
+                          let k = _playerState;
+                          getRafPromiseForTickers().then(() => {
+                            if (k === _playerState && playerState !== _playerState) playerState = _playerState;
+                            onPlayStateChangePromise = null;
+                            resolve();
+                          })
+                        }).catch(console.warn);
+
+                      }
+
+                    } else if ('yt-player-video-progress' in da) {
+                      const vp = da['yt-player-video-progress'];
+
+
+                      relayCount++;
+                      lastPlayerProgress = vp > 0 ? vp : 0;
+
+
+                      if (relayPromise && vp > 0 && relayCount >= 2) {
+                        if (onPlayStateChangePromise) {
+                          onPlayStateChangePromise.then(() => {
+                            relayPromise && relayPromise.resolve();
+                            relayPromise = null;
+                          })
+                        } else {
+                          relayPromise.resolve();
+                          relayPromise = null;
+                        }
+                      }
+
+
+
+                    }
+
+
+
+
+
+
                     return this.handlePostMessage66_(a);
 
+
+
+                  }).catch(console.warn);
+
+                }
+
+
+                cProto.handlePostMessage_ = function (a) {
+
+
+                  const da = (a || 0).data || 0;
+
+                  if (typeof da !== 'object') return;
+
+                  if (waitForInitialDataCompletion === 1) return;
+
+                  if (isFirstPlayProgress) {
+                    isFirstPlayProgress = false;
+
+                    if ('yt-player-video-progress' in da) {
+                      waitForInitialDataCompletion = 1;
+
+                      const wrapWith = (data) => {
+                        const { origin } = a;
+                        return {
+                          origin,
+                          data
+                        };
+                      }
+
+                      this.handlePostMessage67_(wrapWith({
+                        "yt-iframed-parent-ready": true
+                      }));
+
+
+
+                      playEventsStack = playEventsStack.then(() => {
+
+
+
+                        const lcr = document.querySelector('yt-live-chat-renderer');
+                        const psc = document.querySelector("yt-player-seek-continuation");
+                        if (lcr && psc && lcr.replayBuffer_) {
+
+
+                          const rbProgress = lcr.replayBuffer_.lastVideoOffsetTimeMsec;
+                          const daProgress = da['yt-player-video-progress'] * 1000
+                          // document.querySelector('yt-live-chat-renderer').playerProgressChanged_(1e-5);
+
+
+                          const front_ = (lcr.replayBuffer_.replayQueue||0).front_;
+                          const back_ = (lcr.replayBuffer_.replayQueue||0).back_;
+
+                          
+                          // console.log(deepCopy( front_))
+                          // console.log(deepCopy( back_))
+                          // console.log(rbProgress, daProgress, )
+                          if(front_ && back_ && rbProgress > daProgress && back_.length > 2 && back_.some(e=>e&&+e.videoOffsetTimeMsec > daProgress) && back_.some(e=>e&&+e.videoOffsetTimeMsec < daProgress) ){
+                            // no action
+                            // console.log('ss1')
+                          } else if (rbProgress < daProgress + 3400 && rbProgress > daProgress - 1200) {
+                            //  daProgress - 1200 < rbProgress < daProgress + 3400
+                            // console.log('ss2')
+                          } else {
+
+                            // console.log('ss3')
+                            // lcr.replayBuffer_.replayQueue.back_.length= 0;
+                            // lcr.replayBuffer_.replayQueue.front_.length= 0;
+
+                            // lcr
+                            lcr.previousProgressSec = 1E-5;
+                            // lcr._setIsSeeking(!0),
+                            lcr.replayBuffer_.clear()
+                            psc.fireSeekContinuation_(da['yt-player-video-progress']);
+                          }
+
+                        }
+
+
+                        waitForInitialDataCompletion = 2;
+
+                        this.handlePostMessage_(a);
+
+
+                      }).catch(console.warn);
+
+
+
+                      return;
+
+                    }
+
                   }
+
+
+
+                  this.handlePostMessage67_(a);
+
 
 
                 }
@@ -3948,11 +4152,6 @@
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
 
-        // << if ENABLE_VIDEO_PROGRESS_STATE_FIX >>
-        let isMainVideoOngoing = null;
-        let mainVideoLastProgress = null;
-        // << end >>
-
         let dummyValueForStyleReturn = null;
 
         const genDummyValueForStyleReturn = () => {
@@ -4258,19 +4457,30 @@
                   const ae = this._makeAnimator();
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
-                  if (playerState === 2 && this.isAnimationPaused === void 0 && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__ && isMainVideoOngoing === false && mainVideoLastProgress !== null) {
 
-                    // << This is mainly for [PlayBack Replay] backwards >>
-                    // fix the case when the main video is paused but due to seeking the tickers are added
-                    // play first then pause immediately to allow the visual effect of initial state
-                    // don't forget to set the "playerProgressSec"
-                    // otherwise when it resumes from paused state, the detlaSincePausedSecs will be huge
-                    this.playerProgressSec = mainVideoLastProgress; // save the progress first
+                  if (this.isAnimationPaused !== true && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
+
+
+
+
+                    this.playerProgressSec = lastPlayerProgress > 0 ? lastPlayerProgress : 0; // save the progress first
                     this.isAnimationPaused = true; // trigger isAnimationPausedChanged
                     this.detlaSincePausedSecs = 0;
                     this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
 
+                    relayPromise = relayPromise || new PromiseExternal();
+
+                    relayPromise.then(() => {
+                      if (this.isAttached === true && this.countdownDurationMs > 0 && this.isAnimationPaused === true && this.isReplayPaused !== true) {
+                        this.isAnimationPaused = false;
+                      }
+                    });
+
+
                   }
+
+
+
                 }
               }
 
@@ -4401,6 +4611,7 @@
             Promise.resolve().then(() => {
 
               if (a) {
+
                 if (this._runnerAE && this._runnerAE.playState === 'running') {
 
                   this._runnerAE.pause()
@@ -4484,46 +4695,72 @@
 
           /** @type {()} */
           handlePauseReplayForPlaybackProgressState: function () {
+            if (!playerEventsByIframeRelay) return this.handlePauseReplay66.apply(this, arguments);
+
+            if (onPlayStateChangePromise) {
+
+              if (this.rtu > 1e9) this.rtu = this.rtu % 1e4;
+              const tid = ++this.rtu;
+
+              onPlayStateChangePromise.then(() => {
+                if (tid === this.rtu && !onPlayStateChangePromise) this.handlePauseReplay.apply(this, arguments);
+              });
+
+              return;
+            }
+
             if (playerState !== 2) return;
             if (this.isAttached) {
               if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
               const tid = ++this.rtk;
+              const tc = relayCount;
               getRafPromiseForTickers().then(() => {
-                if (tid === this.rtk) {
-                  if (playerState === 2) {
-                    this.handlePauseReplay66();
-                    isMainVideoOngoing = false;
-                  }
+                if (tid === this.rtk && tc === relayCount && playerState === 2 && _playerState === playerState) {
+                  this.handlePauseReplay66();
                 }
+
               })
             }
           },
 
           /** @type {()} */
           handleResumeReplayForPlaybackProgressState: function () {
-            if (playerState === 2) return;
+            if (!playerEventsByIframeRelay) return this.handleResumeReplay66.apply(this, arguments);
+
+
+            if (onPlayStateChangePromise) {
+
+              if (this.rtv > 1e9) this.rtv = this.rtv % 1e4;
+              const tid = ++this.rtv;
+
+              onPlayStateChangePromise.then(() => {
+                if (tid === this.rtv && !onPlayStateChangePromise) this.handleResumeReplay.apply(this, arguments);
+              });
+
+              return;
+            }
+
+
+            if (playerState !== 1) return;
             if (this.isAttached) {
-              if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
-              const tid = ++this.rtk;
-              getRafPromiseForTickers().then(() => {
-                if (tid === this.rtk) {
-                  if (playerState === 3 || playerState === 1) {
-                    this.handleResumeReplay66();
-                    isMainVideoOngoing = true;
-                  }
+              const tc = relayCount;
+
+              relayPromise = relayPromise || new PromiseExternal();
+              relayPromise.then(() => {
+                if (relayCount > tc && playerState === 1 && _playerState === playerState) {
+                  this.handleResumeReplay66();
                 }
-              })
+              });
             }
           },
 
           /** @type {(a,)} */
           handleReplayProgressForPlaybackProgressState: function (a) {
             if (this.isAttached) {
-              mainVideoLastProgress = a;
               const tid = ++this.rtk;
               getRafPromiseForTickers().then(() => {
                 if (tid === this.rtk) {
-                  this.handleReplayProgress66(mainVideoLastProgress);
+                  this.handleReplayProgress66(a);
                 }
               })
             }
@@ -4626,6 +4863,8 @@
           if (ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED) {
 
             cProto.rtk = 0;
+            cProto.rtu = 0;
+            cProto.rtv = 0;
 
             cProto.handlePauseReplay66 = cProto.handlePauseReplay;
             cProto.handlePauseReplay = dProto.handlePauseReplayForPlaybackProgressState;
@@ -6066,20 +6305,6 @@
         let __showContextMenu_mutex_unlock__ = null;
         let lastShowMenuTarget = null;
 
-        function deepCopy(obj, skipKeys) {
-          skipKeys = skipKeys || [];
-          if (!obj || typeof obj !== 'object') return obj;
-          if (Array.isArray(obj)) {
-            return obj.map(item => deepCopy(item, skipKeys));
-          }
-          const copy = {};
-          for (let key in obj) {
-            if (!skipKeys.includes(key)) {
-              copy[key] = deepCopy(obj[key], skipKeys);
-            }
-          }
-          return copy;
-        }
 
 
 
