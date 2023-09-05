@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.5
+// @version             0.58.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1529,10 +1529,10 @@
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, getComputedStyle, addEventListener, removeEventListener } = __CONTEXT__;
 
 
-    let rafPromiseForTickers = null;
-    const getRafPromiseForTickers = () => (rafPromiseForTickers = (rafPromiseForTickers || new Promise(resolve => {
+    let foregroundPromise = null;
+    const foregroundPromiseFn = () => (foregroundPromise = (foregroundPromise || new Promise(resolve => {
       requestAnimationFrame(() => {
-        rafPromiseForTickers = null;
+        foregroundPromise = null;
         resolve();
       });
     })));
@@ -2847,7 +2847,7 @@
                         playerEventsByIframeRelay = true;
                         onPlayStateChangePromise = new Promise((resolve) => {
                           let k = _playerState;
-                          getRafPromiseForTickers().then(() => {
+                          foregroundPromiseFn().then(() => {
                             if (k === _playerState && playerState !== _playerState) playerState = _playerState;
                             onPlayStateChangePromise = null;
                             resolve();
@@ -4714,7 +4714,7 @@
               if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
               const tid = ++this.rtk;
               const tc = relayCount;
-              getRafPromiseForTickers().then(() => {
+              foregroundPromiseFn().then(() => {
                 if (tid === this.rtk && tc === relayCount && playerState === 2 && _playerState === playerState) {
                   this.handlePauseReplay66();
                 }
@@ -4758,7 +4758,7 @@
           handleReplayProgressForPlaybackProgressState: function (a) {
             if (this.isAttached) {
               const tid = ++this.rtk;
-              getRafPromiseForTickers().then(() => {
+              foregroundPromiseFn().then(() => {
                 if (tid === this.rtk) {
                   this.handleReplayProgress66(a);
                 }
@@ -7478,10 +7478,13 @@
 
             cProto.__toStopAfterRun__ = function (hostElement) {
               let mo = new MutationObserver(() => {
-                this.lottieAnimation && this.lottieAnimation.stop();
+                this.lottieAnimation && this.lottieAnimation.stop(); // primary
                 mo.disconnect();
                 mo.takeRecords();
                 mo = null;
+                foregroundPromiseFn().then(() => { // if the lottieAnimation is started with rAf triggering
+                  this.lottieAnimation && this.lottieAnimation.stop(); // fallback
+                });
               });
               mo.observe(hostElement, { subtree: true, childList: true });
             }
@@ -7511,11 +7514,11 @@
                 }
                 if (toRun) {
                   if (stopAfterRun && (this.hostElement instanceof HTMLElement)) {
-                    this.__toStopAfterRun__(this.hostElement);
+                    this.__toStopAfterRun__(this.hostElement); // primary
                   }
                   const r = this.maybeLoadAnimationBackground77.apply(this, arguments);
                   if (stopAfterRun && this.lottieAnimation) {
-                    this.lottieAnimation.stop();
+                    this.lottieAnimation.stop(); // fallback if no mutation
                   }
                   return r;
                 }
