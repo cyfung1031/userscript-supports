@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.2
+// @version             0.58.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -152,7 +152,7 @@
 
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
-  const INTERACTIVITY_BACKGROUND_ANIMATION = 0;         // mostly for pinned message
+  const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
   // 0 = default Yt animation background [= no fix]; 
   // 1 = disable default animation background [= keep special animation]; 
   // 2 = disable all animation backgrounds [= no animation backbround]
@@ -7458,7 +7458,6 @@
       if (INTERACTIVITY_BACKGROUND_ANIMATION >= 1) {
 
 
-
         customElements.whenDefined("yt-live-interactivity-component-background").then(() => {
 
 
@@ -7477,28 +7476,48 @@
             }
 
 
+            cProto.__toStopAfterRun__ = function (hostElement) {
+              let mo = new MutationObserver(() => {
+                this.lottieAnimation && this.lottieAnimation.stop();
+                mo.disconnect(hostElement);
+                mo.takeRecords();
+                mo = null;
+              });
+              mo.observe(hostElement, { subtree: true, childList: true });
+            }
+
             if (INTERACTIVITY_BACKGROUND_ANIMATION >= 1 && typeof cProto.maybeLoadAnimationBackground === 'function' && !cProto.maybeLoadAnimationBackground77 && cProto.maybeLoadAnimationBackground.length === 0) {
 
               cProto.maybeLoadAnimationBackground77 = cProto.maybeLoadAnimationBackground;
               cProto.maybeLoadAnimationBackground = function () {
                 let toRun = true;
+                let stopAfterRun = false;
                 if (!this.__bypassDisableAnimationBackground__) {
+                  let doFix = false;
                   if (INTERACTIVITY_BACKGROUND_ANIMATION === 1) {
                     if (!this.lottieAnimation) {
-                      if (this.useAnimationBackground === true) {
-                        console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
-                      }
-                      toRun = false;
+                      doFix = true;
                     }
                   } else if (INTERACTIVITY_BACKGROUND_ANIMATION === 2) {
+                    doFix = true;
+                  }
+                  if (doFix) {
                     if (this.useAnimationBackground === true) {
                       console.log('DISABLE_INTERACTIVITY_BACKGROUND_ANIMATION', this.lottieAnimation);
-                      this.useAnimationBackground = false;
                     }
+                    toRun = true;
+                    stopAfterRun = true;
                   }
                 }
                 if (toRun) {
-                  return this.maybeLoadAnimationBackground77.apply(this, arguments);
+                  if (stopAfterRun && (this.hostElement instanceof HTMLElement)) {
+                    this.__toStopAfterRun__(this.hostElement);
+                  }
+                  const r = this.maybeLoadAnimationBackground77.apply(this, arguments);
+                  if (stopAfterRun && this.lottieAnimation) {
+                    this.lottieAnimation.stop();
+                  }
+                  return r;
                 }
               }
 
