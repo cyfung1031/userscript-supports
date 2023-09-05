@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.1
+// @version             0.58.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -146,7 +146,7 @@
 
   // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
 
-  const CHANGE_DATA_FLUSH_ASYNC = false;                
+  const CHANGE_DATA_FLUSH_ASYNC = false;
   // CHANGE_DATA_FLUSH_ASYNC is disabled due to bug report: https://greasyfork.org/scripts/469878-youtube-super-fast-chat/discussions/199479
   // to be further investigated
 
@@ -550,7 +550,7 @@
   `: '';
 
   const cssText11_entire_message_clickable = FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK ? `
-    
+
     yt-live-chat-paid-message-renderer.yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
       pointer-events: none !important;
     }
@@ -574,10 +574,10 @@
   `: '';
 
   const cssText12_nowrap_tooltip = MAX_TOOLTIP_NO_WRAP_WIDTH && typeof MAX_TOOLTIP_NO_WRAP_WIDTH === 'string' ? `
-  
+
 
     tp-yt-paper-tooltip[role="tooltip"] {
-      box-sizing: content-box !important; 
+      box-sizing: content-box !important;
       margin: 0px !important;
       padding: 0px !important;
       contain: none !important;
@@ -604,7 +604,7 @@
 
   const cssText13_no_text_select_when_menu_visible = `
     [menu-visible] {
-      --sfc47-text-select: none; 
+      --sfc47-text-select: none;
     }
     [menu-visible] #header[id][class],
     [menu-visible] #content[id][class],
@@ -853,7 +853,7 @@
       pointer-events: none !important;
     }
 
-    
+
     ${cssText10_show_more_blinker}
 
     ${cssText11_entire_message_clickable}
@@ -2937,14 +2937,14 @@
                           // document.querySelector('yt-live-chat-renderer').playerProgressChanged_(1e-5);
 
 
-                          const front_ = (lcr.replayBuffer_.replayQueue||0).front_;
-                          const back_ = (lcr.replayBuffer_.replayQueue||0).back_;
+                          const front_ = (lcr.replayBuffer_.replayQueue || 0).front_;
+                          const back_ = (lcr.replayBuffer_.replayQueue || 0).back_;
 
-                          
+
                           // console.log(deepCopy( front_))
                           // console.log(deepCopy( back_))
                           // console.log(rbProgress, daProgress, )
-                          if(front_ && back_ && rbProgress > daProgress && back_.length > 2 && back_.some(e=>e&&+e.videoOffsetTimeMsec > daProgress) && back_.some(e=>e&&+e.videoOffsetTimeMsec < daProgress) ){
+                          if (front_ && back_ && rbProgress > daProgress && back_.length > 2 && back_.some(e => e && +e.videoOffsetTimeMsec > daProgress) && back_.some(e => e && +e.videoOffsetTimeMsec < daProgress)) {
                             // no action
                             // console.log('ss1')
                           } else if (rbProgress < daProgress + 3400 && rbProgress > daProgress - 1200) {
@@ -4949,7 +4949,7 @@
         (() => {
 
           /* pending!!
-          
+
           handleLiveChatAction
 
           removeTickerItemById
@@ -4960,8 +4960,8 @@
           handleMarkChatItemAsDeletedAction
           handleMarkChatItemsByAuthorAsDeletedAction
           handleRemoveChatItemByAuthorAction
-          
-          
+
+
           */
 
           const tag = "yt-live-chat-ticker-renderer"
@@ -5092,12 +5092,8 @@
               return this.detached37.apply(this, arguments);
             };
 
-            const clickFade = (p) => {
-
-              let u = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
-              if (u) {
-                u.click();
-              }
+            const clickFade = (u) => {
+              u.click();
             };
             cProto.messageBoxClickHandlerForFade = async (evt) => {
 
@@ -5112,8 +5108,11 @@
                     return;
                   }
                   if (is === 'iron-pages' || is === 'yt-live-chat-renderer' || is === 'yt-live-chat-app') {
-                    Promise.resolve(p).then(clickFade);
-                    evt && evt.stopPropagation();
+                    const fade = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
+                    if (fade) {
+                      Promise.resolve(fade).then(clickFade);
+                      evt && evt.stopPropagation();
+                    }
                     return;
                   }
                   if (is !== 'yt-live-chat-ticker-renderer') {
@@ -5865,7 +5864,7 @@
               evt.stopPropagation();
               currentMenuPivotWR = mWeakRef(kurMPC);
               return;
-            } 
+            }
             */
 
             if ((nszDropdown = targetDropDown)) {
@@ -5898,16 +5897,16 @@
         // yt-live-chat-paid-message-renderer ??
 
         /*
-        
+
         [...(new Set([...document.querySelectorAll('*')].filter(e=>e.is&&('shouldSupportWholeItemClick' in e)).map(e=>e.is))).keys()]
-        
-        
+
+
         "yt-live-chat-ticker-paid-message-item-renderer"
         "yt-live-chat-ticker-paid-sticker-item-renderer"
         "yt-live-chat-paid-message-renderer"
         "yt-live-chat-text-message-renderer"
         "yt-live-chat-paid-sticker-renderer"
-        
+
         */
 
 
