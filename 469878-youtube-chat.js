@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.4
+// @version             0.58.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7479,7 +7479,7 @@
             cProto.__toStopAfterRun__ = function (hostElement) {
               let mo = new MutationObserver(() => {
                 this.lottieAnimation && this.lottieAnimation.stop();
-                mo.disconnect(hostElement);
+                mo.disconnect();
                 mo.takeRecords();
                 mo = null;
               });
