@@ -152,7 +152,7 @@
 
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
-  const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
+  const INTERACTIVITY_BACKGROUND_ANIMATION = 0;         // mostly for pinned message
   // 0 = default Yt animation background [= no fix]; 
   // 1 = disable default animation background [= keep special animation]; 
   // 2 = disable all animation backgrounds [= no animation backbround]
