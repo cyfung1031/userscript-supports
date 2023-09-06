@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.58.6
+// @version             0.60.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -160,6 +160,8 @@
   const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
 
   const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
+
+  const AMEND_TICKER_handleLiveChatAction = true; // to fix ticker duplication and unresponsively fast ticker generation
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -881,6 +883,12 @@
 
   }
 
+  const firstKey = (obj) => {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) return key;
+    }
+    return null;
+  }
 
   function deepCopy(obj, skipKeys) {
     skipKeys = skipKeys || [];
@@ -4973,6 +4981,189 @@
             return;
           }
 
+          if (AMEND_TICKER_handleLiveChatAction
+            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && fnIntegrity(cProto.handleLiveChatAction) === '1.63.48'
+            && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && fnIntegrity(cProto.handleLiveChatActions) === '1.23.12'
+            && typeof cProto.unshift === 'function' && cProto.unshift.length === 1
+            && typeof cProto.handleMarkChatItemAsDeletedAction === 'function' && cProto.handleMarkChatItemAsDeletedAction.length === 1
+            && typeof cProto.removeTickerItemById === 'function' && cProto.removeTickerItemById.length === 1
+            && typeof cProto.handleMarkChatItemsByAuthorAsDeletedAction === 'function' && cProto.handleMarkChatItemsByAuthorAsDeletedAction.length === 1
+            && typeof cProto.handleRemoveChatItemByAuthorAction === 'function' && cProto.handleRemoveChatItemByAuthorAction.length === 1
+          ) {
+
+            cProto.handleLiveChatActions45 = cProto.handleLiveChatActions;
+
+            cProto.handleLiveChatActions = function (a) {
+              /**
+               * 
+                  f.handleLiveChatActions = function(a) {
+                      a.length && (a.forEach(this.handleLiveChatAction, this),
+                      this.updateHighlightedItem(),
+                      this.shouldAnimateIn = !0)
+                  }
+               * 
+               */
+
+              if (a.length) {
+                const batchToken = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+                for (const action of a) {
+                  action.__batchId45__ = batchToken;
+                  this.handleLiveChatAction(action);
+                }
+              }
+            }
+
+            cProto.handleLiveChatAction45 = cProto.handleLiveChatAction;
+
+
+
+            cProto._nszlv_ = 0;
+            cProto._stackedLCAs_ = null;
+            cProto._lastAddItem_ = null;
+            cProto._lastAddItemInStack_ = false;
+            cProto.handleLiveChatAction = function (a) {
+
+              /**
+               * 
+               * 
+                f.handleLiveChatAction = function(a) {
+                    var b = C(a, xO)
+                      , c = C(a, yO)
+                      , d = C(a, o1a)
+                      , e = C(a, p1a);
+                    a = C(a, A1a);
+                    b ? this.unshift("items", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : a && this.handleRemoveChatItemByAuthorAction(a)
+                }
+               * 
+               */
+
+              // return this.handleLiveChatAction45(a)
+              const { addChatItemAction, addLiveChatTickerItemAction, markChatItemAsDeletedAction,
+                removeChatItemAction, markChatItemsByAuthorAsDeletedAction, removeChatItemByAuthorAction, __batchId45__ } = a
+
+              if (addChatItemAction) return;
+
+              // console.log(Object.keys(a));
+
+              if (this._stackedLCAs_ === null) this._stackedLCAs_ = [];
+              const stackArr = this._stackedLCAs_;
+              let newStackEntry = null;
+              if (addLiveChatTickerItemAction) {
+                let isDuplicated = false;
+
+                const newItem = addLiveChatTickerItemAction.item;
+                const tickerType = firstKey(newItem);
+                if (!tickerType) return;
+                const tickerItem = newItem[tickerType];
+                const tickerId = tickerItem.id;
+                if (!tickerId) return;
+
+                if (this._lastAddItem_ && this._lastAddItem_.id === tickerId) {
+                  let prevTickerItem = null;
+                  if (this._lastAddItemInStack_) {
+                    const entry = stackArr[stackArr.length - 1]; // only consider the last entry
+                    if (entry && entry.action === 'addItem') {
+                      prevTickerItem = entry.data; // only consider the first item;
+                    }
+                  } else {
+                    prevTickerItem = this.items[0]; // only consider the first item;
+                  }
+                  if (prevTickerItem && prevTickerItem[tickerType]) {
+                    if (prevTickerItem[tickerType].id === tickerId) {
+                      isDuplicated = true;
+                    }
+                  }
+                }
+                if (!isDuplicated) {
+                  this._lastAddItem_ = tickerItem;
+                  this._lastAddItemInStack_ = true;
+
+                  newStackEntry = { action: 'addItem', data: newItem };
+
+                } else {
+                  console.log('handleLiveChatAction Repeated Item', tickerItem.id, tickerItem); // happen in both live and playback. Reason Unknown.
+                  return;
+                }
+
+              } else {
+                markChatItemAsDeletedAction && (newStackEntry = { action: 'mcItemD', data: markChatItemAsDeletedAction });
+                removeChatItemAction && (newStackEntry = { action: 'removeItemById', data: removeChatItemAction.targetId });
+                markChatItemsByAuthorAsDeletedAction && (newStackEntry = { action: 'mcItemAD', data: markChatItemsByAuthorAsDeletedAction });
+                removeChatItemByAuthorAction && (newStackEntry = { action: 'removeItemA', data: removeChatItemByAuthorAction })
+              }
+
+
+              if (!newStackEntry) return;
+              stackArr.push(newStackEntry);
+
+
+              this._nszlv_++;
+              if (this._nszlv_ > 1e9) this._nszlv_ = 9;
+              const tid = this._nszlv_;
+
+              newStackEntry.__batchId45__ = __batchId45__ || '';
+              newStackEntry.dateTime = Date.now();
+
+              foregroundPromiseFn().then(() => {
+                if (tid !== this._nszlv_) return;
+                const dateNow = Date.now(); // time difference to shift animation start time shall be considered. (pending)
+                const stackArr = this._stackedLCAs_.slice(0);
+                this._stackedLCAs_.length = 0;
+                this._lastAddItemInStack_ = false;
+                let lastDateTime = 0;
+                let prevBatchId = '';
+                const addItems = [];
+                const previousShouldAnimateIn = this.shouldAnimateIn;
+                for (const entry of stackArr) {
+                  const { action, data, dateTime, __batchId45__ } = entry;
+
+                  const finishLastAction = (
+                    (prevBatchId !== __batchId45__ && prevBatchId)
+                    || (dateNow - lastDateTime >= 1000 && dateNow - dateTime < 1000)
+                  );
+
+                  const addPrevItems = addItems.length >= 1 && (finishLastAction || action !== 'addItem');
+                  lastDateTime = dateTime;
+                  prevBatchId = __batchId45__;
+
+                  if (dateNow - dateTime >= 1000 && this.shouldAnimateIn) this.shouldAnimateIn = false;
+
+                  if (addPrevItems) {
+                    let e = addItems.slice(0);
+                    addItems.length = 0;
+                    this.unshift("items", ...e);
+                  }
+                  if (finishLastAction) {
+                    this.updateHighlightedItem();
+                    if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
+                  }
+
+                  if (action === 'addItem') addItems.unshift(data);
+                  else if (action === 'mcItemD') this.handleMarkChatItemAsDeletedAction(data);
+                  else if (action === 'removeItemById') this.removeTickerItemById(data);
+                  else if (action === 'mcItemAD') this.handleMarkChatItemsByAuthorAsDeletedAction(data);
+                  else if (action === 'removeItemA') this.handleRemoveChatItemByAuthorAction(data);
+
+                }
+                if (previousShouldAnimateIn && !this.shouldAnimateIn) this.shouldAnimateIn = true;
+                if (addItems.length >= 1) {
+                  let e = addItems.slice(0);
+                  addItems.length = 0;
+                  this.unshift("items", ...e);
+                }
+                if (prevBatchId || dateNow - lastDateTime >= 1000) {
+                  this.updateHighlightedItem();
+                  if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
+                }
+              })
+
+            }
+
+            console.log("AMEND_TICKER_handleLiveChatAction - OK");
+          } else {
+            console.log("AMEND_TICKER_handleLiveChatAction - NG");
+          }
+
           if (RAF_FIX_keepScrollClamped) {
 
             // to be improved
@@ -7098,12 +7289,7 @@
 
 
         // const isEmptyObject = (a) => Object.keys(a).length === 0;
-        const isEmptyObject = (obj) => {
-          for (let key in obj) {
-            if (obj.hasOwnProperty(key)) return false;
-          }
-          return true;
-        }
+        const isEmptyObject = ((obj) => (firstKey(obj) === null));
 
         const idMapper = new Map();
 
