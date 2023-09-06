@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.8
+// @version     0.4.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -839,6 +839,8 @@
               node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
             }
           }
+        } else if (this && this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
+          return this.appendChild73.apply(this, arguments);
         }
         if (a instanceof DocumentFragment) {
           if (a.firstElementChild === null) return a;
