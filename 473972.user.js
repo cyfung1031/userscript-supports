@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.9
+// @version     0.4.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -832,19 +832,23 @@
 
       HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
       HTMLElement.prototype.appendChild = function (a) {
-        if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
-          for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
-            if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
-              node.__m848__ = 1;
-              node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
+
+        if (this instanceof HTMLElement) {
+          if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
+            for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
+              if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
+                node.__m848__ = 1;
+                node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
+              }
             }
+          } else if (this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
+            return this.appendChild73.apply(this, arguments);
           }
-        } else if (this && this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
-          return this.appendChild73.apply(this, arguments);
+          if (a instanceof DocumentFragment) {
+            if (a.firstElementChild === null) return a;
+          }
         }
-        if (a instanceof DocumentFragment) {
-          if (a.firstElementChild === null) return a;
-        }
+
         return this.appendChild73.apply(this, arguments)
       }
 
