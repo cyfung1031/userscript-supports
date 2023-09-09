@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.7
+// @version            3.2.8
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1604,11 +1604,13 @@ const mWindow = (() => {
                 return null;
             }
 
+            const plusSign = document.querySelector('#user-script-list-section a[rel="next"][href*="page="], #user-script-list-section a[rel="prev"][href*="page="]') ? '+' : '';
+
             const dailyOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(1)'));
-            dailyOption && dailyOption.insertAdjacentHTML('beforeend', `<span> (${dailyInstallsSum.toLocaleString()})</span>`);
+            dailyOption && dailyOption.insertAdjacentHTML('beforeend', `<span> (${dailyInstallsSum.toLocaleString()}${plusSign})</span>`);
 
             const totalOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(2)'));
-            totalOption && totalOption.insertAdjacentHTML('beforeend', `<span> (${totalInstallsSum.toLocaleString()})</span>`);
+            totalOption && totalOption.insertAdjacentHTML('beforeend', `<span> (${totalInstallsSum.toLocaleString()}${plusSign})</span>`);
         }
 
         // milestone notification
