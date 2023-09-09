@@ -24,11 +24,11 @@ SOFTWARE.
 
 */
 // ==UserScript==
-// @name                YouTube CPU Tamer by AnimationFrame
-// @name:ja             YouTube CPU Tamer by AnimationFrame
-// @name:zh-TW          YouTube CPU Tamer by AnimationFrame
+// @name                YouTube CPU Tamer 𝖻𝗒 AnimationFrame
+// @name:ja             YouTube CPU Tamer 𝖻𝗒 AnimationFrame
+// @name:zh-TW          YouTube CPU Tamer 𝖻𝗒 AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.08.27.1
+// @version             2023.09.09.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
