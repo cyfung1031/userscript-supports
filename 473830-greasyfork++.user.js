@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.5
+// @version            3.2.6
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1131,8 +1131,6 @@ const mWindow = (() => {
             promiseScriptCheck.then(d => {
 
                 if (!d) return null;
-
-                console.log(66, d)
 
                 const data = d.data;
                 const al = data.type % 10;
