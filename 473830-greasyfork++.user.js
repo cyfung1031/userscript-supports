@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.6
+// @version            3.2.7
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1409,10 +1409,13 @@ const mWindow = (() => {
         if (!script) return;
 
         const installed = await isInstalled(script);
+        const version = (
+            baseScript.version && script.version && compareVersions(baseScript.version, script.version) === 1
+        ) ? baseScript.version : script.version;
 
-        const update = compareVersions(script.version, installed);  // NaN  1  -1  0
+        const update = compareVersions(version, installed);  // NaN  1  -1  0
         const label = installLabel(update);
-        button.textContent = `${label} ${script.version}`;
+        button.textContent = `${label} ${version}`;
         button.classList.remove('install-status-checking');
 
     }
