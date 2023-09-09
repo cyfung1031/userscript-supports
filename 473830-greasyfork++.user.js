@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.4
+// @version            3.2.5
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -49,7 +49,7 @@ const WinComm = this.WinComm;
 //  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
 // optimized by CY Fung to remove $ dependency and observe creation
 const UU = (function () {
-    const scriptName = GM.info.script.name;
+    const scriptName = GM.info.script.name; // not name_i18n
     const scriptVersion = GM.info.script.version;
     const authorMatch = /^(.*?)\s<\S[^\s@]*@\S[^\s.]*\.\S+>$/.exec(GM.info.script.author);
     const author = authorMatch ? authorMatch[1] : GM.info.script.author;
@@ -681,7 +681,7 @@ const mWindow = (() => {
 
         if (!(kl === 2 || kl === 3)) return;
         const puds = kl === 2 ? [
-            pnIsInstalled2(21, scriptName, scriptNamespace),
+            pnIsInstalled2(21, scriptName, scriptNamespace), // scriptName is GM.info.script.name not GM.info.script.name_i18n
             pnIsInstalled2(20, scriptName, '')
         ] : [
             pnIsInstalled3(31, scriptName, scriptNamespace),
@@ -1132,6 +1132,8 @@ const mWindow = (() => {
 
                 if (!d) return null;
 
+                console.log(66, d)
+
                 const data = d.data;
                 const al = data.type % 10;
                 if (al === 0) {
@@ -1379,36 +1381,39 @@ const mWindow = (() => {
     const showInstallButton = async (scriptID, element) => {
 
         // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
-        let _script = null;
+        let _baseScript = null;
         if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
 
             const token = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
 
             const version = element.getAttribute('data-script-version') || ''
             const name = element.getAttribute('data-script-name') || ''
+            // if (!/[^\x00-\x7F]/.test(name)) {
+
             let scriptFilename = `${encodeURI(name)}.user.js`;
-            _script = {
+            _baseScript = {
                 id: +scriptID,
-                name: name,
+                // name: name,
                 code_url: `https://greasyfork.org/scripts/${scriptID}-${token}/code/${scriptFilename}`,
                 version: version
             }
+            // }
 
         }
 
-        const script = _script || (await getScriptData(scriptID));
-        if (!script) return;
-        const button = addInstallButton(element, script.code_url);
+        const baseScript = _baseScript || (await getScriptData(scriptID));
+
+        if (!baseScript || !baseScript.code_url || !baseScript.version) return;
+        const button = addInstallButton(element, baseScript.code_url);
         button.classList.add('install-status-checking');
-        button.textContent = `${installLabel()} ${script.version}`;
+        button.textContent = `${installLabel()} ${baseScript.version}`;
+        const script = baseScript && baseScript.name && baseScript.namespace ? baseScript : (await getScriptData(scriptID));
+        if (!script) return;
 
-        const installed = await isInstalled(script)
-
+        const installed = await isInstalled(script);
 
         const update = compareVersions(script.version, installed);  // NaN  1  -1  0
-
         const label = installLabel(update);
-
         button.textContent = `${label} ${script.version}`;
         button.classList.remove('install-status-checking');
 
@@ -1472,7 +1477,7 @@ const mWindow = (() => {
 
             const scriptHandlerObject = {
                 scriptHandler: gminfo.scriptHandler || '',
-                scriptName: gminfoscript.name || '',
+                scriptName: gminfoscript.name || '', // not name_i18n
                 scriptVersion: gminfoscript.version || '',
                 scriptNamespace: gminfoscript.namespace || '',
                 communicationId
