@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.11
+// @version            3.2.12
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1387,7 +1387,7 @@ const mWindow = (() => {
         const byteArray = new Uint8Array(buffer);
         const len = byteArray.length;
         const hexCodes = new Array(len * 2);
-        const chars = 'abcdefghjkmpqrst';
+        const chars = 'a4b3c5d7e6f9h2t';
         for (let i = 0, j = 0; i < len; i++) {
             const byte = byteArray[i];
             hexCodes[j++] = chars[byte >> 4];
