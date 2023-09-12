@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.8
+// @version            3.2.9
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -17,7 +17,7 @@
 // @copyright          2023, CY Fung (https://greasyfork.org/users/371179); 2021, Davide (https://github.com/iFelix18)
 // @license            MIT
 // @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
-// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.3.0/dist/index.min.js
+// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.0/dist/index.min.js
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
@@ -846,13 +846,11 @@ const mWindow = (() => {
         if (avoidDuplication - p < 30) return false;
         return true;
     }
+    // https://violentmonkey.github.io/vm-shortcut/
     const shortcuts = [
-        ['ctrlcmd-alt-s', () => avoidDuplicationF() && gmc.open()],
-        ['ctrlcmd-alt-ß', () => avoidDuplicationF() && gmc.open()],
-        ['ctrlcmd-alt-b', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
-        ['ctrlcmd-alt-∫', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
-        ['ctrlcmd-alt-h', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')],
-        ['ctrlcmd-alt-˙', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')]
+        ['ctrlcmd-alt-keys', () => avoidDuplicationF() && gmc.open()],
+        ['ctrlcmd-alt-keyb', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
+        ['ctrlcmd-alt-keyh', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')]
     ]
     for (const [scKey, scFn] of shortcuts) {
         _VM.shortcut.register(scKey, scFn);
