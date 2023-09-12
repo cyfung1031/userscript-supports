@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.9
+// @version            3.2.10
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -732,6 +732,8 @@ const mWindow = (() => {
         return null;
     }
 
+    const useHashedScriptName = true;
+
     const id = 'greasyfork-plus';
     const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
     const fields = mWindow.fields;
@@ -1374,19 +1376,40 @@ const mWindow = (() => {
         return insertButtonHTML(element, '.badge-js, .badge-css', `<a class="install-link" href="${url}" style-54998></a>`);
     };
 
+    async function digestMessage(message, algo) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(message);
+        const hash = await crypto.subtle.digest(algo, data);
+        return hash;
+    }
+
+    function hexString(buffer) {
+        const byteArray = new Uint8Array(buffer);
+        const len = byteArray.length;
+        const hexCodes = new Array(len * 2);
+        const chars = '0123456789abcdef';
+        for (let i = 0, j = 0; i < len; i++) {
+            const byte = byteArray[i];
+            hexCodes[j++] = chars[byte >> 4];
+            hexCodes[j++] = chars[byte & 0x0F];
+        };
+        return hexCodes.join('');
+    }
+
     const showInstallButton = async (scriptID, element) => {
 
         // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
         let _baseScript = null;
         if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
 
-            const token = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
-
             const version = element.getAttribute('data-script-version') || ''
             const name = element.getAttribute('data-script-name') || ''
             // if (!/[^\x00-\x7F]/.test(name)) {
 
-            let scriptFilename = `${encodeURI(name)}.user.js`;
+            const scriptName = useHashedScriptName ? hexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
+            const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length-2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+            // let scriptFilename = `${encodeURI(name)}.user.js`;
+            const scriptFilename = `${scriptName}.user.js`;
             _baseScript = {
                 id: +scriptID,
                 // name: name,
