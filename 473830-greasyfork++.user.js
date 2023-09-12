@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.10
+// @version            3.2.11
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1383,11 +1383,11 @@ const mWindow = (() => {
         return hash;
     }
 
-    function hexString(buffer) {
+    function qexString(buffer) {
         const byteArray = new Uint8Array(buffer);
         const len = byteArray.length;
         const hexCodes = new Array(len * 2);
-        const chars = '0123456789abcdef';
+        const chars = 'abcdefghjkmpqrst';
         for (let i = 0, j = 0; i < len; i++) {
             const byte = byteArray[i];
             hexCodes[j++] = chars[byte >> 4];
@@ -1406,7 +1406,7 @@ const mWindow = (() => {
             const name = element.getAttribute('data-script-name') || ''
             // if (!/[^\x00-\x7F]/.test(name)) {
 
-            const scriptName = useHashedScriptName ? hexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
+            const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
             const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length-2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
             // let scriptFilename = `${encodeURI(name)}.user.js`;
             const scriptFilename = `${scriptName}.user.js`;
