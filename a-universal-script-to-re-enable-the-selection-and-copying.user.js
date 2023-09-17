@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.17.0.3
+// @version             1.18.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -454,7 +454,8 @@
                                 return true;
                             case 'VIDEO':
                             case 'AUDIO':
-                                return false;
+                                return $.gm_native_video_audio_contextmenu ? true: false;
+                                
                         }
                         if (target.closest('ytd-player#ytd-player')) return false;
                         if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
@@ -1600,9 +1601,13 @@
         });
 
         $.gm_status_fn("gm_remain_focus_on_mousedown", "To Enable `Remain Focus On MouseDown`", "To Disable `Remain Focus On MouseDown`", () => {
-            $.gm_remain_focus_on_mousedown = 0;
+            // $.gm_remain_focus_on_mousedown = 0;
             // callback
         });
+
+        $.gm_status_fn("gm_native_video_audio_contextmenu", "To Enable Native Video Audio Context Menu", "To Disable Native Video Audio Context Menu", ()=>{
+            
+        })
 
     }
 
