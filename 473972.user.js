@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.11
+// @version     0.4.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -26,6 +26,8 @@
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
   // const FIX_error_many_stack_keepAliveDuration = 200; // ms
   // const FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than = 8;
+
+  const FIX_Iframe_NULL_SRC = true;
 
   /*
   window.addEventListener('edm',()=>{
@@ -51,6 +53,23 @@
 
   if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
 
+  ; FIX_Iframe_NULL_SRC && (() => {
+
+    let emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
+    const lcOpt = { sensitivity: 'base' };
+    document.createElement24 = document.createElement;
+    document.createElement = function (t) {
+      if (typeof t === 'string' && t.length === 6) {
+        if (t.localeCompare('iframe', undefined, lcOpt) === 0) {
+          let p = this.createElement24(t);
+          p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
+          return p;
+        }
+      }
+      return this.createElement24.apply(this, arguments);
+    };
+
+  })();
 
   ; fix_error_many_stack_state === 1 && (() => {
 
