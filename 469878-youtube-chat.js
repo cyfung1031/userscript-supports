@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.1
+// @version             0.60.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -162,6 +162,8 @@
   const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
 
   const AMEND_TICKER_handleLiveChatAction = true; // to fix ticker duplication and unresponsively fast ticker generation
+
+  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = false; // NOT PLANNED
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -946,6 +948,12 @@
 
   let playEventsStack = Promise.resolve();
 
+
+  let playerProgressChangedArg1 = null;
+  let playerProgressChangedArg2 = null;
+  let playerProgressChangedArg3 = null;
+
+
   function dr(s) {
     // reserved for future use
     return s;
@@ -1039,6 +1047,8 @@
       "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
     );
   }
+
+  // const microNow = () => performance.now() + (performance.timeOrigin || performance.timing.navigationStart);
 
 
   const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
@@ -3235,6 +3245,212 @@
       }
       // console.log(document.body===null)
 
+      if (ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION) {
+        customElements.whenDefined('yt-live-chat-renderer').then(() => {
+
+          const tag = "yt-live-chat-renderer"
+          const dummy = document.createElement(tag);
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
+          console.log("[Begin]");
+
+
+
+
+
+
+          if (typeof cProto.playerProgressChanged_ === 'function' && !cProto.playerProgressChanged32_) {
+
+            cProto.playerProgressChanged32_ = cProto.playerProgressChanged_;
+
+            const pop078 = function () {
+              const r = this.pop78();
+              console.log(55, r)
+
+              if (r && (r.actions || 0).length >= 1 && r.videoOffsetTimeMsec) {
+                for (const action of r.actions) {
+
+                  const itemActionKey = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
+                  if (itemActionKey) {
+
+                    const itemAction = action[itemActionKey];
+                    const item = (itemAction || 0).item;
+                    if (typeof item === 'object') {
+
+                      const rendererKey = firstKey(item);
+                      if (rendererKey) {
+                        const renderer = item[rendererKey];
+                        if (renderer && typeof renderer === 'object') {
+                          renderer.__videoOffsetTimeMsec__ = r.videoOffsetTimeMsec;
+                          renderer.__progressAt__ = playerProgressChangedArg1;
+                        }
+
+                      }
+
+                    }
+                  }
+                }
+              }
+              return r;
+            }
+
+            cProto.playerProgressChanged_ = function (a, b, c) {
+              playerProgressChangedArg1 = a;
+              playerProgressChangedArg2 = b;
+              playerProgressChangedArg3 = c;
+              const replayBuffer_ = this.replayBuffer_;
+              if (replayBuffer_) {
+                const replayQueue = replayBuffer_.replayQueue
+                if (replayQueue && typeof replayQueue === 'object' && !replayQueue.qe3) {
+
+                  replayBuffer_.replayQueue = new Proxy(replayBuffer_.replayQueue, {
+                    get(target, prop, receiver) {
+                      if (prop === 'qe3') return 1;
+                      const v = target[prop];
+                      if (prop === 'front_') {
+                        if (v && typeof v.length === 'number') {
+                          if (!v.pop78) {
+                            v.pop78 = v.pop;
+                            v.pop = pop078;
+                          }
+                        }
+                      }
+                      return v;
+                    }
+                  });
+
+                }
+              }
+              return this.playerProgressChanged32_.apply(this, arguments);
+            };
+
+          }
+
+          if (typeof cProto.immediatelyApplyLiveChatActions === 'function' && !cProto.immediatelyApplyLiveChatActions32) {
+
+            cProto.immediatelyApplyLiveChatActions32 = cProto.immediatelyApplyLiveChatActions;
+
+            cProto.immediatelyApplyLiveChatActions = function (a) {
+              // if (a.length > 8) {
+              //   console.log(a)
+              // }
+
+              if (a && typeof a === 'object' && a.length >= 1) {
+                const d = Date.now();
+                const m = [];
+                for (let i = 0, l = a.length; i < l; i++) {
+                  const action = a[i];
+                  const key = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
+                  if (key === 'addChatItemAction' || key === 'addLiveChatTickerItemAction') {
+                    const itemAction = action[key] || 0;
+                    const item = itemAction.item || 0;
+                    if (item && typeof item === 'object') {
+                      let rendererKey = firstKey(item);
+                      const renderer = item[rendererKey];
+                      let timestampUsec = null;
+                      if (renderer && 'timestampUsec' in renderer) {
+                        timestampUsec = renderer.timestampUsec
+                        renderer._timestampUsec57 = timestampUsec;
+                      } else if (renderer && renderer.showItemEndpoint) {
+                        const messageRenderer = ((renderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
+                        if (messageRenderer) {
+
+                          const messageRendererKey = firstKey(messageRenderer);
+                          if (messageRendererKey && messageRenderer[messageRendererKey]) {
+                            const messageRendererData = messageRenderer[messageRendererKey];
+                            if (messageRendererData && 'timestampUsec' in messageRendererData) {
+                              timestampUsec = messageRendererData.timestampUsec
+                              renderer._timestampUsec57 = timestampUsec;
+                            }
+                          }
+                        }
+                      }
+                      m.push(renderer);
+                      // if(timestampUsec!==null){
+                      //   if(key==='addLiveChatTickerItemAction')console.log(renderer, rendererKey, key)
+                      //   m.push(renderer);
+
+                      // }
+                    }
+                  }
+                }
+                if (m.length >= 1) {
+
+                  let lastUsec = null;
+                  for (let i = 0, l = m.length; i < l; i++) {
+                    const renderer = m[i];
+                    if ('_timestampUsec57' in renderer) {
+                      lastUsec = +renderer._timestampUsec57 / 1E3;
+                      renderer.__lcrTime__ = d;
+                    }
+                  }
+
+
+                  if (lastUsec !== null) {
+
+                    const refUsec = lastUsec
+
+                    let prevUsec = null;
+                    for (let i = 0, l = m.length; i < l; i++) {
+                      const renderer = m[i];
+                      if ('_timestampUsec57' in renderer) {
+
+                        let actualTime = +renderer._timestampUsec57 / 1E3; // ms
+                        let lcrTime = d - Math.round(refUsec - actualTime); // ms
+
+                        renderer.__lcrTime__ = lcrTime; // ms
+
+                        prevUsec = lcrTime
+                      } else {
+
+                        renderer._prevUsec57 = prevUsec;
+                      }
+                    }
+
+
+                    let nextUsec = null;
+                    for (let i = m.length - 1; i >= 0; i--) {
+                      const renderer = m[i];
+                      if ('_timestampUsec57' in renderer) {
+
+                        nextUsec = renderer.__lcrTime__
+                      } else {
+
+                        renderer._nextUsec57 = nextUsec;
+
+                        if (renderer._nextUsec57 > 0 && renderer._prevUsec57 > 0 && renderer._nextUsec57 > renderer._prevUsec57) {
+                          renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2
+                        }
+                      }
+                    }
+
+
+                  }
+
+
+                }
+              }
+              return this.immediatelyApplyLiveChatActions32.apply(this, arguments)
+            }
+
+
+          }
+
+          console.log("[End]");
+          console.groupEnd();
+
+
+        });
+
+      }
+
       customElements.whenDefined('yt-live-chat-item-list-renderer').then(() => {
 
         const tag = "yt-live-chat-item-list-renderer"
@@ -4465,6 +4681,9 @@
                   const ae = this._makeAnimator();
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
+                  // if (playerProgressChangedArg1 === null) {
+                  //   console.log('startCountdownForTimerFnModA', this.data)
+                  // }
 
                   if (isPlayProgressTriggered && this.isAnimationPaused !== true && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
 
@@ -5077,6 +5296,7 @@
                 if (!isDuplicated) {
                   this._lastAddItem_ = tickerItem;
                   this._lastAddItemInStack_ = true;
+                  // console.log('newItem', newItem)
 
                   newStackEntry = { action: 'addItem', data: newItem };
 
