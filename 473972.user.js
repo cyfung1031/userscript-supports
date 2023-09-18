@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.12
+// @version     0.4.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -16,7 +16,7 @@
 
 (() => {
 
-  const NATIVE_CANVAS_ANIMATION = true; // for #cinematics
+  const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance_ = true;
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
