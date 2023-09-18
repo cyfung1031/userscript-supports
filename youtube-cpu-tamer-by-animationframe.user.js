@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.09.09.1
+// @version             2023.09.18.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -173,21 +173,23 @@ SOFTWARE.
       let removeIframeFn = null;
       if (!frame) {
         frame = document.createElement('iframe');
-        frame.id = 'vanillajs-iframe-v1';
+        frame.id = frameId;
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
         frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
         let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
         n.appendChild(frame);
         while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
         const root = document.documentElement;
         root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+        if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
+
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
             win = null;
-            setTimeout(() => {
-              n.remove();
-              n = null;
-            }, 200);
+            const m = n;
+            n = null;
+            setTimeout(() => m.remove(), 200);
           }
           if (document.readyState !== 'loading') {
             removeIframeOnDocumentReady();

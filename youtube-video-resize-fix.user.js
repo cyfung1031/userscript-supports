@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.7
+// @version             0.3.8
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -70,21 +70,23 @@ SOFTWARE.
       let removeIframeFn = null;
       if (!frame) {
         frame = document.createElement('iframe');
-        frame.id = 'vanillajs-iframe-v1';
+        frame.id = frameId;
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
         frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
         let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
         n.appendChild(frame);
         while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
         const root = document.documentElement;
         root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+        if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
+
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
             win = null;
-            setTimeout(() => {
-              n.remove();
-              n = null;
-            }, 200);
+            const m = n;
+            n = null;
+            setTimeout(() => m.remove(), 200);
           }
           if (document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
