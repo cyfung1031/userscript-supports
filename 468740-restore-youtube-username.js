@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.1
+// @version             0.9.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -1061,6 +1061,45 @@ SOFTWARE.
         return null;
     };
 
+    const editableTextProcess = (editableTexts, idx) => {
+        const editableText = editableTexts[idx];
+        const text = (editableText || 0).text;
+        const url = (((editableText.navigationEndpoint || 0).commandMetadata || 0).webCommandMetadata || 0).url;
+        if (typeof url === 'string' && typeof text === 'string') {
+
+            if (!isDisplayAsHandle(text)) return null;
+            const channelId = obtainChannelId(url);
+
+            return getDisplayName(channelId).then(fetchResult => {
+                let resolveResult = null;
+                if (fetchResult) {
+                    // note: if that user shown is not found in `a[id]`, the hyperlink would not change
+
+                    const textTrimmed = verifyAndConvertHandle(text, fetchResult);
+                    if (textTrimmed) {
+                        resolveResult = (md) => {
+                            let commentReplyDialogRenderer = null;
+                            try {
+                                commentReplyDialogRenderer = md.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                            } catch (e) { }
+                            if (!commentReplyDialogRenderer) return;
+                            const editableText = commentReplyDialogRenderer.editableText || 0;
+
+                            let runs = (editableText || 0).runs;
+                            if (!runs || !runs[idx]) return;
+                            if (runs[idx].text !== text) return;
+                            runs[idx].text = text.replace(textTrimmed, `@${fetchResult.title}`); // HyperLink always @SomeOne
+                            commentReplyDialogRenderer.editableText = Object.assign({}, commentReplyDialogRenderer.editableText);
+                        };
+                    }
+                }
+                return resolveResult; // function as a Promise
+            });
+        }
+
+        return null;
+    };
+
     /**
      *
      * @param {ParentNode} parentNode
@@ -1367,6 +1406,22 @@ SOFTWARE.
                         md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
                         md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
 
+                    }
+
+                    let setReplyEditableText = false;
+                    if (((((((((parentNodeData.actionButtons || 0).commentActionButtonsRenderer || 0).replyButton || 0).buttonRenderer || 0).navigationEndpoint || 0).createCommentReplyDialogEndpoint || 0).dialog || 0).commentReplyDialogRenderer || 0).editableText) {
+                        setReplyEditableText = true;
+                    }
+                    if (setReplyEditableText) {
+                        const commentReplyDialogRenderer = parentNodeData.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                        const editableText = commentReplyDialogRenderer.editableText;
+                        const editableTexts = editableText.runs;
+                        if (editableTexts && editableTexts.length >= 1) {
+                            for (let aidx = 0; aidx < editableTexts.length; aidx++) {
+                                const r = editableTextProcess(editableTexts, aidx);
+                                if (r instanceof Promise) funcPromises.push(r);
+                            }
+                        }
                     }
 
                     if (UPDATE_PIN_NAME) {
