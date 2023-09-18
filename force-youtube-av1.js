@@ -22,7 +22,7 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.2
+// @version             2.4.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -134,8 +134,7 @@
       // Check if a video type is allowed
       return function (type) {
         let res = undefined;
-        if (type === 'video/webm; codecs="vp9"') res = false; // Prevent Invalid (ambiguous) video codec string: video/webm; codecs=vp9
-        else if (type === undefined) res = false;
+        if (type === undefined) res = false;
         else res = typeTest(type);
         if (res === undefined) res = origChecker.apply(this, arguments);
         else res = !dx ? res : (res ? "probably" : "");
