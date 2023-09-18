@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 y VP9 en YouTube
 // @description:es      Desactivar AV1 y VP9 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.1
+// @version             2.4.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -119,15 +119,15 @@
     }
 
     // return a custom MIME type checker that can defer to the original function
-    function makeModifiedTypeChecker(origChecker) {
+    function makeModifiedTypeChecker(origChecker, dx) {
       // Check if a video type is allowed
       return function (type) {
         let res = undefined;
-        if (type === undefined) res = false;
-        else {
-          res = typeTest(type);
-        }
+        if (type === 'video/webm; codecs="vp9"') res = false; // Prevent Invalid (ambiguous) video codec string: video/webm; codecs=vp9
+        else if (type === undefined) res = false;
+        else res = typeTest(type);
         if (res === undefined) res = origChecker.apply(this, arguments);
+        else res = !dx ? res : (res ? "probably" : "");
 
         // console.debug(20, type, res)
 
@@ -138,7 +138,7 @@
     // Override video element canPlayType() function
     const proto = (HTMLVideoElement || 0).prototype;
     if (proto && typeof proto.canPlayType == 'function') {
-      proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+      proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType, true);
     }
 
     // Override media source extension isTypeSupported() function
