@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.3.3
+// @version      0.3.4
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -36,7 +36,7 @@ SOFTWARE.
 
 (() => {
 
-  const win = this;
+  const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
 
   if (!win._ytConfigHacks) {
 
@@ -121,14 +121,14 @@ SOFTWARE.
 
     function onReady(event) {
       detectConfigDone();
-      event && window.removeEventListener("DOMContentLoaded", onReady, false);
+      event && win.removeEventListener("DOMContentLoaded", onReady, false);
     }
 
     Promise.resolve().then(() => {
       if (document.readyState !== 'loading') {
         onReady();
       } else {
-        window.addEventListener("DOMContentLoaded", onReady, false);
+        win.addEventListener("DOMContentLoaded", onReady, false);
       }
     });
 
