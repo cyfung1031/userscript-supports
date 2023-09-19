@@ -2,7 +2,7 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.3.0
+// @version             0.3.1
 // @license             MIT
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -42,7 +42,7 @@ gO;return b};
     isMainWindow = window.document === window.top.document
   } catch (e) { }
 
-  window.ytConfigHacks.add((config_) => {
+  window._ytConfigHacks.add((config_) => {
 
     let obj = null;
     try {
