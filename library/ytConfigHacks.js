@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.1.4
+// @version      0.1.5
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -59,7 +59,7 @@ SOFTWARE.
     const executeConfigHooksAndRestore = () => {
       if (remainingCalls >= 1) {
         const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_;
-        if (config) {
+        if (config && 'EXPERIMENT_FLAGS' in config) {
           processConfigHooks(config);
           if (--remainingCalls <= 0) restoreOriginalYtCSI();
         }
