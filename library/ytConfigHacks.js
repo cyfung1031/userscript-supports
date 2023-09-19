@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.3.2
+// @version      0.3.3
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -131,8 +131,6 @@ SOFTWARE.
         window.addEventListener("DOMContentLoaded", onReady, false);
       }
     });
-
-    detectConfigDone();
 
   }
 
