@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.1.5
+// @version      0.2.0
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -39,13 +39,19 @@ SOFTWARE.
   const win = this;
 
   if (!win._ytConfigHacks) {
-    const _ytConfigHacks = win._ytConfigHacks = [];
+    /** @extends {Set<Function>} */
+    class YtConfigHacks extends Set {
+      add(value) {
+        if (typeof value === 'function') super.add(value);
+      }
+    }
+    const _ytConfigHacks = win._ytConfigHacks = new YtConfigHacks();
 
     let remainingCalls = 4;
 
     const processConfigHooks = (config) => {
       for (const hook of _ytConfigHacks) {
-        if (typeof hook === 'function') hook(config);
+        hook(config);
       }
     };
 
