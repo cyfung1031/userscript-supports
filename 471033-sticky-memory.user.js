@@ -2,7 +2,7 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.2.3
+// @version             0.3.0
 // @license             MIT
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -12,6 +12,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
+// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252599
 // ==/UserScript==
 
 // html5_exponential_memory_for_sticky
@@ -24,206 +25,40 @@ gO;return b};
 
 */
 
-((__CONTEXT__) => {
+(() => {
 
+  const win = this instanceof Window ? this : window;
 
-    const win = this instanceof Window ? this : window;
-  
-    // Create a unique key for the script and check if it is already running
-    const hkey_script = 'ezinmgkfbpgh';
-    if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
-    win[hkey_script] = true;
-  
-    /** @type {globalThis.PromiseConstructor} */
-    const Promise = ((async () => { })()).constructor;
-  
-    let isMainWindow = false;
+  // Create a unique key for the script and check if it is already running
+  const hkey_script = 'ezinmgkfbpgh';
+  if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
+  win[hkey_script] = true;
+
+  /** @type {globalThis.PromiseConstructor} */
+  const Promise = ((async () => { })()).constructor;
+
+  let isMainWindow = false;
+  try {
+    isMainWindow = window.document === window.top.document
+  } catch (e) { }
+
+  window.ytConfigHacks.add((config_) => {
+
+    let obj = null;
     try {
-      isMainWindow = window.document === window.top.document
+      obj = config_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
     } catch (e) { }
-  
-  
-  
-    const hLooper = ((fn) => {
-  
-      let nativeFnLoaded = false;
-      let kc1 = 0;
-  
-      const setIntervalW = setInterval;
-      const clearIntervalW = clearInterval;
-      let microDisconnectFn = null;
-      let fStopLooper = false;
-      const looperFn = () => {
-        if (fStopLooper) return;
-  
-  
-  
-        let obj = null;
-        try {
-          obj = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
-        } catch (e) { }
-  
-  
-  
-        if (obj) {
-  
-          fn(obj);
-  
-          if (microDisconnectFn) {
-            let isYtLoaded = false;
-            try {
-              isYtLoaded = typeof ytcfg.set === 'function';
-            } catch (e) { }
-            if (isYtLoaded) {
-              microDisconnectFn();
-            }
-          }
-  
-        }
-  
-  
-  
-  
-      };
-  
-      const controller = {
-        start() {
-          kc1 = setIntervalW(looperFn, 1);
-          (async () => {
-            while (true && !nativeFnLoaded) {
-              looperFn();
-              if (fStopLooper) break;
-              await (new Promise(requestAnimationFrame));
-            }
-          })();
-          looperFn();
-        },
-        setupForCleanContext(__CONTEXT__) {
-  
-          const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
-  
-          (async () => {
-            while (true) {
-              looperFn();
-              if (fStopLooper) break;
-              await (new Promise(requestAnimationFrame));
-            }
-          })();
-  
-          let kc2 = setInterval(looperFn, 1);
-  
-          const marcoDisconnectFn = () => {
-            if (fStopLooper) return;
-            Promise.resolve().then(() => {
-              if (kc1 || kc2) {
-                kc1 && clearIntervalW(kc1); kc1 = 0;
-                kc2 && clearInterval(kc2); kc2 = 0;
-                looperFn();
-              }
-              fStopLooper = true;
-            });
-            document.removeEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
-            document.removeEventListener('yt-navigate-finish', marcoDisconnectFn, false);
-            document.removeEventListener('spfdone', marcoDisconnectFn, false);
-          };
-          document.addEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
-          document.addEventListener('yt-navigate-finish', marcoDisconnectFn, false);
-          document.addEventListener('spfdone', marcoDisconnectFn, false);
-  
-  
-          function onReady() {
-            if (!fStopLooper) {
-              setTimeout(() => {
-                !fStopLooper && marcoDisconnectFn();
-              }, 1000);
-            }
-          }
-  
-          Promise.resolve().then(() => {
-            if (document.readyState !== 'loading') {
-              onReady();
-            } else {
-              window.addEventListener("DOMContentLoaded", onReady, false);
-            }
-          });
-  
-          nativeFnLoaded = true;
-  
-          microDisconnectFn = () => Promise.resolve(marcoDisconnectFn).then(setTimeout);
-  
-        }
-      };
-  
-      return controller;
-    })((obj) => {
-  
-      if (typeof obj.serializedExperimentFlags === 'string') {
-        if (obj.serializedExperimentFlags.indexOf('&h5_expr_b9Nkc=true') > 0) return;
-        obj.serializedExperimentFlags = obj.serializedExperimentFlags.replace(/(^|&)html5_exponential_memory_for_sticky=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
+
+    if (obj) {
+
+      const sflags = obj.serializedExperimentFlags
+      if (typeof sflags === 'string') {
+        if (sflags.includes('&h5_expr_b9Nkc=true')) return;
+        obj.serializedExperimentFlags = sflags.replace(/(^|&)html5_exponential_memory_for_sticky=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
       }
-  
-  
-  
-    });
-  
-    hLooper.start();
-  
-  
-    const cleanContext = async (win) => {
-      const waitFn = requestAnimationFrame; // shall have been binded to window
-      try {
-        let mx = 16; // MAX TRIAL
-        const frameId = 'vanillajs-iframe-v1'
-        let frame = document.getElementById(frameId);
-        let removeIframeFn = null;
-        if (!frame) {
-          frame = document.createElement('iframe');
-          frame.id = frameId;
-          const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
-          frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
-          let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-          n.appendChild(frame);
-          while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
-          const root = document.documentElement;
-          root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
-          if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
-  
-          removeIframeFn = (setTimeout) => {
-            const removeIframeOnDocumentReady = (e) => {
-              e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-              win = null;
-              const m = n;
-              n = null;
-              setTimeout(() => m.remove(), 200);
-            }
-            if (document.readyState !== 'loading') {
-              removeIframeOnDocumentReady();
-            } else {
-              win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            }
-          }
-        }
-        while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
-        const fc = frame.contentWindow;
-        if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-        const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
-        const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
-        for (let k in res) res[k] = res[k].bind(win); // necessary
-        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-        return res;
-      } catch (e) {
-        console.warn(e);
-        return null;
-      }
-    };
-  
-    cleanContext(win).then(__CONTEXT__ => {
-  
-      const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
-  
-      hLooper.setupForCleanContext(__CONTEXT__)
-  
-    });
-  
-  })(null);
-  
+
+    }
+
+  });
+
+})();
