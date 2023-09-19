@@ -12,7 +12,7 @@
 // @run-at      document-start
 // @allFrames   true
 // @inject-into page
-// @require     https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252599
+// @require     https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252706
 // ==/UserScript==
 
 ((__CONTEXT__) => {
@@ -895,45 +895,12 @@
 
   };
 
-  const hLooperMx = () => {
 
-    const eventTriggerFn = () => {
-      if (brc > 4) {
-        brc = 4;
-        looperFn();
-      }
-      document.removeEventListener('yt-page-data-fetched', eventTriggerFn, false);
-      document.removeEventListener('yt-navigate-finish', eventTriggerFn, false);
-      document.removeEventListener('spfdone', eventTriggerFn, false);
-    };
-    document.addEventListener('yt-page-data-fetched', eventTriggerFn, false);
-    document.addEventListener('yt-navigate-finish', eventTriggerFn, false);
-    document.addEventListener('spfdone', eventTriggerFn, false);
+  window._ytConfigHacks.add((config_) => {
+    looperFn(config_);
+  });
+  looperFn();
 
-    window._ytConfigHacks.add((config_) => {
-      looperFn(config_);
-    });
-
-    function onReady() {
-      if (brc > 4) {
-        brc = 4;
-        looperFn();
-      }
-    }
-
-    Promise.resolve().then(() => {
-      if (document.readyState !== 'loading') {
-        onReady();
-      } else {
-        window.addEventListener("DOMContentLoaded", onReady, false);
-      }
-    });
-
-    looperFn();
-
-  };
-
-  hLooperMx();
 
 
 

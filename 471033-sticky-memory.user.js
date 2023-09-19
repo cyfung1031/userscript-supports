@@ -12,7 +12,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252599
+// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252706
 // ==/UserScript==
 
 // html5_exponential_memory_for_sticky
