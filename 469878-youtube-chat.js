@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.3
+// @version             0.60.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -15,6 +15,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
+// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252706
 //
 // @compatible          firefox Violentmonkey
 // @compatible          firefox Tampermonkey
@@ -1364,7 +1365,7 @@
   }
 
 
-  const flagsFnOnInterval = (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) ? (() => {
+  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
 
     const flags = () => {
       try {
@@ -1406,49 +1407,14 @@
       }
     }
 
+    window._ytConfigHacks.add((config_)=>{
+      const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
+      if (EXPERIMENT_FLAGS) uf(EXPERIMENT_FLAGS);
+    });
+
     uf();
 
-    const flagsFnOnInterval = (setInterval, clearInterval) => {
-
-      uf();
-      let cidFlags = 0;
-      let kd = 0;
-      new Promise(flagResolve => {
-
-        const flagTimer = () => {
-          const EXPERIMENT_FLAGS = flags();
-          if (!EXPERIMENT_FLAGS) return;
-          uf(EXPERIMENT_FLAGS);
-          if (kd > 0) return;
-          kd = 1;
-          const delay1000 = new Promise(resolve => setTimeout(resolve, 1000));
-          const moDeferred = new Promise(resolve => {
-            let mo = new MutationObserver(() => {
-              if (mo) {
-                mo.disconnect();
-                mo.takeRecords();
-                mo = null;
-                resolve();
-              }
-            });
-            mo.observe(document, { subtree: true, childList: true });
-          });
-          Promise.race([delay1000, moDeferred]).then(flagResolve);
-        };
-
-        uf();
-        cidFlags = setInterval(flagTimer, 1);
-      }).then(() => {
-        if (cidFlags > 0) clearInterval(cidFlags);
-        cidFlags = 0;
-        uf();
-      });
-
-    }
-
-    return flagsFnOnInterval;
-
-  })() : null;
+  })();
 
   let kptPF = null;
   const emojiPrefetched = new Set();
@@ -1725,8 +1691,6 @@
 
 
     }
-
-    if (flagsFnOnInterval) flagsFnOnInterval(setInterval, clearInterval);
 
     if (DO_LINK_PREFETCH) basePrefetching();
 
