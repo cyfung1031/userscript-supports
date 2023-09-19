@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.1.2
+// @version     1.2.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -12,6 +12,7 @@
 // @run-at      document-start
 // @allFrames   true
 // @inject-into page
+// @require     https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252599
 // ==/UserScript==
 
 ((__CONTEXT__) => {
@@ -68,7 +69,6 @@
   // kevlar_tuner_default_comments_delay
   // kevlar_tuner_run_default_comments_delay
 
-  let settled = null;
   // cinematic feature is no longer an experimential feature.
   // It has been officially implemented.
   // To disable cinematics, the user shall use other userscripts or just turn off the option in the video options.
@@ -369,166 +369,36 @@
 
   }
 
-  const all_live_chat_flags = `live_chat_banner_expansion_fix
-  live_chat_enable_mod_view
-  live_chat_enable_qna_banner_overflow_menu_actions
-  live_chat_enable_qna_channel
-  live_chat_enable_send_button_in_slow_mode
-  live_chat_filter_emoji_suggestions
-  live_chat_increased_min_height
-  live_chat_over_playlist
-  live_chat_web_enable_command_handler
-  live_chat_web_use_emoji_manager_singleton
-  live_chat_whole_message_clickable`.trim().split(/\s+/)
 
-  const hLooper = ((fn) => {
+  const all_live_chat_flags = new Set([
+    "live_chat_banner_expansion_fix",
+    "live_chat_enable_mod_view",
+    "live_chat_enable_qna_banner_overflow_menu_actions",
+    "live_chat_enable_qna_channel",
+    "live_chat_enable_send_button_in_slow_mode",
+    "live_chat_filter_emoji_suggestions",
+    "live_chat_increased_min_height",
+    "live_chat_over_playlist",
+    "live_chat_web_enable_command_handler",
+    "live_chat_web_use_emoji_manager_singleton",
+    "live_chat_whole_message_clickable"
+  ]);
 
-    let nativeFnLoaded = false;
-    let kc1 = 0;
+  let brc = 1000;
 
-    const setIntervalW = setInterval;
-    const clearIntervalW = clearInterval;
-    let microDisconnectFn = null;
-    let fStopLooper = false;
-    const looperFn = () => {
-      if (fStopLooper) return;
+  const hExperimentFlagsFn = () => {
 
-      let config_ = null;
-      let EXPERIMENT_FLAGS = null;
-      try {
-        config_ = yt.config_ || ytcfg.data_;
-      } catch (e) { }
-      if (!config_) return;
-      EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS || 0;
+    if (brc > 4) brc = 4;
 
-      if (EXPERIMENT_FLAGS) {
+    const use_maintain_stable_list = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST);
+    const use_maintain_reuse_components = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS);
+    const use_defer_detach = getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH);
 
+    if (use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
+    if (use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
+    if (use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
 
-        if (!settled) {
-          settled = {
-            use_maintain_stable_list: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST),
-            use_maintain_reuse_components: getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS),
-            use_defer_detach: getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH),
-          }
-          if (settled.use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
-          if (settled.use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
-          if (settled.use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
-        }
-
-        fn(config_);
-      }
-
-      if (EXPERIMENT_FLAGS && microDisconnectFn) {
-
-
-        let isYtLoaded = false;
-        try {
-          isYtLoaded = typeof ytcfg.set === 'function';
-        } catch (e) { }
-        if (isYtLoaded) {
-          microDisconnectFn();
-        }
-
-      }
-
-      const playerKevlar = (config_.WEB_PLAYER_CONTEXT_CONFIGS || 0).WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH || 0;
-
-
-      if (playerKevlar && !zPlayerKevlar) {
-        zPlayerKevlar = true;
-
-        if (NO_SerializedExperiment && typeof playerKevlar.serializedExperimentFlags === 'string' && typeof playerKevlar.serializedExperimentIds === 'string') {
-          fixSerializedExperiment(playerKevlar);
-        }
-
-
-      }
-
-
-
-    };
-
-    const controller = {
-      start() {
-        kc1 = setIntervalW(looperFn, 1);
-        (async () => {
-          while (true && !nativeFnLoaded) {
-            looperFn();
-            if (fStopLooper) break;
-            await (new Promise(requestAnimationFrame));
-          }
-        })();
-        looperFn();
-      },
-      /**
-       *
-       * @param {Window} __CONTEXT__
-       */
-      setupForCleanContext(__CONTEXT__) {
-
-        const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
-
-        (async () => {
-          while (true) {
-            looperFn();
-            if (fStopLooper) break;
-            await (new Promise(requestAnimationFrame));
-          }
-        })();
-
-        let kc2 = setInterval(looperFn, 1);
-
-        const marcoDisconnectFn = () => {
-          if (fStopLooper) return;
-          Promise.resolve().then(() => {
-            if (kc1 || kc2) {
-              kc1 && clearIntervalW(kc1); kc1 = 0;
-              kc2 && clearInterval(kc2); kc2 = 0;
-              looperFn();
-            }
-            fStopLooper = true;
-          });
-          document.removeEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
-          document.removeEventListener('yt-navigate-finish', marcoDisconnectFn, false);
-          document.removeEventListener('spfdone', marcoDisconnectFn, false);
-        };
-        document.addEventListener('yt-page-data-fetched', marcoDisconnectFn, false);
-        document.addEventListener('yt-navigate-finish', marcoDisconnectFn, false);
-        document.addEventListener('spfdone', marcoDisconnectFn, false);
-
-
-        function onReady() {
-          if (!fStopLooper) {
-            setTimeout(() => {
-              !fStopLooper && marcoDisconnectFn();
-            }, 1000);
-          }
-        }
-
-        Promise.resolve().then(() => {
-          if (document.readyState !== 'loading') {
-            onReady();
-          } else {
-            window.addEventListener("DOMContentLoaded", onReady, false);
-          }
-        });
-
-        nativeFnLoaded = true;
-
-        microDisconnectFn = () => Promise.resolve(marcoDisconnectFn).then(setTimeout);
-
-      }
-    };
-
-    return controller;
-  })((config_) => {
-
-    if (!config_.EXPERIMENT_FLAGS) return;
-
-
-    const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = settled;
-
-    // i don't know why it requires to be extracted function.
+    // I don't know why it requires to be extracted function.
     const mex = (EXPERIMENT_FLAGS, mzFlagDetected, fEntries) => {
 
       for (const [key, value] of fEntries) {
@@ -655,7 +525,7 @@
           } else {
 
 
-            if (ALLOW_ALL_LIVE_CHATS_FLAGS && all_live_chat_flags.indexOf(key) >= 0) {
+            if (ALLOW_ALL_LIVE_CHATS_FLAGS && all_live_chat_flags.has(key)) {
               continue;
               /*
                *
@@ -670,7 +540,7 @@
               live_chat_web_enable_command_handler
               live_chat_web_use_emoji_manager_singleton
               live_chat_whole_message_clickable
-
+  
               */
             }
 
@@ -981,71 +851,86 @@
 
     };
 
-    setterFn(config_.EXPERIMENT_FLAGS, mzFlagDetected1);
-
-    if (config_.EXPERIMENTS_FORCED_FLAGS) setterFn(config_.EXPERIMENTS_FORCED_FLAGS, mzFlagDetected2);
+    return setterFn;
 
 
-  });
-
-  hLooper.start();
-
-
-  const cleanContext = async (win) => {
-    const waitFn = requestAnimationFrame; // shall have been binded to window
-    try {
-      let mx = 16; // MAX TRIAL
-      const frameId = 'vanillajs-iframe-v1'
-      let frame = document.getElementById(frameId);
-      let removeIframeFn = null;
-      if (!frame) {
-        frame = document.createElement('iframe');
-        frame.id = frameId;
-        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
-        frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
-        let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-        n.appendChild(frame);
-        while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
-        const root = document.documentElement;
-        root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
-        if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
-
-        removeIframeFn = (setTimeout) => {
-          const removeIframeOnDocumentReady = (e) => {
-            e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
-          }
-          if (document.readyState !== 'loading') {
-            removeIframeOnDocumentReady();
-          } else {
-            win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-          }
-        }
-      }
-      while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
-      const fc = frame.contentWindow;
-      if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
-      const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
-      for (let k in res) res[k] = res[k].bind(win); // necessary
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      return res;
-    } catch (e) {
-      console.warn(e);
-      return null;
-    }
   };
 
-  cleanContext(win).then(__CONTEXT__ => {
+  let _setterFn = null;
 
-    const { requestAnimationFrame, setInterval, clearInterval, setTimeout, clearTimeout } = __CONTEXT__;
+  const setupConfig = (config_) => {
 
-    hLooper.setupForCleanContext(__CONTEXT__)
+    if (config_.EXPERIMENT_FLAGS) {
 
-  });
+      const setterFn = _setterFn || (_setterFn = hExperimentFlagsFn());
+
+      setterFn(config_.EXPERIMENT_FLAGS, mzFlagDetected1);
+
+      if (config_.EXPERIMENTS_FORCED_FLAGS) setterFn(config_.EXPERIMENTS_FORCED_FLAGS, mzFlagDetected2);
+    }
+
+    const playerKevlar = (config_.WEB_PLAYER_CONTEXT_CONFIGS || 0).WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH || 0;
+
+    if (playerKevlar && !zPlayerKevlar) {
+      zPlayerKevlar = true;
+
+      if (NO_SerializedExperiment && typeof playerKevlar.serializedExperimentFlags === 'string' && typeof playerKevlar.serializedExperimentIds === 'string') {
+        fixSerializedExperiment(playerKevlar);
+      }
+
+    }
+
+  }
+
+
+  const looperFn = (config_) => {
+    if (--brc < 0) return;
+
+    if (!config_) {
+      try {
+        config_ = yt.config_ || ytcfg.data_;
+      } catch (e) { }
+    }
+    if (config_) setupConfig(config_);
+
+  };
+
+  const hLooperMx = () => {
+
+    const eventTriggerFn = () => {
+      if (brc > 4) brc = 4;
+      looperFn();
+      document.removeEventListener('yt-page-data-fetched', eventTriggerFn, false);
+      document.removeEventListener('yt-navigate-finish', eventTriggerFn, false);
+      document.removeEventListener('spfdone', eventTriggerFn, false);
+    };
+    document.addEventListener('yt-page-data-fetched', eventTriggerFn, false);
+    document.addEventListener('yt-navigate-finish', eventTriggerFn, false);
+    document.addEventListener('spfdone', eventTriggerFn, false);
+
+    window._ytConfigHacks.add((config_) => {
+      looperFn(config_);
+    });
+
+    function onReady() {
+      if (brc > 4) brc = 4;
+      looperFn();
+    }
+
+    Promise.resolve().then(() => {
+      if (document.readyState !== 'loading') {
+        onReady();
+      } else {
+        window.addEventListener("DOMContentLoaded", onReady, false);
+      }
+    });
+
+    looperFn();
+
+  };
+
+  hLooperMx();
+
 
 
   if (isMainWindow) {
