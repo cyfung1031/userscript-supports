@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.4
+// @version             0.60.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -15,7 +15,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252706
+// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252732
 //
 // @compatible          firefox Violentmonkey
 // @compatible          firefox Tampermonkey
@@ -154,8 +154,8 @@
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
   const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
-  // 0 = default Yt animation background [= no fix]; 
-  // 1 = disable default animation background [= keep special animation]; 
+  // 0 = default Yt animation background [= no fix];
+  // 1 = disable default animation background [= keep special animation];
   // 2 = disable all animation backgrounds [= no animation backbround]
 
   const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
@@ -1383,18 +1383,22 @@
 
     const flagsFn = (EXPERIMENT_FLAGS) => {
 
+      // console.log(700)
+
       if (!EXPERIMENT_FLAGS) return;
 
       if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
         if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
           EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
           EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+      // console.log(701)
         }
       }
 
       if (ENABLE_FLAGS_REUSE_COMPONENTS) {
         EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
         EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+      // console.log(702);
       }
 
     };
@@ -5180,13 +5184,13 @@
 
             cProto.handleLiveChatActions = function (a) {
               /**
-               * 
+               *
                   f.handleLiveChatActions = function(a) {
                       a.length && (a.forEach(this.handleLiveChatAction, this),
                       this.updateHighlightedItem(),
                       this.shouldAnimateIn = !0)
                   }
-               * 
+               *
                */
 
               if (a.length) {
@@ -5209,8 +5213,8 @@
             cProto.handleLiveChatAction = function (a) {
 
               /**
-               * 
-               * 
+               *
+               *
                 f.handleLiveChatAction = function(a) {
                     var b = C(a, xO)
                       , c = C(a, yO)
@@ -5219,7 +5223,7 @@
                     a = C(a, A1a);
                     b ? this.unshift("items", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : a && this.handleRemoveChatItemByAuthorAction(a)
                 }
-               * 
+               *
                */
 
               // return this.handleLiveChatAction45(a)
