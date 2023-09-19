@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.2.0
+// @version      0.3.0
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -39,12 +39,17 @@ SOFTWARE.
   const win = this;
 
   if (!win._ytConfigHacks) {
+
     /** @extends {Set<Function>} */
     class YtConfigHacks extends Set {
       add(value) {
         if (typeof value === 'function') super.add(value);
       }
     }
+
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
     const _ytConfigHacks = win._ytConfigHacks = new YtConfigHacks();
 
     let remainingCalls = 4;
@@ -62,7 +67,7 @@ SOFTWARE.
       }
     };
 
-    const executeConfigHooksAndRestore = () => {
+    const detectConfigDone = () => {
       if (remainingCalls >= 1) {
         const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_;
         if (config && 'EXPERIMENT_FLAGS' in config) {
@@ -78,7 +83,7 @@ SOFTWARE.
         win.ytcsi = new Proxy(ytcsi, {
           get(target, prop, receiver) {
             if (prop === 'originalYtcsi') return target;
-            executeConfigHooksAndRestore();
+            detectConfigDone();
             return target[prop];
           }
         });
@@ -100,6 +105,32 @@ SOFTWARE.
       enumerable: false,
       configurable: true,
     });
+
+    const { addEventListener, removeEventListener } = Document.prototype;
+
+    const eventTriggerFn = () => {
+      detectConfigDone();
+      removeEventListener.call(document, 'yt-page-data-fetched', eventTriggerFn, false);
+      removeEventListener.call(document, 'yt-navigate-finish', eventTriggerFn, false);
+      removeEventListener.call(document, 'spfdone', eventTriggerFn, false);
+    };
+    addEventListener.call(document, 'yt-page-data-fetched', eventTriggerFn, false);
+    addEventListener.call(document, 'yt-navigate-finish', eventTriggerFn, false);
+    addEventListener.call(document, 'spfdone', eventTriggerFn, false);
+
+    function onReady(event) {
+      detectConfigDone();
+      event && window.removeEventListener("DOMContentLoaded", onReady, false);
+    }
+
+    Promise.resolve().then(() => {
+      if (document.readyState !== 'loading') {
+        onReady();
+      } else {
+        window.addEventListener("DOMContentLoaded", onReady, false);
+      }
+    });
+
   }
 
 })();
