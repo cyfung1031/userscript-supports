@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.2.3
+// @version     1.3.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -15,7 +15,7 @@
 // @require     https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252732
 // ==/UserScript==
 
-((__CONTEXT__) => {
+(() => {
 
   // Purpose 1: Remove Obsolete Flags
   // Purpose 2: Remove Flags bring no visual difference
@@ -92,6 +92,29 @@
   try {
     isMainWindow = window.document === window.top.document
   } catch (e) { }
+
+  function deSerialized(str) {
+
+    try {
+      return new URLSearchParams(str)
+    } catch (e) { }
+    console.warn("deSerialized fallback from URLSearchParams to Map");
+    const fg = conf.serializedExperimentFlags;
+    const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
+
+    const mRes = new Map();
+    for (let m; m = rx.exec(fg);) {
+      mRes.set(m[2], m[3]);
+    }
+    mRes.toString = function () {
+      const res = [];
+      this.forEach((value, key) => {
+        res.push(`${key}=${value}`);
+      });
+      return res.join('&');
+    }
+    return mRes;
+  }
 
   function fixSerializedExperiment(conf) {
 
@@ -206,25 +229,14 @@
 
     }
 
-    const qrz = (mRes) => {
-
-      const res = [];
-      mRes.forEach((value, key) => {
-        res.push(`${key}=${value}`);
-      });
-      return res.join('&');
-    }
-
     if (DISABLE_serializedExperimentFlags && typeof conf.serializedExperimentFlags === 'string') {
       const fg = conf.serializedExperimentFlags;
-      const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
 
-      const mRes = new Map();
-      for (let m; m = rx.exec(fg);) {
-        let key = m[2];
-        let value = m[3];
+      const vRes = deSerialized(fg);
+      for (const [key, value] of vRes) {
+
         let keep = false;
-
+        let nv = undefined;
 
         if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
 
@@ -244,7 +256,7 @@
             keep = true;
             if (typeof value === 'string' && +value > 2) {
               keep = true;
-              if (+value > 4) value = '4';
+              if (+value > 4) nv = '4';
             } else {
               keep = false;
             }
@@ -286,24 +298,24 @@
             return value;
           }
           if (key === 'check_navigator_accuracy_timeout_ms') {
-            value = valur(value, '4');
+            nv = valur(value, '4');
             keep = true;
           } else if (key === 'html5_ad_timeout_ms') {
-            value = valur(value, '4');
+            nv = valur(value, '4');
             keep = true;
           } else if (key === 'html5_ads_preroll_lock_timeout_delay_ms') {
             // value = valur(value, '4');
             // keep = true;
             keep = false;
           } else if (key === 'html5_slow_start_timeout_delay_ms') {
-            value = valur(value, '4');
+            nv = valur(value, '4');
             keep = true;
           } else if (key === 'variable_buffer_timeout_ms') {
             // value = valur(value, '4');
             // keep = true;
             keep = false;
           } else {
-            if (+value > 3000) value = '3000';
+            if (+value > 3000) nv = '3000';
             keep = true;
           }
         }
@@ -358,12 +370,16 @@
         if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
           keep = true;
         }
-        if (keep) mRes.set(key, value);
+        if (!keep) {
+          vRes.delete(key);
+        } else if (nv !== undefined && nv !== value) {
+          vRes.set(key, nv)
+        }
       }
 
-      mez(mRes);
+      mez(vRes);
 
-      conf.serializedExperimentFlags = qrz(mRes);
+      conf.serializedExperimentFlags = vRes.toString();
 
     }
 
@@ -919,4 +935,4 @@
 
   }
 
-})(null);
+})();
