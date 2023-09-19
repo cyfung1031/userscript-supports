@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.2.0
+// @version     1.2.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -898,8 +898,10 @@
   const hLooperMx = () => {
 
     const eventTriggerFn = () => {
-      if (brc > 4) brc = 4;
-      looperFn();
+      if (brc > 4) {
+        brc = 4;
+        looperFn();
+      }
       document.removeEventListener('yt-page-data-fetched', eventTriggerFn, false);
       document.removeEventListener('yt-navigate-finish', eventTriggerFn, false);
       document.removeEventListener('spfdone', eventTriggerFn, false);
@@ -913,8 +915,10 @@
     });
 
     function onReady() {
-      if (brc > 4) brc = 4;
-      looperFn();
+      if (brc > 4) {
+        brc = 4;
+        looperFn();
+      }
     }
 
     Promise.resolve().then(() => {
