@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.1.3
+// @version      0.1.4
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -34,81 +34,66 @@ SOFTWARE.
 
 */
 
-
 (() => {
 
-    let hasYtConfigHacks = !!window._ytConfigHacks;
-  
-    window._ytConfigHacks = window._ytConfigHacks || [];
-  
-    if (!hasYtConfigHacks) {
-  
-      function setYtCSI() {
-  
-        let brm = 4;
-        if (window.ytcsi) {
-  
-          window.ytcsi958 = window.ytcsi;
-  
-          function restore() {
-            if (window.ytcsi958) {
-              window.ytcsi = window.ytcsi958;
-              delete window.ytcsi958;
-            }
-          }
-  
-          function ex() {
-  
-            if (brm >= 1) {
-              let config_ = null;
-              try {
-                config_ = yt.config_ || ytcfg.data_;
-              } catch (e) { }
-              if (config_) {
-                for (const f of _ytConfigHacks) {
-                  if (typeof f === 'function') f(config_);
-                }
-                if (--brm <= 0) restore();
-              }
-            }
-  
-          }
-  
-          window.ytcsi = new Proxy(window.ytcsi, {
-            get(target, prop, receiver) {
-              ex();
-              return target[prop];
-            }
-          })
-  
-        }
-  
-  
-      }
-  
-      if (window.ytcsi) {
-        setYtCSI();
-      } else {
-  
-        Object.defineProperty(window, 'ytcsi', {
-          get() {
-            return undefined;
-          },
-          set(nv) {
-            if (nv) {
-              delete window.ytcsi;
-              window.ytcsi = nv;
-              setYtCSI();
-            }
-            return true;
-          },
-          enumerable: false,
-          configurable: true,
-        });
-  
-      }
-  
-    }
-  })();
+  const win = this;
 
-  
+  if (!win._ytConfigHacks) {
+    const _ytConfigHacks = win._ytConfigHacks = [];
+
+    let remainingCalls = 4;
+
+    const processConfigHooks = (config) => {
+      for (const hook of _ytConfigHacks) {
+        if (typeof hook === 'function') hook(config);
+      }
+    };
+
+    const restoreOriginalYtCSI = () => {
+      let originalYtcsi = win.ytcsi.originalYtcsi;
+      if (originalYtcsi) {
+        win.ytcsi = originalYtcsi;
+      }
+    };
+
+    const executeConfigHooksAndRestore = () => {
+      if (remainingCalls >= 1) {
+        const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_;
+        if (config) {
+          processConfigHooks(config);
+          if (--remainingCalls <= 0) restoreOriginalYtCSI();
+        }
+      }
+    };
+
+    const hookIntoYtCSI = () => {
+      const ytcsi = win.ytcsi;
+      if (ytcsi) {
+        win.ytcsi = new Proxy(ytcsi, {
+          get(target, prop, receiver) {
+            if (prop === 'originalYtcsi') return target;
+            executeConfigHooksAndRestore();
+            return target[prop];
+          }
+        });
+      }
+    };
+
+    win.ytcsi ? hookIntoYtCSI() : Object.defineProperty(win, 'ytcsi', {
+      get() {
+        return undefined;
+      },
+      set(newValue) {
+        if (newValue) {
+          delete win.ytcsi;
+          win.ytcsi = newValue;
+          hookIntoYtCSI();
+        }
+        return true;
+      },
+      enumerable: false,
+      configurable: true,
+    });
+  }
+
+})();
