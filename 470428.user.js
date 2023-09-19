@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.0
+// @version     1.3.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -86,34 +86,202 @@
   const Promise = ((async () => { })()).constructor;
 
   let isMainWindow = false;
-  let mzFlagDetected1 = new Set();
-  let mzFlagDetected2 = new Set();
+  const mzFlagDetected1 = new Set();
+  const mzFlagDetected2 = new Set();
   let zPlayerKevlar = false;
   try {
     isMainWindow = window.document === window.top.document
   } catch (e) { }
 
-  function deSerialized(str) {
+  const fOperAccept = Symbol();
+  const fOperReject = Symbol();
+  function fOper(key, value) {
 
-    try {
-      return new URLSearchParams(str)
-    } catch (e) { }
-    console.warn("deSerialized fallback from URLSearchParams to Map");
-    const fg = conf.serializedExperimentFlags;
-    const rx = /(^|&)(\w+)=([^=&|\s\{\}\[\]\(\)?]*)/g;
 
-    const mRes = new Map();
-    for (let m; m = rx.exec(fg);) {
-      mRes.set(m[2], m[3]);
+
+    let keep = false;
+    let nv = undefined;
+
+    if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
+
+
+      if (key === 'html5_live_use_alternate_bandwidth_window_sizes') {
+        keep = true;
+      }
+      else if (key === 'html5_live_ultra_low_latency_bandwidth_window') {
+        keep = true;
+      }
+      else if (key === 'html5_live_low_latency_bandwidth_window') {
+        keep = true;
+      }
+      else if (key === 'html5_live_normal_latency_bandwidth_window') {
+        keep = true;
+      } else if (key === 'html5_skip_slow_ad_delay_ms') {
+        keep = true;
+        if (typeof value === 'string' && +value > 2) {
+          keep = true;
+          if (+value > 4) nv = '4';
+        } else {
+          keep = false;
+        }
+      } else if (key === 'html5_player_preload_ad_fix') {
+        keep = true;
+      } else if (key.includes('_ad_') || key.includes('_ads_')) {
+        keep = false;
+      } else if (key === 'html5_ssdai_adfetch_dynamic_timeout_ms') {
+        keep = false;
+      } else if (key === 'html5_log_ssdai_fallback_ads' || key === 'html5_deprecate_adservice') {
+        keep = false;
+      } else {
+        if (!key.includes('deprecat')) keep = true;
+      }
+
+
+    } else if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
+      if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
+      else if (key === 'fix_h5_toggle_button_a11y') keep = true;
+      else if (key === 'h5_companion_enable_adcpn_macro_substitution_for_click_pings') keep = false;
+      else if (key === 'h5_enable_generic_error_logging_event') keep = false;
+      else if (key === 'h5_enable_unified_csi_preroll') keep = true;
+      else if (key === 'h5_reset_cache_and_filter_before_update_masthead') keep = true;
+      else if (key === 'web_player_enable_premium_hbr_in_h5_api') keep = true;
+      else {
+        if (!key.includes('deprecat')) keep = true;
+      }
     }
-    mRes.toString = function () {
+
+    // if(key.includes('sticky')){
+
+    // console.log(5599,key)
+    // }
+
+    if (key.includes('_timeout') && typeof value === 'string') {
+      const valur = (value, k) => {
+        if (+value === 0) value = k;
+        else if (+value > +k) value = k;
+        return value;
+      }
+      if (key === 'check_navigator_accuracy_timeout_ms') {
+        nv = valur(value, '4');
+        keep = true;
+      } else if (key === 'html5_ad_timeout_ms') {
+        nv = valur(value, '4');
+        keep = true;
+      } else if (key === 'html5_ads_preroll_lock_timeout_delay_ms') {
+        // value = valur(value, '4');
+        // keep = true;
+        keep = false;
+      } else if (key === 'html5_slow_start_timeout_delay_ms') {
+        nv = valur(value, '4');
+        keep = true;
+      } else if (key === 'variable_buffer_timeout_ms') {
+        // value = valur(value, '4');
+        // keep = true;
+        keep = false;
+      } else {
+        if (+value > 3000) nv = '3000';
+        keep = true;
+      }
+    }
+
+
+    if (KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')) {
+
+
+      if (key === 'html5_onesie_sticky_server_side') {
+        keep = false;
+
+      } else if (key === 'html5_perf_cap_override_sticky') {
+        keep = true;
+
+      } else if (key === 'html5_ustreamer_cap_override_sticky') {
+        keep = true;
+
+
+      } else if (key === 'html5_exponential_memory_for_sticky') {
+        keep = true;
+
+      } else {
+        keep = true;
+
+      }
+
+    }
+
+
+    if (key === 'html5_streaming_xhr_time_based_consolidation_ms') keep = true;
+    if (key === 'html5_bypass_contention_secs') keep = true;
+
+    if (key === 'vp9_drm_live') keep = true;
+    if (key === 'html5_log_rebuffer_reason') keep = false;
+    if (key === 'html5_enable_audio_track_log') keep = false;
+
+    if (key.startsWith('h5_expr_')) {
+      // by userscript
+      keep = true;
+    } else if (key.includes('deprecat')) {
+      keep = false;
+    }
+
+    if (key === 'html5_safari_desktop_eme_min_version') keep = true;
+
+    if (key === 'html5_disable_av1') keep = true;
+    if (key === 'html5_disable_av1_hdr') keep = true;
+    if (key === 'html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported') keep = true;
+    if (key === 'html5_account_onesie_format_selection_during_format_filter') keep = true;
+    if (key === 'html5_prefer_hbr_vp9_over_av1') keep = true;
+
+    if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
+      keep = true;
+    }
+    if (!keep) {
+      return fOperReject;
+      // vRes.delete(key);
+    } else if (nv !== undefined && nv !== value) {
+      return nv;
+      // vRes.set(key, nv)
+    } else {
+      return fOperAccept;
+    }
+
+  }
+  function deSerialized(str, fOper) {
+
+    const map = new Map();
+    let start = 0;
+
+    while (start < str.length) {
+      // Find the next '&' or the end of the string
+      const nextAmpersand = str.indexOf('&', start);
+      const end = nextAmpersand === -1 ? str.length : nextAmpersand;
+
+      // Extract the key-value pair
+      const equalsSign = str.indexOf('=', start);
+      if (equalsSign !== -1 && equalsSign < end) {
+        const key = str.substring(start, equalsSign);
+        const value = str.substring(equalsSign + 1, end);
+
+        let r = fOper(key, value);
+        if (typeof r !== 'symbol') {
+          map.set(key, r)
+        } else if (r === fOperAccept) {
+          map.set(key, value);
+        }
+
+      }
+
+      // Move to the next key-value pair
+      start = end + 1;
+    }
+
+    map.toString = function () {
       const res = [];
       this.forEach((value, key) => {
         res.push(`${key}=${value}`);
       });
       return res.join('&');
     }
-    return mRes;
+    return map;
   }
 
   function fixSerializedExperiment(conf) {
@@ -232,154 +400,13 @@
     if (DISABLE_serializedExperimentFlags && typeof conf.serializedExperimentFlags === 'string') {
       const fg = conf.serializedExperimentFlags;
 
-      const vRes = deSerialized(fg);
-      for (const [key, value] of vRes) {
-
-        let keep = false;
-        let nv = undefined;
-
-        if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
-
-
-          if (key === 'html5_live_use_alternate_bandwidth_window_sizes') {
-            keep = true;
-          }
-          else if (key === 'html5_live_ultra_low_latency_bandwidth_window') {
-            keep = true;
-          }
-          else if (key === 'html5_live_low_latency_bandwidth_window') {
-            keep = true;
-          }
-          else if (key === 'html5_live_normal_latency_bandwidth_window') {
-            keep = true;
-          } else if (key === 'html5_skip_slow_ad_delay_ms') {
-            keep = true;
-            if (typeof value === 'string' && +value > 2) {
-              keep = true;
-              if (+value > 4) nv = '4';
-            } else {
-              keep = false;
-            }
-          } else if (key === 'html5_player_preload_ad_fix') {
-            keep = true;
-          } else if (key.includes('_ad_') || key.includes('_ads_')) {
-            keep = false;
-          } else if (key === 'html5_ssdai_adfetch_dynamic_timeout_ms') {
-            keep = false;
-          } else if (key === 'html5_log_ssdai_fallback_ads' || key === 'html5_deprecate_adservice') {
-            keep = false;
-          } else {
-            if (!key.includes('deprecat')) keep = true;
-          }
-
-
-        } else if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
-          if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
-          else if (key === 'fix_h5_toggle_button_a11y') keep = true;
-          else if (key === 'h5_companion_enable_adcpn_macro_substitution_for_click_pings') keep = false;
-          else if (key === 'h5_enable_generic_error_logging_event') keep = false;
-          else if (key === 'h5_enable_unified_csi_preroll') keep = true;
-          else if (key === 'h5_reset_cache_and_filter_before_update_masthead') keep = true;
-          else if (key === 'web_player_enable_premium_hbr_in_h5_api') keep = true;
-          else {
-            if (!key.includes('deprecat')) keep = true;
-          }
-        }
-
-        // if(key.includes('sticky')){
-
-        // console.log(5599,key)
-        // }
-
-        if (key.includes('_timeout') && typeof value === 'string') {
-          const valur = (value, k) => {
-            if (+value === 0) value = k;
-            else if (+value > +k) value = k;
-            return value;
-          }
-          if (key === 'check_navigator_accuracy_timeout_ms') {
-            nv = valur(value, '4');
-            keep = true;
-          } else if (key === 'html5_ad_timeout_ms') {
-            nv = valur(value, '4');
-            keep = true;
-          } else if (key === 'html5_ads_preroll_lock_timeout_delay_ms') {
-            // value = valur(value, '4');
-            // keep = true;
-            keep = false;
-          } else if (key === 'html5_slow_start_timeout_delay_ms') {
-            nv = valur(value, '4');
-            keep = true;
-          } else if (key === 'variable_buffer_timeout_ms') {
-            // value = valur(value, '4');
-            // keep = true;
-            keep = false;
-          } else {
-            if (+value > 3000) nv = '3000';
-            keep = true;
-          }
-        }
-
-
-        if (KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')) {
-
-
-          if (key === 'html5_onesie_sticky_server_side') {
-            keep = false;
-
-          } else if (key === 'html5_perf_cap_override_sticky') {
-            keep = true;
-
-          } else if (key === 'html5_ustreamer_cap_override_sticky') {
-            keep = true;
-
-
-          } else if (key === 'html5_exponential_memory_for_sticky') {
-            keep = true;
-
-          } else {
-            keep = true;
-
-          }
-
-        }
-
-
-        if (key === 'html5_streaming_xhr_time_based_consolidation_ms') keep = true;
-        if (key === 'html5_bypass_contention_secs') keep = true;
-
-        if (key === 'vp9_drm_live') keep = true;
-        if (key === 'html5_log_rebuffer_reason') keep = false;
-        if (key === 'html5_enable_audio_track_log') keep = false;
-
-        if (key.startsWith('h5_expr_')) {
-          // by userscript
-          keep = true;
-        } else if (key.includes('deprecat')) {
-          keep = false;
-        }
-
-        if (key === 'html5_safari_desktop_eme_min_version') keep = true;
-
-        if (key === 'html5_disable_av1') keep = true;
-        if (key === 'html5_disable_av1_hdr') keep = true;
-        if (key === 'html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported') keep = true;
-        if (key === 'html5_account_onesie_format_selection_during_format_filter') keep = true;
-        if (key === 'html5_prefer_hbr_vp9_over_av1') keep = true;
-
-        if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
-          keep = true;
-        }
-        if (!keep) {
-          vRes.delete(key);
-        } else if (nv !== undefined && nv !== value) {
-          vRes.set(key, nv)
-        }
-      }
+      const vRes = deSerialized(fg, fOper);
 
       mez(vRes);
 
-      conf.serializedExperimentFlags = vRes.toString();
+      const kg = vRes.toString();
+
+      conf.serializedExperimentFlags = kg;
 
     }
 
@@ -556,7 +583,7 @@
               live_chat_web_enable_command_handler
               live_chat_web_use_emoji_manager_singleton
               live_chat_whole_message_clickable
-  
+
               */
             }
 
