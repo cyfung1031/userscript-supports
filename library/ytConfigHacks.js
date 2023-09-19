@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.3.0
+// @version      0.3.1
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -40,9 +40,12 @@ SOFTWARE.
 
   if (!win._ytConfigHacks) {
 
+    let remainingCalls = 4;
+
     /** @extends {Set<Function>} */
     class YtConfigHacks extends Set {
       add(value) {
+        if (remainingCalls <= 0) return console.warn("yt.config_ is already applied on the page.");
         if (typeof value === 'function') super.add(value);
       }
     }
@@ -51,8 +54,6 @@ SOFTWARE.
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const _ytConfigHacks = win._ytConfigHacks = new YtConfigHacks();
-
-    let remainingCalls = 4;
 
     const processConfigHooks = (config) => {
       for (const hook of _ytConfigHacks) {
