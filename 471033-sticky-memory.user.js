@@ -2,7 +2,7 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.4.0
+// @version             0.5.0
 // @license             MIT
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -54,7 +54,7 @@ gO;return b};
       const sflags = obj.serializedExperimentFlags
       if (typeof sflags === 'string') {
         if (sflags.includes('&h5_expr_b9Nkc=true')) return;
-        obj.serializedExperimentFlags = sflags.replace(/(^|&)(html5_exponential_memory_for_sticky|html5_perf_cap_override_sticky)=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
+        obj.serializedExperimentFlags = sflags.replace(/(^|&)(html5_exponential_memory_for_sticky|html5_perf_cap_override_sticky|html5_ustreamer_cap_override_sticky)=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
       }
 
     }
