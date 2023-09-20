@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.12
+// @version            3.2.13
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -42,6 +42,8 @@
 /**
  * @typedef { typeof import("./library/WinComm.js")  } WinComm
  */
+
+// console.log(GM)
 
 /** @type {WinComm} */
 const WinComm = this.WinComm;
@@ -297,7 +299,7 @@ const mWindow = (() => {
 
 
     const settingsCSS = `
-  
+
     /*
     #greasyfork-plus label::before {
       content:'';
@@ -314,12 +316,12 @@ const mWindow = (() => {
       z-index:0;
     }
     */
-  
+
     html {
       color: #222;
       background: #f9f9f9;
     }
-  
+
   #greasyfork-plus{
     --config-var-display: flex;
   }
@@ -363,7 +365,7 @@ const mWindow = (() => {
       flex-direction:column;
       margin-left:21px;
   }
-  
+
   #greasyfork-plus_customBlacklist_var[class]::before,
   #greasyfork-plus_hiddenList_var[class]::before,
   #greasyfork-plus_milestoneNotification_var[class]::before{
@@ -384,7 +386,7 @@ const mWindow = (() => {
       resize:none;
       width:100%
   }
-  
+
   body > #greasyfork-plus_wrapper:only-child {
     box-sizing: border-box;
     overflow: auto;
@@ -395,14 +397,14 @@ const mWindow = (() => {
     background: rgba(127,127,127,0.05);
     border: 1px solid rgba(127,127,127,0.5);
   }
-  
+
   #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
     position: fixed;
     bottom: 0;
     right: 0;
     margin: 0 12px 6px 0;
   }
-  
+
   #greasyfork-plus .saveclose_buttons[class] {
     padding: 4px 14px;
     margin: 6px;
@@ -417,16 +419,16 @@ const mWindow = (() => {
     background: #000;
     color: #eee;
   }
-  
+
   #greasyfork-plus_header[class]{
     font-size: 16pt;
     font-weight: bold;
   }
-  
+
     `;
 
     const pageCSS = `
-  
+
   .script-list li.blacklisted{
       display:none;
       background:#321919;
@@ -458,13 +460,13 @@ const mWindow = (() => {
     --block-btn-color:#eee;
     --block-btn-bgcolor:#111;
   }
-  
+
   [style-54998]{
     float:right;
     font-size: 70%;
     text-decoration:none;
   }
-  
+
   [style-16377]{
     cursor:pointer;
     font-size:70%;
@@ -487,7 +489,7 @@ const mWindow = (() => {
     border-radius: 4px;
     padding: 0px 6px;
   }
-  
+
   a#hyperlink-35389,
   a#hyperlink-40361,
   a#hyperlink-35389:visited,
@@ -498,7 +500,7 @@ const mWindow = (() => {
   a#hyperlink-40361:focus,
   a#hyperlink-35389:active,
   a#hyperlink-40361:active {
-  
+
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
@@ -506,33 +508,33 @@ const mWindow = (() => {
     background: none !important;
     color:inherit !important;
   }
-  
+
   a#hyperlink-35389{
     opacity: var(--hyperlink-blacklisted-option-opacity);
-  
+
   }
   a#hyperlink-40361{
     opacity: var(--hyperlink-hidden-option-opacity);
   }
-  
-  
+
+
   html {
-  
+
     --hyperlink-blacklisted-option-opacity: 0.5;
     --hyperlink-hidden-option-opacity: 0.5;
   }
-  
-  
+
+
   .list-option.list-current[class] > a[href] {
-  
+
     text-decoration:none;
   }
-  
+
   html {
     --blacklisted-display: none;
     --hidden-display: none;
   }
-  
+
   [blacklisted-shown] {
     --blacklisted-display: list-item;
     --hyperlink-blacklisted-option-opacity: 1;
@@ -541,17 +543,17 @@ const mWindow = (() => {
     --hidden-display: list-item;
     --hyperlink-hidden-option-opacity: 1;
   }
-  
+
   .script-list li.blacklisted{
     display: var(--blacklisted-display);
-  
+
   }
-  
+
   .script-list li.hidden{
     display: var(--hidden-display);
-  
+
   }
-  
+
   .install-link.install-status-checking,
   .install-link.install-status-checking:visited,
   .install-link.install-status-checking:active,
@@ -559,7 +561,7 @@ const mWindow = (() => {
   .install-help-link.install-status-checking {
     background-color: #405458;
   }
-  
+
     `
 
     const window = {};
@@ -569,7 +571,7 @@ const mWindow = (() => {
 
         /*
          *
-    
+
         return new Promise((resolve, reject) => {
           const external = unsafeWindow.external;
           console.log(334, external)
@@ -578,17 +580,17 @@ const mWindow = (() => {
             external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
             return;
           }
-    
+
           if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
             external.Tampermonkey.isInstalled(name, namespace, (data) => {
               (data.installed) ? resolve(data.version) : resolve();
             });
             return;
           }
-    
+
           resolve();
         });
-    
+
         */
 
 
@@ -1184,7 +1186,7 @@ const mWindow = (() => {
           external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
           return;
         }
-  
+
         if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
           external.Tampermonkey.isInstalled(name, namespace, (data) => {
             (data.installed) ? resolve(data.version) : resolve();
@@ -1407,7 +1409,7 @@ const mWindow = (() => {
             // if (!/[^\x00-\x7F]/.test(name)) {
 
             const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
-            const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length-2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+            const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length - 2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
             // let scriptFilename = `${encodeURI(name)}.user.js`;
             const scriptFilename = `${scriptName}.user.js`;
             _baseScript = {
@@ -1593,6 +1595,19 @@ const mWindow = (() => {
             if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
                 addOptions();
                 UU.addStyle(mWindow.pageCSS);
+            }
+
+            if (location.pathname.includes('/scripts/')) {
+
+                installLinkElement.addEventListener('click', async function (e) {
+                    if (e && e.isTrusted && location.pathname.includes('/scripts/')) {
+
+                        await new Promise(r => setTimeout(r, 800));
+                        await new Promise(r => window.requestAnimationFrame(r));
+                        await new Promise(r => setTimeout(r, 100));
+                        document.dispatchEvent(new Event("DOMContentLoaded"));
+                    }
+                })
             }
         }
 
