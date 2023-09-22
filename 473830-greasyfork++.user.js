@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.15
+// @version            3.2.20
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -843,6 +843,74 @@ const mWindow = (() => {
             register: () => { }
         }
     };
+
+
+    function fixLibraryCodeURL(code_url) {
+        code_url = code_url.replace(/\/scripts\/(\d+)(\-[^\/]+)\/code\//, '/scripts/$1/code/');
+        let qm = code_url.indexOf('?');
+        let s1 = code_url.substring(0, qm);
+        let s2 = code_url.substring(qm + 1);
+        code_url = `${decodeURI(s1)}?${s2}`;
+        return code_url;
+    }
+
+    function setClickToSelect(elm) {
+        elm.addEventListener('click', function () {
+            if (window.getSelection() + "" === "") {
+                if (typeof this.select === 'function') {
+                    this.select();
+                } else {
+                    const range = document.createRange();  // Create a range object
+                    range.selectNode(this);        // Select the text within the element
+                    const selection = window.getSelection(); // Get the selection object
+                    selection.removeAllRanges();  // First clear any existing selections
+                    selection.addRange(range);    // Add the new range to the selection
+                }
+            }
+        });
+        elm.addEventListener('drag', function (evt) {
+            evt.preventDefault();
+        });
+        elm.addEventListener('drop', function (evt) {
+            evt.preventDefault();
+        });
+        elm.addEventListener('dragstart', function (evt) {
+            evt.preventDefault();
+        });
+    }
+
+    const copyText = typeof (((window.navigator || 0).clipboard || 0).writeText) === 'function' ? (text) => {
+        navigator.clipboard.writeText(text).then(function () {
+            //
+        }).catch(function (err) {
+            alert("Unable to Copy");
+        });
+    } : (text) => {
+        const textToCopy = document.createElement('strong');
+        textToCopy.style.position = 'fixed';
+        textToCopy.style.opacity = '0';
+        textToCopy.style.top = '-900vh';
+        textToCopy.textContent = text;
+        document.body.appendChild(textToCopy);
+
+        const range = document.createRange();  // Create a range object
+        range.selectNode(textToCopy);        // Select the text within the element
+
+        const selection = window.getSelection(); // Get the selection object
+        selection.removeAllRanges();  // First clear any existing selections
+        selection.addRange(range);    // Add the new range to the selection
+
+        try {
+            document.execCommand('copy');  // Try to copy the selected text
+        } catch (err) {
+            alert("Unable to Copy");
+        }
+
+        selection.removeAllRanges();  // Remove the selection range after copying
+        textToCopy.remove();
+    };
+
+
     let avoidDuplication = 0;
     const avoidDuplicationF = () => {
         const p = avoidDuplication;
@@ -1425,7 +1493,7 @@ const mWindow = (() => {
             _baseScript = {
                 id: +scriptID,
                 // name: name,
-                code_url: `https://greasyfork.org/scripts/${scriptID}-${token}/code/${scriptFilename}`,
+                code_url: `https://${location.hostname}/scripts/${scriptID}-${token}/code/${scriptFilename}`,
                 version: version
             }
             // }
@@ -1434,22 +1502,60 @@ const mWindow = (() => {
 
         const baseScript = _baseScript || (await getScriptData(scriptID));
 
-        if (!baseScript || !baseScript.code_url || !baseScript.version) return;
-        const button = addInstallButton(element, baseScript.code_url);
-        button.classList.add('install-status-checking');
-        button.textContent = `${installLabel()} ${baseScript.version}`;
-        const script = baseScript && baseScript.name && baseScript.namespace ? baseScript : (await getScriptData(scriptID));
-        if (!script) return;
 
-        const installed = await isInstalled(script);
-        const version = (
-            baseScript.version && script.version && compareVersions(baseScript.version, script.version) === 1
-        ) ? baseScript.version : script.version;
+        if((element.nodeName === 'LI' && element.getAttribute('data-script-type')==='library') ||(baseScript.code_url.includes('.js?version=')) ){
 
-        const update = compareVersions(version, installed);  // NaN  1  -1  0
-        const label = installLabel(update);
-        button.textContent = `${label} ${version}`;
-        button.classList.remove('install-status-checking');
+            const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
+            if(script.code_url.includes('.js?version=')){
+
+
+                const code_url = fixLibraryCodeURL(script.code_url);
+
+                const button = addInstallButton(element, code_url);
+                button.textContent = `Copy URL`;
+                button.addEventListener('click', function(evt){
+
+                    const target = (evt||0).target;
+                    if(!target) return;
+                    
+                    let a = target.nodeName ==='A'?target : target.querySelector('a[href]');
+
+                    if(!a )return ;
+                    let href = target.getAttribute('href');
+                    if(!href) return;
+
+                    evt.preventDefault();
+
+                    copyText(href);
+
+
+                });
+
+            }
+
+            
+        }else{
+
+
+            if (!baseScript || !baseScript.code_url || !baseScript.version) return;
+            const button = addInstallButton(element, baseScript.code_url);
+            button.classList.add('install-status-checking');
+            button.textContent = `${installLabel()} ${baseScript.version}`;
+            const script = baseScript && baseScript.name && baseScript.namespace ? baseScript : (await getScriptData(scriptID));
+            if (!script) return;
+    
+            const installed = await isInstalled(script);
+            const version = (
+                baseScript.version && script.version && compareVersions(baseScript.version, script.version) === 1
+            ) ? baseScript.version : script.version;
+    
+            const update = compareVersions(version, installed);  // NaN  1  -1  0
+            const label = installLabel(update);
+            button.textContent = `${label} ${version}`;
+            button.classList.remove('install-status-checking');
+    
+
+        }
 
     }
 
@@ -1501,211 +1607,239 @@ const mWindow = (() => {
         promiseScriptCheckResolve = resolve
     });
 
+    const milestoneNotificationFn = async (o)=>{
+
+        const {userLink, userID} = o;
+
+
+        const milestones = gmc.get('milestoneNotification').replace(/\s/g, '').split(',').map(Number);
+
+        if (!userID) return;
+
+        const userData = await getUserData(+userID.match(/\d+(?=\D)/g));
+        if (!userData) return;
+
+        const [totalInstalls, lastMilestone] = await Promise.all([
+            getTotalInstalls(userData),
+            GM.getValue('lastMilestone', 0)]);
+
+        const milestone = milestones.filter(milestone => totalInstalls >= milestone).pop();
+
+        UU.log(`total installs are "${totalInstalls}", milestone reached is "${milestone}", last milestone reached is "${lastMilestone}"`);
+
+        if (milestone <= lastMilestone) return;
+
+        if (milestone && milestone >= 0) {
+
+
+            GM.setValue('lastMilestone', milestone);
+
+            const lang = document.documentElement.lang;
+            const text = (locales[lang] ? locales[lang].milestone : locales.en.milestone).replace('$1', milestone.toLocaleString());
+
+            if (typeof GM.notification === 'function') {
+                GM.notification({
+                    text,
+                    title: GM.info.script.name,
+                    image: logo,
+                    onclick: () => {
+                        window.location = `https://${window.location.hostname}${userID}#user-script-list-section`;
+                    }
+                });
+            } else {
+                UU.alert(text);
+            }
+
+        }
+
+    }
     const onReady = async () => {
 
-        const gminfo = GM.info || 0;
-        if (gminfo) {
+        try {
 
-            const gminfoscript = gminfo.script || 0;
+            const gminfo = GM.info || 0;
+            if (gminfo) {
 
-
-            const scriptHandlerObject = {
-                scriptHandler: gminfo.scriptHandler || '',
-                scriptName: gminfoscript.name || '', // not name_i18n
-                scriptVersion: gminfoscript.version || '',
-                scriptNamespace: gminfoscript.namespace || '',
-                communicationId
-            };
+                const gminfoscript = gminfo.script || 0;
 
 
-            wincomm.hook('_$GreasyFork$Msg$OnScriptInstallFeedback',
-                {
-
-                    ready: (d, evt) => promiseScriptCheckResolve(d),
-                    userScriptManagerNotDetected: (d, evt) => promiseScriptCheckResolve(null),
-                    'installedVersion.res': wincomm.handleResponse
-
-
-                })
+                const scriptHandlerObject = {
+                    scriptHandler: gminfo.scriptHandler || '',
+                    scriptName: gminfoscript.name || '', // not name_i18n
+                    scriptVersion: gminfoscript.version || '',
+                    scriptNamespace: gminfoscript.namespace || '',
+                    communicationId
+                };
 
 
-            document.head.appendChild(document.createElement('script')).textContent = `;(${mWindow.contentScriptText})(${JSON.stringify(scriptHandlerObject)}, ${WinComm.createInstance});`;
+                wincomm.hook('_$GreasyFork$Msg$OnScriptInstallFeedback',
+                    {
+
+                        ready: (d, evt) => promiseScriptCheckResolve(d),
+                        userScriptManagerNotDetected: (d, evt) => promiseScriptCheckResolve(null),
+                        'installedVersion.res': wincomm.handleResponse
 
 
-        }
+                    })
 
 
-        addSettingsToMenu();
-
-
-        setTimeout(() => {
-            let installBtn = document.querySelector('a[data-script-id][data-script-version]')
-            let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
-            if (scriptID > 0) {
-                getScriptData(scriptID, true);
-            } else {
-
-
-                const userLink = document.querySelector('#site-nav .user-profile-link a[href]');
-                let userID = userLink ? userLink.getAttribute('href') : '';
-
-                userID = userID ? /users\/(\d+)/.exec(userID) : null;
-                if (userID) userID = userID[1];
-                if (userID) {
-                    userID = +userID;
-                    if (userID > 0) {
-                        getUserData(userID, true);
-                    }
-                }
+                document.head.appendChild(document.createElement('script')).textContent = `;(${mWindow.contentScriptText})(${JSON.stringify(scriptHandlerObject)}, ${WinComm.createInstance});`;
 
 
             }
-        }, 740);
-
-        const userLink = document.querySelector('.user-profile-link a[href]');
-        const userID = userLink ? userLink.getAttribute('href') : undefined;
-
-        // blacklisted scripts / hidden scripts / install button
-        if (window.location.pathname !== userID && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
-
-            const scriptList = document.querySelector('.script-list');
-            if (scriptList) {
-                foundScriptList(scriptList);
-            } else {
-                const timeout = Date.now() + 3000;
-                /** @type {MutationObserver | null} */
-                let mo = null;
-                const mutationCallbackForScriptList = () => {
-                    if (!mo) return;
-                    const scriptList = document.querySelector('.script-list');
-                    if (scriptList) {
-                        mo.disconnect();
-                        mo.takeRecords();
-                        mo = null;
-                        foundScriptList(scriptList);
-                    } else if (Date.now() > timeout) {
-                        mo.disconnect();
-                        mo.takeRecords();
-                        mo = null;
-                    }
-                }
-                mo = new MutationObserver(mutationCallbackForScriptList);
-                mo.observe(document, { subtree: true, childList: true });
-            }
 
 
-            // hidden scripts on details page
-            const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
-            if (gmc.get('hideHiddenScript') && installLinkElement) {
-                const id = +installLinkElement.getAttribute('data-script-id');
-                hideHiddenScript(document.querySelector('#script-info'), id, false);
-            }
-
-            // add options and style for blacklisted/hidden scripts
-            if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
-                addOptions();
-                UU.addStyle(mWindow.pageCSS);
-            }
-
-            if (installLinkElement && location.pathname.includes('/scripts/')) {
-
-                installLinkElement.addEventListener('click', async function (e) {
-                    if (e && e.isTrusted && location.pathname.includes('/scripts/')) {
-
-                        await new Promise(r => setTimeout(r, 800));
-                        await new Promise(r => window.requestAnimationFrame(r));
-                        await new Promise(r => setTimeout(r, 100));
-                        document.dispatchEvent(new Event("DOMContentLoaded"));
-                    }
-                })
-            }
-        }
-
-        // total installs
-        if (gmc.get('showTotalInstalls') && document.querySelector('#user-script-list')) {
-            const dailyInstalls = [];
-            const totalInstalls = [];
-
-            const dailyInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-daily-installs');
-            for (const element of dailyInstallElements) {
-                dailyInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
-            }
-
-            const totalInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-total-installs');
-            for (const element of totalInstallElements) {
-                totalInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
-            }
-
-            const dailyInstallsSum = dailyInstalls.reduce((a, b) => a + b, 0);
-            const totalInstallsSum = totalInstalls.reduce((a, b) => a + b, 0);
-
-            const convertLi = (li) => {
-
-                if (!li) return null;
-                const a = li.firstElementChild
-                if (a === null) return li;
-                if (a === li.lastElementChild && a.nodeName === 'A') return a;
+            addSettingsToMenu();
 
 
-                return null;
-            }
-
-            const plusSign = document.querySelector('#user-script-list-section a[rel="next"][href*="page="], #user-script-list-section a[rel="prev"][href*="page="]') ? '+' : '';
-
-            const dailyOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(1)'));
-            dailyOption && dailyOption.insertAdjacentHTML('beforeend', `<span> (${dailyInstallsSum.toLocaleString()}${plusSign})</span>`);
-
-            const totalOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(2)'));
-            totalOption && totalOption.insertAdjacentHTML('beforeend', `<span> (${totalInstallsSum.toLocaleString()}${plusSign})</span>`);
-        }
-
-        // milestone notification
-        if (gmc.get('milestoneNotification')) {
-            const milestones = gmc.get('milestoneNotification').replace(/\s/g, '').split(',').map(Number);
-
-            if (!userID) return;
-
-            const userData = await getUserData(+userID.match(/\d+(?=\D)/g));
-            if (!userData) return;
-
-            const [totalInstalls, lastMilestone] = await Promise.all([
-                getTotalInstalls(userData),
-                GM.getValue('lastMilestone', 0)]);
-
-            const milestone = milestones.filter(milestone => totalInstalls >= milestone).pop();
-
-            UU.log(`total installs are "${totalInstalls}", milestone reached is "${milestone}", last milestone reached is "${lastMilestone}"`);
-
-            if (milestone <= lastMilestone) return;
-
-            if (milestone && milestone >= 0) {
-
-
-                GM.setValue('lastMilestone', milestone);
-
-                const lang = document.documentElement.lang;
-                const text = (locales[lang] ? locales[lang].milestone : locales.en.milestone).replace('$1', milestone.toLocaleString());
-
-                if (typeof GM.notification === 'function') {
-                    GM.notification({
-                        text,
-                        title: GM.info.script.name,
-                        image: logo,
-                        onclick: () => {
-                            window.location = `https://${window.location.hostname}${userID}#user-script-list-section`;
-                        }
-                    });
+            setTimeout(() => {
+                let installBtn = document.querySelector('a[data-script-id][data-script-version]')
+                let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
+                if (scriptID > 0) {
+                    getScriptData(scriptID, true);
                 } else {
-                    UU.alert(text);
+
+
+                    const userLink = document.querySelector('#site-nav .user-profile-link a[href]');
+                    let userID = userLink ? userLink.getAttribute('href') : '';
+
+                    userID = userID ? /users\/(\d+)/.exec(userID) : null;
+                    if (userID) userID = userID[1];
+                    if (userID) {
+                        userID = +userID;
+                        if (userID > 0) {
+                            getUserData(userID, true);
+                        }
+                    }
+
+
+                }
+            }, 740);
+
+            const userLink = document.querySelector('.user-profile-link a[href]');
+            const userID = userLink ? userLink.getAttribute('href') : undefined;
+
+            // blacklisted scripts / hidden scripts / install button
+            if (window.location.pathname !== userID && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
+
+                const scriptList = document.querySelector('.script-list');
+                if (scriptList) {
+                    foundScriptList(scriptList);
+                } else {
+                    const timeout = Date.now() + 3000;
+                    /** @type {MutationObserver | null} */
+                    let mo = null;
+                    const mutationCallbackForScriptList = () => {
+                        if (!mo) return;
+                        const scriptList = document.querySelector('.script-list');
+                        if (scriptList) {
+                            mo.disconnect();
+                            mo.takeRecords();
+                            mo = null;
+                            foundScriptList(scriptList);
+                        } else if (Date.now() > timeout) {
+                            mo.disconnect();
+                            mo.takeRecords();
+                            mo = null;
+                        }
+                    }
+                    mo = new MutationObserver(mutationCallbackForScriptList);
+                    mo.observe(document, { subtree: true, childList: true });
                 }
 
+
+                // hidden scripts on details page
+                const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
+                if (gmc.get('hideHiddenScript') && installLinkElement) {
+                    const id = +installLinkElement.getAttribute('data-script-id');
+                    hideHiddenScript(document.querySelector('#script-info'), id, false);
+                }
+
+                // add options and style for blacklisted/hidden scripts
+                if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
+                    addOptions();
+                    UU.addStyle(mWindow.pageCSS);
+                }
+
+                if (installLinkElement && location.pathname.includes('/scripts/')) {
+
+                    installLinkElement.addEventListener('click', async function (e) {
+                        if (e && e.isTrusted && location.pathname.includes('/scripts/')) {
+
+                            await new Promise(r => setTimeout(r, 800));
+                            await new Promise(r => window.requestAnimationFrame(r));
+                            await new Promise(r => setTimeout(r, 100));
+                            document.dispatchEvent(new Event("DOMContentLoaded"));
+                        }
+                    })
+                }
             }
 
-        }
+            // total installs
+            if (gmc.get('showTotalInstalls') && document.querySelector('#user-script-list')) {
+                const dailyInstalls = [];
+                const totalInstalls = [];
 
-        if (isScriptFirstUse) GM.setValue('firstUse', false).then(() => {
-            gmc.open();
-        });
+                const dailyInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-daily-installs');
+                for (const element of dailyInstallElements) {
+                    dailyInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
+                }
+
+                const totalInstallElements = document.querySelectorAll('#user-script-list li dd.script-list-total-installs');
+                for (const element of totalInstallElements) {
+                    totalInstalls.push(parseInt(element.textContent.replace(/\D/g, ''), 10));
+                }
+
+                const dailyInstallsSum = dailyInstalls.reduce((a, b) => a + b, 0);
+                const totalInstallsSum = totalInstalls.reduce((a, b) => a + b, 0);
+
+                const convertLi = (li) => {
+
+                    if (!li) return null;
+                    const a = li.firstElementChild
+                    if (a === null) return li;
+                    if (a === li.lastElementChild && a.nodeName === 'A') return a;
+
+
+                    return null;
+                }
+
+                const plusSign = document.querySelector('#user-script-list-section a[rel="next"][href*="page="], #user-script-list-section a[rel="prev"][href*="page="]') ? '+' : '';
+
+                const dailyOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(1)'));
+                dailyOption && dailyOption.insertAdjacentHTML('beforeend', `<span> (${dailyInstallsSum.toLocaleString()}${plusSign})</span>`);
+
+                const totalOption = convertLi(document.querySelector('#script-list-sort .list-option:nth-child(2)'));
+                totalOption && totalOption.insertAdjacentHTML('beforeend', `<span> (${totalInstallsSum.toLocaleString()}${plusSign})</span>`);
+            }
+
+            // milestone notification
+            if (gmc.get('milestoneNotification')) {
+                milestoneNotificationFn({userLink, userID});
+            }
+
+            if (isScriptFirstUse) GM.setValue('firstUse', false).then(() => {
+                gmc.open();
+            });
+
+
+            let xpath = "//code[contains(text(), '.js?version=')]";
+            let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            
+            for (let i = 0; i < snapshot.snapshotLength; i++) {
+                let element = snapshot.snapshotItem(i);
+                if (element.firstElementChild) continue;
+                element.textContent = element.textContent.replace(/\bhttps:\/\/(greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
+                    return fixLibraryCodeURL(_);
+                });
+                element.parentNode.insertBefore(document.createTextNode('\u200B'), element);
+                element.style.display = 'inline-flex';
+                setClickToSelect(element);
+            }
+
+        } catch (e) {
+            console.log(e);
+        }
 
     }
 
