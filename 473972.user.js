@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.15
+// @version     0.5.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -16,8 +16,14 @@
 
 (() => {
 
+  // window.requestAnimationFrame = function(x){
+  //   // console.log(new Error().stack)
+  //   return window.webkitRequestAnimationFrame(x);
+  // }
+
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
-  const FIX_schedulerInstanceInstance_ = true;
+  const FIX_schedulerInstanceInstance_V1 = false;
+  const FIX_schedulerInstanceInstance_V2 = true;
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
@@ -30,6 +36,11 @@
   const FIX_Iframe_NULL_SRC = true;
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
+
+  const FIX_ytdExpander_childrenChanged = true;
+  const FIX_paper_ripple_animate = true;
+
+  const FIX_doIdomRender = true;
 
   /*
   window.addEventListener('edm',()=>{
@@ -400,6 +411,9 @@
 
   const Promise = (async () => { })().constructor;
 
+
+  const nilFn = () => { };
+
   let isMainWindow = false;
   try {
     isMainWindow = window.document === window.top.document
@@ -437,6 +451,32 @@
       document.addEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
     } else {
       callback();
+    }
+  };
+
+
+  const assertor = (f) => f() || console.assert(false, f + "");
+
+  const fnIntegrity = (f, d) => {
+    if (!f || typeof f !== 'function') {
+      console.warn('f is not a function', f);
+      return;
+    }
+    let p = f + "", s = 0, j = -1, w = 0;
+    for (let i = 0, l = p.length; i < l; i++) {
+      const t = p[i];
+      if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
+        if (j < i - 1) w++;
+        j = i;
+      } else {
+        s++;
+      }
+    }
+    let itz = `${f.length}.${s}.${w}`;
+    if (!d) {
+      return itz;
+    } else {
+      return itz === d;
     }
   };
 
@@ -621,7 +661,7 @@
   let ytEvented = false;
 
 
-  function setupEvents() {
+  const setupEvents = FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 ? () => {
 
     document.addEventListener('yt-navigate', () => {
 
@@ -690,7 +730,7 @@
       if (t > idleFrom) idleFrom = t;
 
     });
-  }
+  } : () => { };
 
 
   // << end >>
@@ -755,11 +795,11 @@
 
 
 
-    let rafPromiseForTickers = null;
+    let rafPromise = null;
 
-    const getRafPromiseForTickers = () => rafPromiseForTickers || (rafPromiseForTickers = new Promise(resolve => {
+    const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
       requestAnimationFrame(hRes => {
-        rafPromiseForTickers = null;
+        rafPromise = null;
         resolve(hRes);
       });
     }));
@@ -768,7 +808,7 @@
       if (document.visibilityState === 'visible') {
         return Promise.resolve();
       } else {
-        return getRafPromiseForTickers();
+        return getRafPromise();
       }
     };
 
@@ -814,7 +854,10 @@
         if (this.counter > 1e9) this.counter = 9;
         let cid = this.startAt + (++this.counter);
         this.funcs.set(cid, f);
-        if (this.rid === 0) this.rid = requestAnimationFrame(this.bCallback);
+        if (this.rid === 0) {
+          console.log(2455)
+          this.rid = requestAnimationFrame(this.bCallback);
+        }
         return cid;
       }
       /** @param {number} cid */
@@ -831,6 +874,18 @@
               this.rid = 0;
             }
           }
+        }
+      }
+      /** @param {number} cid */
+      /** @param {FrameRequestCallback} f */
+      replaceFunc(cid, f) {
+        if (typeof this.funcs.get(cid) === 'function') {
+          this.funcs.set(cid, f);
+          return cid;
+        } else {
+          let r = this.request(f);
+          this.cancel(cid);
+          return r;
         }
       }
     }
@@ -879,7 +934,7 @@
     })();
 
 
-    FIX_schedulerInstanceInstance_ && (async () => {
+    FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 && (async () => {
 
 
       const schedulerInstanceInstance_ = await new Promise(resolve => {
@@ -1118,11 +1173,96 @@
     })();
 
 
+
+    FIX_schedulerInstanceInstance_V2 && !FIX_schedulerInstanceInstance_V1 && (async () => {
+
+
+      const schedulerInstanceInstance_ = await new Promise(resolve => {
+
+        let cid = setInterval(() => {
+          let t = (((window || 0).ytglobal || 0).schedulerInstanceInstance_ || 0);
+          if (t) {
+
+            clearInterval(cid);
+            resolve(t);
+          }
+        }, 1);
+        promiseForTamerTimeout.then(() => {
+          resolve(null)
+        });
+      });
+
+      if (!schedulerInstanceInstance_) return;
+
+
+      const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start991 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
+      if (checkOK) {
+
+        schedulerInstanceInstance_.start991 = schedulerInstanceInstance_.start;
+
+
+
+        let busy = false;
+
+        schedulerInstanceInstance_.start = function () {
+
+          if (busy) {
+
+            return this.start991.call(this);
+
+          }
+
+          busy = true;
+
+          const mk1 = window.requestAnimationFrame
+          const mk2 = window.setInterval
+          const mk3 = window.setTimeout
+          const mk4 = window.requestIdleCallback
+
+
+          window.requestAnimationFrame = requestAnimationFrame
+          window.setInterval = setInterval
+          window.setTimeout = setTimeout
+          window.requestIdleCallback = requestIdleCallback
+
+
+          this.start991.call(this);
+
+
+          window.requestAnimationFrame = mk1;
+          window.setInterval = mk2
+          window.setTimeout = mk3
+          window.requestIdleCallback = mk4;
+
+          busy = false;
+
+
+
+        }
+
+        schedulerInstanceInstance_.start.toString = function () {
+          return schedulerInstanceInstance_.start991.toString();
+        }
+
+        // const funcNames = [...(schedulerInstanceInstance_.start + "").matchAll(/[\(,]this\.(\w{1,2})[,\)]/g)].map(e => e[1]).map(prop => ({
+        //   prop,
+        //   value: schedulerInstanceInstance_[prop],
+        //   type: typeof schedulerInstanceInstance_[prop]
+
+        // }));
+        // console.log('fcc', funcNames)
+
+
+
+
+      }
+    })();
+
     FIX_yt_player && (async () => {
 
 
 
-      const rafHub = new RAFHub();
+      // const rafHub = new RAFHub();
 
 
       const _yt_player = await new Promise(resolve => {
@@ -1170,6 +1310,7 @@
 
       const gk = g[k];
       if (typeof gk !== 'function') return;
+      const gkp = gk.prototype;
 
       let dummyObject = new gk;
       let nilFunc = () => { };
@@ -1243,17 +1384,25 @@
       */
 
 
+      // console.log('gkp.start',gkp.start);
+      // console.log('gkp.stop',gkp.stop);
+      gkp._activation = false;
 
-      g[k].prototype.start = function () {
-        this.stop();
+      gkp.start = function () {
+        if (!this._activation) {
+          this._activation = true;
+          getRafPromise().then(() => {
+            this._activation = false;
+            if (this[keyCidj]) {
+              Promise.resolve().then(this[keyFuncC]);
+            }
+          });
+        }
+        this[keyCidj] = 1;
         this[keyBoolD] = true;
-        this[keyCidj] = rafHub.request(this[keyFuncC]);
       }
         ;
-      g[k].prototype.stop = function () {
-        if (this.isActive() && this[keyCidj]) {
-          rafHub.cancel(this[keyCidj]);
-        }
+      gkp.stop = function () {
         this[keyCidj] = null
       }
 
@@ -1823,14 +1972,14 @@
             if (0 == b._animations.length) {
               restartWebAnimationsNextTickFlag = false;
             } else {
-              getRafPromiseForTickers().then(runnerFn);
+              getRafPromise().then(runnerFn);
             }
           }
 
           const restartWebAnimationsNextTick = () => {
             if (!restartWebAnimationsNextTickFlag) {
               restartWebAnimationsNextTickFlag = true;
-              getRafPromiseForTickers().then(runnerFn);
+              getRafPromise().then(runnerFn);
             }
           }
 
@@ -1930,8 +2079,6 @@
         originalAnimationsWithPromises.forEach = null;
         originalAnimationsWithPromises.map = null;
 
-
-        const nilFn = () => { };
 
         const _updateAnimationsPromises = () => {
           animationsWithPromisesMap.forEach(c => {
@@ -2154,6 +2301,175 @@
 
 
 
+
+    promiseForCustomYtElementsReady.then(() => {
+
+      FIX_ytdExpander_childrenChanged && customElements.whenDefined('ytd-expander').then(() => {
+
+
+
+        let dummy;
+        let cProto;
+
+
+
+        dummy = document.createElement('ytd-expander');
+        cProto = (dummy.inst || dummy).constructor.prototype;
+
+
+        if (fnIntegrity(cProto.initChildrenObserver, '0.48.21') && fnIntegrity(cProto.childrenChanged, '0.40.22')) {
+
+
+          cProto.initChildrenObserver14 = cProto.initChildrenObserver;
+          cProto.childrenChanged14 = cProto.childrenChanged;
+
+          cProto.initChildrenObserver = function () {
+            var a = this;
+            this.observer = new MutationObserver(function () {
+              a.childrenChanged()
+            }
+            );
+            this.observer.observe(this.content, {
+              subtree: !0,
+              childList: !0,
+              attributes: !0,
+              characterData: !0
+            });
+            this.childrenChanged()
+          }
+            ;
+          cProto.childrenChanged = function () {
+            if (this.alwaysToggleable) {
+              this.canToggle = this.alwaysToggleable;
+            } else if (!this.canToggleJobId) {
+              this.canToggleJobId = 1;
+              getRafPromise().then(() => {
+                this.canToggleJobId = 0;
+                this.calculateCanCollapse()
+              })
+            }
+          }
+
+
+          // console.log(cProto.initChildrenObserver)
+          console.log('ytd-expander-fix-childrenChanged');
+
+        }
+
+      })
+
+
+
+      FIX_paper_ripple_animate && customElements.whenDefined('paper-ripple').then(() => {
+
+
+
+        let dummy;
+        let cProto;
+        dummy = document.createElement('paper-ripple');
+        cProto = (dummy.inst || dummy).constructor.prototype;
+
+        if (fnIntegrity(cProto.animate, '0.74.5')) {
+
+
+          cProto.animate34 = cProto.animate;
+          cProto.animate = function () {
+            if (this._animating) {
+              var a;
+              const ripples = this.ripples;
+              for (a = 0; a < ripples.length; ++a) {
+                var b = ripples[a];
+                b.draw();
+                this.$.background.style.opacity = b.outerOpacity;
+                b.isOpacityFullyDecayed && !b.isRestingAtMaxRadius && this.removeRipple(b)
+              }
+              if ((this.shouldKeepAnimating || 0) !== ripples.length) {
+                if (!this._boundAnimate38) this._boundAnimate38 = this.animate.bind(this);
+                getRafPromise().then(this._boundAnimate38);
+              } else {
+                this.onAnimationComplete()
+              }
+            }
+          }
+
+          console.debug('FIX_paper_ripple_animate')
+
+          // console.log(cProto.animate)
+
+        }
+
+      });
+
+      if (FIX_doIdomRender) {
+
+
+        const xsetTimeout = function (f, d) {
+          if (xsetTimeout.m511 === 1 && !d) {
+            xsetTimeout.m511 = 2;
+            getRafPromise().then(f);
+          } else {
+            return setTimeout.apply(window, arguments)
+          }
+
+        }
+
+        const xrequestAnimationFrame = function (f) {
+          const h = f + "";
+          if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}")) {
+            xsetTimeout.m511 = 1;
+            f();
+            xsetTimeout.m511 = 0;
+          } else if (h.includes("requestAninmationFrameResolver")) {
+            getRafPromise().then(f);
+          } else {
+            return requestAnimationFrame.apply(window, arguments);
+          }
+        }
+
+        let busy = false;
+        const doIdomRender = function () {
+          if (busy) {
+            return this.doIdomRender13.apply(this, arguments);
+          }
+          busy = true;
+          const { requestAnimationFrame, setTimeout } = window;
+          window.requestAnimationFrame = xrequestAnimationFrame;
+          window.setTimeout = xsetTimeout;
+          let r = this.doIdomRender13.apply(this, arguments);
+          window.requestAnimationFrame = requestAnimationFrame;
+          window.setTimeout = setTimeout;
+          busy = false;
+          return r;
+        };
+        for (const ytTag of ['ytd-lottie-player', 'yt-attributed-string', 'yt-image', 'yt-icon-shape', 'yt-button-shape', 'yt-button-view-model', 'yt-icon-badge-shape']) {
+
+
+          customElements.whenDefined(ytTag).then(() => {
+
+            let dummy;
+            let cProto;
+            dummy = document.createElement(ytTag);
+            cProto = (dummy.inst || dummy).constructor.prototype;
+
+            cProto.doIdomRender13 = cProto.doIdomRender;
+            cProto.doIdomRender = doIdomRender;
+
+            if (cProto.doIdomRender13 === cProto.templatingFn) cProto.templatingFn = doIdomRender;
+
+            console.debug('FIX_doIdomRender', ytTag)
+
+
+
+          });
+
+        }
+
+      }
+
+
+
+    });
+
   });
 
 
@@ -2193,6 +2509,10 @@
     console.groupEnd();
 
   }
+
+
+
+
 
 
 })();
