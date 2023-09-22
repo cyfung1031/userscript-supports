@@ -8,7 +8,7 @@
 * GitHub: https://github.com/violentmonkey/violentmonkey/ (Actively Maintained)
 * Highly Recommended
 * (Be aware of the [WTF behavior](https://github.com/violentmonkey/violentmonkey/issues/1901) - see https://github.com/violentmonkey/violentmonkey/issues/1023)
-* 80% userscripts (for China userscripts, 65%) can run in Violentmonkey without issues
+* 85% userscripts (for China userscripts, 65%) can run in Violentmonkey without issues
 
 ### Tampermonkey
 * Can be used in Chrome, Brave, Edge, Firefox, Opera, etc.
