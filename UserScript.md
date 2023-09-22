@@ -11,7 +11,7 @@
 
 ### Tampermonkey
 * Can be used in Chrome, Brave, Edge, Firefox, Opera, etc.
-* Closed source
+* Closed source (`This repository contains the source of the Tampermonkey extension up to version 2.9. All newer versions are distributed under a proprietary license.`)
 * GitHub: https://github.com/Tampermonkey/tampermonkey/ (Inactively Maintained)
 * Recommended
 * (This is the most popular one but actually this is closed source)
@@ -44,6 +44,9 @@
 * Can be ONLY used in Firefox
 * Highly NOT recommended
 * Just a shit
+* GitHub: https://github.com/greasemonkey/greasemonkey (no one maintain)
+
+
 
 ## UserScript Website
 * https://greasyfork.org/ (Highly Recommended)
@@ -51,6 +54,11 @@
 * https://openuserjs.org/
 * https://scriptcat.org/ (for China Users)
 * https://github.com/shenruisi/Stay-Offical-Userscript
+
+## Guidelines
+* https://www.tampermonkey.net/documentation.php?locale=en
+* https://violentmonkey.github.io/
+* https://erosman.github.io/support/content/help.html
 
 
 ## Standard Template
