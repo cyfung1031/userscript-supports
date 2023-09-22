@@ -14,6 +14,7 @@
 * Closed source
 * GitHub: https://github.com/Tampermonkey/tampermonkey/ (Inactively Maintained)
 * Recommended
+* (This is the most popular one but actually this is closed source)
 
 ### Firemonkey
 * Can be ONLY used in Firefox
@@ -38,6 +39,11 @@
 * GitHub: https://github.com/scriptscat/scriptcat
 * By China developer, and with Chinese Community
 * https://docs.scriptcat.org/
+
+### Greasemonkey
+* Can be ONLY used in Firefox
+* Highly NOT recommended
+* Just a shit
 
 ## UserScript Website
 * https://greasyfork.org/ (Highly Recommended)
