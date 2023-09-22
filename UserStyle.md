@@ -28,6 +28,16 @@ https://github.com/openstyles/stylus/wiki/Writing-UserCSS
 * [stylus-lang documentation](http://stylus-lang.com/)
 * Highly Recommended
 
+## UserStyle Websites
+
+### UserStyles.world
+* https://userstyles.world/
+* Highly Recommended
+
+### Greasy Fork
+* https://greasyfork.org/
+* Recommended
+
 ## Template
 
 ```scss
