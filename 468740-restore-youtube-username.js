@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.2
+// @version             0.9.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -176,6 +176,7 @@ SOFTWARE.
     const CHANGE_FOR_SHORTS_CHANNEL_NAME = false;
     const USE_LANG_SPECIFIC_NAME = true;
     const UPDATE_PIN_NAME = true; // for USE_LANG_SPECIFIC_NAME
+    const FIX_RTL_ISSUE = true;
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -243,10 +244,10 @@ SOFTWARE.
     const elementQSA = fxAPI(Element.prototype, 'querySelectorAll');
 
     /*
- 
- 
+
+
     init
- 
+
         initialdata
         state-progress
         state-responsereceived
@@ -264,21 +265,21 @@ SOFTWARE.
         renderer-module-load-start
         updateui
         renderer-module-load-end
- 
- 
+
+
         playing
- 
+
         h5player.video-progress
         h5player.video-progress
         h5player.video-progress
         h5player.video-progress
         ...
- 
- 
- 
- 
+
+
+
+
     navigate new video
- 
+
         state-navigatestart
         state-change => channel owener DOM vanished
         state-progress
@@ -291,31 +292,31 @@ SOFTWARE.
         h5player.video-data-change
         h5player.volume-change
         ...
- 
+
         state-progress
         ...
- 
+
         state-progress => channel owner DOM appear [just before state-responsereceived]
         state-responsereceived
- 
+
         video-data-change
         state-change
         state-navigateend
- 
- 
- 
- 
+
+
+
+
     UX interaction
- 
+
         user-activity
         player-autonav-pause
- 
- 
- 
- 
- 
+
+
+
+
+
     EventTarget.prototype.uhfsE = EventTarget.prototype.dispatchEvent
- 
+
     EventTarget.prototype.dispatchEvent = function (ev) {
         if (ev instanceof Event) {
             if (ev.type === 'video-progress') { } else {
@@ -328,9 +329,9 @@ SOFTWARE.
         }
         return this.uhfsE.apply(this, arguments);
     }
- 
- 
- 
+
+
+
 */
 
     const isMobile = location.hostname === 'm.youtube.com';
@@ -455,6 +456,66 @@ SOFTWARE.
             this.__resolve__ = null;
             return this.__value__;
         }
+    }
+
+    let isCSSAdded = false;
+    const addCSSRulesIfRequired = () => {
+        if (isCSSAdded) return;
+        isCSSAdded = true;
+        const style = document.createElement('style')
+        let nonce = document.querySelector('head style[nonce]');
+        nonce = nonce ? nonce.getAttribute('nonce') : null;
+
+        /* #contenteditable-root.yt-formatted-string:lang(he) */ /* Hebrew (LTR, when mixed with LTR languages) */
+        /* #contenteditable-root.yt-formatted-string:lang(he) */ /* Hebrew (pure) */
+
+        const cssText01_FIX_RTL_ISSUE = FIX_RTL_ISSUE ? `
+
+            /* Left-to-Right (LTR) Languages */
+            #contenteditable-root.yt-formatted-string:lang(en) /* English */,
+            #contenteditable-root.yt-formatted-string:lang(es) /* Spanish */,
+            #contenteditable-root.yt-formatted-string:lang(fr) /* French */,
+            #contenteditable-root.yt-formatted-string:lang(de) /* German */,
+            #contenteditable-root.yt-formatted-string:lang(it) /* Italian */,
+            #contenteditable-root.yt-formatted-string:lang(pt) /* Portuguese */,
+            #contenteditable-root.yt-formatted-string:lang(ru) /* Russian */,
+            #contenteditable-root.yt-formatted-string:lang(zh) /* Chinese */,
+            #contenteditable-root.yt-formatted-string:lang(ja) /* Japanese */,
+            #contenteditable-root.yt-formatted-string:lang(ko) /* Korean */,
+            #contenteditable-root.yt-formatted-string:lang(nl) /* Dutch */,
+            #contenteditable-root.yt-formatted-string:lang(sv) /* Swedish */,
+            #contenteditable-root.yt-formatted-string:lang(fi) /* Finnish */,
+            #contenteditable-root.yt-formatted-string:lang(da) /* Danish */,
+            #contenteditable-root.yt-formatted-string:lang(no) /* Norwegian */,
+            #contenteditable-root.yt-formatted-string:lang(pl) /* Polish */,
+            #contenteditable-root.yt-formatted-string:lang(cs) /* Czech */,
+            #contenteditable-root.yt-formatted-string:lang(sk) /* Slovak */,
+            #contenteditable-root.yt-formatted-string:lang(hu) /* Hungarian */,
+            #contenteditable-root.yt-formatted-string:lang(tr) /* Turkish */,
+            #contenteditable-root.yt-formatted-string:lang(el) /* Greek */,
+            #contenteditable-root.yt-formatted-string:lang(id) /* Indonesian */,
+            #contenteditable-root.yt-formatted-string:lang(ms) /* Malay */,
+            #contenteditable-root.yt-formatted-string:lang(th) /* Thai */,
+            #contenteditable-root.yt-formatted-string:lang(vi) /* Vietnamese */
+            {
+                direction: ltr;
+            }
+
+            /* Right-to-Left (RTL) Languages */
+            #contenteditable-root.yt-formatted-string:lang(ar) /* Arabic */,
+            #contenteditable-root.yt-formatted-string:lang(fa) /* Persian */,
+            #contenteditable-root.yt-formatted-string:lang(ur) /* Urdu */,
+            #contenteditable-root.yt-formatted-string:lang(dv) /* Divehi */
+            {
+                direction: rtl;
+            }
+
+        ` : '';
+        style.textContent = `
+            ${cssText01_FIX_RTL_ISSUE}
+        `.trim();
+        if (nonce) style.setAttribute('nonce', nonce);
+        document.head.appendChild(style);
     }
 
     /**
@@ -997,16 +1058,16 @@ SOFTWARE.
     /**
      *
      *
- 
+
         ### [Handle naming guidelines](https://support.google.com/youtube/answer/11585688?hl=en&co=GENIE.Platform%3DAndroid)
- 
+
         - Is between 3-30 characters
         - Is made up of alphanumeric characters (A–Z, a–z, 0–9)
         - Your handle can also include: underscores (_), hyphens (-), dots (.)
         - Is not URL-like or phone number-like
         - Is not already being used
         - Follows YouTube's Community Guidelines
- 
+
         ### Handle automatically generated by YouTube
         - `@user-XXXX`
         - without dot (.)
@@ -1440,6 +1501,7 @@ SOFTWARE.
 
                     if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
                         parentNodeController.data = Object.assign({}, md, { jkrgx: 1 });
+                        addCSSRulesIfRequired();
                     }
 
 
@@ -1523,13 +1585,14 @@ SOFTWARE.
 
                             /*
                                 runs.push({text: title, bold: true, "fontColor": "black",
- 
+
                                     size: "SIZE_DEFAULT",
                                     style: "STYLE_TEXT",
                                 });
                             */
 
                             hDomController.data = Object.assign({}, hDomController.data, { channelTitleText: { runs: runs2 }, rSk0e: 1 });
+                            addCSSRulesIfRequired();
 
                             byPassCheckStore.delete(rchannelNameDOM);
                         }
@@ -1648,7 +1711,7 @@ SOFTWARE.
 
     // let newAnchorAdded = false;
     /*
- 
+
     const intersectionobserver = new IntersectionObserver((entries) => {
         let anchorAppear = false;
         for (const entry of entries) {
