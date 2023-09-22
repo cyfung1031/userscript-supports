@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.0
+// @version     0.5.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -15,11 +15,6 @@
 // ==/UserScript==
 
 (() => {
-
-  // window.requestAnimationFrame = function(x){
-  //   // console.log(new Error().stack)
-  //   return window.webkitRequestAnimationFrame(x);
-  // }
 
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance_V1 = false;
@@ -55,6 +50,69 @@
   });
 */
 
+
+
+  let p59 = 0;
+
+  const Promise = (async () => { })().constructor;
+
+  const PromiseExternal = ((resolve_, reject_) => {
+    const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+    return class PromiseExternal extends Promise {
+      constructor(cb = h) {
+        super(cb);
+        if (cb === h) {
+          /** @type {(value: any) => void} */
+          this.resolve = resolve_;
+          /** @type {(reason?: any) => void} */
+          this.reject = reject_;
+        }
+      }
+    };
+  })();
+
+
+  let pf31 = new PromiseExternal();
+
+  // native RAF
+  let __requestAnimationFrame__ = typeof webkitRequestAnimationFrame === 'function' ? window.webkitRequestAnimationFrame.bind(window) : window.requestAnimationFrame.bind(window);
+
+  // 1st wrapped RAF
+  const baseRAF = (callback) => {
+    return p59 ? __requestAnimationFrame__(callback) : __requestAnimationFrame__((hRes) => {
+      pf31.then(() => {
+        callback(hRes);
+      });
+    });
+  };
+
+  // 2nd wrapped RAF
+  window.requestAnimationFrame = baseRAF;
+
+  // requestAnimationFrame is likely to be wrapped into YT Engine's rAf.
+
+  const pLoad = new Promise(resolve => {
+    if (document.readyState !== 'loading') {
+      resolve();
+    } else {
+      window.addEventListener("DOMContentLoaded", resolve, false);
+    }
+  });
+  pLoad.then(() => {
+
+    document.addEventListener('DOMScriptLoaded', ()=>{
+      pf31.resolve();
+      p59 = 1;
+    }, false);
+    document.body.appendChild(document.createElement('script')).textContent=`
+      document.dispatchEvent(new CustomEvent('DOMScriptLoaded'));
+    `;
+
+
+    // console.debug('90002', location.pathname)
+    // console.log(90000, location.pathname)
+   
+  });
 
   const prepareLogs = [];
 
@@ -409,7 +467,6 @@
 
   const steppingScaleN = 200; // transform: scaleX(k/N); 0<k<N
 
-  const Promise = (async () => { })().constructor;
 
 
   const nilFn = () => { };
@@ -793,7 +850,7 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle } = __CONTEXT__;
 
-
+    __requestAnimationFrame__ = requestAnimationFrame;
 
     let rafPromise = null;
 
@@ -962,6 +1019,7 @@
 
       const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start991 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
       if (checkOK) {
+
 
         schedulerInstanceInstance_.start991 = schedulerInstanceInstance_.start;
 
@@ -1204,7 +1262,10 @@
 
         let busy = false;
 
+        // console.log('1667',schedulerInstanceInstance_.start);
         schedulerInstanceInstance_.start = function () {
+
+          // p59 || console.log(location.pathname, 16400);
 
           if (busy) {
 
@@ -1215,24 +1276,24 @@
           busy = true;
 
           const mk1 = window.requestAnimationFrame
-          const mk2 = window.setInterval
-          const mk3 = window.setTimeout
-          const mk4 = window.requestIdleCallback
+          // const mk2 = window.setInterval
+          // const mk3 = window.setTimeout
+          // const mk4 = window.requestIdleCallback
 
-
-          window.requestAnimationFrame = requestAnimationFrame
-          window.setInterval = setInterval
-          window.setTimeout = setTimeout
-          window.requestIdleCallback = requestIdleCallback
+          // by pass Youtube Engine's wrapping
+          window.requestAnimationFrame = baseRAF;
+          // window.setInterval = setInterval
+          // window.setTimeout = setTimeout
+          // window.requestIdleCallback = requestIdleCallback
 
 
           this.start991.call(this);
 
 
           window.requestAnimationFrame = mk1;
-          window.setInterval = mk2
-          window.setTimeout = mk3
-          window.requestIdleCallback = mk4;
+          // window.setInterval = mk2
+          // window.setTimeout = mk3
+          // window.requestIdleCallback = mk4;
 
           busy = false;
 
@@ -1389,6 +1450,7 @@
       gkp._activation = false;
 
       gkp.start = function () {
+        // p59 || console.log(12100)
         if (!this._activation) {
           this._activation = true;
           getRafPromise().then(() => {
@@ -2352,7 +2414,7 @@
 
 
           // console.log(cProto.initChildrenObserver)
-          console.log('ytd-expander-fix-childrenChanged');
+          console.debug('ytd-expander-fix-childrenChanged');
 
         }
 
