@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.5
+// @version             0.60.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -165,6 +165,8 @@
   const AMEND_TICKER_handleLiveChatAction = true; // to fix ticker duplication and unresponsively fast ticker generation
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = false; // NOT PLANNED
+
+  const DISABLE_Translation_By_Google = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -992,6 +994,27 @@
     } else {
       return itz === d;
     }
+  }
+
+  if (DISABLE_Translation_By_Google) {
+
+    let mo = new MutationObserver(() => {
+
+      if (!mo) return;
+      let h = document.head;
+      if (!h) return;
+      mo.disconnect();
+      mo.takeRecords();
+      mo = null;
+
+      let meta = document.createElement('meta');
+      meta.setAttribute('name', 'google');
+      meta.setAttribute('content', 'notranslate');
+      h.appendChild(meta);
+
+
+    });
+    mo.observe(document, { subtree: true, childList: true });
   }
 
 
