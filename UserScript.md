@@ -8,6 +8,7 @@
 * GitHub: https://github.com/violentmonkey/violentmonkey/ (Actively Maintained)
 * Highly Recommended
 * (Be aware of the [WTF behavior](https://github.com/violentmonkey/violentmonkey/issues/1901) - see https://github.com/violentmonkey/violentmonkey/issues/1023)
+* 80% userscripts (for China userscripts, 65%) can run in Violentmonkey without issues
 
 ### Tampermonkey
 * Can be used in Chrome, Brave, Edge, Firefox, Opera, etc.
@@ -15,12 +16,14 @@
 * GitHub: https://github.com/Tampermonkey/tampermonkey/ (Inactively Maintained)
 * Recommended
 * (This is the most popular one but actually this is closed source)
+* 99% userscripts can run in Tampermonkey without issues
 
 ### Firemonkey
 * Can be ONLY used in Firefox
 * [Open source](https://github.com/erosman/support/tree/FireMonkey)
 * GitHub: https://github.com/erosman/support/issues (Actively Maintained)
 * NOT Recommended due to its intented to be highly secured.
+* 65% userscripts (for China userscripts, 30%) can run in Firemonkey without issues
 
 ### Stay
 * MacOS, Safari, iPhone, iPad, etc.
@@ -45,6 +48,7 @@
 * Highly NOT recommended
 * Just a shit
 * GitHub: https://github.com/greasemonkey/greasemonkey (no one maintain)
+* 25% userscripts (for China userscripts, 10%) can run in Greasemonkey without issues
 
 
 
