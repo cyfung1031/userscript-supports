@@ -25,7 +25,7 @@ https://github.com/openstyles/stylus/wiki/Writing-UserCSS
 ### less
 * [less documentation](http://lesscss.org/#overview)
 ### stylus 
-* [stylus-lang documentation](http://stylus-lang.com/)http://stylus-lang.com/
+* [stylus-lang documentation](http://stylus-lang.com/)
 * Highly Recommended
 
 ## Template
