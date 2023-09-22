@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.13
+// @version     0.4.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1242,7 +1242,6 @@
 
 
 
-
       g[k].prototype.start = function () {
         this.stop();
         this[keyBoolD] = true;
@@ -1929,9 +1928,11 @@
 
 
         const _updateAnimationsPromises = () => {
-          animationsWithPromisesMap.forEach(c => {
-            if (!c._updatePromises()) animationsWithPromisesMap.delete(c);
-          })
+          if (animationsWithPromisesMap.size > 0) {
+            animationsWithPromisesMap.forEach(c => {
+              if (!c._updatePromises()) animationsWithPromisesMap.delete(c);
+            });
+          }
           /*
           v.animationsWithPromises = v.animationsWithPromises.filter(function (c) {
             return c._updatePromises();
