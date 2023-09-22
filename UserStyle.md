@@ -34,6 +34,9 @@ https://github.com/openstyles/stylus/wiki/Writing-UserCSS
 * https://userstyles.world/
 * Highly Recommended
 
+### UserStyle.org
+* https://userstyles.org/
+
 ### Greasy Fork
 * https://greasyfork.org/
 * Recommended
