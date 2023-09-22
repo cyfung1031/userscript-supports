@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.4.14
+// @version     0.4.15
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -28,6 +28,8 @@
   // const FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than = 8;
 
   const FIX_Iframe_NULL_SRC = true;
+
+  const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
   /*
   window.addEventListener('edm',()=>{
@@ -1706,6 +1708,7 @@
       if (!Animation) return;
 
       const aniProto = Animation.prototype;
+      // aniProto.sequenceNumber = 0; // native YouTube engine bug - sequenceNumber is not set
 
       const getXroto = (x) => {
         try {
@@ -1902,6 +1905,8 @@
 
         const { restartWebAnimationsNextTick } = ('onanimationiteration' in document.documentElement) ? looperMethodN() : looperMethodT();
 
+
+        // console.log(571, timProto);
         timProto._play = function (c) {
           c = new Animation(c, this);
           this._animations.push(c);
@@ -1926,13 +1931,12 @@
         originalAnimationsWithPromises.map = null;
 
 
+        const nilFn = () => { };
 
         const _updateAnimationsPromises = () => {
-          if (animationsWithPromisesMap.size > 0) {
-            animationsWithPromisesMap.forEach(c => {
-              if (!c._updatePromises()) animationsWithPromisesMap.delete(c);
-            });
-          }
+          animationsWithPromisesMap.forEach(c => {
+            if (!c._updatePromises()) animationsWithPromisesMap.delete(c);
+          });
           /*
           v.animationsWithPromises = v.animationsWithPromises.filter(function (c) {
             return c._updatePromises();
@@ -1943,6 +1947,20 @@
         timProto._updateAnimationsPromises31 = timProto._updateAnimationsPromises;
 
         timProto._updateAnimationsPromises = _updateAnimationsPromises;
+
+        delete timProto._updateAnimationsPromises;
+        Object.defineProperty(timProto, '_updateAnimationsPromises', {
+          get() {
+            if (animationsWithPromisesMap.size === 0) return nilFn;
+            return _updateAnimationsPromises;
+          },
+          set(nv) {
+            delete this._updateAnimationsPromises;
+            this._updateAnimationsPromises = nv;
+          },
+          enumerable: true,
+          configurable: true,
+        });
 
 
         let pdFinished = Object.getOwnPropertyDescriptor(aniProto, 'finished');
@@ -2005,6 +2023,29 @@
         }
 
 
+        if (IGNORE_bindAnimationForCustomEffect && typeof aniProto._rebuildUnderlyingAnimation === 'function' && !aniProto._rebuildUnderlyingAnimation21 && aniProto._rebuildUnderlyingAnimation.length === 0) {
+
+          aniProto._rebuildUnderlyingAnimation21 = aniProto._rebuildUnderlyingAnimation;
+          const _rebuildUnderlyingAnimation = function () {
+            // if (isNaN(this._sequenceNumber)) return; // do not rebuild underlying animation if native animation is used.
+            this.effect && this.effect._onsample && (this.effect._onsample = null);
+            return this._rebuildUnderlyingAnimation21();
+          }
+          aniProto._rebuildUnderlyingAnimation = _rebuildUnderlyingAnimation;
+          // delete aniProto._rebuildUnderlyingAnimation;
+          // Object.defineProperty(aniProto, '_rebuildUnderlyingAnimation', {
+          //   get() {
+          //     if (isNaN(this._sequenceNumber)) return nilFn;
+          //     return this._rebuildUnderlyingAnimation21;
+          //   },
+          //   set(nv) {
+          //     delete this._rebuildUnderlyingAnimation;
+          //     this._rebuildUnderlyingAnimation = nv;
+          //   },
+          //   enumerable: true,
+          //   configurable: true
+          // });
+        }
 
 
         /*
