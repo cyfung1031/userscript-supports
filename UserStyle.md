@@ -14,6 +14,10 @@
 * NOT Recommended
 * It cannot handle `@preprocessor stylus`
 
+### Stylish
+* DON'T USE !
+* SHIT!
+
 ## Guidelines
 https://github.com/openstyles/stylus/wiki/Writing-UserCSS
 
