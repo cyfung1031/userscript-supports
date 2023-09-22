@@ -34,10 +34,12 @@ https://github.com/openstyles/stylus/wiki/Writing-UserCSS
 * https://userstyles.world/
 * Highly Recommended
 * developed after UserStyles.org
+* Partnership: Stylus = Great
 
 ### UserStyles.org
 * https://userstyles.org/
 * Not user-friendly
+* Partnership: Stylish = Shit
 
 ### Greasy Fork
 * https://greasyfork.org/
