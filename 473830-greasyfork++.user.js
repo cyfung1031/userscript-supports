@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.22
+// @version            3.2.23
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -300,281 +300,307 @@ const mWindow = (() => {
 
     const settingsCSS = `
 
-    /*
-    #greasyfork-plus label::before {
-      content:'';
-      display:block;
-      position:absolute;
-      left:0;
-      right:0;
-      top:0;
-      bottom:0;
-      z-index:1;
-    }
-    #greasyfork-plus label {
-      position:relative;
-      z-index:0;
-    }
-    */
+        /*
+        #greasyfork-plus label::before {
+        content:'';
+        display:block;
+        position:absolute;
+        left:0;
+        right:0;
+        top:0;
+        bottom:0;
+        z-index:1;
+        }
+        #greasyfork-plus label {
+        position:relative;
+        z-index:0;
+        }
+        */
 
-    html {
-      color: #222;
-      background: #f9f9f9;
-    }
+        html {
+        color: #222;
+        background: #f9f9f9;
+        }
 
-  #greasyfork-plus{
-    --config-var-display: flex;
-  }
-  #greasyfork-plus * {
-      font-family:Open Sans,sans-serif,Segoe UI Emoji !important;
-      font-size:12px
-  }
-  #greasyfork-plus .section_header[class] {
-      background-color:#670000;
-      background-image:linear-gradient(#670000,#900);
-      border:1px solid transparent;
-      color:#fff
-  }
-  #greasyfork-plus .field_label[class]{
-      margin-bottom:4px
-  }
-  #greasyfork-plus .field_label[class] span{
-      font-size:95%;
-      font-style:italic;
-      opacity:.8;
-  }
-  #greasyfork-plus .field_label[class] b{
-      color:#670000
-  }
-  #greasyfork-plus_logging_var[class],
-  #greasyfork-plus_debugging_var[class] {
-    --config-var-display: inline-flex;
-  }
-  #greasyfork-plus #greasyfork-plus_logging_var label.field_label[class],
-  #greasyfork-plus #greasyfork-plus_debugging_var label.field_label[class] {
-    margin-bottom:0;
-    align-self: center;
-  }
-  #greasyfork-plus .config_var[class]{
-      display:var(--config-var-display);
-      position: relative;
-  }
-  #greasyfork-plus_customBlacklist_var[class],
-  #greasyfork-plus_hiddenList_var[class],
-  #greasyfork-plus_milestoneNotification_var[class]{
-      flex-direction:column;
-      margin-left:21px;
-  }
+        #greasyfork-plus{
+            --config-var-display: flex;
+        }
+        #greasyfork-plus * {
+            font-family:Open Sans,sans-serif,Segoe UI Emoji !important;
+            font-size:12px
+        }
+        #greasyfork-plus .section_header[class] {
+            background-color:#670000;
+            background-image:linear-gradient(#670000,#900);
+            border:1px solid transparent;
+            color:#fff
+        }
+        #greasyfork-plus .field_label[class]{
+            margin-bottom:4px
+        }
+        #greasyfork-plus .field_label[class] span{
+            font-size:95%;
+            font-style:italic;
+            opacity:.8;
+        }
+        #greasyfork-plus .field_label[class] b{
+            color:#670000
+        }
+        #greasyfork-plus_logging_var[class],
+        #greasyfork-plus_debugging_var[class] {
+            --config-var-display: inline-flex;
+        }
+        #greasyfork-plus #greasyfork-plus_logging_var label.field_label[class],
+        #greasyfork-plus #greasyfork-plus_debugging_var label.field_label[class] {
+            margin-bottom:0;
+            align-self: center;
+        }
+        #greasyfork-plus .config_var[class]{
+            display:var(--config-var-display);
+            position: relative;
+        }
+        #greasyfork-plus_customBlacklist_var[class],
+        #greasyfork-plus_hiddenList_var[class],
+        #greasyfork-plus_milestoneNotification_var[class]{
+            flex-direction:column;
+            margin-left:21px;
+        }
 
-  #greasyfork-plus_customBlacklist_var[class]::before,
-  #greasyfork-plus_hiddenList_var[class]::before,
-  #greasyfork-plus_milestoneNotification_var[class]::before{
-    /* content: "◉"; */
-    content: "◎";
-    position: absolute;
-    left: auto;
-    top: auto;
-    margin-left: -16px;
-  }
-  #greasyfork-plus_field_customBlacklist[class],
-  #greasyfork-plus_field_milestoneNotification[class]{
-      flex:1;
-  }
-  #greasyfork-plus_field_hiddenList[class]{
-      box-sizing:border-box;
-      overflow:hidden;
-      resize:none;
-      width:100%
-  }
+        #greasyfork-plus_customBlacklist_var[class]::before,
+        #greasyfork-plus_hiddenList_var[class]::before,
+        #greasyfork-plus_milestoneNotification_var[class]::before{
+            /* content: "◉"; */
+            content: "◎";
+            position: absolute;
+            left: auto;
+            top: auto;
+            margin-left: -16px;
+        }
+        #greasyfork-plus_field_customBlacklist[class],
+        #greasyfork-plus_field_milestoneNotification[class]{
+            flex:1;
+        }
+        #greasyfork-plus_field_hiddenList[class]{
+            box-sizing:border-box;
+            overflow:hidden;
+            resize:none;
+            width:100%
+        }
 
-  body > #greasyfork-plus_wrapper:only-child {
-    box-sizing: border-box;
-    overflow: auto;
-    max-height: calc(100vh - 72px);
-    padding: 12px;
-    /* overflow: auto; */
-    scrollbar-gutter: both-edges;
-    background: rgba(127,127,127,0.05);
-    border: 1px solid rgba(127,127,127,0.5);
-  }
+        body > #greasyfork-plus_wrapper:only-child {
+            box-sizing: border-box;
+            overflow: auto;
+            max-height: calc(100vh - 72px);
+            padding: 12px;
+            /* overflow: auto; */
+            scrollbar-gutter: both-edges;
+            background: rgba(127,127,127,0.05);
+            border: 1px solid rgba(127,127,127,0.5);
+        }
 
-  #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    margin: 0 12px 6px 0;
-  }
+        #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            margin: 0 12px 6px 0;
+        }
 
-  #greasyfork-plus .saveclose_buttons[class] {
-    padding: 4px 14px;
-    margin: 6px;
-  }
-  #greasyfork-plus .section_header_holder#greasyfork-plus_section_2[class] {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    margin: 8px;
-  }
-  #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
-    background: #000;
-    color: #eee;
-  }
+        #greasyfork-plus .saveclose_buttons[class] {
+            padding: 4px 14px;
+            margin: 6px;
+        }
+        #greasyfork-plus .section_header_holder#greasyfork-plus_section_2[class] {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            margin: 8px;
+        }
+        #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
+            background: #000;
+            color: #eee;
+        }
 
-  #greasyfork-plus_header[class]{
-    font-size: 16pt;
-    font-weight: bold;
-  }
+        #greasyfork-plus_header[class]{
+            font-size: 16pt;
+            font-weight: bold;
+        }
 
     `;
 
     const pageCSS = `
 
-  .script-list li.blacklisted{
-      display:none;
-      background:#321919;
-      color:#e8e6e3
-  }
-  .script-list li.hidden{
-      display:none;
-      background:#321932;
-      color:#e8e6e3
-  }
-  .script-list li.blacklisted a:not(.install-link),.script-list li.hidden a:not(.install-link){
-      color:#ff8484
-  }
-  #script-info.hidden,#script-info.hidden .user-content{
-      background:#321932;
-      color:#e8e6e3
-  }
-  #script-info.hidden a:not(.install-link):not(.install-help-link){
-      color:#ff8484
-  }
-  #script-info.hidden code{
-      background-color:transparent
-  }
-  html {
-    --block-btn-color:#111;
-    --block-btn-bgcolor:#eee;
-  }
-   #script-info.hidden, #script-info.hidden .user-content {
-    --block-btn-color:#eee;
-    --block-btn-bgcolor:#111;
-  }
+        .script-list li.blacklisted{
+            display:none;
+            background:#321919;
+            color:#e8e6e3
+        }
+        .script-list li.hidden{
+            display:none;
+            background:#321932;
+            color:#e8e6e3
+        }
+        .script-list li.blacklisted a:not(.install-link),.script-list li.hidden a:not(.install-link){
+            color:#ff8484
+        }
+        #script-info.hidden,#script-info.hidden .user-content{
+            background:#321932;
+            color:#e8e6e3
+        }
+        #script-info.hidden a:not(.install-link):not(.install-help-link){
+            color:#ff8484
+        }
+        #script-info.hidden code{
+            background-color:transparent
+        }
+        html {
+            --block-btn-color:#111;
+            --block-btn-bgcolor:#eee;
+        }
+        #script-info.hidden, #script-info.hidden .user-content {
+            --block-btn-color:#eee;
+            --block-btn-bgcolor:#111;
+        }
 
-  [style-54998]{
-    float:right;
-    font-size: 70%;
-    text-decoration:none;
-  }
+        [style-54998]{
+            float:right;
+            font-size: 70%;
+            text-decoration:none;
+        }
 
-  [style-16377]{
-    cursor:pointer;
-    font-size:70%;
-    white-space:nowrap;
-    border: 1px solid #888;
-    background: var(--block-btn-bgcolor, #eee);
-    color: var(--block-btn-color);
-    border-radius: 4px;
-    padding: 0px 6px;
-    margin: 0 8px;
-  }
-  [style-77329] {
-    cursor: pointer;
-    margin-left: 1ex;
-    white-space: nowrap;
-    float: right;
-    border: 1px solid #888;
-    background: var(--block-btn-bgcolor, #eee);
-    color: var(--block-btn-color);
-    border-radius: 4px;
-    padding: 0px 6px;
-  }
+        [style-16377]{
+            cursor:pointer;
+            font-size:70%;
+            white-space:nowrap;
+            border: 1px solid #888;
+            background: var(--block-btn-bgcolor, #eee);
+            color: var(--block-btn-color);
+            border-radius: 4px;
+            padding: 0px 6px;
+            margin: 0 8px;
+        }
+        [style-77329] {
+            cursor: pointer;
+            margin-left: 1ex;
+            white-space: nowrap;
+            float: right;
+            border: 1px solid #888;
+            background: var(--block-btn-bgcolor, #eee);
+            color: var(--block-btn-color);
+            border-radius: 4px;
+            padding: 0px 6px;
+        }
 
-  a#hyperlink-35389,
-  a#hyperlink-40361,
-  a#hyperlink-35389:visited,
-  a#hyperlink-40361:visited,
-  a#hyperlink-35389:hover,
-  a#hyperlink-40361:hover,
-  a#hyperlink-35389:focus,
-  a#hyperlink-40361:focus,
-  a#hyperlink-35389:active,
-  a#hyperlink-40361:active {
+        a#hyperlink-35389,
+        a#hyperlink-40361,
+        a#hyperlink-35389:visited,
+        a#hyperlink-40361:visited,
+        a#hyperlink-35389:hover,
+        a#hyperlink-40361:hover,
+        a#hyperlink-35389:focus,
+        a#hyperlink-40361:focus,
+        a#hyperlink-35389:active,
+        a#hyperlink-40361:active {
 
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    appearance: none !important;
-    background: none !important;
-    color:inherit !important;
-  }
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            appearance: none !important;
+            background: none !important;
+            color:inherit !important;
+        }
 
-  a#hyperlink-35389{
-    opacity: var(--hyperlink-blacklisted-option-opacity);
+        a#hyperlink-35389{
+            opacity: var(--hyperlink-blacklisted-option-opacity);
 
-  }
-  a#hyperlink-40361{
-    opacity: var(--hyperlink-hidden-option-opacity);
-  }
-
-
-  html {
-
-    --hyperlink-blacklisted-option-opacity: 0.5;
-    --hyperlink-hidden-option-opacity: 0.5;
-  }
+        }
+        a#hyperlink-40361{
+            opacity: var(--hyperlink-hidden-option-opacity);
+        }
 
 
-  .list-option.list-current[class] > a[href] {
+        html {
 
-    text-decoration:none;
-  }
+            --hyperlink-blacklisted-option-opacity: 0.5;
+            --hyperlink-hidden-option-opacity: 0.5;
+        }
 
-  html {
-    --blacklisted-display: none;
-    --hidden-display: none;
-  }
 
-  [blacklisted-shown] {
-    --blacklisted-display: list-item;
-    --hyperlink-blacklisted-option-opacity: 1;
-  }
-  [hidden-shown] {
-    --hidden-display: list-item;
-    --hyperlink-hidden-option-opacity: 1;
-  }
+        .list-option.list-current[class] > a[href] {
 
-  .script-list li.blacklisted{
-    display: var(--blacklisted-display);
+            text-decoration:none;
+        }
 
-  }
+        html {
+            --blacklisted-display: none;
+            --hidden-display: none;
+        }
 
-  .script-list li.hidden{
-    display: var(--hidden-display);
+        [blacklisted-shown] {
+            --blacklisted-display: list-item;
+            --hyperlink-blacklisted-option-opacity: 1;
+        }
+        [hidden-shown] {
+            --hidden-display: list-item;
+            --hyperlink-hidden-option-opacity: 1;
+        }
 
-  }
+        .script-list li.blacklisted{
+            display: var(--blacklisted-display);
 
-  .install-link.install-status-checking,
-  .install-link.install-status-checking:visited,
-  .install-link.install-status-checking:active,
-  .install-link.install-status-checking:hover,
-  .install-help-link.install-status-checking {
-    background-color: #405458;
-  }
+        }
 
-  div.previewable{
-    display: flex;
-    flex-direction: column;
-  }
-  .script-version-ainfo-span {
-    align-self:end;
-    font-size: 90%;
-    padding: 4px 8px;
-    margin: 0;
-  }
-  [style*="display:"] + .script-version-ainfo-span{
-    display: none;
-  }
+        .script-list li.hidden{
+            display: var(--hidden-display);
+
+        }
+
+        .install-link.install-status-checking,
+        .install-link.install-status-checking:visited,
+        .install-link.install-status-checking:active,
+        .install-link.install-status-checking:hover,
+        .install-help-link.install-status-checking {
+            background-color: #405458;
+        }
+
+        div.previewable{
+            display: flex;
+            flex-direction: column;
+        }
+        .script-version-ainfo-span {
+            align-self:end;
+            font-size: 90%;
+            padding: 4px 8px;
+            margin: 0;
+        }
+        [style*="display:"] + .script-version-ainfo-span{
+            display: none;
+        }
+
+
+        /* Greasy Fork Enhance - Flat Layout  */
+
+        [greasyfork-enhance-k37*="|flat-layout|"] ol.script-list > li > article > h2 {
+            width: 0;
+            flex-grow: 1;
+            flex-basis: 60%;
+        }
+
+        [greasyfork-enhance-k37*="|flat-layout|"] ol.script-list > li > article > div.script-meta-block {
+            width: auto;
+            flex-basis: 40%;
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        [greasyfork-enhance-k37*="|flat-layout|"] .script-list li:not(.ad-entry) {
+            padding: 1em;
+            margin: 0;
+        }
+
+        [greasyfork-enhance-k37*="|flat-layout|"] .script-list li:not(.ad-entry) article {
+            padding: 0;
+            margin: 0;
+        }
 
     `
 
@@ -1916,7 +1942,26 @@ const mWindow = (() => {
             console.log(e);
         }
 
+
+        const chHead = () => {
+            let p = [];
+            if (document.getElementById('greasyfork-enhance-basic'))
+                p.push('basic');
+            if (document.getElementById('greasyfork-enhance-flat-layout'))
+                p.push('flat-layout');
+            if (document.getElementById('greasyfork-enhance-animation'))
+                p.push('animation');
+            if (p.length >= 1)
+                document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
+            else
+                document.documentElement.removeAttribute('greasyfork-enhance-k37');
+        }
+        const moHead = new MutationObserver(chHead);
+        moHead.observe(document.head, {subtree: false, childList: true});
+        chHead();
+
     }
+
 
 
 
