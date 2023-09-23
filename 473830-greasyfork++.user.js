@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.23
+// @version            3.2.24
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1943,13 +1943,16 @@ const mWindow = (() => {
         }
 
 
+        const isScriptEnabled = (script) => {
+            return script && script.disabled !== true
+        }
         const chHead = () => {
             let p = [];
-            if (document.getElementById('greasyfork-enhance-basic'))
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-basic')))
                 p.push('basic');
-            if (document.getElementById('greasyfork-enhance-flat-layout'))
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-flat-layout')))
                 p.push('flat-layout');
-            if (document.getElementById('greasyfork-enhance-animation'))
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-animation')))
                 p.push('animation');
             if (p.length >= 1)
                 document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
