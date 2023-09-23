@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.20
+// @version            3.2.21
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -562,6 +562,20 @@ const mWindow = (() => {
     background-color: #405458;
   }
 
+  div.previewable{
+    display: flex;
+    flex-direction: column;
+  }
+  .script-version-ainfo-span {
+    align-self:end;
+    font-size: 90%;
+    padding: 4px 8px;
+    margin: 0;
+  }
+  [style*="display:"] + .script-version-ainfo-span{
+    display: none;
+  }
+
     `
 
     const window = {};
@@ -735,6 +749,8 @@ const mWindow = (() => {
     }
 
     const useHashedScriptName = true;
+    const fixLibraryScriptCodeLink = true;
+    const addAdditionInfoLengthHint = true;
 
     const id = 'greasyfork-plus';
     const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
@@ -1517,7 +1533,7 @@ const mWindow = (() => {
 
                     const target = (evt||0).target;
                     if(!target) return;
-                    
+
                     let a = target.nodeName ==='A'?target : target.querySelector('a[href]');
 
                     if(!a )return ;
@@ -1533,7 +1549,7 @@ const mWindow = (() => {
 
             }
 
-            
+
         }else{
 
 
@@ -1543,17 +1559,17 @@ const mWindow = (() => {
             button.textContent = `${installLabel()} ${baseScript.version}`;
             const script = baseScript && baseScript.name && baseScript.namespace ? baseScript : (await getScriptData(scriptID));
             if (!script) return;
-    
+
             const installed = await isInstalled(script);
             const version = (
                 baseScript.version && script.version && compareVersions(baseScript.version, script.version) === 1
             ) ? baseScript.version : script.version;
-    
+
             const update = compareVersions(version, installed);  // NaN  1  -1  0
             const label = installLabel(update);
             button.textContent = `${label} ${version}`;
             button.classList.remove('install-status-checking');
-    
+
 
         }
 
@@ -1815,26 +1831,90 @@ const mWindow = (() => {
 
             // milestone notification
             if (gmc.get('milestoneNotification')) {
-                milestoneNotificationFn({userLink, userID});
+                milestoneNotificationFn({ userLink, userID });
             }
 
             if (isScriptFirstUse) GM.setValue('firstUse', false).then(() => {
                 gmc.open();
             });
 
+            if (fixLibraryScriptCodeLink) {
 
-            let xpath = "//code[contains(text(), '.js?version=')]";
-            let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            
-            for (let i = 0; i < snapshot.snapshotLength; i++) {
-                let element = snapshot.snapshotItem(i);
-                if (element.firstElementChild) continue;
-                element.textContent = element.textContent.replace(/\bhttps:\/\/(greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
-                    return fixLibraryCodeURL(_);
-                });
-                element.parentNode.insertBefore(document.createTextNode('\u200B'), element);
-                element.style.display = 'inline-flex';
-                setClickToSelect(element);
+
+                let xpath = "//code[contains(text(), '.js?version=')]";
+                let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
+                for (let i = 0; i < snapshot.snapshotLength; i++) {
+                    let element = snapshot.snapshotItem(i);
+                    if (element.firstElementChild) continue;
+                    element.textContent = element.textContent.replace(/\bhttps:\/\/(greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
+                        return fixLibraryCodeURL(_);
+                    });
+                    element.parentNode.insertBefore(document.createTextNode('\u200B'), element);
+                    element.style.display = 'inline-flex';
+                    setClickToSelect(element);
+                }
+
+
+            }
+
+
+
+
+            if (addAdditionInfoLengthHint && location.pathname.includes('/scripts/') && location.pathname.includes('/versions')) {
+
+                function contentLength(text) {
+                    // TODO
+
+                    return text.length;
+                    // return Math.round(text.length * 1.016)
+                }
+                function contentLengthMax() {
+                    // TODO
+
+                    return Math.round(Math.round(50000 / 1.016) / 100) * 100
+                }
+                let _spanContent = null;
+                function updateText(ainfo, span) {
+                    const value = ainfo.value;
+                    if (typeof value !== 'string') return;
+
+                    if (_spanContent !== value) {
+                        _spanContent = value;
+                        span.textContent = `Text Length: ${contentLength(value)} / ${contentLengthMax()}`;
+
+
+                    }
+                }
+                function onChange(evt) {
+                    let ainfo = (evt || 0).target;
+                    if (!ainfo) return;
+                    let span = ainfo.parentNode.querySelector('.script-version-ainfo-span');
+                    if (!span) return;
+
+                    updateText(ainfo, span);
+
+                }
+                function kbEvent(evt) {
+                    Promise.resolve().then(() => {
+                        onChange(evt);
+
+                    })
+                }
+                for (const ainfo of document.querySelectorAll('textarea[id^="script-version-additional-info"]')) {
+                    let span = document.createElement('span');
+                    span.classList.add('script-version-ainfo-span');
+                    ainfo.addEventListener('change', onChange, false);
+                    ainfo.addEventListener('keydown', kbEvent, false);
+                    ainfo.addEventListener('keypress', kbEvent, false);
+                    ainfo.addEventListener('keyup', kbEvent, false);
+                    updateText(ainfo, span);
+                    ainfo.parentNode.insertBefore(span, ainfo.nextSibling);
+
+
+                }
+
+
             }
 
         } catch (e) {
