@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.24
+// @version            3.2.25
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -633,6 +633,63 @@ const mWindow = (() => {
 
         */
 
+        const setScriptOnDisabled = async (style) => {
+
+            try {
+                const pd = Object.getOwnPropertyDescriptor(style.constructor.prototype, 'disabled');
+                const { get, set } = pd;
+                Object.defineProperty(style, 'disabled', {
+                    get() {
+                        return get.call(this);
+                    },
+                    set(nv) {
+                        let r = set.call(this, nv);
+                        Promise.resolve().then(chHead);
+                        return r;
+                    }
+                })
+            } catch (e) {
+
+            }
+        };
+
+        document.addEventListener('style-s48', function (evt) {
+            const target = (evt || 0).target || 0;
+            if (!target) return;
+            setScriptOnDisabled(target)
+
+        }, true);
+
+
+        const isScriptEnabled = (style) => {
+
+            if (style instanceof HTMLStyleElement) {
+                if (!style.hasAttribute('s48')) {
+                    style.setAttribute('s48', '');
+                    style.dispatchEvent(new CustomEvent('style-s48'));
+                    // setScriptOnDisabled(style);
+                }
+                return style.disabled !== true;
+            }
+            return false;
+        }
+        const chHead = () => {
+            let p = [];
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-basic')))
+                p.push('basic');
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-flat-layout')))
+                p.push('flat-layout');
+            if (isScriptEnabled(document.getElementById('greasyfork-enhance-animation')))
+                p.push('animation');
+            if (p.length >= 1)
+                document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
+            else
+                document.documentElement.removeAttribute('greasyfork-enhance-k37');
+        }
+        const moHead = new MutationObserver(chHead);
+        moHead.observe(document.head, { subtree: false, childList: true });
+        chHead();
+
 
         const { scriptHandler, scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
 
@@ -1137,7 +1194,7 @@ const mWindow = (() => {
                                 return getScriptData(id, true);
                             });
                         }
-                        if (response.status === 404 ){
+                        if (response.status === 404) {
                             // script XXXX has been reported and is pending review by a moderator.
                             unlock();
                             return null
@@ -1205,7 +1262,7 @@ const mWindow = (() => {
                                 return getUserData(userID, true); // reload later
                             });
                         }
-                        if (response.status === 404 ){
+                        if (response.status === 404) {
                             // user XXXX has been reported and is pending review by a moderator. ????
                             unlock();
                             return null
@@ -1545,26 +1602,26 @@ const mWindow = (() => {
         const baseScript = _baseScript || (await getScriptData(scriptID));
 
 
-        if((element.nodeName === 'LI' && element.getAttribute('data-script-type')==='library') ||(baseScript.code_url.includes('.js?version=')) ){
+        if ((element.nodeName === 'LI' && element.getAttribute('data-script-type') === 'library') || (baseScript.code_url.includes('.js?version='))) {
 
             const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
-            if(script.code_url.includes('.js?version=')){
+            if (script.code_url.includes('.js?version=')) {
 
 
                 const code_url = fixLibraryCodeURL(script.code_url);
 
                 const button = addInstallButton(element, code_url);
                 button.textContent = `Copy URL`;
-                button.addEventListener('click', function(evt){
+                button.addEventListener('click', function (evt) {
 
-                    const target = (evt||0).target;
-                    if(!target) return;
+                    const target = (evt || 0).target;
+                    if (!target) return;
 
-                    let a = target.nodeName ==='A'?target : target.querySelector('a[href]');
+                    let a = target.nodeName === 'A' ? target : target.querySelector('a[href]');
 
-                    if(!a )return ;
+                    if (!a) return;
                     let href = target.getAttribute('href');
-                    if(!href) return;
+                    if (!href) return;
 
                     evt.preventDefault();
 
@@ -1576,7 +1633,7 @@ const mWindow = (() => {
             }
 
 
-        }else{
+        } else {
 
 
             if (!baseScript || !baseScript.code_url || !baseScript.version) return;
@@ -1649,9 +1706,9 @@ const mWindow = (() => {
         promiseScriptCheckResolve = resolve
     });
 
-    const milestoneNotificationFn = async (o)=>{
+    const milestoneNotificationFn = async (o) => {
 
-        const {userLink, userID} = o;
+        const { userLink, userID } = o;
 
 
         const milestones = gmc.get('milestoneNotification').replace(/\s/g, '').split(',').map(Number);
@@ -1890,7 +1947,7 @@ const mWindow = (() => {
             if (addAdditionInfoLengthHint && location.pathname.includes('/scripts/') && location.pathname.includes('/versions')) {
 
                 function contentLength(text) {
-                    return text.replace(/\n/g,'  ').length;
+                    return text.replace(/\n/g, '  ').length;
                 }
                 function contentLengthMax() {
                     return 50000;
@@ -1943,25 +2000,6 @@ const mWindow = (() => {
         }
 
 
-        const isScriptEnabled = (script) => {
-            return script && script.disabled !== true
-        }
-        const chHead = () => {
-            let p = [];
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-basic')))
-                p.push('basic');
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-flat-layout')))
-                p.push('flat-layout');
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-animation')))
-                p.push('animation');
-            if (p.length >= 1)
-                document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
-            else
-                document.documentElement.removeAttribute('greasyfork-enhance-k37');
-        }
-        const moHead = new MutationObserver(chHead);
-        moHead.observe(document.head, {subtree: false, childList: true});
-        chHead();
 
     }
 
