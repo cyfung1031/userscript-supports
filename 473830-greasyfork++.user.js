@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.27
+// @version            3.2.28
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -600,6 +600,13 @@ const mWindow = (() => {
         [greasyfork-enhance-k37*="|flat-layout|"] .script-list li:not(.ad-entry) article {
             padding: 0;
             margin: 0;
+        }
+
+        [greasyfork-enhance-k37*="|flat-layout|"]  #script-info div.script-meta-block + #additional-info {
+
+            max-width: calc( 100% - 340px );
+            min-height: 300px;
+            box-sizing: border-box;
         }
 
          [greasyfork-enhance-k37*="|basic|"] ul.outline {
