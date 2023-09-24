@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.26
+// @version            3.2.27
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -602,6 +602,12 @@ const mWindow = (() => {
             margin: 0;
         }
 
+         [greasyfork-enhance-k37*="|basic|"] ul.outline {
+            margin-bottom: -99vh;
+
+         }
+
+
     `
 
     const window = {};
@@ -633,62 +639,93 @@ const mWindow = (() => {
 
         */
 
-        const setScriptOnDisabled = async (style) => {
-
-            try {
-                const pd = Object.getOwnPropertyDescriptor(style.constructor.prototype, 'disabled');
-                const { get, set } = pd;
-                Object.defineProperty(style, 'disabled', {
-                    get() {
-                        return get.call(this);
-                    },
-                    set(nv) {
-                        let r = set.call(this, nv);
-                        Promise.resolve().then(chHead);
-                        return r;
-                    }
-                })
-            } catch (e) {
-
-            }
-        };
-
-        document.addEventListener('style-s48', function (evt) {
-            const target = (evt || 0).target || 0;
-            if (!target) return;
-            setScriptOnDisabled(target)
-
-        }, true);
+        if (document.querySelector('#greasyfork-enhance-basic')) {
 
 
-        const isScriptEnabled = (style) => {
 
-            if (style instanceof HTMLStyleElement) {
-                if (!style.hasAttribute('s48')) {
-                    style.setAttribute('s48', '');
-                    style.dispatchEvent(new CustomEvent('style-s48'));
-                    // setScriptOnDisabled(style);
+            const setScriptOnDisabled = async (style) => {
+
+                try {
+                    const pd = Object.getOwnPropertyDescriptor(style.constructor.prototype, 'disabled');
+                    const { get, set } = pd;
+                    Object.defineProperty(style, 'disabled', {
+                        get() {
+                            return get.call(this);
+                        },
+                        set(nv) {
+                            let r = set.call(this, nv);
+                            Promise.resolve().then(chHead);
+                            return r;
+                        }
+                    })
+                } catch (e) {
+
                 }
-                return style.disabled !== true;
+            };
+
+            document.addEventListener('style-s48', function (evt) {
+                const target = (evt || 0).target || 0;
+                if (!target) return;
+                setScriptOnDisabled(target)
+
+            }, true);
+
+
+            const isScriptEnabled = (style) => {
+
+                if (style instanceof HTMLStyleElement) {
+                    if (!style.hasAttribute('s48')) {
+                        style.setAttribute('s48', '');
+                        style.dispatchEvent(new CustomEvent('style-s48'));
+                        // setScriptOnDisabled(style);
+                    }
+                    return style.disabled !== true;
+                }
+                return false;
             }
-            return false;
+            const chHead = () => {
+                let p = [];
+                if (isScriptEnabled(document.getElementById('greasyfork-enhance-basic')))
+                    p.push('basic');
+                if (isScriptEnabled(document.getElementById('greasyfork-enhance-flat-layout')))
+                    p.push('flat-layout');
+                if (isScriptEnabled(document.getElementById('greasyfork-enhance-animation')))
+                    p.push('animation');
+                if (p.length >= 1)
+                    document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
+                else
+                    document.documentElement.removeAttribute('greasyfork-enhance-k37');
+            }
+            const moHead = new MutationObserver(chHead);
+            moHead.observe(document.head, { subtree: false, childList: true });
+            chHead();
+
+            /*
+            const outline = document.querySelector('aside.panel > ul.outline');
+            if(outline) {
+              const div = document.createElement('div');
+              //outline.replaceWith(div);
+              //div.appendChild(outline)
+            }
+            */
+
+            //         Promise.resolve().then(()=>{
+            //           let outline = document.querySelector('[greasyfork-enhance-k37*="|basic|"] header + aside.panel ul.outline');
+            //           if(outline){
+            //             let aside = outline.closest('aside.panel');
+            //           let header = aside.parentNode.querySelector('header');
+            //             let p = header.getBoundingClientRect().height;
+
+            //             document.body.parentNode.insertBefore(aside, document.body);
+            //             // outline.style.top='0'
+            //             p+=(parseFloat(getComputedStyle(outline).marginTop.replace('px',''))||0)
+            //             outline.style.marginTop= p.toFixed(2)+'px';
+            //           }
+
+            //         })
+
         }
-        const chHead = () => {
-            let p = [];
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-basic')))
-                p.push('basic');
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-flat-layout')))
-                p.push('flat-layout');
-            if (isScriptEnabled(document.getElementById('greasyfork-enhance-animation')))
-                p.push('animation');
-            if (p.length >= 1)
-                document.documentElement.setAttribute('greasyfork-enhance-k37', `|${p.join('|')}|`);
-            else
-                document.documentElement.removeAttribute('greasyfork-enhance-k37');
-        }
-        const moHead = new MutationObserver(chHead);
-        moHead.observe(document.head, { subtree: false, childList: true });
-        chHead();
+
 
 
         const { scriptHandler, scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
@@ -1818,6 +1855,7 @@ const mWindow = (() => {
             const userLink = document.querySelector('.user-profile-link a[href]');
             const userID = userLink ? userLink.getAttribute('href') : undefined;
 
+            UU.addStyle(mWindow.pageCSS);
             // blacklisted scripts / hidden scripts / install button
             if (window.location.pathname !== userID && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
 
@@ -1857,7 +1895,6 @@ const mWindow = (() => {
                 // add options and style for blacklisted/hidden scripts
                 if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
                     addOptions();
-                    UU.addStyle(mWindow.pageCSS);
                 }
 
                 if (installLinkElement && location.pathname.includes('/scripts/')) {
