@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.1
+// @version     0.5.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -100,18 +100,21 @@
   });
   pLoad.then(() => {
 
-    document.addEventListener('DOMScriptLoaded', ()=>{
+    let nonce = document.querySelector('style[nonce]');
+    nonce = nonce ? nonce.getAttribute('nonce') : null;
+    const st = document.createElement('style');
+    if (typeof nonce === 'string') st.setAttribute('nonce', nonce);
+    st.textContent = "none-element-k47{order:0}";
+    st.addEventListener('load', () => {
       pf31.resolve();
       p59 = 1;
     }, false);
-    document.body.appendChild(document.createElement('script')).textContent=`
-      document.dispatchEvent(new CustomEvent('DOMScriptLoaded'));
-    `;
+    document.body.appendChild(st);
 
 
     // console.debug('90002', location.pathname)
     // console.log(90000, location.pathname)
-   
+
   });
 
   const prepareLogs = [];
