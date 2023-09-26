@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.9
+// @version             0.60.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5284,7 +5284,7 @@
                       const itemRendererKey = firstObjectKey(item);
                       const itemRenderer = item[itemRendererKey];
                       if (itemRenderer) {
-                        const timestampUsec = getTimestampUsec(itemRenderer);
+                        let timestampUsec = getTimestampUsec(itemRenderer);
                         if (timestampUsec !== null) {
                           timestampUsec = parseInt(timestampUsec);
                           if (timestampUsec > 0) {
@@ -5295,12 +5295,13 @@
                       }
                     }
                   }
-                  if (entries.length >= 2) {
+                  const mLen = entries.length;
+                  if (mLen >= 2) {
                     entries.sort((a, b) => {
-                      const diff = a.timestampUsec - b.timestampUsec
+                      const diff = a.timestampUsec - b.timestampUsec;
                       return diff > 0.1 ? 1 : diff < -0.1 ? -1 : 0;
                     });
-                    for (let j = 0; j < entriesI.length; j++) {
+                    for (let j = 0; j < mLen; j++) {
                       const i = entriesI[j];
                       a[i] = entries[j].e;
                     }
