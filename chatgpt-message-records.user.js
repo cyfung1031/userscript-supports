@@ -7,7 +7,7 @@
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.1.1
+// @version     1.1.2
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -597,7 +597,7 @@ __errorCode21167__ || (() => {
 
     const setRecordsByJSONString = (newValue, initial) => {
 
-      const tObj = jParseCatched(newValue || '{}');
+      let tObj = jParseCatched(newValue || '{}');
       if (!tObj || !tObj.version || !tObj.records) tObj = { version: 1, records: [] };
 
       if (tObj.version !== 1) {
