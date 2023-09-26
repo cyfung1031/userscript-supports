@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.7
+// @version             0.60.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -166,6 +166,7 @@
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
   const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
+  const FIX_BATCH_TICKER_ORDER = true;
 
   const DISABLE_Translation_By_Google = true;
 
@@ -3230,6 +3231,24 @@
 
     }
 
+    const getTimestampUsec = (itemRenderer)=>{
+      if (itemRenderer && 'timestampUsec' in itemRenderer) {
+        return itemRenderer.timestampUsec
+      } else if (itemRenderer && itemRenderer.showItemEndpoint) {
+        const messageRenderer = ((itemRenderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
+        if (messageRenderer) {
+
+          const messageRendererKey = firstObjectKey(messageRenderer);
+          if (messageRendererKey && messageRenderer[messageRendererKey]) {
+            const messageRendererData = messageRenderer[messageRendererKey];
+            if (messageRendererData && 'timestampUsec' in messageRendererData) {
+              return messageRendererData.timestampUsec
+            }
+          }
+        }
+      }
+      return null;
+    }
 
     const onRegistryReadyForDOMOperations = () => {
 
@@ -3356,7 +3375,29 @@
               // if (a.length > 8) {
               //   console.log(a)
               // }
-              console.log(a)
+              // console.log(a)
+              /*
+              let arr=a.slice();
+
+              if(arr.length >= 2){
+                arr.sort((a, b)=>{
+                  let ak = firstObjectKey(a);
+                  let bk = firstObjectKey(b);
+                  if(!ak||!bk) return 0;
+                  const ax = +a[ak]._timestampUsec57;
+                  const bx = +b[bk]._timestampUsec57;
+                  if(ax >0 && bx >0){
+                    const c =  bx - ax ;
+
+                    return c > 0.1 ? -1 : c< -0.1 ? 1 : 0;
+                  }
+                  return 0;
+
+                });
+                console.log('sort', JSON.parse(JSON.stringify(arr)));
+              }
+              a=arr;
+              */
 
               if (a && typeof a === 'object' && a.length >= 1) {
                 const d = Date.now();
@@ -3370,23 +3411,9 @@
                     if (item && typeof item === 'object') {
                       let rendererKey = firstObjectKey(item);
                       const renderer = item[rendererKey];
-                      let timestampUsec = null;
-                      if (renderer && 'timestampUsec' in renderer) {
-                        timestampUsec = renderer.timestampUsec
+                      let timestampUsec = getTimestampUsec(renderer);
+                      if (timestampUsec !== null) {
                         renderer._timestampUsec57 = timestampUsec;
-                      } else if (renderer && renderer.showItemEndpoint) {
-                        const messageRenderer = ((renderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
-                        if (messageRenderer) {
-
-                          const messageRendererKey = firstObjectKey(messageRenderer);
-                          if (messageRendererKey && messageRenderer[messageRendererKey]) {
-                            const messageRendererData = messageRenderer[messageRendererKey];
-                            if (messageRendererData && 'timestampUsec' in messageRendererData) {
-                              timestampUsec = messageRendererData.timestampUsec
-                              renderer._timestampUsec57 = timestampUsec;
-                            }
-                          }
-                        }
                       }
                       m.push(renderer);
                       // if(timestampUsec!==null){
@@ -5246,7 +5273,44 @@
 
               if (a.length) {
                 const batchToken = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+                if (FIX_BATCH_TICKER_ORDER) {
+                  const len = a.length;
+                  let entries = [];
+                  let entriesI = [];
+                  for (let i = 0; i < len; i++) {
+                    if (a[i] && a[i].addLiveChatTickerItemAction) {
+                      let item = a[i].addLiveChatTickerItemAction.item;
+                      if (item) {
+                        let itemRendererKey = firstObjectKey(item);
+                        let itemRenderer = item[itemRendererKey];
+                        if (itemRenderer) {
+                          let timestampUsec = getTimestampUsec(itemRenderer);
+                          if (timestampUsec !== null) {
+                            timestampUsec = parseInt(timestampUsec);
+                            if (timestampUsec > 0) {
+                              entriesI.push(i);
+                              entries.push({ e: a[i], timestampUsec })
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                  }
+                  if (entries.length > 0) {
+                    entries.sort((a, b) => {
+                      return a.timestampUsec - b.timestampUsec > 0.1 ? 1 : a.timestampUsec - b.timestampUsec < -0.1 ? -1 : 0;
+                    });
+                    for (let j = 0; j < entriesI.length; j++) {
+                      let i = entriesI[j];
+                      a[i] = entries[j].e;
+                    }
+                  }
+                  entries.length = 0;
+                  entriesI.length = 0;
+                }
                 for (const action of a) {
+
                   action.__batchId45__ = batchToken;
                   this.handleLiveChatAction(action);
                 }
@@ -5429,20 +5493,8 @@
                       arr.push(item)
                       // arr.unshift(item);
                     }
-                    /*
-                    if(arr.length >= 2){
-                      console.log('sort', arr);
-                      arr.sort((a, b)=>{
-                        if(a.__lcrTime__ >0 && b.__lcrTime__ >0){
-                          const c =  b.__lcrTime__ - a.__lcrTime__ ;
-  
-                          return c > 0.1 ? 1 : c< -0.1 ? -1 : 0;
-                        }
-                        return 0;
-  
-                      })
-                    }
-                    */
+
+                    
                     // console.log(arr.slice(0))
                     this.unshift("items", ...arr);
                   } else {
