@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.6
+// @version             0.60.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -164,7 +164,8 @@
 
   const AMEND_TICKER_handleLiveChatAction = true; // to fix ticker duplication and unresponsively fast ticker generation
 
-  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = false; // NOT PLANNED
+  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
+  const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
 
   const DISABLE_Translation_By_Google = true;
 
@@ -894,6 +895,28 @@
     }
     return null;
   }
+
+  const firstObjectKey = (obj) => {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+    }
+    return null;
+  }
+
+  function removeElementFromArray(arr, index) {
+  if (index >= 0 && index < arr.length) {
+    arr.splice(index, 1);
+  }
+}
+
+  function getRandomInt(a, b) {
+  // Ensure that 'a' and 'b' are integers
+  a = Math.ceil(a);
+  b = Math.floor(b);
+
+  // Generate a random integer in the range [a, b]
+  return Math.floor(Math.random() * (b - a + 1)) + a;
+}
 
   function deepCopy(obj, skipKeys) {
     skipKeys = skipKeys || [];
@@ -3265,7 +3288,6 @@
 
             const pop078 = function () {
               const r = this.pop78();
-              console.log(55, r)
 
               if (r && (r.actions || 0).length >= 1 && r.videoOffsetTimeMsec) {
                 for (const action of r.actions) {
@@ -3277,7 +3299,7 @@
                     const item = (itemAction || 0).item;
                     if (typeof item === 'object') {
 
-                      const rendererKey = firstKey(item);
+                      const rendererKey = firstObjectKey(item);
                       if (rendererKey) {
                         const renderer = item[rendererKey];
                         if (renderer && typeof renderer === 'object') {
@@ -3334,6 +3356,7 @@
               // if (a.length > 8) {
               //   console.log(a)
               // }
+              console.log(a)
 
               if (a && typeof a === 'object' && a.length >= 1) {
                 const d = Date.now();
@@ -3345,7 +3368,7 @@
                     const itemAction = action[key] || 0;
                     const item = itemAction.item || 0;
                     if (item && typeof item === 'object') {
-                      let rendererKey = firstKey(item);
+                      let rendererKey = firstObjectKey(item);
                       const renderer = item[rendererKey];
                       let timestampUsec = null;
                       if (renderer && 'timestampUsec' in renderer) {
@@ -3355,7 +3378,7 @@
                         const messageRenderer = ((renderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
                         if (messageRenderer) {
 
-                          const messageRendererKey = firstKey(messageRenderer);
+                          const messageRendererKey = firstObjectKey(messageRenderer);
                           if (messageRendererKey && messageRenderer[messageRendererKey]) {
                             const messageRendererData = messageRenderer[messageRendererKey];
                             if (messageRendererData && 'timestampUsec' in messageRendererData) {
@@ -3382,6 +3405,7 @@
                     if ('_timestampUsec57' in renderer) {
                       lastUsec = +renderer._timestampUsec57 / 1E3;
                       renderer.__lcrTime__ = d;
+                      renderer.__actionAt__ = d;
                     }
                   }
 
@@ -3399,6 +3423,7 @@
                         let lcrTime = d - Math.round(refUsec - actualTime); // ms
 
                         renderer.__lcrTime__ = lcrTime; // ms
+                        renderer.__actionAt__ = d;
 
                         prevUsec = lcrTime
                       } else {
@@ -3419,7 +3444,8 @@
                         renderer._nextUsec57 = nextUsec;
 
                         if (renderer._nextUsec57 > 0 && renderer._prevUsec57 > 0 && renderer._nextUsec57 > renderer._prevUsec57) {
-                          renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2
+                          renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2;
+                          renderer.__actionAt__ = d;
                         }
                       }
                     }
@@ -4664,6 +4690,7 @@
 
               b = void 0 === b ? 0 : b;
               if (void 0 !== a) {
+
                 this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
                 this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
                 if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
@@ -4804,6 +4831,7 @@
               if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
                 this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
               }
+              // console.log(703, this.countdownMs)
               this.ratio = this.countdownMs / this.countdownDurationMs;
               this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
                 this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
@@ -5264,7 +5292,7 @@
                 let isDuplicated = false;
 
                 const newItem = addLiveChatTickerItemAction.item;
-                const tickerType = firstKey(newItem);
+                const tickerType = firstObjectKey(newItem);
                 if (!tickerType) return;
                 const tickerItem = newItem[tickerType];
                 const tickerId = tickerItem.id;
@@ -5360,9 +5388,66 @@
                 }
                 if (previousShouldAnimateIn && !this.shouldAnimateIn) this.shouldAnimateIn = true;
                 if (addItems.length >= 1) {
-                  let e = addItems.slice(0);
+                  const e = addItems.slice(0);
                   addItems.length = 0;
-                  this.unshift("items", ...e);
+                  if (ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME) {
+
+                    const arr = [];
+                    const d = Date.now();
+                    for (const item of e) {
+                      const key = firstObjectKey(item);
+                      if (key) {
+
+
+                        const itemRenderer = item[key] || 0;
+                        const { durationSec, fullDurationSec, __actionAt__ } = itemRenderer;
+                        if (__actionAt__ > 0 && durationSec > 0 && fullDurationSec > 0) {
+
+
+                          const offset = d - __actionAt__;
+                          if (offset > 0 && typeof durationSec === 'number' && typeof fullDurationSec === 'number' && fullDurationSec >= durationSec) {
+                            const adjustedDurationSec = durationSec - Math.floor(offset / 1000);
+                            if (adjustedDurationSec < durationSec) { // prevent NaN
+                              // console.log('adjustedDurationSec', adjustedDurationSec);
+                              if (adjustedDurationSec > 0) {
+                                // console.log('offset Sec', Math.floor(offset / 1000));
+                                itemRenderer.durationSec = adjustedDurationSec;
+                              } else {
+                                continue;
+                              }
+                            }
+
+                          }
+
+                        }
+
+                        if (fullDurationSec > 0 && durationSec < 1) continue;
+
+
+
+                      }
+                      arr.push(item)
+                      // arr.unshift(item);
+                    }
+                    /*
+                    if(arr.length >= 2){
+                      console.log('sort', arr);
+                      arr.sort((a, b)=>{
+                        if(a.__lcrTime__ >0 && b.__lcrTime__ >0){
+                          const c =  b.__lcrTime__ - a.__lcrTime__ ;
+  
+                          return c > 0.1 ? 1 : c< -0.1 ? -1 : 0;
+                        }
+                        return 0;
+  
+                      })
+                    }
+                    */
+                    // console.log(arr.slice(0))
+                    this.unshift("items", ...arr);
+                  } else {
+                    this.unshift("items", ...e);
+                  }
                 }
                 if (prevBatchId || dateNow - lastDateTime >= 1000) {
                   this.updateHighlightedItem();
