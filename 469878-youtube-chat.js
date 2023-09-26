@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.8
+// @version             0.60.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5273,36 +5273,35 @@
 
               if (a.length) {
                 const batchToken = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
-                if (FIX_BATCH_TICKER_ORDER) {
-                  const len = a.length;
-                  let entries = [];
-                  let entriesI = [];
+                const len = a.length;
+                if (FIX_BATCH_TICKER_ORDER && len >= 2) {
+                  // Primarily for the initial batch, this is due to replayBuffer._back.
+                  const entries = [];
+                  const entriesI = [];
                   for (let i = 0; i < len; i++) {
-                    if (a[i] && a[i].addLiveChatTickerItemAction) {
-                      let item = a[i].addLiveChatTickerItemAction.item;
-                      if (item) {
-                        let itemRendererKey = firstObjectKey(item);
-                        let itemRenderer = item[itemRendererKey];
-                        if (itemRenderer) {
-                          let timestampUsec = getTimestampUsec(itemRenderer);
-                          if (timestampUsec !== null) {
-                            timestampUsec = parseInt(timestampUsec);
-                            if (timestampUsec > 0) {
-                              entriesI.push(i);
-                              entries.push({ e: a[i], timestampUsec })
-                            }
+                    const item = ((a[i] || 0).addLiveChatTickerItemAction || 0).item || 0;
+                    if (item) {
+                      const itemRendererKey = firstObjectKey(item);
+                      const itemRenderer = item[itemRendererKey];
+                      if (itemRenderer) {
+                        const timestampUsec = getTimestampUsec(itemRenderer);
+                        if (timestampUsec !== null) {
+                          timestampUsec = parseInt(timestampUsec);
+                          if (timestampUsec > 0) {
+                            entriesI.push(i);
+                            entries.push({ e: a[i], timestampUsec })
                           }
                         }
                       }
                     }
-
                   }
-                  if (entries.length > 0) {
+                  if (entries.length >= 2) {
                     entries.sort((a, b) => {
-                      return a.timestampUsec - b.timestampUsec > 0.1 ? 1 : a.timestampUsec - b.timestampUsec < -0.1 ? -1 : 0;
+                      const diff = a.timestampUsec - b.timestampUsec
+                      return diff > 0.1 ? 1 : diff < -0.1 ? -1 : 0;
                     });
                     for (let j = 0; j < entriesI.length; j++) {
-                      let i = entriesI[j];
+                      const i = entriesI[j];
                       a[i] = entries[j].e;
                     }
                   }
@@ -5310,7 +5309,6 @@
                   entriesI.length = 0;
                 }
                 for (const action of a) {
-
                   action.__batchId45__ = batchToken;
                   this.handleLiveChatAction(action);
                 }
