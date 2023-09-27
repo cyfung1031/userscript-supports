@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.10
+// @version             0.60.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -905,19 +905,19 @@
   }
 
   function removeElementFromArray(arr, index) {
-  if (index >= 0 && index < arr.length) {
-    arr.splice(index, 1);
+    if (index >= 0 && index < arr.length) {
+      arr.splice(index, 1);
+    }
   }
-}
 
   function getRandomInt(a, b) {
-  // Ensure that 'a' and 'b' are integers
-  a = Math.ceil(a);
-  b = Math.floor(b);
+    // Ensure that 'a' and 'b' are integers
+    a = Math.ceil(a);
+    b = Math.floor(b);
 
-  // Generate a random integer in the range [a, b]
-  return Math.floor(Math.random() * (b - a + 1)) + a;
-}
+    // Generate a random integer in the range [a, b]
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+  }
 
   function deepCopy(obj, skipKeys) {
     skipKeys = skipKeys || [];
@@ -1180,6 +1180,67 @@
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
+  const getLCRDummy = () => {
+    // direct createElement or createComponent_ will make the emoji rendering crashed. reason TBC
+
+    return Promise.all([customElements.whenDefined('yt-live-chat-app'), customElements.whenDefined('yt-live-chat-renderer')]).then(async () => {
+
+      const tag = "yt-live-chat-renderer"
+      let dummy = document.querySelector(tag);
+      if (!dummy) {
+
+        let mo = null;
+
+        const ytLiveChatApp = document.querySelector('yt-live-chat-app') || document.createElement('yt-live-chat-app');
+
+        const lcaProto = getProto(ytLiveChatApp);
+
+        dummy = await new Promise(resolve => {
+
+          if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_) {
+
+            lcaProto.createComponent99_ = lcaProto.createComponent_;
+            lcaProto.createComponent98_ = function (a, b, c) {
+              // (3) ['yt-live-chat-renderer', {…}, true]
+              const r = this.createComponent99_.apply(this, arguments);
+              if (a === 'yt-live-chat-renderer') {
+                resolve(r);
+              }
+              return r;
+            };
+            lcaProto.createComponent_ = lcaProto.createComponent98_;
+
+          } else {
+
+            mo = new MutationObserver(() => {
+              const t = document.querySelector(tag);
+              if (t) {
+                resolve(t);
+              }
+            });
+            mo.observe(document, { subtree: true, childList: true })
+          }
+
+        });
+
+        if (mo) {
+          mo.disconnect();
+          mo.takeRecords();
+          mo = null;
+        }
+
+        if (lcaProto.createComponent99_ && lcaProto.createComponent_ && lcaProto.createComponent98_ === lcaProto.createComponent_) {
+          lcaProto.createComponent_ = lcaProto.createComponent99_;
+          lcaProto.createComponent99_ = null;
+          lcaProto.createComponent98_ = null;
+        }
+
+      }
+      return dummy;
+
+    });
+  }
+
   const { addCssManaged } = (() => {
 
     const addFontPreRendering = () => {
@@ -1438,14 +1499,14 @@
         if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
           EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
           EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-      // console.log(701)
+          // console.log(701)
         }
       }
 
       if (ENABLE_FLAGS_REUSE_COMPONENTS) {
         EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
         EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
-      // console.log(702);
+        // console.log(702);
       }
 
     };
@@ -1458,7 +1519,7 @@
       }
     }
 
-    window._ytConfigHacks.add((config_)=>{
+    window._ytConfigHacks.add((config_) => {
       const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
       if (EXPERIMENT_FLAGS) uf(EXPERIMENT_FLAGS);
     });
@@ -3231,7 +3292,7 @@
 
     }
 
-    const getTimestampUsec = (itemRenderer)=>{
+    const getTimestampUsec = (itemRenderer) => {
       if (itemRenderer && 'timestampUsec' in itemRenderer) {
         return itemRenderer.timestampUsec
       } else if (itemRenderer && itemRenderer.showItemEndpoint) {
@@ -3281,10 +3342,10 @@
       // console.log(document.body===null)
 
       if (ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION) {
-        customElements.whenDefined('yt-live-chat-renderer').then(() => {
+        getLCRDummy().then(async (lcrDummy) => {
 
           const tag = "yt-live-chat-renderer"
-          const dummy = document.createElement(tag);
+          const dummy = lcrDummy;
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
@@ -5493,7 +5554,7 @@
                       // arr.unshift(item);
                     }
 
-                    
+
                     // console.log(arr.slice(0))
                     this.unshift("items", ...arr);
                   } else {
