@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.2
+// @version     0.5.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -36,6 +36,8 @@
   const FIX_paper_ripple_animate = true;
 
   const FIX_doIdomRender = true;
+
+  const FIX_Shady = true;
 
   /*
   window.addEventListener('edm',()=>{
@@ -992,6 +994,31 @@
 
 
     })();
+
+    if (FIX_Shady) {
+
+      let cidSL = setInterval(() => {
+        const { ShadyDOM, ShadyCSS } = window;
+        if (ShadyDOM && ShadyCSS) {
+          clearInterval(cidSL);
+          cidSL = 0;
+        }
+        if (ShadyDOM) {
+          ShadyDOM.handlesDynamicScoping = false; // 9 of 10
+          ShadyDOM.noPatch = true; // 1 of 10
+          ShadyDOM.patchOnDemand = false; // 1 of 10
+          ShadyDOM.preferPerformance = true; // 1 of 10
+          ShadyDOM.querySelectorImplementation = undefined; // 1 of 10
+        }
+        if (ShadyCSS) {
+          ShadyCSS.nativeCss = true; // 1 of 10
+          ShadyCSS.nativeShadow = true; // 6 of 10
+          ShadyCSS.cssBuild = undefined; // 1 of 10
+          ShadyCSS.disableRuntime = true; // 1 of 10
+        }
+      }, 1);
+
+    }
 
 
     FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 && (async () => {
