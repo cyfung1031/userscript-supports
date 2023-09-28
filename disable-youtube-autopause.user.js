@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.22.0
+// @version             2023.09.28.0
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -168,8 +168,10 @@ SOFTWARE.
     if (arguments.length === 1) noDelayLogUntil = Date.now() + 3400; // no delay log for video changes
     Promise.resolve(0).then(() => {
       let messages = null;
+      const pageMgrElm = document.querySelector('#page-manager') || 0;
+      const pageMgrCnt = pageMgrElm.inst || pageMgrElm;
       try {
-        messages = document.querySelector('#page-manager').data.playerResponse.messages;
+        messages = pageMgrCnt.data.playerResponse.messages;
       } catch (e) { }
       if (messages && messages.length > 0) {
         for (const message of messages) {
@@ -185,22 +187,25 @@ SOFTWARE.
         }
       }
 
-      let ytdFlexy = document.querySelector('ytd-watch-flexy');
-      if (ytdFlexy) {
-        let youThereData_ = (ytdFlexy.youThereManager_ || 0).youThereData_ || 0;
+      const ytdFlexyElm = document.querySelector('ytd-watch-flexy') || 0;
+      const ytdFlexyCnt = ytdFlexyElm.inst || ytdFlexyElm;
+
+      if (ytdFlexyCnt) {
+        const youThereManager_ = ytdFlexyElm.youThereManager_ || (ytdFlexyElm.inst || ytdFlexyElm).youThereManager_;
+        const youThereData_ = (youThereManager_ || 0).youThereData_ || 0;
         if (youThereData_) hookYouThereData(youThereData_);
-        if (typeof ytdFlexy.youthereDataChanged_ === 'function') {
-          let f = ytdFlexy.youthereDataChanged_;
+        if (typeof ytdFlexyCnt.youthereDataChanged_ === 'function') {
+          let f = ytdFlexyCnt.youthereDataChanged_;
           if (!f.lq2S7) {
-            ytdFlexy.youthereDataChanged_ = (function (f) {
+            ytdFlexyCnt.youthereDataChanged_ = (function (f) {
               return function () {
                 console.log('youthereDataChanged_()');
                 const ret = f.apply(this, arguments);
                 onPageFinished();
                 return ret;
               }
-            })(f)
-            ytdFlexy.youthereDataChanged_.lq2S7 = 1
+            })(f);
+            ytdFlexyCnt.youthereDataChanged_.lq2S7 = 1;
           }
         }
       }
