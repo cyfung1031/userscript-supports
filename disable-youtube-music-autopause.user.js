@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.22.0
+// @version             2023.09.28.0
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -186,8 +186,9 @@ SOFTWARE.
   function messageHook() {
 
     let messages = null;
+    const playerElm = document.querySelector('#player') || 0;
     try {
-      messages = document.querySelector('#player').__data.playerResponse_.messages;
+      messages = ((playerElm.inst || 0).__data || playerElm.__data || 0).playerResponse_.messages;
     } catch (e) { }
     if (messages && messages.length > 0) {
       for (const message of messages) {
@@ -229,13 +230,13 @@ SOFTWARE.
 
     */
 
-    let playerElm = document.querySelector('#player');
-    if (playerElm && playerElm.playerApi_ && typeof playerElm.playerApi_ == 'object') {
-      let playerApi = playerElm.playerApi_;
+    const playerElm = document.querySelector('#player') || 0;
+    const playerApi_ = (playerElm.inst || 0).playerApi_ || playerElm.playerApi_ || 0;
+    if (typeof playerApi_ === 'object') {
 
-      if (typeof playerApi[symbol877] === 'undefined' && typeof playerApi.getPlayerState === 'function') {
-        playerApi[symbol877] = playerApi.getPlayerState;
-        playerApi.getPlayerState = function () {
+      if (typeof playerApi_[symbol877] === 'undefined' && typeof playerApi_.getPlayerState === 'function') {
+        playerApi_[symbol877] = playerApi_.getPlayerState;
+        playerApi_.getPlayerState = function () {
           let res = this[symbol877](...arguments);
           if (res == 1 || res == 3) {
             try {
@@ -245,9 +246,9 @@ SOFTWARE.
           return res;
         };
       }
-      if ('removeEventListener' in playerApi && 'addEventListener' in playerApi) {
-        playerApi.removeEventListener("onStateChange", onPlayerStateChange, false);
-        playerApi.addEventListener("onStateChange", onPlayerStateChange, false);
+      if ('removeEventListener' in playerApi_ && 'addEventListener' in playerApi_) {
+        playerApi_.removeEventListener("onStateChange", onPlayerStateChange, false);
+        playerApi_.addEventListener("onStateChange", onPlayerStateChange, false);
       }
     }
 
