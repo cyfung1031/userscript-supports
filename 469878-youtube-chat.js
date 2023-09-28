@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.11
+// @version             0.60.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1020,6 +1020,57 @@
     }
   }
 
+
+  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
+
+    const _config_ = () => {
+      try {
+        return ytcfg.data_;
+      } catch (e) { }
+      return null;
+    };
+
+    const flagsFn = (EXPERIMENT_FLAGS) => {
+
+      // console.log(700)
+
+      if (!EXPERIMENT_FLAGS) return;
+
+      if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
+        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
+          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+          // console.log(701)
+        }
+      }
+
+      if (ENABLE_FLAGS_REUSE_COMPONENTS) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+        // console.log(702);
+      }
+
+    };
+
+    const uf = (config_) => {
+      config_ = config_ || _config_();
+      if (config_) {
+        const { EXPERIMENT_FLAGS, EXPERIMENTS_FORCED_FLAGS } = config_;
+        if (EXPERIMENT_FLAGS) {
+          flagsFn(EXPERIMENT_FLAGS);
+          if (EXPERIMENTS_FORCED_FLAGS) flagsFn(EXPERIMENTS_FORCED_FLAGS);
+        }
+      }
+    }
+
+    window._ytConfigHacks.add((config_) => {
+      uf(config_);
+    });
+
+    uf();
+
+  })();
+
   if (DISABLE_Translation_By_Google) {
 
     let mo = new MutationObserver(() => {
@@ -1473,60 +1524,6 @@
   }
 
 
-  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
-
-    const flags = () => {
-      try {
-        return ytcfg.data_.EXPERIMENT_FLAGS;
-      } catch (e) { }
-      return null;
-    };
-
-    const flagsForced = () => {
-      try {
-        return ytcfg.data_.EXPERIMENTS_FORCED_FLAGS;
-      } catch (e) { }
-      return null;
-    };
-
-    const flagsFn = (EXPERIMENT_FLAGS) => {
-
-      // console.log(700)
-
-      if (!EXPERIMENT_FLAGS) return;
-
-      if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
-        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
-          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
-          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-          // console.log(701)
-        }
-      }
-
-      if (ENABLE_FLAGS_REUSE_COMPONENTS) {
-        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
-        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
-        // console.log(702);
-      }
-
-    };
-
-    const uf = (EXPERIMENT_FLAGS) => {
-      if (EXPERIMENT_FLAGS === undefined) EXPERIMENT_FLAGS = flags();
-      if (EXPERIMENT_FLAGS) {
-        flagsFn(EXPERIMENT_FLAGS);
-        flagsFn(flagsForced());
-      }
-    }
-
-    window._ytConfigHacks.add((config_) => {
-      const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
-      if (EXPERIMENT_FLAGS) uf(EXPERIMENT_FLAGS);
-    });
-
-    uf();
-
-  })();
 
   let kptPF = null;
   const emojiPrefetched = new Set();
