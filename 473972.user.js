@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.4
+// @version     0.5.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -39,11 +39,12 @@
 
   const FIX_Shady = true;
 
-  const FIX_ytAction_ = true;
+  const FIX_ytAction_ = true; // ytd-app
   const FIX_onVideoDataChange = true;
   // const FIX_onClick = true;
   const FIX_onStateChange = true;
   const FIX_onLoopRangeChange = true;
+  const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
 
 
   /*
@@ -1013,7 +1014,7 @@
       if (!cProto) return;
       let mbd = 0;
 
-      const fixer = (_ytdApp)=>{
+      const fixer = (_ytdApp) => {
 
         const ytdApp = _ytdApp ? (_ytdApp.inst || _ytdApp) : null;
 
@@ -1048,7 +1049,7 @@
           mbd++;
         }
 
-        if(ytdApp) fixer(ytdApp);
+        if (ytdApp) fixer(ytdApp);
 
         /*
         const actionRouter_ = ytdApp ? ytdApp.actionRouter_ : null;
@@ -1166,6 +1167,51 @@
     // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
     FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
     FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
+
+    FIX_maybeUpdateFlexibleMenu && (async () => {
+
+
+      const dummy = await new Promise(resolve => {
+
+        promiseForCustomYtElementsReady.then(() => {
+          customElements.whenDefined('ytd-menu-renderer').then(() => {
+
+            resolve(document.createElement('ytd-menu-renderer'));
+          });
+        });
+
+
+
+      });
+
+
+      if (!dummy || dummy.is !== 'ytd-menu-renderer') return;
+
+      const cProto = (dummy.inst || dummy).constructor.prototype;
+
+      if (typeof cProto.created === 'function' && !cProto.created57) {
+        cProto.created57 = cProto.created;
+        cProto.created = function (...args) {
+          const r = this.created57(...args);
+          if (typeof this.maybeUpdateFlexibleMenu === 'function' && !this.maybeUpdateFlexibleMenu57) {
+            this.maybeUpdateFlexibleMenu57 = this.maybeUpdateFlexibleMenu;
+            this.maybeUpdateFlexibleMenu = function (...args) {
+              Promise.resolve().then(() => this.maybeUpdateFlexibleMenu57(...args));
+            }
+          }
+          return r;
+        }
+
+      }
+
+      //console.log(144,cProto.maybeUpdateFlexibleMenu)
+
+
+
+
+
+
+    })();
 
     CHANGE_appendChild && (() => {
 
