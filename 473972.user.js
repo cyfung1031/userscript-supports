@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.5
+// @version     0.5.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -45,6 +45,9 @@
   const FIX_onStateChange = true;
   const FIX_onLoopRangeChange = true;
   const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
+  const FIX_VideoEVENTS = true;
+
+  const FIX_PolymerBase = false; // TBC
 
 
   /*
@@ -1075,10 +1078,11 @@
     })();
 
 
-    const generalEvtHandler = async (_evKey, _fvKey) => {
+    const generalEvtHandler = async (_evKey, _fvKey, _debug) => {
 
       const evKey = `${_evKey}`;
       const fvKey = `${_fvKey}`;
+      const debug = !!_debug;
 
 
       // const rafHub = new RAFHub();
@@ -1137,7 +1141,7 @@
 
       if (!arr) return;
 
-      // console.log(`FIX_${evKey}`, arr);
+      debug && console.log(`FIX_${evKey}`, arr);
 
       const f = function (...args) {
         Promise.resolve().then(() => this[fvKey](...args));
@@ -1150,7 +1154,7 @@
         const gk = g[k];
         const gkp = gk.prototype;
 
-        // console.log(237, k, gkp)
+        debug && console.log(237, k, gkp)
 
         if (typeof gkp[evKey] == 'function' && !gkp[fvKey]) {
           gkp[fvKey] = gkp[evKey];
@@ -1167,6 +1171,33 @@
     // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
     FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
     FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
+    if (FIX_VideoEVENTS) {
+      const FIX_VideoEVENTS_DEBUG = 0;
+      generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onLoadedMetadata', 'onLoadedMetadata57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onDrmOutputRestricted', 'onDrmOutputRestricted57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onAirPlayActiveChange', 'onAirPlayActiveChange57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onAirPlayAvailabilityChange', 'onAirPlayAvailabilityChange57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onApiChange', 'onApiChange57', FIX_VideoEVENTS_DEBUG);
+
+    }
+    // onMutedAutoplayChange
+    // onVolumeChange
+    // onPlaybackRateChange
+
+    // onAirPlayActiveChange
+    // onAirPlayAvailabilityChange
+    // onApiChange
+    // onAutoplayBlocked
+    // onDrmOutputRestricted
+    // onFullscreenChange
+    // onLoadProgress
+    // onLoadedMetadata
+    // onVideoDataChange
+    // onVideoProgress
 
     FIX_maybeUpdateFlexibleMenu && (async () => {
 
@@ -1208,6 +1239,133 @@
 
 
 
+
+
+
+    })();
+
+
+    FIX_PolymerBase && (async () => {
+
+      const Polymer = await new Promise(resolve => {
+
+        let cid = 0;
+        const f = () => {
+          const Polymer = window.Polymer;
+          if (typeof Polymer !== 'function') return;
+          if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
+          cid && clearInterval(cid);
+          cid = 0;
+          resolve(Polymer);
+        };
+        cid = setInterval(f, 1);
+
+      });
+      if (!Polymer) return;
+
+      /*
+      Polymer.Base.connectedCallback =function(...args){
+        const c = Date.now();
+        const p = this.callbackSyncLastTimestamp;
+        this.callbackSyncLastTimestamp = c;
+        if(c - p < 4 && c >= p){
+          this.connectedCallback53(...args);
+        }else{
+          Promise.resolve().then(()=>this.connectedCallback53(...args))
+        }
+      };
+      Polymer.Base.disconnectedCallback =function(){
+        const c = Date.now();
+        const p = this.callbackSyncLastTimestamp;
+        this.callbackSyncLastTimestamp = c;
+        if(c - p < 4 && c >= p){
+          this.disconnectedCallback53(...args);
+        }else{
+          Promise.resolve().then(()=>this.disconnectedCallback53(...args))
+        }
+      };
+      */
+
+      /** @type {Function} */
+      const attachedK = function (...args) {
+        this.connPromise = this.connPromise.then(() => this.attached53(...args)).catch(console.warn);
+      }
+
+      /** @type {Function} */
+      const detachedK = function (...args) {
+        this.connPromise = this.connPromise.then(() => this.detached53(...args)).catch(console.warn);
+      }
+
+      /** @type {Function} */
+      const _removeListenersK = function () {
+        if (!this.$) this.$ = {};
+        this._removeListeners53();
+      }
+
+      /** @type {Function} */
+      const unlistenK = function (...args) {
+        if (!args[0]) return;
+        this.unlisten53(...args);
+      }
+
+
+      /** @type {Function} */
+      const connectedCallbackK = function (...args) {
+        typeof this.__connInit__ === 'function' && this.__connInit__();
+        this.connPromise = this.connPromise.then(() => this.connectedCallback53(...args)).catch(console.warn);
+      };
+
+      /** @type {Function} */
+      const disconnectedCallbackK = function () {
+        typeof this.__connInit__ === 'function' && this.__connInit__();
+        if (this._removeListeners && this._removeListeners53) this._removeListeners();
+        this.connPromise = this.connPromise.then(() => this.disconnectedCallback53(...args)).catch(console.warn);
+      };
+
+
+      connectedCallbackK.m353 = 1;
+      disconnectedCallbackK.m353 = 1;
+
+
+      Polymer.Base.__connInit__ = function () {
+        if (!this.connPromise) this.connPromise = Promise.resolve();
+        if (typeof this.attached === 'function' && !this.attached53) {
+          this.attached53 = this.attached;
+          this.attached = attachedK;
+        }
+        if (typeof this.detached === 'function' && !this.detached53) {
+          this.detached53 = this.detached;
+          this.detached = detachedK;
+        }
+        if (typeof this._removeListeners === 'function' && !this._removeListeners53 && this._removeListeners.length === 0) {
+          this._removeListeners53 = this._removeListeners;
+          this._removeListeners = _removeListenersK;
+          if (typeof this.unlisten === 'function' && !this.unlisten53) {
+            this.unlisten53 = this.unlisten;
+            this.unlisten = unlistenK;
+          }
+        }
+
+        if (this.connectedCallback && !this.connectedCallback.m353 && !this.connectedCallback53) {
+
+          Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
+
+          Polymer.Base.connectedCallback = connectedCallbackK;
+        }
+
+        if (this.disconnectedCallback && !this.disconnectedCallback.m353 && !this.disconnectedCallback53) {
+
+          Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
+
+          Polymer.Base.disconnectedCallback = disconnectedCallbackK;
+        }
+      }
+
+      Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
+      Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
+
+      Polymer.Base.connectedCallback = connectedCallbackK;
+      Polymer.Base.disconnectedCallback = disconnectedCallbackK;
 
 
 
