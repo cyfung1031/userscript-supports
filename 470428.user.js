@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.2
+// @version     1.3.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -454,11 +454,22 @@
 
           if (mzFlagDetected.has(key)) continue;
           mzFlagDetected.add(key);
+
           const kl = key.length;
           const kl7 = kl % 7;
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (kl === 45) {
+            if (key === 'desktop_add_to_playlist_renderer_dialog_popup') continue;
+            // if(key === 'enable_buenos_aires_page_header_mini_app_dest')continue;
+            // if(key === 'enable_dsa_compliant_banner_image_ad_renderer')continue;
+            // if(key === 'enable_get_account_switcher_endpoint_on_webfe')continue;
+            // if(key === 'enable_structured_description_shorts_web_mweb')continue;
+            // if(key === 'kevlar_fill_offline_availability_type_for_gda')continue;
+            // if(key === 'kevlar_text_inline_expander_formatted_snippet')continue;
+          }
 
           if (!DISABLE_CINEMATICS) {
 
