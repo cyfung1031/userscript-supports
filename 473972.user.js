@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.3
+// @version     0.5.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -38,6 +38,13 @@
   const FIX_doIdomRender = true;
 
   const FIX_Shady = true;
+
+  const FIX_ytAction_ = true;
+  const FIX_onVideoDataChange = true;
+  // const FIX_onClick = true;
+  const FIX_onStateChange = true;
+  const FIX_onLoopRangeChange = true;
+
 
   /*
   window.addEventListener('edm',()=>{
@@ -967,6 +974,198 @@
       });
 
     })();
+
+    FIX_ytAction_ && (async () => {
+
+      const ytdApp = await new Promise(resolve => {
+
+        promiseForCustomYtElementsReady.then(() => {
+          customElements.whenDefined('ytd-app').then(() => {
+            const ytdApp = document.querySelector('ytd-app');
+            if (ytdApp) {
+              resolve(ytdApp);
+              return;
+            }
+            let mo = new MutationObserver(() => {
+              const ytdApp = document.querySelector('ytd-app');
+              if (!ytdApp) return;
+              if (mo) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+              }
+              resolve(ytdApp);
+            });
+            mo.observe(document, { subtree: true, childList: true });
+          });
+        });
+
+
+
+      });
+
+
+
+      if (!ytdApp) return;
+      const cProto = (ytdApp.inst || ytdApp).constructor.prototype;
+
+
+      if (!cProto) return;
+      let mbd = 0;
+
+      const fixer = (_ytdApp)=>{
+
+        const ytdApp = _ytdApp ? (_ytdApp.inst || _ytdApp) : null;
+
+        if (ytdApp && typeof ytdApp.onYtActionBoundListener_ === 'function' && !ytdApp.onYtActionBoundListener57_) {
+          ytdApp.onYtActionBoundListener57_ = ytdApp.onYtActionBoundListener_;
+          ytdApp.onYtActionBoundListener_ = ytdApp.onYtAction_.bind(ytdApp);
+          mbd++;
+        }
+
+
+      }
+
+      let cid = setInterval(() => {
+
+
+        if (typeof cProto.created === 'function' && !cProto.created57) {
+          cProto.created57 = cProto.created;
+          cProto.created = function (...args) {
+            const r = this.created57(...args);
+            fixer(this);
+            return r;
+          };
+          mbd++;
+        }
+
+
+        if (typeof cProto.onYtAction_ === 'function' && !cProto.onYtAction57_) {
+          cProto.onYtAction57_ = cProto.onYtAction_;
+          cProto.onYtAction_ = function (...args) {
+            Promise.resolve().then(() => this.onYtAction57_(...args));
+          };
+          mbd++;
+        }
+
+        if(ytdApp) fixer(ytdApp);
+
+        /*
+        const actionRouter_ = ytdApp ? ytdApp.actionRouter_ : null;
+        if (actionRouter_ && typeof actionRouter_.handleAction === 'function' && !actionRouter_.handleAction57) {
+          actionRouter_.handleAction57 = actionRouter_.handleAction;
+          actionRouter_.handleAction = function (...args) {
+            Promise.resolve().then(() => this.handleAction57(...args));
+          }
+          mbd++;
+        }
+        */
+
+        // if(mbd === 3) clearInterval(cid);
+        if (mbd >= 3) clearInterval(cid);
+
+      }, 1);
+
+      setTimeout(() => {
+
+        clearInterval(cid);
+      }, 1000);
+
+    })();
+
+
+    const generalEvtHandler = async (_evKey, _fvKey) => {
+
+      const evKey = `${_evKey}`;
+      const fvKey = `${_fvKey}`;
+
+
+      // const rafHub = new RAFHub();
+
+
+      const _yt_player = await new Promise(resolve => {
+
+        let cid = setInterval(() => {
+          let t = (((window || 0)._yt_player || 0) || 0);
+          if (t) {
+
+            clearInterval(cid);
+            resolve(t);
+          }
+        }, 1);
+
+        promiseForTamerTimeout.then(() => {
+          resolve(null)
+        });
+
+      });
+
+
+      if (!_yt_player || typeof _yt_player !== 'object') return;
+
+
+      const getArr = (_yt_player) => {
+
+        let arr = [];
+
+        for (const [k, v] of Object.entries(_yt_player)) {
+
+          const p = typeof v === 'function' ? v.prototype : 0;
+          if (p
+            && typeof p[evKey] === 'function' && p[evKey].length >= 0 && !p[fvKey]
+
+          ) {
+            arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+          }
+
+        }
+
+        if (arr.length === 0) {
+
+          console.warn(`Key prop [${evKey}] does not exist.`);
+        } else {
+
+          return arr;
+        }
+
+      };
+
+      const arr = getArr(_yt_player);
+
+
+      if (!arr) return;
+
+      // console.log(`FIX_${evKey}`, arr);
+
+      const f = function (...args) {
+        Promise.resolve().then(() => this[fvKey](...args));
+      };
+
+
+      for (const k of arr) {
+
+        const g = _yt_player;
+        const gk = g[k];
+        const gkp = gk.prototype;
+
+        // console.log(237, k, gkp)
+
+        if (typeof gkp[evKey] == 'function' && !gkp[fvKey]) {
+          gkp[fvKey] = gkp[evKey];
+          gkp[evKey] = f;
+        }
+      }
+
+
+
+
+    }
+
+    FIX_onVideoDataChange && generalEvtHandler('onVideoDataChange', 'onVideoDataChange57');
+    // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
+    FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
+    FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
 
     CHANGE_appendChild && (() => {
 
