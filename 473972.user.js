@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.6
+// @version     0.5.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1376,7 +1376,9 @@
       HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
       HTMLElement.prototype.appendChild = function (a) {
 
+
         if (this instanceof HTMLElement) {
+
           if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
             for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
               if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
@@ -1387,10 +1389,22 @@
           } else if (this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
             return this.appendChild73.apply(this, arguments);
           }
+
           if (a instanceof DocumentFragment) {
-            if (a.firstElementChild === null) return a;
+            if (a.firstElementChild === null) {
+              let child = a.firstChild;
+              if (child === null) return a;
+              let doNormal = false;
+              while (child instanceof Node) {
+                if (child.nodeType === 3) { doNormal = true; break; }
+                child = child.nextSibling;
+              }
+              if (!doNormal) return a;
+            }
           }
+
         }
+
 
         return this.appendChild73.apply(this, arguments)
       }
