@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.1
+// @version     0.6.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -47,7 +47,6 @@
   const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS = true;
 
-  // const FIX_PolymerBase = false; // TBC
   const ENABLE_discreteTasking = true; // TBC
 
 
@@ -104,256 +103,12 @@
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
 
-  /*
-  const pmf = new WeakMap();
-
-
-  Object.defineProperty(Object.prototype, 'connectedCallback', {
-    get(){
-      const f = this._stconnectedCallback;
-      if(typeof this.constructor.prototype.attached ==='function' &&  !pmf.has(this.constructor.prototype.attached)){
-        const f = this.constructor.prototype.attached;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            f.call(this);
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.attached = g;
-      }
-
-      if(typeof this.constructor.prototype.detached ==='function' &&  !pmf.has(this.constructor.prototype.detached)){
-        const f = this.constructor.prototype.detached;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            f.call(this);
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.detached = g;
-      }
-
-      if(typeof this.constructor.prototype.onYtRendererstamperFinished ==='function' && !pmf.has(this.constructor.prototype.onYtRendererstamperFinished)){
-        const f = this.constructor.prototype.onYtRendererstamperFinished;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            setTimeout(()=>f.call(this));
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.onYtRendererstamperFinished = g;
-      }
-      return typeof f ==='function' ? (pmf.get(f) || f) : f;
-    },
-    set(nv){
-      if(typeof nv ==='function' && !pmf.has(nv)){
-        const f = nv;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.ku37) this.ku37 = g;
-           if(!this.$) this.$ = 0;
-          if(this.ku37 === g){
-
-            this._btcbr = this._btcbr.then(()=>{
-              try{
-                f.call(this)
-              }catch(e){
-                console.log(e)
-              }
-            });
-
-          }else{
-            return f.call(this)
-          }
-        }
-        pmf.set(f, g);
-        pmf.set(g, g);
-      }
-      this._stconnectedCallback = nv;
-      return true;
-    },
-    enumerable: false,
-    configurable: true
-
-  });
-
-
-
-  Object.defineProperty(Object.prototype, 'disconnectedCallback', {
-    get(){
-      const f = this._stdisconnectedCallback;
-      if(typeof this.constructor.prototype.attached ==='function' &&  !pmf.has(this.constructor.prototype.attached)){
-        const f = this.constructor.prototype.attached;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            f.call(this);
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.attached = g;
-      }
-
-      if(typeof this.constructor.prototype.detached ==='function' &&  !pmf.has(this.constructor.prototype.detached)){
-        const f = this.constructor.prototype.detached;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            f.call(this);
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.detached = g;
-      }
-
-      if(typeof this.constructor.prototype.onYtRendererstamperFinished ==='function' && !pmf.has(this.constructor.prototype.onYtRendererstamperFinished)){
-        const f = this.constructor.prototype.onYtRendererstamperFinished;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.$) this.$ = 0;
-         this._btcbr = this._btcbr.then(()=>{
-          try{
-            setTimeout(()=>f.call(this));
-          }catch(e){
-            console.log(e)
-          }
-        });
-
-        }
-        pmf.set(g, true);
-        this.constructor.prototype.onYtRendererstamperFinished = g;
-      }
-      return typeof f ==='function' ? (pmf.get(f) || f) : f;
-    },
-    set(nv){
-      if(typeof nv ==='function' && !pmf.has(nv)){
-        const f = nv;
-        const g = function(){
-          if(!this._btcbr) this._btcbr = Promise.resolve();
-          if(!this.ku38) this.ku38 = g;
-           if(!this.$) this.$ = 0;
-          if(this.ku38 === g){
-
-            this._btcbr = this._btcbr.then(()=>{
-              try{
-                f.call(this)
-              }catch(e){
-                console.log(e)
-              }
-            });
-
-          }else{
-            return f.call(this)
-          }
-        }
-        pmf.set(f, g);
-        pmf.set(g, g);
-      }
-      this._stdisconnectedCallback = nv;
-      return true;
-    },
-    enumerable: false,
-    configurable: true
-
-  });
-  */
-
-  // requestAnimationFrame is likely to be wrapped into YT Engine's rAf.
-
-
-
-
-  //   const setup2= (h)=>{
-
-
-  //     if(typeof h.rendererStamperApplyChangeRecord_ ==='function' && !(h.rendererStamperApplyChangeRecord_.km34)){
-
-  //             const f = h.rendererStamperApplyChangeRecord_;
-  //       const g = function(){
-  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-  //       }
-  //       g.km34 = 1;
-  //       h.rendererStamperApplyChangeRecord_ = g;
-
-  //     }
-
-
-
-  //     if(typeof h.forwardRendererStamperChanges_ ==='function' && !(h.forwardRendererStamperChanges_.km34)){
-
-  //             const f = h.forwardRendererStamperChanges_;
-  //       const g = function(){
-  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-  //       }
-  //       g.km34 = 1;
-  //       h.forwardRendererStamperChanges_ = g;
-
-  //     }
-
-
-  //     if(typeof h.stampDomArray_ ==='function' && !(h.stampDomArray_.km34)){
-
-  //             const f = h.stampDomArray_;
-  //       const g = function(){
-  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-  //       }
-  //       g.km34 = 1;
-  //       h.stampDomArray_ = g;
-
-  //     }
-  //     if(typeof h.stampDomArraySplices_ ==='function' && !(h.stampDomArraySplices_.km34)){
-
-  //             const f = h.stampDomArraySplices_;
-  //       const g = function(){
-  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-  //       }
-  //       g.km34 = 1;
-  //       h.stampDomArraySplices_ = g;
-
-  //     }
-  //   }
 
   const ump3 = new WeakMap();
 
   const setupDiscreteTasks = (h, rb) => {
 
     if (rb) {
-      // const p = this._stconnectedCallback;
-      // if(this.kb35=== p) return;
-      // this.kb35 = p;
       if (this.ky36) return;
     }
 
@@ -1403,25 +1158,21 @@
 
   }
 
-  let SKIP_setupDiscreteTasks = false;
+  const keyStConnectedCallback = Symbol(); // avoid copying the value
 
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
-      const f = this._stconnectedCallback;
-      if(!SKIP_setupDiscreteTasks){
-        if(this.is){
-          setupDiscreteTasks(this, true);
-          if (f) this.ky36 = 1;
-        }
+      const f = this[keyStConnectedCallback];
+      if (this.is) {
+        setupDiscreteTasks(this, true);
+        if (f) this.ky36 = 1;
       }
       return f;
     },
     set(nv) {
-      this._stconnectedCallback = nv; // proto or object
-      if(!SKIP_setupDiscreteTasks){
-        if(this.is){
-          setupDiscreteTasks(this);
-        }
+      this[keyStConnectedCallback] = nv; // proto or object
+      if (this.is) {
+        setupDiscreteTasks(this);
       }
       return true;
     },
@@ -2579,9 +2330,7 @@
         const f = () => {
           const Polymer = window.Polymer;
           if (typeof Polymer !== 'function') return;
-          SKIP_setupDiscreteTasks = true;
           if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
-          SKIP_setupDiscreteTasks = false;
           cid && clearInterval(cid);
           cid = 0;
           resolve(Polymer);
@@ -2590,9 +2339,6 @@
 
       });
       if (!Polymer) return;
-
-
-      SKIP_setupDiscreteTasks = true;
 
       Polymer.Base.__connInit__ = function () {
         setupDiscreteTasks(this);
@@ -2646,137 +2392,6 @@
       createdK.m353 = 1;
       Polymer.Base.created53 = Polymer.Base.created;
       Polymer.Base.created = createdK;
-
-
-      SKIP_setupDiscreteTasks = false;
-
-    })();
-    const FIX_PolymerBase = false;
-    FIX_PolymerBase && (async () => {
-
-      const Polymer = await new Promise(resolve => {
-
-        let cid = 0;
-        const f = () => {
-          const Polymer = window.Polymer;
-          if (typeof Polymer !== 'function') return;
-          SKIP_setupDiscreteTasks = true;
-          if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
-          SKIP_setupDiscreteTasks = false;
-          cid && clearInterval(cid);
-          cid = 0;
-          resolve(Polymer);
-        };
-        cid = setInterval(f, 1);
-
-      });
-      if (!Polymer) return;
-
-      /*
-      Polymer.Base.connectedCallback =function(...args){
-        const c = Date.now();
-        const p = this.callbackSyncLastTimestamp;
-        this.callbackSyncLastTimestamp = c;
-        if(c - p < 4 && c >= p){
-          this.connectedCallback53(...args);
-        }else{
-          Promise.resolve().then(()=>this.connectedCallback53(...args))
-        }
-      };
-      Polymer.Base.disconnectedCallback =function(){
-        const c = Date.now();
-        const p = this.callbackSyncLastTimestamp;
-        this.callbackSyncLastTimestamp = c;
-        if(c - p < 4 && c >= p){
-          this.disconnectedCallback53(...args);
-        }else{
-          Promise.resolve().then(()=>this.disconnectedCallback53(...args))
-        }
-      };
-      */
-
-      /** @type {Function} */
-      const attachedK = function (...args) {
-        this.connPromise = this.connPromise.then(() => this.attached53(...args)).catch(console.warn);
-      }
-
-      /** @type {Function} */
-      const detachedK = function (...args) {
-        this.connPromise = this.connPromise.then(() => this.detached53(...args)).catch(console.warn);
-      }
-
-      /** @type {Function} */
-      const _removeListenersK = function () {
-        if (!this.$) this.$ = {};
-        this._removeListeners53();
-      }
-
-      /** @type {Function} */
-      const unlistenK = function (...args) {
-        if (!args[0]) return;
-        this.unlisten53(...args);
-      }
-
-
-      /** @type {Function} */
-      const connectedCallbackK = function (...args) {
-        typeof this.__connInit__ === 'function' && this.__connInit__();
-        this.connPromise = this.connPromise.then(() => this.connectedCallback53(...args)).catch(console.warn);
-      };
-
-      /** @type {Function} */
-      const disconnectedCallbackK = function () {
-        typeof this.__connInit__ === 'function' && this.__connInit__();
-        if (this._removeListeners && this._removeListeners53) this._removeListeners();
-        this.connPromise = this.connPromise.then(() => this.disconnectedCallback53(...args)).catch(console.warn);
-      };
-
-
-      connectedCallbackK.m353 = 1;
-      disconnectedCallbackK.m353 = 1;
-
-
-      Polymer.Base.__connInit__ = function () {
-        if (!this.connPromise) this.connPromise = Promise.resolve();
-        if (typeof this.attached === 'function' && !this.attached53) {
-          this.attached53 = this.attached;
-          this.attached = attachedK;
-        }
-        if (typeof this.detached === 'function' && !this.detached53) {
-          this.detached53 = this.detached;
-          this.detached = detachedK;
-        }
-        if (typeof this._removeListeners === 'function' && !this._removeListeners53 && this._removeListeners.length === 0) {
-          this._removeListeners53 = this._removeListeners;
-          this._removeListeners = _removeListenersK;
-          if (typeof this.unlisten === 'function' && !this.unlisten53) {
-            this.unlisten53 = this.unlisten;
-            this.unlisten = unlistenK;
-          }
-        }
-
-        if (this.connectedCallback && !this.connectedCallback.m353 && !this.connectedCallback53) {
-
-          Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
-
-          Polymer.Base.connectedCallback = connectedCallbackK;
-        }
-
-        if (this.disconnectedCallback && !this.disconnectedCallback.m353 && !this.disconnectedCallback53) {
-
-          Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
-
-          Polymer.Base.disconnectedCallback = disconnectedCallbackK;
-        }
-      }
-
-      Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
-      Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
-
-      Polymer.Base.connectedCallback = connectedCallbackK;
-      Polymer.Base.disconnectedCallback = disconnectedCallbackK;
-
-
 
     })();
 
