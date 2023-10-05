@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.12
+// @version             0.60.13
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1021,55 +1021,55 @@
   }
 
 
-  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
+    ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
 
-    const _config_ = () => {
-      try {
-        return ytcfg.data_;
-      } catch (e) { }
-      return null;
-    };
+      const _config_ = () => {
+        try {
+          return ytcfg.data_;
+        } catch (e) { }
+        return null;
+      };
 
-    const flagsFn = (EXPERIMENT_FLAGS) => {
+      const flagsFn = (EXPERIMENT_FLAGS) => {
 
-      // console.log(700)
+        // console.log(700)
 
-      if (!EXPERIMENT_FLAGS) return;
+        if (!EXPERIMENT_FLAGS) return;
 
-      if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
-        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
-          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
-          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-          // console.log(701)
+        if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
+          if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
+            EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+            EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+            // console.log(701)
+          }
+        }
+
+        if (ENABLE_FLAGS_REUSE_COMPONENTS) {
+          EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+          EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+          // console.log(702);
+        }
+
+      };
+
+      const uf = (config_) => {
+        config_ = config_ || _config_();
+        if (config_) {
+          const { EXPERIMENT_FLAGS, EXPERIMENTS_FORCED_FLAGS } = config_;
+          if (EXPERIMENT_FLAGS) {
+            flagsFn(EXPERIMENT_FLAGS);
+            if (EXPERIMENTS_FORCED_FLAGS) flagsFn(EXPERIMENTS_FORCED_FLAGS);
+          }
         }
       }
 
-      if (ENABLE_FLAGS_REUSE_COMPONENTS) {
-        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
-        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
-        // console.log(702);
-      }
+      window._ytConfigHacks.add((config_) => {
+        uf(config_);
+      });
 
-    };
+      uf();
 
-    const uf = (config_) => {
-      config_ = config_ || _config_();
-      if (config_) {
-        const { EXPERIMENT_FLAGS, EXPERIMENTS_FORCED_FLAGS } = config_;
-        if (EXPERIMENT_FLAGS) {
-          flagsFn(EXPERIMENT_FLAGS);
-          if (EXPERIMENTS_FORCED_FLAGS) flagsFn(EXPERIMENTS_FORCED_FLAGS);
-        }
-      }
-    }
-
-    window._ytConfigHacks.add((config_) => {
-      uf(config_);
-    });
-
-    uf();
-
-  })();
+    })();
 
   if (DISABLE_Translation_By_Google) {
 
@@ -5404,6 +5404,8 @@
 
               if (addChatItemAction) return;
 
+
+
               // console.log(Object.keys(a));
 
               if (this._stackedLCAs_ === null) this._stackedLCAs_ = [];
@@ -5466,7 +5468,9 @@
               newStackEntry.__batchId45__ = __batchId45__ || '';
               newStackEntry.dateTime = Date.now();
 
+
               foregroundPromiseFn().then(() => {
+
                 if (tid !== this._nszlv_) return;
                 const dateNow = Date.now(); // time difference to shift animation start time shall be considered. (pending)
                 const stackArr = this._stackedLCAs_.slice(0);
@@ -5476,7 +5480,64 @@
                 let prevBatchId = '';
                 const addItems = [];
                 const previousShouldAnimateIn = this.shouldAnimateIn;
+
+                const addItemsFx = () => {
+
+                  if (addItems.length >= 1) {
+                    const e = addItems.slice(0);
+                    addItems.length = 0;
+                    if (ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME) {
+
+                      const arr = [];
+                      const d = Date.now();
+                      for (const item of e) {
+                        const key = firstObjectKey(item);
+                        if (key) {
+
+
+                          const itemRenderer = item[key] || 0;
+                          const { durationSec, fullDurationSec, __actionAt__ } = itemRenderer;
+                          if (__actionAt__ > 0 && durationSec > 0 && fullDurationSec > 0) {
+
+
+                            const offset = d - __actionAt__;
+                            if (offset > 0 && typeof durationSec === 'number' && typeof fullDurationSec === 'number' && fullDurationSec >= durationSec) {
+                              const adjustedDurationSec = durationSec - Math.floor(offset / 1000);
+                              if (adjustedDurationSec < durationSec) { // prevent NaN
+                                // console.log('adjustedDurationSec', adjustedDurationSec);
+                                if (adjustedDurationSec < 1e-9 && durationSec >= 1) adjustedDurationSec = 1;
+                                if (adjustedDurationSec > 0) {
+                                  // console.log('offset Sec', Math.floor(offset / 1000));
+                                  itemRenderer.durationSec = adjustedDurationSec;
+                                } else {
+                                  continue;
+                                }
+                              }
+
+                            }
+
+                          }
+
+                          if (fullDurationSec > 0 && durationSec < 1) continue;
+
+
+
+                        }
+                        arr.push(item)
+                        // arr.unshift(item);
+                      }
+
+
+                      // console.log(arr.slice(0))
+                      this.unshift("items", ...arr);
+                    } else {
+                      this.unshift("items", ...e);
+                    }
+                  }
+                }
+
                 for (const entry of stackArr) {
+
                   const { action, data, dateTime, __batchId45__ } = entry;
 
                   const finishLastAction = (
@@ -5488,17 +5549,17 @@
                   lastDateTime = dateTime;
                   prevBatchId = __batchId45__;
 
-                  if (dateNow - dateTime >= 1000 && this.shouldAnimateIn) this.shouldAnimateIn = false;
+                  // if (dateNow - dateTime >= 1000 && this.shouldAnimateIn) this.shouldAnimateIn = false;
+
 
                   if (addPrevItems) {
-                    let e = addItems.slice(0);
-                    addItems.length = 0;
-                    this.unshift("items", ...e);
+                    addItemsFx();
                   }
-                  if (finishLastAction) {
-                    this.updateHighlightedItem();
-                    if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
-                  }
+                  // if (finishLastAction) {
+                  //   this.updateHighlightedItem();
+                  //   if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
+                  // }
+
 
                   if (action === 'addItem') addItems.unshift(data);
                   else if (action === 'mcItemD') this.handleMarkChatItemAsDeletedAction(data);
@@ -5507,61 +5568,17 @@
                   else if (action === 'removeItemA') this.handleRemoveChatItemByAuthorAction(data);
 
                 }
-                if (previousShouldAnimateIn && !this.shouldAnimateIn) this.shouldAnimateIn = true;
-                if (addItems.length >= 1) {
-                  const e = addItems.slice(0);
-                  addItems.length = 0;
-                  if (ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME) {
-
-                    const arr = [];
-                    const d = Date.now();
-                    for (const item of e) {
-                      const key = firstObjectKey(item);
-                      if (key) {
 
 
-                        const itemRenderer = item[key] || 0;
-                        const { durationSec, fullDurationSec, __actionAt__ } = itemRenderer;
-                        if (__actionAt__ > 0 && durationSec > 0 && fullDurationSec > 0) {
+                // if (previousShouldAnimateIn && !this.shouldAnimateIn) this.shouldAnimateIn = true;
 
+                addItemsFx();
 
-                          const offset = d - __actionAt__;
-                          if (offset > 0 && typeof durationSec === 'number' && typeof fullDurationSec === 'number' && fullDurationSec >= durationSec) {
-                            const adjustedDurationSec = durationSec - Math.floor(offset / 1000);
-                            if (adjustedDurationSec < durationSec) { // prevent NaN
-                              // console.log('adjustedDurationSec', adjustedDurationSec);
-                              if (adjustedDurationSec > 0) {
-                                // console.log('offset Sec', Math.floor(offset / 1000));
-                                itemRenderer.durationSec = adjustedDurationSec;
-                              } else {
-                                continue;
-                              }
-                            }
+                // if (prevBatchId || dateNow - lastDateTime >= 1000) {
+                //   this.updateHighlightedItem();
+                //   if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
+                // }
 
-                          }
-
-                        }
-
-                        if (fullDurationSec > 0 && durationSec < 1) continue;
-
-
-
-                      }
-                      arr.push(item)
-                      // arr.unshift(item);
-                    }
-
-
-                    // console.log(arr.slice(0))
-                    this.unshift("items", ...arr);
-                  } else {
-                    this.unshift("items", ...e);
-                  }
-                }
-                if (prevBatchId || dateNow - lastDateTime >= 1000) {
-                  this.updateHighlightedItem();
-                  if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
-                }
               })
 
             }
