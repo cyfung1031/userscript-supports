@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.14
+// @version             0.60.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3425,127 +3425,129 @@
 
           }
 
-          if (typeof cProto.immediatelyApplyLiveChatActions === 'function' && !cProto.immediatelyApplyLiveChatActions32) {
+          // if (typeof cProto.immediatelyApplyLiveChatActions === 'function' && !cProto.immediatelyApplyLiveChatActions32) {
 
-            cProto.immediatelyApplyLiveChatActions32 = cProto.immediatelyApplyLiveChatActions;
+          //   cProto.immediatelyApplyLiveChatActions32 = cProto.immediatelyApplyLiveChatActions;
 
-            cProto.immediatelyApplyLiveChatActions = function (a) {
-              // if (a.length > 8) {
-              //   console.log(a)
-              // }
-              // console.log(a)
-              /*
-              let arr=a.slice();
+          //   cProto.immediatelyApplyLiveChatActions = function (a) {
+          //     // if (a.length > 8) {
+          //     //   console.log(a)
+          //     // }
+          //     // console.log(a)
+          //     /*
+          //     let arr=a.slice();
 
-              if(arr.length >= 2){
-                arr.sort((a, b)=>{
-                  let ak = firstObjectKey(a);
-                  let bk = firstObjectKey(b);
-                  if(!ak||!bk) return 0;
-                  const ax = +a[ak]._timestampUsec57;
-                  const bx = +b[bk]._timestampUsec57;
-                  if(ax >0 && bx >0){
-                    const c =  bx - ax ;
+          //     if(arr.length >= 2){
+          //       arr.sort((a, b)=>{
+          //         let ak = firstObjectKey(a);
+          //         let bk = firstObjectKey(b);
+          //         if(!ak||!bk) return 0;
+          //         const ax = +a[ak]._timestampUsec57;
+          //         const bx = +b[bk]._timestampUsec57;
+          //         if(ax >0 && bx >0){
+          //           const c =  bx - ax ;
 
-                    return c > 0.1 ? -1 : c< -0.1 ? 1 : 0;
-                  }
-                  return 0;
+          //           return c > 0.1 ? -1 : c< -0.1 ? 1 : 0;
+          //         }
+          //         return 0;
 
-                });
-                console.log('sort', JSON.parse(JSON.stringify(arr)));
-              }
-              a=arr;
-              */
+          //       });
+          //       console.log('sort', JSON.parse(JSON.stringify(arr)));
+          //     }
+          //     a=arr;
+          //     */
 
-              if (a && typeof a === 'object' && a.length >= 1) {
-                const d = Date.now();
-                const m = [];
-                for (let i = 0, l = a.length; i < l; i++) {
-                  const action = a[i];
-                  const key = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
-                  if (key === 'addChatItemAction' || key === 'addLiveChatTickerItemAction') {
-                    const itemAction = action[key] || 0;
-                    const item = itemAction.item || 0;
-                    if (item && typeof item === 'object') {
-                      let rendererKey = firstObjectKey(item);
-                      const renderer = item[rendererKey];
-                      let timestampUsec = getTimestampUsec(renderer);
-                      if (timestampUsec !== null) {
-                        renderer._timestampUsec57 = timestampUsec;
-                      }
-                      m.push(renderer);
-                      // if(timestampUsec!==null){
-                      //   if(key==='addLiveChatTickerItemAction')console.log(renderer, rendererKey, key)
-                      //   m.push(renderer);
+          //     if (a && typeof a === 'object' && a.length >= 1) {
+          //       const d = Date.now();
+          //       const m = [];
+          //       for (let i = 0, l = a.length; i < l; i++) {
+          //         const action = a[i];
+          //         const key = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
+          //         if (key === 'addChatItemAction' || key === 'addLiveChatTickerItemAction') {
+          //           const itemAction = action[key] || 0;
+          //           const item = itemAction.item || 0;
+          //           if (item && typeof item === 'object') {
+          //             let rendererKey = firstObjectKey(item);
+          //             const renderer = item[rendererKey];
+          //             let timestampUsec = getTimestampUsec(renderer);
+          //             if (timestampUsec !== null) {
+          //               renderer._timestampUsec57 = timestampUsec;
+          //             }
+          //             m.push(renderer);
+          //             // if(timestampUsec!==null){
+          //             //   if(key==='addLiveChatTickerItemAction')console.log(renderer, rendererKey, key)
+          //             //   m.push(renderer);
 
-                      // }
-                    }
-                  }
-                }
-                if (m.length >= 1) {
+          //             // }
+          //           }
+          //         }
+          //       }
+          //       if (m.length >= 1) {
 
-                  let lastUsec = null;
-                  for (let i = 0, l = m.length; i < l; i++) {
-                    const renderer = m[i];
-                    if ('_timestampUsec57' in renderer) {
-                      lastUsec = +renderer._timestampUsec57 / 1E3;
-                      renderer.__lcrTime__ = d;
-                      renderer.__actionAt__ = d;
-                    }
-                  }
-
-
-                  if (lastUsec !== null) {
-
-                    const refUsec = lastUsec
-
-                    let prevUsec = null;
-                    for (let i = 0, l = m.length; i < l; i++) {
-                      const renderer = m[i];
-                      if ('_timestampUsec57' in renderer) {
-
-                        let actualTime = +renderer._timestampUsec57 / 1E3; // ms
-                        let lcrTime = d - Math.round(refUsec - actualTime); // ms
-
-                        renderer.__lcrTime__ = lcrTime; // ms
-                        renderer.__actionAt__ = d;
-
-                        prevUsec = lcrTime
-                      } else {
-
-                        renderer._prevUsec57 = prevUsec;
-                      }
-                    }
+          //         let lastUsec = null;
+          //         for (let i = 0, l = m.length; i < l; i++) {
+          //           const renderer = m[i];
+          //           if ('_timestampUsec57' in renderer) {
+          //             lastUsec = +renderer._timestampUsec57 / 1E3;
+          //             renderer.__lcrTime__ = d;
+          //             renderer.__actionAt__ = d;
+          //           }
+          //         }
 
 
-                    let nextUsec = null;
-                    for (let i = m.length - 1; i >= 0; i--) {
-                      const renderer = m[i];
-                      if ('_timestampUsec57' in renderer) {
+          //         if (lastUsec !== null) {
 
-                        nextUsec = renderer.__lcrTime__
-                      } else {
+          //           const refUsec = lastUsec
 
-                        renderer._nextUsec57 = nextUsec;
+          //           let prevUsec = null;
+          //           for (let i = 0, l = m.length; i < l; i++) {
+          //             const renderer = m[i];
+          //             if ('_timestampUsec57' in renderer) {
 
-                        if (renderer._nextUsec57 > 0 && renderer._prevUsec57 > 0 && renderer._nextUsec57 > renderer._prevUsec57) {
-                          renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2;
-                          renderer.__actionAt__ = d;
-                        }
-                      }
-                    }
+          //               let actualTime = +renderer._timestampUsec57 / 1E3; // ms
+          //               let lcrTime = d - Math.round(refUsec - actualTime); // ms
 
+          //               renderer.__lcrTime__ = lcrTime; // ms
+          //               renderer.__actionAt__ = d;
 
-                  }
+          //               prevUsec = lcrTime
+          //             } else {
 
-
-                }
-              }
-              return this.immediatelyApplyLiveChatActions32.apply(this, arguments)
-            }
+          //               renderer._prevUsec57 = prevUsec;
+          //             }
+          //           }
 
 
-          }
+          //           let nextUsec = null;
+          //           for (let i = m.length - 1; i >= 0; i--) {
+          //             const renderer = m[i];
+          //             if ('_timestampUsec57' in renderer) {
+
+          //               nextUsec = renderer.__lcrTime__
+          //             } else {
+
+          //               renderer._nextUsec57 = nextUsec;
+
+          //               if (renderer._nextUsec57 > 0 && renderer._prevUsec57 > 0 && renderer._nextUsec57 > renderer._prevUsec57) {
+          //                 renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2;
+          //                 renderer.__actionAt__ = d;
+          //               }
+          //             }
+          //           }
+
+
+          //         }
+
+
+          //       }
+          //     }
+          //     return this.immediatelyApplyLiveChatActions32.apply(this, arguments)
+          //   }
+
+
+          // }
+
+
 
           console.log("[End]");
           console.groupEnd();
@@ -5384,6 +5386,7 @@
             cProto._lastAddItemInStack_ = false;
             cProto.handleLiveChatAction = function (a) {
 
+
               /**
                *
                *
@@ -5404,6 +5407,8 @@
 
               if (addChatItemAction) return;
 
+
+              const d = Date.now();
 
 
               // console.log(Object.keys(a));
@@ -5441,6 +5446,16 @@
                   this._lastAddItem_ = tickerItem;
                   this._lastAddItemInStack_ = true;
                   // console.log('newItem', newItem)
+
+                  const item = newItem;
+                  const key = firstObjectKey(item);
+                  if (key) {
+                    const itemRenderer = item[key] || 0;
+                    if (itemRenderer.fullDurationSec > 0) {
+                      itemRenderer.__actionAt__ = d;
+                    }
+                  }
+
 
                   newStackEntry = { action: 'addItem', data: newItem };
 
