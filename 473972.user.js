@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.4
+// @version     0.6.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -48,7 +48,6 @@
   const FIX_VideoEVENTS = true;
 
   const ENABLE_discreteTasking = true;
-  const ENABLE_discreteDispatchEvent = true;
 
 
 
@@ -107,57 +106,6 @@
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
 
-  const immediateDispatchEvents = new Set([
-    'yt-action',
-    "shown-items-changed",
-    "can-show-more-changed",
-    "active-changed",
-    "focused-changed",
-    "disabled-changed",
-    "collapsed-changed",
-    "is-toggled-changed",
-    "can-toggle-changed",
-    "rendered-item-count-changed",
-    "items-changed",
-  ]);
-
-  if (ENABLE_discreteDispatchEvent && typeof EventTarget.prototype.dispatchEvent === 'function' && !EventTarget.prototype.dispatchEvent65) {
-    EventTarget.prototype.dispatchEvent65 = EventTarget.prototype.dispatchEvent;
-
-    EventTarget.prototype.dispatchEvent = function (e) {
-      const type = (e || 0).type || '';
-
-      let b = false;
-      if (immediateDispatchEvents.has(type)) {
-        b = true;
-      } else if (type.endsWith('-changed')) {
-
-        immediateDispatchEvents.add(b)
-        b = true;
-      }
-
-      if (b) {
-
-
-
-        return this.dispatchEvent65(e);
-      }
-
-      if (type.startsWith('yt') || (this instanceof Element) || (this instanceof Document) || (this instanceof DocumentFragment) || (this instanceof Window)) {
-        Promise.resolve().then(() => this.dispatchEvent65(e));
-        return true;
-        // return this.dispatchEvent65(e);
-
-      } else {
-        // console.log(123, type)
-        return this.dispatchEvent65(e);
-      }
-
-
-    }
-
-
-  }
 
 
 
