@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.13
+// @version             0.60.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5479,18 +5479,18 @@
                 let lastDateTime = 0;
                 let prevBatchId = '';
                 const addItems = [];
-                const previousShouldAnimateIn = this.shouldAnimateIn;
+                // const previousShouldAnimateIn = this.shouldAnimateIn;
 
                 const addItemsFx = () => {
 
                   if (addItems.length >= 1) {
-                    const e = addItems.slice(0);
+                    const eArr = addItems.slice(0);
                     addItems.length = 0;
                     if (ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME) {
 
-                      const arr = [];
+                      const arr = []; // size of arr <= size of eArr
                       const d = Date.now();
-                      for (const item of e) {
+                      for (const item of eArr) {
                         const key = firstObjectKey(item);
                         if (key) {
 
@@ -5505,12 +5505,12 @@
                               const adjustedDurationSec = durationSec - Math.floor(offset / 1000);
                               if (adjustedDurationSec < durationSec) { // prevent NaN
                                 // console.log('adjustedDurationSec', adjustedDurationSec);
-                                if (adjustedDurationSec < 1e-9 && durationSec >= 1) adjustedDurationSec = 1;
                                 if (adjustedDurationSec > 0) {
                                   // console.log('offset Sec', Math.floor(offset / 1000));
                                   itemRenderer.durationSec = adjustedDurationSec;
                                 } else {
-                                  continue;
+                                  // if adjustedDurationSec equal 0 or invalid 
+                                  continue; // skip adding
                                 }
                               }
 
@@ -5518,7 +5518,7 @@
 
                           }
 
-                          if (fullDurationSec > 0 && durationSec < 1) continue;
+                          if (fullDurationSec > 0 && durationSec < 1) continue; // fallback check
 
 
 
@@ -5531,7 +5531,7 @@
                       // console.log(arr.slice(0))
                       this.unshift("items", ...arr);
                     } else {
-                      this.unshift("items", ...e);
+                      this.unshift("items", ...eArr);
                     }
                   }
                 }
