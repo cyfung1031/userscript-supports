@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.5.7
+// @version     0.6.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -47,7 +47,9 @@
   const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS = true;
 
-  const FIX_PolymerBase = false; // TBC
+  // const FIX_PolymerBase = false; // TBC
+  const ENABLE_discreteTasking = true; // TBC
+  
 
 
   /*
@@ -102,7 +104,1099 @@
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
 
+  /*
+  const pmf = new WeakMap();
+
+
+  Object.defineProperty(Object.prototype, 'connectedCallback', {
+    get(){
+      const f = this._stconnectedCallback;
+      if(typeof this.constructor.prototype.attached ==='function' &&  !pmf.has(this.constructor.prototype.attached)){
+        const f = this.constructor.prototype.attached;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            f.call(this);
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.attached = g;
+      }
+
+      if(typeof this.constructor.prototype.detached ==='function' &&  !pmf.has(this.constructor.prototype.detached)){
+        const f = this.constructor.prototype.detached;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            f.call(this);
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.detached = g;
+      }
+
+      if(typeof this.constructor.prototype.onYtRendererstamperFinished ==='function' && !pmf.has(this.constructor.prototype.onYtRendererstamperFinished)){
+        const f = this.constructor.prototype.onYtRendererstamperFinished;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            setTimeout(()=>f.call(this));
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.onYtRendererstamperFinished = g;
+      }
+      return typeof f ==='function' ? (pmf.get(f) || f) : f;
+    },
+    set(nv){
+      if(typeof nv ==='function' && !pmf.has(nv)){
+        const f = nv;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.ku37) this.ku37 = g;
+           if(!this.$) this.$ = 0;
+          if(this.ku37 === g){
+
+            this._btcbr = this._btcbr.then(()=>{
+              try{
+                f.call(this)
+              }catch(e){
+                console.log(e)
+              }
+            });
+
+          }else{
+            return f.call(this)
+          }
+        }
+        pmf.set(f, g);
+        pmf.set(g, g);
+      }
+      this._stconnectedCallback = nv;
+      return true;
+    },
+    enumerable: false,
+    configurable: true
+
+  });
+
+
+
+  Object.defineProperty(Object.prototype, 'disconnectedCallback', {
+    get(){
+      const f = this._stdisconnectedCallback;
+      if(typeof this.constructor.prototype.attached ==='function' &&  !pmf.has(this.constructor.prototype.attached)){
+        const f = this.constructor.prototype.attached;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            f.call(this);
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.attached = g;
+      }
+
+      if(typeof this.constructor.prototype.detached ==='function' &&  !pmf.has(this.constructor.prototype.detached)){
+        const f = this.constructor.prototype.detached;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            f.call(this);
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.detached = g;
+      }
+
+      if(typeof this.constructor.prototype.onYtRendererstamperFinished ==='function' && !pmf.has(this.constructor.prototype.onYtRendererstamperFinished)){
+        const f = this.constructor.prototype.onYtRendererstamperFinished;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.$) this.$ = 0;
+         this._btcbr = this._btcbr.then(()=>{
+          try{
+            setTimeout(()=>f.call(this));
+          }catch(e){
+            console.log(e)
+          }
+        });
+
+        }
+        pmf.set(g, true);
+        this.constructor.prototype.onYtRendererstamperFinished = g;
+      }
+      return typeof f ==='function' ? (pmf.get(f) || f) : f;
+    },
+    set(nv){
+      if(typeof nv ==='function' && !pmf.has(nv)){
+        const f = nv;
+        const g = function(){
+          if(!this._btcbr) this._btcbr = Promise.resolve();
+          if(!this.ku38) this.ku38 = g;
+           if(!this.$) this.$ = 0;
+          if(this.ku38 === g){
+
+            this._btcbr = this._btcbr.then(()=>{
+              try{
+                f.call(this)
+              }catch(e){
+                console.log(e)
+              }
+            });
+
+          }else{
+            return f.call(this)
+          }
+        }
+        pmf.set(f, g);
+        pmf.set(g, g);
+      }
+      this._stdisconnectedCallback = nv;
+      return true;
+    },
+    enumerable: false,
+    configurable: true
+
+  });
+  */
+
   // requestAnimationFrame is likely to be wrapped into YT Engine's rAf.
+
+
+
+
+  //   const setup2= (h)=>{
+
+
+  //     if(typeof h.rendererStamperApplyChangeRecord_ ==='function' && !(h.rendererStamperApplyChangeRecord_.km34)){
+
+  //             const f = h.rendererStamperApplyChangeRecord_;
+  //       const g = function(){
+  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+  //       }
+  //       g.km34 = 1;
+  //       h.rendererStamperApplyChangeRecord_ = g;
+
+  //     }
+
+
+
+  //     if(typeof h.forwardRendererStamperChanges_ ==='function' && !(h.forwardRendererStamperChanges_.km34)){
+
+  //             const f = h.forwardRendererStamperChanges_;
+  //       const g = function(){
+  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+  //       }
+  //       g.km34 = 1;
+  //       h.forwardRendererStamperChanges_ = g;
+
+  //     }
+
+
+  //     if(typeof h.stampDomArray_ ==='function' && !(h.stampDomArray_.km34)){
+
+  //             const f = h.stampDomArray_;
+  //       const g = function(){
+  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+  //       }
+  //       g.km34 = 1;
+  //       h.stampDomArray_ = g;
+
+  //     }
+  //     if(typeof h.stampDomArraySplices_ ==='function' && !(h.stampDomArraySplices_.km34)){
+
+  //             const f = h.stampDomArraySplices_;
+  //       const g = function(){
+  //         Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+  //       }
+  //       g.km34 = 1;
+  //       h.stampDomArraySplices_ = g;
+
+  //     }
+  //   }
+
+  const ump3 = new WeakMap();
+
+  const setupDiscreteTasks = (h, rb) => {
+
+    if (rb) {
+      // const p = this._stconnectedCallback;
+      // if(this.kb35=== p) return;
+      // this.kb35 = p;
+      if (this.ky36) return;
+    }
+
+
+
+    if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
+      const f = h.onYtRendererstamperFinished;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onYtRendererstamperFinished = g;
+
+    }
+
+
+
+
+    if (typeof h.onYtUpdateDescriptionAction === 'function' && !(h.onYtUpdateDescriptionAction.km34)) {
+      const f = h.onYtUpdateDescriptionAction;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onYtUpdateDescriptionAction = g;
+
+    }
+
+
+
+    if (typeof h.handleUpdateDescriptionAction === 'function' && !(h.handleUpdateDescriptionAction.km34)) {
+      const f = h.handleUpdateDescriptionAction;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.handleUpdateDescriptionAction = g;
+
+    }
+
+    if (typeof h.handleUpdateLiveChatPollAction === 'function' && !(h.handleUpdateLiveChatPollAction.km34)) {
+      const f = h.handleUpdateLiveChatPollAction;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.handleUpdateLiveChatPollAction = g;
+
+    }
+
+
+
+
+    if (typeof h.onYtAction_ === 'function' && !(h.onYtAction_.km34)) {
+      const f = h.onYtAction_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onYtAction_ = g;
+
+    }
+
+
+
+
+    if (typeof h.onTextChanged === 'function' && !(h.onTextChanged.km34)) {
+      const f = h.onTextChanged;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onTextChanged = g;
+
+    }
+
+
+
+
+    if (typeof h.onVideoDataChange === 'function' && !(h.onVideoDataChange.km34)) {
+      const f = h.onVideoDataChange;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onVideoDataChange = g;
+
+    }
+
+
+
+    if (typeof h.onVideoDataChange_ === 'function' && !(h.onVideoDataChange_.km34)) {
+      const f = h.onVideoDataChange_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onVideoDataChange_ = g;
+
+    }
+
+
+    if (typeof h.addTooltips === 'function' && !(h.addTooltips.km34)) {
+
+      const f = h.addTooltips;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.addTooltips = g;
+
+    }
+
+
+
+    if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
+
+      const f = h.addTooltips_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.addTooltips_ = g;
+
+    }
+
+
+    if (typeof h.updateRenderedElements === 'function' && !(h.updateRenderedElements.km34)) {
+
+      const f = h.updateRenderedElements;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.updateRenderedElements = g;
+
+    }
+
+
+
+    if (typeof h.startLoadingWatch === 'function' && !(h.startLoadingWatch.km34)) {
+
+      const f = h.startLoadingWatch;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.startLoadingWatch = g;
+
+    }
+
+
+
+
+    if (typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
+      const f = h.loadPage_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.loadPage_ = g;
+
+    }
+    if (typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
+      const f = h.updatePageData_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.updatePageData_ = g;
+
+    }
+
+    if (typeof h.rendererStamperObserver_ === 'function' && !(h.rendererStamperObserver_.km34)) {
+
+      const f = h.rendererStamperObserver_;
+      const g = ump3.get(f) || function (a, b, c) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.rendererStamperObserver_ = g;
+
+    }
+
+
+    if (typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
+
+      const f = h.onFocus_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onFocus_ = g;
+
+    }
+
+    if (typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
+
+      const f = h.onBlur_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onBlur_ = g;
+
+    }
+
+
+    if (typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
+
+      const f = h.buttonClassChanged_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.buttonClassChanged_ = g;
+
+    }
+
+
+    if (typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
+
+      const f = h.buttonIconChanged_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.buttonIconChanged_ = g;
+
+    }
+
+
+    if (typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
+
+      const f = h.dataChangedInBehavior_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.dataChangedInBehavior_ = g;
+
+    }
+
+
+    if (typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
+
+      const f = h.continuationsChanged_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.continuationsChanged_ = g;
+
+    }
+
+
+    if (typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
+
+      const f = h.forceChatPoll_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.forceChatPoll_ = g;
+
+    }
+
+
+
+    if (typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
+
+      const f = h.onEndpointClick_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onEndpointClick_ = g;
+
+    }
+
+
+    if (typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
+
+      const f = h.onEndpointTap_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onEndpointTap_ = g;
+
+    }
+
+
+    if (typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
+
+      const f = h.handleClick_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.handleClick_ = g;
+
+    }
+
+
+
+    if (typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
+
+      const f = h.onReadyStateChange_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onReadyStateChange_ = g;
+
+    }
+
+    if (typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
+
+      const f = h.onReadyStateChangeEntryPoint_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onReadyStateChangeEntryPoint_ = g;
+
+    }
+
+
+    if (typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
+
+      const f = h.readyStateChangeHandler_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.readyStateChangeHandler_ = g;
+
+    }
+
+
+
+
+    if (typeof h.xmlHttpHandler_ === 'function' && !(h.xmlHttpHandler_.km34)) {
+
+      const f = h.xmlHttpHandler_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.xmlHttpHandler_ = g;
+
+    }
+
+
+    if (typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
+
+      const f = h.executeCallbacks_; // overloaded
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.executeCallbacks_ = g;
+
+    }
+
+
+
+    if (typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
+
+      const f = h.handleInvalidationData_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.handleInvalidationData_ = g;
+
+    }
+
+
+    if (typeof h.onInput_ === 'function' && !(h.onInput_.km34)) {
+
+      const f = h.onInput_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onInput_ = g;
+
+    }
+
+
+    if (typeof h.trigger_ === 'function' && !(h.trigger_.km34)) {
+
+      const f = h.trigger_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.trigger_ = g;
+
+    }
+
+
+    if (typeof h.requestData_ === 'function' && !(h.requestData_.km34)) {
+
+      const f = h.requestData_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.requestData_ = g;
+
+    }
+
+    if (typeof h.onLoadReloadContinuation_ === 'function' && !(h.onLoadReloadContinuation_.km34)) {
+
+      const f = h.onLoadReloadContinuation_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onLoadReloadContinuation_ = g;
+
+    }
+
+
+
+    if (typeof h.onLoadIncrementalContinuation_ === 'function' && !(h.onLoadIncrementalContinuation_.km34)) {
+
+      const f = h.onLoadIncrementalContinuation_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onLoadIncrementalContinuation_ = g;
+
+    }
+
+    if (typeof h.onLoadSeekContinuation_ === 'function' && !(h.onLoadSeekContinuation_.km34)) {
+
+      const f = h.onLoadSeekContinuation_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onLoadSeekContinuation_ = g;
+
+    }
+    if (typeof h.onLoadReplayContinuation_ === 'function' && !(h.onLoadReplayContinuation_.km34)) {
+
+      const f = h.onLoadReplayContinuation_;
+      const g = ump3.get(f) || function (a, b) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onLoadReplayContinuation_ = g;
+
+    }
+    if (typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
+
+      const f = h.onNavigate_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onNavigate_ = g;
+
+    }
+
+    /*
+    if(typeof h.deferRenderStamperBinding_ ==='function' && !(h.deferRenderStamperBinding_.km34)){
+
+            const f = h.deferRenderStamperBinding_;
+      const g = function(){
+        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.deferRenderStamperBinding_ = g;
+
+    }
+    */
+
+
+
+    if (typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
+
+      const f = h.ytRendererBehaviorDataObserver_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.ytRendererBehaviorDataObserver_ = g;
+
+    }
+
+    if (typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
+
+      const f = h.ytRendererBehaviorTargetIdObserver_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.ytRendererBehaviorTargetIdObserver_ = g;
+
+    }
+
+    if (typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
+
+      const f = h.unregisterRenderer_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.unregisterRenderer_ = g;
+
+    }
+
+
+
+    if (typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
+
+      const f = h.textChanged_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.textChanged_ = g;
+
+    }
+
+
+
+
+    /*
+    if(typeof h.stampDomArray_ ==='function' && !(h.stampDomArray_.km34)){
+
+      if( h.stampDomArray_.length === 6){
+
+            const f = h.stampDomArray_;
+      const g = function(a,b,c,d,e,h){
+        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.stampDomArray_ = g;
+
+      }else{
+
+
+
+            const f = h.stampDomArray_;
+      const g = function(){
+        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.stampDomArray_ = g;
+      }
+
+
+    }
+    */
+
+    /*
+    if(typeof h.stampDomArraySplices_ ==='function' && !(h.stampDomArraySplices_.km34)){
+
+      if(h.stampDomArraySplices_.length === 3){
+
+
+
+            const f = h.stampDomArraySplices_;
+      const g = function(a,b,c){
+        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.stampDomArraySplices_ = g;
+
+
+      }else{
+
+
+
+            const f = h.stampDomArraySplices_;
+      const g = function(){
+        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.stampDomArraySplices_ = g;
+
+
+      }
+
+    }
+    */
+
+
+
+
+    // RP.prototype.searchChanged_ = RP.prototype.searchChanged_;
+    // RP.prototype.skinToneChanged_ = RP.prototype.skinToneChanged_;
+    // RP.prototype.onEmojiHover_ = RP.prototype.onEmojiHover_;
+    // RP.prototype.onSelectCategory_ = RP.prototype.onSelectCategory_;
+    // RP.prototype.onShowEmojiVariantSelector = RP.prototype.onShowEmojiVariantSelector;
+    // RP.prototype.updateCategoriesAndPlaceholder_ = RP.prototype.updateCategoriesAndPlaceholder_;
+
+
+
+    if (typeof h.searchChanged_ === 'function' && !(h.searchChanged_.km34)) {
+
+      const f = h.searchChanged_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.searchChanged_ = g;
+
+    }
+
+    if (typeof h.skinToneChanged_ === 'function' && !(h.skinToneChanged_.km34)) {
+
+      const f = h.skinToneChanged_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.skinToneChanged_ = g;
+
+    }
+
+    if (typeof h.onEmojiHover_ === 'function' && !(h.onEmojiHover_.km34)) {
+
+      const f = h.onEmojiHover_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onEmojiHover_ = g;
+
+    }
+
+    if (typeof h.onSelectCategory_ === 'function' && !(h.onSelectCategory_.km34)) {
+
+      const f = h.onSelectCategory_;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onSelectCategory_ = g;
+
+    }
+
+    if (typeof h.onShowEmojiVariantSelector === 'function' && !(h.onShowEmojiVariantSelector.km34)) {
+
+      const f = h.onShowEmojiVariantSelector;
+      const g = ump3.get(f) || function (a) {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onShowEmojiVariantSelector = g;
+
+    }
+
+    if (typeof h.updateCategoriesAndPlaceholder_ === 'function' && !(h.updateCategoriesAndPlaceholder_.km34)) {
+
+      const f = h.updateCategoriesAndPlaceholder_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.updateCategoriesAndPlaceholder_ = g;
+
+    }
+
+
+    // console.log(123)
+
+    return;
+
+
+
+
+
+    if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km34)) {
+
+      const f = h.dataChanged_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.dataChanged_ = g;
+
+    }
+
+
+    if (typeof h.addTextNodes_ === 'function' && !(h.addTextNodes_.km34)) {
+
+      const f = h.addTextNodes_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.addTextNodes_ = g;
+
+    }
+
+
+
+
+    if (typeof h.updateText_ === 'function' && !(h.updateText_.km34)) {
+
+      const f = h.updateText_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.updateText_ = g;
+
+    }
+
+
+
+
+    if (typeof h.flushRenderStamperComponentBindings_ === 'function' && !(h.flushRenderStamperComponentBindings_.km34)) {
+
+      const f = h.flushRenderStamperComponentBindings_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.flushRenderStamperComponentBindings_ = g;
+
+    }
+
+
+    if (typeof h.forwardRendererStamperChanges_ === 'function' && !(h.forwardRendererStamperChanges_.km34)) {
+
+      const f = h.forwardRendererStamperChanges_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.forwardRendererStamperChanges_ = g;
+
+    }
+
+
+
+    if (typeof h.stampTypeChanged_ === 'function' && !(h.stampTypeChanged_.km34)) {
+
+      const f = h.stampTypeChanged_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.stampTypeChanged_ = g;
+
+    }
+
+
+    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km34)) {
+
+      const f = h.rendererStamperApplyChangeRecord_;
+      const g = function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      }
+      g.km34 = 1;
+      h.rendererStamperApplyChangeRecord_ = g;
+
+    }
+
+
+
+
+
+
+  }
+
+
+  ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
+    get() {
+      const f = this._stconnectedCallback;
+      setupDiscreteTasks(this, true);
+      if (f) this.ky36 = 1;
+      return f;
+    },
+    set(nv) {
+      this._stconnectedCallback = nv; // proto or object
+      setupDiscreteTasks(this);
+      return true;
+    },
+    enumerable: false,
+    configurable: true
+
+  });
+
 
   const pLoad = new Promise(resolve => {
     if (document.readyState !== 'loading') {
@@ -1244,7 +2338,81 @@
 
     })();
 
+    ENABLE_discreteTasking && (async () => {
 
+      const Polymer = await new Promise(resolve => {
+
+        let cid = 0;
+        const f = () => {
+          const Polymer = window.Polymer;
+          if (typeof Polymer !== 'function') return;
+          if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
+          cid && clearInterval(cid);
+          cid = 0;
+          resolve(Polymer);
+        };
+        cid = setInterval(f, 1);
+
+      });
+      if (!Polymer) return;
+
+      Polymer.Base.__connInit__ = function () {
+        setupDiscreteTasks(this);
+      }
+
+
+      /** @type {Function} */
+      const connectedCallbackK = function (...args) {
+        !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
+        const r = this.connectedCallback53(...args);
+        !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
+        this.mh35 = 1;
+        return r;
+      };
+
+
+      // /** @type {Function} */
+      // const disconnectedCallbackK = function (...args) {
+      //   typeof this.__connInit__ === 'function' && this.__connInit__();
+      //    this.disconnectedCallback53(...args);
+      //   typeof this.__connInit__ === 'function' && this.__connInit__();
+      // };
+
+
+      connectedCallbackK.m353 = 1;
+      // disconnectedCallbackK.m353 = 1;
+
+
+
+      Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
+      // Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
+
+      Polymer.Base.connectedCallback = connectedCallbackK;
+      // Polymer.Base.disconnectedCallback = disconnectedCallbackK;
+
+
+
+
+
+
+      /** @type {Function} */
+      const createdK = function (...args) {
+        !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
+        const r = this.created53(...args);
+        !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
+        this.mh36 = 1;
+        return r;
+      };
+
+
+      createdK.m353 = 1;
+      Polymer.Base.created53 = Polymer.Base.created;
+      Polymer.Base.created = createdK;
+
+
+
+    })();
+    const FIX_PolymerBase = false;
     FIX_PolymerBase && (async () => {
 
       const Polymer = await new Promise(resolve => {
