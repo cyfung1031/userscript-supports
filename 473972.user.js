@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.3
+// @version     0.6.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -109,16 +109,16 @@
 
   const immediateDispatchEvents = new Set([
     'yt-action',
-    // "shown-items-changed",
-    // "can-show-more-changed",
+    "shown-items-changed",
+    "can-show-more-changed",
     "active-changed",
     "focused-changed",
     "disabled-changed",
     "collapsed-changed",
     "is-toggled-changed",
-    // "can-toggle-changed",
-    // "rendered-item-count-changed",
-    // "items-changed",
+    "can-toggle-changed",
+    "rendered-item-count-changed",
+    "items-changed",
   ]);
 
   if (ENABLE_discreteDispatchEvent && typeof EventTarget.prototype.dispatchEvent === 'function' && !EventTarget.prototype.dispatchEvent65) {
@@ -127,8 +127,17 @@
     EventTarget.prototype.dispatchEvent = function (e) {
       const type = (e || 0).type || '';
 
-
+      let b = false;
       if (immediateDispatchEvents.has(type)) {
+        b = true;
+      } else if (type.endsWith('-changed')) {
+
+        immediateDispatchEvents.add(b)
+        b = true;
+      }
+
+      if (b) {
+
 
 
         return this.dispatchEvent65(e);
