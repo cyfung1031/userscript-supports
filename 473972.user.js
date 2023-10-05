@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.0
+// @version     0.6.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -49,7 +49,7 @@
 
   // const FIX_PolymerBase = false; // TBC
   const ENABLE_discreteTasking = true; // TBC
-  
+
 
 
   /*
@@ -410,6 +410,8 @@
 
 
 
+    /*
+
 
     if (typeof h.onYtAction_ === 'function' && !(h.onYtAction_.km34)) {
       const f = h.onYtAction_;
@@ -422,6 +424,7 @@
 
     }
 
+    */
 
 
 
@@ -439,6 +442,8 @@
 
 
 
+
+
     if (typeof h.onVideoDataChange === 'function' && !(h.onVideoDataChange.km34)) {
       const f = h.onVideoDataChange;
       const g = ump3.get(f) || function (a) {
@@ -452,6 +457,8 @@
 
 
 
+
+
     if (typeof h.onVideoDataChange_ === 'function' && !(h.onVideoDataChange_.km34)) {
       const f = h.onVideoDataChange_;
       const g = ump3.get(f) || function () {
@@ -462,6 +469,8 @@
       h.onVideoDataChange_ = g;
 
     }
+
+
 
 
     if (typeof h.addTooltips === 'function' && !(h.addTooltips.km34)) {
@@ -478,6 +487,7 @@
 
 
 
+
     if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
 
       const f = h.addTooltips_;
@@ -489,6 +499,7 @@
       h.addTooltips_ = g;
 
     }
+
 
 
     if (typeof h.updateRenderedElements === 'function' && !(h.updateRenderedElements.km34)) {
@@ -505,6 +516,7 @@
 
 
 
+
     if (typeof h.startLoadingWatch === 'function' && !(h.startLoadingWatch.km34)) {
 
       const f = h.startLoadingWatch;
@@ -516,6 +528,15 @@
       h.startLoadingWatch = g;
 
     }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -541,17 +562,12 @@
 
     }
 
-    if (typeof h.rendererStamperObserver_ === 'function' && !(h.rendererStamperObserver_.km34)) {
 
-      const f = h.rendererStamperObserver_;
-      const g = ump3.get(f) || function (a, b, c) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.rendererStamperObserver_ = g;
 
-    }
+
+
+
+
 
 
     if (typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
@@ -618,6 +634,9 @@
     }
 
 
+
+
+
     if (typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
 
       const f = h.continuationsChanged_;
@@ -682,6 +701,10 @@
       h.handleClick_ = g;
 
     }
+
+
+
+    // return;
 
 
 
@@ -763,7 +786,6 @@
       h.handleInvalidationData_ = g;
 
     }
-
 
     if (typeof h.onInput_ === 'function' && !(h.onInput_.km34)) {
 
@@ -1076,10 +1098,127 @@
     }
 
 
+
+
+
+    if (typeof h.watchPageActiveChanged_ === 'function' && !(h.watchPageActiveChanged_.km34)) {
+
+      const f = h.watchPageActiveChanged_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.watchPageActiveChanged_ = g;
+
+    }
+
+
+    if (typeof h.activate_ === 'function' && !(h.activate_.km34)) {
+
+      const f = h.activate_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.activate_ = g;
+
+    }
+    if (typeof h.onYtPlaylistDataUpdated_ === 'function' && !(h.onYtPlaylistDataUpdated_.km34)) {
+
+      const f = h.onYtPlaylistDataUpdated_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onYtPlaylistDataUpdated_ = g;
+
+    }
+
+
+
+    /// -----------------------
+
+
+    const isMainRenderer = (h)=>{
+       return (h.is === 'yt-live-chat-renderer') ||
+              (h.is === 'yt-live-chat-item-list-renderer') ||
+         0;
+    }
+
+
+    if (typeof h.rendererStamperObserver_ === 'function' && !(h.rendererStamperObserver_.km34)) {
+
+      const f = h.rendererStamperObserver_;
+      const g = ump3.get(f) || function (a, b, c) {
+        if(isMainRenderer(this)){
+           return f.apply(this, arguments);
+        }
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.rendererStamperObserver_ = g;
+
+    }
+
+
+    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km34)) {
+
+      const f = h.rendererStamperApplyChangeRecord_;
+      const g = ump3.get(f) || function () {
+        if(isMainRenderer(this)){
+           return f.apply(this, arguments);
+        }
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.rendererStamperApplyChangeRecord_ = g;
+
+    }
+
+
+
+    if (typeof h.flushRenderStamperComponentBindings_ === 'function' && !(h.flushRenderStamperComponentBindings_.km34)) {
+
+      const f = h.flushRenderStamperComponentBindings_;
+      const g = ump3.get(f) || function () {
+        if(isMainRenderer(this)){
+           return f.apply(this, arguments);
+        }
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.flushRenderStamperComponentBindings_ = g;
+
+    }
+
+
+    if (typeof h.forwardRendererStamperChanges_ === 'function' && !(h.forwardRendererStamperChanges_.km34)) {
+
+      const f = h.forwardRendererStamperChanges_;
+      const g = ump3.get(f) || function () {
+        if(isMainRenderer(this)){
+           return f.apply(this, arguments);
+        }
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.forwardRendererStamperChanges_ = g;
+
+    }
+
+
+
+
     // console.log(123)
 
-    return;
-
+    // return;
 
 
 
@@ -1087,13 +1226,131 @@
     if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km34)) {
 
       const f = h.dataChanged_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
+      const g = ump3.get(f) || function () {
+        if(isMainRenderer(this)){
+           return f.apply(this, arguments);
+        }
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
       }
+      ump3.set(f, g);
       g.km34 = 1;
       h.dataChanged_ = g;
 
     }
+
+
+
+    if (typeof h.tryRenderChunk_ === 'function' && !(h.tryRenderChunk_.km34)) {
+
+      const f = h.tryRenderChunk_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.tryRenderChunk_ = g;
+
+    }
+
+
+    if (typeof h.renderChunk_ === 'function' && !(h.renderChunk_.km34)) {
+
+      const f = h.renderChunk_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.renderChunk_ = g;
+
+    }
+
+    if (typeof h.deepLazyListObserver_ === 'function' && !(h.deepLazyListObserver_.km34)) {
+
+      const f = h.deepLazyListObserver_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.deepLazyListObserver_ = g;
+
+    }
+
+
+    if (typeof h.onItemsUpdated_ === 'function' && !(h.onItemsUpdated_.km34)) {
+
+      const f = h.onItemsUpdated_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.onItemsUpdated_ = g;
+
+    }
+
+    if (typeof h.updateChangeRecord_ === 'function' && !(h.updateChangeRecord_.km34)) {
+
+      const f = h.updateChangeRecord_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.updateChangeRecord_ = g;
+
+    }
+
+
+    if (typeof h.requestRenderChunk_ === 'function' && !(h.requestRenderChunk_.km34)) {
+
+      const f = h.requestRenderChunk_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.requestRenderChunk_ = g;
+
+    }
+
+
+
+
+
+    return;
+
+
+
+    /*
+    if (typeof h.cancelPendingTasks_ === 'function' && !(h.cancelPendingTasks_.km34)) {
+
+      const f = h.cancelPendingTasks_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.cancelPendingTasks_ = g;
+
+    }
+
+
+    if (typeof h.fillRange_ === 'function' && !(h.fillRange_.km34)) {
+
+      const f = h.fillRange_;
+      const g = ump3.get(f) || function () {
+        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km34 = 1;
+      h.fillRange_ = g;
+
+    }
+    */
+
+
 
 
     if (typeof h.addTextNodes_ === 'function' && !(h.addTextNodes_.km34)) {
@@ -1124,30 +1381,6 @@
 
 
 
-    if (typeof h.flushRenderStamperComponentBindings_ === 'function' && !(h.flushRenderStamperComponentBindings_.km34)) {
-
-      const f = h.flushRenderStamperComponentBindings_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.flushRenderStamperComponentBindings_ = g;
-
-    }
-
-
-    if (typeof h.forwardRendererStamperChanges_ === 'function' && !(h.forwardRendererStamperChanges_.km34)) {
-
-      const f = h.forwardRendererStamperChanges_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.forwardRendererStamperChanges_ = g;
-
-    }
-
-
 
     if (typeof h.stampTypeChanged_ === 'function' && !(h.stampTypeChanged_.km34)) {
 
@@ -1161,35 +1394,35 @@
     }
 
 
-    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km34)) {
-
-      const f = h.rendererStamperApplyChangeRecord_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.rendererStamperApplyChangeRecord_ = g;
-
-    }
 
 
+      // console.log(166)
 
 
 
 
   }
 
+  let SKIP_setupDiscreteTasks = false;
 
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       const f = this._stconnectedCallback;
-      setupDiscreteTasks(this, true);
-      if (f) this.ky36 = 1;
+      if(!SKIP_setupDiscreteTasks){
+        if(this.is){
+          setupDiscreteTasks(this, true);
+          if (f) this.ky36 = 1;
+        }
+      }
       return f;
     },
     set(nv) {
       this._stconnectedCallback = nv; // proto or object
-      setupDiscreteTasks(this);
+      if(!SKIP_setupDiscreteTasks){
+        if(this.is){
+          setupDiscreteTasks(this);
+        }
+      }
       return true;
     },
     enumerable: false,
@@ -2346,7 +2579,9 @@
         const f = () => {
           const Polymer = window.Polymer;
           if (typeof Polymer !== 'function') return;
+          SKIP_setupDiscreteTasks = true;
           if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
+          SKIP_setupDiscreteTasks = false;
           cid && clearInterval(cid);
           cid = 0;
           resolve(Polymer);
@@ -2355,6 +2590,9 @@
 
       });
       if (!Polymer) return;
+
+
+      SKIP_setupDiscreteTasks = true;
 
       Polymer.Base.__connInit__ = function () {
         setupDiscreteTasks(this);
@@ -2410,6 +2648,7 @@
       Polymer.Base.created = createdK;
 
 
+      SKIP_setupDiscreteTasks = false;
 
     })();
     const FIX_PolymerBase = false;
@@ -2421,7 +2660,9 @@
         const f = () => {
           const Polymer = window.Polymer;
           if (typeof Polymer !== 'function') return;
+          SKIP_setupDiscreteTasks = true;
           if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
+          SKIP_setupDiscreteTasks = false;
           cid && clearInterval(cid);
           cid = 0;
           resolve(Polymer);
