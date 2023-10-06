@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.7
+// @version     0.6.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -108,6 +108,8 @@
 
 
 
+  const qm47 = Symbol();
+  const qm57 = Symbol();
 
 
   const ump3 = new WeakMap();
@@ -923,7 +925,9 @@
         if (isMainRenderer(this)) {
           return f.apply(this, arguments);
         }
-        this.qm47 = (this.qm47 || Promise.resolve()).then(() => this.rendererStamperApplyChangeRecord31_(a, b, c)).catch(console.log);
+
+        // sequence on the same proto
+        this[qm47] = (this[qm47] || Promise.resolve()).then(() => this.rendererStamperApplyChangeRecord31_(a, b, c)).catch(console.log);
       }
       ump3.set(f, g);
       g.km31 = 1;
@@ -1024,7 +1028,9 @@
         if (isMainRenderer(this)) {
           return f.apply(this, arguments);
         }
-        this.qm47 = (this.qm47 || Promise.resolve()).then(() => this.dataChanged31_(...args)).catch(console.log);
+
+        // sequence on the same proto
+        this[qm47] = (this[qm47] || Promise.resolve()).then(() => this.dataChanged31_(...args)).catch(console.log);
       }
       ump3.set(f, g);
       g.km31 = 1;
@@ -1219,6 +1225,9 @@
 
   const keyStConnectedCallback = Symbol(); // avoid copying the value
 
+  const keyStDisconnectedCallback = Symbol(); // avoid copying the value
+  const cmf = new WeakMap();
+
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       const f = this[keyStConnectedCallback];
@@ -1229,7 +1238,30 @@
       return f;
     },
     set(nv) {
-      this[keyStConnectedCallback] = nv; // proto or object
+      let gv;
+      if (typeof nv === 'function') {
+
+        gv = cmf.get(nv) || function () {
+          if (this.$ || !this.is) {
+
+            // << dom-repeat & dom-if >>
+            // this.is can be undefined for dom-repeat and dom-if
+            // e.g. animated rolling number
+            // in that case, can be async
+
+            // sequence on the same proto
+            this[qm57] = (this[qm57] || Promise.resolve()).then(() => nv.apply(this, arguments)).catch(console.log);
+          } else {
+            nv.apply(this, arguments);
+          }
+        };
+        cmf.set(nv, gv);
+        cmf.set(gv, gv);
+
+      } else {
+        gv = nv;
+      }
+      this[keyStConnectedCallback] = gv; // proto or object
       if (this.is) {
         setupDiscreteTasks(this);
       }
@@ -1239,7 +1271,6 @@
     configurable: true
 
   });
-
 
   const pLoad = new Promise(resolve => {
     if (document.readyState !== 'loading') {
