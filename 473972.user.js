@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.10
+// @version     0.6.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -67,6 +67,13 @@
   });
 */
 
+
+  const win = this instanceof Window ? this : window;
+
+  // Create a unique key for the script and check if it is already running
+  const hkey_script = 'jswylcojvzts';
+  if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
+  win[hkey_script] = true;
 
 
   let p59 = 0;
