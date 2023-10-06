@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.8
+// @version     0.6.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -110,6 +110,8 @@
 
   const qm47 = Symbol();
   const qm57 = Symbol();
+  const qm53 = Symbol();
+  const qn53 = Symbol();
 
 
   const ump3 = new WeakMap();
@@ -1227,6 +1229,7 @@
 
   const keyStDisconnectedCallback = Symbol(); // avoid copying the value
   const cmf = new WeakMap();
+  const dmf = new WeakMap();
 
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
@@ -1255,8 +1258,11 @@
             nv.apply(this, arguments);
           }
         };
-        cmf.set(nv, gv);
-        cmf.set(gv, gv);
+        if (gv !== nv) {
+          cmf.set(nv, gv);
+          cmf.set(gv, gv);
+          dmf.set(gv, nv);
+        }
 
       } else {
         gv = nv;
@@ -2201,10 +2207,10 @@
       let cid = setInterval(() => {
 
 
-        if (typeof cProto.created === 'function' && !cProto.created57) {
-          cProto.created57 = cProto.created;
+        if (typeof cProto.created === 'function' && !cProto.created56) {
+          cProto.created56 = cProto.created;
           cProto.created = function (...args) {
-            const r = this.created57(...args);
+            const r = this.created56(...args);
             fixer(this);
             return r;
           };
@@ -2388,10 +2394,10 @@
 
       const cProto = (dummy.inst || dummy).constructor.prototype;
 
-      if (typeof cProto.created === 'function' && !cProto.created57) {
-        cProto.created57 = cProto.created;
+      if (typeof cProto.created === 'function' && !cProto.created58) {
+        cProto.created58 = cProto.created;
         cProto.created = function (...args) {
-          const r = this.created57(...args);
+          const r = this.created58(...args);
           if (typeof this.maybeUpdateFlexibleMenu === 'function' && !this.maybeUpdateFlexibleMenu57) {
             this.maybeUpdateFlexibleMenu57 = this.maybeUpdateFlexibleMenu;
             this.maybeUpdateFlexibleMenu = function (...args) {
@@ -2438,41 +2444,25 @@
       /** @type {Function} */
       const connectedCallbackK = function (...args) {
         !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        const r = this.connectedCallback53(...args);
+        const r = this[qm53](...args);
         !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
         this.mh35 = 1;
         return r;
       };
 
-
-      // /** @type {Function} */
-      // const disconnectedCallbackK = function (...args) {
-      //   typeof this.__connInit__ === 'function' && this.__connInit__();
-      //    this.disconnectedCallback53(...args);
-      //   typeof this.__connInit__ === 'function' && this.__connInit__();
-      // };
-
-
       connectedCallbackK.m353 = 1;
-      // disconnectedCallbackK.m353 = 1;
 
 
-
-      Polymer.Base.connectedCallback53 = Polymer.Base.connectedCallback;
-      // Polymer.Base.disconnectedCallback53 = Polymer.Base.disconnectedCallback;
+      const qt53 =  Polymer.Base.connectedCallback;
+      Polymer.Base[qm53] = dmf.get(qt53) || qt53;
 
       Polymer.Base.connectedCallback = connectedCallbackK;
-      // Polymer.Base.disconnectedCallback = disconnectedCallbackK;
-
-
-
-
 
 
       /** @type {Function} */
       const createdK = function (...args) {
         !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        const r = this.created53(...args);
+        const r = this[qn53](...args);
         !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
         this.mh36 = 1;
         return r;
@@ -2480,7 +2470,7 @@
 
 
       createdK.m353 = 1;
-      Polymer.Base.created53 = Polymer.Base.created;
+      Polymer.Base[qn53] = Polymer.Base.created;
       Polymer.Base.created = createdK;
 
     })();
