@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.6
+// @version     0.6.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -911,6 +911,31 @@
     }
 
 
+
+    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31)) {
+
+
+
+
+      const f = h.rendererStamperApplyChangeRecord_;
+      h.rendererStamperApplyChangeRecord31_ = f;
+      const g = ump3.get(f) || function (a, b, c) {
+        if (isMainRenderer(this)) {
+          return f.apply(this, arguments);
+        }
+        this.qm47 = (this.qm47 || Promise.resolve()).then(() => this.rendererStamperApplyChangeRecord31_(a, b, c)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km31 = 1;
+      h.rendererStamperApplyChangeRecord_ = g;
+
+
+    }
+
+
+
+
+    /*
     if (typeof h.rendererStamperObserver_ === 'function' && !(h.rendererStamperObserver_.km34)) {
 
       const f = h.rendererStamperObserver_;
@@ -974,6 +999,8 @@
       h.forwardRendererStamperChanges_ = g;
 
     }
+    */
+
 
 
 
@@ -984,6 +1011,30 @@
 
 
 
+
+    if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km31)) {
+
+
+
+
+      const f = h.dataChanged_;
+      h.dataChanged31_ = f;
+      const g = ump3.get(f) || function (...args) {
+
+        if (isMainRenderer(this)) {
+          return f.apply(this, arguments);
+        }
+        this.qm47 = (this.qm47 || Promise.resolve()).then(() => this.dataChanged31_(...args)).catch(console.log);
+      }
+      ump3.set(f, g);
+      g.km31 = 1;
+      h.dataChanged_ = g;
+
+
+    }
+
+
+    /*
 
     if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km34)) {
 
@@ -999,6 +1050,7 @@
       h.dataChanged_ = g;
 
     }
+    */
 
 
 
