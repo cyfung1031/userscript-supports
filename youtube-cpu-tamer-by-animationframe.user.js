@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2023.09.18.0
+// @version             2023.10.08.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -186,12 +186,11 @@ SOFTWARE.
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
           }
-          if (document.readyState !== 'loading') {
+          if (!setTimeout || document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
           } else {
             win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
@@ -201,11 +200,16 @@ SOFTWARE.
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
-      const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
-      for (let k in res) res[k] = res[k].bind(win); // necessary
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      return res;
+      try {
+        const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
+        const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
+        for (let k in res) res[k] = res[k].bind(win); // necessary
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+        return res;
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
     } catch (e) {
       console.warn(e);
       return null;

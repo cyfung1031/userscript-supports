@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.15
+// @version             0.60.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1579,12 +1579,11 @@
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
           }
-          if (document.readyState !== 'loading') {
+          if (!setTimeout || document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
           } else {
             win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
@@ -1594,24 +1593,29 @@
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle } = fc;
-      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle };
-      for (let k in res) res[k] = res[k].bind(win); // necessary
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+      try {
+        const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle } = fc;
+        const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, getComputedStyle };
+        for (let k in res) res[k] = res[k].bind(win); // necessary
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
 
-      /** @type {HTMLElement} */
-      const HTMLElementProto = fc.HTMLElement.prototype;
-      /** @type {EventTarget} */
-      const EventTargetProto = fc.EventTarget.prototype;
-      // jsonParseFix = {
-      //   _JSON: fc.JSON, _parse: fc.JSON.parse
-      // }
-      return {
-        ...res,
-        animate: HTMLElementProto.animate,
-        addEventListener: EventTargetProto.addEventListener,
-        removeEventListener: EventTargetProto.removeEventListener
-      };
+        /** @type {HTMLElement} */
+        const HTMLElementProto = fc.HTMLElement.prototype;
+        /** @type {EventTarget} */
+        const EventTargetProto = fc.EventTarget.prototype;
+        // jsonParseFix = {
+        //   _JSON: fc.JSON, _parse: fc.JSON.parse
+        // }
+        return {
+          ...res,
+          animate: HTMLElementProto.animate,
+          addEventListener: EventTargetProto.addEventListener,
+          removeEventListener: EventTargetProto.removeEventListener
+        };
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
     } catch (e) {
       console.warn(e);
       return null;

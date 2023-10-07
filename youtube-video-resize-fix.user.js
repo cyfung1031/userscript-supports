@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.8
+// @version             0.3.9
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -83,12 +83,11 @@ SOFTWARE.
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
           }
-          if (document.readyState !== 'loading') {
+          if (!setTimeout || document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
           } else {
             win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
@@ -98,11 +97,16 @@ SOFTWARE.
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, clearTimeout } = fc;
-      const res = { requestAnimationFrame, setTimeout, clearTimeout };
-      for (let k in res) res[k] = res[k].bind(win); // necessary
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      return res;
+      try {
+        const { requestAnimationFrame, setTimeout, clearTimeout } = fc;
+        const res = { requestAnimationFrame, setTimeout, clearTimeout };
+        for (let k in res) res[k] = res[k].bind(win); // necessary
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+        return res;
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
     } catch (e) {
       console.warn(e);
       return null;

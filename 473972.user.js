@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.13
+// @version     0.6.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2043,12 +2043,11 @@
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
           }
-          if (document.readyState !== 'loading') {
+          if (!setTimeout || document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
           } else {
             win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
@@ -2058,12 +2057,17 @@
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle } = fc;
-      const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle };
-      for (let k in res) res[k] = res[k].bind(win); // necessary
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      res.animate = fc.HTMLElement.prototype.animate;
-      return res;
+      try {
+        const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle } = fc;
+        const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle };
+        for (let k in res) res[k] = res[k].bind(win); // necessary
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+        res.animate = fc.HTMLElement.prototype.animate;
+        return res;
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
     } catch (e) {
       console.warn(e);
       return null;

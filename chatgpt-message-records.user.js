@@ -7,7 +7,7 @@
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.1.2
+// @version     1.1.3
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -115,12 +115,11 @@ __errorCode21167__ || (() => {
         removeIframeFn = (setTimeout) => {
           const removeIframeOnDocumentReady = (e) => {
             e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            win = null;
-            const m = n;
-            n = null;
-            setTimeout(() => m.remove(), 200);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
           }
-          if (document.readyState !== 'loading') {
+          if (!setTimeout || document.readyState !== 'loading') {
             removeIframeOnDocumentReady();
           } else {
             win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
@@ -130,9 +129,14 @@ __errorCode21167__ || (() => {
       while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-      const res = sanitize(fc);
-      if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-      return res;
+      try {
+        const res = sanitize(fc);
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+        return res;
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
     } catch (e) {
       console.warn(e);
       return null;
