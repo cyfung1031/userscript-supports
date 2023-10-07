@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.14
+// @version     0.6.15
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -49,6 +49,7 @@
 
   const ENABLE_discreteTasking = true;
 
+  const FIX_perfNow = true;
 
 
 
@@ -75,6 +76,8 @@
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
 
+
+  
 
   let p59 = 0;
 
@@ -112,6 +115,16 @@
 
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
+
+  FIX_perfNow && (()=>{
+    let nowh = -1;
+    const dtl = new DocumentTimeline();
+    performance.now = function () {
+      let t = nowh;
+      let c = dtl.currentTime;
+      return (nowh = (t + 1e-7 > c ? t + 1e-5 : c));
+    }
+  })();
 
 
 
@@ -2063,6 +2076,7 @@
         for (let k in res) res[k] = res[k].bind(win); // necessary
         if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
         res.animate = fc.HTMLElement.prototype.animate;
+        res.perfNow = fc.performance.now;
         return res;
       } catch (e) {
         if (removeIframeFn) removeIframeFn();
@@ -2080,7 +2094,24 @@
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle, perfNow } = __CONTEXT__;
+
+    performance.now17 = perfNow.bind(performance);
+    /*
+    let nowh = -1;
+    performance.now = function () {
+      let t = nowh;
+      let c = this.now17();
+      return (nowh = (t + 1e-7 > c ? t + 0.1 : c));
+    }
+    */
+
+    // console.log(performance.now())
+    // console.log(performance.now())
+    // console.log(performance.now())
+    // console.log(performance.now())
+    
+
 
     __requestAnimationFrame__ = requestAnimationFrame;
 
@@ -2495,7 +2526,7 @@
       connectedCallbackK.m353 = 1;
 
 
-      const qt53 =  Polymer.Base.connectedCallback;
+      const qt53 = Polymer.Base.connectedCallback;
       Polymer.Base[qm53] = dmf.get(qt53) || qt53;
 
       Polymer.Base.connectedCallback = connectedCallbackK;
