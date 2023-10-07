@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.12
+// @version     0.6.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -289,6 +289,8 @@
 
 
 
+    /*
+    // buggy for yt-player-updated
     if (typeof h.startLoadingWatch === 'function' && !(h.startLoadingWatch.km34)) {
 
       const f = h.startLoadingWatch;
@@ -300,6 +302,7 @@
       h.startLoadingWatch = g;
 
     }
+    */
 
 
 
