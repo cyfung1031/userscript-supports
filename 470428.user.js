@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.3
+// @version     1.3.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -795,7 +795,7 @@
 
         EXPERIMENT_FLAGS.web_supports_animations_api = true;
         EXPERIMENT_FLAGS.smartimation_background = true;
-        EXPERIMENT_FLAGS.register_web_smartimations_component = true;
+        // EXPERIMENT_FLAGS.register_web_smartimations_component = true;
 
         EXPERIMENT_FLAGS.enable_native_live_chat_on_kevlar = true;
 
