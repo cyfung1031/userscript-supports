@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.11
+// @version     0.6.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -915,10 +915,35 @@
 
 
     const isMainRenderer = (h) => {
+
+      if (h.is && h.$ && h.__dataEnabled && h.__dataReady && h.__shady && h.__templateInfo && h.root && h.hostElement) {
+
+        if (h.parentComponent && h.ytComponentBehavior) {
+          // chat renderer
+          if (h.is.endsWith('-renderer')) {
+            return true;
+          }
+        } else if (!h.parentComponent && !h.ytComponentBehavior) {
+          // custom lyrics engagement panel
+          if (h.is.endsWith('-renderer')) {
+            return true;
+          }
+        } else if (h.parentComponent && !h.ytComponentBehavior) {
+          // input renderer
+          if (h.is.endsWith('-renderer')) {
+            return true;
+          }
+        }
+
+      }
+
+      return false;
+      /*
       return (h.is === 'yt-live-chat-renderer') ||
         (h.is === 'yt-live-chat-item-list-renderer') ||
         (h.is === 'yt-live-chat-text-input-field-renderer') ||
         0;
+        */
     }
 
 
