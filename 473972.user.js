@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.17
+// @version     0.6.18
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -45,7 +45,7 @@
   const FIX_onStateChange = true;
   const FIX_onLoopRangeChange = true;
   const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
-  const FIX_VideoEVENTS = false; // true might cause bug in switching page
+  const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
   const ENABLE_discreteTasking = true;
 
@@ -2433,17 +2433,17 @@
     // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
     FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
     FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
-    if (FIX_VideoEVENTS) {
+    if (FIX_VideoEVENTS_v2) {
       const FIX_VideoEVENTS_DEBUG = 0;
-      generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onLoadedMetadata', 'onLoadedMetadata57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onDrmOutputRestricted', 'onDrmOutputRestricted57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onAirPlayActiveChange', 'onAirPlayActiveChange57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onAirPlayAvailabilityChange', 'onAirPlayAvailabilityChange57', FIX_VideoEVENTS_DEBUG);
-      generalEvtHandler('onApiChange', 'onApiChange57', FIX_VideoEVENTS_DEBUG);
+      generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG); // --
+      // generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
+      // generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG); // << CAUSE ISSUE >>
+      generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG); // --
+      // generalEvtHandler('onLoadedMetadata', 'onLoadedMetadata57', FIX_VideoEVENTS_DEBUG);
+      // generalEvtHandler('onDrmOutputRestricted', 'onDrmOutputRestricted57', FIX_VideoEVENTS_DEBUG);
+      // generalEvtHandler('onAirPlayActiveChange', 'onAirPlayActiveChange57', FIX_VideoEVENTS_DEBUG);
+      // generalEvtHandler('onAirPlayAvailabilityChange', 'onAirPlayAvailabilityChange57', FIX_VideoEVENTS_DEBUG);
+      // generalEvtHandler('onApiChange', 'onApiChange57', FIX_VideoEVENTS_DEBUG);
 
     }
     // onMutedAutoplayChange
