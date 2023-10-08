@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.16
+// @version     0.6.17
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -45,7 +45,7 @@
   const FIX_onStateChange = true;
   const FIX_onLoopRangeChange = true;
   const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
-  const FIX_VideoEVENTS = true;
+  const FIX_VideoEVENTS = false; // true might cause bug in switching page
 
   const ENABLE_discreteTasking = true;
 
