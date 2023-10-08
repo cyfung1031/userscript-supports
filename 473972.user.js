@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.15
+// @version     0.6.16
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -119,10 +119,23 @@
   FIX_perfNow && (()=>{
     let nowh = -1;
     const dtl = new DocumentTimeline();
-    performance.now = function () {
+    performance.now = performance.now16 = function () {
+
+      /**
+       * Bug 1842437 - When attempting to go back on youtube.com, the content remains the same
+       *
+       * If consecutive session history entries had history.state.entryTime set to same value,
+       * back button doesn't work as expected. The entryTime value is coming from performance.now()
+       * and modifying its return value slightly to make sure two close consecutive calls don't
+       * get the same result helped with resolving the issue.
+       */
+
       let t = nowh;
       let c = dtl.currentTime;
       return (nowh = (t + 1e-7 > c ? t + 1e-5 : c));
+    }
+    if (performance.now !== performance.now16) { // might not able to set in Firefox
+      if (performance.now() === performance.now()) console.warn('performance.now() is not mono increasing.');
     }
   })();
 
@@ -2096,7 +2109,9 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle, perfNow } = __CONTEXT__;
 
+    
     performance.now17 = perfNow.bind(performance);
+    // performance.now = performance.now16;
     /*
     let nowh = -1;
     performance.now = function () {
@@ -2974,15 +2989,15 @@
 
 
       let keyZq = getZq(_yt_player);
-      let keyVG = getVG(_yt_player);
-      let buildVG = _yt_player[keyVG];
-      let u = new buildVG({
-        api: {},
-        element: document.createElement('noscript'),
-        api: {},
-        hide: () => { }
-      }, 250);
-      const timeDelayConstructor = u.delay.constructor; // g.br
+      // let keyVG = getVG(_yt_player);
+      // let buildVG = _yt_player[keyVG];
+      // let u = new buildVG({
+      //   api: {},
+      //   element: document.createElement('noscript'),
+      //   api: {},
+      //   hide: () => { }
+      // }, 250);
+      // const timeDelayConstructor = u.delay.constructor; // g.br
       // console.log(keyVG, u)
       // buildVG.prototype.show = function(){}
       // _yt_player[keyZq] = g.k
