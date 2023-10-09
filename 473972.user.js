@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.19
+// @version     0.6.20
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2595,10 +2595,11 @@
             }
           }
 
+          return (this.appendChild73 || f).apply(this, arguments);
         }
 
 
-        return (this.appendChild73 || HTMLElement.prototype.appendChild73 || f).apply(this, arguments)
+        return (HTMLElement.prototype.appendChild73 || f).apply(this, arguments);
       }
 
 
