@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.18
+// @version     0.6.19
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2565,8 +2565,8 @@
 
     CHANGE_appendChild && (() => {
 
-      HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
-      HTMLElement.prototype.appendChild = function (a) {
+      const f = HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
+      if (f) HTMLElement.prototype.appendChild = function (a) {
 
 
         if (this instanceof HTMLElement) {
@@ -2598,7 +2598,7 @@
         }
 
 
-        return this.appendChild73.apply(this, arguments)
+        return (this.appendChild73 || HTMLElement.prototype.appendChild73 || f).apply(this, arguments)
       }
 
 
