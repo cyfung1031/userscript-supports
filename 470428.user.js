@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.4
+// @version     1.3.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -665,7 +665,7 @@
           if (key === 'live_chat_enable_send_button_in_slow_mode') continue;
 
           if (key === 'kevlar_watch_metadata_refresh_no_old_primary_data') continue;
-          if (key === 'kevlar_watch_metadata_refresh_no_old_secondary_data') continue;
+          // if (key === 'kevlar_watch_metadata_refresh_no_old_secondary_data') continue; // for Tabview Youtube
           if (key === 'enable_web_cosmetic_refresh_hashtag_page') continue;
           if (key === 'kevlar_watch_metadata_refresh_description_lines') continue;
 
@@ -756,6 +756,7 @@
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
 
+      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = false; // for Tabview Youtube
       EXPERIMENT_FLAGS.kevlar_unified_player = true;
 
 
