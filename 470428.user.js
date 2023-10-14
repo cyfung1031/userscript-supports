@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.5
+// @version     1.3.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -31,6 +31,8 @@
   const ENABLE_MINOR_CHAT_FEATURE_UPGRADE = true;
   const ENABLE_EMOJI_PICKER_NEW_STYLE = false;
   const ENABLE_BADGE_STYLE = false;
+  const NO_DESKTOP_DELAY_PLAYER_RESIZING = false;
+  const NO_ANIMATED_LIKE = false;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -746,6 +748,8 @@
 
           if (key === 'web_enable_dynamic_metadata') continue;
 
+          if (key === 'web_animated_like') continue;
+          if (key === 'web_animated_like_lazy_load') continue;
 
 
           // console.log(key)
@@ -755,6 +759,9 @@
     }
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
+      // return;
+      /*
+      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
 
       EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = false; // for Tabview Youtube
       EXPERIMENT_FLAGS.kevlar_unified_player = true;
@@ -778,6 +785,7 @@
       EXPERIMENT_FLAGS.web_no_lock_on_touchstart_killswitch = false;
 
 
+*/
 
       // EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
       // EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
@@ -863,9 +871,14 @@
 
 
 
-      EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
-      EXPERIMENT_FLAGS.web_animated_like = false;
-      EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
+      if (NO_DESKTOP_DELAY_PLAYER_RESIZING) {
+
+        EXPERIMENT_FLAGS.desktop_delay_player_resizing = false;
+      }
+      if (NO_ANIMATED_LIKE) {
+        EXPERIMENT_FLAGS.web_animated_like = false;
+        EXPERIMENT_FLAGS.web_animated_like_lazy_load = false;
+      }
 
       if (use_maintain_stable_list) {
         if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
