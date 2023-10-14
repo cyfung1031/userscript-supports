@@ -2,7 +2,7 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.5.1
+// @version             0.5.2
 // @license             MIT
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -54,7 +54,7 @@ gO;return b};
       const sflags = obj.serializedExperimentFlags
       if (typeof sflags === 'string') {
         if (sflags.includes('&h5_expr_b9Nkc=true')) return;
-        let s = sflags.replace(/(^|&)(html5_exponential_memory_for_sticky|html5_perf_cap_override_sticky|html5_ustreamer_cap_override_sticky)=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
+        let s = sflags.replace(/(^|&)(html5_exponential_memory_for_sticky|html5_perf_cap_override_sticky|html5_ustreamer_cap_override_sticky|html5_always_apply_default_quality_cap|html5_apply_pbr_cap_for_drm|manifestless_post_live_ufph|manifestless_post_live|hls_for_vod|mweb_remove_360p_cap)=\w+/, '') + '&html5_exponential_memory_for_sticky=true&h5_expr_b9Nkc=true';
         obj.serializedExperimentFlags = s.charCodeAt(0) === 38 ? s.substring(1) : s;
       }
 
