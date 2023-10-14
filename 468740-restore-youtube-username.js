@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.4
+// @version             0.9.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -170,7 +170,7 @@ SOFTWARE.
 (function (__CONTEXT__) {
     'use strict';
 
-    const USE_RSS_FETCHER = false; // 404 since Oct 2023
+    const USE_RSS_FETCHER = true; // might 404
     const USE_TIMEOUT_SIGNAL = false;
     const USE_CHANNEL_META = true;
     const CHANGE_FOR_SHORTS_CHANNEL_NAME = false;
@@ -674,6 +674,7 @@ SOFTWARE.
      * @param {Function} onResulted
      * @param {Function} onError
      */
+    let fetchRSSFailed = false;
     const fetcherRSS = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
 
         let signal = timeoutSignal(4000);
@@ -706,12 +707,35 @@ SOFTWARE.
                 "Accept": "text/xml",
             }
         }).then(res => {
+
             signal && signal.clearTimeout && signal.clearTimeout();
             signal = null;
-            onDownloaded();
-            onDownloaded = null;
-            return res.text();
+
+            if (res.ok === true && res.redirected === false && res.status === 200 && res.type === "basic") {
+
+                onDownloaded();
+                onDownloaded = null;
+                return res.text();
+
+            }
+            return null;
+
         }).then(resText => {
+            if (resText && typeof resText === 'string' && resText.includes('<feed') && !resText.includes('<!DOCTYPE')) {
+
+            } else {
+                if (onDownloaded) {
+
+                    onDownloaded();
+                    onDownloaded = null;
+                }
+                onResulted(-1);
+                return;
+
+            }
+
+
+            // console.log(124,  , resText)
             let eIdx = resText.indexOf('<entry>');
             let mText = (eIdx > 0) ? `${resText.substring(0, eIdx).trim()}</feed>` : resText;
 
@@ -874,34 +898,67 @@ SOFTWARE.
             bResult.fetchingState = 2;
 
 
+            const retry = () => {
+
+                fetchRSSFailed = true;
+
+                bResult.fetchingState = 2;
+
+                // Promise.resolve(channelId).then(stackNewRequest);
+                fetcherBrowseAPI(channelId, mobj.fetchOnDownload, mobj.fetchOnSuccess, mobj.fetchOnFail);
+            }
+
+            const mobj = {
+                fetchOnDownload: () => {
+                    bResult.fetchingState = 3;
+                },
+                fetchOnSuccess: resultInfo => {
+
+                    if (resultInfo === -1) {
+                        retry();
+                        return;
+                    }
+
+                    lockResolve && lockResolve();
+                    lockResolve = null;
+                    // console.log(900)
+
+                    if (!resultInfo) {
+                        // invalid json format
+                        setResult(null);
+                        return;
+                    }
+
+                    cacheHandleToChannel(resultInfo, channelId);
+
+                    const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
+
+                    const displayNameRes = { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
+
+                    setResult(displayNameRes);
+                },
+                fetchOnFail: e => {
+
+
+                    console.warn(e);
+                    if (mobj.fetcher === fetcherRSS) {
+                        retry();
+
+                    } else {
+
+                        lockResolve && lockResolve();
+                        lockResolve = null;
+                        // console.warn(e);
+                        setResult && setResult(null);
+                    }
+                }
+            }
+
+
             // note: when setResult(null), the fetch will be requested again if the same username appears. (multiple occurrences)
             // consider the network problem might be fixed in the 2nd attempt, the name will be changed in the 2nd attempt but ignore 1st attempt.
-            const fetcher = USE_RSS_FETCHER && fetcherRSS && channelIdToHandle.has(channelId) ? fetcherRSS : fetcherBrowseAPI;
-            fetcher(channelId, () => {
-                bResult.fetchingState = 3;
-                lockResolve();
-                lockResolve = null;
-            }, resultInfo => {
-
-                if (!resultInfo) {
-                    // invalid json format
-                    setResult(null);
-                    return;
-                }
-
-                cacheHandleToChannel(resultInfo, channelId);
-
-                const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
-
-                const displayNameRes = { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
-
-                setResult(displayNameRes);
-            }, e => {
-                lockResolve && lockResolve();
-                lockResolve = null;
-                console.warn(e);
-                setResult && setResult(null);
-            });
+            mobj.fetcher = USE_RSS_FETCHER && fetcherRSS && !fetchRSSFailed && channelIdToHandle.has(channelId) ? fetcherRSS : fetcherBrowseAPI;
+            mobj.fetcher(channelId, mobj.fetchOnDownload, mobj.fetchOnSuccess, mobj.fetchOnFail);
 
         });
 
