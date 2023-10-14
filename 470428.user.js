@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.6
+// @version     1.3.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -750,6 +750,7 @@
 
           if (key === 'web_animated_like') continue;
           if (key === 'web_animated_like_lazy_load') continue;
+          if (key === 'desktop_delay_player_resizing') continue;
 
 
           // console.log(key)
