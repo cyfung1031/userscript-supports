@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.16
+// @version             0.60.17
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3942,7 +3942,8 @@
 
               }
 
-              skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
+              const noVisibleItem1 = ((cnt.visibleItems || 0).length || 0) === 0;
+              skipDontRender = noVisibleItem1;
               // console.log('ss1', Date.now())
               if (waitFor.length > 0) {
                 await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
@@ -3951,7 +3952,8 @@
               waitFor = null;
               // console.log('ss2', Date.now())
               cnt.flushActiveItems66_();
-              skipDontRender = ((cnt.visibleItems || 0).length || 0) === 0;
+              const noVisibleItem2 = ((cnt.visibleItems || 0).length || 0) === 0;
+              skipDontRender = noVisibleItem2;
               const len2 = cnt.activeItems_.length;
               const bAsync = len1 !== len2;
               await Promise.resolve();
@@ -3977,9 +3979,14 @@
                   originalMaxItemsToDisplay: tmpMaxItemsCount
                 });
               }
-              logger && console.log('[End]')
+              logger && console.log('[End]');
 
               logger && console.groupEnd();
+
+              if (noVisibleItem1 && !noVisibleItem2) {
+                // fix possible no auto scroll issue.
+                setTimeout(() => cnt.setAtBottom(), 1);
+              }
 
               if (!ENABLE_NO_SMOOTH_TRANSFORM) {
 
