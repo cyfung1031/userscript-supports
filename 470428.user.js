@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.7
+// @version     1.3.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -431,6 +431,26 @@
     "live_chat_whole_message_clickable"
   ]);
 
+  const all_noti_flags = new Set([ // not sure
+    // "check_user_lact_at_prompt_shown_time_on_web",
+    "clear_user_partitioned_ls",
+    "desktop_notification_high_priority_ignore_push",
+    "desktop_notification_set_title_bar",
+    "enable_first_user_action_csi_logging",
+    "enable_get_account_switcher_endpoint_on_webfe",
+    "enable_handles_account_menu_switcher",
+    "enable_names_handles_account_switcher", // TBC
+    "enable_pass_sdc_get_accounts_list",
+    "enable_server_stitched_dai",
+    "enable_yt_ata_iframe_authuser",
+    // "fill_single_video_with_notify_to_lasr",
+    "html5_server_stitched_dai_group",
+    // "is_part_of_any_user_engagement_experiment",
+    "kevlar_miniplayer_queue_user_activation",
+    // "rich_grid_resize_observer",
+    // "rich_grid_resize_observer_only"
+  ]);
+
   let brc = 1000;
 
   const hExperimentFlagsFn = () => {
@@ -462,6 +482,13 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (all_noti_flags.has(key)) continue;
+
+          // if (kl > 4 && (key.includes("server") || key.includes("notif") || key.includes("account") || key.includes("user"))){
+          //   console.log(key) 
+          //   continue;
+          // }
 
           if (kl === 45) {
             if (key === 'desktop_add_to_playlist_renderer_dialog_popup') continue;
