@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.23
+// @version     0.6.24
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -77,7 +77,7 @@
   win[hkey_script] = true;
 
 
-  
+
 
   let p59 = 0;
 
@@ -116,7 +116,7 @@
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
 
-  FIX_perfNow && (()=>{
+  FIX_perfNow && (() => {
     let nowh = -1;
     const dtl = new DocumentTimeline();
     performance.now = performance.now16 = function () {
@@ -1309,14 +1309,23 @@
       if (typeof nv === 'function') {
 
         gv = cmf.get(nv) || function () {
-          if (this.$ || !this.is) {
+          let p = (this.$ || !this.is);
+          if (p && (!this.$ && !this.is)) {
+            const nodeName = this.nodeName;
+            if (typeof nodeName !== 'string') {
+              // just in case
+            } else if (nodeName.startsWith("DOM-")) {
+              // dom-if, dom-repeat, etc
+            } else {
+              // yt element - new model, yt-xxxx, anixxxxxx
+              p = false;
+            }
+          }
+          if (p) {
 
             // << dom-repeat & dom-if >>
-            // this.is can be undefined for dom-repeat and dom-if
-            // e.g. animated rolling number
-            // in that case, can be async
 
-            // sequence on the same proto
+            // sequence on the same instance
             this[qm57] = (this[qm57] || Promise.resolve()).then(() => nv.apply(this, arguments)).catch(console.log);
           } else {
             nv.apply(this, arguments);
@@ -2109,7 +2118,7 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle, perfNow } = __CONTEXT__;
 
-    
+
     performance.now17 = perfNow.bind(performance);
     // performance.now = performance.now16;
     /*
@@ -2125,7 +2134,7 @@
     // console.log(performance.now())
     // console.log(performance.now())
     // console.log(performance.now())
-    
+
 
 
     __requestAnimationFrame__ = requestAnimationFrame;
