@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.8
+// @version     1.3.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -451,6 +451,12 @@
     // "rich_grid_resize_observer_only"
   ]);
 
+  const all_list_flags = new Set([
+    // "live_chat_over_playlist",
+    "shorts_in_playlists_web",
+    // "web_amsterdam_playlists"
+  ]);
+
   let brc = 1000;
 
   const hExperimentFlagsFn = () => {
@@ -472,6 +478,7 @@
 
 
         if (value === true) {
+
           // if(key.indexOf('modern')>=0 || key.indexOf('enable')>=0 || key.indexOf('theme')>=0 || key.indexOf('skip')>=0  || key.indexOf('ui')>=0 || key.indexOf('observer')>=0 || key.indexOf('polymer')>=0 )continue;
 
           if (mzFlagDetected.has(key)) continue;
@@ -483,10 +490,14 @@
           const kl3 = kl % 3;
           const kl2 = kl % 2;
 
-          if (all_noti_flags.has(key)) continue;
+          if (kl > 16 && kl < 25) {
+            if (all_list_flags.has(key)) continue;
+          }
+
+          if (kl > 24 && kl < 50 && all_noti_flags.has(key)) continue;
 
           // if (kl > 4 && (key.includes("server") || key.includes("notif") || key.includes("account") || key.includes("user"))){
-          //   console.log(key) 
+          //   console.log(key)
           //   continue;
           // }
 
@@ -610,7 +621,7 @@
           } else {
 
 
-            if (ALLOW_ALL_LIVE_CHATS_FLAGS && all_live_chat_flags.has(key)) {
+            if (ALLOW_ALL_LIVE_CHATS_FLAGS && kl > 20 && kl < 55 && all_live_chat_flags.has(key)) {
               continue;
               /*
                *
