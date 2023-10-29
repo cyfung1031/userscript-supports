@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.9
+// @version     1.3.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -452,9 +452,42 @@
   ]);
 
   const all_list_flags = new Set([
-    // "live_chat_over_playlist",
+
     "shorts_in_playlists_web",
-    // "web_amsterdam_playlists"
+
+
+    "live_chat_over_playlist",
+
+    "web_amsterdam_playlists",
+
+    "browse_next_continuations_migration_playlist",
+    "desktop_add_to_playlist_renderer_dialog_popup",
+    "enable_horizontal_list_renderer_scroll_based_on_items_visibility",
+    "enable_pass_sdc_get_accounts_list",
+    "enable_programmed_playlist_color_sample",
+    "enable_programmed_playlist_redesign",
+    "enable_section_list_scroll_to_item_section_web",
+    "gda_enable_playlist_download",
+    "include_autoplay_count_in_playlists",
+    "kevlar_chapters_list_view_seek_by_chapter",
+    "kevlar_enable_editable_playlists",
+    "kevlar_enable_reorderable_playlists",
+    "kevlar_fix_playlist_continuation",
+    "kevlar_hide_playlist_playback_status",
+    "kevlar_lazy_list_resume_for_autofill",
+    "kevlar_no_autoscroll_on_playlist_hover",
+    "kevlar_passive_event_listeners",
+    "kevlar_player_playlist_use_local_index",
+    "kevlar_playlist_drag_handles",
+    "kevlar_playlist_use_x_close_button",
+    "kevlar_rendererstamper_event_listener",
+    "kevlar_should_maintain_stable_list",
+    "kevlar_show_playlist_dl_btn",
+    "music_on_main_open_playlist_recommended_videos_in_miniplayer",
+    "player_allow_autonav_after_playlist",
+    "player_enable_playback_playlist_change",
+    "web_amsterdam_post_mvp_playlists",
+
   ]);
 
   let brc = 1000;
@@ -490,7 +523,7 @@
           const kl3 = kl % 3;
           const kl2 = kl % 2;
 
-          if (kl > 16 && kl < 25) {
+          if (kl > 16) {
             if (all_list_flags.has(key)) continue;
           }
 
