@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.10
+// @version     1.3.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -99,12 +99,45 @@
 
   const fOperAccept = Symbol();
   const fOperReject = Symbol();
+
+  const autoplayKeys = new Set([
+    // 'player_allow_autonav_after_playlist',
+    'web_player_autonav_toggle_always_listen',
+    // 'web_player_offline_playlist_auto_refresh',
+
+    // 'allow_live_autoplay',
+    // 'allow_poltergust_autoplay',
+    // 'autoplay_time',
+    // 'autoplay_time_for_fullscreen',
+    // 'autoplay_time_for_music_content',
+    'client_respect_autoplay_switch_button_renderer',
+    // 'embeds_enable_muted_autoplay',
+    // 'embeds_web_enable_autoplay_not_supported_logging_fix',
+    // 'embeds_web_enable_log_splay_as_autoplay',
+    // 'embeds_web_enable_mobile_autoplay',
+    // 'html5_autoplay_default_quality_cap',
+    // 'mweb_muted_autoplay_animation',
+
+    // 'html5_player_autonav_logging',
+    // 'web_player_always_enable_auto_translation',
+    // 'web_player_autonav_empty_suggestions_fix',
+    // 'web_player_autonav_use_server_provided_state',
+    'web_player_decouple_autonav',
+    'web_player_move_autonav_toggle',
+  ]);
+
   function fOper(key, value) {
 
 
 
     let keep = false;
     let nv = undefined;
+
+    if (key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
+      if (autoplayKeys.has(key)) {
+        keep = true;
+      }
+    }
 
     if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
 
