@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.17
+// @version             0.60.18
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3099,7 +3099,8 @@
               const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
               if (!tickerRenderer) return;
 
-              const items = (tickerRenderer.$ || 0).items || 0;
+              const tickerRendererDollar = (tickerRenderer.inst || tickerRenderer).$ || tickerRenderer.$ || 0;
+              const items = (tickerRendererDollar || 0).items || 0;
               if (!items) return;
               const template = document.createElement('template');
               template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
@@ -6749,12 +6750,14 @@
             console.log(`preRequest for showContextMenu in ${targetCnt.is} is not yet supported.`)
           }
 
+          const targetDollar = (target.inst || target).$ || target.$ || 0;
+
           let doPreRequest = false;
-          if (components.length >= 2 && components[0].id === 'menu-button' && (target.$ || 0)['menu-button'] === components[0]) {
+          if (components.length >= 2 && components[0].id === 'menu-button' && (targetDollar || 0)['menu-button'] === components[0]) {
             doPreRequest = true;
           } else if (components.length === 1 && components[0] === target) {
             doPreRequest = true;
-          } else if (components.length >= 2 && components[0].id === 'author-photo' && (target.$ || 0)['author-photo'] === components[0]) {
+          } else if (components.length >= 2 && components[0].id === 'author-photo' && (targetDollar || 0)['author-photo'] === components[0]) {
             doPreRequest = true;
           }
           if (doPreRequest === false) {
