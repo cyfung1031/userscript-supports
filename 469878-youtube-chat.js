@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.19
+// @version             0.60.20
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5656,7 +5656,7 @@
           }
 
 
-          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.44.32' && fnIntegrity(cProto.scrollIncrementally) === '1.82.43') {
+          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.43.31' && fnIntegrity(cProto.scrollIncrementally) === '1.82.43') {
             // to be replaced by animator
 
             cProto.startScrolling = function (a) {
@@ -5707,7 +5707,7 @@
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
-            assertor(() => fnIntegrity(cProto.startScrolling, '1.44.32'));
+            assertor(() => fnIntegrity(cProto.startScrolling, '1.43.31'));
             assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
             console.log('RAF_FIX: scrollIncrementally', tag, "NG")
           }
