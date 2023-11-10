@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.3.9
+// @version             0.4.0
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -153,8 +153,17 @@ SOFTWARE.
         let { ytdFlexy } = elements;
         if (!ytdFlexy.ElYTL) {
           ytdFlexy.ElYTL = 1;
-          ytdFlexy.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexy.calculateNormalPlayerSize_, 1);
-          ytdFlexy.calculateCurrentPlayerSize_ = core.resizeFunc(ytdFlexy.calculateCurrentPlayerSize_, 0);
+          const ytdFlexyCnt = ytdFlexy.inst || ytdFlexy;
+          if (typeof ytdFlexyCnt.calculateNormalPlayerSize_ === 'function') {
+            ytdFlexyCnt.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexyCnt.calculateNormalPlayerSize_, 1);
+          } else {
+            console.warn('ytdFlexyCnt.calculateNormalPlayerSize_ is not a function.')
+          }
+          if (typeof ytdFlexyCnt.calculateCurrentPlayerSize_ === 'function') {
+            ytdFlexyCnt.calculateCurrentPlayerSize_ = core.resizeFunc(ytdFlexyCnt.calculateCurrentPlayerSize_, 0);
+          } else {
+            console.warn('ytdFlexyCnt.calculateCurrentPlayerSize_ is not a function.')
+          }
         }
         ytdFlexy = null;
 
@@ -241,10 +250,11 @@ SOFTWARE.
           if (tid !== rid2) return;
           const { ytdFlexy } = elements;
           let r = false;
-          const windowSize_ = (ytdFlexy || 0).windowSize_;
-          if (windowSize_ && typeof ytdFlexy.onWindowResized_ === 'function') {
+          const ytdFlexyCnt = ytdFlexy ? (ytdFlexy.inst || ytdFlexy) : 0;
+          const windowSize_ = ytdFlexyCnt.windowSize_;
+          if (windowSize_ && typeof ytdFlexyCnt.onWindowResized_ === 'function') {
             try {
-              ytdFlexy.onWindowResized_(windowSize_);
+              ytdFlexyCnt.onWindowResized_(windowSize_);
               r = true;
             } catch (e) { }
           }
