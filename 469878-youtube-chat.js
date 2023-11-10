@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.21
+// @version             0.60.22
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1015,8 +1015,11 @@
     let itz = `${f.length}.${s}.${w}`;
     if (!d) {
       return itz;
+    } else if (itz !== d) {
+      console.warn('fnIntegrity=false', itz);
+      return false;
     } else {
-      return itz === d;
+      return true;
     }
   }
 
@@ -3826,7 +3829,11 @@
 
         if ((mclp.flushActiveItems_ || 0).length === 0) {
 
-          assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.138.81'));
+          const sfi = fnIntegrity(mclp.flushActiveItems_);
+          if (sfi === '0.137.81' || sfi === '0.138.81') {
+          } else {
+            assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.137.81'));
+          }
 
           let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
 
