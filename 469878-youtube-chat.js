@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.18
+// @version             0.60.19
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5252,7 +5252,25 @@
 
           if (doAnimator) {
 
-            assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.81.31'));
+            const s = fnIntegrity(cProto.computeContainerStyle);
+            // 2.44.29 or 2.81.31
+            if (s === '2.44.29' || s === '2.81.31') {
+
+              //     var ofb = da([""])
+              //         pfb = da("background:linear-gradient(90deg, {,{ {,{ {,{);".split("{"))
+
+              // f.computeContainerStyle = function(a, b) {
+              //     if (!a)
+              //         return pi(ofb);
+              //     var c = this.colorFromDecimal(a.startBackgroundColor);
+              //     a = this.colorFromDecimal(a.endBackgroundColor);
+              //     b = 100 * b + "%";
+              //     return pi(pfb, c, c, b, a, b, a)
+              // }
+
+            } else {
+              assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.44.29'));
+            }
 
             cProto.computeContainerStyle66 = cProto.computeContainerStyle;
 
