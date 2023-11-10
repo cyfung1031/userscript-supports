@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.20
+// @version             0.60.21
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3826,7 +3826,7 @@
 
         if ((mclp.flushActiveItems_ || 0).length === 0) {
 
-          assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.137.81'));
+          assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.138.81'));
 
           let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
 
