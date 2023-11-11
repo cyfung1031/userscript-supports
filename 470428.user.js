@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.11
+// @version     1.3.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -48,6 +48,12 @@
     defaultValue: true, // not sure
     useExternal: () => typeof localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH !== 'undefined',
     externalValue: () => (+localStorage.ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH ? true : false)
+  };
+
+  const ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE = {
+    defaultValue: false, // true to remove autoplay toggle button
+    useExternal: () => typeof localStorage.ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE !== 'undefined',
+    externalValue: () => (+localStorage.ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE ? true : false)
   };
 
   const ALLOW_ALL_LIVE_CHATS_FLAGS = false;
@@ -133,7 +139,7 @@
     let keep = false;
     let nv = undefined;
 
-    if (key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
+    if (!no_autoplay_toggle && key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
       if (autoplayKeys.has(key)) {
         keep = true;
       }
@@ -532,10 +538,12 @@
     const use_maintain_stable_list = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST);
     const use_maintain_reuse_components = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS);
     const use_defer_detach = getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH);
+    const no_autoplay_toggle = getSettingValue(ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE);
 
     if (use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
     if (use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
     if (use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
+    if (no_autoplay_toggle) Promise.resolve().then(() => console.debug("no_autoplay_toggle"));
 
     // I don't know why it requires to be extracted function.
     const mex = (EXPERIMENT_FLAGS, mzFlagDetected, fEntries) => {
