@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.12
+// @version     1.3.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -139,7 +139,11 @@
     let keep = false;
     let nv = undefined;
 
-    if (!no_autoplay_toggle && key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
+    const no_autoplay_toggle = ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE.currentValue;
+
+    if (no_autoplay_toggle === true) {
+
+    } else if (key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
       if (autoplayKeys.has(key)) {
         keep = true;
       }
@@ -539,6 +543,7 @@
     const use_maintain_reuse_components = getSettingValue(ENABLE_EXPERIMENT_FLAGS_MAINTAIN_REUSE_COMPONENTS);
     const use_defer_detach = getSettingValue(ENABLE_EXPERIMENT_FLAGS_DEFER_DETACH);
     const no_autoplay_toggle = getSettingValue(ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE);
+    ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE.currentValue = no_autoplay_toggle;
 
     if (use_maintain_stable_list) Promise.resolve().then(() => console.debug("use_maintain_stable_list"));
     if (use_maintain_reuse_components) Promise.resolve().then(() => console.debug("use_maintain_reuse_components"));
