@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.24
+// @version     0.6.25
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1309,15 +1309,24 @@
       if (typeof nv === 'function') {
 
         gv = cmf.get(nv) || function () {
-          let p = (this.$ || !this.is);
-          if (p && (!this.$ && !this.is)) {
-            const nodeName = this.nodeName;
+          const cnt = this.inst || this;
+          const hostElement = cnt.hostElement || 0;
+          const dollar = hostElement ? (this.$ || (this.inst ? this.inst.$ : 0)) : 0;
+          let p = (hostElement instanceof HTMLElement) && (dollar || !this.is);
+          if (p && (!dollar && !this.is)) {
+            const nodeName = hostElement.nodeName;
             if (typeof nodeName !== 'string') {
               // just in case
             } else if (nodeName.startsWith("DOM-")) {
               // dom-if, dom-repeat, etc
             } else {
               // yt element - new model, yt-xxxx, anixxxxxx
+              p = false;
+            }
+          }
+          if (p) {
+            if (typeof cnt.markDirty === 'function') {
+              // the yt element might call markDirty
               p = false;
             }
           }
