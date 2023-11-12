@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.13
+// @version     1.3.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -569,6 +569,16 @@
           const kl3 = kl % 3;
           const kl2 = kl % 2;
 
+          if (kl === 39) {
+            // if(key === 'kevlar_appbehavior_attach_startup_tasks') continue;
+            // if(key === 'kevlar_clear_non_displayable_url_params') continue;
+            if (key === 'kevlar_command_handler_formatted_string') continue; // see https://github.com/cyfung1031/userscript-supports/issues/20
+            if (key === 'kevlar_miniplayer_queue_user_activation') continue;
+            if (key === 'kevlar_player_watch_endpoint_navigation') continue;
+            // if(key === 'kevlar_watch_focus_on_engagement_panels') continue;
+
+          }
+
           if (kl > 16) {
             if (all_list_flags.has(key)) continue;
           }
@@ -904,6 +914,14 @@
 
 
 */
+
+
+      // EXPERIMENT_FLAGS.kevlar_appbehavior_attach_startup_tasks = true;
+      // EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
+      // EXPERIMENT_FLAGS.kevlar_command_handler_formatted_string = true;
+      // EXPERIMENT_FLAGS.kevlar_miniplayer_queue_user_activation = true;
+      // EXPERIMENT_FLAGS.kevlar_player_watch_endpoint_navigation = true;
+      // EXPERIMENT_FLAGS.kevlar_watch_focus_on_engagement_panels = true;
 
       // EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
       // EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;

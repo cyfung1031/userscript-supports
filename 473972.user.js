@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.25
+// @version     0.6.26
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1176,6 +1176,8 @@
 
     }
 
+    /*
+    // see https://github.com/cyfung1031/userscript-supports/issues/20
     if (typeof h.updateChangeRecord_ === 'function' && !(h.updateChangeRecord_.km34)) {
 
       const f = h.updateChangeRecord_;
@@ -1187,6 +1189,7 @@
       h.updateChangeRecord_ = g;
 
     }
+    */
 
 
     if (typeof h.requestRenderChunk_ === 'function' && !(h.requestRenderChunk_.km34)) {
@@ -1326,7 +1329,10 @@
           }
           if (p) {
             if (typeof cnt.markDirty === 'function') {
-              // the yt element might call markDirty
+              // the yt element might call markDirty (occasionally)
+              p = false;
+            } else if (this.is === 'ytd-engagement-panel-section-list-renderer') {
+              // see https://github.com/cyfung1031/userscript-supports/issues/20
               p = false;
             }
           }
