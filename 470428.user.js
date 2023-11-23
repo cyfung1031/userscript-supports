@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.14
+// @version     1.3.15
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -568,6 +568,13 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (kl > 27 && kl < 44) {
+            if (key === 'desktop_keyboard_capture_keydown_killswitch') continue; // TBC
+            if (key === 'kevlar_autofocus_menu_on_keyboard_nav') continue; // TBC
+            if (key === 'kevlar_keyboard_button_focus') continue; // TBC
+            if (key === 'kevlar_macro_markers_keyboard_shortcut') continue; // required
+          }
 
           if (kl === 39) {
             // if(key === 'kevlar_appbehavior_attach_startup_tasks') continue;
