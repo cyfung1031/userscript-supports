@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.15
+// @version     1.3.16
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -134,6 +134,21 @@
 
   function fOper(key, value) {
 
+    const kl = key.length;
+    if (kl === 24) {
+
+      // if(key ==='disable_new_pause_state3') return fOperAccept;
+      // if(key ==='enable_cast_on_music_web') return fOperAccept;
+      // if(key ==='gcf_config_store_enabled') return fOperAccept;
+      // if(key ==='gel_queue_timeout_max_ms') return fOperAccept;
+      // if(key ==='network_polling_interval') return fOperAccept;
+      if(key ==='player_doubletap_to_seek') return fOperAccept;
+      // if(key ==='polymer_bad_build_labels') return fOperAccept;
+      // if(key ==='skip_invalid_ytcsi_ticks') return fOperAccept;
+      // if(key ==='use_player_cue_range_set') return fOperAccept;
+      // if(key ==='woffle_used_state_report') return fOperAccept;
+
+    }
 
 
     let keep = false;
