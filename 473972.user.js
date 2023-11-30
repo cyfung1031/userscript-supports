@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.26
+// @version     0.6.27
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -115,6 +115,9 @@
 
   // 2nd wrapped RAF
   window.requestAnimationFrame = baseRAF;
+
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
 
   FIX_perfNow && (() => {
     let nowh = -1;
@@ -1312,9 +1315,9 @@
       if (typeof nv === 'function') {
 
         gv = cmf.get(nv) || function () {
-          const cnt = this.inst || this;
+          const cnt = insp(this);
           const hostElement = cnt.hostElement || 0;
-          const dollar = hostElement ? (this.$ || (this.inst ? this.inst.$ : 0)) : 0;
+          const dollar = hostElement ? (this.$ || indr(this)) : 0;
           let p = (hostElement instanceof HTMLElement) && (dollar || !this.is);
           if (p && (!dollar && !this.is)) {
             const nodeName = hostElement.nodeName;
@@ -2297,7 +2300,7 @@
 
 
       if (!ytdApp) return;
-      const cProto = (ytdApp.inst || ytdApp).constructor.prototype;
+      const cProto = insp(ytdApp).constructor.prototype;
 
 
       if (!cProto) return;
@@ -2305,7 +2308,7 @@
 
       const fixer = (_ytdApp) => {
 
-        const ytdApp = _ytdApp ? (_ytdApp.inst || _ytdApp) : null;
+        const ytdApp = insp(_ytdApp);
 
         if (ytdApp && typeof ytdApp.onYtActionBoundListener_ === 'function' && !ytdApp.onYtActionBoundListener57_) {
           ytdApp.onYtActionBoundListener57_ = ytdApp.onYtActionBoundListener_;
@@ -2504,7 +2507,7 @@
 
       if (!dummy || dummy.is !== 'ytd-menu-renderer') return;
 
-      const cProto = (dummy.inst || dummy).constructor.prototype;
+      const cProto = insp(dummy).constructor.prototype;
 
       if (typeof cProto.created === 'function' && !cProto.created58) {
         cProto.created58 = cProto.created;
@@ -4040,7 +4043,7 @@
 
 
         dummy = document.createElement('ytd-expander');
-        cProto = (dummy.inst || dummy).constructor.prototype;
+        cProto = insp(dummy).constructor.prototype;
 
 
         if (fnIntegrity(cProto.initChildrenObserver, '0.48.21') && fnIntegrity(cProto.childrenChanged, '0.40.22')) {
@@ -4093,7 +4096,7 @@
         let dummy;
         let cProto;
         dummy = document.createElement('paper-ripple');
-        cProto = (dummy.inst || dummy).constructor.prototype;
+        cProto = insp(dummy).constructor.prototype;
 
         if (fnIntegrity(cProto.animate, '0.74.5')) {
 
@@ -4175,7 +4178,7 @@
             let dummy;
             let cProto;
             dummy = document.createElement(ytTag);
-            cProto = (dummy.inst || dummy).constructor.prototype;
+            cProto = insp(dummy).constructor.prototype;
 
             cProto.doIdomRender13 = cProto.doIdomRender;
             cProto.doIdomRender = doIdomRender;

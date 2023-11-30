@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.22
+// @version             0.60.23
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -987,9 +987,12 @@
     // return window.deWeakJS ? window.deWeakJS(s) : s;
   }
 
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
+
   const getProto = (element) => {
     if (element) {
-      const cnt = element.inst || element;
+      const cnt = insp(element);
       return cnt.constructor.prototype || null;
     }
     return null;
@@ -2303,7 +2306,7 @@
 
         cProto.__attached412__ = cProto.attached;
         const fpPList = function (hostElement) {
-          const cnt = hostElement.inst || hostElement;
+          const cnt = insp(hostElement);
           if (beforeParticipantsMap.has(cnt)) return;
           hostElement.classList.add('n9fJ3');
 
@@ -2376,7 +2379,7 @@
 
         if (onPageElements.length >= 1) {
           for (const s of onPageElements) {
-            if ((s.inst || s).isAttached === true) {
+            if (insp(s).isAttached === true) {
               fpPList(s);
             }
           }
@@ -2715,7 +2718,7 @@
               // page visibly ready -> load the latest comments at initial loading
               const lcRenderer = lcRendererElm();
               if (lcRenderer) {
-                (lcRenderer.inst || lcRenderer).scrollToBottom_();
+                insp(lcRenderer).scrollToBottom_();
               }
             });
           }
@@ -3102,7 +3105,7 @@
               const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
               if (!tickerRenderer) return;
 
-              const tickerRendererDollar = (tickerRenderer.inst || tickerRenderer).$ || tickerRenderer.$ || 0;
+              const tickerRendererDollar = indr(tickerRenderer);
               const items = (tickerRendererDollar || 0).items || 0;
               if (!items) return;
               const template = document.createElement('template');
@@ -3180,7 +3183,7 @@
 
         const lcRenderer = lcRendererElm();
         if (lcRenderer) {
-          const cnt = (lcRenderer.inst || lcRenderer);
+          const cnt = insp(lcRenderer);
           if (!cnt.hasUserJustInteracted11_) return;
           if (cnt.atBottom && cnt.allowScroll && cnt.activeItems_.length >= 1 && cnt.hasUserJustInteracted11_()) {
             cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
@@ -3718,7 +3721,7 @@
 
         const t29s = document.querySelectorAll("yt-live-chat-item-list-renderer");
         for (const t29 of t29s) {
-          if ((t29.inst || t29).isAttached === true) {
+          if (insp(t29).isAttached === true) {
             t29.attached419();
           }
         }
@@ -4397,7 +4400,7 @@
 
       const tickerContainerSetAttribute = function (attrName, attrValue) { // ensure '14.30000001%'.toFixed(1)
 
-        let yd = (this.__dataHost || (this.inst || 0).__dataHost || 0).__data;
+        let yd = (this.__dataHost || insp(this).__dataHost || 0).__data;
 
         if (arguments.length === 2 && attrName === 'style' && yd && attrValue) {
 
@@ -4473,7 +4476,7 @@
 
 
       const fpTicker = (renderer) => {
-        const cnt = renderer.inst || renderer;
+        const cnt = insp(renderer);
         assertor(() => typeof (cnt || 0).is === 'string');
         assertor(() => ((cnt || 0).hostElement || 0).nodeType === 1);
         const container = (cnt.$ || 0).container;
@@ -5301,7 +5304,7 @@
         const elements = document.querySelectorAll(selector);
         if (elements.length >= 1) {
           for (const elm of elements) {
-            if ((elm || elm.inst).isAttached === true) {
+            if (insp(elm).isAttached === true) {
               fpTicker(elm);
             }
           }
@@ -6456,7 +6459,7 @@
 
               if (evt) {
                 const kurMPC = kRef(currentMenuPivotWR) || 0;
-                const cnt = kurMPC.inst || kurMPC;
+                const cnt = insp(kurMPC);
                 const hostElement = cnt.hostElement || cnt;
                 if (!cnt || cnt.isAttached !== true || hostElement.isConnected !== true) return;
                 switch (evt.type) {
@@ -6639,8 +6642,6 @@
 
             (() => {
 
-
-
               const tag = sTag;
               const dummy = document.createElement(tag);
 
@@ -6650,18 +6651,10 @@
                 return;
               }
 
-
-              const dCnt = dummy || dummy.inst || 0;
+              const dCnt = insp(dummy);
               if ('wholeMessageClickable' in dCnt && typeof dCnt.hasModerationOverlayVisible === 'function' && typeof dCnt.shouldSupportWholeItemClick === 'function') {
 
-
-
-
-
-
                 cProto.isClickableChatRow111 = dProto.isClickableChatRow111;
-
-
 
                 const toHookDocumentMouseDown = typeof cProto.shouldSupportWholeItemClick === 'function' && typeof cProto.hasModerationOverlayVisible === 'function';
 
@@ -6669,16 +6662,12 @@
                   doMouseHook = true;
                 }
 
-
-
                 console.log("shouldSupportWholeItemClick Y", tag);
-
 
               } else {
 
                 console.log("shouldSupportWholeItemClick N", tag);
               }
-
 
 
             })();
@@ -6748,20 +6737,21 @@
 
           while (target instanceof HTMLElement) {
             if (++j1 > maxloopDOMTreeElements) break;
-            if (typeof (target.is || (target.inst || 0).is || null) === 'string') break;
+            if (typeof (target.is || insp(target).is || null) === 'string') break;
             target = nodeParent(target);
           }
           const components = [];
           while (target instanceof HTMLElement) {
             if (++j2 > maxloopYtCompontents) break;
-            if (typeof (target.is || (target.inst || 0).is || null) === 'string') {
+            const cnt = insp(target);
+            if (typeof (target.is || cnt.is || null) === 'string') {
               components.push(target);
             }
-            if (typeof (target.inst || target).showContextMenu === 'function') break;
-            target = target.parentComponent || (target.inst || 0).parentComponent || null;
+            if (typeof cnt.showContextMenu === 'function') break;
+            target = target.parentComponent || cnt.parentComponent || null;
           }
           if (!(target instanceof HTMLElement)) return;
-          const targetCnt = target.inst || target;
+          const targetCnt = insp(target);
           if (typeof targetCnt.handleGetContextMenuResponse_ !== 'function' || typeof targetCnt.handleGetContextMenuError !== 'function') {
             console.log('Error Found: handleGetContextMenuResponse_ OR handleGetContextMenuError is not defined on a component with showContextMenu')
             return;
@@ -6775,7 +6765,7 @@
             console.log(`preRequest for showContextMenu in ${targetCnt.is} is not yet supported.`)
           }
 
-          const targetDollar = (target.inst || target).$ || target.$ || 0;
+          const targetDollar = indr(target);
 
           let doPreRequest = false;
           if (components.length >= 2 && components[0].id === 'menu-button' && (targetDollar || 0)['menu-button'] === components[0]) {
@@ -7968,7 +7958,7 @@
             return;
           }
 
-          const dummyManager = (dummy.inst || dummy).manager_ || 0;
+          const dummyManager = insp(dummy).manager_ || 0;
           __dummyManager__ = dummyManager;
 
           if (CHANGE_DATA_FLUSH_ASYNC && typeof cProto.async === 'function' && !cProto.async71 && cProto.async.length === 2 && typeof cProto.cancelAsync === 'function' && !cProto.cancelAsync71 && cProto.cancelAsync.length === 1) {

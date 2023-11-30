@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.0
+// @version             0.4.1
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -58,6 +58,9 @@ SOFTWARE.
   const hkey_script = 'ahceihvpbosz';
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
+
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -153,7 +156,7 @@ SOFTWARE.
         let { ytdFlexy } = elements;
         if (!ytdFlexy.ElYTL) {
           ytdFlexy.ElYTL = 1;
-          const ytdFlexyCnt = ytdFlexy.inst || ytdFlexy;
+          const ytdFlexyCnt = insp(ytdFlexy);
           if (typeof ytdFlexyCnt.calculateNormalPlayerSize_ === 'function') {
             ytdFlexyCnt.calculateNormalPlayerSize_ = core.resizeFunc(ytdFlexyCnt.calculateNormalPlayerSize_, 1);
           } else {
@@ -250,7 +253,7 @@ SOFTWARE.
           if (tid !== rid2) return;
           const { ytdFlexy } = elements;
           let r = false;
-          const ytdFlexyCnt = ytdFlexy ? (ytdFlexy.inst || ytdFlexy) : 0;
+          const ytdFlexyCnt = insp(ytdFlexy);
           const windowSize_ = ytdFlexyCnt.windowSize_;
           if (windowSize_ && typeof ytdFlexyCnt.onWindowResized_ === 'function') {
             try {

@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.5
+// @version             0.9.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -201,6 +201,8 @@ SOFTWARE.
         }
         return r;
     } : () => { };
+
+    const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
     const fxOperator = (proto, propertyName) => {
         let propertyDescriptorGetter = null;
@@ -1040,11 +1042,11 @@ SOFTWARE.
      * @param {Element} ytElm
      */
     const resetWhenDataChanged = (ths) => {
-        const cnt = ths.inst || ths || 0;
+        const cnt = insp(ths);
         const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
         if (ytElm instanceof Element) {
             const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
-            if ((anchors || 0).length >= 1 && ((ytElm.inst || ytElm).data || 0).jkrgx !== 1) {
+            if ((anchors || 0).length >= 1 && (insp(ytElm).data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
                     anchor.removeAttribute('jkrgy');
                 }
@@ -1442,7 +1444,7 @@ SOFTWARE.
             if (!channelHref || !mt) return;
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
-                const cnt = parentNode.inst || parentNode;
+                const cnt = insp(parentNode);
                 if (typeof cnt.is === 'string' && typeof cnt.dataChanged === 'function') break;
                 parentNode = nodeParent(parentNode);
             }
@@ -1602,7 +1604,7 @@ SOFTWARE.
         const pDom = parentYtElement(rchannelNameDOM, 'YTD-REEL-PLAYER-HEADER-RENDERER', 18);
 
         if (pDom instanceof HTMLElement) {
-            const pDomController = pDom.inst || pDom;
+            const pDomController = insp(pDom);
             const runs = (((pDomController.data || 0).channelTitleText || 0).runs || 0);
             if (runs.length === 1) {
                 const browserEndpoint = (((runs[0] || 0).navigationEndpoint || 0).browseEndpoint || 0);
@@ -1678,7 +1680,7 @@ SOFTWARE.
         }
 
         const channelNameDOM = document.querySelector('ytm-slim-owner-renderer');
-        const channelNameCData = !channelNameDOM ? null : (channelNameDOM.inst || channelNameDOM || 0).data;
+        const channelNameCData = !channelNameDOM ? null : insp(channelNameDOM).data;
 
         if (channelNameCData) {
             let mainChannelUrl = null;
@@ -1811,7 +1813,7 @@ SOFTWARE.
             if (!target) continue;
             const rchannelNameElm = parentYtElement(target, 'YTD-CHANNEL-NAME', 18);
             if (!rchannelNameElm) continue;
-            const rchannelNameCnt = rchannelNameElm.inst || rchannelNameElm;
+            const rchannelNameCnt = insp(rchannelNameElm);
             if ((rchannelNameCnt.data || 0).rSk0e) continue;
             const channelId = rchannelNameElm.getAttribute('jkrgy');
             if (channelId) {

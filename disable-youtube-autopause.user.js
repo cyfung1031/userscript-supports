@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.09.28.0
+// @version             2023.12.01.0
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -62,6 +62,9 @@ SOFTWARE.
   const youThereDataHashMapLactThreshold = new WeakMap();
   const websiteName = 'YouTube';
   let noDelayLogUntil = 0;
+
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
 
   function delayLog(...args) {
     if (Date.now() < noDelayLogUntil) return;
@@ -169,7 +172,7 @@ SOFTWARE.
     Promise.resolve(0).then(() => {
       let messages = null;
       const pageMgrElm = document.querySelector('#page-manager') || 0;
-      const pageMgrCnt = pageMgrElm.inst || pageMgrElm;
+      const pageMgrCnt = insp(pageMgrElm);
       try {
         messages = pageMgrCnt.data.playerResponse.messages;
       } catch (e) { }
@@ -188,10 +191,10 @@ SOFTWARE.
       }
 
       const ytdFlexyElm = document.querySelector('ytd-watch-flexy') || 0;
-      const ytdFlexyCnt = ytdFlexyElm.inst || ytdFlexyElm;
+      const ytdFlexyCnt = insp(ytdFlexyElm);
 
       if (ytdFlexyCnt) {
-        const youThereManager_ = ytdFlexyElm.youThereManager_ || (ytdFlexyElm.inst || ytdFlexyElm).youThereManager_;
+        const youThereManager_ = ytdFlexyElm.youThereManager_ || insp(ytdFlexyElm).youThereManager_;
         const youThereData_ = (youThereManager_ || 0).youThereData_ || 0;
         if (youThereData_) hookYouThereData(youThereData_);
         if (typeof ytdFlexyCnt.youthereDataChanged_ === 'function') {

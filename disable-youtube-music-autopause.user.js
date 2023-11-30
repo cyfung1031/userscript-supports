@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.09.28.1
+// @version             2023.12.01.0
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -62,6 +62,9 @@ SOFTWARE.
   const youThereDataHashMapLactThreshold = new WeakMap();
   const websiteName = 'YouTube Music';
   let noDelayLogUntil = 0;
+
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
 
   function delayLog(...args) {
     if (Date.now() < noDelayLogUntil) return;
@@ -188,7 +191,7 @@ SOFTWARE.
     let messages = null;
     const playerElm = document.querySelector('#player') || 0;
     try {
-      messages = ((playerElm.inst || 0).__data || playerElm.__data || 0).playerResponse_.messages;
+      messages = (insp(playerElm).__data || playerElm.__data || 0).playerResponse_.messages;
     } catch (e) { }
     if (messages && messages.length > 0) {
       for (const message of messages) {
@@ -231,7 +234,7 @@ SOFTWARE.
     */
 
     const playerElm = document.querySelector('#player') || 0;
-    const playerApi = (playerElm.inst || 0).playerApi_ || playerElm.playerApi_ || (playerElm.inst || 0).playerApi || playerElm.playerApi || 0;
+    const playerApi = insp(playerElm).playerApi_ || playerElm.playerApi_ || insp(playerElm).playerApi || playerElm.playerApi || 0;
     if (typeof playerApi === 'object') {
 
       if (typeof playerApi[symbol877] === 'undefined' && typeof playerApi.getPlayerState === 'function') {
