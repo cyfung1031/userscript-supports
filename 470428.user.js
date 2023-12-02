@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.16
+// @version     1.3.17
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -33,6 +33,7 @@
   const ENABLE_BADGE_STYLE = false;
   const NO_DESKTOP_DELAY_PLAYER_RESIZING = false;
   const NO_ANIMATED_LIKE = false;
+  const KEEP_MIDDLEWAVE = true;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -135,6 +136,13 @@
   function fOper(key, value) {
 
     const kl = key.length;
+
+    if (kl === 23) {
+
+      if (KEEP_MIDDLEWAVE && key === 'web_key_moments_markers') return fOperAccept;
+
+    }
+
     if (kl === 24) {
 
       // if(key ==='disable_new_pause_state3') return fOperAccept;
@@ -142,7 +150,7 @@
       // if(key ==='gcf_config_store_enabled') return fOperAccept;
       // if(key ==='gel_queue_timeout_max_ms') return fOperAccept;
       // if(key ==='network_polling_interval') return fOperAccept;
-      if(key ==='player_doubletap_to_seek') return fOperAccept;
+      if (key === 'player_doubletap_to_seek') return fOperAccept;
       // if(key ==='polymer_bad_build_labels') return fOperAccept;
       // if(key ==='skip_invalid_ytcsi_ticks') return fOperAccept;
       // if(key ==='use_player_cue_range_set') return fOperAccept;
@@ -583,6 +591,10 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (kl === 30) {
+            if (KEEP_MIDDLEWAVE && key === 'web_player_entities_middleware') continue;
+          }
 
           if (kl > 27 && kl < 44) {
             if (key === 'desktop_keyboard_capture_keydown_killswitch') continue; // TBC
