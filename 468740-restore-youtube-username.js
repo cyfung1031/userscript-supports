@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.6
+// @version             0.9.7
 // @license             MIT License
 
 // @author              CY Fung
@@ -1367,7 +1367,7 @@ SOFTWARE.
             if (!displayTextDOM) return;
             displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
             let airaLabel = anchor.getAttribute('aria-label')
-            const parentNodeData = (parentNode.inst || parentNode).data;
+            const parentNodeData = insp(parentNode).data;
             let runs = ((parentNodeData || 0).authorText || 0).runs;
 
             if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
@@ -1449,7 +1449,7 @@ SOFTWARE.
                 parentNode = nodeParent(parentNode);
             }
             if (parentNode instanceof Node) { } else return;
-            const parentNodeController = parentNode.inst || parentNode;
+            const parentNodeController = insp(parentNode);
             const authorText = (parentNodeController.data || 0).authorText;
             const currentDisplayed = (authorText || 0).simpleText;
             if (typeof currentDisplayed !== 'string') return;
@@ -1634,7 +1634,7 @@ SOFTWARE.
 
                         let hDom = pDom;
                         const hDomHostElement = hDom.hostElement || hDom;
-                        const hDomController = hDom.inst || hDom;
+                        const hDomController = insp(hDom);
                         let hData = (hDomController || 0).data || 0;
                         const runs = (((hData || 0).channelTitleText || 0).runs || 0);
                         if (runs && runs.length === 1 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
@@ -1720,7 +1720,7 @@ SOFTWARE.
     } : () => {
 
         const channelNameDOM = document.querySelector('ytd-channel-name.ytd-video-owner-renderer');
-        const channelNameCnt = !channelNameDOM ? null : channelNameDOM.inst || channelNameDOM;
+        const channelNameCnt = insp(channelNameDOM);
         const channelNameCData = (channelNameCnt || 0).__data || (channelNameDOM || 0).__data;
         if (channelNameCData) {
             let mainChannelUrl = null;
