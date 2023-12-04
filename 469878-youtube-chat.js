@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.23
+// @version             0.60.24
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -169,6 +169,8 @@
   const FIX_BATCH_TICKER_ORDER = true;
 
   const DISABLE_Translation_By_Google = true;
+
+  const FASTER_ICON_RENDERING = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -5564,7 +5566,7 @@
                                   // console.log('offset Sec', Math.floor(offset / 1000));
                                   itemRenderer.durationSec = adjustedDurationSec;
                                 } else {
-                                  // if adjustedDurationSec equal 0 or invalid 
+                                  // if adjustedDurationSec equal 0 or invalid
                                   continue; // skip adding
                                 }
                               }
@@ -7939,6 +7941,40 @@
       */
 
 
+      (FASTER_ICON_RENDERING && Promise.all(
+        [
+          customElements.whenDefined("yt-icon-shape"),
+          customElements.whenDefined("yt-icon")
+          //  document.createElement('icon-shape'),
+        ]
+      )).then(() => {
+        let cq = 0;
+        let dummys = [document.createElement('yt-icon-shape'), document.createElement('yt-icon')]
+        for (const dummy of dummys) {
+          let cProto = getProto(dummy);
+          if (cProto && typeof cProto.shouldRenderIconShape === 'function' && !cProto.shouldRenderIconShape571 && cProto.shouldRenderIconShape.length === 1) {
+            assertor(() => fnIntegrity(cProto.shouldRenderIconShape, '1.70.38'));
+            cq++;
+            cProto.shouldRenderIconShape571 = cProto.shouldRenderIconShape;
+            cProto.shouldRenderIconShape = function (a) {
+              if (this.isAnimatedIcon) return this.shouldRenderIconShape571(a);
+              if (!this.iconType || !this.iconShapeData) return this.shouldRenderIconShape571(a);
+              return false;
+              // console.log(1051, this.iconType)
+              // console.log(1052, this.iconShapeData)
+              // console.log(1053, this.isAnimatedIcon)
+            }
+          }
+          // if(cProto && cProto.switchTemplateAtRegistration){
+          //   cProto.switchTemplateAtRegistration = false;
+          // }
+        }
+        if (cq === 1) {
+          console.log("modified shouldRenderIconShape - Y")
+        } else {
+          console.log("modified shouldRenderIconShape - N", cq)
+        }
+      });
 
       customElements.whenDefined("yt-invalidation-continuation").then(() => {
 
