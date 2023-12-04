@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.25
+// @version             0.60.26
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5351,7 +5351,7 @@
           }
 
           if (AMEND_TICKER_handleLiveChatAction
-            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && fnIntegrity(cProto.handleLiveChatAction) === '1.63.48'
+            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && '|1.63.48|1.64.48|'.includes(`|${fnIntegrity(cProto.handleLiveChatAction)}|`)
             && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && fnIntegrity(cProto.handleLiveChatActions) === '1.23.12'
             && typeof cProto.unshift === 'function' && cProto.unshift.length === 1
             && typeof cProto.handleMarkChatItemAsDeletedAction === 'function' && cProto.handleMarkChatItemAsDeletedAction.length === 1
