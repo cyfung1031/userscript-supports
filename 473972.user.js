@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.27
+// @version     0.6.28
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -163,6 +163,9 @@
     if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
       const f = h.onYtRendererstamperFinished;
       const g = ump3.get(f) || function () {
+        if (this.updateChildVisibilityProperties && !this.markDirty) {
+          return f.apply(this, arguments);
+        }
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
       }
       ump3.set(f, g);
