@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.24
+// @version             0.60.25
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7959,6 +7959,7 @@
             cProto.shouldRenderIconShape = function (a) {
               if (this.isAnimatedIcon) return this.shouldRenderIconShape571(a);
               if (!this.iconType || !this.iconShapeData) return this.shouldRenderIconShape571(a);
+              if (!this.iconName) return this.shouldRenderIconShape571(a);
               return false;
               // console.log(1051, this.iconType)
               // console.log(1052, this.iconShapeData)
