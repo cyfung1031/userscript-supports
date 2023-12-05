@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.30
+// @version            3.2.31
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -989,11 +989,15 @@ const mWindow = (() => {
 
 
     function fixLibraryCodeURL(code_url) {
-        code_url = code_url.replace(/\/scripts\/(\d+)(\-[^\/]+)\/code\//, '/scripts/$1/code/');
-        let qm = code_url.indexOf('?');
-        let s1 = code_url.substring(0, qm);
-        let s2 = code_url.substring(qm + 1);
-        code_url = `${decodeURI(s1)}?${s2}`;
+        if (/\/scripts\/(\d+)(\-[^\/]+)\/code\//.test(code_url)) {
+            code_url = code_url.replace(/\/scripts\/(\d+)(\-[^\/]+)\/code\//, '/scripts/$1/code/');
+            let qm = code_url.indexOf('?');
+            let s1 = code_url.substring(0, qm);
+            let s2 = code_url.substring(qm + 1);
+            if (qm > 0) {
+                code_url = `${decodeURI(s1)}?${s2}`;
+            }
+        }
         return code_url;
     }
 
@@ -1619,6 +1623,22 @@ const mWindow = (() => {
         return hexCodes.join('');
     }
 
+    const encodeFileName = (s) => {
+        if (!s || typeof s !== 'string') return s;
+        s = s.replace(/[.!~*'"();\/\\?:@&=+$,#]/g, '-');
+        return encodeURI(s);
+    }
+
+    const isLibraryURLWithVersion = (url) => {
+        if (!url || typeof url !== 'string') return;
+
+        if (url.includes('.js?version=')) return true;
+
+        if (/\/scripts\/\d+\/\d+\/[^.!~*'"();\/\\?:@&=+$,#]+\.js/.test(url)) return true;
+        return false;
+
+    }
+
     const showInstallButton = async (scriptID, element) => {
 
         // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
@@ -1631,7 +1651,7 @@ const mWindow = (() => {
 
             // const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
             // const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length - 2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
-            const scriptFilename = `${encodeURI(name)}.user.js`;
+            const scriptFilename = element.getAttribute('data-script-type') === 'library' ? `${encodeFileName(name)}.js` : `${encodeFileName(name)}.user.js`;
             // const scriptFilename = `${scriptName}.user.js`;
             _baseScript = {
                 id: +scriptID,
@@ -1647,11 +1667,11 @@ const mWindow = (() => {
 
         const baseScript = _baseScript || (await getScriptData(scriptID));
 
-
         if ((element.nodeName === 'LI' && element.getAttribute('data-script-type') === 'library') || (baseScript.code_url.includes('.js?version='))) {
 
             const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
-            if (script.code_url.includes('.js?version=')) {
+
+            if (isLibraryURLWithVersion(script.code_url)) {
 
 
                 const code_url = fixLibraryCodeURL(script.code_url);
@@ -1970,7 +1990,7 @@ const mWindow = (() => {
             if (fixLibraryScriptCodeLink) {
 
 
-                let xpath = "//code[contains(text(), '.js?version=')]";
+                let xpath = "//code[contains(text(), '.js?version=') or contains(text(), '// @require https://update.greasyfork.org/scripts/')]";
                 let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
                 for (let i = 0; i < snapshot.snapshotLength; i++) {
