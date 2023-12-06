@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.31
+// @version     0.6.32
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -50,6 +50,8 @@
   const ENABLE_discreteTasking = true;
 
   const FIX_perfNow = true;
+
+  const UNLOAD_DETACHED_POLYMER = true;
 
 
 
@@ -159,7 +161,7 @@
     }
 
 
-    
+
     if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
       const f = h.onYtRendererstamperFinished;
       const g = ump3.get(f) || function () {
@@ -173,7 +175,7 @@
       h.onYtRendererstamperFinished = g;
 
     }
-    
+
 
 
 
@@ -2564,6 +2566,72 @@
 
       });
       if (!Polymer) return;
+
+
+      if (UNLOAD_DETACHED_POLYMER && typeof Polymer.Base.detached === 'function' && !Polymer.Base.detached92 && Polymer.Base.detached.length === 0) {
+        Polymer.Base.detached92 = Polymer.Base.detached;
+
+        let delay300 = new PromiseExternal();
+        setInterval(() => {
+          delay300.resolve();
+          delay300 = new PromiseExternal();
+        }, 300);
+
+        const detachedPlus = async function (elem) {
+          await delay300.then();
+          if (elem.isAttached !== false) return;
+          await delay300.then();
+          if (elem.isAttached !== false) return;
+
+          if (elem.__dataClientsReady === true) elem.__dataClientsReady = false;
+          if (elem.__dataEnabled === true) elem.__dataEnabled = false;
+          if (elem.__dataReady === true) elem.__dataReady = false;
+
+          elem.__dataLinkedPaths = elem.__dataToNotify = elem.__dataPendingClients = null;
+          elem.__dataHasPaths = false;
+          // elem.__dataCompoundStorage = null;
+          elem.__dataHost = null;
+          elem.__dataTemp = null;
+          elem.__dataClientsInitialized = false;
+
+
+          // elem.data = {};
+          elem.data = null;
+          elem.__dataPending = null;
+          elem.__dataOld = null;
+          elem.__dataInstanceProps = null;
+
+          elem.__dataCounter = 0;
+          elem.__serializing = false;
+
+          if (elem.$) elem.$ = {};
+          if (elem.root) elem.root = null;
+
+          let hostElement = elem.hostElement, tlm;
+          if (hostElement instanceof Element) {
+            // if (hostElement.isConnected === false) {
+            // while (tlm = hostElement.firstChild) tlm.remove();
+            // }
+            elem.hostElement = hostElement = null;
+          }
+
+
+          if (hostElement === null) {
+
+            if (elem.animatedIconElement instanceof Element) elem.animatedIconElement = null;
+            if (elem._target instanceof Element) elem._target = null;
+            if (elem.iconset instanceof Element) elem.iconset = null;
+            if (elem._svgIcon instanceof Element) elem._svgIcon = null;
+
+          }
+
+
+        }
+        Polymer.Base.detached = function () {
+          Promise.resolve(this).then(detachedPlus);
+          return Polymer.Base.detached92();
+        };
+      }
 
       Polymer.Base.__connInit__ = function () {
         setupDiscreteTasks(this);
