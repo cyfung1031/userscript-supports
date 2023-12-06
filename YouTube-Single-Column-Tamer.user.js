@@ -97,17 +97,16 @@
         }
 
 
-        if (always_single_column && !qm && this.q00 && this.q02 && this.q02 !== this.q00 && q === this.q00) {
-          q = this.q02;
+        if (this.lastQuery53_) {
 
-        } else if (!always_single_column && !qm && this.q00 && this.q02 && this.q02 !== this.q00 && q === this.q02) {
+          if (always_single_column) {
+            q = changeQ_alwaysSingleColumn(this.lastQuery53_);
+          } else if (qm) {
+            q = changeQ(this.lastQuery53_);
+          } else {
+            q = this.lastQuery53_;
+          }
 
-          q = this.q00;
-
-        } else if (!always_single_column && qm && this.q01 && this.q00 === q && this.q00 !== this.q01) {
-          q = this.q01;
-        } else if (!always_single_column && !qm && this.q00 && this.q01 === q && this.q00 !== this.q01) {
-          q = this.q00;
         }
 
         if (q !== this.query) {
@@ -214,9 +213,11 @@
 
       }
 
+      let cssElm = null;
+
       if (changeCSS) {
 
-        let cssElm = document.querySelector('style#oh7T7lsvcHJQ');
+        cssElm = cssElm | document.querySelector('style#oh7T7lsvcHJQ');
 
         if (!cssElm) {
 
@@ -239,6 +240,8 @@
 
         }
       }
+
+      cssElm = cssElm | document.querySelector('style#oh7T7lsvcHJQ');
       if (cssElm) {
         if (qm && cssElm.disabled) cssElm.disabled = false;
         else if (!qm && !cssElm.disabled) cssElm.disabled = true;
