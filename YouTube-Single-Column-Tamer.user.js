@@ -5,10 +5,10 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.0.2
+// @version     0.0.3
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
-// @license MIT
+// @license     MIT
 // ==/UserScript==
 
 (() => {
@@ -16,13 +16,22 @@
 
   // protait screen & vertical live
 
-
   let always_single_column = false;
   let bypass = false;
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
   const Promise = (async () => { })().constructor;
+
+  let rafPromise = null;
+  const rafFn = (typeof webkitRequestAnimationFrame !== 'undefined' ? webkitRequestAnimationFrame : requestAnimationFrame).bind(window); // eslint-disable-line no-undef, no-constant-condition
+
+  const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
+    rafFn(hRes => {
+      rafPromise = null;
+      resolve(hRes);
+    });
+  }));
 
   let videoRatio = null;
 
@@ -124,18 +133,22 @@
 
   })();
 
+  let cachedSCUsage = null;
 
   function getShouldSingleColumn() {
+    if (typeof cachedSCUsage == 'boolean') return cachedSCUsage;
     const { clientHeight, clientWidth } = document.documentElement;
     if (clientHeight > clientWidth) {
       let referenceVideoHeight = clientWidth * videoRatio;
       let belowSpace = clientHeight - referenceVideoHeight;
       if (belowSpace > -1e-3) {
-        if (belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight >= -1e-3) {
+        if (belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight > -1e-3) {
+          cachedSCUsage = true;
           return true;
         }
       }
     }
+    cachedSCUsage = false;
     return false;
   }
 
@@ -147,13 +160,13 @@
     const cProto = getProto(dummy);
 
     cProto.videoHeightToWidthRatioChanged23_ = cProto.videoHeightToWidthRatioChanged_;
-    const ratioQueryFix24_ = (k) => {
+    const ratioQueryFix24_ = () => {
 
       if (videoRatio > 1e-5) { } else return;
       let changeCSS = false;
 
       let always_single_column_ = always_single_column;
-      always_single_column = typeof k === 'boolean' ? k : getShouldSingleColumn();
+      always_single_column = getShouldSingleColumn();
       let action = 0;
       if (always_single_column !== always_single_column_) {
         action |= 4;
@@ -250,6 +263,7 @@
 
     cProto.videoHeightToWidthRatioChanged_ = function () {
       videoRatio = this.videoHeightToWidthRatio_;
+      cachedSCUsage = null;
       Promise.resolve().then(ratioQueryFix24_);
       return this.videoHeightToWidthRatioChanged23_.apply(this, arguments);
     };
@@ -261,14 +275,17 @@
       if (videoRatio > 1e-5) { } else return;
       if (resizeBusy) return;
       resizeBusy = true;
-      resizeQuene = resizeQuene.then(() => {
-        let k = getShouldSingleColumn();
-        if (always_single_column !== k) {
-          Promise.resolve(k).then(ratioQueryFix24_);
-        }
-      }).then(() => {
-        resizeBusy = false;
-      });
+      resizeQuene = resizeQuene
+        .then(() => getRafPromise().then())
+        .then(() => {
+          cachedSCUsage = null;
+          let k = getShouldSingleColumn();
+          if (always_single_column !== k) {
+            Promise.resolve().then(ratioQueryFix24_);
+          }
+        }).then(() => {
+          resizeBusy = false;
+        });
     }, { capture: false, passive: true });
 
   })();
