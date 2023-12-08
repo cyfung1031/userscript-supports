@@ -5,7 +5,7 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.0.1
+// @version     0.0.2
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
 // @license MIT
@@ -109,7 +109,7 @@
 
         }
 
-        if (q !== this.query) {
+        if (q !== this.query && typeof q === 'string' && q) {
           this.query = q;
         }
 
