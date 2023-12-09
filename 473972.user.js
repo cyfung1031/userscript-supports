@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.42
+// @version     0.6.43
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -366,7 +366,7 @@
       if (this.isAttached === true) this.isAttached = false;
       return void 0;
     } else {
-      return this.attached();
+      return this.attached27();
     }
   }
 
