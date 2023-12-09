@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.47
+// @version     0.6.48
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -397,6 +397,7 @@
 
     if (dh && typeof dh === 'object') {
 
+
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
         dh.configureVisibilityObserver_ = configureVisibilityObserverT_;
@@ -422,22 +423,26 @@
         dh.attached = attachedT;
       }
 
-      setupD(dh, 'hostElement', hostElementCleanUp);
+
+      // setupD(dh, 'hostElement', hostElementCleanUp);
       setupD(dh, 'parentComponent');
       setupD(dh, 'localVisibilityObserver_');
       setupD(dh, 'cachedProviderNode_');
+
 
       setupD(dh, '__template');
       setupD(dh, '__templatizeOwner');
       setupD(dh, '__templateInfo');
 
-      setupD(dh, 'root', 1);
+      // setupD(dh, 'root', 1);
+
       const elements_ = dh.elements_;
       if (elements_ && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupD(dh, 'elements_');
 
 
 
       setup$(dh);
+
 
     }
 
