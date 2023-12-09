@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.32
+// @version     0.6.33
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -53,7 +53,10 @@
 
   const UNLOAD_DETACHED_POLYMER = true;
 
-
+  // << if ENABLE_discreteTasking >>
+  const WEAK_REF_BINDING = true; // false if your browser is slow
+  const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
+  // << end >>
 
 
 
@@ -154,10 +157,197 @@
 
   const ump3 = new WeakMap();
 
+
+  const setupD = typeof WeakRef !== 'undefined' ? (elm, s) => {
+
+    const z = `${s}72`;
+
+    if (s in elm) {
+      // console.log(1162, elm[s], elm)
+
+      const p = elm[s];
+
+      delete elm[s];
+
+      Object.defineProperty(elm, s, {
+        get() {
+          return elm[z] ? elm[z].deref() : null;
+        },
+        set(nv) {
+          elm[z] = nv ? new WeakRef(nv) : null;
+          return true;
+        },
+        configurable: true,
+        enumerable: true
+
+      });
+
+      elm[s] = p;
+
+
+    }
+  } : null;
+
+  const mxMap = new WeakMap();
+
+  const myMap = new WeakSet();
+
+  const setup$ = typeof WeakRef !== 'undefined' ? function (dh) {
+
+    const $ = dh.$;
+
+    // setupD(dh, '$');
+
+
+    if (WEAK_REF_PROXY_DOLLAR && $ && typeof $ === 'object' && !dh.$ky37) {
+
+      dh.$ky37 = 1;
+
+      if (!myMap.has($)) {
+
+
+
+        for (const k of Object.keys($)) {
+
+          const v = $[k];
+          if ($[k] instanceof Node) {
+
+            $[k] = new WeakRef($[k]);
+
+          }
+
+        }
+
+
+
+        dh.$ = mxMap.get($) || new Proxy($, {
+          get(obj, prop) {
+            const val = obj[prop];
+            if (typeof (val || 0).deref === 'function') {
+              return val.deref();
+            }
+            return val;
+          },
+          set(obj, prop, val) {
+            if (val instanceof Node) {
+              obj[prop] = new WeakRef(val);
+            } else {
+              obj[prop] = val;
+            }
+            return true;
+          }
+        });
+
+        mxMap.set($, dh.$);
+        myMap.add(dh.$);
+
+      }
+
+
+
+
+    }
+
+
+  } : null;
+
+
+  const setupDataHost = setupD && setup$ ? function (dh) {
+
+
+    if (dh && typeof dh === 'object') {
+
+
+      setupD(dh, 'hostElement');
+      setupD(dh, 'parentComponent');
+      setupD(dh, 'localVisibilityObserver_');
+      setupD(dh, 'cachedProviderNode_');
+
+      setupD(dh, '__template');
+      setupD(dh, '__templatizeOwner');
+      setupD(dh, '__templateInfo');
+
+
+      setupD(dh, 'root');
+
+
+
+      setup$(dh);
+
+    }
+
+  } : null;
+
+
+  let delay300 = new PromiseExternal();
+  setInterval(() => {
+    delay300.resolve();
+    delay300 = new PromiseExternal();
+  }, 300);
+
+  const aDelay = async function () {
+    await delay300.then();
+    await delay300.then();
+  }
+
   const setupDiscreteTasks = (h, rb) => {
 
     if (rb) {
-      if (this.ky36) return;
+      if (h.ky36) return;
+    }
+
+    if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost) {
+      h.kz62 = 1;
+
+      //
+
+      setup$(h);
+      const hostElement = h.hostElement;
+
+      if (hostElement !== h) {
+
+        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
+          setupD(h, s);
+
+        }
+
+        const dh = h.__dataHost;
+
+        setupDataHost(dh)
+      }
+
+
+
+
+      if (hostElement) {
+
+        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
+          setupD(hostElement, s);
+
+        }
+
+        const dh = hostElement.__dataHost;
+
+        setupDataHost(dh)
+
+
+
+
+        aDelay().then(() => {
+          setupD(hostElement, '__CE_shadowRoot');
+        });
+
+
+      }
+
+
+
+      // });
+
+
+
+
+
     }
 
 
@@ -1317,6 +1507,44 @@
   const cmf = new WeakMap();
   const dmf = new WeakMap();
 
+  const gvGenerator = (nv) => {
+    return function () {
+      const cnt = insp(this);
+      const hostElement = cnt.hostElement || 0;
+      const dollar = hostElement ? (this.$ || indr(this)) : 0;
+      let p = (hostElement instanceof HTMLElement) && (dollar || !this.is);
+      if (p && (!dollar && !this.is)) {
+        const nodeName = hostElement.nodeName;
+        if (typeof nodeName !== 'string') {
+          // just in case
+        } else if (nodeName.startsWith("DOM-")) {
+          // dom-if, dom-repeat, etc
+        } else {
+          // yt element - new model, yt-xxxx, anixxxxxx
+          p = false;
+        }
+      }
+      if (p) {
+        if (typeof cnt.markDirty === 'function') {
+          // the yt element might call markDirty (occasionally)
+          p = false;
+        } else if (this.is === 'ytd-engagement-panel-section-list-renderer') {
+          // see https://github.com/cyfung1031/userscript-supports/issues/20
+          p = false;
+        }
+      }
+      if (p) {
+
+        // << dom-repeat & dom-if >>
+
+        // sequence on the same instance
+        this[qm57] = (this[qm57] || Promise.resolve()).then(() => nv.apply(this, arguments)).catch(console.log);
+      } else {
+        nv.apply(this, arguments);
+      }
+    };
+  }
+
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       const f = this[keyStConnectedCallback];
@@ -1330,41 +1558,7 @@
       let gv;
       if (typeof nv === 'function') {
 
-        gv = cmf.get(nv) || function () {
-          const cnt = insp(this);
-          const hostElement = cnt.hostElement || 0;
-          const dollar = hostElement ? (this.$ || indr(this)) : 0;
-          let p = (hostElement instanceof HTMLElement) && (dollar || !this.is);
-          if (p && (!dollar && !this.is)) {
-            const nodeName = hostElement.nodeName;
-            if (typeof nodeName !== 'string') {
-              // just in case
-            } else if (nodeName.startsWith("DOM-")) {
-              // dom-if, dom-repeat, etc
-            } else {
-              // yt element - new model, yt-xxxx, anixxxxxx
-              p = false;
-            }
-          }
-          if (p) {
-            if (typeof cnt.markDirty === 'function') {
-              // the yt element might call markDirty (occasionally)
-              p = false;
-            } else if (this.is === 'ytd-engagement-panel-section-list-renderer') {
-              // see https://github.com/cyfung1031/userscript-supports/issues/20
-              p = false;
-            }
-          }
-          if (p) {
-
-            // << dom-repeat & dom-if >>
-
-            // sequence on the same instance
-            this[qm57] = (this[qm57] || Promise.resolve()).then(() => nv.apply(this, arguments)).catch(console.log);
-          } else {
-            nv.apply(this, arguments);
-          }
-        };
+        gv = cmf.get(nv) || gvGenerator(nv);
         if (gv !== nv) {
           cmf.set(nv, gv);
           cmf.set(gv, gv);
@@ -2608,7 +2802,7 @@
           if (elem.root) elem.root = null;
 
           let hostElement = elem.hostElement, tlm;
-          if (hostElement instanceof Element) {
+          if (hostElement instanceof Node) {
             // if (hostElement.isConnected === false) {
             // while (tlm = hostElement.firstChild) tlm.remove();
             // }
@@ -2618,10 +2812,10 @@
 
           if (hostElement === null) {
 
-            if (elem.animatedIconElement instanceof Element) elem.animatedIconElement = null;
-            if (elem._target instanceof Element) elem._target = null;
-            if (elem.iconset instanceof Element) elem.iconset = null;
-            if (elem._svgIcon instanceof Element) elem._svgIcon = null;
+            if (elem.animatedIconElement instanceof Node) elem.animatedIconElement = null;
+            if (elem._target instanceof Node) elem._target = null;
+            if (elem.iconset instanceof Node) elem.iconset = null;
+            if (elem._svgIcon instanceof Node) elem._svgIcon = null;
 
           }
 
