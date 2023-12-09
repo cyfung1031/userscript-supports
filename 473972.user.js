@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.40
+// @version     0.6.41
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -178,8 +178,8 @@
           const wr = elm[z];
           if (!wr) return null;
           const m = wr.deref();
-          if (!m && usePlaceholder){
-            if(typeof usePlaceholder === 'function') usePlaceholder(elm );
+          if (!m && usePlaceholder) {
+            if (typeof usePlaceholder === 'function') usePlaceholder(elm);
             return stp;
           }
           return m;
@@ -344,6 +344,21 @@
       return this.getParentRenderer27();
     }
   }
+  const readyT = function () {
+    const hostElement = this.hostElement;
+    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      return void 0;
+    } else {
+      return this.ready27();
+    }
+  }
+  const _enablePropertiesT = function () {
+    const hostElement = this.hostElement;
+    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      if (this.__dataEnabled === true) this.__dataEnabled = false;
+    }
+    return this._enableProperties27();
+  }
   const hostElementCleanUp = (dh) => {
     if (typeof dh.dispose === 'function') {
       try {
@@ -363,6 +378,9 @@
         }
       } catch (e) { }
     }
+    if (dh.__dataEnabled === true) {
+      dh.__dataEnabled = false;
+    }
   };
   const setupDataHost = setupD && setup$ ? function (dh) {
 
@@ -373,9 +391,19 @@
         dh.configureVisibilityObserver_ = configureVisibilityObserverT_;
       }
 
-      if(typeof dh.getParentRenderer ==='function' && !dh.getParentRenderer27) {
+      if (typeof dh.getParentRenderer === 'function' && !dh.getParentRenderer27) {
         dh.getParentRenderer27 = dh.getParentRenderer;
         dh.getParentRenderer = getParentRendererT;
+      }
+
+      if (typeof dh.ready === 'function' && !dh.ready27) {
+        dh.ready27 = dh.ready;
+        dh.ready = readyT;
+      }
+
+      if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
+        dh._enableProperties27 = dh._enableProperties;
+        dh._enableProperties = _enablePropertiesT;
       }
 
       setupD(dh, 'hostElement', hostElementCleanUp);
