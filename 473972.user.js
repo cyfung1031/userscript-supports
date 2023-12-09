@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.45
+// @version     0.6.46
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2907,33 +2907,30 @@
 
     WEAK_REF_BINDING && (async () => {
 
+      for (const tag of ['tp-yt-iron-dropdown', 'tp-yt-paper-menu-button']) {
 
-      const dummy = await new Promise(resolve => {
-
-        promiseForCustomYtElementsReady.then(() => {
-          customElements.whenDefined('tp-yt-iron-dropdownn').then(() => {
-
-            resolve(document.createElement('tp-yt-iron-dropdown'));
+        const dummy = await new Promise(resolve => {
+          promiseForCustomYtElementsReady.then(() => {
+            customElements.whenDefined(tag).then(() => {
+              resolve(document.createElement(tag));
+            });
           });
+
         });
 
+        if (!dummy || dummy.is !== tag) continue;
 
+        const cProto = insp(dummy).constructor.prototype;
 
-      });
-
-
-      if (!dummy || dummy.is !== 'tp-yt-iron-dropdown') return;
-
-
-      const cProto = insp(dummy).constructor.prototype;
-
-      if (typeof cProto.close === 'function' && !cProto.close58) {
-        cProto.close58 = cProto.close;
-        cProto.close = function () {
-          const dropdown = (this.$ || 0).dropdown || 0;
-          if (!dropdown) return;
-          return this.close58.apply(this, arguments);
+        if (typeof cProto.close === 'function' && !cProto.close58) {
+          cProto.close58 = cProto.close;
+          cProto.close = function () {
+            const dropdown = (this.$ || 0).dropdown || 0;
+            if (!dropdown) return;
+            return this.close58.apply(this, arguments);
+          }
         }
+
       }
 
     });
