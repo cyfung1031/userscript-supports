@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.39
+// @version     0.6.40
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -329,12 +329,21 @@
 
 
   const configureVisibilityObserverT_ = function () {
-    if (!this.hostElement) {
+    const hostElement = this.hostElement;
+    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
       this.unobserve_();
     } else {
       return this.configureVisibilityObserver27_();
     }
   };
+  const getParentRendererT = function () {
+    const hostElement = this.hostElement;
+    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      return null;
+    } else {
+      return this.getParentRenderer27();
+    }
+  }
   const hostElementCleanUp = (dh) => {
     if (typeof dh.dispose === 'function') {
       try {
@@ -362,6 +371,11 @@
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
         dh.configureVisibilityObserver_ = configureVisibilityObserverT_;
+      }
+
+      if(typeof dh.getParentRenderer ==='function' && !dh.getParentRenderer27) {
+        dh.getParentRenderer27 = dh.getParentRenderer;
+        dh.getParentRenderer = getParentRendererT;
       }
 
       setupD(dh, 'hostElement', hostElementCleanUp);
