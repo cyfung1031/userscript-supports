@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.44
+// @version     0.6.45
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2911,9 +2911,9 @@
       const dummy = await new Promise(resolve => {
 
         promiseForCustomYtElementsReady.then(() => {
-          customElements.whenDefined('tp-yt-paper-menu-button').then(() => {
+          customElements.whenDefined('tp-yt-iron-dropdownn').then(() => {
 
-            resolve(document.createElement('tp-yt-paper-menu-button'));
+            resolve(document.createElement('tp-yt-iron-dropdown'));
           });
         });
 
@@ -2922,7 +2922,7 @@
       });
 
 
-      if (!dummy || dummy.is !== 'tp-yt-paper-menu-button') return;
+      if (!dummy || dummy.is !== 'tp-yt-iron-dropdown') return;
 
 
       const cProto = insp(dummy).constructor.prototype;
