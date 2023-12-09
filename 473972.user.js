@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.50
+// @version     0.6.51
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -51,7 +51,7 @@
 
   const FIX_perfNow = true;
 
-  const UNLOAD_DETACHED_POLYMER = true;
+  const UNLOAD_DETACHED_POLYMER = false; // unstable
 
   const WEAK_REF_BINDING = true; // false if your browser is slow
   // << if WEAK_REF_BINDING >>
@@ -3046,7 +3046,7 @@
 
     })();
 
-    ENABLE_discreteTasking && (async () => {
+    (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER) && (async () => {
 
       const Polymer = await new Promise(resolve => {
 
@@ -3124,45 +3124,50 @@
         };
       }
 
-      Polymer.Base.__connInit__ = function () {
-        setupDiscreteTasks(this);
-        if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
-          setupWeakRef(this)
+
+      if (ENABLE_discreteTasking) {
+
+        Polymer.Base.__connInit__ = function () {
+          setupDiscreteTasks(this);
+          // if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
+          //   setupWeakRef(this)
+          // }
         }
+
+
+        /** @type {Function} */
+        const connectedCallbackK = function (...args) {
+          !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
+          const r = this[qm53](...args);
+          !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
+          this.mh35 = 1;
+          return r;
+        };
+
+        connectedCallbackK.m353 = 1;
+
+
+        const qt53 = Polymer.Base.connectedCallback;
+        Polymer.Base[qm53] = dmf.get(qt53) || qt53;
+
+        Polymer.Base.connectedCallback = connectedCallbackK;
+
+
+        /** @type {Function} */
+        const createdK = function (...args) {
+          !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
+          const r = this[qn53](...args);
+          !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
+          this.mh36 = 1;
+          return r;
+        };
+
+
+        createdK.m353 = 1;
+        Polymer.Base[qn53] = Polymer.Base.created;
+        Polymer.Base.created = createdK;
+
       }
-
-
-      /** @type {Function} */
-      const connectedCallbackK = function (...args) {
-        !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        const r = this[qm53](...args);
-        !this.mh35 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        this.mh35 = 1;
-        return r;
-      };
-
-      connectedCallbackK.m353 = 1;
-
-
-      const qt53 = Polymer.Base.connectedCallback;
-      Polymer.Base[qm53] = dmf.get(qt53) || qt53;
-
-      Polymer.Base.connectedCallback = connectedCallbackK;
-
-
-      /** @type {Function} */
-      const createdK = function (...args) {
-        !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        const r = this[qn53](...args);
-        !this.mh36 && typeof this.__connInit__ === 'function' && this.__connInit__();
-        this.mh36 = 1;
-        return r;
-      };
-
-
-      createdK.m353 = 1;
-      Polymer.Base[qn53] = Polymer.Base.created;
-      Polymer.Base.created = createdK;
 
     })();
 
