@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.46
+// @version     0.6.47
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2670,6 +2670,36 @@
     }
 
 
+    WEAK_REF_BINDING && (async () => {
+
+      ['tp-yt-iron-dropdown', 'tp-yt-paper-menu-button'].forEach(async tag => {
+
+        const dummy = await new Promise(resolve => {
+          promiseForCustomYtElementsReady.then(() => {
+            customElements.whenDefined(tag).then(() => {
+              resolve(document.createElement(tag));
+            });
+          });
+
+        });
+
+        if (!dummy || dummy.is !== tag) return;
+
+        const cProto = insp(dummy).constructor.prototype;
+
+        if (typeof cProto.close === 'function' && !cProto.close58) {
+          cProto.close58 = cProto.close;
+          cProto.close = function () {
+            const dropdown = (this.$ || 0).dropdown || 0;
+            if (!dropdown) return;
+            return this.close58.apply(this, arguments);
+          }
+        }
+
+
+      });
+
+    })();
 
     NATIVE_CANVAS_ANIMATION && (() => {
 
@@ -2904,36 +2934,6 @@
     // onLoadedMetadata
     // onVideoDataChange
     // onVideoProgress
-
-    WEAK_REF_BINDING && (async () => {
-
-      for (const tag of ['tp-yt-iron-dropdown', 'tp-yt-paper-menu-button']) {
-
-        const dummy = await new Promise(resolve => {
-          promiseForCustomYtElementsReady.then(() => {
-            customElements.whenDefined(tag).then(() => {
-              resolve(document.createElement(tag));
-            });
-          });
-
-        });
-
-        if (!dummy || dummy.is !== tag) continue;
-
-        const cProto = insp(dummy).constructor.prototype;
-
-        if (typeof cProto.close === 'function' && !cProto.close58) {
-          cProto.close58 = cProto.close;
-          cProto.close = function () {
-            const dropdown = (this.$ || 0).dropdown || 0;
-            if (!dropdown) return;
-            return this.close58.apply(this, arguments);
-          }
-        }
-
-      }
-
-    });
 
     FIX_maybeUpdateFlexibleMenu && (async () => {
 
