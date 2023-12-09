@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.51
+// @version     0.6.52
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -425,10 +425,10 @@
 
       // }
 
-        // if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
-        //   dh._enableProperties27 = dh._enableProperties;
-        //   dh._enableProperties = _enablePropertiesT;
-        // }
+      // if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
+      //   dh._enableProperties27 = dh._enableProperties;
+      //   dh._enableProperties = _enablePropertiesT;
+      // }
 
       if (typeof dh.attached === 'function' && !dh.attached27) {
         dh.attached27 = dh.attached;
@@ -2695,36 +2695,42 @@
     }
 
 
-    WEAK_REF_BINDING && (async () => {
+    //     WEAK_REF_BINDING && (async () => {
 
-      ['tp-yt-iron-dropdown', 'tp-yt-paper-menu-button'].forEach(async tag => {
+    //       ['tp-yt-paper-menu-button'].forEach(async tag => {
 
-        const dummy = await new Promise(resolve => {
-          promiseForCustomYtElementsReady.then(() => {
-            customElements.whenDefined(tag).then(() => {
-              resolve(document.createElement(tag));
-            });
-          });
+    //         const dummy = await new Promise(resolve => {
+    //           promiseForCustomYtElementsReady.then(() => {
+    //             customElements.whenDefined(tag).then(() => {
+    //               resolve(document.createElement(tag));
+    //             });
+    //           });
 
-        });
+    //         });
 
-        if (!dummy || dummy.is !== tag) return;
+    //         if (!dummy || dummy.is !== tag) return;
 
-        const cProto = insp(dummy).constructor.prototype;
+    //         const cProto = insp(dummy).constructor.prototype;
 
-        if (typeof cProto.close === 'function' && !cProto.close58) {
-          cProto.close58 = cProto.close;
-          cProto.close = function () {
-            const dropdown = (this.$ || 0).dropdown || 0;
-            if (!dropdown) return;
-            return this.close58.apply(this, arguments);
-          }
-        }
+    //         if (typeof cProto.close === 'function' && !cProto.close58) {
+    //           cProto.close58 = cProto.close;
+    //           console.log(cProto.close58)
+    //           cProto.close = function () {
+    //             // const dropdown = (this.$ || 0).dropdown || 0;
+    //             // if (!dropdown) return;
+    //             try{
+    //               return this.close58.apply(this, arguments);
+    //             }catch(e){
+
+    //             }
+
+    //           }
+    //         }
 
 
-      });
+    //       });
 
-    })();
+    //     })();
 
     NATIVE_CANVAS_ANIMATION && (() => {
 
