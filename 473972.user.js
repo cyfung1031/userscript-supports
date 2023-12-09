@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.48
+// @version     0.6.49
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -346,16 +346,25 @@
   }
   const readyT = function () {
     const hostElement = this.hostElement;
-    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      return void 0;
+    let b = false;
+    if (this.enableContentEditableChanged_) {
+      b = true;
+    } else if (this.is && this.is.length > 15 && this.is.length < 20) {
+
     } else {
-      return this.ready27();
+      b = true;
     }
+    if (b) {
+      if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+        return void 0;
+      }
+    }
+    return this.ready27.apply(this, arguments);
   }
   const _enablePropertiesT = function () {
     const hostElement = this.hostElement;
     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      if (this.__dataEnabled === true) this.__dataEnabled = false;
+      return void 0;
     }
     return this._enableProperties27();
   }
@@ -389,14 +398,13 @@
         }
       } catch (e) { }
     }
-    if (dh.__dataEnabled === true) {
-      dh.__dataEnabled = false;
-    }
+    // if (dh.__dataEnabled === true) {
+    //   dh.__dataEnabled = false;
+    // }
   };
-  const setupDataHost = setupD && setup$ ? function (dh) {
+  const setupDataHost = setupD && setup$ ? function (dh, opt) {
 
     if (dh && typeof dh === 'object') {
-
 
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
@@ -408,23 +416,26 @@
         dh.getParentRenderer = getParentRendererT;
       }
 
-      if (typeof dh.ready === 'function' && !dh.ready27) {
-        dh.ready27 = dh.ready;
-        dh.ready = readyT;
+      if (!opt) {
+
+        if (typeof dh.ready === 'function' && !dh.ready27) {
+          dh.ready27 = dh.ready;
+          dh.ready = readyT;
+        }
+
       }
 
-      if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
-        dh._enableProperties27 = dh._enableProperties;
-        dh._enableProperties = _enablePropertiesT;
-      }
+        // if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
+        //   dh._enableProperties27 = dh._enableProperties;
+        //   dh._enableProperties = _enablePropertiesT;
+        // }
 
       if (typeof dh.attached === 'function' && !dh.attached27) {
         dh.attached27 = dh.attached;
         dh.attached = attachedT;
       }
 
-
-      // setupD(dh, 'hostElement', hostElementCleanUp);
+      setupD(dh, 'hostElement', hostElementCleanUp);
       setupD(dh, 'parentComponent');
       setupD(dh, 'localVisibilityObserver_');
       setupD(dh, 'cachedProviderNode_');
@@ -442,9 +453,10 @@
 
 
       setup$(dh);
-
-
     }
+
+
+
 
   } : null;
 
@@ -1674,10 +1686,18 @@
 
 
     if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost && (h.is || h.__dataHost)) {
+
+      let skip = false;
+      if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
+        if (h.is.includes('yt-') && !h.$ && h.is.length !== 20 && h.is.length !== 21 && h.is.length !== 22) {
+          skip = true;
+          // return;
+        }
+      }
+
       h.kz62 = 1;
 
       //
-
 
       setup$(h);
       const hostElement = h.hostElement;
@@ -1691,7 +1711,7 @@
 
         const dh = h.__dataHost;
 
-        setupDataHost(dh)
+        setupDataHost(dh, skip)
       }
 
 
@@ -1706,7 +1726,7 @@
 
         const dh = hostElement.__dataHost;
 
-        setupDataHost(dh)
+        setupDataHost(dh, skip)
 
 
 
@@ -2940,7 +2960,7 @@
     // onVideoDataChange
     // onVideoProgress
 
-    FIX_maybeUpdateFlexibleMenu && (async () => {
+    (FIX_maybeUpdateFlexibleMenu || WEAK_REF_BINDING) && (async () => {
 
 
       const dummy = await new Promise(resolve => {
@@ -2961,7 +2981,7 @@
 
       const cProto = insp(dummy).constructor.prototype;
 
-      if (typeof cProto.created === 'function' && !cProto.created58) {
+      if (FIX_maybeUpdateFlexibleMenu && typeof cProto.created === 'function' && !cProto.created58) {
         cProto.created58 = cProto.created;
         cProto.created = function (...args) {
           const r = this.created58(...args);
@@ -2975,6 +2995,47 @@
         }
 
       }
+
+
+
+      // if (WEAK_REF_BINDING && typeof cProto.setupFlexibleMenu === 'function' && !cProto.setupFlexibleMenu58) {
+      //   cProto.setupFlexibleMenu58 = cProto.setupFlexibleMenu;
+      //   cProto.setupFlexibleMenu = function () {
+
+      //     const hostElement = this.hostElement;
+      //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      //       return void 0;
+      //     } else {
+      //       return this.setupFlexibleMenu58.apply(this, arguments);
+      //     }
+
+      //   }
+
+
+
+      // }
+
+
+      // if (WEAK_REF_BINDING && typeof cProto.stampDomArray_ === 'function' && !cProto.stampDomArray58_) {
+      //   cProto.stampDomArray58_ = cProto.stampDomArray_;
+      //   cProto.stampDomArray_ = function (a, b, c, d, e, h) {
+
+      //     const hostElement = this.hostElement;
+      //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      //       return void 0;
+      //     } else {
+      //       return this.stampDomArray58_.apply(this, arguments);
+      //     }
+
+      //   }
+
+
+
+      // }
+
+
+
+
 
       //console.log(144,cProto.maybeUpdateFlexibleMenu)
 
@@ -3014,7 +3075,7 @@
           if (elem.isAttached !== false) return;
 
           if (elem.__dataClientsReady === true) elem.__dataClientsReady = false;
-          if (elem.__dataEnabled === true) elem.__dataEnabled = false;
+          // if (elem.__dataEnabled === true) elem.__dataEnabled = false;
           if (elem.__dataReady === true) elem.__dataReady = false;
 
           elem.__dataLinkedPaths = elem.__dataToNotify = elem.__dataPendingClients = null;
@@ -3034,26 +3095,26 @@
           elem.__dataCounter = 0;
           elem.__serializing = false;
 
-          if (elem.$) elem.$ = {};
-          if (elem.root) elem.root = null;
+          // if (elem.$) elem.$ = {};
+          // if (elem.root) elem.root = null;
 
-          let hostElement = elem.hostElement, tlm;
-          if (hostElement instanceof Node) {
-            // if (hostElement.isConnected === false) {
-            // while (tlm = hostElement.firstChild) tlm.remove();
-            // }
-            elem.hostElement = hostElement = null;
-          }
+          // let hostElement = elem.hostElement, tlm;
+          // if (hostElement instanceof Node) {
+          //   // if (hostElement.isConnected === false) {
+          //   // while (tlm = hostElement.firstChild) tlm.remove();
+          //   // }
+          //   elem.hostElement = hostElement = null;
+          // }
 
 
-          if (hostElement === null) {
+          // if (hostElement === null) {
 
-            if (elem.animatedIconElement instanceof Node) elem.animatedIconElement = null;
-            if (elem._target instanceof Node) elem._target = null;
-            if (elem.iconset instanceof Node) elem.iconset = null;
-            if (elem._svgIcon instanceof Node) elem._svgIcon = null;
+          //   if (elem.animatedIconElement instanceof Node) elem.animatedIconElement = null;
+          //   if (elem._target instanceof Node) elem._target = null;
+          //   if (elem.iconset instanceof Node) elem.iconset = null;
+          //   if (elem._svgIcon instanceof Node) elem._svgIcon = null;
 
-          }
+          // }
 
 
         }
