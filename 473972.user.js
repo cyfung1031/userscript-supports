@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.38
+// @version     0.6.39
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -328,41 +328,43 @@
   } : null;
 
 
+  const configureVisibilityObserverT_ = function () {
+    if (!this.hostElement) {
+      this.unobserve_();
+    } else {
+      return this.configureVisibilityObserver27_();
+    }
+  };
+  const hostElementCleanUp = (dh) => {
+    if (typeof dh.dispose === 'function') {
+      try {
+        if (dh.visibilityMonitor || dh.visibilityObserver) {
+          dh.dispose();
+          dh.visibilityMonitor = null;
+          dh.visibilityObserver = null;
+        }
+      } catch (e) { }
+    }
+    if (typeof dh.detached === 'function') {
+      try {
+        if (dh.visibilityObserverForChild_ || dh.localVisibilityObserver_) {
+          dh.detached();
+          dh.visibilityObserverForChild_ = null;
+          dh.localVisibilityObserver_ = null;
+        }
+      } catch (e) { }
+    }
+  };
   const setupDataHost = setupD && setup$ ? function (dh) {
 
     if (dh && typeof dh === 'object') {
 
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
-        dh.configureVisibilityObserver_ = function () {
-          if (!this.hostElement) {
-            this.unobserve_();
-          } else {
-            return this.configureVisibilityObserver27_();
-          }
-        }
+        dh.configureVisibilityObserver_ = configureVisibilityObserverT_;
       }
 
-      setupD(dh, 'hostElement', (dh) => {
-        if (typeof dh.dispose === 'function') {
-          try {
-            if (dh.visibilityMonitor || dh.visibilityObserver) {
-              dh.dispose();
-              dh.visibilityMonitor = null;
-              dh.visibilityObserver = null;
-            }
-          } catch (e) { }
-        }
-        if (typeof dh.detached === 'function') {
-          try {
-            if (dh.visibilityObserverForChild_ || dh.localVisibilityObserver_) {
-              dh.detached();
-              dh.visibilityObserverForChild_ = null;
-              dh.localVisibilityObserver_ = null;
-            }
-          } catch (e) { }
-        }
-      });
+      setupD(dh, 'hostElement', hostElementCleanUp);
       setupD(dh, 'parentComponent');
       setupD(dh, 'localVisibilityObserver_');
       setupD(dh, 'cachedProviderNode_');
