@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.43
+// @version     0.6.44
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -416,7 +416,7 @@
         dh._enableProperties27 = dh._enableProperties;
         dh._enableProperties = _enablePropertiesT;
       }
-      
+
       if (typeof dh.attached === 'function' && !dh.attached27) {
         dh.attached27 = dh.attached;
         dh.attached = attachedT;
@@ -1055,6 +1055,12 @@
 
       const f = h.textChanged_;
       const g = ump3.get(f) || function (a) {
+        if (void 0 !== this.isAttached) {
+          const hostElement = this.hostElement;
+          if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+            return;
+          }
+        }
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
       }
       ump3.set(f, g);
@@ -2898,6 +2904,39 @@
     // onLoadedMetadata
     // onVideoDataChange
     // onVideoProgress
+
+    WEAK_REF_BINDING && (async () => {
+
+
+      const dummy = await new Promise(resolve => {
+
+        promiseForCustomYtElementsReady.then(() => {
+          customElements.whenDefined('tp-yt-paper-menu-button').then(() => {
+
+            resolve(document.createElement('tp-yt-paper-menu-button'));
+          });
+        });
+
+
+
+      });
+
+
+      if (!dummy || dummy.is !== 'tp-yt-paper-menu-button') return;
+
+
+      const cProto = insp(dummy).constructor.prototype;
+
+      if (typeof cProto.close === 'function' && !cProto.close58) {
+        cProto.close58 = cProto.close;
+        cProto.close = function () {
+          const dropdown = (this.$ || 0).dropdown || 0;
+          if (!dropdown) return;
+          return this.close58.apply(this, arguments);
+        }
+      }
+
+    });
 
     FIX_maybeUpdateFlexibleMenu && (async () => {
 
