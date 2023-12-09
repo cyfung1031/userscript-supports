@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.49
+// @version     0.6.50
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -416,14 +416,14 @@
         dh.getParentRenderer = getParentRendererT;
       }
 
-      if (!opt) {
+      // if (!opt) {
 
-        if (typeof dh.ready === 'function' && !dh.ready27) {
-          dh.ready27 = dh.ready;
-          dh.ready = readyT;
-        }
+      //   if (typeof dh.ready === 'function' && !dh.ready27) {
+      //     dh.ready27 = dh.ready;
+      //     dh.ready = readyT;
+      //   }
 
-      }
+      // }
 
         // if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
         //   dh._enableProperties27 = dh._enableProperties;
@@ -1688,12 +1688,12 @@
     if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost && (h.is || h.__dataHost)) {
 
       let skip = false;
-      if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
-        if (h.is.includes('yt-') && !h.$ && h.is.length !== 20 && h.is.length !== 21 && h.is.length !== 22) {
-          skip = true;
-          // return;
-        }
-      }
+      // if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
+      //   if (h.is.includes('yt-') && !h.$ && h.is.length !== 20 && h.is.length !== 21 && h.is.length !== 22) {
+      //     skip = true;
+      //     // return;
+      //   }
+      // }
 
       h.kz62 = 1;
 
