@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.34
+// @version     0.6.35
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -53,10 +53,8 @@
 
   const UNLOAD_DETACHED_POLYMER = true;
 
-  // << if ENABLE_discreteTasking >>
   const WEAK_REF_BINDING = true; // false if your browser is slow
-  // << end >>
-  // << if ENABLE_discreteTasking and WEAK_REF_BINDING >>
+  // << if WEAK_REF_BINDING >>
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
 
@@ -197,6 +195,7 @@
   const setup$ = typeof WeakRef !== 'undefined' ? function (dh) {
 
     const $ = dh.$;
+    // const elements_ = dh.elements_;
 
     // setupD(dh, '$');
 
@@ -206,6 +205,7 @@
       dh.$ky37 = 1;
 
       if (!myMap.has($)) {
+
 
 
 
@@ -251,6 +251,67 @@
     }
 
 
+
+
+    //     if (WEAK_REF_PROXY_DOLLAR && elements_ && typeof elements_ === 'object' && !dh.$ky38) {
+
+    //       dh.$ky38 = 1;
+
+    //       if (!myMap.has(elements_)) {
+
+
+
+
+    //         for (const k of Object.keys(elements_)) {
+
+    //           const v = elements_[k];
+    //           if (elements_[k] instanceof Node) {
+
+    //             elements_[k] = new WeakRef(elements_[k]);
+
+    //           }
+
+    //         }
+
+    //         /*
+
+
+
+    //         dh.elements_ = mxMap.get(elements_) || new Proxy(elements_, {
+    //           get(obj, prop) {
+    //             const val = obj[prop];
+    //             if (typeof (val || 0).deref === 'function') {
+    //               return val.deref();
+    //             }
+    //             return val;
+    //           },
+    //           set(obj, prop, val) {
+    //             if (val instanceof Node) {
+    //               obj[prop] = new WeakRef(val);
+    //             } else {
+    //               obj[prop] = val;
+    //             }
+    //             return true;
+    //           }
+    //         });
+
+    //         console.log(dh, dh.elements_, elements_)
+
+    //         mxMap.set(elements_, dh.elements_);
+    //         myMap.add(dh.elements_);
+
+    // */
+    //       }
+
+
+
+
+    //     }
+
+
+
+
+
   } : null;
 
 
@@ -271,6 +332,8 @@
 
 
       setupD(dh, 'root');
+      const elements_ = dh.elements_;
+      if (elements_ && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupD(dh, 'elements_');
 
 
 
@@ -301,61 +364,6 @@
     if (rb) {
       if (h.ky36) return;
     }
-
-    if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost) {
-      h.kz62 = 1;
-
-      //
-
-      setup$(h);
-      const hostElement = h.hostElement;
-
-      if (hostElement !== h) {
-
-        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
-          setupD(h, s);
-
-        }
-
-        const dh = h.__dataHost;
-
-        setupDataHost(dh)
-      }
-
-
-
-
-      if (hostElement) {
-
-        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
-          setupD(hostElement, s);
-
-        }
-
-        const dh = hostElement.__dataHost;
-
-        setupDataHost(dh)
-
-
-
-
-        aDelay().then(() => {
-          setupD(hostElement, '__CE_shadowRoot');
-        });
-
-
-      }
-
-
-
-      // });
-
-
-
-
-
-    }
-
 
 
     if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
@@ -1551,12 +1559,96 @@
     };
   }
 
+  const setupWeakRef = (h) => {
+
+
+    if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost && (h.is || h.__dataHost)) {
+      h.kz62 = 1;
+
+      //
+
+
+      setup$(h);
+      const hostElement = h.hostElement;
+
+      if (hostElement !== h) {
+
+        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
+          setupD(h, s);
+
+        }
+
+        const dh = h.__dataHost;
+
+        setupDataHost(dh)
+      }
+
+
+
+
+      if (hostElement) {
+
+        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
+          setupD(hostElement, s);
+
+        }
+
+        const dh = hostElement.__dataHost;
+
+        setupDataHost(dh)
+
+
+
+
+        aDelay().then(() => {
+          setupD(hostElement, '__CE_shadowRoot');
+        });
+
+
+      }
+
+
+
+
+
+    }
+
+  }
+
+
+  let nativeHTMLElements = window.HTMLElement;
+
+  try {
+
+    const q = document.createElement('template');
+    q.innerHTML = '<ytz-null361></ytz-null361>';
+    nativeHTMLElements = q.content.firstChild.constructor
+
+  } catch (e) { }
+
+  if (!nativeHTMLElements.prototype.connectedCallback) {
+    nativeHTMLElements.prototype.connectedCallback79 = nativeHTMLElements.prototype.connectedCallback;
+    nativeHTMLElements.prototype.connectedCallback = function () {
+      let r;
+      if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
+
+      if (WEAK_REF_BINDING && (this.is || this instanceof Node) && this.nodeName === 'DOM-IF' && this.__dataHost) {
+        setupWeakRef(this)
+        // setupWeakRef(this.__dataHost)
+      }
+      return r;
+    }
+  }
+
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       const f = this[keyStConnectedCallback];
       if (this.is) {
         setupDiscreteTasks(this, true);
         if (f) this.ky36 = 1;
+      }
+      if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
+        setupWeakRef(this)
       }
       return f;
     },
@@ -1577,6 +1669,9 @@
       this[keyStConnectedCallback] = gv; // proto or object
       if (this.is) {
         setupDiscreteTasks(this);
+      }
+      if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
+        setupWeakRef(this)
       }
       return true;
     },
@@ -2829,6 +2924,9 @@
 
       Polymer.Base.__connInit__ = function () {
         setupDiscreteTasks(this);
+        if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
+          setupWeakRef(this)
+        }
       }
 
 
