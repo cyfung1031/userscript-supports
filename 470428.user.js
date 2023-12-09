@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.17
+// @version     1.3.18
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -34,6 +34,9 @@
   const NO_DESKTOP_DELAY_PLAYER_RESIZING = false;
   const NO_ANIMATED_LIKE = false;
   const KEEP_MIDDLEWAVE = true;
+
+  const SET_POLYMER_FLAGS = true;
+  const FLAG_STRATEGY_01 = true;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -136,6 +139,18 @@
   function fOper(key, value) {
 
     const kl = key.length;
+
+    if (FLAG_STRATEGY_01) {
+
+      if (key === 'web_player_defer_modules') return fOperAccept;
+      if (key === 'html5_defer_modules_on_ads_only') return fOperAccept;
+      if (key === 'web_player_defer_ad') return fOperAccept;
+      if (key === 'disable_defer_admodule_on_advertiser_video') return fOperAccept;
+      if (key === 'html5_onesie_defer_content_loader_ms') return fOperAccept;
+      if (key === 'html5_defer_fetch_att_ms') return fOperAccept;
+      if (key === 'embeds_web_enable_defer_loading_remote_js') return fOperAccept;
+
+    }
 
     if (kl === 23) {
 
@@ -592,6 +607,19 @@
           const kl3 = kl % 3;
           const kl2 = kl % 2;
 
+
+          if (FLAG_STRATEGY_01) {
+
+            if (key === 'web_player_defer_modules') continue;
+            if (key === 'html5_defer_modules_on_ads_only') continue;
+            if (key === 'web_player_defer_ad') continue;
+            if (key === 'disable_defer_admodule_on_advertiser_video') continue;
+            if (key === 'html5_onesie_defer_content_loader_ms') continue;
+            if (key === 'html5_defer_fetch_att_ms') continue;
+            if (key === 'embeds_web_enable_defer_loading_remote_js') continue;
+
+          }
+
           if (kl === 30) {
             if (KEEP_MIDDLEWAVE && key === 'web_player_entities_middleware') continue;
           }
@@ -948,6 +976,12 @@
 
 
 */
+
+      if (SET_POLYMER_FLAGS) {
+        EXPERIMENT_FLAGS.polymer_video_renderer_defer_menu = true;
+        EXPERIMENT_FLAGS.polymer_on_demand_shady_dom = true;
+        EXPERIMENT_FLAGS.polymer_enable_mdx_queue = true;
+      }
 
 
       // EXPERIMENT_FLAGS.kevlar_appbehavior_attach_startup_tasks = true;
