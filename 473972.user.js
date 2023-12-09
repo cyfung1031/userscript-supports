@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.41
+// @version     0.6.42
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -359,6 +359,17 @@
     }
     return this._enableProperties27();
   }
+
+  const attachedT = function () {
+    const hostElement = this.hostElement;
+    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+      if (this.isAttached === true) this.isAttached = false;
+      return void 0;
+    } else {
+      return this.attached();
+    }
+  }
+
   const hostElementCleanUp = (dh) => {
     if (typeof dh.dispose === 'function') {
       try {
@@ -404,6 +415,11 @@
       if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
         dh._enableProperties27 = dh._enableProperties;
         dh._enableProperties = _enablePropertiesT;
+      }
+      
+      if (typeof dh.attached === 'function' && !dh.attached27) {
+        dh.attached27 = dh.attached;
+        dh.attached = attachedT;
       }
 
       setupD(dh, 'hostElement', hostElementCleanUp);
