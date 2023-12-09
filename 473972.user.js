@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.33
+// @version     0.6.34
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -55,6 +55,8 @@
 
   // << if ENABLE_discreteTasking >>
   const WEAK_REF_BINDING = true; // false if your browser is slow
+  // << end >>
+  // << if ENABLE_discreteTasking and WEAK_REF_BINDING >>
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
 
@@ -279,11 +281,15 @@
   } : null;
 
 
-  let delay300 = new PromiseExternal();
-  setInterval(() => {
-    delay300.resolve();
+  let delay300 = null;
+
+  if (UNLOAD_DETACHED_POLYMER || WEAK_REF_BINDING) {
     delay300 = new PromiseExternal();
-  }, 300);
+    setInterval(() => {
+      delay300.resolve();
+      delay300 = new PromiseExternal();
+    }, 300);
+  }
 
   const aDelay = async function () {
     await delay300.then();
@@ -2764,12 +2770,6 @@
 
       if (UNLOAD_DETACHED_POLYMER && typeof Polymer.Base.detached === 'function' && !Polymer.Base.detached92 && Polymer.Base.detached.length === 0) {
         Polymer.Base.detached92 = Polymer.Base.detached;
-
-        let delay300 = new PromiseExternal();
-        setInterval(() => {
-          delay300.resolve();
-          delay300 = new PromiseExternal();
-        }, 300);
 
         const detachedPlus = async function (elem) {
           await delay300.then();
