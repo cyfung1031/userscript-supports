@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.36
+// @version     0.6.37
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -157,8 +157,11 @@
 
   const ump3 = new WeakMap();
 
+  const stp = document.createElement('noscript');
+  stp.id = 'weakref-placeholder'
 
-  const setupD = typeof WeakRef !== 'undefined' ? (elm, s) => {
+
+  const setupD = typeof WeakRef !== 'undefined' ? (elm, s, usePlaceholder) => {
 
     const z = `${s}72`;
 
@@ -171,7 +174,11 @@
 
       Object.defineProperty(elm, s, {
         get() {
-          return elm[z] ? elm[z].deref() : null;
+          const wr = elm[z];
+          if (!wr) return null;
+          const m = wr.deref();
+          if (!m && usePlaceholder) return stp;
+          return m;
         },
         set(nv) {
           elm[z] = nv ? new WeakRef(nv) : null;
@@ -330,8 +337,7 @@
       setupD(dh, '__templatizeOwner');
       setupD(dh, '__templateInfo');
 
-
-      setupD(dh, 'root');
+      setupD(dh, 'root', 1);
       const elements_ = dh.elements_;
       if (elements_ && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupD(dh, 'elements_');
 
