@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.35
+// @version     0.6.36
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1632,7 +1632,7 @@
       let r;
       if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
 
-      if (WEAK_REF_BINDING && (this.is || this instanceof Node) && this.nodeName === 'DOM-IF' && this.__dataHost) {
+      if (WEAK_REF_BINDING && (this instanceof Node) && (this.is || this.__dataHost)) {
         setupWeakRef(this)
         // setupWeakRef(this.__dataHost)
       }
