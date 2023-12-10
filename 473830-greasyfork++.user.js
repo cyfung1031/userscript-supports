@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.34
+// @version            3.2.35
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -853,6 +853,46 @@ const mWindow = (() => {
 
 (async () => {
 
+    const isVaildURL = (url) => {
+        if (!url || typeof url !== 'string' || url.length < 23) return;
+        let obj = null;
+        try {
+            obj = new URL(url);
+        } catch (e) {
+            return false;
+        }
+        if (obj && obj.host === obj.hostname && !obj.port && (obj.protocol || '').startsWith('http') && obj.pathname) {
+            return true;
+        }
+        return false;
+    };
+
+    const installLinkPointerDownHandler = function (e) {
+        if (!e || !e.isTrusted) return;
+        const button = e.target || this;
+        if (button.hasAttribute('acnmd')) return;
+        const href = button.href;
+        if (!href || !isVaildURL(href)) return;
+        if (/\.js[^-.\w\d\s:\/\\]*$/.test(href)) {
+            fetch(href, {
+                method: "GET",
+                cache: 'reload',
+                redirect: "follow"
+            }).then(() => {
+                console.debug('code url reloaded', href);
+            }).catch((e) => {
+                console.debug(e);
+            });
+        }
+        button.setAttribute('acnmd', '');
+    };
+
+    const setupInstallLink = (button) => {
+        if (button.className !== 'install-link' || button.nodeName !== "A" || !button.href) return button;
+        button.addEventListener('pointerdown', installLinkPointerDownHandler);
+        return button;
+    };
+
     function fixValue(key, def, test) {
         return GM.getValue(key, def).then((v) => test(v) || GM.deleteValue(key))
     }
@@ -1600,7 +1640,7 @@ const mWindow = (() => {
     };
 
     const addInstallButton = (element, url) => {
-        return insertButtonHTML(element, '.badge-js, .badge-css', `<a class="install-link" href="${url}" style-54998></a>`);
+        return setupInstallLink(insertButtonHTML(element, '.badge-js, .badge-css', `<a class="install-link" href="${url}" style-54998></a>`));
     };
 
     async function digestMessage(message, algo) {
@@ -1646,19 +1686,26 @@ const mWindow = (() => {
         if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
 
             const version = element.getAttribute('data-script-version') || ''
-            const name = element.getAttribute('data-script-name') || ''
-            // if (!/[^\x00-\x7F]/.test(name)) {
 
-            // const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
-            // const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length - 2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
-            const scriptFilename = element.getAttribute('data-script-type') === 'library' ? `${encodeFileName(name)}.js` : `${encodeFileName(name)}.user.js`;
-            // const scriptFilename = `${scriptName}.user.js`;
+            let scriptCodeURL = element.getAttribute('data-code-url');
+            if (!scriptCodeURL || !isVaildURL(scriptCodeURL)) {
+
+                const name = element.getAttribute('data-script-name') || ''
+                // if (!/[^\x00-\x7F]/.test(name)) {
+
+                // const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
+                // const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length - 2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+                const scriptFilename = element.getAttribute('data-script-type') === 'library' ? `${encodeFileName(name)}.js` : `${encodeFileName(name)}.user.js`;
+                // const scriptFilename = `${scriptName}.user.js`;
+
+                // code_url: `https://${location.hostname}/scripts/${scriptID}-${token}/code/${scriptFilename}`,
+                // code_url: `https://update.${location.hostname}/scripts/${scriptID}.user.js`,
+                scriptCodeURL = `https://update.${location.hostname}/scripts/${scriptID}/${scriptFilename}`
+            }
             _baseScript = {
                 id: +scriptID,
                 // name: name,
-                // code_url: `https://${location.hostname}/scripts/${scriptID}-${token}/code/${scriptFilename}`,
-                // code_url: `https://update.${location.hostname}/scripts/${scriptID}.user.js`,
-                code_url: `https://update.${location.hostname}/scripts/${scriptID}/${scriptFilename}`,
+                code_url: scriptCodeURL,
                 version: version
             }
             // }
@@ -1669,12 +1716,17 @@ const mWindow = (() => {
 
         if ((element.nodeName === 'LI' && element.getAttribute('data-script-type') === 'library') || (baseScript.code_url.includes('.js?version='))) {
 
-            const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
+            let scriptCodeURL = element.getAttribute('data-code-url');
 
-            if (isLibraryURLWithVersion(script.code_url)) {
+            if (!scriptCodeURL || !isVaildURL(scriptCodeURL)) {
+                const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
+                scriptCodeURL = script.code_url;
+            }
+
+            if (scriptCodeURL && isLibraryURLWithVersion(scriptCodeURL)) {
 
 
-                const code_url = fixLibraryCodeURL(script.code_url);
+                const code_url = fixLibraryCodeURL(scriptCodeURL);
 
                 const button = addInstallButton(element, code_url);
                 button.textContent = `Copy URL`;
@@ -1916,6 +1968,7 @@ const mWindow = (() => {
 
                 // hidden scripts on details page
                 const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
+                setupInstallLink(installLinkElement);
                 if (gmc.get('hideHiddenScript') && installLinkElement) {
                     const id = +installLinkElement.getAttribute('data-script-id');
                     hideHiddenScript(document.querySelector('#script-info'), id, false);
