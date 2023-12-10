@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.20
+// @version     1.3.21
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -37,6 +37,8 @@
 
   const SET_POLYMER_FLAGS = true;
   const FLAG_STRATEGY_01 = true;
+
+  const FLAG_STRATEGY_02 = true;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -606,6 +608,57 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (FLAG_STRATEGY_02) {
+
+
+            if (kl === 24 || kl === 44) {
+
+
+              if (key === 'kevlar_client_enable_shorts_player_bootstrap') continue;
+              if (key === 'kevlar_early_popup_close') continue;
+              if (key === 'kevlar_hide_pp_url_param') continue;
+              if (key === 'kevlar_touch_gesture_ves') continue;
+              if (key === 'player_doubletap_to_seek') continue;
+              if (key === 'shorts_controller_retrieve_seedless_sequence') continue;
+              if (key === 'shorts_overlay_reshuffle') continue;
+
+              // if (
+              //   [
+
+              //     // 'enable_offer_suppression'
+              //     // 'enable_purchase_activity_in_paid_memberships'
+              //     // 'enable_time_out_messages'
+              //     // 'enable_true_inline_for_desktop_home_feed_vac'
+              //     // 'enable_wiz_next_lp2_msof'
+              //     // 'enable_ytc_refunds_submit_form_signal_action'
+              //     // 'gcf_config_store_enabled'
+              //     'kevlar_client_enable_shorts_player_bootstrap',
+              //     'kevlar_early_popup_close',
+              //     // 'kevlar_gel_error_routing'
+              //     'kevlar_hide_pp_url_param',
+              //     // 'kevlar_startup_lifecycle'
+              //     // 'kevlar_structured_description_content_inline'
+              //     'kevlar_touch_gesture_ves',
+              //     // 'kevlar_typography_update'
+              //     // 'kevlar_voice_logging_fix'
+              //     // 'kevlar_watch_disable_legacy_metadata_updates'
+              //     // 'migrate_remaining_web_ad_badges_to_innertube'
+              //     // 'mweb_render_wrapped_icon'
+              //     'player_doubletap_to_seek',
+              //     // 'polymer_bad_build_labels'
+              //     'shorts_controller_retrieve_seedless_sequence',
+              //     'shorts_overlay_reshuffle',
+              //     // 'show_civ_reminder_on_web'
+              //     // 'skip_invalid_ytcsi_ticks'
+              //     // 'web_hide_autonav_keyline'
+              //     // 'web_player_autonav_use_server_provided_state'
+              //   ].includes(key)
+              // ) continue;
+
+            }
+
+          }
 
           if (SET_POLYMER_FLAGS) {
 
