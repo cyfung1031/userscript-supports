@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ytZara
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
-// @description  A tool for YouTube's Polymer.js
+// @version      1.0.1
+// @description  JS Library for YouTube's UserScripts
 // @author       CY Fung
 // @grant        none
 // @license      MIT
@@ -36,11 +36,51 @@ SOFTWARE.
 
 var ytZara = (function () {
   'use strict';
+  const VERSION_CONTROL = 1;
+  const _global_ytZara = window.ytZara;
+  if (_global_ytZara) {
+    if (_global_ytZara.VERSION_CONTROL === VERSION_CONTROL) {
+      return _global_ytZara;
+    } else if (_global_ytZara.VERSION_CONTROL > VERSION_CONTROL) {
+      console.warn('A newer ytZara is used.');
+      return _global_ytZara;
+    } else {
+      console.warn('A newer ytZara will replace your outdated ytZara.')
+      delete window.ytZara;
+    }
+  }
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
   const ytZara = {
+    VERSION_CONTROL,
     insp,
     indr,
+    async ytProtoAsync(tag) {
+      await this.promiseRegistryReady().then();
+      await customElements.whenDefined(tag).then();
+      return insp(document.createElement(tag)).constructor.prototype;
+    },
+    docInitializedAsync() {
+      return new Promise(resolve => {
+
+        let mo = new MutationObserver(() => {
+          mo.disconnect()
+          mo.takeRecords()
+          mo = null
+          resolve();
+        });
+        mo.observe(document, { childList: true, subtree: true });
+
+      })
+    },
+    isYtHidden(elem) {
+      if (!(elem instanceof Element)) return null;
+      return HTMLElement.prototype.closest.call(elem, '[hidden]');
+    },
+    _promiseRegistryReady: null,
+    promiseRegistryReady() {
+      return this._promiseRegistryReady || (this._promiseRegistryReady = new Promise(this.onRegistryReady));
+    },
     onRegistryReady(callback) {
       if (typeof customElements === 'undefined') {
         if (!('__CE_registry' in document)) {
