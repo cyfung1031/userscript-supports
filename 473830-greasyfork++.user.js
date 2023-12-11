@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.35
+// @version            3.2.36
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -888,7 +888,7 @@ const mWindow = (() => {
     };
 
     const setupInstallLink = (button) => {
-        if (button.className !== 'install-link' || button.nodeName !== "A" || !button.href) return button;
+        if (!button || button.className !== 'install-link' || button.nodeName !== "A" || !button.href) return button;
         button.addEventListener('pointerdown', installLinkPointerDownHandler);
         return button;
     };
