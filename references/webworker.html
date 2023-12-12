@@ -14,7 +14,25 @@ var w;
 function startWorker() {
   if(typeof(Worker) !== "undefined") {
     if(typeof(w) == "undefined") {
-      w = new Worker("https://www.w3schools.com/html/demo_workers.js");
+      const workerCode = `
+        var i=0;
+
+        function timedCount() {
+            i=i+1;
+            postMessage(i);
+            setTimeout("timedCount()", 500);
+        }
+        
+        timedCount();
+      `;
+              
+        // Step 2: Create a Blob from the worker code
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        
+        // Step 3: Create a Blob URL
+        const blobURL = URL.createObjectURL(blob);
+        
+      w = new Worker(blobURL); //  new Worker("https://www.w3schools.com/html/demo_workers.js");
     }
     w.onmessage = function(event) {
       document.getElementById("result").innerHTML = event.data;
