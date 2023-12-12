@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+  <p>Count numbers: <output id="result"></output></p>
+  <button onclick="startWorker()">Start Worker</button>
+  <button onclick="stopWorker()">Stop Worker</button>
+
+  <p><strong>Note:</strong> Internet Explorer 9 and earlier versions do not support Web Workers.</p>
+
+
+  <script>
+
+    // receiver.js
+
+    "use strict";
+
+    {
+      // Namespace for receiver side (which receives calls from the controller side)
+      self.ViaReceiver = {};
+
+      // The master map of object ID to the real object. Object ID 0 is always the global object on
+      // the receiver (i.e. window or self). IDs are removed by cleanup messages, which are sent
+      // by the controller when the Proxy with that ID is garbage collected (which requires WeakCell
+      // support), indicating it cannot be used any more. This is important to avoid a memory leak,
+      // since if the IDs are left behind they will prevent the associated object being collected.
+      const idMap = new Map([[0, self]]);
+
+      // Some objects are allocated an ID here on the receiver side, when running callbacks with
+      // object parameters. To avoid ID collisions with the controller, receiver object IDs are
+      // negative and decrement, and controller object IDs are positive and increment.
+      let nextObjectId = -1;
+
+      // Get the real object from an ID.
+      function IdToObject(id) {
+        const ret = idMap.get(id);
+
+        if (typeof ret === "undefined")
+          throw new Error("missing object id: " + id);
+
+        return ret;
+      }
+
+      // Allocate new ID for an object on the receiver side.
+      // The receiver uses negative IDs to prevent ID collisions with the controller.
+      function ObjectToId(object) {
+        const id = nextObjectId--;
+        idMap.set(id, object);
+        return id;
+      }
+
+      // Get the real value from an ID and a property path, e.g. object ID 0, path ["document", "title"]
+      // will return window.document.title.
+      function IdToObjectProperty(id, path) {
+        const ret = idMap.get(id);
+
+        if (typeof ret === "undefined")
+          throw new Error("missing object id: " + id);
+
+        let base = ret;
+
+        for (let i = 0, len = path.length; i < len; ++i)
+          base = base[path[i]];
+
+        return base;
+      }
+
+      function CanStructuredClone(o) {
+        const type = typeof o;
+        return type === "undefined" || o === null || type === "boolean" || type === "number" || type === "string" ||
+          (o instanceof Blob) || (o instanceof ArrayBuffer) || (o instanceof ImageData);
+      }
+
+      // Wrap an argument. This is used for sending values back to the controller. Anything that can be directly
+      // posted is sent as-is, but any kind of object is represented by its object ID instead.
+      function WrapArg(arg) {
+        if (CanStructuredClone(arg)) {
+          return [0 /* primitive */, arg];
+        }
+        else {
+          return [1 /* object */, ObjectToId(arg)];
+        }
+      }
+
+      // Get a shim function for a given callback ID. This creates a new function that forwards the
+      // call with its arguments to the controller, where it will run the real callback.
+      // Callback functions are not re-used to allow them to be garbage collected normally.
+      function GetCallbackShim(id) {
+        return ((...args) => ViaReceiver.postMessage({
+          "type": "callback",
+          "id": id,
+          "args": args.map(WrapArg)
+        }));
+      }
+
+      // Unwrap an argument sent from the controller. Arguments are transported as small arrays indicating
+      // the type and any object IDs/property paths, so they can be looked up on the receiver side.
+      function UnwrapArg(arr) {
+        switch (arr[0]) {
+          case 0:		// primitive
+            return arr[1];
+          case 1:		// object
+            return IdToObject(arr[1]);
+          case 2:		// callback
+            return GetCallbackShim(arr[1]);
+          case 3:		// object property
+            return IdToObjectProperty(arr[1], arr[2]);
+          default:
+            throw new Error("invalid arg type");
+        }
+      }
+
+      // Called when receiving a message from the controller.
+      ViaReceiver.OnMessage = function (data) {
+        switch (data.type) {
+          case "cmds":
+            OnCommandsMessage(data);
+            break;
+          case "cleanup":
+            OnCleanupMessage(data);
+            break;
+          default:
+            console.error("Unknown message type: " + data.type);
+            break;
+        }
+      };
+
+      function OnCommandsMessage(data) {
+        const getResults = [];		// list of values requested to pass back to controller
+
+        // Run all sent commands
+        for (const cmd of data.cmds) {
+          RunCommand(cmd, getResults);
+        }
+
+        // Post back that we're done (so the flush promise resolves), and pass along any get values.
+        ViaReceiver.postMessage({
+          "type": "done",
+          "flushId": data.flushId,
+          "getResults": getResults
+        });
+      }
+
+      function RunCommand(arr, getResults) {
+        const type = arr[0];
+
+        switch (type) {
+          case 0:		// call
+            ViaCall(arr[1], arr[2], arr[3], arr[4]);
+            break;
+          case 1:		// set
+            ViaSet(arr[1], arr[2], arr[3]);
+            break;
+          case 2:		// get
+            ViaGet(arr[1], arr[2], arr[3], getResults);
+            break;
+          case 3:		// constructor
+            ViaConstruct(arr[1], arr[2], arr[3], arr[4]);
+            break;
+          default:
+            throw new Error("invalid cmd type: " + type);
+        }
+      }
+
+      function ViaCall(objectId, path, argsData, returnObjectId) {
+        const obj = IdToObject(objectId);
+        const args = argsData.map(UnwrapArg);
+        const methodName = path[path.length - 1];
+
+        let base = obj;
+
+        for (let i = 0, len = path.length - 1; i < len; ++i) {
+          base = base[path[i]];
+        }
+
+        const ret = base[methodName](...args);
+        idMap.set(returnObjectId, ret);
+      }
+
+      function ViaConstruct(objectId, path, argsData, returnObjectId) {
+        const obj = IdToObject(objectId);
+        const args = argsData.map(UnwrapArg);
+        const methodName = path[path.length - 1];
+
+        let base = obj;
+
+        for (let i = 0, len = path.length - 1; i < len; ++i) {
+          base = base[path[i]];
+        }
+
+        const ret = new base[methodName](...args);
+        idMap.set(returnObjectId, ret);
+      }
+
+      function ViaSet(objectId, path, valueData) {
+        const obj = IdToObject(objectId);
+        const value = UnwrapArg(valueData);
+        const propertyName = path[path.length - 1];
+
+        let base = obj;
+
+        for (let i = 0, len = path.length - 1; i < len; ++i) {
+          base = base[path[i]];
+        }
+
+        base[propertyName] = value;
+      }
+
+      function ViaGet(getId, objectId, path, getResults) {
+        const obj = IdToObject(objectId);
+
+        if (path === null) {
+          getResults.push([getId, WrapArg(obj)]);
+          return;
+        }
+
+        const propertyName = path[path.length - 1];
+
+        let base = obj;
+
+        for (let i = 0, len = path.length - 1; i < len; ++i) {
+          base = base[path[i]];
+        }
+
+        const value = base[propertyName];
+        getResults.push([getId, WrapArg(value)]);
+      }
+
+      function OnCleanupMessage(data) {
+        // Delete a list of IDs sent from the controller from the ID map. This happens when
+        // the Proxys on the controller side with these IDs are garbage collected, so the IDs
+        // on the receiver can be dropped ensuring the associated objects can be collected.
+        for (const id of data.ids)
+          idMap.delete(id);
+      }
+    }
+
+  </script>
+
+  <script>
+    var w;
+
+    function workerCodeFunc() {
+
+
+      // object.js
+
+      "use strict";
+
+      {
+        if (!self.Via)
+          self.Via = {};
+
+        const ViaObjectHandler =
+        {
+          get(target, property, receiver) {
+            // Return a Via property proxy, unless the special object symbol is passed,
+            // in which case return the backing object ID.
+            if (property === Via.__ObjectSymbol)
+              return target._objectId;
+
+            return Via._MakeProperty(target._objectId, [property]);
+          },
+
+          set(target, property, value, receiver) {
+            // Add a set command to the queue.
+            Via._AddToQueue([1 /* set */, target._objectId, [property], Via._WrapArg(value)]);
+
+            return true;
+          }
+        };
+
+        Via._MakeObject = function (id) {
+          // For the apply and construct traps to work, the target must be callable.
+          // So use a function object as the target, and stash the object ID on it.
+          const func = function () { };
+          func._objectId = id;
+          const ret = new Proxy(func, ViaObjectHandler);
+
+          // When supported, register the returned object in the finalization registry with
+          // its associated ID. This allows GC of the Proxy object to notify the receiver
+          // side that its ID can be dropped, ensuring the real object can be collected
+          // as well. If this is not supported it will leak memory!
+          if (Via.finalizationRegistry)
+            Via.finalizationRegistry.register(ret, id);
+
+          return ret;
+        }
+      }
+
+
+      // property.js
+
+      "use strict";
+
+      {
+        if (!self.Via)
+          self.Via = {};
+
+        const ViaPropertyHandler =
+        {
+          get(target, property, receiver) {
+            // Return another Via property proxy with an extra property in its path,
+            // unless the special target symbol is passed, in which case return the actual target.
+            if (property === Via.__TargetSymbol)
+              return target;
+
+            // It's common to repeatedly look up the same properties, e.g. calling
+            // via.document.body.appendChild() in a loop. To speed this up and relieve pressure on the GC,
+            // cache the proxy for the next property in the chain, so we return the same proxy every time.
+            // Proxys are immutable (apart from this cache) so this doesn't change any behavior, and avoids
+            // having to repeatedly re-create the Proxy and property array. Profiling shows this does help.
+            const nextCache = target._nextCache;
+            const existing = nextCache.get(property);
+            if (existing)
+              return existing;
+
+            const path = target._path.slice(0);
+            path.push(property);
+            const ret = Via._MakeProperty(target._objectId, path);
+            nextCache.set(property, ret);		// add to next property cache
+            return ret;
+          },
+
+          set(target, property, value, receiver) {
+            // Add a set command to the queue, including a copy of the property path.
+            const path = target._path.slice(0);
+            path.push(property);
+
+            Via._AddToQueue([1 /* set */, target._objectId, path, Via._WrapArg(value)]);
+
+            return true;
+          },
+
+          apply(target, thisArg, argumentsList) {
+            // Allocate a new object ID for the return value, add a call command to the queue, and then return
+            // a Via object proxy representing the returned object ID.
+            const returnObjectId = Via._GetNextObjectId();
+
+            Via._AddToQueue([0 /* call */, target._objectId, target._path, argumentsList.map(Via._WrapArg), returnObjectId]);
+
+            return Via._MakeObject(returnObjectId);
+          },
+
+          construct(target, argumentsList, newTarget) {
+            // This is the same as the apply trap except a different command is used for construct instead of call.
+            // The command handler is also the same as when calling a function, except it uses 'new'.
+            const returnObjectId = Via._GetNextObjectId();
+
+            Via._AddToQueue([3 /* construct */, target._objectId, target._path, argumentsList.map(Via._WrapArg), returnObjectId]);
+
+            return Via._MakeObject(returnObjectId);
+          }
+        };
+
+        Via._MakeProperty = function (objectId, path) {
+          // For the apply and construct traps to work, the target must be callable.
+          // So use a function object as the target, and stash the object ID and
+          // the property path on it.
+          const func = function () { };
+          func._objectId = objectId;
+          func._path = path;
+          func._nextCache = new Map();		// for recycling sub-property lookups
+          return new Proxy(func, ViaPropertyHandler);
+        }
+      }
+
+
+
+      // controller.js
+
+      "use strict";
+
+      {
+        // Namespace for controller side (note the uppercase)
+        if (!self.Via)
+          self.Via = {};
+
+        // Symbols used to look up the hidden values behind the Proxy objects.
+        Via.__TargetSymbol = Symbol();
+        Via.__ObjectSymbol = Symbol();
+
+        // A FinalizationRegistry (if supported) that can identify when objects are garbage collected to notify the
+        // receiver to also drop references. If this is not supported, it will unavoidably leak memory.
+        Via.finalizationRegistry = (typeof FinalizationRegistry === "undefined" ? null : new FinalizationRegistry(FinalizeID));
+
+        if (!Via.finalizationRegistry)
+          console.warn("[Via.js] No WeakRefs support - will leak memory");
+
+        // FinalizeID is called once per ID. To improve the efficiency when posting cleanup messages to the other
+        // side, batch together all finalized IDs that happen in an interval using a timer, and post one message
+        // at the end of that timer.
+        let finalizeTimerId = -1;
+        const finalizeIntervalMs = 10;
+        const finalizeIdQueue = [];
+
+        function FinalizeID(id) {
+          finalizeIdQueue.push(id);
+
+          if (finalizeTimerId === -1)
+            finalizeTimerId = setTimeout(CleanupIDs, finalizeIntervalMs);
+        }
+
+        function CleanupIDs() {
+          finalizeTimerId = -1;
+
+          Via.postMessage({
+            "type": "cleanup",
+            "ids": finalizeIdQueue
+          });
+
+          finalizeIdQueue.length = 0;
+        }
+
+        let nextObjectId = 1;							// next object ID to allocate (controller side uses positive IDs)
+        const queue = [];								// queue of messages waiting to post
+        let nextGetId = 0;								// next get request ID to allocate
+        const pendingGetResolves = new Map();			// map of get request ID -> promise resolve function
+        let nextFlushId = 0;							// next flush ID to allocate
+        const pendingFlushResolves = new Map();			// map of flush ID -> promise resolve function
+        let isPendingFlush = false;						// has set a flush to run at the next microtask
+
+        // Callback functions are assigned an ID which is passed to a call's arguments.
+        // The receiver creates a shim which forwards the callback back to the controller, where
+        // it's looked up in the map by its ID again and then the controller-side callback invoked.
+        let nextCallbackId = 0;
+        const callbackToId = new Map();
+        const idToCallback = new Map();
+
+        // Create a default 'via' object (note the lowercase) representing the
+        // global object on the receiver side
+        self.via = Via._MakeObject(0);
+
+        Via._GetNextObjectId = function () {
+          return nextObjectId++;
+        };
+
+        Via._AddToQueue = function (d) {
+          queue.push(d);
+
+          // Automatically flush queue at next microtask
+          if (!isPendingFlush) {
+            isPendingFlush = true;
+            Promise.resolve().then(Via.Flush);
+          }
+        };
+
+        // Post the queue to the receiver. Returns a promise which resolves when the receiver
+        // has finished executing all the commands.
+        Via.Flush = function () {
+          isPendingFlush = false;
+
+          if (!queue.length)
+            return Promise.resolve();
+
+          const flushId = nextFlushId++;
+
+          Via.postMessage({
+            "type": "cmds",
+            "cmds": queue,
+            "flushId": flushId
+          });
+
+          queue.length = 0;
+
+          return new Promise(resolve => {
+            pendingFlushResolves.set(flushId, resolve);
+          });
+        };
+
+        // Called when a message received from the receiver
+        Via.OnMessage = function (data) {
+          switch (data.type) {
+            case "done":
+              OnDone(data);
+              break;
+            case "callback":
+              OnCallback(data);
+              break;
+            default:
+              throw new Error("invalid message type: " + data.type);
+          }
+        };
+
+        // Called when the receiver has finished a batch of commands passed by a flush.
+        function OnDone(data) {
+          // Resolve any pending get requests with the values retrieved from the receiver.
+          for (const [getId, valueData] of data.getResults) {
+            const resolve = pendingGetResolves.get(getId);
+            if (!resolve)
+              throw new Error("invalid get id");
+
+            pendingGetResolves.delete(getId);
+            resolve(Via._UnwrapArg(valueData));
+          }
+
+          // Resolve the promise returned by the original Flush() call.
+          const flushId = data.flushId;
+          const flushResolve = pendingFlushResolves.get(flushId);
+          if (!flushResolve)
+            throw new Error("invalid flush id");
+
+          pendingFlushResolves.delete(flushId);
+          flushResolve();
+        }
+
+        // Called when a callback is invoked on the receiver and this was forwarded to the controller.
+        function OnCallback(data) {
+          const func = idToCallback.get(data.id);
+          if (!func)
+            throw new Error("invalid callback id");
+
+          const args = data.args.map(Via._UnwrapArg);
+          func(...args);
+        }
+
+        function GetCallbackId(func) {
+          // Lazy-create IDs
+          let id = callbackToId.get(func);
+
+          if (typeof id === "undefined") {
+            id = nextCallbackId++;
+            callbackToId.set(func, id);
+            idToCallback.set(id, func);
+          }
+
+          return id;
+        }
+
+        function CanStructuredClone(o) {
+          const type = typeof o;
+          return type === "undefined" || o === null || type === "boolean" || type === "number" || type === "string" ||
+            (o instanceof Blob) || (o instanceof ArrayBuffer) || (o instanceof ImageData);
+        }
+
+        // Wrap an argument to a small array representing the value, object, property or callback for
+        // posting to the receiver.
+        Via._WrapArg = function (arg) {
+          // The Proxy objects used for objects and properties identify as functions.
+          // Use the special accessor symbols to see what they really are. If they're not a Proxy
+          // that Via knows about, assume it is a callback function instead.
+          if (typeof arg === "function") {
+            // Identify Via object proxy by testing if its object symbol returns a number
+            const objectId = arg[Via.__ObjectSymbol];
+            if (typeof objectId === "number") {
+              return [1 /* object */, objectId];
+            }
+
+            // Identify Via property proxy by testing if its target symbol returns anything
+            const propertyTarget = arg[Via.__TargetSymbol];
+
+            if (propertyTarget) {
+              return [3 /* object property */, propertyTarget._objectId, propertyTarget._path];
+            }
+
+            // Neither symbol applied; assume an ordinary callback function
+            return [2 /* callback */, GetCallbackId(arg)];
+          }
+          // Pass basic types that can be transferred via postMessage as-is.
+          else if (CanStructuredClone(arg)) {
+            return [0 /* primitive */, arg];
+          }
+          else
+            throw new Error("invalid argument");
+        }
+
+        // Unwrap an argument for a callback sent by the receiver.
+        Via._UnwrapArg = function (arr) {
+          switch (arr[0]) {
+            case 0:		// primitive
+              return arr[1];
+            case 1:		// object
+              return Via._MakeObject(arr[1]);
+            default:
+              throw new Error("invalid arg type");
+          }
+        }
+
+        // Add a command to the queue representing a get request.
+        function AddGet(objectId, path) {
+          const getId = nextGetId++;
+
+          Via._AddToQueue([2 /* get */, getId, objectId, path]);
+
+          return new Promise(resolve => {
+            pendingGetResolves.set(getId, resolve);
+          });
+        };
+
+        // Return a promise that resolves with the real value of a property, e.g. get(via.document.title).
+        // This involves a message round-trip, but multiple gets can be requested in parallel, and they will
+        // all be processed in the same round-trip.
+        self.get = function (proxy) {
+          if (typeof proxy === "function") {
+            // Identify Via object proxy by testing if its object symbol returns a number
+            const objectId = proxy[Via.__ObjectSymbol];
+            if (typeof objectId === "number")
+              return AddGet(objectId, null);		// null path will return object itself (e.g. in case it's a primitive)
+
+            // Identify Via property proxy by testing if its target symbol returns anything
+            const target = proxy[Via.__TargetSymbol];
+            if (target)
+              return AddGet(target._objectId, target._path);
+          }
+
+          // If the passed object isn't recognized as a Via object, just return it wrapped in a promise.
+          return Promise.resolve(proxy);
+        }
+      }
+
+      // worker.js
+
+      "use strict";
+
+      self.addEventListener("message", e => {
+        if (e.data === "start") {
+
+
+
+
+          Via.postMessage = (data => self.postMessage(data));
+          Start();
+        }
+        else {
+          Via.OnMessage(e.data);
+        }
+      });
+
+      async function Start() {
+        const document = via.document;
+
+        // Demo of retrieving DOM property values
+        const [docTitle, docUrl] = await Promise.all([
+          get(document.title),
+          get(document.URL)
+        ]);
+
+        console.log("Document title is: " + docTitle + ", URL is: " + docUrl);
+
+
+        const xPathQuery = '/html/head/title/text()';
+        const snapshot = document.evaluate(xPathQuery, document, null, 7, null);
+        console.log(snapshot)
+
+
+        var i = 0;
+        let timedCount;
+        timedCount = function () {
+          i = i + 1;
+          document.getElementById("result").innerHTML = i;
+          setTimeout(timedCount, 500);
+        }
+
+        timedCount();
+
+
+      }
+
+    }
+
+    function startWorker() {
+      if (typeof (Worker) !== "undefined") {
+        if (typeof (w) == "undefined") {
+          const workerCode = `(${workerCodeFunc})();`;
+
+          // Step 2: Create a Blob from the worker code
+          const blob = new Blob([workerCode], { type: 'application/javascript' });
+
+          // Step 3: Create a Blob URL
+          const blobURL = URL.createObjectURL(blob);
+
+          w = new Worker(blobURL); //  new Worker("https://www.w3schools.com/html/demo_workers.js");
+
+          const worker = w;
+          // Hook up Via's messages with the worker's postMessage bridge
+          worker.onmessage = (e => ViaReceiver.OnMessage(e.data));
+          ViaReceiver.postMessage = (data => worker.postMessage(data));
+
+          // Start the worker
+          worker.postMessage("start");
+        }
+      } else {
+        document.getElementById("result").innerHTML = "Sorry, your browser does not support Web Workers...";
+      }
+    }
+
+    function stopWorker() {
+      w.terminate();
+      w = undefined;
+    }
+  </script>
+
+</body>
+
+</html>
