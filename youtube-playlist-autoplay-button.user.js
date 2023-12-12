@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.1
+// @version     2.0.2
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
@@ -69,6 +69,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   // Get current autoplay setting from local storage.
   let autoplayStatus = loadAutoplayStatus()
   let transition = false
+  let navigateStatus = -1;
+  let fCounter = 0;
 
   // Instead of writing the same log function prefix throughout
   // the code, this function automatically applies the prefix.
@@ -219,24 +221,22 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     }
   }
 
-  let navigateStatus = -1;
-  let callCounter = 0;
   function onNavigateStart(){ // navigation endpoint is clicked
     // canAutoAdvance_ will become false in onYtNavigateStart_
     navigateStatus = 1;
-    if (callCounter > 1e9) callCounter = 9;
-    callCounter++;
+    if (fCounter > 1e9) fCounter = 9;
+    fCounter++;
   }
 
   function onNavigateFinish(){
     // canAutoAdvance_ will become true in onYtNavigateFinish_
     navigateStatus = 2;
-    if (callCounter > 1e9) callCounter = 9;
-    callCounter++;
-    const t = callCounter;
+    if (fCounter > 1e9) fCounter = 9;
+    fCounter++;
+    const t = fCounter;
     main()
     setTimeout(() => {
-      if (t !== callCounter) return;
+      if (t !== fCounter) return;
       if(navigateStatus === 2) {
         // canAutoAdvance_ has become true in onYtNavigateFinish_
         setAssociatedAutoplay();  // set canAutoAdvance_ to true or false as per preferred setting
