@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
+// @version     2.0.1
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
-// @version     2.0.0
 // @namespace   https://greasyfork.org/users/701907
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
 // @run-at      document-start
@@ -101,7 +101,6 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     const style = document.createElement('style')
     style.id = id
     style.textContent = css
-
     head.appendChild(style)
   }
 
@@ -113,7 +112,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
       if (debug) customLog('Manager is missing.')
       return
     }
-    manager.canAutoAdvance_ = !!autoplayStatus;
+    if (navigateStatus !== 1) manager.canAutoAdvance_ = !!autoplayStatus;
     for (const b of document.body.getElementsByClassName(elementCSS.buttonContainer)) {
       b.classList.toggle(elementCSS.buttonOn, autoplayStatus)
       b.setAttribute('title', `Autoplay is ${autoplayStatus ? 'on' : 'off'}`)
@@ -162,7 +161,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   }
   const transitionOff = () => {
     transition = false;
-    // container.style.pointerEvents = 'none';
+    // container.style.pointerEvents = '';
   }
 
   function appendButtonContainer(domElement) {
@@ -200,57 +199,75 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     // whereas they can appear multiple times in the same page.
     // This isolates one potentially visible instance.
     if (isYtHidden(menu)) {
-
+      // the menu is invalid
       menu.removeAttribute('autoplay-container');
     } else {
       main()
       const headers = menu.querySelectorAll('.top-level-buttons:not([hidden])')
-
       if (headers.length >= 1) {
         for (const header of headers) {
+          // add button to each matched header, ignore those have been proceeded without re-rendering.
           if (!header.querySelector(`.${elementCSS.buttonContainer}`)) appendButtonContainer(header);
         }
         menu.setAttribute('autoplay-container', '1');
       } else {
+        // add button to the menu if no header is found, ignore those have been proceeded without re-rendering.
         if (!menu.querySelector(`.${elementCSS.buttonContainer}`)) appendButtonContainer(menu);
         menu.setAttribute('autoplay-container', '2');
       }
       setAssociatedAutoplay() // set canAutoAdvance_ when the page is loaded.
-
     }
+  }
 
+  let navigateStatus = -1;
+  let callCounter = 0;
+  function onNavigateStart(){ // navigation endpoint is clicked
+    // canAutoAdvance_ will become false in onYtNavigateStart_
+    navigateStatus = 1;
+    if (callCounter > 1e9) callCounter = 9;
+    callCounter++;
   }
 
   function onNavigateFinish(){
+    // canAutoAdvance_ will become true in onYtNavigateFinish_
+    navigateStatus = 2;
+    if (callCounter > 1e9) callCounter = 9;
+    callCounter++;
+    const t = callCounter;
     main()
-    setAssociatedAutoplay()
+    setTimeout(() => {
+      if (t !== callCounter) return;
+      if(navigateStatus === 2) {
+        // canAutoAdvance_ has become true in onYtNavigateFinish_
+        setAssociatedAutoplay();  // set canAutoAdvance_ to true or false as per preferred setting
+      }
+    }, 100);
   }
 
   const attrMo = new MutationObserver((entries) => {
-
+    // the state of DOM is being changed, expand/collaspe state, rendering after dataChanged, etc.
     let m = new Set();
     for (const entry of entries) {
-      m.add(entry.target);
+      m.add(entry.target); // avoid proceeding the same element target
     }
     m.forEach((target) => {
-      if (target.isConnected === true) {
-        setupMenu(insp(target).$['playlist-action-menu']);
+      if (target.isConnected === true) { // ensure the DOM is valid and attached to the document
+        setupMenu(indr(target)['playlist-action-menu']); // add the button to the menu, if applicable
       }
     });
     m.clear();
     m = null;
-
   });
 
-
+  // listen events on the script execution in document-start
+  document.addEventListener('yt-navigate-start', onNavigateStart, false);
   document.addEventListener('yt-navigate-finish', onNavigateFinish, false);
 
-  await ytZara.docInitializedAsync();
+  await ytZara.docInitializedAsync(); // wait for document.documentElement is provided
 
-  await ytZara.promiseRegistryReady();
+  await ytZara.promiseRegistryReady(); // wait for YouTube's customElement Registry is provided (old browser only)
 
-  const cProto = await ytZara.ytProtoAsync('ytd-playlist-panel-renderer');
-
+  const cProto = await ytZara.ytProtoAsync('ytd-playlist-panel-renderer'); // wait for customElement registration
 
   if (cProto.attached145) {
     console.warn('YouTube Playlist Autoplay Button cannot inject JS code to ytd-playlist-panel-renderer');
@@ -259,15 +276,14 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
   cProto.attached145 = cProto.attached;
   cProto.attached = function () {
-    Promise.resolve().then(() => {
+    Promise.resolve().then(() => { // asynchronous to avoid blocking the DOM tree rendering
       attrMo.observe(this.hostElement, {
         attributes: true,
         attributeFilter: [
           'has-playlist-buttons', 'has-toolbar', 'hidden', 'playlist-type', 'within-miniplayer', 'hide-header-text'
         ]
       });
-
-      setupMenu(this.$['playlist-action-menu']);
+      setupMenu(indr(this)['playlist-action-menu']); // add the button to the menu which is just attached to Dom Tree, if applicable
     });
     const f = this.attached145;
     return f ? f.apply(this, arguments) : void 0;
@@ -301,7 +317,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
             background-color: var(--paper-toggle-button-unchecked-button-color, var(--paper-grey-50));
             border-radius: 50%;
             box-shadow: 0 1px 5px 0 rgba(0, 0, 0, 0.6);
-            transition: left linear .08s, background-color linear .08s
+            transition: left linear .08s, background-color linear .08s;
         }
         .${elementCSS.buttonContainer}.${elementCSS.buttonOn} .${elementCSS.buttonCircle} {
             position: absolute;
