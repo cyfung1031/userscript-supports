@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.2
+// @version     2.0.3
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
@@ -51,6 +51,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 (async () => {
 
   const { insp, indr, isYtHidden } = ytZara;
+  const Promise = (async () => { })().constructor;
 
   let debug = false
   const elementCSS = {
@@ -166,6 +167,19 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     // container.style.pointerEvents = '';
   }
 
+  const moButtonAttachment = new MutationObserver((entries) => {
+    for (const entry of entries) {
+      const { target, previousSibling, removedNodes } = entry;
+      if (removedNodes.length >= 1 && target.isConnected === true && previousSibling.isConnected === true) {
+        for (const elem of removedNodes) {
+          if (elem.classList.contains(`${elementCSS.buttonContainer}`) && elem.isConnected === false) {
+            target.insertBefore(elem, previousSibling.nextSibling);
+          }
+        }
+      }
+    }
+  })
+
   function appendButtonContainer(domElement) {
     const container = document.createElement('div')
     container.classList.add(elementCSS.buttonContainer)
@@ -188,6 +202,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
     domElement.appendChild(container)
     if (debug) customLog('Button added.')
+
+    moButtonAttachment.observe(domElement, { childList: true, subtree: false }); // re-adding after removal
 
   }
 
@@ -221,14 +237,14 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     }
   }
 
-  function onNavigateStart(){ // navigation endpoint is clicked
+  function onNavigateStart() { // navigation endpoint is clicked
     // canAutoAdvance_ will become false in onYtNavigateStart_
     navigateStatus = 1;
     if (fCounter > 1e9) fCounter = 9;
     fCounter++;
   }
 
-  function onNavigateFinish(){
+  function onNavigateFinish() {
     // canAutoAdvance_ will become true in onYtNavigateFinish_
     navigateStatus = 2;
     if (fCounter > 1e9) fCounter = 9;
@@ -237,7 +253,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     main()
     setTimeout(() => {
       if (t !== fCounter) return;
-      if(navigateStatus === 2) {
+      if (navigateStatus === 2) {
         // canAutoAdvance_ has become true in onYtNavigateFinish_
         setAssociatedAutoplay();  // set canAutoAdvance_ to true or false as per preferred setting
       }
