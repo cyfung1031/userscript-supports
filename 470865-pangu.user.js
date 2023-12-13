@@ -2,7 +2,7 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.4
+// @version             0.7.5
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
@@ -179,6 +179,7 @@
                 while (!nativeContains.call(commonParent_, n) && --maxLooping > 0) { // worst case: myz = document.body
                   commonParent_ = np.call(commonParent_);
                 }
+                if (maxLooping <= 0) commonParent_ = document.body; // rare case
                 // myz.contains(n) === true
               }
             }
