@@ -413,7 +413,7 @@ var pangu = (() => {
     |RUBY|RT|RP|CODE|IMG|INPUT|SLOT|SOURCE|SELECT|CANVAS
     |RELATIVE-TIME|DEFS
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
-    |`.replace(/\s+/g,'');
+    |`.replace(/\s+/g, '');
 
     // Function to collect text nodes using TreeWalker
     function prepareWalker(rootElement) {
@@ -445,6 +445,8 @@ var pangu = (() => {
 
       return walker;
     }
+
+    let mWalker = null;
 
     class WebPangu {
       constructor() {
@@ -565,23 +567,31 @@ var pangu = (() => {
         }
 
       }
+      spacingNode_(node) {
+
+        const walker = mWalker || (mWalker = prepareWalker(node));
+        const m0 = walker.currentNode;
+        this.spacingNodeByTreeWalker(walker);
+        walker.currentNode = m0;
+      }
       spacingNode(contextNode) {
         if (!(contextNode instanceof Node) || contextNode instanceof DocumentFragment) return;
         const document = contextNode.ownerDocument;
         if (!(document instanceof Document)) return;
 
-        const walker = prepareWalker(contextNode);
-        this.spacingNodeByTreeWalker(walker);
+        /** @type {TreeWalker} */
+        const node = contextNode;
+        this.spacingNode_(node);
 
       }
       spacingPageTitle() {
-        const walker = prepareWalker((document.head || document).querySelector('title'));
-        this.spacingNodeByTreeWalker(walker);
+        const node = (document.head || document).querySelector('title');
+        this.spacingNode_(node);
 
       }
       spacingPageBody() {
-        const walker = prepareWalker(document.body);
-        this.spacingNodeByTreeWalker(walker);
+        const node = document.body;
+        this.spacingNode_(node);
       }
       spacing(text) {
         if (typeof text !== 'string') {
