@@ -31,8 +31,10 @@ var panguWebWorker = (() => {
     function obtainWebPangu() {
 
       const document = typeof via === 'undefined' ? window.document : via.document;
-      const Node = typeof via === 'undefined' ? window.Node : via.Node;
       const XPathResult_ORDERED_NODE_SNAPSHOT_TYPE = 7;
+
+      const isNode = async (o)=> (await get(o.nodeType)) > -1
+      const isText = async (o)=> (await get(o.nodeType)) === 3
 
       const CJK = "\u2E80-\u2EFF\u2F00-\u2FDF\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u3100-\u312F\u3200-\u32FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF";
       const ANY_CJK = new RegExp("[" + CJK + "]");
@@ -519,7 +521,7 @@ var panguWebWorker = (() => {
           return false;
         }
         isFirstTextChild(parentNode, targetNode) {
-          for (let childNode = parentNode.firstChild; childNode instanceof Node; childNode = childNode.nextSibling) {
+          for (let childNode = parentNode.firstChild; isNode(childNode); childNode = childNode.nextSibling) {
             if (childNode.nodeType !== Node.COMMENT_NODE && (textContentFn(childNode) || '')) {
               return childNode === targetNode;
             }
@@ -527,7 +529,7 @@ var panguWebWorker = (() => {
           return false;
         }
         isLastTextChild(parentNode, targetNode) {
-          for (let childNode = parentNode.lastChild; childNode instanceof Node; childNode = childNode.previousSibling) {
+          for (let childNode = parentNode.lastChild; isNode(childNode); childNode = childNode.previousSibling) {
             if (childNode.nodeType !== Node.COMMENT_NODE && (textContentFn(childNode) || '')) {
               return childNode === targetNode;
             }
