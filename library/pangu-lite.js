@@ -417,10 +417,9 @@ var pangu = (() => {
 
     // Function to collect text nodes using TreeWalker
     function prepareWalker(rootElement) {
-      if (!(rootElement instanceof Node)) return document.createTreeWalker(document, 0, null);
       const doc = rootElement.ownerDocument || document; // TBC
       const walker = doc.createTreeWalker(
-        rootElement,
+        document.body,
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode: function (node) {
@@ -440,7 +439,7 @@ var pangu = (() => {
             }
           }
         },
-        false
+        true
       );
 
       return walker;
@@ -569,10 +568,9 @@ var pangu = (() => {
       }
       spacingNode_(node) {
 
-        const walker = mWalker || (mWalker = prepareWalker(node));
-        const m0 = walker.currentNode;
+        const walker = mWalker || (mWalker = prepareWalker());
+        const m0 = node;
         this.spacingNodeByTreeWalker(walker);
-        walker.currentNode = m0;
       }
       spacingNode(contextNode) {
         if (!(contextNode instanceof Node) || contextNode instanceof DocumentFragment) return;
