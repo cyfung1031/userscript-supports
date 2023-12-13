@@ -569,7 +569,7 @@ var pangu = (() => {
       spacingNode_(node) {
 
         const walker = mWalker || (mWalker = prepareWalker());
-        const m0 = node;
+        walker.currentTextNode = node;
         this.spacingNodeByTreeWalker(walker);
       }
       spacingNode(contextNode) {
