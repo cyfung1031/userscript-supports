@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.52
+// @version     0.6.53
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1747,19 +1747,19 @@
   }
 
 
-  let nativeHTMLElements = window.HTMLElement;
+  let nativeHTMLElement = window.HTMLElement;
 
   try {
 
     const q = document.createElement('template');
     q.innerHTML = '<ytz-null361></ytz-null361>';
-    nativeHTMLElements = q.content.firstChild.constructor
+    nativeHTMLElement = q.content.firstChild.constructor
 
   } catch (e) { }
 
-  if (!nativeHTMLElements.prototype.connectedCallback) {
-    nativeHTMLElements.prototype.connectedCallback79 = nativeHTMLElements.prototype.connectedCallback;
-    nativeHTMLElements.prototype.connectedCallback = function () {
+  if (!nativeHTMLElement.prototype.connectedCallback) {
+    nativeHTMLElement.prototype.connectedCallback79 = nativeHTMLElement.prototype.connectedCallback;
+    nativeHTMLElement.prototype.connectedCallback = function () {
       let r;
       if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
 
