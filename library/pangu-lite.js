@@ -416,8 +416,8 @@ var pangu = (() => {
     |`.replace(/\s+/g, '');
 
     // Function to collect text nodes using TreeWalker
-    function prepareWalker(rootElement) {
-      const doc = rootElement.ownerDocument || document; // TBC
+    function prepareWalker() {
+      const doc =  document; // TBC
       const walker = doc.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
