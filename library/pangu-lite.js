@@ -413,14 +413,12 @@ var pangu = (() => {
     |RUBY|RT|RP|CODE|IMG|INPUT|SLOT|SOURCE|SELECT|CANVAS
     |RELATIVE-TIME|DEFS
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
-    |`.replace(/\s+/g,'');
+    |`.replace(/\s+/g, '');
 
     // Function to collect text nodes using TreeWalker
-    function prepareWalker(rootElement) {
-      if (!(rootElement instanceof Node)) return document.createTreeWalker(document, 0, null);
-      const doc = rootElement.ownerDocument || document; // TBC
+    function prepareWalker(doc) {
       const walker = doc.createTreeWalker(
-        rootElement,
+        doc.body,
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode: function (node) {
@@ -440,11 +438,13 @@ var pangu = (() => {
             }
           }
         },
-        false
+        true
       );
 
       return walker;
     }
+
+    const wmWalter = new WeakMap();
 
     class WebPangu {
       constructor() {
@@ -565,23 +565,47 @@ var pangu = (() => {
         }
 
       }
+      /** @param {Node} node */
+      spacingNode_(node) {
+        const doc = node.ownerDocument;
+        if(!(doc instanceof Document)) return;
+        let mWalker = wmWalter.get(doc);
+        if (!mWalker) {
+          mWalker = prepareWalker(doc);
+          wmWalter.set(doc, mWalker);
+        }
+        const walker = mWalker;
+        walker.currentTextNode = node;
+        this.spacingNodeByTreeWalker(walker);
+      }
       spacingNode(contextNode) {
         if (!(contextNode instanceof Node) || contextNode instanceof DocumentFragment) return;
         const document = contextNode.ownerDocument;
         if (!(document instanceof Document)) return;
 
-        const walker = prepareWalker(contextNode);
-        this.spacingNodeByTreeWalker(walker);
+        /** @type {TreeWalker} */
+        const node = contextNode;
+        this.spacingNode_(node);
 
       }
       spacingPageTitle() {
-        const walker = prepareWalker((document.head || document).querySelector('title'));
+        let node = (document.head || document).querySelector('title');
+        if (!node) return;
+
+        let i = 0;
+        let walker = {
+          nextNode() {
+            if (++i === 1) return node;
+          }
+        }
         this.spacingNodeByTreeWalker(walker);
+        walker = null;
+        node = null;
 
       }
       spacingPageBody() {
-        const walker = prepareWalker(document.body);
-        this.spacingNodeByTreeWalker(walker);
+        const node = document.body;
+        this.spacingNode_(node);
       }
       spacing(text) {
         if (typeof text !== 'string') {
