@@ -596,8 +596,8 @@ var pangu = (() => {
         );
 
         const walker = mWalker;
-        walker.currentNode = node;
-        this.spacingNodeByTreeWalker(walker);
+        walker.currentNode = doc.body;
+        walker.currentNode && this.spacingNodeByTreeWalker(walker);
       }
       spacingNode(contextNode) {
         if (!(contextNode instanceof Node) || contextNode instanceof DocumentFragment) return;
