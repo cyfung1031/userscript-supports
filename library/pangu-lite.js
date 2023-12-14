@@ -415,25 +415,37 @@ var pangu = (() => {
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
     |`.replace(/\s+/g, '');
 
+    const wmK00 = new WeakMap();
+
     // Function to collect text nodes using TreeWalker
     function prepareWalker(doc) {
       const walker = doc.createTreeWalker(
         doc.body,
-        NodeFilter.SHOW_TEXT,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode: function (node) {
+            let mx = wmK00.get(node);
+            if(mx > 0) return mx;
             if (node instanceof HTMLElementNative) { // 2881
-              // if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
-              //   return NodeFilter.FILTER_REJECT;
-              // }
-              // return NodeFilter.FILTER_SKIP; // not included in nextNode
+              if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
+                wmK00.set(node, NodeFilter.FILTER_REJECT);
+                return NodeFilter.FILTER_REJECT;
+              }
+
+              wmK00.set(node, NodeFilter.FILTER_SKIP);
+              return NodeFilter.FILTER_SKIP; // not included in nextNode
             } else if (node instanceof TextNative) { // 585
-              // const nData = node.data;
-              // if (!nData || !nData.length || !nData.trim()) return NodeFilter.FILTER_REJECT;
+              const nData = node.data;
+              if (!nData || !nData.length || !nData.trim()) {
+                wmK00.set(node, NodeFilter.FILTER_REJECT);
+                return NodeFilter.FILTER_REJECT;
+              }
               // Filtering out nodes without meaningful text (only whitespace)
+                wmK00.set(node, NodeFilter.FILTER_ACCEPT);
               return NodeFilter.FILTER_ACCEPT; // included in nextNode
             } else {
               // ignore SVGElement, etc
+                wmK00.set(node, NodeFilter.FILTER_REJECT);
               return NodeFilter.FILTER_REJECT;
             }
           }
@@ -569,11 +581,12 @@ var pangu = (() => {
       spacingNode_(node) {
         const doc = node.ownerDocument;
         if(!(doc instanceof Document)) return;
-        let mWalker = wmWalter.get(doc);
-        if (!mWalker) {
-          mWalker = prepareWalker(doc);
-          wmWalter.set(doc, mWalker);
-        }
+        // let mWalker = wmWalter.get(doc);
+        // if (!mWalker) {
+        //   mWalker = prepareWalker(doc);
+        //   wmWalter.set(doc, mWalker);
+        // }
+        let mWalker = prepareWalker(doc);
         const walker = mWalker;
         walker.currentTextNode = node;
         this.spacingNodeByTreeWalker(walker);
