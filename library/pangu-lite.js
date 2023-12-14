@@ -562,7 +562,7 @@ var pangu = (() => {
 
         }
 
-        function runner(currentTextNode){
+        const runner =  (currentTextNode)=>{
 
 
           const currentTextNodeData = currentTextNode.data;
