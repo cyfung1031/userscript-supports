@@ -417,39 +417,41 @@ var pangu = (() => {
 
     const wmK00 = new WeakMap();
 
+    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e=>!!e));
+
+    const walkerNodeFilter = 
+    {
+      acceptNode: function (node) {
+        let mx = wmK00.get(node);
+        if(mx > 0) return mx;
+        const pn = node.parentNode;
+        if(pn instanceof HTMLElementNative){
+
+          if (FILTER_REJECT_CHECKER_MAP.has(node.parentNode.nodeName || 'NIL')) {
+            wmK00.set(node, NodeFilter.FILTER_REJECT);
+            return NodeFilter.FILTER_REJECT;
+          }
+
+          const nData = node.data;
+          if (!nData || !nData.length || !nData.trim()) {
+            wmK00.set(node, NodeFilter.FILTER_REJECT);
+            return NodeFilter.FILTER_REJECT;
+          }
+
+          wmK00.set(node, NodeFilter.FILTER_ACCEPT);
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        wmK00.set(node, NodeFilter.FILTER_REJECT);
+        return NodeFilter.FILTER_REJECT;
+      }
+    };
+
     // Function to collect text nodes using TreeWalker
+    /** @param {Document} doc */
     function prepareWalker(doc) {
       const walker = doc.createTreeWalker(
         doc.body,
-        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-        {
-          acceptNode: function (node) {
-            let mx = wmK00.get(node);
-            if(mx > 0) return mx;
-            if (node instanceof HTMLElementNative) { // 2881
-              if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
-                wmK00.set(node, NodeFilter.FILTER_REJECT);
-                return NodeFilter.FILTER_REJECT;
-              }
-
-              wmK00.set(node, NodeFilter.FILTER_SKIP);
-              return NodeFilter.FILTER_SKIP; // not included in nextNode
-            } else if (node instanceof TextNative) { // 585
-              const nData = node.data;
-              if (!nData || !nData.length || !nData.trim()) {
-                wmK00.set(node, NodeFilter.FILTER_REJECT);
-                return NodeFilter.FILTER_REJECT;
-              }
-              // Filtering out nodes without meaningful text (only whitespace)
-                wmK00.set(node, NodeFilter.FILTER_ACCEPT);
-              return NodeFilter.FILTER_ACCEPT; // included in nextNode
-            } else {
-              // ignore SVGElement, etc
-                wmK00.set(node, NodeFilter.FILTER_REJECT);
-              return NodeFilter.FILTER_REJECT;
-            }
-          }
-        },
+        NodeFilter.SHOW_TEXT, walkerNodeFilter,
         true
       );
 
@@ -609,8 +611,11 @@ var pangu = (() => {
         let walker = {
           nextNode() {
             if (++i === 1) return node;
+          },
+          get currentNode() {
+            return i === 1 ? node : null;
           }
-        }
+        };
         this.spacingNodeByTreeWalker(walker);
         walker = null;
         node = null;
