@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.28
+// @version             0.60.29
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4518,11 +4518,15 @@
           return ro;
         }
 
+        let isCSSPropertySupported_ = null;
         const isCSSPropertySupported = () => {
 
           // @property --ticker-rtime
 
-          if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return;
+          if(typeof isCSSPropertySupported_ === 'boolean') return isCSSPropertySupported_;
+          isCSSPropertySupported_ = false;
+
+          if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return false;
           const documentElement = document.documentElement;
           if (!documentElement) {
             console.warn('document.documentElement is not found');
@@ -4531,6 +4535,24 @@
           if (`${getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
             return false;
           }
+
+          const ae = animate.call(documentElement,
+            [
+              { '--ticker-rtime': '70%' },
+              { '--ticker-rtime': '30%' }
+            ],
+            {
+              fill: "forwards",
+              duration: 1000*40,
+              easing: 'linear'
+            }
+          );
+
+          let animatedValue = getComputedStyle(document.documentElement).getPropertyValue('--ticker-rtime');
+          ae.finish();
+          if (`${animatedValue}`.length !== 3) return false;
+
+          isCSSPropertySupported_ = true;
           return true;
 
         };
