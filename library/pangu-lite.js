@@ -573,9 +573,8 @@ var pangu = (() => {
             }
           });
           mo.observe(root, { subtree: true, childList: true });
-          mom.set(root, obj = {
-            moPromise, mo
-          });
+          const obj = { moPromise, mo };
+          mom.set(root, obj);
           return obj;
         }
 
