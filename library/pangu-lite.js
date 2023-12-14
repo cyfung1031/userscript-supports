@@ -427,6 +427,10 @@ var pangu = (() => {
         const pn = node.parentNode;
         const nData = node.data;
         if (pn instanceof HTMLElementNative && nData) {
+          
+          if(node[mxSymbol] === nData) return FILTER_REJECT;
+          node[mxSymbol] = nData;
+
           let pns = pn[mxSymbol];
           if (pns === true){
             return FILTER_REJECT;
