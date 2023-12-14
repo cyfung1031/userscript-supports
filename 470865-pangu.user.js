@@ -2,11 +2,11 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.7
+// @version             0.7.8
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
-// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@d3c4230917dbea8c5317b70457cef4160021b298/library/pangu-lite.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@a8fe06ce38f7fdf10364401902a14c34db880b80/library/pangu-lite.js
 
 // @match               http://*/*
 // @match               https://*/*
@@ -159,32 +159,9 @@
       }
     }, { capture: false, passive: true });
 
-    function f77() {
+    function f77(commonParent_) {
 
       executor(() => {
-        const elements = [...myw];
-        myw.clear();
-        let commonParent_ = null;
-        try {
-          for (n of elements) {
-            // checking of body contains
-            // 1. complete the algo logic
-            // 2. prevent the element is added and then removed from the DOM tree
-            if (nativeContains.call(document.body, n)) {
-              if (commonParent_ === null) {
-                commonParent_ = np.call(n);
-                // myz.contains(n) === true
-              } else if (commonParent_ instanceof Node) {
-                let maxLooping = 600;
-                while (!nativeContains.call(commonParent_, n) && --maxLooping > 0) { // worst case: myz = document.body
-                  commonParent_ = np.call(commonParent_);
-                }
-                if (maxLooping <= 0) commonParent_ = document.body; // rare case
-                // myz.contains(n) === true
-              }
-            }
-          }
-        } catch (e) { commonParent_ = null; }
         const node = commonParent_;
         if (node instanceof Node) {
           pangu.spacingPageTitle();
@@ -220,23 +197,51 @@
         pangu.spacingPageBody();
       });
 
-      let m33 = 0;
       const config = {
         childList: true,
         subtree: true
       };
       let observer;
+      function getCommonParent(elements) {
+
+
+        let commonParent_ = null;
+        try {
+          for (n of elements) {
+            // checking of body contains
+            // 1. complete the algo logic
+            // 2. prevent the element is added and then removed from the DOM tree
+            if (nativeContains.call(document.body, n)) {
+              if (commonParent_ === null) {
+                commonParent_ = np.call(n);
+                // myz.contains(n) === true
+              } else if (commonParent_ instanceof Node) {
+                let maxLooping = 600;
+                while (!nativeContains.call(commonParent_, n) && --maxLooping > 0) { // worst case: myz = document.body
+                  commonParent_ = np.call(commonParent_);
+                }
+                if (maxLooping <= 0) commonParent_ = document.body; // rare case
+                // myz.contains(n) === true
+              }
+            }
+          }
+        } catch (e) { commonParent_ = null; }
+        return commonParent_;
+      }
       const callback = async () => {
         if (!observer) return;
-        if (m33++ > 1e9) m33 = 9;
-        let tid = m33;
-        await getRafPromise();
-        if (tid !== m33) return;
+        let elements = null;
+        if (myw.size > 0) {
+          elements = [...myw];
+          myw.clear();
+        }
         let tmp = false;
         try {
-          f77();
-          await Promise.resolve();
-          if (!observer) return;
+          if (elements) {
+            const commonParent = await Promise.resolve(elements).then(getCommonParent)
+            if (commonParent instanceof Node) f77(commonParent);
+            if (!observer) return;
+          }
           tmp = document.body;
         } catch (e) {
         }
