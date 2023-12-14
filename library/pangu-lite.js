@@ -580,11 +580,11 @@ var pangu = (() => {
               if(pElement){
                 const reactroot = pElement.closest('[data-reactroot]');
                 if(reactroot){
-                  mo.observe(reactroot, {subtree: true, childList: true});
                   let currentTextNode_ = currentTextNode;
+                  mo.observe(reactroot, {subtree: true, childList: true});
                   moPromise.then(()=>{
 
-                    Promise.resolve(currentTextNode_).then(runner);
+                    if(currentTextNode_ instanceof Node) Promise.resolve(currentTextNode_).then(runner);
                     currentTextNode_ = null;
 
                   });
