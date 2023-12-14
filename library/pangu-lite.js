@@ -424,31 +424,27 @@ var pangu = (() => {
     const walkerNodeFilter = 
     {
       acceptNode: function (node) {
-        let mx = node[mxSymbol];
-        if(mx > 0) return mx;
         const pn = node.parentNode;
         const nData = node.data;
         if (pn instanceof HTMLElementNative && nData) {
-          if (pn[mxSymbol] === true){
-            node[mxSymbol] = FILTER_REJECT;
+          let pns = pn[mxSymbol];
+          if (pns === true){
             return FILTER_REJECT;
+          }else if (pns === false){
+          }else{
+            pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
+            if (pns === true) {
+              return FILTER_REJECT;
+            }
           }
 
-          if (FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL')) {
-            pn[mxSymbol] = true;
-            node[mxSymbol] = FILTER_REJECT;
-            return FILTER_REJECT;
-          }
 
           if (!nData.trim()) {
-            node[mxSymbol] = FILTER_REJECT;
             return FILTER_REJECT;
           }
 
-          node[mxSymbol] = FILTER_ACCEPT;
           return FILTER_ACCEPT;
         }
-        node[mxSymbol] = FILTER_REJECT;
         return FILTER_REJECT;
       }
     };
@@ -588,16 +584,14 @@ var pangu = (() => {
         //   wmWalter.set(doc, mWalker);
         // }
 
-        let mWalker = doc[walkerSymbol]
-        if (!mWalker) doc[walkerSymbol] = mWalker = doc.createTreeWalker(
-          docuemnt,
+        let mWalker = doc.createTreeWalker(
+          node,
           NodeFilter.SHOW_TEXT, walkerNodeFilter,
           false
         );
 
         const walker = mWalker;
-        walker.currentNode = doc.body;
-        walker.currentNode && this.spacingNodeByTreeWalker(walker);
+        this.spacingNodeByTreeWalker(walker);
       }
       spacingNode(contextNode) {
         if (!(contextNode instanceof Node) || contextNode instanceof DocumentFragment) return;
