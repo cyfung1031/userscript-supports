@@ -431,16 +431,16 @@ var pangu = (() => {
           if(node[mxSymbol] === nData) return FILTER_REJECT;
           node[mxSymbol] = nData;
 
-          let pns = pn[mxSymbol];
-          if (pns === true){
-            return FILTER_REJECT;
-          }else if (pns === false){
-          }else{
-            pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
-            if (pns === true) {
-              return FILTER_REJECT;
-            }
-          }
+          // let pns = pn[mxSymbol];
+          // if (pns === true){
+          //   return FILTER_REJECT;
+          // }else if (pns === false){
+          // }else{
+          //   pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
+          //   if (pns === true) {
+          //     return FILTER_REJECT;
+          //   }
+          // }
 
 
           if (!nData.trim()) {
