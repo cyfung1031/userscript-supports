@@ -419,17 +419,17 @@ var pangu = (() => {
     function prepareWalker(doc) {
       const walker = doc.createTreeWalker(
         doc.body,
-        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        NodeFilter.SHOW_TEXT,
         {
           acceptNode: function (node) {
             if (node instanceof HTMLElementNative) { // 2881
-              if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
-                return NodeFilter.FILTER_REJECT;
-              }
-              return NodeFilter.FILTER_SKIP; // not included in nextNode
+              // if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
+              //   return NodeFilter.FILTER_REJECT;
+              // }
+              // return NodeFilter.FILTER_SKIP; // not included in nextNode
             } else if (node instanceof TextNative) { // 585
-              const nData = node.data;
-              if (!nData || !nData.length || !nData.trim()) return NodeFilter.FILTER_REJECT;
+              // const nData = node.data;
+              // if (!nData || !nData.length || !nData.trim()) return NodeFilter.FILTER_REJECT;
               // Filtering out nodes without meaningful text (only whitespace)
               return NodeFilter.FILTER_ACCEPT; // included in nextNode
             } else {
