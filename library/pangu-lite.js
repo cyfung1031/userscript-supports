@@ -606,14 +606,15 @@ var pangu = (() => {
       spacingPageTitle() {
         let node = (document.head || document).querySelector('title');
         if (!node) return;
+        const textNode = node.firstChild;
 
         let i = 0;
         let walker = {
           nextNode() {
-            if (++i === 1) return node;
+            if (++i === 1) return textNode;
           },
           get currentNode() {
-            return i === 1 ? node : null;
+            return i === 1 ? textNode : null;
           }
         };
         this.spacingNodeByTreeWalker(walker);
