@@ -415,36 +415,44 @@ var pangu = (() => {
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
     |`.replace(/\s+/g, '');
 
-    // Function to collect text nodes using TreeWalker
-    function prepareWalker(doc) {
-      const walker = doc.createTreeWalker(
-        doc.body,
-        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-        {
-          acceptNode: function (node) {
-            if (node instanceof HTMLElementNative) { // 2881
-              if (FILTER_REJECT_CHECKER.includes(`|${node.nodeName || 'NIL'}|`)) {
-                return NodeFilter.FILTER_REJECT;
-              }
-              return NodeFilter.FILTER_SKIP; // not included in nextNode
-            } else if (node instanceof TextNative) { // 585
-              const nData = node.data;
-              if (!nData || !nData.length || !nData.trim()) return NodeFilter.FILTER_REJECT;
-              // Filtering out nodes without meaningful text (only whitespace)
-              return NodeFilter.FILTER_ACCEPT; // included in nextNode
-            } else {
-              // ignore SVGElement, etc
-              return NodeFilter.FILTER_REJECT;
+    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e=>!!e));
+
+    const {FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP} = NodeFilter;
+
+    const mxSymbol = Symbol();
+
+    const walkerNodeFilter = 
+    {
+      acceptNode: function (node) {
+        const pn = node.parentNode;
+        const nData = node.data;
+        if (pn instanceof HTMLElementNative && nData) {
+          
+          if(node[mxSymbol] === nData) return FILTER_REJECT;
+          node[mxSymbol] = nData;
+
+          let pns = pn[mxSymbol];
+          if (pns === true){
+            return FILTER_REJECT;
+          }else if (pns === false){
+          }else{
+            pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
+            if (pns === true) {
+              return FILTER_REJECT;
             }
           }
-        },
-        true
-      );
 
-      return walker;
-    }
 
-    const wmWalter = new WeakMap();
+          if (!nData.trim()) {
+            return FILTER_REJECT;
+          }
+
+          return FILTER_ACCEPT;
+        }
+        return FILTER_REJECT;
+      }
+    };
+
 
     class WebPangu {
       constructor() {
@@ -569,13 +577,12 @@ var pangu = (() => {
       spacingNode_(node) {
         const doc = node.ownerDocument;
         if(!(doc instanceof Document)) return;
-        let mWalker = wmWalter.get(doc);
-        if (!mWalker) {
-          mWalker = prepareWalker(doc);
-          wmWalter.set(doc, mWalker);
-        }
+        let mWalker = doc.createTreeWalker(
+          node,
+          NodeFilter.SHOW_TEXT, walkerNodeFilter,
+          false
+        );
         const walker = mWalker;
-        walker.currentTextNode = node;
         this.spacingNodeByTreeWalker(walker);
       }
       spacingNode(contextNode) {
@@ -591,16 +598,21 @@ var pangu = (() => {
       spacingPageTitle() {
         let node = (document.head || document).querySelector('title');
         if (!node) return;
+        let textNode = node.firstChild;
 
         let i = 0;
         let walker = {
           nextNode() {
-            if (++i === 1) return node;
+            if (++i === 1) return textNode;
+          },
+          get currentNode() {
+            return i === 1 ? textNode : null;
           }
-        }
+        };
         this.spacingNodeByTreeWalker(walker);
         walker = null;
         node = null;
+        textNode = null;
 
       }
       spacingPageBody() {
