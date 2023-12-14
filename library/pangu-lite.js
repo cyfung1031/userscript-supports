@@ -416,10 +416,9 @@ var pangu = (() => {
     |`.replace(/\s+/g, '');
 
     // Function to collect text nodes using TreeWalker
-    function prepareWalker() {
-      const doc =  document; // TBC
+    function prepareWalker(doc) {
       const walker = doc.createTreeWalker(
-        document.body,
+        doc.body,
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode: function (node) {
@@ -445,7 +444,7 @@ var pangu = (() => {
       return walker;
     }
 
-    let mWalker = null;
+    const wmWalter = new WeakMap();
 
     class WebPangu {
       constructor() {
@@ -566,9 +565,16 @@ var pangu = (() => {
         }
 
       }
+      /** @param {Node} node */
       spacingNode_(node) {
-
-        const walker = mWalker || (mWalker = prepareWalker());
+        const doc = node.ownerDocument;
+        if(!(doc instanceof Document)) return;
+        let mWalker = wmWalter.get(doc);
+        if (!mWalker) {
+          mWalker = prepareWalker(doc);
+          wmWalter.set(doc, mWalker);
+        }
+        const walker = mWalker;
         walker.currentTextNode = node;
         this.spacingNodeByTreeWalker(walker);
       }
@@ -583,8 +589,18 @@ var pangu = (() => {
 
       }
       spacingPageTitle() {
-        const node = (document.head || document).querySelector('title');
-        this.spacingNode_(node);
+        let node = (document.head || document).querySelector('title');
+        if (!node) return;
+
+        let i = 0;
+        let walker = {
+          nextNode() {
+            if (++i === 1) return node;
+          }
+        }
+        this.spacingNodeByTreeWalker(walker);
+        walker = null;
+        node = null;
 
       }
       spacingPageBody() {
