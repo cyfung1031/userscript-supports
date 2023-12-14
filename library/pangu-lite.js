@@ -415,34 +415,41 @@ var pangu = (() => {
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
     |`.replace(/\s+/g, '');
 
-    const wmK00 = new WeakMap();
-
     const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e=>!!e));
+
+    const {FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP} = NodeFilter;
+
+    const mxSymbol = Symbol();
 
     const walkerNodeFilter = 
     {
       acceptNode: function (node) {
-        let mx = wmK00.get(node);
+        let mx = node[mxSymbol];
         if(mx > 0) return mx;
         const pn = node.parentNode;
-        if(pn instanceof HTMLElementNative){
+        if (pn instanceof HTMLElementNative) {
+          if (pn[mxSymbol] === true){
+            node[mxSymbol] = FILTER_REJECT;
+            return FILTER_REJECT;
+          }
 
-          if (FILTER_REJECT_CHECKER_MAP.has(node.parentNode.nodeName || 'NIL')) {
-            wmK00.set(node, NodeFilter.FILTER_REJECT);
-            return NodeFilter.FILTER_REJECT;
+          if (FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL')) {
+            pn[mxSymbol] = true;
+            node[mxSymbol] = FILTER_REJECT;
+            return FILTER_REJECT;
           }
 
           const nData = node.data;
           if (!nData || !nData.length || !nData.trim()) {
-            wmK00.set(node, NodeFilter.FILTER_REJECT);
-            return NodeFilter.FILTER_REJECT;
+            node[mxSymbol] = FILTER_REJECT;
+            return FILTER_REJECT;
           }
 
-          wmK00.set(node, NodeFilter.FILTER_ACCEPT);
-          return NodeFilter.FILTER_ACCEPT;
+          node[mxSymbol] = FILTER_ACCEPT;
+          return FILTER_ACCEPT;
         }
-        wmK00.set(node, NodeFilter.FILTER_REJECT);
-        return NodeFilter.FILTER_REJECT;
+        node[mxSymbol] = FILTER_REJECT;
+        return FILTER_REJECT;
       }
     };
 
