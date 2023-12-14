@@ -2,7 +2,7 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.9
+// @version             0.7.10
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
@@ -161,12 +161,13 @@
       }, { capture: false, passive: true });
     };
 
+    let cachedTitle = null;
+
     function f77(commonParent_) {
 
       executor(() => {
         const node = commonParent_;
         if (node instanceof Node) {
-          pangu.spacingPageTitle();
           pangu.spacingNode(node);
         }
       });
@@ -196,6 +197,7 @@
 
       executor(() => {
         pangu.spacingPageTitle();
+        cachedTitle = document.title;
         pangu.spacingPageBody();
       });
 
@@ -231,19 +233,26 @@
         return commonParent_;
       }
       const callback = async () => {
-        if (!observer) return;
         let elements = null;
         if (myw.size > 0) {
           elements = [...myw];
           myw.clear();
         }
+        Promise.resolve().then(() => {
+          let cachedTitle_ = document.title;
+          if (cachedTitle !== cachedTitle_) {
+            cachedTitle = cachedTitle_;
+            pangu.spacingPageTitle();
+            cachedTitle = document.title;
+          }
+        });
         let tmp = false;
         try {
           if (elements) {
             const commonParent = await Promise.resolve(elements).then(getCommonParent)
             if (commonParent instanceof Node) f77(commonParent);
-            if (!observer) return;
           }
+          if (!observer) return;
           tmp = document.body;
         } catch (e) {
         }
