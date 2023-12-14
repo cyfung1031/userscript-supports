@@ -317,8 +317,10 @@ var pangu = (() => {
     function executor(node, spacing, adjSet) {
 
       if (!node) return;
-      if (adjSet.has(node)) return;
-      adjSet.add(node);
+      if (node.nodeType !== 1) {
+        if (adjSet.has(node)) return;
+        adjSet.add(node);
+      }
 
       const elementNode = node.nodeType === 1 ? node : node.parentNode;
       if (!(elementNode instanceof Element)) return;
