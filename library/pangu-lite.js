@@ -415,27 +415,27 @@ var pangu = (() => {
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
     |`.replace(/\s+/g, '');
 
-    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e=>!!e));
+    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e => !!e));
 
-    const {FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP} = NodeFilter;
+    const { FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP } = NodeFilter;
 
     const mxSymbol = Symbol();
 
-    const walkerNodeFilter = 
+    const walkerNodeFilter =
     {
       acceptNode: function (node) {
         const pn = node.parentNode;
         const nData = node.data;
         if (pn instanceof HTMLElementNative && nData) {
-          
-          if(node[mxSymbol] === nData) return FILTER_REJECT;
+
+          if (node[mxSymbol] === nData) return FILTER_REJECT;
           node[mxSymbol] = nData;
 
           let pns = pn[mxSymbol];
-          if (pns === true){
+          if (pns === true) {
             return FILTER_REJECT;
-          }else if (pns === false){
-          }else{
+          } else if (pns === false) {
+          } else {
             pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
             if (pns === true) {
               return FILTER_REJECT;
@@ -472,7 +472,7 @@ var pangu = (() => {
     })();
 
     let moPromise = new PromiseExternal();
-    const mo = new MutationObserver(()=>{
+    const mo = new MutationObserver(() => {
       moPromise.resolve();
       moPromise = new PromiseExternal();
     })
@@ -562,33 +562,32 @@ var pangu = (() => {
 
         }
 
-        const runner =  (currentTextNode)=>{
+        const fixOnceMoreTime = async (textNode, root) => {
 
+          mo.observe(root, { subtree: true, childList: true });
+          await moPromise.then();
+          if (textNode instanceof Node && textNode.isConnected) runner(textNode);
+
+        }
+
+        const runner = (currentTextNode) => {
 
           const currentTextNodeData = currentTextNode.data;
 
-          if (!anyPossibleCJK(currentTextNodeData)) return;
+          if (!currentTextNodeData || !anyPossibleCJK(currentTextNodeData)) return;
 
           const elementNode = currentTextNode.parentNode;
 
           let currentTextNodeNewText = null;
           if (!this.canIgnoreNode(elementNode)) {
             currentTextNodeNewText = spacing(currentTextNodeData);
-            if (currentTextNodeNewText !== null) {
+            if (currentTextNodeNewText !== null && currentTextNodeData !== currentTextNodeNewText) {
               currentTextNode.data = currentTextNodeNewText;
               const pElement = currentTextNode.parentElement;
-              if(pElement){
+              if (pElement) {
                 const reactroot = pElement.closest('[data-reactroot]');
-                if(reactroot){
-                  let currentTextNode_ = currentTextNode;
-                  mo.observe(reactroot, {subtree: true, childList: true});
-                  moPromise.then(()=>{
-
-                    if(currentTextNode_ instanceof Node) Promise.resolve(currentTextNode_).then(runner);
-                    currentTextNode_ = null;
-
-                  });
-
+                if (reactroot) {
+                  fixOnceMoreTime(currentTextNode, reactroot);
                 }
               }
             }
@@ -621,7 +620,7 @@ var pangu = (() => {
       /** @param {Node} node */
       spacingNode_(node) {
         const doc = node.ownerDocument;
-        if(!(doc instanceof Document)) return;
+        if (!(doc instanceof Document)) return;
         let mWalker = doc.createTreeWalker(
           node,
           NodeFilter.SHOW_TEXT, walkerNodeFilter,
