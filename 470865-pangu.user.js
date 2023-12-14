@@ -2,11 +2,11 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.6
+// @version             0.7.7
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
-// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@b070a5c9f465c15e67e2f9b594d4cd2973343784/library/pangu-lite.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@d3c4230917dbea8c5317b70457cef4160021b298/library/pangu-lite.js
 
 // @match               http://*/*
 // @match               https://*/*
