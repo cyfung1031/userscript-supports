@@ -2,7 +2,7 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.8
+// @version             0.7.9
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
@@ -153,11 +153,13 @@
 
     /** @param {Node} n */
     const myw = new Set();
-    nativeContains && np && document.addEventListener('DOMNodeInserted', function (e) {
-      if (!busy) {
-        myw.add(e.target);
-      }
-    }, { capture: false, passive: true });
+    const addTheEvent = () => {
+      document.addEventListener('DOMNodeInserted', function (e) {
+        if (!busy) {
+          myw.add(e.target);
+        }
+      }, { capture: false, passive: true });
+    };
 
     function f77(commonParent_) {
 
@@ -201,7 +203,7 @@
         childList: true,
         subtree: true
       };
-      let observer;
+      let observer = null;
       function getCommonParent(elements) {
 
 
@@ -262,9 +264,13 @@
         }
 
       };
-      observer = new MutationObserver(callback);
-      observer.observe(bodyDOM, config);
-      callback();
+      if (nativeContains && np) {
+
+        addTheEvent();
+        observer = new MutationObserver(callback);
+        observer.observe(bodyDOM, config);
+      }
+      // callback();
 
     }
 
