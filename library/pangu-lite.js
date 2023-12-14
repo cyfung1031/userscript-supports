@@ -471,11 +471,6 @@ var pangu = (() => {
       };
     })();
 
-    let moPromise = new PromiseExternal();
-    const mo = new MutationObserver(() => {
-      moPromise.resolve();
-      moPromise = new PromiseExternal();
-    })
 
     class WebPangu {
       constructor() {
@@ -563,11 +558,17 @@ var pangu = (() => {
         }
 
         const fixOnceMoreTime = async (textNode, root) => {
-
+          let moPromise = new PromiseExternal();
+          let mo = new MutationObserver(() => {
+            moPromise.resolve();
+          });
           mo.observe(root, { subtree: true, childList: true });
           await moPromise.then();
-          if (textNode instanceof Node && textNode.isConnected) runner(textNode);
-
+          mo.disconnect();
+          mo.takeRecords();
+          mo = null;
+          moPromise = null;
+          if (textNode.isConnected) runner(textNode);
         }
 
         const runner = (currentTextNode) => {
