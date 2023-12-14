@@ -314,19 +314,11 @@ var pangu = (() => {
       return null;
     }
 
-    const ndCache = new WeakMap();
-
     function executor(node, spacing, adjSet) {
 
       if (!node) return;
-      if (node.nodeType !== 1) {
-        if (adjSet.has(node)) return;
-        adjSet.add(node);
-      } else {
-        const nd = node.data
-        if (ndCache.get(node) === nd) return;
-        ndCache.set(node, nd);
-      }
+      if (adjSet.has(node)) return;
+      adjSet.add(node);
 
       const elementNode = node.nodeType === 1 ? node : node.parentNode;
       if (!(elementNode instanceof Element)) return;
@@ -462,6 +454,29 @@ var pangu = (() => {
     };
 
 
+    const Promise = (async () => { })().constructor;
+
+    const PromiseExternal = ((resolve_, reject_) => {
+      const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+      return class PromiseExternal extends Promise {
+        constructor(cb = h) {
+          super(cb);
+          if (cb === h) {
+            /** @type {(value: any) => void} */
+            this.resolve = resolve_;
+            /** @type {(reason?: any) => void} */
+            this.reject = reject_;
+          }
+        }
+      };
+    })();
+
+    let moPromise = new PromiseExternal();
+    const mo = new MutationObserver(()=>{
+      moPromise.resolve();
+      moPromise = new PromiseExternal();
+    })
+
     class WebPangu {
       constructor() {
         // this.blockTags = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6"];
@@ -547,17 +562,12 @@ var pangu = (() => {
 
         }
 
-        for (let walkerNode; walkerNode = walker.nextNode();) {
+        function runner(currentTextNode){
 
-          const currentTextNode = walkerNode;
-
-          if (!(currentTextNode instanceof TextNative)) continue;
-          if (weakSet.has(currentTextNode)) continue;
-          weakSet.add(currentTextNode);
 
           const currentTextNodeData = currentTextNode.data;
 
-          if (!anyPossibleCJK(currentTextNodeData)) continue;
+          if (!anyPossibleCJK(currentTextNodeData)) return;
 
           const elementNode = currentTextNode.parentNode;
 
@@ -566,6 +576,21 @@ var pangu = (() => {
             currentTextNodeNewText = spacing(currentTextNodeData);
             if (currentTextNodeNewText !== null) {
               currentTextNode.data = currentTextNodeNewText;
+              const pElement = currentTextNode.parentElement;
+              if(pElement){
+                const reactroot = pElement.closest('[data-reactroot]');
+                if(reactroot){
+                  mo.observe(reactroot, {subtree: true, childList: true});
+                  let currentTextNode_ = currentTextNode;
+                  moPromise.then(()=>{
+
+                    Promise.resolve(currentTextNode_).then(runner);
+                    currentTextNode_ = null;
+
+                  });
+
+                }
+              }
             }
           }
 
@@ -577,6 +602,18 @@ var pangu = (() => {
             executor.call(this, prevNode, spacing, adjSet);
             executor.call(this, nextNode, spacing, adjSet);
           }
+
+        }
+
+        for (let walkerNode; walkerNode = walker.nextNode();) {
+
+          const currentTextNode = walkerNode;
+
+          if (!(currentTextNode instanceof TextNative)) continue;
+          if (weakSet.has(currentTextNode)) continue;
+          weakSet.add(currentTextNode);
+
+          runner(currentTextNode)
 
         }
 
