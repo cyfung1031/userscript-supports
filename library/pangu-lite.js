@@ -471,6 +471,8 @@ var pangu = (() => {
       };
     })();
 
+    const mom = new WeakMap();
+
 
     class WebPangu {
       constructor() {
@@ -557,17 +559,29 @@ var pangu = (() => {
 
         }
 
-        const fixOnceMoreTime = async (textNode, root) => {
+        const createMO = (root) => {
           let moPromise = new PromiseExternal();
           let mo = new MutationObserver(() => {
-            moPromise.resolve();
+            if (mo) {
+              mom.delete(root);
+              moPromise.resolve();
+              mo.disconnect();
+              mo.takeRecords();
+              mo = null;
+              moPromise = null;
+              root = null;
+            }
           });
           mo.observe(root, { subtree: true, childList: true });
+          mom.set(root, obj = {
+            moPromise, mo
+          });
+          return obj;
+        }
+
+        const fixOnceMoreTime = async (textNode, root) => {
+          const { moPromise } = mom.get(root) || createMO(root);
           await moPromise.then();
-          mo.disconnect();
-          mo.takeRecords();
-          mo = null;
-          moPromise = null;
           if (textNode.isConnected) runner(textNode);
         }
 
