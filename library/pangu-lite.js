@@ -453,11 +453,6 @@ var pangu = (() => {
       }
     };
 
-    const walkerSymbol = Symbol();
-
-
-
-    const wmWalter = new WeakMap();
 
     class WebPangu {
       constructor() {
@@ -582,18 +577,11 @@ var pangu = (() => {
       spacingNode_(node) {
         const doc = node.ownerDocument;
         if(!(doc instanceof Document)) return;
-        // let mWalker = wmWalter.get(doc);
-        // if (!mWalker) {
-        //   mWalker = prepareWalker(doc);
-        //   wmWalter.set(doc, mWalker);
-        // }
-
         let mWalker = doc.createTreeWalker(
           node,
           NodeFilter.SHOW_TEXT, walkerNodeFilter,
           false
         );
-
         const walker = mWalker;
         this.spacingNodeByTreeWalker(walker);
       }
