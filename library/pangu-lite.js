@@ -606,7 +606,7 @@ var pangu = (() => {
       spacingPageTitle() {
         let node = (document.head || document).querySelector('title');
         if (!node) return;
-        const textNode = node.firstChild;
+        let textNode = node.firstChild;
 
         let i = 0;
         let walker = {
@@ -620,6 +620,7 @@ var pangu = (() => {
         this.spacingNodeByTreeWalker(walker);
         walker = null;
         node = null;
+        textNode = null;
 
       }
       spacingPageBody() {
