@@ -453,17 +453,9 @@ var pangu = (() => {
       }
     };
 
-    // Function to collect text nodes using TreeWalker
-    /** @param {Document} doc */
-    function prepareWalker(doc) {
-      const walker = doc.createTreeWalker(
-        doc.body,
-        NodeFilter.SHOW_TEXT, walkerNodeFilter,
-        true
-      );
+    const walkerSymbol = Symbol();
 
-      return walker;
-    }
+
 
     const wmWalter = new WeakMap();
 
@@ -595,9 +587,16 @@ var pangu = (() => {
         //   mWalker = prepareWalker(doc);
         //   wmWalter.set(doc, mWalker);
         // }
-        let mWalker = prepareWalker(doc);
+
+        let mWalker = doc[walkerSymbol]
+        if (!mWalker) doc[walkerSymbol] = mWalker = doc.createTreeWalker(
+          docuemnt,
+          NodeFilter.SHOW_TEXT, walkerNodeFilter,
+          false
+        );
+
         const walker = mWalker;
-        walker.currentTextNode = node;
+        walker.currentNode = node;
         this.spacingNodeByTreeWalker(walker);
       }
       spacingNode(contextNode) {
