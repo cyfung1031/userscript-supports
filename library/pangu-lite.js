@@ -427,7 +427,8 @@ var pangu = (() => {
         let mx = node[mxSymbol];
         if(mx > 0) return mx;
         const pn = node.parentNode;
-        if (pn instanceof HTMLElementNative) {
+        const nData = node.data;
+        if (pn instanceof HTMLElementNative && nData) {
           if (pn[mxSymbol] === true){
             node[mxSymbol] = FILTER_REJECT;
             return FILTER_REJECT;
@@ -439,8 +440,7 @@ var pangu = (() => {
             return FILTER_REJECT;
           }
 
-          const nData = node.data;
-          if (!nData || !nData.length || !nData.trim()) {
+          if (!nData.trim()) {
             node[mxSymbol] = FILTER_REJECT;
             return FILTER_REJECT;
           }
