@@ -415,27 +415,27 @@ var pangu = (() => {
     |YT-IMG-SHADOW|YT-ICON|YT-LIVE-CHAT-AUTHOR-BADGE-RENDERER
     |`.replace(/\s+/g, '');
 
-    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e=>!!e));
+    const FILTER_REJECT_CHECKER_MAP = new Set(FILTER_REJECT_CHECKER.split('|').filter(e => !!e));
 
-    const {FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP} = NodeFilter;
+    const { FILTER_REJECT, FILTER_ACCEPT, FILTER_SKIP } = NodeFilter;
 
     const mxSymbol = Symbol();
 
-    const walkerNodeFilter = 
+    const walkerNodeFilter =
     {
       acceptNode: function (node) {
         const pn = node.parentNode;
         const nData = node.data;
         if (pn instanceof HTMLElementNative && nData) {
-          
-          if(node[mxSymbol] === nData) return FILTER_REJECT;
+
+          if (node[mxSymbol] === nData) return FILTER_REJECT;
           node[mxSymbol] = nData;
 
           let pns = pn[mxSymbol];
-          if (pns === true){
+          if (pns === true) {
             return FILTER_REJECT;
-          }else if (pns === false){
-          }else{
+          } else if (pns === false) {
+          } else {
             pns = pn[mxSymbol] = FILTER_REJECT_CHECKER_MAP.has(pn.nodeName || 'NIL');
             if (pns === true) {
               return FILTER_REJECT;
@@ -452,6 +452,26 @@ var pangu = (() => {
         return FILTER_REJECT;
       }
     };
+
+
+    const Promise = (async () => { })().constructor;
+
+    const PromiseExternal = ((resolve_, reject_) => {
+      const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+      return class PromiseExternal extends Promise {
+        constructor(cb = h) {
+          super(cb);
+          if (cb === h) {
+            /** @type {(value: any) => void} */
+            this.resolve = resolve_;
+            /** @type {(reason?: any) => void} */
+            this.reject = reject_;
+          }
+        }
+      };
+    })();
+
+    const mom = new WeakMap();
 
 
     class WebPangu {
@@ -539,25 +559,51 @@ var pangu = (() => {
 
         }
 
-        for (let walkerNode; walkerNode = walker.nextNode();) {
+        const createMO = (root) => {
+          let moPromise = new PromiseExternal();
+          let mo = new MutationObserver(() => {
+            if (mo) {
+              mom.delete(root);
+              moPromise.resolve();
+              mo.disconnect();
+              mo.takeRecords();
+              mo = null;
+              moPromise = null;
+              root = null;
+            }
+          });
+          mo.observe(root, { subtree: true, childList: true });
+          const obj = { moPromise, mo };
+          mom.set(root, obj);
+          return obj;
+        }
 
-          const currentTextNode = walkerNode;
+        const fixOnceMoreTime = async (textNode, root) => {
+          const { moPromise } = mom.get(root) || createMO(root);
+          await moPromise.then();
+          if (textNode.isConnected) runner(textNode);
+        }
 
-          if (!(currentTextNode instanceof TextNative)) continue;
-          if (weakSet.has(currentTextNode)) continue;
-          weakSet.add(currentTextNode);
+        const runner = (currentTextNode) => {
 
           const currentTextNodeData = currentTextNode.data;
 
-          if (!anyPossibleCJK(currentTextNodeData)) continue;
+          if (!currentTextNodeData || !anyPossibleCJK(currentTextNodeData)) return;
 
           const elementNode = currentTextNode.parentNode;
 
           let currentTextNodeNewText = null;
           if (!this.canIgnoreNode(elementNode)) {
             currentTextNodeNewText = spacing(currentTextNodeData);
-            if (currentTextNodeNewText !== null) {
+            if (currentTextNodeNewText !== null && currentTextNodeData !== currentTextNodeNewText) {
               currentTextNode.data = currentTextNodeNewText;
+              const pElement = currentTextNode.parentElement;
+              if (pElement) {
+                const reactroot = pElement.closest('[data-reactroot]');
+                if (reactroot) {
+                  fixOnceMoreTime(currentTextNode, reactroot);
+                }
+              }
             }
           }
 
@@ -572,11 +618,23 @@ var pangu = (() => {
 
         }
 
+        for (let walkerNode; walkerNode = walker.nextNode();) {
+
+          const currentTextNode = walkerNode;
+
+          if (!(currentTextNode instanceof TextNative)) continue;
+          if (weakSet.has(currentTextNode)) continue;
+          weakSet.add(currentTextNode);
+
+          runner(currentTextNode)
+
+        }
+
       }
       /** @param {Node} node */
       spacingNode_(node) {
         const doc = node.ownerDocument;
-        if(!(doc instanceof Document)) return;
+        if (!(doc instanceof Document)) return;
         let mWalker = doc.createTreeWalker(
           node,
           NodeFilter.SHOW_TEXT, walkerNodeFilter,
