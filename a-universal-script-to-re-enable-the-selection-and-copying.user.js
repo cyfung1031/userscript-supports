@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.0.2
+// @version             1.18.0.3
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -21,7 +21,6 @@
 // @exclude             https://outlook.live.com/mail/*
 // @exclude             https://www.photopea.com/*
 // @exclude             https://www.terabox.com/*
-// @exclude             https://leetcode.cn/*
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/selection-copier.png
 // @grant               GM_registerMenuCommand
 // @grant               GM_unregisterMenuCommand
@@ -484,7 +483,7 @@
                     const cd = evt.clipboardData[$.ksSetData];
                     if (typeof WeakRef === 'function') {
                         let obj = cd ? cd.deref() : null;
-                        if (obj && obj !== evt) return true; // in case there is a bug
+                        if (cd && obj && obj !== evt) return true; // in case there is a bug
                         evt.clipboardData[$.ksSetData] = new WeakRef(evt);
                     } else {
                         if (cd && cd !== evt) return true; // in case there is a bug
