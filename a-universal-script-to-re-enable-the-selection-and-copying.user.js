@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.1.0
+// @version             1.18.1.1
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -558,10 +558,8 @@
                         get() {
                             const type = this.type;
                             let returnValueOri;
-                            const returnValueType = typeof type === 'string' && type
-                                ? mapping[type]
-                                : (mapping[type] = typeof (returnValueOri = get.call(this)));
-                            if (returnValueType === 'boolean') {
+                            const returnValueType = mapping[type] || (mapping[type] = typeof (returnValueOri = get.call(this)));
+                            if (returnValueType === 'boolean' && type) {
                                 return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
                             } else {
                                 return returnValueOri === undefined ? get.call(this) : returnValueOri;
@@ -569,10 +567,8 @@
                         },
                         set(newValue) {
                             const type = this.type;
-                            const returnValueType = typeof type === 'string' && type
-                                ? mapping[type]
-                                : (mapping[type] = typeof get.call(this));
-                            if (returnValueType === 'boolean') {
+                            const returnValueType = mapping[type] || (mapping[type] = typeof get.call(this));
+                            if (returnValueType === 'boolean' && type) {
                                 const convertedNV = !!newValue;
                                 if (convertedNV === false) this.preventDefault();
                                 if (this[$.ksEventReturnValue] !== false) {
