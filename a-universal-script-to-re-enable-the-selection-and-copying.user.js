@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.0.3
+// @version             1.18.0.4
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -189,6 +189,15 @@
         }
     }
 
+
+    /* globals WeakRef:false */
+
+    /** @type {(o: Object | null) => WeakRef | null} */
+    const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
+
+    /** @type {(wr: Object | null) => Object | null} */
+    const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
     /*
     const whiteListForCustomContextMenu = [
         'https://drive.google.com/',
@@ -356,7 +365,7 @@
         clipDataProcess: function (clipboardData) {
 
             if (!clipboardData) return;
-            const evt = clipboardData[$.ksSetData]; // NOT NULL when preventDefault is called
+            const evt = kRef(clipboardData[$.ksSetData]); // NOT NULL when preventDefault is called
             if (!evt || evt.clipboardData !== clipboardData) return;
             const plainText = clipboardData[$.ksNonEmptyPlainText]; // NOT NULL when setData is called with non empty input
             if (!plainText) return;
@@ -455,8 +464,8 @@
                                 return true;
                             case 'VIDEO':
                             case 'AUDIO':
-                                return $.gm_native_video_audio_contextmenu ? true: false;
-                                
+                                return $.gm_native_video_audio_contextmenu ? true : false;
+
                         }
                         if (target.closest('ytd-player#ytd-player')) return false;
                         if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
@@ -480,15 +489,9 @@
                     if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
                     if (evt.cancelable === false || evt.defaultPrevented === true) return true;
 
-                    const cd = evt.clipboardData[$.ksSetData];
-                    if (typeof WeakRef === 'function') {
-                        let obj = cd ? cd.deref() : null;
-                        if (cd && obj && obj !== evt) return true; // in case there is a bug
-                        evt.clipboardData[$.ksSetData] = new WeakRef(evt);
-                    } else {
-                        if (cd && cd !== evt) return true; // in case there is a bug
-                        evt.clipboardData[$.ksSetData] = evt;
-                    }
+                    const cd = kRef(evt.clipboardData[$.ksSetData]);
+                    if (cd && cd !== evt) return true; // in case there is a bug
+                    evt.clipboardData[$.ksSetData] = mWeakRef(evt);
 
                     $.clipDataProcess(evt.clipboardData);
 
@@ -1606,8 +1609,8 @@
             // callback
         });
 
-        $.gm_status_fn("gm_native_video_audio_contextmenu", "To Enable Native Video Audio Context Menu", "To Disable Native Video Audio Context Menu", ()=>{
-            
+        $.gm_status_fn("gm_native_video_audio_contextmenu", "To Enable Native Video Audio Context Menu", "To Disable Native Video Audio Context Menu", () => {
+
         })
 
     }
