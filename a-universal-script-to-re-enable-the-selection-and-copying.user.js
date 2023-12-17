@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.0.4
+// @version             1.18.1.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -346,19 +346,19 @@
             const elm = !s.length ? document.body : s[s.length >> 1];
             await Promise.resolve();
             const selectionStyle = getComputedStyle(elm, '::selection');
-            let selectionBackgroundColor = selectionStyle.getPropertyValue('background-color');
-            if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionBackgroundColor)) {
+            let selectionBackgroundColor = selectionStyle.getPropertyValue('background-color') || '';
+            if (selectionBackgroundColor.length > 9 && /^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionBackgroundColor)) {
                 document.documentElement.setAttribute($.utSelectionColorHack, "");
             } else {
-                let bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color');
+                let bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color') || '';
                 if (bodyBackgroundColor === selectionBackgroundColor) {
                     document.documentElement.setAttribute($.utSelectionColorHack, "");
                 }
             }
             await Promise.resolve();
             const elmStyle = getComputedStyle(elm);
-            let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color');
-            if (/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
+            let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color') || '';
+            if (highlightColor.length > 9 && /^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
             document.documentElement.setAttribute($.utTapHighlight, "");
         },
 
@@ -549,17 +549,56 @@
                 return preventDefault;
             })(Event.prototype.preventDefault);
 
-            Object.defineProperty(Event.prototype, "returnValue", {
-                get() {
-                    return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
-                },
-                set(newValue) {
-                    if (newValue === false) this.preventDefault();
-                    this[$.ksEventReturnValue] = newValue;
-                },
-                enumerable: true,
-                configurable: true
-            });
+            (() => {
+                const pd = Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(Event.prototype, 'returnValue') : {};
+                const { get, set } = pd;
+                const mapping = {};
+                if (get && set) {
+                    Object.defineProperty(Event.prototype, "returnValue", {
+                        get() {
+                            const type = this.type;
+                            let returnValueOri;
+                            const returnValueType = typeof type === 'string' && type
+                                ? mapping[type]
+                                : (mapping[type] = typeof (returnValueOri = get.call(this)));
+                            if (returnValueType === 'boolean') {
+                                return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
+                            } else {
+                                return returnValueOri === undefined ? get.call(this) : returnValueOri;
+                            }
+                        },
+                        set(newValue) {
+                            const type = this.type;
+                            const returnValueType = typeof type === 'string' && type
+                                ? mapping[type]
+                                : (mapping[type] = typeof get.call(this));
+                            if (returnValueType === 'boolean') {
+                                const convertedNV = !!newValue;
+                                if (convertedNV === false) this.preventDefault();
+                                if (this[$.ksEventReturnValue] !== false) {
+                                    this[$.ksEventReturnValue] = convertedNV;
+                                }
+                            } else {
+                                return set.call(this, newValue);
+                            }
+                        },
+                        enumerable: true,
+                        configurable: true
+                    });
+                } else {
+                    Object.defineProperty(Event.prototype, "returnValue", {
+                        get() {
+                            return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
+                        },
+                        set(newValue) {
+                            if (newValue === false) this.preventDefault();
+                            this[$.ksEventReturnValue] = newValue;
+                        },
+                        enumerable: true,
+                        configurable: true
+                    });
+                }
+            })();
 
             $.enableReturnValueReplacment = true;
             // for (const eyEvt of $.eyEvts) {
@@ -681,8 +720,8 @@
                             let promiseCallback = parentNode => {
                                 if (wmTextWrap.get(parentNode) !== null) return;
                                 const m = [...parentNode.children].some(elm => {
-                                    const value = getComputedStyle(elm).getPropertyValue('z-index');
-                                    if (typeof value === 'string' && value.length > 0) return $.isNum(+value)
+                                    const value = getComputedStyle(elm).getPropertyValue('z-index') || '';
+                                    if (value.length > 0) return $.isNum(+value)
                                     return false
                                 })
                                 wmTextWrap.set(parentNode, m)
@@ -1134,10 +1173,10 @@
                 let sUrl = null;
 
                 const targetCSS = getComputedStyle(targetElm)
-                const targetBgImage = targetCSS.getPropertyValue('background-image');
+                const targetBgImage = targetCSS.getPropertyValue('background-image') || '';
                 let exec1 = null
 
-                if (targetBgImage !== 'none' && (exec1 = /^\s*url\s*\("?([^"\)]+\b(\.gif|\.png|\.jpeg|\.jpg|\.webp)\b[^"\)]*)"?\)\s*$/i.exec(targetBgImage))) {
+                if (targetBgImage.length > 8 && (exec1 = /^\s*url\s*\("?([^"\)]+\b(\.gif|\.png|\.jpeg|\.jpg|\.webp)\b[^"\)]*)"?\)\s*$/i.exec(targetBgImage))) {
                     if ((targetElm.textContent || "").trim().length > 0) return;
                     const url = exec1[1];
                     sUrl = url;
