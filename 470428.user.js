@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.22
+// @version     1.3.23
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -579,7 +579,7 @@
 
   if (typeof AbortSignal !== 'undefined') {
     document.addEventListener('yt-action', function () {
-      // looperFn();
+      if (brc > 8) looperFn();
       brc = 0;
     }, { capture: true, passive: true, once: true });
   }
