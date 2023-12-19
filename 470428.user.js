@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.23
+// @version     1.3.24
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -143,6 +143,20 @@
   function fOper(key, value) {
 
     const kl = key.length;
+
+    if (FLAG_STRATEGY_03 && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))) {
+      // do it with your separate script please
+      if (key === 'ab_det_apb_b') return fOperAccept;
+      if (key === 'ab_det_el_h') return fOperAccept;
+      if (key === 'ab_det_fet_wr') return fOperAccept;
+      if (key === 'ab_det_fet_wr_en') return fOperAccept;
+      if (key === 'ab_det_gen_re') return fOperAccept;
+      if (key === 'enable_ab_report_on_errorscreen') return fOperAccept;
+      if (key === 'enable_ab_rp_int') return fOperAccept;
+      if (key === 'web_enable_ab_em_rsp') return fOperAccept;
+      if (key === 'web_enable_ab_rsp_cl') return fOperAccept;
+      if (key === 'webfe_disable_ab_em_plb') return fOperAccept;
+    }
 
     if (FLAG_STRATEGY_01) {
 
