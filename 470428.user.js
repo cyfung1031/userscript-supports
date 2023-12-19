@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.21
+// @version     1.3.22
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -12,7 +12,7 @@
 // @run-at      document-start
 // @allFrames   true
 // @inject-into page
-// @require     https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252732
+// @require     https://update.greasyfork.org/scripts/475632/1252746/ytConfigHacks.js
 // ==/UserScript==
 
 (() => {
@@ -36,9 +36,11 @@
   const KEEP_MIDDLEWAVE = true;
 
   const SET_POLYMER_FLAGS = true;
-  const FLAG_STRATEGY_01 = true;
+  const FLAG_STRATEGY_01 = true; // ignore ads related flags
 
-  const FLAG_STRATEGY_02 = true;
+  const FLAG_STRATEGY_02 = true; // ignore player related flags
+
+  const FLAG_STRATEGY_03 = true; // ignore adblock related flags
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -575,6 +577,13 @@
 
   let brc = 1000;
 
+  if (typeof AbortSignal !== 'undefined') {
+    document.addEventListener('yt-action', function () {
+      // looperFn();
+      brc = 0;
+    }, { capture: true, passive: true, once: true });
+  }
+
   const hExperimentFlagsFn = () => {
 
     if (brc > 4) brc = 4;
@@ -608,6 +617,20 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (FLAG_STRATEGY_03 && kl >= 11 && kl <= 31) {
+            // do it with your separate script please
+            if (key === 'ab_det_apb_b') continue;
+            if (key === 'ab_det_el_h') continue;
+            if (key === 'ab_det_fet_wr') continue;
+            if (key === 'ab_det_fet_wr_en') continue;
+            if (key === 'ab_det_gen_re') continue;
+            if (key === 'web_enable_ab_rsp_cl') continue;
+            if (key === 'enable_ab_rp_int') continue;
+            if (key === 'enable_ab_report_on_errorscreen') continue;
+            if (key === 'enable_pl_r_si_fa') continue;
+            if (key === 'ab_det_sc_inj_enf') continue;
+          }
 
           if (FLAG_STRATEGY_02) {
 
@@ -1238,9 +1261,6 @@
     looperFn(config_);
   });
   looperFn();
-
-
-
 
   if (isMainWindow) {
 
