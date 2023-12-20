@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.40
+// @version            3.2.41
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -879,7 +879,7 @@ const mWindow = (() => {
         const href = button.href;
         if (!href || !isVaildURL(href)) return;
         if (/\.js[^-.\w\d\s:\/\\]*$/.test(href)) {
-            fetch(href, {
+            0 && fetch(href, {
                 method: "GET",
                 cache: 'reload',
                 redirect: "follow"
@@ -888,10 +888,10 @@ const mWindow = (() => {
             }).catch((e) => {
                 console.debug(e);
             });
-            const m = /^(https\:\/\/(greasyfork|sleazyfork)\.org\/[_-a-zA-Z\/]*scripts\/(\d+)[-\w]*)(\/|$)/.exec(location.href)
+            const m = /^(https\:\/\/(greasyfork|sleazyfork)\.org\/[_-\w\/]*scripts\/(\d+)[-\w]*)(\/|$)/.exec(location.href)
             if (m && m[1]) {
                 const href = `${m[1]}/code`
-                fetch(href, {
+                0 && fetch(href, {
                     method: "GET",
                     cache: 'reload',
                     redirect: "follow"
