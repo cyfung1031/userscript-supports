@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.36
+// @version            3.2.37
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -929,6 +929,17 @@ const mWindow = (() => {
     const lang = document.documentElement.lang;
     const locales = mWindow.locales;
 
+    const _isBlackList = (text) => {
+        if (!text || typeof text !== 'string') return false;
+        if (text.includes('hack') && (text.includes('EXPERIMENT_FLAGS') || text.includes('yt.'))) return false;
+        return blacklist.test(text);
+    }
+    const isBlackList = (name, description) => {
+        // To be reviewed
+        if (!blacklist) return false;
+        return _isBlackList(name) || _isBlackList(description);
+    }
+
     function hiddenListStrToArr(str) {
         if (!str || typeof str !== 'string') str = '';
         return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
@@ -1535,7 +1546,7 @@ const mWindow = (() => {
                 }
                 break;
             case 'blacklist':
-                if (blacklist && (blacklist.test(name) || blacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                if (isBlackList(name, description) && !element.classList.contains('blacklisted')) {
                     element.classList.add('blacklisted', 'blacklist');
                     if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
                         let scriptLink = element.querySelector('.script-link');
