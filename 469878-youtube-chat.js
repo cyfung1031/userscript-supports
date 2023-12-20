@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.32
+// @version             0.60.33
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3841,9 +3841,28 @@
         if ((mclp.flushActiveItems_ || 0).length === 0) {
 
           const sfi = fnIntegrity(mclp.flushActiveItems_);
-          if (sfi === '0.137.81' || sfi === '0.138.81') {
+          if (sfi === '0.150.84') {
+            // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+            // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+            //     b && this.splice("visibleItems", 0, b);
+            //     if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+            //         this.preinsertHeight_ = this.items.clientHeight;
+            //     this.activeItems_.unshift("visibleItems");
+            //     try {
+            //         this.push.apply(this, this.activeItems_)
+            //     } catch (c) {
+            //         nm(c)
+            //     }
+            //     this.activeItems_ = [];
+            //     this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && zQ(function() {
+            //         a.showNewItems_()
+            //     }) : zQ(function() {
+            //         a.maybeScrollToBottom_()
+            //     })
+          } else if (sfi === '0.137.81' || sfi === '0.138.81') {
+            // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
           } else {
-            assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.137.81'));
+            assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.150.84'));
           }
 
           let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
@@ -4173,7 +4192,15 @@
 
         if ((mclp.atBottomChanged_ || 0).length === 1) {
           // note: if the scrolling is too frequent, the show more visibility might get wrong.
-          assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.75.39'));
+
+          const sfi = fnIntegrity(mclp.atBottomChanged_);
+          if (sfi === '1.73.37') {
+            // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+          } else if (sfi === '1.75.39') {
+            // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
+          } else {
+            assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
+          }
 
           const querySelector = HTMLElement.prototype.querySelector;
           const U = (element) => ({
@@ -4273,7 +4300,15 @@
 
         if ((mclp.handleLiveChatActions_ || 0).length === 1) {
 
-          assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.31.17'));
+          const sfi = fnIntegrity(mclp.handleLiveChatActions_);
+          if (sfi === '1.39.20') {
+            // TBC
+          } else if (sfi === '1.31.17') {
+            // original
+          } else {
+            assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.31.17'));
+          }
+
           mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
 
           mclp.handleLiveChatActions77_ = async function (arr) {
