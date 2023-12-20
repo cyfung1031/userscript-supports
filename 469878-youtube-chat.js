@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.30
+// @version             0.60.31
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -132,6 +132,7 @@
 
   const BOOST_MENU_OPENCHANGED_RENDERING = true;
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // click again = close
+  const NO_ITEM_TAP_FOR_NON_STATIONARY_TAP = true;  // dont open the menu (e.g. text message) if cursor is moved or long press
   const PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN = true; // require CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true
   // const FIX_MENU_CAPTURE_SCROLL = true;
   const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
@@ -575,7 +576,7 @@
     }
 
     yt-live-chat-text-message-renderer.yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
-      pointer-events: none !important;
+      pointer-events: none !important; /* TO_BE_REVIEWED */
     }
 
     yt-live-chat-auto-mod-message-renderer.yt-live-chat-item-list-renderer[whole-message-clickable] #menu.style-scope[class] {
@@ -1029,55 +1030,59 @@
   }
 
 
-    ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
+  const px2cm = (px) => px * window.devicePixelRatio * 0.026458333;
+  const px2mm = (px) => px * window.devicePixelRatio * 0.26458333;
 
-      const _config_ = () => {
-        try {
-          return ytcfg.data_;
-        } catch (e) { }
-        return null;
-      };
 
-      const flagsFn = (EXPERIMENT_FLAGS) => {
+  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
 
-        // console.log(700)
+    const _config_ = () => {
+      try {
+        return ytcfg.data_;
+      } catch (e) { }
+      return null;
+    };
 
-        if (!EXPERIMENT_FLAGS) return;
+    const flagsFn = (EXPERIMENT_FLAGS) => {
 
-        if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
-          if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
-            EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
-            EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-            // console.log(701)
-          }
-        }
+      // console.log(700)
 
-        if (ENABLE_FLAGS_REUSE_COMPONENTS) {
-          EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
-          EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
-          // console.log(702);
-        }
+      if (!EXPERIMENT_FLAGS) return;
 
-      };
-
-      const uf = (config_) => {
-        config_ = config_ || _config_();
-        if (config_) {
-          const { EXPERIMENT_FLAGS, EXPERIMENTS_FORCED_FLAGS } = config_;
-          if (EXPERIMENT_FLAGS) {
-            flagsFn(EXPERIMENT_FLAGS);
-            if (EXPERIMENTS_FORCED_FLAGS) flagsFn(EXPERIMENTS_FORCED_FLAGS);
-          }
+      if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST) {
+        if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
+          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+          EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
+          // console.log(701)
         }
       }
 
-      window._ytConfigHacks.add((config_) => {
-        uf(config_);
-      });
+      if (ENABLE_FLAGS_REUSE_COMPONENTS) {
+        EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
+        EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
+        // console.log(702);
+      }
 
-      uf();
+    };
 
-    })();
+    const uf = (config_) => {
+      config_ = config_ || _config_();
+      if (config_) {
+        const { EXPERIMENT_FLAGS, EXPERIMENTS_FORCED_FLAGS } = config_;
+        if (EXPERIMENT_FLAGS) {
+          flagsFn(EXPERIMENT_FLAGS);
+          if (EXPERIMENTS_FORCED_FLAGS) flagsFn(EXPERIMENTS_FORCED_FLAGS);
+        }
+      }
+    }
+
+    window._ytConfigHacks.add((config_) => {
+      uf(config_);
+    });
+
+    uf();
+
+  })();
 
   if (DISABLE_Translation_By_Google) {
 
@@ -4523,7 +4528,7 @@
 
           // @property --ticker-rtime
 
-          if(typeof isCSSPropertySupported_ === 'boolean') return isCSSPropertySupported_;
+          if (typeof isCSSPropertySupported_ === 'boolean') return isCSSPropertySupported_;
           isCSSPropertySupported_ = false;
 
           if (typeof CSS !== 'object' || typeof (CSS || 0).registerProperty !== 'function') return false;
@@ -4543,7 +4548,7 @@
             ],
             {
               fill: "forwards",
-              duration: 1000*40,
+              duration: 1000 * 40,
               easing: 'linear'
             }
           );
@@ -6716,6 +6721,67 @@
 
 
         // https://www.youtube.com/watch?v=oQzFi1NO7io
+
+
+      }
+
+      if (NO_ITEM_TAP_FOR_NON_STATIONARY_TAP) {
+        let targetElementCntWR = null;
+        let _e0 = null;
+        document.addEventListener('mousedown', (e) => {
+          if (!e || !e.isTrusted) return;
+          let element = e.target;
+          for (; element instanceof HTMLElement; element = element.parentNode) {
+            if (element.is) break;
+          }
+          if (!element || !element.is) return;
+          const cnt = insp(element);
+          if (typeof cnt.onItemTap === 'function') {
+            cnt._onItemTap_isNonStationary = 0;
+            const cProto = getProto(element);
+            if (!cProto.onItemTap366 && typeof cProto.onItemTap === 'function' && cProto.onItemTap.length === 1) {
+              cProto.onItemTap366 = cProto.onItemTap;
+              cProto.onItemTap = function (a) {
+                const t = this._onItemTap_isNonStationary;
+                this._onItemTap_isNonStationary = 0;
+                if (t > Date.now()) return;
+                return this.onItemTap366.apply(this, arguments)
+              }
+            }
+            _e0 = e;
+            targetElementCntWR = mWeakRef(cnt);
+          } else {
+            _e0 = null;
+            targetElementCntWR = null;
+          }
+        }, { capture: true, passive: true });
+
+        document.addEventListener('mouseup', (e) => {
+          if (!e || !e.isTrusted) return;
+          const e0 = _e0;
+          _e0 = null;
+          if (!e0) return;
+          const cnt = kRef(targetElementCntWR);
+          targetElementCntWR = null;
+          if (!cnt) return;
+          if (e.timeStamp - e0.timeStamp > 280) {
+            cnt._onItemTap_isNonStationary = Date.now() + 40;
+          } else if ((window.getSelection() + "").trim().replace(/[\u2000-\u200a\u202f\u2800\u200B\u200C\u200D\uFEFF]+/g, '').length >= 1) {
+            cnt._onItemTap_isNonStationary = Date.now() + 40;
+          } else {
+            const dx = e.clientX - e0.clientX;
+            const dy = e.clientY - e0.clientY;
+            const dd = Math.sqrt(dx * dx + dy * dy);
+            const ddmm = px2mm(dd);
+            if (ddmm > 1.0) {
+              cnt._onItemTap_isNonStationary = Date.now() + 40;
+            } else {
+              cnt._onItemTap_isNonStationary = 0;
+            }
+          }
+        }, { capture: true, passive: true });
+
+
 
 
       }
