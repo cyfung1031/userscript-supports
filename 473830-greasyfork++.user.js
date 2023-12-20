@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.45
+// @version            3.2.46
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -904,7 +904,7 @@ const mWindow = (() => {
 
             if (m && m[3] && href.includes('.user.js')) {
                 const href = `https://${location.hostname}/scripts/${m[3]}-fetching/code/${crypto.randomUUID()}.user.js?version_=${Date.now()}`
-                fetch(href, {
+                0 && fetch(href, {
                     method: "GET",
                     cache: 'reload',
                     redirect: "follow"
