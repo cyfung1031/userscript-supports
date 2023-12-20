@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.46
+// @version            3.2.47
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -858,6 +858,15 @@ const mWindow = (() => {
 
 (async () => {
 
+    let rafPromise = null;
+
+    const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
+      requestAnimationFrame(hRes => {
+        rafPromise = null;
+        resolve(hRes);
+      });
+    }));
+
     const isVaildURL = (url) => {
         if (!url || typeof url !== 'string' || url.length < 23) return;
         let obj = null;
@@ -1493,9 +1502,11 @@ const mWindow = (() => {
 
                     if (!script.namespace) {
 
-                        getScriptData(script.id).then((script) => {
-                            resolve([null, script.name, script.namespace]);
-                        });
+                        getRafPromise() // foreground
+                            .then(() => getScriptData(script.id))
+                            .then((script) => {
+                                resolve([null, script.name, script.namespace]);
+                            });
 
                     } else {
 
@@ -1765,6 +1776,7 @@ const mWindow = (() => {
 
     const showInstallButton = async (scriptID, element) => {
 
+        await getRafPromise().then();
         // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
         let _baseScript = null;
         if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
@@ -1917,6 +1929,9 @@ const mWindow = (() => {
 
         if (!userID) return;
 
+        await new Promise(resolve => setTimeout(resolve, 800)); // delay for reducing server burden
+        await new Promise(resolve => requestAnimationFrame(resolve)); // foreground
+
         const userData = await getUserData(+userID.match(/\d+(?=\D)/g));
         if (!userData) return;
 
@@ -1989,32 +2004,27 @@ const mWindow = (() => {
 
             }
 
-
             addSettingsToMenu();
 
-
             setTimeout(() => {
-                let installBtn = document.querySelector('a[data-script-id][data-script-version]')
-                let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
-                if (scriptID > 0) {
-                    getScriptData(scriptID, true);
-                } else {
-
-
-                    const userLink = document.querySelector('#site-nav .user-profile-link a[href]');
-                    let userID = userLink ? userLink.getAttribute('href') : '';
-
-                    userID = userID ? /users\/(\d+)/.exec(userID) : null;
-                    if (userID) userID = userID[1];
-                    if (userID) {
-                        userID = +userID;
-                        if (userID > 0) {
-                            getUserData(userID, true);
+                getRafPromise().then(() => {
+                    let installBtn = document.querySelector('a[data-script-id][data-script-version]')
+                    let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
+                    if (scriptID > 0) {
+                        getScriptData(scriptID, true);
+                    } else {
+                        const userLink = document.querySelector('#site-nav .user-profile-link a[href]');
+                        let userID = userLink ? userLink.getAttribute('href') : '';
+                        userID = userID ? /users\/(\d+)/.exec(userID) : null;
+                        if (userID) userID = userID[1];
+                        if (userID) {
+                            userID = +userID;
+                            if (userID > 0) {
+                                getUserData(userID, true);
+                            }
                         }
                     }
-
-
-                }
+                });
             }, 740);
 
             const userLink = document.querySelector('.user-profile-link a[href]');
