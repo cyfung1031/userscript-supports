@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.37
+// @version            3.2.38
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -293,8 +293,13 @@ const mWindow = (() => {
 
     };
 
-    const blacklist = [ /* cSpell: disable-next-line */
-        '\\bagar((\\.)?io)?\\b', '\\bagma((\\.)?io)?\\b', '\\baimbot\\b', '\\barras((\\.)?io)?\\b', '\\bbot(s)?\\b', '\\bbubble((\\.)?am)?\\b', '\\bcheat(s)?\\b', '\\bdiep((\\.)?io)?\\b', '\\bfreebitco((\\.)?in)?\\b', '\\bgota((\\.)?io)?\\b', '\\bhack(s)?\\b', '\\bkrunker((\\.)?io)?\\b', '\\blostworld((\\.)?io)?\\b', '\\bmoomoo((\\.)?io)?\\b', '\\broblox(\\.com)?\\b', '\\bshell\\sshockers\\b', '\\bshellshock((\\.)?io)?\\b', '\\bshellshockers\\b', '\\bskribbl((\\.)?io)?\\b', '\\bslither((\\.)?io)?\\b', '\\bsurviv((\\.)?io)?\\b', '\\btaming((\\.)?io)?\\b', '\\bvenge((\\.)?io)?\\b', '\\bvertix((\\.)?io)?\\b', '\\bzombs((\\.)?io)?\\b', '\\p{Extended_Pictographic}'
+    const blacklist = [
+        '\\bagar((\\.)?io)?\\b', '\\bagma((\\.)?io)?\\b', '\\baimbot\\b', '\\barras((\\.)?io)?\\b', '\\bbot(s)?\\b',
+        '\\bbubble((\\.)?am)?\\b', '\\bcheat(s)?\\b', '\\bdiep((\\.)?io)?\\b', '\\bfreebitco((\\.)?in)?\\b', '\\bgota((\\.)?io)?\\b',
+        '\\bhack(s)?\\b', '\\bkrunker((\\.)?io)?\\b', '\\blostworld((\\.)?io)?\\b', '\\bmoomoo((\\.)?io)?\\b', '\\broblox(\\.com)?\\b',
+        '\\bshell\\sshockers\\b', '\\bshellshock((\\.)?io)?\\b', '\\bshellshockers\\b', '\\bskribbl((\\.)?io)?\\b', '\\bslither((\\.)?io)?\\b',
+        '\\bsurviv((\\.)?io)?\\b', '\\btaming((\\.)?io)?\\b', '\\bvenge((\\.)?io)?\\b', '\\bvertix((\\.)?io)?\\b', '\\bzombs((\\.)?io)?\\b',
+        // '\\p{Extended_Pictographic}'
     ];
 
 
@@ -924,7 +929,7 @@ const mWindow = (() => {
     const fields = mWindow.fields;
     const logo = mWindow.logo;
     const nonLatins = /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu;
-    const blacklist = createRE((mWindow.blacklist || []).join('|'), 'giu');
+    const blacklist = createRE((mWindow.blacklist || []).filter(e => !!e).join('|'), 'giu');
     const hiddenList = numberArr(await GM.getValue('hiddenList', []));
     const lang = document.documentElement.lang;
     const locales = mWindow.locales;
