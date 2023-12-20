@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.42
+// @version            3.2.43
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1374,10 +1374,7 @@ const mWindow = (() => {
                         console.warn(response.status, response);
                         new Promise(r => setTimeout(r, 470)).then(unlock); // reload later
                     })
-                    .then((data) => {
-                        console.log(123213, data)
-                        resolve(data)
-                    })
+                    .then((data) => resolve(data))
                     .catch((e) => {
                         unlock();
                         UU.log(id, url)
