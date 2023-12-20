@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.41
+// @version            3.2.42
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1273,9 +1273,48 @@ const mWindow = (() => {
     //   return total;
     // };
     const getScriptData = async (id, noCache) => {
+
         if (!(id >= 0)) return Promise.resolve()
         const url = `https://${window.location.hostname}/scripts/${id}.json`;
         return new Promise((resolve, reject) => {
+
+            const onPageElement = document.querySelector(`[data-script-namespace][data-script-id="${id || 'null'}"][data-script-name][data-script-version][href]`)
+            if (onPageElement && /^https\:\/\/update\.\w+\.org\/scripts\/\d+\/[^.?\/]+\.user\.js$/.test(onPageElement.getAttribute('href') || '')) {
+
+                const result = {
+                    "id": +onPageElement.getAttribute('data-script-id'),
+                    // "created_at": "2023-08-24T21:16:50.000Z",
+                    // "daily_installs": 21,
+                    // "total_installs": 3310,
+                    // "code_updated_at": "2023-12-20T07:46:54.000Z",
+                    // "support_url": null,
+                    // "fan_score": "74.1",
+                    "namespace": `${onPageElement.getAttribute('data-script-namespace')}`,
+                    // "contribution_url": null,
+                    // "contribution_amount": null,
+                    // "good_ratings": 11,
+                    // "ok_ratings": 0,
+                    // "bad_ratings": 0,
+                    // "users": [
+                    //     {
+                    //         "id": 371179,
+                    //         "name": "𝖢𝖸 𝖥𝗎𝗇𝗀",
+                    //         "url": "https://greasyfork.org/users/371179-%F0%9D%96%A2%F0%9D%96%B8-%F0%9D%96%A5%F0%9D%97%8E%F0%9D%97%87%F0%9D%97%80"
+                    //     }
+                    // ],
+                    "name": `${onPageElement.getAttribute('data-script-name')}`,
+                    // "description": "Adds various features and improves the Greasy Fork experience",
+                    // "url": "https://greasyfork.org/scripts/473830-greasy-fork",
+                    // "code_url": "https://update.greasyfork.org/scripts/473830/Greasy%20Fork%2B%2B.user.js",
+                    "code_url": `${onPageElement.getAttribute('href')}`,
+                    // "license": "MIT License",
+                    "version": `${onPageElement.getAttribute('data-script-version')}`,
+                    // "locale": "en",
+                    // "deleted": false
+                };
+                resolve(result);
+                return;
+            }
 
             networkMP1 = networkMP1.then(() => new Promise(unlock => {
 
@@ -1335,7 +1374,10 @@ const mWindow = (() => {
                         console.warn(response.status, response);
                         new Promise(r => setTimeout(r, 470)).then(unlock); // reload later
                     })
-                    .then((data) => resolve(data))
+                    .then((data) => {
+                        console.log(123213, data)
+                        resolve(data)
+                    })
                     .catch((e) => {
                         unlock();
                         UU.log(id, url)
