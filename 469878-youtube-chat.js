@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.31
+// @version             0.60.32
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -126,19 +126,20 @@
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
 
 
-  const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;        // cache the menu data and used for the next reopen
-  const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = true; // pause auto scroll faster when the context menu is about to show
-  const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;        // avoid multiple requests on the same time
+  const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;                // cache the menu data and used for the next reopen
+  const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = true;   // pause auto scroll faster when the context menu is about to show
+  const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;                // avoid multiple requests on the same time
 
   const BOOST_MENU_OPENCHANGED_RENDERING = true;
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // click again = close
-  const NO_ITEM_TAP_FOR_NON_STATIONARY_TAP = true;  // dont open the menu (e.g. text message) if cursor is moved or long press
-  const PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN = true; // require CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true
+  const NO_ITEM_TAP_FOR_NON_STATIONARY_TAP = true;                // dont open the menu (e.g. text message) if cursor is moved or long press
+  const TAP_ACTION_DURATION = 280;                                // exceeding 280ms would not consider as a tap action
+  const PREREQUEST_CONTEXT_MENU_ON_MOUSE_DOWN = true;             // require CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true
   // const FIX_MENU_CAPTURE_SCROLL = true;
-  const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;        // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
+  const CHAT_MENU_REFIT_ALONG_SCROLLING = 0;                      // 0 for locking / default; 1 for unlocking only; 2 for unlocking and refit
 
   const RAF_FIX_keepScrollClamped = true;
-  const RAF_FIX_scrollIncrementally = 2;            // 0: no action; 1: basic fix; 2: also fix scroll position
+  const RAF_FIX_scrollIncrementally = 2;                          // 0: no action; 1: basic fix; 2: also fix scroll position
 
   // << if BOOST_MENU_OPENCHANGED_RENDERING >>
   const FIX_MENU_POSITION_N_SIZING_ON_SHOWN = 1;       // correct size and position when the menu dropdown opens
@@ -6764,7 +6765,7 @@
           const cnt = kRef(targetElementCntWR);
           targetElementCntWR = null;
           if (!cnt) return;
-          if (e.timeStamp - e0.timeStamp > 280) {
+          if (e.timeStamp - e0.timeStamp > TAP_ACTION_DURATION) {
             cnt._onItemTap_isNonStationary = Date.now() + 40;
           } else if ((window.getSelection() + "").trim().replace(/[\u2000-\u200a\u202f\u2800\u200B\u200C\u200D\uFEFF]+/g, '').length >= 1) {
             cnt._onItemTap_isNonStationary = Date.now() + 40;
@@ -6780,9 +6781,6 @@
             }
           }
         }, { capture: true, passive: true });
-
-
-
 
       }
 
