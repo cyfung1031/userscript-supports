@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.53
+// @version     0.6.54
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1849,14 +1849,18 @@
 
   ; FIX_Iframe_NULL_SRC && (() => {
 
-    let emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
+    const emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
     const lcOpt = { sensitivity: 'base' };
     document.createElement24 = document.createElement;
     document.createElement = function (t) {
       if (typeof t === 'string' && t.length === 6) {
         if (t.localeCompare('iframe', undefined, lcOpt) === 0) {
-          let p = this.createElement24(t);
-          p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
+          const p = this.createElement24(t);
+          const stack = new Error().stack;
+          const isSearchbox = stack.includes('initializeSearchbox'); // see https://greasyfork.org/scripts/473972-youtube-js-engine-tamer/discussions/217084
+          if (!isSearchbox) {
+            p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
+          }
           return p;
         }
       }
