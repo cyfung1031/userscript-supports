@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.55
+// @version     0.6.56
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1302,8 +1302,8 @@
 
       }
 
-      return (h.is === 'yt-live-chat-renderer');
-      // return false;
+      // return (h.is === 'yt-live-chat-renderer');
+      return false;
       /*
       return (h.is === 'yt-live-chat-renderer') ||
         (h.is === 'yt-live-chat-item-list-renderer') ||
@@ -1314,7 +1314,7 @@
 
 
 
-    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31)) {
+    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31) && h.rendererStamperApplyChangeRecord_.length === 3) {
 
 
 
@@ -1322,6 +1322,11 @@
       const f = h.rendererStamperApplyChangeRecord_;
       h.rendererStamperApplyChangeRecord31_ = f;
       const g = ump3.get(f) || function (a, b, c) {
+
+        if (this.is === 'yt-live-chat-renderer' || this.is === 'yt-live-chat-item-list-renderer' || this.is === 'yt-live-chat-text-input-field-renderer') {
+          return f.apply(this, arguments);
+        }
+
         if (isMainRenderer(this) || (this.updateChildVisibilityProperties && !this.markDirty)) {
           let b = false;
           if (!this.markDirty) {
