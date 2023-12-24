@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.56
+// @version     0.6.60
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1279,9 +1279,7 @@
 
 
     const isMainRenderer = (h) => {
-
       if (h.is && h.$ && h.__dataEnabled && h.__dataReady && h.__shady && h.__templateInfo && h.root && h.hostElement) {
-
         const q = (h.parentComponent ? 1 : 0) | (h.ytComponentBehavior ? 2 : 0);
         if (q === 3) {
           // chat renderer
@@ -1299,48 +1297,55 @@
             return true;
           }
         }
-
       }
-
-      // return (h.is === 'yt-live-chat-renderer');
       return false;
-      /*
+    }
+
+    const skipRenderer = (h) => {
       return (h.is === 'yt-live-chat-renderer') ||
         (h.is === 'yt-live-chat-item-list-renderer') ||
         (h.is === 'yt-live-chat-text-input-field-renderer') ||
-        0;
-        */
+        (h.is === 'yt-live-chat-message-buy-flow-renderer') ||
+        false;
     }
-
 
 
     if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31) && h.rendererStamperApplyChangeRecord_.length === 3) {
 
-
-
+      const cacheKey = Symbol();
 
       const f = h.rendererStamperApplyChangeRecord_;
       h.rendererStamperApplyChangeRecord31_ = f;
       const g = ump3.get(f) || function (a, b, c) {
-
-        if (this.is === 'yt-live-chat-renderer' || this.is === 'yt-live-chat-item-list-renderer' || this.is === 'yt-live-chat-text-input-field-renderer') {
-          return f.apply(this, arguments);
-        }
-
         if (isMainRenderer(this) || (this.updateChildVisibilityProperties && !this.markDirty)) {
           let b = false;
           if (!this.markDirty) {
             b = true;
-          } else if (!this.localVisibilityObserver_) {
-            // b = false
           } else if (!this.visibilityObserverForChild_ && !!this.getVisibilityObserverForChild) {
-            b = true;
+            if (!this.isAttached) {
+              b = true;
+            } else {
+              const lobs = this.localVisibilityObserver_;
+              if (!lobs || lobs.isConnected !== true) this[cacheKey] = 0;
+              b = true;
+              if (this[cacheKey] >= 3) {
+                b = false;
+              } else {
+                this[cacheKey] = (this[cacheKey] || 0) + 1;
+                if (lobs) {
+                  if (lobs[cacheKey] >= 3) {
+                    b = false;
+                  } else {
+                    lobs[cacheKey] = (lobs[cacheKey] || 0) + 1;
+                  }
+                }
+              }
+            }
           }
           if (b) {
             return f.apply(this, arguments);
           }
         }
-
         // sequence on the same proto
         this[qm47] = (this[qm47] || Promise.resolve()).then(() => this.rendererStamperApplyChangeRecord31_(a, b, c)).catch(console.log);
       }
