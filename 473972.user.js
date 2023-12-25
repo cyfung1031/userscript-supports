@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.60
+// @version     0.6.62
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1318,31 +1318,29 @@
       h.rendererStamperApplyChangeRecord31_ = f;
       const g = ump3.get(f) || function (a, b, c) {
         if (isMainRenderer(this) || (this.updateChildVisibilityProperties && !this.markDirty)) {
-          let b = false;
+          let y = false;
           if (!this.markDirty) {
-            b = true;
+            // yt-live-chat-dialog-renderer
+            // ytd-engagement-panel-section-list-renderer
+            y = true;
           } else if (!this.visibilityObserverForChild_ && !!this.getVisibilityObserverForChild) {
-            if (!this.isAttached) {
-              b = true;
-            } else {
-              const lobs = this.localVisibilityObserver_;
-              if (!lobs || lobs.isConnected !== true) this[cacheKey] = 0;
-              b = true;
-              if (this[cacheKey] >= 3) {
-                b = false;
-              } else {
-                this[cacheKey] = (this[cacheKey] || 0) + 1;
-                if (lobs) {
-                  if (lobs[cacheKey] >= 3) {
-                    b = false;
-                  } else {
-                    lobs[cacheKey] = (lobs[cacheKey] || 0) + 1;
-                  }
-                }
+            let lobs = this.localVisibilityObserver_;
+            if (lobs === null) {
+              // 'yt-live-chat-item-list-renderer', 'yt-live-chat-header-renderer', 'yt-live-chat-ticker-renderer'
+              // 'yt-live-chat-text-input-field-renderer'
+              // 'yt-emoji-picker-renderer'
+              y = true;
+            } else if (lobs) {
+              lobs = lobs.observer || lobs;
+              // 'yt-live-chat-renderer', 'yt-live-chat-item-list-renderer'
+              const val = lobs[cacheKey] || 0;
+              if (val < 3) {
+                y = true;
+                lobs[cacheKey] = val + 1;
               }
             }
           }
-          if (b) {
+          if (y) {
             return f.apply(this, arguments);
           }
         }
