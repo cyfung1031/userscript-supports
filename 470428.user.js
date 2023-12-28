@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.25
+// @version     1.3.26
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -34,6 +34,7 @@
   const NO_DESKTOP_DELAY_PLAYER_RESIZING = false;
   const NO_ANIMATED_LIKE = false;
   const KEEP_MIDDLEWAVE = true;
+  const NO_CINEMATIC_LIGHTING_LABEL = false; // set true to show "Ambient Mode" label instead of "Cinematic lighting" Label
 
   const SET_POLYMER_FLAGS = true;
   const FLAG_STRATEGY_01 = true; // ignore ads related flags
@@ -143,6 +144,14 @@
   function fOper(key, value) {
 
     const kl = key.length;
+
+    if (NO_CINEMATIC_LIGHTING_LABEL) {
+      if (key === 'web_player_use_cinematic_label') return fOperAccept; // fallback
+      if (key === 'web_player_use_cinematic_label_0') return fOperAccept; // fallback
+      if (key === 'web_player_use_cinematic_label_1') return fOperAccept; // fallback
+      if (key === 'web_player_use_cinematic_label_2') return fOperAccept;
+      if (key === 'web_player_use_cinematic_label_3') return fOperAccept; // fallback
+    }
 
     if (FLAG_STRATEGY_03 && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))) {
       // do it with your separate script please
