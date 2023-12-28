@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.27
+// @version     1.3.28
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -153,7 +153,7 @@
       if (key === 'web_player_use_cinematic_label_3') return fOperAccept; // fallback
     }
 
-    if (FLAG_STRATEGY_03 && kl > 10 && kl < 32 && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))) {
+    if (FLAG_STRATEGY_03 && kl > 8 && kl < 32) { //  && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))
       // do it with your separate script please
       if (key === 'ab_det_apb_b') return fOperAccept;
       if (key === 'ab_det_el_h') return fOperAccept;
@@ -165,6 +165,19 @@
       if (key === 'web_enable_ab_em_rsp') return fOperAccept;
       if (key === 'web_enable_ab_rsp_cl') return fOperAccept;
       if (key === 'webfe_disable_ab_em_plb') return fOperAccept;
+
+      // fallback
+      if (key === 'ab_pl_man') return fOperAccept;
+      if (key === 'ab_fk_sk_cl') return fOperAccept;
+      if (key === 'enable_pl_r_si_fa') return fOperAccept;
+      if (key === 'ab_det_sc_inj_enf') return fOperAccept;
+      if (key === 'service_worker_enabled') return fOperAccept;
+      if (key === 'ab_deg_unex_thr') return fOperAccept;
+      if (key === 'ab_net_tp_e') return fOperAccept;
+      if (key === 'ad_net_pb_ab') return fOperAccept;
+      if (key === 'ab_mis_log_err') return fOperAccept;
+
+
     }
 
     if (FLAG_STRATEGY_01 && kl > 18 && kl < 43) {
@@ -646,8 +659,10 @@
           const kl3 = kl % 3;
           const kl2 = kl % 2;
 
-          if (FLAG_STRATEGY_03 && kl >= 11 && kl <= 31) {
+          if (FLAG_STRATEGY_03 && kl >= 8 && kl <= 31) {
             // do it with your separate script please
+            if (key === 'ab_pl_man') continue; // https://www.uedbox.com/post/69238/
+            if (key === 'ab_fk_sk_cl') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
             if (key === 'ab_det_apb_b') continue;
             if (key === 'ab_det_el_h') continue;
             if (key === 'ab_det_fet_wr') continue;
@@ -658,6 +673,11 @@
             if (key === 'enable_ab_report_on_errorscreen') continue;
             if (key === 'enable_pl_r_si_fa') continue;
             if (key === 'ab_det_sc_inj_enf') continue;
+            if (key === 'service_worker_enabled') continue; // https://gist.github.com/BrokenGabe/51d55a11c2090d9402e40f12a6ece275
+            if (key === 'ab_deg_unex_thr') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+            if (key === 'ab_net_tp_e') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+            if (key === 'ad_net_pb_ab') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+            if (key === 'ab_mis_log_err') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
           }
 
           if (FLAG_STRATEGY_02) {
