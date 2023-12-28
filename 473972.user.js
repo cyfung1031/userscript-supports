@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.62
+// @version     0.6.63
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1312,8 +1312,6 @@
 
     if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31) && h.rendererStamperApplyChangeRecord_.length === 3) {
 
-      const cacheKey = Symbol();
-
       const f = h.rendererStamperApplyChangeRecord_;
       h.rendererStamperApplyChangeRecord31_ = f;
       const g = ump3.get(f) || function (a, b, c) {
@@ -1324,20 +1322,19 @@
             // ytd-engagement-panel-section-list-renderer
             y = true;
           } else if (!this.visibilityObserverForChild_ && !!this.getVisibilityObserverForChild) {
-            let lobs = this.localVisibilityObserver_;
-            if (lobs === null) {
-              // 'yt-live-chat-item-list-renderer', 'yt-live-chat-header-renderer', 'yt-live-chat-ticker-renderer'
-              // 'yt-live-chat-text-input-field-renderer'
-              // 'yt-emoji-picker-renderer'
-              y = true;
-            } else if (lobs) {
-              lobs = lobs.observer || lobs;
-              // 'yt-live-chat-renderer', 'yt-live-chat-item-list-renderer'
-              const val = lobs[cacheKey] || 0;
-              if (val < 3) {
+            if (this.isRenderer_ === true && this.localVisibilityObserver_ !== null) {
+              const lobs = this.localVisibilityObserver_;
+              if (lobs && lobs.observer && lobs.isConnected === true && lobs.pauseObservingUntilReconnect === false && lobs.handlers && lobs.handlers.size > 0) {
+                if ((this.__data || 0).isEmpty === false) {
+                  // by pass
+                } else if (this.is === 'yt-live-chat-renderer') {
+                  y = true;
+                }
+              } else {
                 y = true;
-                lobs[cacheKey] = val + 1;
               }
+            } else if (this.isRenderer_ === true && this.localVisibilityObserver_ === null) {
+              y = true;
             }
           }
           if (y) {
