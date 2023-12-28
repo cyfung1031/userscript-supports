@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.26
+// @version     1.3.27
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -145,7 +145,7 @@
 
     const kl = key.length;
 
-    if (NO_CINEMATIC_LIGHTING_LABEL) {
+    if (NO_CINEMATIC_LIGHTING_LABEL && kl > 29) {
       if (key === 'web_player_use_cinematic_label') return fOperAccept; // fallback
       if (key === 'web_player_use_cinematic_label_0') return fOperAccept; // fallback
       if (key === 'web_player_use_cinematic_label_1') return fOperAccept; // fallback
@@ -153,7 +153,7 @@
       if (key === 'web_player_use_cinematic_label_3') return fOperAccept; // fallback
     }
 
-    if (FLAG_STRATEGY_03 && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))) {
+    if (FLAG_STRATEGY_03 && kl > 10 && kl < 32 && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))) {
       // do it with your separate script please
       if (key === 'ab_det_apb_b') return fOperAccept;
       if (key === 'ab_det_el_h') return fOperAccept;
@@ -167,7 +167,7 @@
       if (key === 'webfe_disable_ab_em_plb') return fOperAccept;
     }
 
-    if (FLAG_STRATEGY_01) {
+    if (FLAG_STRATEGY_01 && kl > 18 && kl < 43) {
 
       if (key === 'web_player_defer_modules') return fOperAccept;
       if (key === 'html5_defer_modules_on_ads_only') return fOperAccept;
@@ -213,7 +213,7 @@
 
     if (no_autoplay_toggle === true) {
 
-    } else if (key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
+    } else if (kl > 4 && key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
       if (autoplayKeys.has(key)) {
         keep = true;
       }
