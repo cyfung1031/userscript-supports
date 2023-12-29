@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.35
+// @version             0.60.36
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2765,15 +2765,20 @@
 
       async function asyncTickerBackgroundOverridedChecker() {
 
-        if (!hasTimerModified) return;
-        const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
-        if (!tickerRenderer) return;
+        try {
+          await promiseForCustomYtElementsReady.then();
+          await customElements.whenDefined('yt-live-chat-text-message-renderer');
+          await new Promise(r => setTimeout(r, 800));
 
-        const tickerRendererDollar = indr(tickerRenderer);
-        const items = (tickerRendererDollar || 0).items || 0;
-        if (!items) return;
-        const template = document.createElement('template');
-        template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
+          if (!hasTimerModified) return;
+          const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
+          if (!tickerRenderer) return;
+
+          const tickerRendererDollar = indr(tickerRenderer);
+          const items = (tickerRendererDollar || 0).items || 0;
+          if (!items) return;
+          const template = document.createElement('template');
+          template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
             modern="" aria-label="¥1,000" role="button" tabindex="0" id="Chw777" style="width: 94px; overflow: hidden;"
             dimmed="" [dummy777]>
             <div id="container" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer"
@@ -2789,35 +2794,101 @@
               </div>
             </div>
           </yt-live-chat-ticker-dummy777-item-renderer>`;
-        const dummy777 = template.content.firstElementChild;
-        await Promise.resolve().then();
-        let res = 0;
-        if (items instanceof HTMLElement && items.isConnected === true) {
-          try {
-            items.appendChild(dummy777);
-            let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
-            if (container.isConnected === true) {
-              const evaluated = `${getComputedStyle(container).background}`;
-              container = null;
-              res = evaluated.indexOf('0.') < 4 ? 1 : 2;
-            }
-          } catch (e) { }
-          HTMLElement.prototype.remove.call(dummy777);
+          const dummy777 = template.content.firstElementChild;
+          await Promise.resolve().then();
+          let res = 0;
+          if (items instanceof HTMLElement && items.isConnected === true) {
+            try {
+              items.appendChild(dummy777);
+              let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
+              if (container.isConnected === true) {
+                const evaluated = `${getComputedStyle(container).background}`;
+                container = null;
+                res = evaluated.indexOf('0.') < 4 ? 1 : 2;
+              }
+            } catch (e) { }
+            HTMLElement.prototype.remove.call(dummy777);
+          }
+          await Promise.resolve().then();
+          dummy777.textContent = '';
+          if (res === 1) {
+            // not fulfilling
+            // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
+            console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+              "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+              "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+            );
+            console.warn(`%cWarning:\n\tYou might have added a userscript or extension that also modifies the ticker background.\n\tYouTube Super Fast Chat is taking over.`, 'color: #bada55');
+            console.groupEnd();
+            console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND (Overriding other scripting)', 'background-color: #7eb32b; color: #102624; padding: 2px 4px');
+          } else if (res === 2) {
+            console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
+          }
+        } catch (e) {
+          console.log(e);
         }
-        await Promise.resolve().then();
-        dummy777.textContent = '';
-        if (res === 1) {
-          // not fulfilling
-          // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
-          console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-            "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-            "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-          );
-          console.warn(`%cWarning:\n\tYou might have added a userscript or extension that also modifies the ticker background.\n\tYouTube Super Fast Chat is taking over.`, 'color: #bada55');
-          console.groupEnd();
-          console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND (Overriding other scripting)', 'background-color: #7eb32b; color: #102624; padding: 2px 4px');
-        } else if (res === 2) {
-          console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
+      }
+
+      async function asyncDelayChatOccurrence(m2) {
+        try {
+          await promiseForCustomYtElementsReady.then();
+          await customElements.whenDefined('yt-live-chat-text-message-renderer');
+          await new Promise(r => setTimeout(r, 1));
+          const dummy888 = document.createElement('yt-live-chat-text-message-renderer');
+          // const template = document.createElement('template');
+          // template.innerHTML = "<yt-live-chat-text-message-renderer></yt-live-chat-text-message-renderer>"
+          // const dummy888 = template.content.firstElementChild;
+          const skzCnt = insp(dummy888);
+          if (!(skzCnt && 'data' in skzCnt && 'attached' in skzCnt)) {
+            return;
+          }
+          if (!skzCnt.hostElement) skzCnt.hostElement = dummy888;
+          /** @type {HTMLTemplateElement} */
+          const skzElem = dummy888;
+          let cz1 = null;
+          const deferredZy1 = new Promise(resolve => {
+            skzCnt.attached = function () {
+              cz1 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
+              resolve(skzElem.textContent);
+            }
+            skzCnt.detached = function () {
+            }
+          });
+          skzElem.id = 'sk35z';
+          skzData(skzCnt);
+          sk35zResolveFn = null;
+          const deferredMutation = new Promise(resolve => {
+            sk35zResolveFn = resolve;
+            HTMLElement.prototype.appendChild.call(m2, skzElem);
+          });
+          const [zy1, _] = await Promise.all([deferredZy1, deferredMutation]);
+          skzCnt.attached = function () { };
+          function fn() {
+            const zy2 = skzElem.textContent;
+            const cz2 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
+            if (typeof zy1 === 'string' && typeof zy2 === 'string') {
+              allowDontRender = zy1 === zy2 && cz1 === cz2; // '0:43N​em2oji'
+            }
+            if (allowDontRender === true) return true;
+            if (allowDontRender === false) {
+              console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+                "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+                "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+              );
+              console.warn(`%cWarning:\n\tYou might have added a userscript or extension that stops YouTube Super Fast Chat's quick loading.\n\tTo figure out which one affects the script, turn them off one by one and let the author know.`, 'color: #bada55');
+              console.groupEnd();
+            }
+          }
+          await new Promise(r => setTimeout(r, 1));
+          if (!fn()) return;
+          await new Promise(r => requestAnimationFrame(r));
+          if (!fn()) return;
+          skzElem.remove();
+          await Promise.resolve().then();
+          skzElem.textContent = '';
+          console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #16c450; color: #102624; padding: 2px 4px');
+        } catch (e) {
+          console.log(e);
         }
       }
 
@@ -2891,85 +2962,7 @@
           // })
 
           if (ENABLE_DELAYED_CHAT_OCCURRENCE && isFirstList) {
-
-            promiseForCustomYtElementsReady.then(() => {
-
-              customElements.whenDefined('yt-live-chat-text-message-renderer').then(() => {
-
-
-
-
-                setTimeout(() => {
-
-                  /** @type {HTMLTemplateElement} */
-                  let skz = document.createElement('yt-live-chat-text-message-renderer');
-
-                  let cz1 = null;
-
-                  if (skz && 'data' in skz && 'attached' in skz) {
-
-                    const deferredZy1 = new Promise(resolve => {
-
-                      skz.attached = function () {
-                        cz1 = HTMLElement.prototype.querySelector.call(skz, '#message img') !== null;
-                        resolve(skz.textContent);
-                      }
-                      skz.detached = function () {
-
-                      }
-
-                    });
-                    skz.id = 'sk35z';
-                    skzData(skz);
-
-
-                    sk35zResolveFn = null;
-                    const deferredMutation = new Promise(resolve => {
-                      sk35zResolveFn = resolve;
-                      HTMLElement.prototype.appendChild.call(m2, skz);
-                    });
-
-                    Promise.all([deferredZy1, deferredMutation]).then(async (res) => {
-                      const [zy1, _] = res;
-                      function fn() {
-                        const zy2 = skz.textContent;
-                        const cz2 = HTMLElement.prototype.querySelector.call(skz, '#message img') !== null;
-                        if (typeof zy1 === 'string' && typeof zy2 === 'string') {
-                          allowDontRender = zy1 === zy2 && cz1 === cz2; // '0:43N​em2oji'
-                        }
-                        if (allowDontRender === false) {
-
-                          console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-                            "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-                            "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-                          );
-
-                          console.warn(`%cWarning:\n\tYou might have added a userscript or extension that stops YouTube Super Fast Chat's quick loading.\n\tTo figure out which one affects the script, turn them off one by one and let the author know.`, 'color: #bada55');
-
-                          console.groupEnd();
-                        } else if (allowDontRender === true) {
-                          return true;
-                        }
-                      }
-                      await new Promise(r => setTimeout(r, 1));
-                      if (fn()) {
-                        await new Promise(r => requestAnimationFrame(r));
-                        if (fn()) {
-                          skz.remove();
-                          skz.textContent = '';
-                          console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #16c450; color: #102624; padding: 2px 4px');
-                        }
-                      }
-                    });
-
-                  }
-
-                }, 1);
-
-              }).catch(console.warn);
-
-            })
-
+            asyncDelayChatOccurrence(m2);
           }
 
 
@@ -3166,7 +3159,7 @@
           }
 
           if (isFirstList && DO_CHECK_TICKER_BACKGROUND_OVERRIDED) {
-            setTimeout(asyncTickerBackgroundOverridedChecker, 800);
+            asyncTickerBackgroundOverridedChecker();
           }
 
         }
