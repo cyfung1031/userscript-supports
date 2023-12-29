@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.34
+// @version             0.60.35
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2763,6 +2763,64 @@
 
     const { setupMutObserver } = (() => {
 
+      async function asyncTickerBackgroundOverridedChecker() {
+
+        if (!hasTimerModified) return;
+        const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
+        if (!tickerRenderer) return;
+
+        const tickerRendererDollar = indr(tickerRenderer);
+        const items = (tickerRendererDollar || 0).items || 0;
+        if (!items) return;
+        const template = document.createElement('template');
+        template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
+            modern="" aria-label="¥1,000" role="button" tabindex="0" id="Chw777" style="width: 94px; overflow: hidden;"
+            dimmed="" [dummy777]>
+            <div id="container" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer"
+              style="--background:linear-gradient(90deg, rgba(1,2,3,1),rgba(1,2,3,1) 7%,rgba(4,0,0,1) 7%,rgba(4,0,0,1));">
+              <div id="content" class="style-scope yt-live-chat-ticker-dummy777-item-renderer" style="color: rgb(255, 255, 255);">
+                <yt-img-shadow777 id="author-photo" height="24" width="24"
+                  class="style-scope yt-live-chat-ticker-dummy777-item-renderer no-transition"
+                  style="background-color: transparent;" loaded=""><img id="img"
+                    draggable="false" class="style-scope yt-img-shadow" alt="I" height="24" width="24"
+                    src="${dummyImgURL}"></yt-img-shadow777>
+
+                <span id="text" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer">¥1,000</span>
+              </div>
+            </div>
+          </yt-live-chat-ticker-dummy777-item-renderer>`;
+        const dummy777 = template.content.firstElementChild;
+        await Promise.resolve().then();
+        let res = 0;
+        if (items instanceof HTMLElement && items.isConnected === true) {
+          try {
+            items.appendChild(dummy777);
+            let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
+            if (container.isConnected === true) {
+              const evaluated = `${getComputedStyle(container).background}`;
+              container = null;
+              res = evaluated.indexOf('0.') < 4 ? 1 : 2;
+            }
+          } catch (e) { }
+          HTMLElement.prototype.remove.call(dummy777);
+        }
+        await Promise.resolve().then();
+        dummy777.textContent = '';
+        if (res === 1) {
+          // not fulfilling
+          // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
+          console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+            "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+            "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+          );
+          console.warn(`%cWarning:\n\tYou might have added a userscript or extension that also modifies the ticker background.\n\tYouTube Super Fast Chat is taking over.`, 'color: #bada55');
+          console.groupEnd();
+          console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND (Overriding other scripting)', 'background-color: #7eb32b; color: #102624; padding: 2px 4px');
+        } else if (res === 2) {
+          console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
+        }
+      }
+
       const mutFn = (items) => {
         for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) {
           if (node.hasAttribute('wSr93')) break;
@@ -3108,66 +3166,7 @@
           }
 
           if (isFirstList && DO_CHECK_TICKER_BACKGROUND_OVERRIDED) {
-            setTimeout(() => {
-              if (!hasTimerModified) return;
-              const tickerRenderer = document.querySelector('#ticker yt-live-chat-ticker-renderer.style-scope.yt-live-chat-renderer');
-              if (!tickerRenderer) return;
-
-              const tickerRendererDollar = indr(tickerRenderer);
-              const items = (tickerRendererDollar || 0).items || 0;
-              if (!items) return;
-              const template = document.createElement('template');
-              template.innerHTML = `<yt-live-chat-ticker-dummy777-item-renderer class="style-scope yt-live-chat-ticker-renderer" whole-message-clickable=""
-                modern="" aria-label="¥1,000" role="button" tabindex="0" id="Chw777" style="width: 94px; overflow: hidden;"
-                dimmed="" [dummy777]>
-                <div id="container" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer"
-                  style="--background:linear-gradient(90deg, rgba(1,2,3,1),rgba(1,2,3,1) 7%,rgba(4,0,0,1) 7%,rgba(4,0,0,1));">
-                  <div id="content" class="style-scope yt-live-chat-ticker-dummy777-item-renderer" style="color: rgb(255, 255, 255);">
-                    <yt-img-shadow777 id="author-photo" height="24" width="24"
-                      class="style-scope yt-live-chat-ticker-dummy777-item-renderer no-transition"
-                      style="background-color: transparent;" loaded=""><img id="img"
-                        draggable="false" class="style-scope yt-img-shadow" alt="I" height="24" width="24"
-                        src="${dummyImgURL}"></yt-img-shadow777>
-
-                    <span id="text" dir="ltr" class="style-scope yt-live-chat-ticker-dummy777-item-renderer">¥1,000</span>
-                  </div>
-                </div>
-              </yt-live-chat-ticker-dummy777-item-renderer>`;
-              const dummy777 = template.content.firstElementChild;
-              items.appendChild(dummy777);
-              Promise.resolve(dummy777).then((dummy777) => {
-                let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
-                if (container.isConnected === true) {
-
-                  const evaluated = `${getComputedStyle(container).background}`;
-
-                  container = null;
-                  dummy777.remove();
-                  dummy777.textContent = '';
-                  dummy777 = null;
-
-                  if (evaluated.indexOf('0.') < 4) {
-
-                    // not fulfilling
-                    // rgba(0, 0, 0, 0.004) none repeat scroll 0% 0% / auto padding-box border-box
-
-                    console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-                      "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-                      "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-                    );
-                    console.warn(`%cWarning:\n\tYou might have added a userscript or extension that also modifies the ticker background.\n\tYouTube Super Fast Chat is taking over.`, 'color: #bada55');
-                    console.groupEnd();
-
-                    console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND (Overriding other scripting)', 'background-color: #7eb32b; color: #102624; padding: 2px 4px');
-
-                  } else {
-
-                    console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
-                  }
-                }
-              });
-
-            }, 800);
+            setTimeout(asyncTickerBackgroundOverridedChecker, 800);
           }
 
         }
