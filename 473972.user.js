@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.64
+// @version     0.7.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1278,38 +1278,39 @@
     /// -----------------------
 
 
-    const isMainRenderer = (h) => {
-      if (h.is && h.$ && h.__dataEnabled && h.__dataReady && h.__shady && h.__templateInfo && h.root && h.hostElement) {
-        const q = (h.parentComponent ? 1 : 0) | (h.ytComponentBehavior ? 2 : 0);
-        if (q === 3) {
-          // chat renderer
-          if (h.is.endsWith('-renderer')) {
-            return true;
-          }
-        } else if (q === 0) {
-          // custom lyrics engagement panel
-          if (h.is.endsWith('-renderer')) {
-            return true;
-          }
-        } else if (q === 1) {
-          // input renderer
-          if (h.is.endsWith('-renderer')) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
+    // const isMainRenderer = (h) => {
+    //   if (h.is && h.$ && h.__dataEnabled && h.__dataReady && h.__shady && h.__templateInfo && h.root && h.hostElement) {
+    //     const q = (h.parentComponent ? 1 : 0) | (h.ytComponentBehavior ? 2 : 0);
+    //     if (q === 3) {
+    //       // chat renderer
+    //       if (h.is.endsWith('-renderer')) {
+    //         return true;
+    //       }
+    //     } else if (q === 0) {
+    //       // custom lyrics engagement panel
+    //       if (h.is.endsWith('-renderer')) {
+    //         return true;
+    //       }
+    //     } else if (q === 1) {
+    //       // input renderer
+    //       if (h.is.endsWith('-renderer')) {
+    //         return true;
+    //       }
+    //     }
+    //   }
+    //   return false;
+    // }
 
-    const skipRenderer = (h) => {
-      return (h.is === 'yt-live-chat-renderer') ||
-        (h.is === 'yt-live-chat-item-list-renderer') ||
-        (h.is === 'yt-live-chat-text-input-field-renderer') ||
-        (h.is === 'yt-live-chat-message-buy-flow-renderer') ||
-        false;
-    }
+    // const skipRenderer = (h) => {
+    //   return (h.is === 'yt-live-chat-renderer') ||
+    //     (h.is === 'yt-live-chat-item-list-renderer') ||
+    //     (h.is === 'yt-live-chat-text-input-field-renderer') ||
+    //     (h.is === 'yt-live-chat-message-buy-flow-renderer') ||
+    //     false;
+    // }
 
 
+    /*
     if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31) && h.rendererStamperApplyChangeRecord_.length === 3) {
 
       const f = h.rendererStamperApplyChangeRecord_;
@@ -1351,8 +1352,34 @@
             return f.apply(this, arguments);
           }
         }
+        let c2 = c;
+        if (c && typeof c === 'object') {
+          c2 = {};
+          for (const entry of Object.entries(c)) {
+            const [key, value] = entry;
+            let choice = 0;
+            if (value && typeof value === 'object') {
+              if (key === 'base' && value.length >= 1) choice = 1;
+              else if (key === 'value' && value.indexSplices && value.indexSplices.length >= 1) choice = 2;
+            }
+            if (choice === 1) c2[key] = value.slice(0);
+            else if (choice === 2) c2[key] = Object.assign({}, value, { indexSplices: value.indexSplices.map(splice=>{
+
+              if (!splice || typeof splice !== 'object') return splice;
+              if (splice.removed && splice.removed.length >= 1) splice.removed = splice.removed.slice(0);
+              if (splice.object && splice.object.length >= 1) splice.object = splice.object.slice(0);
+
+              return splice;
+
+            }) });
+            else c2[key] = value;
+          }
+        }
+        const acceptable = () => {
+          return this.isAttached && this.data && this.__dataEnabled
+        }
         // sequence on the same proto
-        this[qm47] = (this[qm47] || Promise.resolve()).then(() => this.rendererStamperApplyChangeRecord31_(a, b, c)).catch(console.log);
+        this[qm47] = (this[qm47] || Promise.resolve()).then(() => acceptable() && this.rendererStamperApplyChangeRecord31_(a, b, c2)).catch(console.log);
       }
       ump3.set(f, g);
       g.km31 = 1;
@@ -1360,6 +1387,7 @@
 
 
     }
+    */
 
 
 
@@ -2756,15 +2784,9 @@
 
     NATIVE_CANVAS_ANIMATION && (() => {
 
-      HTMLCanvasElement.prototype.animate = animate;
-
-      let cid = setInterval(() => {
+      observablePromise(() => {
         HTMLCanvasElement.prototype.animate = animate;
-      }, 1);
-
-      promiseForTamerTimeout.then(() => {
-        clearInterval(cid)
-      });
+      }, promiseForTamerTimeout).obtain();
 
     })();
 
@@ -2793,34 +2815,24 @@
           });
         });
 
-
-
       });
-
-
 
       if (!ytdApp) return;
       const cProto = insp(ytdApp).constructor.prototype;
-
 
       if (!cProto) return;
       let mbd = 0;
 
       const fixer = (_ytdApp) => {
-
         const ytdApp = insp(_ytdApp);
-
         if (ytdApp && typeof ytdApp.onYtActionBoundListener_ === 'function' && !ytdApp.onYtActionBoundListener57_) {
           ytdApp.onYtActionBoundListener57_ = ytdApp.onYtActionBoundListener_;
           ytdApp.onYtActionBoundListener_ = ytdApp.onYtAction_.bind(ytdApp);
           mbd++;
         }
-
-
       }
 
-      let cid = setInterval(() => {
-
+      observablePromise(() => {
 
         if (typeof cProto.created === 'function' && !cProto.created56) {
           cProto.created56 = cProto.created;
@@ -2831,7 +2843,6 @@
           };
           mbd++;
         }
-
 
         if (typeof cProto.onYtAction_ === 'function' && !cProto.onYtAction57_) {
           cProto.onYtAction57_ = cProto.onYtAction_;
@@ -2854,17 +2865,91 @@
         }
         */
 
-        // if(mbd === 3) clearInterval(cid);
-        if (mbd >= 3) clearInterval(cid);
+        // if(mbd === 3) return 1;
+        if (mbd >= 3) return 1;
 
-      }, 1);
-
-      setTimeout(() => {
-
-        clearInterval(cid);
-      }, 1000);
+      }, new Promise(r => setTimeout(r, 1000))).obtain();
 
     })();
+
+    const observablePromise = (proc, timeoutPromise) => {
+      let promise = null;
+      return {
+        obtain() {
+          if (!promise) {
+            promise = new Promise(resolve => {
+              let mo = null;
+              const f = () => {
+                let t = proc();
+                if (t) {
+                  mo.disconnect();
+                  mo.takeRecords();
+                  mo = null;
+                  resolve(t);
+                }
+              }
+              mo = new MutationObserver(f);
+              mo.observe(document, { subtree: true, childList: true })
+              f();
+              timeoutPromise && timeoutPromise.then(() => {
+                resolve(null)
+              });
+            });
+          }
+          return promise
+        }
+      }
+    }
+
+    // let _yt_player_promise = null;
+    /*
+    const getYtPlayerPromise = () => {
+      if (!_yt_player_promise) {
+        _yt_player_promise = new Promise(resolve => {
+          let cid = setInterval(() => {
+            let t = (((window || 0)._yt_player || 0) || 0);
+            if (t) {
+              clearInterval(cid);
+              resolve(t);
+            }
+          }, 1);
+          promiseForTamerTimeout.then(() => {
+            resolve(null)
+          });
+        });
+      }
+      return _yt_player_promise;
+    }
+    */
+    const _yt_player_observable = observablePromise(() => {
+      return (((window || 0)._yt_player || 0) || 0);
+    }, promiseForTamerTimeout);
+
+    const polymerObservable = observablePromise(() => {
+      const Polymer = window.Polymer;
+      if (typeof Polymer !== 'function') return;
+      if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
+      return Polymer;
+    }, promiseForTamerTimeout);
+
+    const schedulerInstanceObservable = observablePromise(() => {
+      return (((window || 0).ytglobal || 0).schedulerInstanceInstance_ || 0);
+    }, promiseForTamerTimeout);
+
+    const timelineObservable = observablePromise(()=>{
+      let t = (((document || 0).timeline || 0) || 0);
+      if (t && typeof t._play === 'function') {
+        return t;
+      }
+    }, promiseForTamerTimeout);
+    const animationObservable = observablePromise(()=>{
+      let t = (((window || 0).Animation || 0) || 0);
+      if (t && typeof t === 'function' && t.length === 2 && typeof t.prototype._updatePromises === 'function') {
+        return t;
+      }
+    }, promiseForTamerTimeout);
+
+
 
 
     const generalEvtHandler = async (_evKey, _fvKey, _debug) => {
@@ -2877,22 +2962,7 @@
       // const rafHub = new RAFHub();
 
 
-      const _yt_player = await new Promise(resolve => {
-
-        let cid = setInterval(() => {
-          let t = (((window || 0)._yt_player || 0) || 0);
-          if (t) {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-
-      });
+      const _yt_player = await _yt_player_observable.obtain();
 
 
       if (!_yt_player || typeof _yt_player !== 'object') return;
@@ -3076,20 +3146,7 @@
 
     (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER) && (async () => {
 
-      const Polymer = await new Promise(resolve => {
-
-        let cid = 0;
-        const f = () => {
-          const Polymer = window.Polymer;
-          if (typeof Polymer !== 'function') return;
-          if (!(Polymer.Base || 0).connectedCallback || !(Polymer.Base || 0).disconnectedCallback) return;
-          cid && clearInterval(cid);
-          cid = 0;
-          resolve(Polymer);
-        };
-        cid = setInterval(f, 1);
-
-      });
+      const Polymer = await polymerObservable.obtain();
       if (!Polymer) return;
 
 
@@ -3243,12 +3300,8 @@
 
     if (FIX_Shady) {
 
-      let cidSL = setInterval(() => {
+      observablePromise(() => {
         const { ShadyDOM, ShadyCSS } = window;
-        if (ShadyDOM && ShadyCSS) {
-          clearInterval(cidSL);
-          cidSL = 0;
-        }
         if (ShadyDOM) {
           ShadyDOM.handlesDynamicScoping = false; // 9 of 10
           ShadyDOM.noPatch = true; // 1 of 10
@@ -3262,7 +3315,8 @@
           ShadyCSS.cssBuild = undefined; // 1 of 10
           ShadyCSS.disableRuntime = true; // 1 of 10
         }
-      }, 1);
+        if (ShadyDOM && ShadyCSS) return 1;
+      }, promiseForTamerTimeout).obtain(); // clear until 1 is return
 
     }
 
@@ -3270,20 +3324,7 @@
     FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 && (async () => {
 
 
-      const schedulerInstanceInstance_ = await new Promise(resolve => {
-
-        let cid = setInterval(() => {
-          let t = (((window || 0).ytglobal || 0).schedulerInstanceInstance_ || 0);
-          if (t) {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-      });
+      const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
 
       if (!schedulerInstanceInstance_) return;
 
@@ -3511,20 +3552,7 @@
     FIX_schedulerInstanceInstance_V2 && !FIX_schedulerInstanceInstance_V1 && (async () => {
 
 
-      const schedulerInstanceInstance_ = await new Promise(resolve => {
-
-        let cid = setInterval(() => {
-          let t = (((window || 0).ytglobal || 0).schedulerInstanceInstance_ || 0);
-          if (t) {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-      });
+      const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
 
       if (!schedulerInstanceInstance_) return;
 
@@ -3602,22 +3630,7 @@
       // const rafHub = new RAFHub();
 
 
-      const _yt_player = await new Promise(resolve => {
-
-        let cid = setInterval(() => {
-          let t = (((window || 0)._yt_player || 0) || 0);
-          if (t) {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-
-      });
+      const _yt_player = await _yt_player_observable.obtain();
 
 
 
@@ -4156,43 +4169,9 @@
     FIX_Animation_n_timeline && (async () => {
 
 
-      const timeline = await new Promise(resolve => {
+      const [timeline, Animation] = await Promise.all([timelineObservable.obtain(), animationObservable.obtain()]);
 
-        let cid = setInterval(() => {
-          let t = (((document || 0).timeline || 0) || 0);
-          if (t && typeof t._play === 'function') {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-
-      });
-
-
-      const Animation = await new Promise(resolve => {
-
-        let cid = setInterval(() => {
-          let t = (((window || 0).Animation || 0) || 0);
-          if (t && typeof t === 'function' && t.length === 2 && typeof t.prototype._updatePromises === 'function') {
-
-            clearInterval(cid);
-            resolve(t);
-          }
-        }, 1);
-
-        promiseForTamerTimeout.then(() => {
-          resolve(null)
-        });
-
-      });
-
-      if (!timeline) return;
-      if (!Animation) return;
+      if (!timeline || !Animation) return;
 
       const aniProto = Animation.prototype;
       // aniProto.sequenceNumber = 0; // native YouTube engine bug - sequenceNumber is not set
