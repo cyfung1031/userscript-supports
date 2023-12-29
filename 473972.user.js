@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.6.63
+// @version     0.6.64
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -1322,19 +1322,29 @@
             // ytd-engagement-panel-section-list-renderer
             y = true;
           } else if (!this.visibilityObserverForChild_ && !!this.getVisibilityObserverForChild) {
-            if (this.isRenderer_ === true && this.localVisibilityObserver_ !== null) {
-              const lobs = this.localVisibilityObserver_;
-              if (lobs && lobs.observer && lobs.isConnected === true && lobs.pauseObservingUntilReconnect === false && lobs.handlers && lobs.handlers.size > 0) {
-                if ((this.__data || 0).isEmpty === false) {
-                  // by pass
-                } else if (this.is === 'yt-live-chat-renderer') {
+            const lobs = this.localVisibilityObserver_;
+            if (this.isRenderer_ === true) {
+              if (lobs) {
+                if (lobs.observer && lobs.isConnected === true) {
+                  // if (lobs.observer && lobs.isConnected === true && lobs.pauseObservingUntilReconnect === false && lobs.handlers && lobs.handlers.size > 0) {
+                  // if ((this.__data || 0).isEmpty === false) {
+                  //   // by pass
+                  // } else if (this.is === 'yt-live-chat-renderer') {
+                  //   y = true;
+                  // }
+                  if (this.is === 'yt-live-chat-renderer') {
+                    y = true;
+                  }
+                } else {
                   y = true;
                 }
-              } else {
+              } else if (lobs === null) {
                 y = true;
+              } else {
+                console.log('renderer-check-failure 01', this.is)
               }
-            } else if (this.isRenderer_ === true && this.localVisibilityObserver_ === null) {
-              y = true;
+            } else {
+              console.log('renderer-check-failure 02', this.is)
             }
           }
           if (y) {
@@ -1862,11 +1872,13 @@
       if (typeof t === 'string' && t.length === 6) {
         if (t.localeCompare('iframe', undefined, lcOpt) === 0) {
           const p = this.createElement24(t);
-          const stack = new Error().stack;
-          const isSearchbox = stack.includes('initializeSearchbox'); // see https://greasyfork.org/scripts/473972-youtube-js-engine-tamer/discussions/217084
-          if (!isSearchbox) {
-            p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
-          }
+          try {
+            const stack = new Error().stack;
+            const isSearchbox = stack.includes('initializeSearchbox'); // see https://greasyfork.org/scripts/473972-youtube-js-engine-tamer/discussions/217084
+            if (!isSearchbox) {
+              p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
+            }
+          } catch (e) { }
           return p;
         }
       }
