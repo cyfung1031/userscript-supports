@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.36
+// @version             0.60.37
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -173,6 +173,8 @@
   const DISABLE_Translation_By_Google = true;
 
   const FASTER_ICON_RENDERING = true;
+
+  const DELAY_FOCUSEDCHANGED = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -2806,7 +2808,7 @@
                 container = null;
                 res = evaluated.indexOf('0.') < 4 ? 1 : 2;
               }
-            } catch (e) { }
+            } catch (e) { console.warn(e) }
             HTMLElement.prototype.remove.call(dummy777);
           }
           await Promise.resolve().then();
@@ -2825,7 +2827,7 @@
             console.log('%cALLOW_ADVANCED_ANIMATED_TICKER_BACKGROUND', 'background-color: #16c450; color: #102624; padding: 2px 4px');
           }
         } catch (e) {
-          console.log(e);
+          console.warn(e);
         }
       }
 
@@ -2888,7 +2890,7 @@
           skzElem.textContent = '';
           console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #16c450; color: #102624; padding: 2px 4px');
         } catch (e) {
-          console.log(e);
+          console.warn(e);
         }
       }
 
@@ -5870,8 +5872,8 @@
       }).catch(console.warn);
 
 
-      if (ENABLE_RAF_HACK_INPUT_RENDERER && rafHub !== null) {
 
+      if (ENABLE_RAF_HACK_INPUT_RENDERER || DELAY_FOCUSEDCHANGED) {
 
         customElements.whenDefined("yt-live-chat-message-input-renderer").then(() => {
 
@@ -5879,6 +5881,8 @@
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-input-renderer hacks");
           console.log("[Begin]");
           (() => {
+
+
 
             const tag = "yt-live-chat-message-input-renderer"
             const dummy = document.createElement(tag);
@@ -5889,41 +5893,56 @@
               return;
             }
 
-            let doHack = false;
-            if (typeof cProto.handleTimeout === 'function' && typeof cProto.updateTimeout === 'function') {
 
-              // not cancellable
+            if (ENABLE_RAF_HACK_INPUT_RENDERER && rafHub !== null) {
+
+              let doHack = false;
+              if (typeof cProto.handleTimeout === 'function' && typeof cProto.updateTimeout === 'function') {
+
+                // not cancellable
 
 
-              doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && fnIntegrity(cProto.updateTimeout, '1.50.33');
+                doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && fnIntegrity(cProto.updateTimeout, '1.50.33');
+
+              }
+
+              if (doHack) {
+
+                cProto.handleTimeout = function (a) {
+                  console.log('cProto.handleTimeout', tag)
+                  if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
+                  this.timeoutDurationMs = this.timeoutMs = a;
+                  this.countdownRatio = 1;
+                  0 === this.lastTimeoutTimeMs && rafHub.request(this.boundUpdateTimeout38_)
+                };
+                cProto.updateTimeout = function (a) {
+                  console.log('cProto.updateTimeout', tag)
+                  if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
+                  this.lastTimeoutTimeMs && (this.timeoutMs = Math.max(0, this.timeoutMs - (a - this.lastTimeoutTimeMs)),
+                    this.countdownRatio = this.timeoutMs / this.timeoutDurationMs);
+                  this.isAttached && this.timeoutMs ? (this.lastTimeoutTimeMs = a,
+                    rafHub.request(this.boundUpdateTimeout38_)) : this.lastTimeoutTimeMs = 0
+                };
+
+                console.log('RAF_HACK_INPUT_RENDERER', tag, "OK")
+              } else {
+
+                console.log('typeof handleTimeout', typeof cProto.handleTimeout)
+                console.log('typeof updateTimeout', typeof cProto.updateTimeout)
+
+                console.log('RAF_HACK_INPUT_RENDERER', tag, "NG")
+              }
+
 
             }
 
-            if (doHack) {
-
-              cProto.handleTimeout = function (a) {
-                console.log('cProto.handleTimeout', tag)
-                if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
-                this.timeoutDurationMs = this.timeoutMs = a;
-                this.countdownRatio = 1;
-                0 === this.lastTimeoutTimeMs && rafHub.request(this.boundUpdateTimeout38_)
-              };
-              cProto.updateTimeout = function (a) {
-                console.log('cProto.updateTimeout', tag)
-                if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
-                this.lastTimeoutTimeMs && (this.timeoutMs = Math.max(0, this.timeoutMs - (a - this.lastTimeoutTimeMs)),
-                  this.countdownRatio = this.timeoutMs / this.timeoutDurationMs);
-                this.isAttached && this.timeoutMs ? (this.lastTimeoutTimeMs = a,
-                  rafHub.request(this.boundUpdateTimeout38_)) : this.lastTimeoutTimeMs = 0
-              };
-
-              console.log('RAF_HACK_INPUT_RENDERER', tag, "OK")
-            } else {
-
-              console.log('typeof handleTimeout', typeof cProto.handleTimeout)
-              console.log('typeof updateTimeout', typeof cProto.updateTimeout)
-
-              console.log('RAF_HACK_INPUT_RENDERER', tag, "NG")
+            if (DELAY_FOCUSEDCHANGED && typeof cProto.onFocusedChanged === 'function' && cProto.onFocusedChanged.length === 1 && !cProto.onFocusedChanged372) {
+              cProto.onFocusedChanged372 = cProto.onFocusedChanged;
+              cProto.onFocusedChanged = function (a) {
+                Promise.resolve().then(() => {
+                  if (this.isAttached === true) this.onFocusedChanged372(a);
+                }).catch(console.warn);
+              }
             }
 
           })();
@@ -5935,8 +5954,8 @@
 
         })
 
-
       }
+
 
       if (ENABLE_RAF_HACK_EMOJI_PICKER && rafHub !== null) {
 
@@ -8343,6 +8362,45 @@
 
 
         }).catch(console.warn);
+
+      }
+
+
+      if (DELAY_FOCUSEDCHANGED) {
+
+        customElements.whenDefined("yt-live-chat-text-input-field-renderer").then(() => {
+
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-text-input-field-renderer hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "yt-live-chat-text-input-field-renderer"
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+            if (DELAY_FOCUSEDCHANGED && typeof cProto.focusedChanged === 'function' && cProto.focusedChanged.length === 0 && !cProto.focusedChanged372) {
+              cProto.focusedChanged372 = cProto.focusedChanged;
+              cProto.focusedChanged = function () {
+                Promise.resolve().then(() => {
+                  if (this.isAttached === true) this.focusedChanged372();
+                });
+              }
+            }
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+        });
 
       }
 
