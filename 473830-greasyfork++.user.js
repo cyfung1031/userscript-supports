@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.47
+// @version            3.2.48
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -619,6 +619,10 @@ const mWindow = (() => {
 
          }
 
+         .discussion-list .hidden {
+            display: none;
+         }
+
 
     `
 
@@ -861,10 +865,10 @@ const mWindow = (() => {
     let rafPromise = null;
 
     const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
-      requestAnimationFrame(hRes => {
-        rafPromise = null;
-        resolve(hRes);
-      });
+        requestAnimationFrame(hRes => {
+            rafPromise = null;
+            resolve(hRes);
+        });
     }));
 
     const isVaildURL = (url) => {
@@ -926,7 +930,7 @@ const mWindow = (() => {
 
 
         }
-        
+
         button.setAttribute('acnmd', '');
     };
 
@@ -1609,6 +1613,34 @@ const mWindow = (() => {
         }
     }
 
+    const hideBlacklistedDiscussion = (element, list) => {
+
+        const scriptLink = element.querySelector('a.script-link')
+        const m = /\/scripts\/(\d+)/.exec(scriptLink);
+        const id = m ? +m[1] : 0;
+        if (!(id > 0)) return;
+
+        switch (list) {
+            case 'hiddenList': {
+                const container = element.closest('.discussion-list-container') || element;
+                if (hiddenList.indexOf(id) >= 0) {
+                    container.classList.add('hidden');
+                }
+                // if (customBlacklist && (customBlacklist.test(name) || customBlacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                //     element.classList.add('blacklisted', 'custom-blacklist');
+                //     if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
+                //         let scriptLink = element.querySelector('.script-link');
+                //         if (scriptLink) { scriptLink.textContent += ' (custom-blacklist)'; }
+                //     }
+                // }
+                break;
+            }
+            default:
+                UU.log('No blacklists');
+                break;
+        }
+
+    }
     const hideBlacklistedScript = (element, list) => {
         if (!element) return;
         const scriptLink = element.querySelector('.script-link')
@@ -1915,6 +1947,48 @@ const mWindow = (() => {
 
     }
 
+    const foundDiscussionList = (discussionsList) => {
+
+        let rid = 0;
+        let g = () => {
+            if (!discussionsList || discussionsList.isConnected !== true) return;
+
+            const scriptElements = discussionsList.querySelectorAll('.discussion-list-item:not([e8kk])');
+
+            for (const element of scriptElements) {
+                element.setAttribute('e8kk', '1');
+                // const scriptID = +element.getAttribute('data-script-id');
+                // if (!(scriptID > 0)) continue;
+
+
+                // blacklisted scripts
+                // if (gmc.get('nonLatins')) hideBlacklistedDiscussion(element, 'nonLatins');
+                // if (gmc.get('blacklist')) hideBlacklistedDiscussion(element, 'blacklist');
+                if (gmc.get('hideHiddenScript')) hideBlacklistedDiscussion(element, 'hiddenList');
+
+                // // hidden scripts
+                // if (gmc.get('hideHiddenScript')) hideBlacklistedDiscussion(element, scriptID, true);
+
+                // // install button
+                // if (gmc.get('showInstallButton')) {
+                //     showInstallButton(scriptID, element)
+                // }
+            }
+
+        }
+        let f = (entries) => {
+            const tid = ++rid
+            if (entries && entries.length) requestAnimationFrame(() => {
+                if (tid === rid) g();
+            });
+        }
+        let mo = new MutationObserver(f);
+        mo.observe(discussionsList, { subtree: true, childList: true });
+
+        g();
+
+    }
+
     let promiseScriptCheckResolve = null;
     const promiseScriptCheck = new Promise(resolve => {
         promiseScriptCheckResolve = resolve
@@ -2084,6 +2158,34 @@ const mWindow = (() => {
                             document.dispatchEvent(new Event("DOMContentLoaded"));
                         }
                     })
+                }
+            } else if (/\/discussions/.test(window.location.pathname)) {
+
+                const discussionsList = document.querySelector('.discussion-list');
+
+
+                if (discussionsList) {
+                    foundDiscussionList(discussionsList);
+                } else {
+                    const timeout = Date.now() + 3000;
+                    /** @type {MutationObserver | null} */
+                    let mo = null;
+                    const mutationCallbackForScriptList = () => {
+                        if (!mo) return;
+                        const discussionsList = document.querySelector('.script-list');
+                        if (discussionsList) {
+                            mo.disconnect();
+                            mo.takeRecords();
+                            mo = null;
+                            foundDiscussionList(discussionsList);
+                        } else if (Date.now() > timeout) {
+                            mo.disconnect();
+                            mo.takeRecords();
+                            mo = null;
+                        }
+                    }
+                    mo = new MutationObserver(mutationCallbackForScriptList);
+                    mo.observe(document, { subtree: true, childList: true });
                 }
             }
 
