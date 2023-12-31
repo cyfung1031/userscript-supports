@@ -1216,9 +1216,9 @@
 
       if (use_maintain_stable_list) {
         if (USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true : true) {
-          EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true;
+          // EXPERIMENT_FLAGS.kevlar_tuner_should_test_maintain_stable_list = true; // timestamp toggle issue
           EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list = true;
-          EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback
+          // EXPERIMENT_FLAGS.kevlar_tuner_should_maintain_stable_list = true; // fallback // timestamp toggle issue
         }
       }
 
