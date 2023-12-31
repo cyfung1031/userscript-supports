@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.0
+// @version     0.7.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -48,6 +48,9 @@
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
   const ENABLE_discreteTasking = true;
+  // << if ENABLE_discreteTasking >>
+  const ENABLE_weakenStampReferences = true;
+  // << end >>
 
   const FIX_perfNow = true;
 
@@ -124,6 +127,12 @@
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
 
+  /** @type {(o: Object | null) => WeakRef | null} */
+  const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
+
+  /** @type {(wr: Object | null) => Object | null} */
+  const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
   FIX_perfNow && (() => {
     let nowh = -1;
     const dtl = new DocumentTimeline();
@@ -177,7 +186,7 @@
           const elm = this;
           const wr = elm[z];
           if (!wr) return null;
-          const m = wr.deref();
+          const m = kRef(wr);
           if (!m && usePlaceholder) {
             if (typeof usePlaceholder === 'function') usePlaceholder(elm);
             return stp;
@@ -186,7 +195,7 @@
         },
         set(nv) {
           const elm = this;
-          elm[z] = nv ? new WeakRef(nv) : null;
+          elm[z] = nv ? mWeakRef(nv) : null;
           return true;
         },
         configurable: true,
@@ -227,7 +236,7 @@
           const v = $[k];
           if ($[k] instanceof Node) {
 
-            $[k] = new WeakRef($[k]);
+            $[k] = mWeakRef($[k]);
 
           }
 
@@ -245,7 +254,7 @@
           },
           set(obj, prop, val) {
             if (val instanceof Node) {
-              obj[prop] = new WeakRef(val);
+              obj[prop] = mWeakRef(val);
             } else {
               obj[prop] = val;
             }
@@ -475,6 +484,105 @@
     await delay300.then();
     await delay300.then();
   }
+
+  const weakenStampReferences = (() => {
+
+    const DEBUG_STAMP = false;
+
+    const s1 = Symbol();
+    const handler1 = {
+      get(target, prop, receiver) {
+        if (prop === 'object') {
+          return kRef(target[s1]); // avoid memory leakage
+        }
+        if (prop === '__proxy312__') return 1;
+        return target[prop];
+      }
+    };
+    const handler2 = {
+      get(target, prop, receiver) {
+        if (prop === 'indexSplices') {
+          return kRef(target[s1]); // avoid memory leakage
+        }
+        if (prop === '__proxy312__') return 1;
+        return target[prop];
+      }
+    }
+    return (h) => {
+
+      if (h.rendererStamperApplyChangeRecord_ || h.stampDomArraySplices_) {
+        const proto = h.__proto__;
+        if (!proto.yzxer && (proto.rendererStamperApplyChangeRecord_ || proto.stampDomArraySplices_)) {
+          proto.yzxer = 1;
+
+          const list = [
+            // "rendererStamperObserver_", // 3  ==> rendererStamperApplyChangeRecord_
+            "rendererStamperApplyChangeRecord_", // 3
+            "forwardRendererStamperChanges_", // 3
+            "stampDomArraySplices_", // 3
+            "stampDomArray_", // 6
+            "deferRenderStamperBinding_", // 3
+          ];
+          for (const key of list) {
+            const pey = `${key}$wq0iw_`
+            if (typeof proto[key] !== 'function') continue;
+            // console.log( proto.isRenderer_, 'ms_'+key, proto[key].length, h.is)
+            if (proto[pey] || proto[key].length === 0) continue;
+
+            // proto[pey] = proto[key];
+            // proto[key] = function () {
+            //   console.log(key, arguments.length, [...arguments]);
+
+            //   return proto[pey].apply(this, arguments);
+            // }
+
+
+            if (key === 'stampDomArraySplices_' && proto[key].length === 3) {
+              proto[pey] = proto[key];
+              proto[key] = function (a, b, c) {
+
+                if (typeof a === 'string' && typeof b === 'string' && typeof c === 'object' && c && c.indexSplices && c.indexSplices.length >= 1 && !c.indexSplices.rzgjr) {
+
+                  c.indexSplices = c.indexSplices.map(e => {
+                    if (e.__proxy312__) return e;
+                    e[s1] = mWeakRef(e.object);
+                    e.object = null;
+                    return new Proxy(e, handler1);
+                  });
+                  c.indexSplices.rzgjr = 1;
+
+                  c[s1] = mWeakRef(c.indexSplices);
+                  c.indexSplices = null;
+                  c = new Proxy(c, handler2)
+                  arguments[2] = c;
+
+                }
+                // console.log(key, arguments.length, [...arguments]);
+                return proto[pey].call(this, a, b, c);
+              }
+
+            } else if (DEBUG_STAMP) {
+
+              console.log(proto.isRenderer_, 'ms_' + key, proto[key].length, h.is)
+              proto[pey] = proto[key];
+              proto[key] = function () {
+                console.log(key, arguments.length, [...arguments]);
+                return proto[pey].apply(this, arguments);
+              }
+
+            }
+
+          }
+
+
+          // const m = (Object.mkss = Object.mkss || new Set());
+          // Object.keys(h.__proto__).filter(e => e.toLowerCase().includes('stamp') && typeof h[e] === 'function').forEach(e => m.add(e))
+          // console.log([...m])
+        }
+      }
+
+    }
+  })();
 
   const setupDiscreteTasks = (h, rb) => {
 
@@ -1273,6 +1381,8 @@
 
     }
 
+    ENABLE_weakenStampReferences && weakenStampReferences(h);
+    
 
 
     /// -----------------------
