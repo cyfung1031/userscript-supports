@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.1.2
+// @version             1.18.1.3
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -552,30 +552,21 @@
             (() => {
                 const pd = Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(Event.prototype, 'returnValue') : {};
                 const { get, set } = pd;
-                const mapping = {}; // 1: click, focus, blur ...  2: beforeunload
                 if (get && set) {
+                    const filterTypes = new Set($.eyEvts);
                     Object.defineProperty(Event.prototype, "returnValue", {
                         get() {
                             const type = this.type;
-                            let returnValueOri;
-                            const returnValueType = mapping[type] || (mapping[type] = (type && (typeof (returnValueOri = get.call(this))) === 'boolean' ? 1 : 2));
-                            if (returnValueType === 1) {
-                                return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
-                            } else {
-                                return returnValueOri === undefined ? get.call(this) : returnValueOri;
-                            }
+                            if (!filterTypes.has(type)) return get.call(this);
+                            return $.ksEventReturnValue in this ? this[$.ksEventReturnValue] : true;
                         },
                         set(newValue) {
                             const type = this.type;
-                            const returnValueType = mapping[type] || (mapping[type] = (type && (typeof get.call(this)) === 'boolean' ? 1 : 2));
-                            if (returnValueType === 1) {
-                                const convertedNV = !!newValue;
-                                if (convertedNV === false) this.preventDefault();
-                                if (this[$.ksEventReturnValue] !== false) {
-                                    this[$.ksEventReturnValue] = convertedNV;
-                                }
-                            } else {
-                                return set.call(this, newValue);
+                            if (!filterTypes.has(type)) return set.call(this, newValue);
+                            const convertedNV = !!newValue;
+                            if (convertedNV === false) this.preventDefault();
+                            if (this[$.ksEventReturnValue] !== false) {
+                                this[$.ksEventReturnValue] = convertedNV;
                             }
                         },
                         enumerable: true,
