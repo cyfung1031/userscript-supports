@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.37
+// @version             0.60.38
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1860,6 +1860,7 @@
             if (prop === 'type') {
               return 'splice';
             }
+            if (prop === '__proxy312__') return 1;
             return target[prop];
           }
         };
