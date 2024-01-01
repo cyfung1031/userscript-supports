@@ -58,9 +58,11 @@
     global.addEventListener('message', mfn, false);
 
     global.nextBrowserTick = (f) => {
-        const p = promise || (promise = new PromiseExternal());
-        p.then(f);
-        global.postMessage(messageString, "*");
+        if (!promise) {
+            promise = new PromiseExternal();
+            global.postMessage(messageString, "*");
+        }
+        promise.then(f);
     }
 
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
