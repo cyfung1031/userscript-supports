@@ -2,12 +2,13 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.1
+// @version     0.7.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
 // @description To enhance YouTube performance by modifying YouTube JS Engine
 // @grant       none
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ec0a6c94d694190322f75f96ed8f851f78205713/library/jmt_setImmediate.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
@@ -53,6 +54,7 @@
   // << end >>
 
   const FIX_perfNow = true;
+  const ENABLE_ASYNC_DISPATCHEVENT = true;
 
   const UNLOAD_DETACHED_POLYMER = false; // unstable
 
@@ -85,7 +87,7 @@
   win[hkey_script] = true;
 
 
-
+  const setImmediate = ((self || 0).jmt || 0).setImmediate;
 
   let p59 = 0;
 
@@ -155,6 +157,22 @@
       if (performance.now() === performance.now()) console.warn('performance.now() is not mono increasing.');
     }
   })();
+
+  if (ENABLE_ASYNC_DISPATCHEVENT && setImmediate) {
+    EventTarget.prototype.dispatchEvent938 = EventTarget.prototype.dispatchEvent;
+    EventTarget.prototype.dispatchEvent = function (event) {
+      const type = (event || 0).type;
+      if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
+        // if (type.includes('-')) {
+        if (this instanceof Node || this instanceof Window) {
+          setImmediate(() => this.dispatchEvent938(event));
+          return true;
+        }
+        // }
+      }
+      return this.dispatchEvent938(event);
+    }
+  }
 
 
 
@@ -508,6 +526,16 @@
         return target[prop];
       }
     }
+    const handler3 = {
+      get(target, prop, receiver) {
+        if (prop === '__proxy312__') return 1;
+        let w = target[prop]
+        if (w && typeof w === 'object' && typeof w.deref === 'function') {
+          return w.deref();
+        }
+        return w;
+      }
+    }
     return (h) => {
 
       if (h.rendererStamperApplyChangeRecord_ || h.stampDomArraySplices_) {
@@ -561,11 +589,75 @@
                 return proto[pey].call(this, a, b, c);
               }
 
+            } else if (key === 'rendererStamperApplyChangeRecord_' && proto[key].length === 3) {
+
+
+              // proto[pey] = proto[key];
+              // proto[key] = function (a, b, c) {
+
+              //   if (typeof a === 'string' && typeof b === 'string' && typeof c === 'object' && c && c.value && c.base) {
+
+              //     if(c.value.length >=1){
+
+
+              //       c.value = c.value.map(e=>{
+
+              //         if(!e.__proxy312__){
+
+              //         for (const k of Object.keys(e)) {
+              //           const v = e[k];
+              //           if(typeof v ==='object' && v && typeof v.length ==='undefined' && !v.deref) e[k] = mWeakRef(v)
+
+              //         }
+              //         return new Proxy(e, handler3);
+
+              //       }
+
+              //       })
+
+
+              //       window.se3=c.value;
+
+              //     }
+
+              //     if(c.base.length >=1){
+
+              //       c.base = c.base.map(e=>{
+
+              //         if(!e.__proxy312__){
+
+
+              //           for (const k of Object.keys(e)) {
+              //             const v = e[k];
+              //             if(typeof v ==='object' && v && typeof v.length ==='undefined' && !v.deref) e[k] = mWeakRef(v)
+              //           }
+              //           return new Proxy(e, handler3);
+              //         }
+
+
+              //       })
+
+              //       console.log(c.base);
+
+
+              //       window.se4=c.base;
+
+              //     }
+
+
+              //   }
+              //   // console.log(key, arguments.length, [...arguments]);
+              //   return proto[pey].call(this, a, b, c);
+              // }
+
             } else if (DEBUG_STAMP) {
 
               console.log(proto.isRenderer_, 'ms_' + key, proto[key].length, h.is)
               proto[pey] = proto[key];
               proto[key] = function () {
+                if (key === 'rendererStamperApplyChangeRecord_' && typeof arguments[3] === 'object') {
+                  console.log(key, arguments.length, { value: arguments[3].value, base: arguments[3].base, })
+                }
                 console.log(key, arguments.length, [...arguments]);
                 return proto[pey].apply(this, arguments);
               }
@@ -1382,7 +1474,7 @@
     }
 
     ENABLE_weakenStampReferences && weakenStampReferences(h);
-    
+
 
 
     /// -----------------------
@@ -3046,13 +3138,13 @@
       return (((window || 0).ytglobal || 0).schedulerInstanceInstance_ || 0);
     }, promiseForTamerTimeout);
 
-    const timelineObservable = observablePromise(()=>{
+    const timelineObservable = observablePromise(() => {
       let t = (((document || 0).timeline || 0) || 0);
       if (t && typeof t._play === 'function') {
         return t;
       }
     }, promiseForTamerTimeout);
-    const animationObservable = observablePromise(()=>{
+    const animationObservable = observablePromise(() => {
       let t = (((window || 0).Animation || 0) || 0);
       if (t && typeof t === 'function' && t.length === 2 && typeof t.prototype._updatePromises === 'function') {
         return t;
