@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.7
+// @version     0.7.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -160,11 +160,21 @@
   })();
 
   if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
+    const filter = new Set([
+      'yt-action',
+      // 'iframe-src-replaced',
+      'shown-items-changed',
+      'can-show-more-changed', 'collapsed-changed',
+      // 'yt-navigate-finish','yt-player-updated',
+      // 'yt-navigate','yt-navigate-start',
+      // 'yt-page-data-fetched','yt-page-type-changed','yt-page-data-updated',
+      // 'data-changed','yt-watch-comments-ready'
+    ])
     EventTarget.prototype.dispatchEvent938 = EventTarget.prototype.dispatchEvent;
     EventTarget.prototype.dispatchEvent = function (event) {
       const type = (event || 0).type;
       if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
-        if (type !== 'yt-action' && type !== 'can-show-more-changed' && type.length > 3) {
+        if (!filter.has(type) && !type.startsWith('can-') && !type.startsWith('is-') && !type.endsWith('-changed')) {
           if (this instanceof Node || this instanceof Window) {
             nextBrowserTick(() => this.dispatchEvent938(event));
             return true;
