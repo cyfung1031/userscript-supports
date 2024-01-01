@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.8
+// @version     0.7.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -174,7 +174,7 @@
     EventTarget.prototype.dispatchEvent = function (event) {
       const type = (event || 0).type;
       if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
-        if (!filter.has(type) && !type.startsWith('can-') && !type.startsWith('is-') && !type.endsWith('-changed')) {
+        if (!filter.has(type) && !type.endsWith('-changed')) {
           if (this instanceof Node || this instanceof Window) {
             nextBrowserTick(() => this.dispatchEvent938(event));
             return true;
