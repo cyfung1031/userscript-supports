@@ -2,13 +2,13 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.4
+// @version     0.7.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
 // @description To enhance YouTube performance by modifying YouTube JS Engine
 // @grant       none
-// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@6061b05928b7e5cfdc3a3d0055ae047b7adc2b29/library/jmt_setImmediate.min.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@4fa816a9ec57308d6bfd3cf60e81f6243707674f/library/nextBrowserTick.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
@@ -87,7 +87,8 @@
   win[hkey_script] = true;
 
 
-  const setImmediate = ((self || 0).jmt || 0).setImmediate;
+  // const setImmediate = ((self || 0).jmt || 0).setImmediate;
+  const nextBrowserTick = (self || 0).nextBrowserTick || 0;
 
   let p59 = 0;
 
@@ -158,14 +159,14 @@
     }
   })();
 
-  if (ENABLE_ASYNC_DISPATCHEVENT && setImmediate) {
+  if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
     EventTarget.prototype.dispatchEvent938 = EventTarget.prototype.dispatchEvent;
     EventTarget.prototype.dispatchEvent = function (event) {
       const type = (event || 0).type;
       if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
         if (type !== 'yt-action') {
           if (this instanceof Node || this instanceof Window) {
-            setImmediate(() => this.dispatchEvent938(event));
+            nextBrowserTick(() => this.dispatchEvent938(event));
             return true;
           }
         }
