@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.38
+// @version             0.60.39
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2729,7 +2729,13 @@
               // page visibly ready -> load the latest comments at initial loading
               const lcRenderer = lcRendererElm();
               if (lcRenderer) {
-                insp(lcRenderer).scrollToBottom_();
+                if (typeof window.nextBrowserTick !== 'function') {
+                  insp(lcRenderer).scrollToBottom_();
+                } else {
+                  nextBrowserTick(() => {
+                    insp(lcRenderer).scrollToBottom_();
+                  });
+                }
               }
             });
           }
@@ -4029,14 +4035,19 @@
                   if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                   //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                   if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
-                    cnt.scrollToBottom_();
 
-                    Promise.resolve().then(() => {
-
-                      if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                      if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                    });
-
+                    if (typeof window.nextBrowserTick !== 'function') {
+                      cnt.scrollToBottom_();
+                      Promise.resolve().then(() => {
+                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                        if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
+                      });
+                    } else {
+                      nextBrowserTick(() => {
+                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                        cnt.scrollToBottom_();
+                      });
+                    }
 
                   }
                 }
@@ -4061,7 +4072,11 @@
                       itemScroller.scrollTop = itemScroller.scrollHeight;
                     }
                   };
-                  scrollChatFn = () => Promise.resolve().then(f).then(f);
+                  if (typeof window.nextBrowserTick !== 'function') {
+                    scrollChatFn = () => Promise.resolve().then(f).then(f);
+                  } else {
+                    scrollChatFn = () => nextBrowserTick(f);
+                  }
                 }
 
                 if (!ENABLE_DELAYED_CHAT_OCCURRENCE) scrollChatFn();
