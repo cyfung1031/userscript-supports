@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.11
+// @version     0.7.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -536,7 +536,7 @@
       }
       return fn.call(this, a, b, c, d, e, h)
     }
-    gn.aaLba = 1;
+    gn.originalFn = fn;
     convertionFuncMap.set(fn, gn);
     return gn;
   }
@@ -544,9 +544,10 @@
   const fixStampDomArrayStableList = (h) => {
     if (!h.stampDomArray_) return;
     const proto = h.__proto__;
-    if (typeof proto.stampDomArray_ === 'function' && proto.stampDomArray_.length === 6 && !proto.stampDomArray_.aaLba) {
-      const nFn = convertionFuncMap.get(proto.stampDomArray_) || createStampDomArrayFn_(proto.stampDomArray_);
-      proto.stampDomArray_ = nFn;
+    const f = proto.stampDomArray_;
+    if (!proto.stampDomArrayF001_ && typeof f === 'function' && f.length === 6) {
+      proto.stampDomArrayF001_ = 1;
+      proto.stampDomArray_ = convertionFuncMap.get(f) || createStampDomArrayFn_(f);
     }
   }
 
