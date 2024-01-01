@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.3
+// @version             0.4.4
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -351,6 +351,15 @@ SOFTWARE.
         reflect(nodeName, attrNames, false);
       }
 
+      function getParent(element) {
+        return element.__shady_native_parentNode || element.__shady_parentNode || element.parentNode;
+      }
+
+      let lastPageTypeChanged = 0;
+      function chatContainerMutationHandler() {
+        if (Date.now() - lastPageTypeChanged < 800) _reflect();
+      }
+
       // Function to start monitoring an element for mutations.
       function monitor(element) {
         if (!element) return;
@@ -362,6 +371,14 @@ SOFTWARE.
 
         const observer = new MutationObserver(callback);
         observer.observe(element, { attributes: true });
+
+        if (element.id === 'chat') {
+          const parentNode = getParent(element);
+          if (parentNode instanceof Element && parentNode.id === 'chat-container') {
+            const observer = new MutationObserver(chatContainerMutationHandler);
+            observer.observe(parentNode, { childList: true, subtree: false });
+          }
+        }
 
         return 1;
       }
@@ -378,7 +395,7 @@ SOFTWARE.
           _reflect();
         }
       }
-      let renderId = 0;
+      // let renderId = 0;
       // Event handler function that triggers when the page finishes navigation or page data updates.
       let eventHandlerFunc = async (evt) => {
         timeout = Date.now() + 800;
@@ -389,17 +406,20 @@ SOFTWARE.
             g(1);
           }, 80);
         } else if (evt.type === 'yt-page-type-changed') {
-          setTimeout(() => {
-            if (renderId > 1e9) renderId = 9;
-            const t = ++renderId;
-            requestAnimationFrame(() => {
-              if (t !== renderId) return;
+          lastPageTypeChanged = Date.now();
+          // setTimeout(() => {
+          //   if (renderId > 1e9) renderId = 9;
+          //   const t = ++renderId;
+          //   requestAnimationFrame(() => {
+          //     if (t !== renderId) return;
+          //     g(1);
+          //   });
+          // }, 180);
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(() => {
               g(1);
             });
-          }, 180);
-          if (typeof requestIdleCallback === 'function') requestIdleCallback(() => {
-            g(1);
-          });
+          }
         }
       }
 
