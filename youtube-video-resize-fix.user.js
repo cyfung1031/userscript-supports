@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.4
+// @version             0.4.5
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -374,7 +374,8 @@ SOFTWARE.
 
         if (element.id === 'chat') {
           const parentNode = getParent(element);
-          if (parentNode instanceof Element && parentNode.id === 'chat-container') {
+          if (parentNode instanceof Element && parentNode.id === 'chat-container' && !monitorWeakSet.has(parentNode)) {
+            monitorWeakSet.add(parentNode);
             const observer = new MutationObserver(chatContainerMutationHandler);
             observer.observe(parentNode, { childList: true, subtree: false });
           }
