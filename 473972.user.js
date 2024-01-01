@@ -2,13 +2,13 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.6
+// @version     0.7.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
 // @description To enhance YouTube performance by modifying YouTube JS Engine
 // @grant       none
-// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@4fa816a9ec57308d6bfd3cf60e81f6243707674f/library/nextBrowserTick.min.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@77e25279ad54635dfea0c99f693ab1f954a2d216/library/nextBrowserTick.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
