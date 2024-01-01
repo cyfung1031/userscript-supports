@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.2
+// @version     0.7.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -163,12 +163,12 @@
     EventTarget.prototype.dispatchEvent = function (event) {
       const type = (event || 0).type;
       if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
-        // if (type.includes('-')) {
-        if (this instanceof Node || this instanceof Window) {
-          setImmediate(() => this.dispatchEvent938(event));
-          return true;
+        if (type !== 'yt-action') {
+          if (this instanceof Node || this instanceof Window) {
+            setImmediate(() => this.dispatchEvent938(event));
+            return true;
+          }
         }
-        // }
       }
       return this.dispatchEvent938(event);
     }
