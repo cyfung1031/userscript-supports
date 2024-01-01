@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.8.0
+// @version     0.8.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -167,9 +167,11 @@
       // 'iframe-src-replaced',
       'shown-items-changed',
       'can-show-more-changed', 'collapsed-changed',
-      // 'yt-navigate-finish','yt-player-updated',
-      // 'yt-navigate','yt-navigate-start',
-      // 'yt-page-data-fetched','yt-page-type-changed','yt-page-data-updated',
+
+      'yt-navigate', 'yt-navigate-start', 'yt-navigate-cache',
+      'yt-player-updated', 'yt-page-data-fetched', 'yt-page-type-changed', 'yt-page-data-updated',
+      'yt-navigate-finish',
+
       // 'data-changed','yt-watch-comments-ready'
     ])
     EventTarget.prototype.dispatchEvent938 = EventTarget.prototype.dispatchEvent;
