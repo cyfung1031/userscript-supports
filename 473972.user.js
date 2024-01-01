@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.12
+// @version     0.8.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -36,6 +36,7 @@
   const FIX_stampDomArray_stableList = true;
   const FIX_ytdExpander_childrenChanged = true;
   const FIX_paper_ripple_animate = true;
+  const FIX_avoid_incorrect_video_meta = true; // omit the incorrect yt-animated-rolling-number
 
   const FIX_doIdomRender = true;
 
@@ -2816,6 +2817,33 @@
 
   // << end >>
 
+  const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
+
+  let pageSetupVideoId = null; // set at finish; '' for indeterminate state 
+
+  isPrepareCachedV && (() => {
+
+    pageSetupVideoId = '';
+    const clearCachedV = () => pageSetupVideoId = '';
+    document.addEventListener('yt-navigate-start', clearCachedV, false); // user action
+    document.addEventListener('yt-navigate-cache', clearCachedV, false); // pop state
+    document.addEventListener('yt-page-data-fetched', clearCachedV, false); // still consider invalid until url is ready in yt-navigate-finish
+    document.addEventListener('yt-navigate-finish', () => {
+      try {
+        const url = new URL(location.href);
+        if (!url || url.pathname !== '/watch') {
+          pageSetupVideoId = '';
+        } else {
+          pageSetupVideoId = url.searchParams.get('v') || '';
+        }
+      } catch (e) {
+        pageSetupVideoId = '';
+      }
+    }, false);
+
+  })();
+
+
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -2870,6 +2898,17 @@
       return null;
     }
   };
+
+  const promiseForYtActionCalled = new Promise(resolve => {
+    let hn = () => {
+      if (!hn) return;
+      document.removeEventListener('yt-action', hn, true);
+      hn = null;
+      resolve(document.querySelector('ytd-app'));
+    };
+    document.addEventListener('yt-action', hn, true);
+  });
+  
 
 
   const promiseForCustomYtElementsReady = new Promise(onRegistryReady);
@@ -4867,24 +4906,120 @@
 
     })();
 
-
     promiseForCustomYtElementsReady.then(() => {
 
+      // ------------------- FIX_avoid_incorrect_video_meta -------------------
+
+      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && (pageSetupVideoId !== null);
+
+      FIX_avoid_incorrect_video_meta_bool && customElements.whenDefined('ytd-video-primary-info-renderer').then(async () => {
+        let dummy;
+        let cProto;
+        // let mc = 4;
+        // dummy = await observablePromise(() => {
+        //   const r = document.querySelector('ytd-video-primary-info-renderer');
+        //   if (!r) return;
+        //   let cProto = insp(r).constructor.prototype;
+        //   if (cProto.fetchUpdatedMetadata) return r;
+        //   if (--mc < 0) return -1;
+        //   return null;
+        // }).obtain();
+        dummy = document.createElement('ytd-video-primary-info-renderer');
+        if (!(dummy instanceof Element)) return;
+        // console.log(5022, dummy)
+        cProto = insp(dummy).constructor.prototype;
+        if (cProto.fetchUpdatedMetadata && !cProto.fetchUpdatedMetadata717) {
+          // console.log(1234, cProto, cProto.is)
+          cProto.fetchUpdatedMetadata717 = cProto.fetchUpdatedMetadata;
+          cProto.fetchUpdatedMetadata = function (a) {
+            if (!pageSetupVideoId && typeof a === 'string' && a.length > 40) return;
+            // console.log(123301, arguments)
+            return this.fetchUpdatedMetadata717(a)
+          }
+        }
+      });
+
+      // FIX_avoid_incorrect_video_meta_bool &&  customElements.whenDefined('ytd-watch-info-text').then(async () => {
+      //   let dummy;
+      //   let cProto;
+      //   dummy = await observablePromise(()=>{
+      //     const r = document.querySelector('ytd-watch-info-text');
+      //     if(!r) return;
+      //   let cProto = insp(r).constructor.prototype;
+      //     if(cProto.onYtUpdateViewershipAction) return r;
+      //     return null;
+      //   }).obtain();
+      //   cProto = insp(dummy).constructor.prototype;
+      //   if (false && cProto.onYtUpdateViewershipAction && !cProto.onYtUpdateViewershipAction231) {
+      //     console.log(1234, cProto, cProto.is)
+      //     cProto.onYtUpdateViewershipAction231 = cProto.onYtUpdateViewershipAction;
+      //     cProto.onYtUpdateViewershipAction = function (a) {
+      //       try{
+      //       console.log(123601)
+      //       if (a.updateViewershipAction) {
+      //         a.m32 = (a.m32 || 0) + 1
+      //         a.updateViewershipAction.m32 = (a.updateViewershipAction.m32 || 0) + 1
+      //         console.log(123601, a, a.m32, a.updateViewershipAction.m32);
+      //         // debugger;
+      //       }
+      //       }finally{
+      //       this.onYtUpdateViewershipAction231(a)
+      //       }
+      //     }
+      //   }
+      // });
+
+      FIX_avoid_incorrect_video_meta_bool && promiseForYtActionCalled.then(async (ytAppDom) => {
+        let dummy;
+        let cProto;
+        dummy = ytAppDom;
+        if (!(dummy instanceof Element)) return;
+        cProto = insp(dummy).constructor.prototype;
+        if (cProto.sendServiceAjax_ && !cProto.sendServiceAjax717_) {
+          // console.log(1234, cProto, cProto.is);
+          // cProto.handleServiceRequest717_ = cProto.handleServiceRequest_;
+          // cProto.handleServiceRequest_ = function (a, b, c, d) {
+          //   console.log(123401, arguments);
+          //   return this.handleServiceRequest717_(a, b, c, d);
+          // }
+          cProto.sendServiceAjax717_ = cProto.sendServiceAjax_;
+          cProto.sendServiceAjax_ = function (a, b, c, d) {
+            if (b && b.updatedMetadataEndpoint && typeof b.updatedMetadataEndpoint.videoId === 'string') {
+              if (!pageSetupVideoId) return;
+              if (b.updatedMetadataEndpoint.videoId !== pageSetupVideoId) {
+                return;
+              }
+            }
+            // console.log(123402, arguments);
+            return this.sendServiceAjax717_(a, b, c, d);
+          }
+          cProto.getCancellableNetworkPromise717_ = cProto.getCancellableNetworkPromise_;
+          cProto.getCancellableNetworkPromise_ = function (a, b, c, d, e) {
+            if (c && c.updatedMetadataEndpoint && typeof c.updatedMetadataEndpoint.videoId === 'string') {
+              if (!pageSetupVideoId) return;
+              if (c.updatedMetadataEndpoint.videoId !== pageSetupVideoId) {
+                return;
+              }
+            }
+            // console.log(123403, arguments);
+            // if(c.updatedMetadataEndpoint) console.log(123404, pageSetupVideoId, JSON.stringify(c.updatedMetadataEndpoint))
+            return this.getCancellableNetworkPromise717_(a, b, c, d, e);
+          }
+        }
+      });
+
+      // ------------------- FIX_avoid_incorrect_video_meta -------------------
+
+
       FIX_ytdExpander_childrenChanged && customElements.whenDefined('ytd-expander').then(() => {
-
-
 
         let dummy;
         let cProto;
 
-
-
         dummy = document.createElement('ytd-expander');
         cProto = insp(dummy).constructor.prototype;
 
-
         if (fnIntegrity(cProto.initChildrenObserver, '0.48.21') && fnIntegrity(cProto.childrenChanged, '0.40.22')) {
-
 
           cProto.initChildrenObserver14 = cProto.initChildrenObserver;
           cProto.childrenChanged14 = cProto.childrenChanged;
@@ -4916,19 +5051,15 @@
             }
           }
 
-
           // console.log(cProto.initChildrenObserver)
           console.debug('ytd-expander-fix-childrenChanged');
 
         }
 
-      })
-
+      });
 
 
       FIX_paper_ripple_animate && customElements.whenDefined('paper-ripple').then(() => {
-
-
 
         let dummy;
         let cProto;
