@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.2
+// @version             0.4.3
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -378,7 +378,7 @@ SOFTWARE.
           _reflect();
         }
       }
-
+      let renderId = 0;
       // Event handler function that triggers when the page finishes navigation or page data updates.
       let eventHandlerFunc = async (evt) => {
         timeout = Date.now() + 800;
@@ -388,9 +388,18 @@ SOFTWARE.
           setTimeout(() => {
             g(1);
           }, 80);
+        } else if (evt.type === 'yt-page-type-changed') {
           setTimeout(() => {
-            g(1);
+            if (renderId > 1e9) renderId = 9;
+            const t = ++renderId;
+            requestAnimationFrame(() => {
+              if (t !== renderId) return;
+              g(1);
+            });
           }, 180);
+          if (typeof requestIdleCallback === 'function') requestIdleCallback(() => {
+            g(1);
+          });
         }
       }
 
@@ -404,6 +413,7 @@ SOFTWARE.
             document.documentElement.setAttribute("youtube-wpr", "");
             document.addEventListener("yt-navigate-finish", eventHandlerFunc, false);
             document.addEventListener("yt-page-data-updated", eventHandlerFunc, false);
+            document.addEventListener("yt-page-type-changed", eventHandlerFunc, false);
           } else {
             loadState = -1;
             document.removeEventListener("yt-page-data-fetched", actor, false);
