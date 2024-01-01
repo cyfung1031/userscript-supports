@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.7
+// @version             0.9.8
 // @license             MIT License
 
 // @author              CY Fung
@@ -642,19 +642,18 @@ SOFTWARE.
                 if (cfg.ownerProfileUrl && cfg.ownerChannelName && cfg.ownerChannelName !== title) {
                     let matched = false;
 
-                    if (cfg.ownerProfileUrl.endsWith(`/channel/${channelId}`)) matched = true;
+                    const ownerProfileUrlLowerCase = cfg.ownerProfileUrl.toLowerCase();
+                    if (ownerProfileUrlLowerCase.endsWith(`/channel/${channelId.toLowerCase()}`)) matched = true;
                     else {
 
                         for (const ownerUrl of resultInfo.ownerUrls) {
-                            if (ownerUrl.endsWith(cfg.ownerProfileUrl)) {
+                            if (ownerUrl.toLowerCase().endsWith(ownerProfileUrlLowerCase)) {
                                 matched = true;
                                 break;
                             }
                         }
 
-
                     }
-
 
                     if (matched) {
                         resultInfo.title = cfg.ownerChannelName;
@@ -1093,15 +1092,16 @@ SOFTWARE.
 
         const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
 
-        const currentDisplayTrimmed = currentDisplayed.trim();
+        const currentDisplayTrimmed = currentDisplayed.trim(); // @IORIMATSUNAGA        
+        const currentDisplayTrimmedLowerCase = currentDisplayTrimmed.toLowerCase(); // @iorimatsunaga        
         let match = false;
         if (verified123) {
             match = true;
-        } else if ((vanityChannelUrl || '').endsWith(`/${currentDisplayTrimmed}`)) {
+        } else if ((vanityChannelUrl || '').toLowerCase().endsWith(`/${currentDisplayTrimmedLowerCase}`)) {
             match = true;
         } else if ((ownerUrls || 0).length >= 1) {
             for (const ownerUrl of ownerUrls) {
-                if ((ownerUrl || '').endsWith(`/${currentDisplayTrimmed}`)) {
+                if ((ownerUrl || '').toLowerCase().endsWith(`/${currentDisplayTrimmed}`)) {
                     match = true;
                     break;
                 }
