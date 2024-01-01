@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.7.10
+// @version     0.7.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -33,6 +33,7 @@
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
+  const FIX_stampDomArray_stableList = true;
   const FIX_ytdExpander_childrenChanged = true;
   const FIX_paper_ripple_animate = true;
 
@@ -512,6 +513,41 @@
   const aDelay = async function () {
     await delay300.then();
     await delay300.then();
+  }
+
+  const convertionFuncMap = new WeakMap();
+  let val_kevlar_should_maintain_stable_list = null;
+
+  const createStampDomArrayFn_ = (fn) => {
+    if (val_kevlar_should_maintain_stable_list === null) {
+      const config_ = ((window.yt || 0).config_ || 0);
+      val_kevlar_should_maintain_stable_list = ((config_ || 0).EXPERIMENT_FLAGS || 0).kevlar_should_maintain_stable_list === true
+    }
+    const gn = function (a, b, c, d, e, h) {
+      const isNonEmptyArray = (a || 0).length >= 1
+      if (!isNonEmptyArray) {
+        return fn.call(this, undefined, b, undefined, d);
+      } else if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && this.is && val_kevlar_should_maintain_stable_list) {
+        if (c.clientSideToggleMenuItemRenderer) {
+          h = false;
+        } else {
+          h = true;
+        }
+      }
+      return fn.call(this, a, b, c, d, e, h)
+    }
+    gn.aaLba = 1;
+    convertionFuncMap.set(fn, gn);
+    return gn;
+  }
+
+  const fixStampDomArrayStableList = (h) => {
+    if (!h.stampDomArray_) return;
+    const proto = h.__proto__;
+    if (typeof proto.stampDomArray_ === 'function' && proto.stampDomArray_.length === 6 && !proto.stampDomArray_.aaLba) {
+      const nFn = convertionFuncMap.get(proto.stampDomArray_) || createStampDomArrayFn_(proto.stampDomArray_);
+      proto.stampDomArray_ = nFn;
+    }
   }
 
   const weakenStampReferences = (() => {
@@ -1484,6 +1520,7 @@
 
     }
 
+    FIX_stampDomArray_stableList && fixStampDomArrayStableList(h);
     ENABLE_weakenStampReferences && weakenStampReferences(h);
 
 
@@ -4828,8 +4865,6 @@
 
 
     })();
-
-
 
 
     promiseForCustomYtElementsReady.then(() => {
