@@ -62,7 +62,7 @@
             promise = new PromiseExternal();
             global.postMessage(messageString, "*");
         }
-        promise.then(f);
+        promise.then(f).catch(console.warn);
     }
 
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
