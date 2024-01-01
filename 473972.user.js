@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.8.1
+// @version     0.8.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2910,7 +2910,7 @@
     };
     document.addEventListener('yt-action', hn, true);
   });
-  
+
 
 
   const promiseForCustomYtElementsReady = new Promise(onRegistryReady);
@@ -4914,7 +4914,7 @@
 
       const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && (pageSetupVideoId !== null);
 
-      FIX_avoid_incorrect_video_meta_bool && customElements.whenDefined('ytd-video-primary-info-renderer').then(async () => {
+      FIX_avoid_incorrect_video_meta_bool && customElements.whenDefined('ytd-video-primary-info-renderer').then(() => {
         let dummy;
         let cProto;
         // let mc = 4;
@@ -4930,7 +4930,7 @@
         if (!(dummy instanceof Element)) return;
         // console.log(5022, dummy)
         cProto = insp(dummy).constructor.prototype;
-        if (cProto.fetchUpdatedMetadata && !cProto.fetchUpdatedMetadata717) {
+        if (typeof cProto.fetchUpdatedMetadata === 'function' && cProto.fetchUpdatedMetadata.length === 1 && !cProto.fetchUpdatedMetadata717) {
           // console.log(1234, cProto, cProto.is)
           cProto.fetchUpdatedMetadata717 = cProto.fetchUpdatedMetadata;
           cProto.fetchUpdatedMetadata = function (a) {
@@ -4971,13 +4971,13 @@
       //   }
       // });
 
-      FIX_avoid_incorrect_video_meta_bool && promiseForYtActionCalled.then(async (ytAppDom) => {
+      FIX_avoid_incorrect_video_meta_bool && promiseForYtActionCalled.then((ytAppDom) => {
         let dummy;
         let cProto;
         dummy = ytAppDom;
         if (!(dummy instanceof Element)) return;
         cProto = insp(dummy).constructor.prototype;
-        if (cProto.sendServiceAjax_ && !cProto.sendServiceAjax717_) {
+        if (typeof cProto.sendServiceAjax_ === 'function' && cProto.sendServiceAjax_.length === 4 && !cProto.sendServiceAjax717_) {
           // console.log(1234, cProto, cProto.is);
           // cProto.handleServiceRequest717_ = cProto.handleServiceRequest_;
           // cProto.handleServiceRequest_ = function (a, b, c, d) {
@@ -4995,6 +4995,9 @@
             // console.log(123402, arguments);
             return this.sendServiceAjax717_(a, b, c, d);
           }
+        }
+
+        if (typeof cProto.getCancellableNetworkPromise_ === 'function' && cProto.getCancellableNetworkPromise_.length === 5 && !cProto.getCancellableNetworkPromise717_) {
           cProto.getCancellableNetworkPromise717_ = cProto.getCancellableNetworkPromise_;
           cProto.getCancellableNetworkPromise_ = function (a, b, c, d, e) {
             if (c && c.updatedMetadataEndpoint && typeof c.updatedMetadataEndpoint.videoId === 'string') {
