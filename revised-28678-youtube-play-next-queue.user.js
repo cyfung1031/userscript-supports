@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Play Next Queue
-// @version      2.5.0
+// @version      2.5.1
 // @description  Don't like the youtube autoplay suggestion? This script can create a queue with videos you want to play after your current video has finished!
 // @author       Cpt_mathix
 // @match        https://www.youtube.com/*
@@ -156,7 +156,7 @@
                 }
             }
 
-            let currentVideoIdFromUrl = getVideoInfoFromUrl(window.location.href, "v");
+            let currentVideoIdFromUrl = getVideoIdFromUrl(window.location.href);
             if (videoState !== BUFFERING_STATE && isWatchPage() && !!currentVideoIdFromUrl && script.ytplayer.getVideoData().video_id !== currentVideoIdFromUrl && script.ytplayer.getVideoData().isListed) {
                 if (script.debug) { console.log("Videoplayer not correctly loaded, LoadVideoById manually"); }
                 script.ytplayer.loadVideoById(currentVideoIdFromUrl);
@@ -218,7 +218,7 @@
                     } else {
                         forEach(mutations, function(mutation) {
                             if (mutation.attributeName === "href") {
-                                let nextVideoId = getVideoInfoFromUrl(document.querySelector('.ytp-next-button').href, "v");
+                                let nextVideoId = getVideoIdFromUrl(document.querySelector('.ytp-next-button').href);
                                 let nextQueueItem = script.queue.peek();
                                 if (nextQueueItem.id !== nextVideoId) {
                                     if (script.debug) { console.log("SetAsNextVideo: PlayNextDataObserver"); }
@@ -279,21 +279,30 @@
             return document.querySelector('ytd-compact-autoplay-renderer ytd-compact-video-renderer') || document.querySelector('#related > ytd-watch-next-secondary-results-renderer ytd-compact-video-renderer');
         }
 
-        function getVideoInfoFromUrl(url, info) {
-            if (url.indexOf("?") === -1) {
-                return null;
-            }
-
-            let urlVariables = url.split("?")[1].split("&");
-
-            for(let i = 0; i < urlVariables.length; i++) {
-                let varName = urlVariables[i].split("=");
-
-                if (varName[0] === info) {
-                    return varName[1] === undefined ? null : varName[1];
-                }
-            }
+        function getVideoIdFromUrl(url) {
+            let o = null;
+            try {
+                o = new URL(url);
+            } catch (e) { }
+            let v = (o.searchParams ? o.searchParams.get('v') : '') || '';
+            return v;
         }
+
+        // function getVideoInfoFromUrl(url, info) {
+        //     if (url.indexOf("?") === -1) {
+        //         return null;
+        //     }
+
+        //     let urlVariables = url.split("?")[1].split("&");
+
+        //     for(let i = 0; i < urlVariables.length; i++) {
+        //         let varName = urlVariables[i].split("=");
+
+        //         if (varName[0] === info) {
+        //             return varName[1] === undefined ? null : varName[1];
+        //         }
+        //     }
+        // }
 
         // *** OBJECTS *** //
 
