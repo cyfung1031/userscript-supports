@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.8.2
+// @version     0.9.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -37,6 +37,7 @@
   const FIX_ytdExpander_childrenChanged = true;
   const FIX_paper_ripple_animate = true;
   const FIX_avoid_incorrect_video_meta = true; // omit the incorrect yt-animated-rolling-number
+  const FIX_avoid_incorrect_video_meta_emitterBehavior = true;
 
   const FIX_doIdomRender = true;
 
@@ -80,6 +81,8 @@
   });
 */
 
+  // only for macOS with Chrome/Firefox 100+
+  const advanceLogging = typeof AbortSignal !== 'undefined' && typeof (AbortSignal || 0).timeout === 'function' && typeof navigator !== 'undefined' && /\b(Macintosh|Mac\s*OS)\b/i.test((navigator || 0).userAgent || '');
 
   const win = this instanceof Window ? this : window;
 
@@ -191,7 +194,58 @@
 
 
 
-  const qm47 = Symbol();
+  const check_for_set_key_order = (() => {
+
+    let mySet = new Set();
+
+    mySet.add("value1");
+    mySet.add("value2");
+    mySet.add("value3");
+
+    // Function to convert Set values to an array
+    function getSetValues(set) {
+      return Array.from(set.values());
+    }
+
+    // Function to test if the Set maintains insertion order
+    function testSetOrder(set, expectedOrder) {
+      let values = getSetValues(set);
+      return expectedOrder.join(',') === values.join(',');
+    }
+
+    // Test 1: Initial order
+    if (mySet.values().next().value !== "value1") return false;
+    if (!testSetOrder(mySet, ["value1", "value2", "value3"])) return false;
+
+    // Test 2: After deleting an element
+    mySet.delete("value2");
+    if (mySet.values().next().value !== "value1") return false;
+    if (!testSetOrder(mySet, ["value1", "value3"])) return false;
+
+    // Test 3: After re-adding a deleted element
+    mySet.add("value2");
+    if (mySet.values().next().value !== "value1") return false;
+    if (!testSetOrder(mySet, ["value1", "value3", "value2"])) return false;
+
+    // Test 4: After adding a new element
+    mySet.add("value4");
+    if (mySet.values().next().value !== "value1") return false;
+    if (!testSetOrder(mySet, ["value1", "value3", "value2", "value4"])) return false;
+
+    // Test 5: Delete+Add
+    mySet.delete("value1");
+    mySet.delete("value3");
+    mySet.add("value3");
+    mySet.add("value1");
+    if (mySet.values().next().value !== "value2") return false;
+    if (!testSetOrder(mySet, ["value2", "value4", "value3", "value1"])) return false;
+
+    return true;
+  })();
+
+
+
+  // const qm47 = Symbol();
   const qm57 = Symbol();
   const qm53 = Symbol();
   const qn53 = Symbol();
@@ -2822,15 +2876,20 @@
   const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
 
   let pageSetupVideoId = null; // set at finish; '' for indeterminate state 
+  let pageSetupState = 0;
 
   isPrepareCachedV && (() => {
 
     pageSetupVideoId = '';
-    const clearCachedV = () => pageSetupVideoId = '';
+    const clearCachedV = () => {
+      pageSetupVideoId = '';
+      pageSetupState = 0;
+    }
     document.addEventListener('yt-navigate-start', clearCachedV, false); // user action
     document.addEventListener('yt-navigate-cache', clearCachedV, false); // pop state
     document.addEventListener('yt-page-data-fetched', clearCachedV, false); // still consider invalid until url is ready in yt-navigate-finish
     document.addEventListener('yt-navigate-finish', () => {
+      pageSetupState = 1;
       try {
         const url = new URL(location.href);
         if (!url || url.pathname !== '/watch') {
@@ -2844,6 +2903,44 @@
     }, false);
 
   })();
+
+  let videoPlayingY = null;
+
+  isPrepareCachedV && (() => {
+
+    let getNext = true;
+    let videoPlayingX = {
+      get videoId(){
+        if(getNext){
+          getNext = false;
+
+          let elements = document.querySelectorAll('ytd-watch-flexy[video-id]');
+          const arr = [];
+          for (const element of elements) {
+            if (!element.closest('[hidden]')) arr.push(element);
+          }
+          if (arr.length !== 1) this.__videoId__ = '';
+          else {
+            this.__videoId__ = arr[0].getAttribute('video-id');
+          }
+          
+        }
+        return this.__videoId__  || '';
+      }
+    }
+
+    videoPlayingY = videoPlayingX;
+    const handler = (evt) => {
+      const target = (evt || 0).target;
+      if (target instanceof HTMLVideoElement) {
+        getNext = true;
+      }
+    }
+    document.addEventListener('loadedmetadata', handler, true);
+    document.addEventListener('durationchange', handler, true);
+
+  })();
+
 
 
   const cleanContext = async (win) => {
@@ -2884,8 +2981,8 @@
       const fc = frame.contentWindow;
       if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
       try {
-        const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle } = fc;
-        const res = { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle };
+        const { requestAnimationFrame, setTimeout, clearTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle } = fc;
+        const res = { requestAnimationFrame, setTimeout, clearTimeout, cancelAnimationFrame, setInterval, clearInterval, requestIdleCallback, getComputedStyle };
         for (let k in res) res[k] = res[k].bind(win); // necessary
         if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
         res.animate = fc.HTMLElement.prototype.animate;
@@ -2918,7 +3015,7 @@
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle, perfNow } = __CONTEXT__;
+    const { requestAnimationFrame, setTimeout, clearTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle, perfNow } = __CONTEXT__;
 
 
     performance.now17 = perfNow.bind(performance);
@@ -4910,9 +5007,133 @@
 
     promiseForCustomYtElementsReady.then(() => {
 
-      // ------------------- FIX_avoid_incorrect_video_meta -------------------
+      // ==================================== FIX_avoid_incorrect_video_meta ====================================
 
-      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && (pageSetupVideoId !== null);
+
+
+      class LimitedSizeSet extends Set {
+        constructor(n) {
+          super();
+
+          this.limit = n;
+        }
+
+        add(key) {
+          if (!super.has(key)) {
+            super.add(key); // Set the key with a dummy value (true)
+            while (super.size > this.limit) {
+              const firstKey = super.values().next().value; // Get the first (oldest) key
+              super.delete(firstKey); // Delete the oldest key
+            }
+          }
+        }
+
+        removeAdd(key){
+          super.delete(key);
+          super.add(key);
+        }
+
+      }
+
+      // const wk3 = new WeakMap();
+
+      // let mtxVideoId = '';
+      // let aje3 = [];
+      const mfvContinuationRecorded = new LimitedSizeSet(8);      // record all success continuation keys
+      const mfyContinuationIgnored = new LimitedSizeSet(8);       // ignore continuation keys by copying the keys in the past
+      let mtzlastAllowedContinuation = '';  // the key stored at the last success; clear when scheduling changes
+      let mtzCount = 0;             // the key keeps unchanged
+      // let mjtNextMainKey = '';
+      let mjtRecordedPrevKey = ''; // the key stored at the last success (no clear)
+      let mjtLockPreviousKey = ''; // the key before fetch() should be discarded. (uncertain continuation)
+      let mbCId322 = 0;              // cid for delay fetchUpdatedMetadata
+      // let allowNoDelay322=false;
+      let mbDelayBelowNCalls = 0;   // after N calls, by pass delay; reset when scheduling changes
+
+      let mpKey22 = '';           // last success continutation key & url pair
+      let mpUrl22 = '';          // last success continutation key & url pair
+      let mpKey21 = '';           // latest requested continutation key & url pair
+      let mpUrl21 = '';         // latest requested continutation key & url pair
+
+
+      async function sha1Hex(message) {
+        const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
+        const hashBuffer = await crypto.subtle.digest("SHA-1", msgUint8); // hash the message
+        const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
+        const hashHex = hashArray
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(""); // convert bytes to hex string
+        return hashHex;
+      }
+
+      async function continuationLog(a, ...args) {
+        let b = a;
+        try {
+          if (advanceLogging) b = await sha1Hex(a);
+          let c = args.map(e => {
+            return e === a ? b : e
+          });
+          console.log(...c)
+        } catch (e) { console.warn(e) }
+      }
+
+      function copyPreviousContiuationToIgnored374(toClearRecorded) {
+
+
+        if (mfvContinuationRecorded.length > 0) {
+          for (const [e, d] of mfvContinuationRecorded) {
+            mfyContinuationIgnored.removeAdd(e);
+          }
+          toClearRecorded && mfvContinuationRecorded.clear();
+        }
+
+      }
+
+      function setup_ytTaskEmitterBehavior_TaskMgr374(taskMgr) {
+
+        const tmProto = taskMgr.constructor.prototype;
+        if (tmProto && typeof tmProto.addJob === 'function' && tmProto.addJob.length === 3 && typeof tmProto.cancelJob === 'function' && tmProto.cancelJob.length === 1) {
+
+          if (!tmProto.addJob714) {
+
+            tmProto.addJob714 = tmProto.addJob;
+
+            tmProto.addJob = function (a, b, c) {
+              const jobId = this.addJob714(a, b, c);
+              if (jobId > 0) {
+                // const ez = wk3.get(this);
+                // const dz = ez ? ez.data?.updatedMetadataEndpoint?.updatedMetadataEndpoint : null;
+                // aje3.push({mtx, jobId, a,b,c, element: this, dz, data: (ez?.data || null) })
+
+                this.__lastJobId863__ = jobId;
+              }
+              return jobId;
+            }
+
+          }
+
+          if (!tmProto.cancelJob714) {
+
+            tmProto.cancelJob714 = tmProto.cancelJob;
+
+            tmProto.cancelJob = function (a) {
+              const res = this.cancelJob714(a);
+              // if (a > 0) {
+              //   for (const e of aje3) {
+              //     if (e.jobId === a) e.cancelled = true;
+              //   }
+              // }
+              return res;
+            }
+
+          }
+
+        }
+      }
+
+
+      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && (pageSetupVideoId !== null) && check_for_set_key_order;
+
 
       FIX_avoid_incorrect_video_meta_bool && customElements.whenDefined('ytd-video-primary-info-renderer').then(() => {
         let dummy;
@@ -4930,46 +5151,195 @@
         if (!(dummy instanceof Element)) return;
         // console.log(5022, dummy)
         cProto = insp(dummy).constructor.prototype;
+
+        cProto.__getEmittorTaskMgr859__ = function () {
+          let taskMgr_ = null;
+          try {
+            taskMgr_ = (this.ytTaskEmitterBehavior || 0).getTaskManager() || null;
+          } catch (e) { }
+          return taskMgr_;
+        }
         if (typeof cProto.fetchUpdatedMetadata === 'function' && cProto.fetchUpdatedMetadata.length === 1 && !cProto.fetchUpdatedMetadata717) {
           // console.log(1234, cProto, cProto.is)
           cProto.fetchUpdatedMetadata717 = cProto.fetchUpdatedMetadata;
+
+          let c_;
+          cProto.fetchUpdatedMetadata718 = function (a) {
+            // delay or immediate call the actual fetchUpdatedMetadata
+
+            let doImmediately = false;
+            if (a && typeof a === 'string' && mjtRecordedPrevKey && mjtRecordedPrevKey === mpKey22 && a === mpKey22 && (!pageSetupVideoId || pageSetupVideoId !== mpUrl22)) {
+
+              if (!pageSetupVideoId && videoPlayingY.videoId === mpUrl22) doImmediately = true;
+
+            } else if (typeof a !== 'string' || mbDelayBelowNCalls > 3 || !mpKey22 || (mpKey22 === a && mpKey22 !== mjtLockPreviousKey) || (mjtLockPreviousKey && mjtLockPreviousKey !== a)) {
+
+              doImmediately = true;
+
+            }
+
+            if (mbCId322) {
+              clearTimeout(mbCId322);
+              mbCId322 = 0;
+            }
+
+            if (doImmediately) return this.fetchUpdatedMetadata717(a);
+
+            let delay = mjtLockPreviousKey === a ? 8000 : 800;
+
+            mbCId322 = setTimeout(() => {
+              this.fetchUpdatedMetadata717(a);
+            }, delay);
+
+            console.log('5190 delayed fetchUpdatedMetadata', delay);
+
+          }
+
           cProto.fetchUpdatedMetadata = function (a) {
-            if (!pageSetupVideoId && typeof a === 'string' && a.length > 40) return;
-            // console.log(123301, arguments)
+
+            if (!pageSetupState) {
+              if (c_) clearTimeout(c_);
+              c_ = setTimeout(() => {
+                this.fetchUpdatedMetadata718(a);
+              }, 300);
+              return;
+            }
+
+            // pageSetupState == 0
+
+            try {
+
+              mbDelayBelowNCalls++;
+
+              if (arguments.length > 1 || !(a === undefined || (typeof a === 'string' && a))) {
+                console.warn("CAUTION: fetchUpdatedMetadata coding might have to be updated.");
+              }
+
+              // console.log('fum377', a)
+              if (typeof a === 'string' && mfyContinuationIgnored.has(a)) {
+                console.log('5040 skip fetchUpdatedMetadata', a);
+                return;
+              }
+
+              if (!a && (this.data || 0).updatedMetadataEndpoint) {
+                if (mjtRecordedPrevKey && mjtLockPreviousKey !== mjtRecordedPrevKey) {
+                  mjtLockPreviousKey = mjtRecordedPrevKey;
+                  continuationLog(mjtLockPreviousKey, '5150 Lock Key', mjtLockPreviousKey);
+                }
+                // mjtNextMainKey = true;
+                mtzlastAllowedContinuation = '';
+                mtzCount = 0;
+                // allowNoDelay322 = false;
+                // fetch new metadata, cancel all previous continuations
+                copyPreviousContiuationToIgnored374(true);
+              } else if (typeof a === 'string') {
+                const videoPlayingId = videoPlayingY.videoId;
+
+                // if(mjtNextMainKey === true) mjtNextMainKey = a;
+
+                let update21 = !!pageSetupVideoId;
+                if (mpKey22 === a && mpUrl22 === videoPlayingId && mpUrl22 && videoPlayingId && (!pageSetupVideoId || pageSetupVideoId === videoPlayingId)) {
+                  update21 = true;
+                } else if (mpKey22 === a && mpUrl22 !== pageSetupVideoId) {
+                  continuationLog(mpKey22, '5060 mpUrl22 mismatched', mpKey22, mpUrl22, pageSetupVideoId  || '(null)' , videoPlayingId  || '(null)' );
+                  return;
+                }
+                if (update21) {
+                  mpKey21 = a;
+                  mpUrl21 = pageSetupVideoId || videoPlayingId;
+                }
+
+                if (!mfvContinuationRecorded.has(a)) mfvContinuationRecorded.add(a);
+              }
+              continuationLog(a, '5180 fetchUpdatedMetadata\t', a, pageSetupVideoId || '(null)' , videoPlayingY.videoId  || '(null)' );
+              // if (!pageSetupVideoId && typeof a === 'string' && a.length > 40) return; // ignore incorrect continuation
+              // if(a === mjtNextMainKey) allowNoDelay322 = false;
+              return this.fetchUpdatedMetadata718(a);
+
+            } catch (e) {
+              console.log('Code Error in fetchUpdatedMetadata', e);
+            }
             return this.fetchUpdatedMetadata717(a)
           }
         }
-      });
 
-      // FIX_avoid_incorrect_video_meta_bool &&  customElements.whenDefined('ytd-watch-info-text').then(async () => {
-      //   let dummy;
-      //   let cProto;
-      //   dummy = await observablePromise(()=>{
-      //     const r = document.querySelector('ytd-watch-info-text');
-      //     if(!r) return;
-      //   let cProto = insp(r).constructor.prototype;
-      //     if(cProto.onYtUpdateViewershipAction) return r;
-      //     return null;
-      //   }).obtain();
-      //   cProto = insp(dummy).constructor.prototype;
-      //   if (false && cProto.onYtUpdateViewershipAction && !cProto.onYtUpdateViewershipAction231) {
-      //     console.log(1234, cProto, cProto.is)
-      //     cProto.onYtUpdateViewershipAction231 = cProto.onYtUpdateViewershipAction;
-      //     cProto.onYtUpdateViewershipAction = function (a) {
-      //       try{
-      //       console.log(123601)
-      //       if (a.updateViewershipAction) {
-      //         a.m32 = (a.m32 || 0) + 1
-      //         a.updateViewershipAction.m32 = (a.updateViewershipAction.m32 || 0) + 1
-      //         console.log(123601, a, a.m32, a.updateViewershipAction.m32);
-      //         // debugger;
-      //       }
-      //       }finally{
-      //       this.onYtUpdateViewershipAction231(a)
-      //       }
-      //     }
-      //   }
-      // });
+
+        if (typeof cProto.scheduleInitialUpdatedMetadataRequest === 'function' && cProto.scheduleInitialUpdatedMetadataRequest.length === 0 && !cProto.scheduleInitialUpdatedMetadataRequest717) {
+          // console.log(1234, cProto, cProto.is)
+          cProto.scheduleInitialUpdatedMetadataRequest717 = cProto.scheduleInitialUpdatedMetadataRequest;
+          let mJob = null;
+
+          cProto.scheduleInitialUpdatedMetadataRequest = function () {
+
+            try {
+
+              if (arguments.length > 0) {
+                console.warn("CAUTION: scheduleInitialUpdatedMetadataRequest coding might have to be updated.");
+              }
+              // mfy = mfv;
+
+              // mjtNextMainKey = '';
+              mtzlastAllowedContinuation = '';
+              mtzCount = 0;
+              if (mbCId322) {
+                clearTimeout(mbCId322);
+                mbCId322 = 0;
+              }
+              mbDelayBelowNCalls = 0;
+              // allowNoDelay322 = false;
+              copyPreviousContiuationToIgnored374(true);
+
+              const taskMgr = this.__getEmittorTaskMgr859__();
+              if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714 && taskMgr.addJob && taskMgr.cancelJob) setup_ytTaskEmitterBehavior_TaskMgr374(taskMgr);
+              if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714) {
+                console.log('YouTube Super Fast Chat', 'scheduleInitialUpdatedMetadataRequest error 507');
+              }
+
+              // prevent depulicated schedule job by clearing previous JobId
+              if (taskMgr && typeof taskMgr.addLowPriorityJob === 'function' && taskMgr.addLowPriorityJob.length === 2 && typeof taskMgr.cancelJob === 'function' && taskMgr.cancelJob.length === 1) {
+
+                let res;
+
+                if (mJob) {
+                  const job = mJob;
+                  mJob = null;
+                  console.log('cancelJob', job)
+                  taskMgr.cancelJob(job); // clear previous [Interval Meta Update] job
+                  // p.cancelJob(a,b);
+                }
+
+                // const updatedMetadataEndpoint = this.data?.updatedMetadataEndpoint?.updatedMetadataEndpoint
+
+                let pza = taskMgr.__lastJobId863__;
+                try { res = this.scheduleInitialUpdatedMetadataRequest717(); } catch (e) { }
+                let pzb = taskMgr.__lastJobId863__
+                if (pza !== pzb) {
+                  mJob = pzb; // set [Interval Meta Update] jobId
+                }
+
+                // if (updatedMetadataEndpoint && updatedMetadataEndpoint.videoId) {
+                //   mtxVideoId = updatedMetadataEndpoint.videoId || ''; // set the current target VideoId
+                // } else {
+                //   mtxVideoId = ''; // sometimes updatedMetadataEndpoint is not ready
+                // }
+
+                return res;
+
+              } else {
+                console.log('YouTube Super Fast Chat', 'scheduleInitialUpdatedMetadataRequest error 601');
+              }
+
+            } catch (e) {
+              console.log('Code Error in scheduleInitialUpdatedMetadataRequest', e);
+            }
+
+
+            return this.scheduleInitialUpdatedMetadataRequest717();
+          }
+        }
+
+
+      });
 
       FIX_avoid_incorrect_video_meta_bool && promiseForYtActionCalled.then((ytAppDom) => {
         let dummy;
@@ -4984,36 +5354,247 @@
           //   console.log(123401, arguments);
           //   return this.handleServiceRequest717_(a, b, c, d);
           // }
+
+          // cProto.handleServiceRequest717_ = cProto.handleServiceRequest_;
+
+          // cProto.handleServiceRequest_ = function(a,b,c,d){
+          //   console.log(59901, a?.is, b?.updatedMetadataEndpoint?.videoId, c?.continuation)
+          //   if(a?.is === 'ytd-video-primary-info-renderer' && b?.updatedMetadataEndpoint?.videoId && c?.continuation && typeof c?.continuation ==='string'){
+          //     console.log('mfv', c.continuation);
+          //     mfv.add( c.continuation);
+          //   }
+          //   return this.handleServiceRequest717_(a,b,c,d);
+          // }
+
+          function extraArguments322(a, b, c) {
+            let is = (a || 0).is;
+            let videoId = ((b || 0).updatedMetadataEndpoint || 0).videoId;
+            let continuation = (c || 0).continuation;
+            if (typeof is !== 'string') is = null;
+            if (typeof videoId !== 'string') videoId = null;
+            if (typeof continuation !== 'string') continuation = null;
+            return { is, videoId, continuation };
+          }
+
           cProto.sendServiceAjax717_ = cProto.sendServiceAjax_;
           cProto.sendServiceAjax_ = function (a, b, c, d) {
-            if (b && b.updatedMetadataEndpoint && typeof b.updatedMetadataEndpoint.videoId === 'string') {
-              if (!pageSetupVideoId) return;
-              if (b.updatedMetadataEndpoint.videoId !== pageSetupVideoId) {
-                return;
+
+            // console.log(8001)
+            try {
+
+              const { is, videoId, continuation } = extraArguments322(a, b, c);
+
+              if ((videoId || continuation) && (is !== 'ytd-video-primary-info-renderer')) {
+                console.warn("CAUTION: sendServiceAjax_ coding might have to be updated.");
               }
+
+              if (pageSetupVideoId && videoId && continuation) {
+                if (mpKey21 && mpUrl21 && mpKey21 === continuation && mpUrl21 !== pageSetupVideoId) {
+                  mfyContinuationIgnored.removeAdd(continuation);
+                  mfvContinuationRecorded.delete(continuation);
+                  return;
+                }
+              }
+
+              if (mjtLockPreviousKey && mjtLockPreviousKey !== continuation && continuation) {
+                copyPreviousContiuationToIgnored374(false);
+                mfyContinuationIgnored.delete(continuation);
+                mfvContinuationRecorded.removeAdd(continuation);
+                mfyContinuationIgnored.removeAdd(mjtLockPreviousKey);
+                mfvContinuationRecorded.delete(mjtLockPreviousKey);
+                mjtLockPreviousKey = '';
+              }
+              // if (mjtNextMainKey === continuation) {
+              //   copyPreviousContiuationToIgnored(false);
+              //   mfyContinuationIgnored.delete(continuation);
+              //   mfvContinuationRecorded.add(continuation);
+              // }
+
+
+              if (mfyContinuationIgnored && continuation) {
+                if (mfyContinuationIgnored.has(continuation)) {
+                  continuationLog(continuation, '5260 matched01', continuation)
+                  return;
+                }
+              }
+
+              // console.log(59902, a?.is, b,c,d)
+              // console.log(59903, a?.is, b?.updatedMetadataEndpoint?.videoId, c?.continuation)
+              if (is === 'ytd-video-primary-info-renderer' && videoId && continuation && !mfvContinuationRecorded.has(continuation)) {
+                // console.log('mfv377', continuation);
+                mfvContinuationRecorded.add(continuation);
+              }
+
+              // if (videoId) {
+              //   if (!pageSetupVideoId) return; // ignore page not ready
+              //   // if (mtxVideoId && b.updatedMetadataEndpoint.videoId !== mtxVideoId) return; // ignore videoID not matched
+              //   if (videoId !== pageSetupVideoId) {
+              //     return;
+              //   }
+              // }
+
+            } catch (e) {
+              console.log('Coding Error in sendServiceAjax_', e)
             }
+            // console.log(8002)
             // console.log(123402, arguments);
+            // console.log(5162, 'a',a?.is,'b',b,'c',c,'d',d);
+
+            // console.log(5211, b?.updatedMetadataEndpoint?.kdkw33);
+            // if(b &&b.updatedMetadataEndpoint && !b.updatedMetadataEndpoint.kdkw33){
+            //   b.updatedMetadataEndpoint = new Proxy(b.updatedMetadataEndpoint, {
+            //     get(target, prop, receiver){
+            //       console.log('xxs99', target.videoId, mtx)
+            //       if(prop ==='kdkw33') return 1;
+            //       console.log(3322, prop, target)
+            //       if(prop === 'initialDelayMs') {
+            //         throw new Error("ABCC");
+            //       }
+            //       return target[prop];
+            //     },
+            //     set(target, prop, value, receiver){
+
+            //       if(prop ==='kdkw33') return true;
+            //       target[prop]=value;
+            //       return true;
+            //     }
+            //   });
+            // }
+            // console.log(5533, b?.updatedMetadataEndpoint?.kdkw33)
             return this.sendServiceAjax717_(a, b, c, d);
           }
         }
 
+        function delayClearOtherKeys(lztContinuation) {
+          // // schedule delayed removal if mfyContinuationIgnored is not empty
+          // getRafPromise().then(() => {
+          //   // assume the repeat continuation could be only for popstate which is triggered by user interaction
+          //   // foreground page only
+
+          // });
+
+
+          if (lztContinuation !== mtzlastAllowedContinuation) return;
+          if (lztContinuation !== mpKey21 || lztContinuation !== mpKey22) return;
+          if (!mfyContinuationIgnored.size) return;
+          if (mfyContinuationIgnored.size > 1) {
+            continuationLog(lztContinuation, 'delayClearOtherKeys, current = ', lztContinuation);
+          }
+          mfyContinuationIgnored.forEach((value, key) => {
+            if (key !== lztContinuation) {
+              mfyContinuationIgnored.delete(key);
+              continuationLog(key, 'previous continuation removed from ignored store', key);
+            }
+          });
+
+        }
         if (typeof cProto.getCancellableNetworkPromise_ === 'function' && cProto.getCancellableNetworkPromise_.length === 5 && !cProto.getCancellableNetworkPromise717_) {
           cProto.getCancellableNetworkPromise717_ = cProto.getCancellableNetworkPromise_;
           cProto.getCancellableNetworkPromise_ = function (a, b, c, d, e) {
-            if (c && c.updatedMetadataEndpoint && typeof c.updatedMetadataEndpoint.videoId === 'string') {
-              if (!pageSetupVideoId) return;
-              if (c.updatedMetadataEndpoint.videoId !== pageSetupVideoId) {
-                return;
+
+            // console.log(8003)
+            try {
+
+
+              const { is, videoId, continuation } = extraArguments322(b, c, d);
+
+              if ((videoId || continuation) && (is !== 'ytd-video-primary-info-renderer')) {
+                console.warn("CAUTION: getCancellableNetworkPromise_ coding might have to be updated.");
               }
+
+              if (pageSetupVideoId && videoId && continuation) {
+                if (mpKey21 && mpUrl21 && mpKey21 === continuation && mpUrl21 !== pageSetupVideoId) {
+                  mfyContinuationIgnored.removeAdd(continuation);
+                  mfvContinuationRecorded.delete(continuation);
+                  return;
+                }
+              }
+
+              if (mjtLockPreviousKey && mjtLockPreviousKey !== continuation && continuation) {
+                copyPreviousContiuationToIgnored374(false);
+                mfyContinuationIgnored.delete(continuation);
+                mfvContinuationRecorded.removeAdd(continuation);
+                mfyContinuationIgnored.removeAdd(mjtLockPreviousKey);
+                mfvContinuationRecorded.delete(mjtLockPreviousKey);
+                mjtLockPreviousKey = '';
+              }
+
+              // if (mjtNextMainKey === continuation) {
+              //   copyPreviousContiuationToIgnored(false);
+              //   mfyContinuationIgnored.delete(continuation);
+              //   mfvContinuationRecorded.add(continuation);
+              // }
+
+              const lztContinuation = continuation;
+
+              if (mfyContinuationIgnored && lztContinuation && typeof lztContinuation === 'string') {
+                if (mfyContinuationIgnored.has(lztContinuation)) {
+                  continuationLog(lztContinuation, '5360 matched02', lztContinuation)
+                  return;
+                }
+              }
+
+              // if (videoId) {
+              //   if (!pageSetupVideoId) return; // ignore page not ready
+              //   // if (mtxVideoId && c.updatedMetadataEndpoint.videoId !== mtxVideoId) return; // ignore videoID not matched
+              //   if (videoId !== pageSetupVideoId) {
+              //     return;
+              //   }
+              // }
+
+              if (typeof lztContinuation === 'string' && mtzlastAllowedContinuation !== lztContinuation) {
+                mtzlastAllowedContinuation = lztContinuation;
+                // console.log(70401, lztContinuation, mfyContinuationIgnored.size)
+
+                continuationLog(lztContinuation, '5382 Continuation sets to\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
+                mjtRecordedPrevKey = lztContinuation;
+                if (mjtLockPreviousKey === lztContinuation) mjtLockPreviousKey = '';
+                // if (mfyContinuationIgnored.size > 0) {
+                //   delayClearOtherKeys(lztContinuation);
+                // }
+                mtzCount = 0;
+                // allowNoDelay322 = false;
+              } else if (typeof lztContinuation === 'string' && mtzlastAllowedContinuation && mtzlastAllowedContinuation === lztContinuation) {
+                // repeated
+                if (mtzCount > 1e9) mtzCount = 1e4;
+                ++mtzCount;
+                continuationLog(lztContinuation, '5386 Same Continuation\t\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
+
+                // if (mtzCount >= 3) allowNoDelay322 = true;
+                if (mtzCount >= 3 && mfyContinuationIgnored.size > 0) {
+                  Promise.resolve(lztContinuation).then(delayClearOtherKeys).catch(console.warn);
+                }
+                if (mtzCount === 5) {
+                  mfvContinuationRecorded.clear();
+                  mfvContinuationRecorded.add(lztContinuation);
+                }
+
+              }
+
+              if (typeof lztContinuation === 'string' && lztContinuation && (pageSetupVideoId || videoPlayingY.videoId) ) {
+                mpKey22 = lztContinuation;
+                mpUrl22 = pageSetupVideoId || videoPlayingY.videoId;
+              }
+
+              if (mbCId322) {
+                clearTimeout(mbCId322);
+                mbCId322 = 0;
+              }
+            } catch (e) {
+              console.log('Coding Error in getCancellableNetworkPromise_', e)
             }
+
+            // console.log(8004)
             // console.log(123403, arguments);
             // if(c.updatedMetadataEndpoint) console.log(123404, pageSetupVideoId, JSON.stringify(c.updatedMetadataEndpoint))
+
+            // console.log(5163, a?.is,b,c,d,e);
             return this.getCancellableNetworkPromise717_(a, b, c, d, e);
           }
         }
       });
 
-      // ------------------- FIX_avoid_incorrect_video_meta -------------------
+      // ==================================== FIX_avoid_incorrect_video_meta ====================================
 
 
       FIX_ytdExpander_childrenChanged && customElements.whenDefined('ytd-expander').then(() => {
@@ -5211,9 +5792,6 @@
     console.groupEnd();
 
   }
-
-
-
 
 
 
