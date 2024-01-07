@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.40
+// @version             0.60.41
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -175,6 +175,9 @@
   const FASTER_ICON_RENDERING = true;
 
   const DELAY_FOCUSEDCHANGED = true;
+
+  const skipErrorForhandleAddChatItemAction_ = true; // currently depends on ENABLE_NO_SMOOTH_TRANSFORM
+  const fixChildrenIssue801 = true; // if __children801__ is set [fix polymer controller method extration for `.set()`]
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -2409,6 +2412,87 @@
     const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
 
+    const fixChildrenIssue = !!fixChildrenIssue801;
+    if (fixChildrenIssue && typeof Object.getOwnPropertyDescriptor === 'function' && typeof Proxy !== 'undefined') {
+      const divProto = HTMLDivElement.prototype;
+      const polymerControllerSetData3 = function (c, d, e) {
+        return insp(this).set(c, d, e);
+      }
+      const polymerControllerSetData2 = function (c, d) {
+        return insp(this).set(c, d);
+      }
+      const dummyFn = function () {
+        console.log('dummyFn', ...arguments);
+      };
+
+      const wm44 = new Map();
+      function unPolymerSet(elem) {
+        const is = elem.is;
+        if (is && !elem.set) {
+          let rt = wm44.get(is);
+          if (!rt) {
+            rt = 1;
+            const cnt = insp(elem);
+            if (cnt !== elem && cnt && typeof cnt.set === 'function') {
+              const pcSet = cnt.constructor.prototype.set;
+              if (pcSet && typeof pcSet === 'function' && pcSet.length === 3) {
+                rt = polymerControllerSetData3;
+              } else if (pcSet && typeof pcSet === 'function' && pcSet.length === 2) {
+                rt = polymerControllerSetData2;
+              }
+            }
+            wm44.set(is, rt);
+          }
+          if (typeof rt === 'function') {
+            elem.set = rt;
+          } else {
+            elem.set = dummyFn;
+          }
+        }
+      }
+      if (!divProto.__children577__ && !divProto.__children578__) {
+
+        const dp = Object.getOwnPropertyDescriptor(Element.prototype, 'children');
+        const dp2 = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'children');
+        const dp3 = Object.getOwnPropertyDescriptor(divProto, 'children');
+
+        if (dp && dp.configurable === true && dp.enumerable === true && typeof dp.get === 'function' && !dp2 && !dp3) {
+
+          if (divProto instanceof HTMLElement && divProto instanceof Element) {
+
+            let m = Object.assign({}, dp);
+            divProto.__children577__ = dp.get;
+            divProto.__children578__ = function () {
+              if (this.__children803__) return this.__children803__;
+              if (this.__children801__) {
+                let arr = [];
+                for (let elem = this.firstElementChild; elem !== null; elem = elem.nextElementSibling) {
+                  if (elem.is) {
+                    unPolymerSet(elem);
+                    arr.push(elem);
+                  }
+                }
+                if (this.__children801__ === 2) this.__children803__ = arr;
+                return arr;
+              }
+              return 577;
+            };
+            m.get = function () {
+              const r = this.__children578__();
+              if (r !== 577) return r;
+              return this.__children577__();
+            };
+            Object.defineProperty(divProto, 'children', m);
+
+            console.log('fixChildrenIssue - set OK')
+
+          }
+        }
+
+      }
+
+
+    }
 
 
     const bnForDelayChatOccurrence = () => {
@@ -4408,6 +4492,53 @@
           console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
         }
 
+        if (typeof mclp.forEachItem_ === 'function' && !mclp.forEachItem66_ && skipErrorForhandleAddChatItemAction_ && mclp.forEachItem_.length === 1) {
+
+          mclp.forEachItem66_ = mclp.forEachItem_;
+          mclp.forEachItem_ = function (a) {
+
+            // ƒ (a){this.visibleItems.forEach(a.bind(this,"visibleItems"));this.activeItems_.forEach(a.bind(this,"activeItems_"))}
+
+            try {
+
+              let items801 = false;
+              if (typeof a === 'function') {
+                const items = this.items;
+                if (items instanceof HTMLDivElement) {
+                  const ev = this.visibleItems;
+                  const ea = this.activeItems_;
+                  if (ev && ea && ev.length >= 0 && ea.length >= 0) {
+                    items801 = items;
+                  }
+                }
+              }
+
+              if (items801) {
+                items801.__children801__ = 1;
+                const res = this.forEachItem66_(a);
+                items801.__children801__ = 0;
+                return res;
+              }
+
+            } catch (e) { }
+            return this.forEachItem66_(a);
+
+
+            // this.visibleItems.forEach((val, idx, arr)=>{
+            //   a.call(this, 'visibleItems', val, idx, arr);
+            // });
+
+            // this.activeItems_.forEach((val, idx, arr)=>{
+            //   a.call(this, 'activeItems_', val, idx, arr);
+            // });
+
+
+
+          }
+
+
+        }
+
         if (typeof mclp.handleAddChatItemAction_ === 'function' && !mclp.handleAddChatItemAction66_ && FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION && (EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL)) {
 
           mclp.handleAddChatItemAction66_ = mclp.handleAddChatItemAction_;
@@ -4418,7 +4549,21 @@
                 console.assert(arguments[0] === a);
               }
             } catch (e) { console.warn(e) }
-            return this.handleAddChatItemAction66_.apply(this, arguments);
+            let res;
+            if (skipErrorForhandleAddChatItemAction_) { // YouTube Native Engine Issue
+              try {
+                res = this.handleAddChatItemAction66_.apply(this, arguments);
+              } catch (e) {
+                if (e && (e.message || '').includes('.querySelector(')) {
+                  console.log("skipErrorForhandleAddChatItemAction_", e.message);
+                } else {
+                  throw e;
+                }
+              }
+            } else {
+              res = this.handleAddChatItemAction66_.apply(this, arguments);
+            }
+            return res;
           }
 
           if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
