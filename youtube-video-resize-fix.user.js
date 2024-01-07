@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.5
+// @version             0.4.6
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -281,6 +281,8 @@ SOFTWARE.
 
     (async function youTubeWPR() {
 
+      let checkPageVisibilityChanged = false;
+
       // A WeakSet to keep track of elements being monitored for mutations.
       const monitorWeakSet = new WeakSet();
 
@@ -399,6 +401,7 @@ SOFTWARE.
       // let renderId = 0;
       // Event handler function that triggers when the page finishes navigation or page data updates.
       let eventHandlerFunc = async (evt) => {
+        checkPageVisibilityChanged = true;
         timeout = Date.now() + 800;
         g(1);
         if (evt.type === 'yt-navigate-finish') {
@@ -454,6 +457,22 @@ SOFTWARE.
 
       // Event listener that triggers when page data is fetched.
       document.addEventListener("yt-page-data-fetched", actor, false);
+
+      // Update after visibility changed (looks like there are bugs due to inactive tab)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        if (checkPageVisibilityChanged) {
+          checkPageVisibilityChanged = false;
+          setTimeout(() => {
+            g(1);
+          }, 100);
+          requestAnimationFrame(() => {
+            g(1);
+          });
+        }
+      }, false);
+
+
     })();
 
   });
