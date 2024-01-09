@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.19.0.0
+// @version             1.19.1.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -497,7 +497,15 @@
                     let pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
                     // a newline char (\n) could be generated between nodes.
                     let search = pRequest.indexOf(pSelection);
-                    if (search >= 0 && search < (plainText.length / 2) + 1 && $.getNodeType(cSelection.anchorNode) === 3 && $.getNodeType(cSelection.focusNode) === 3) {
+                    let bool05 = search >= 0 && search < (plainText.length / 2) + 1;
+                    if (bool05) {
+                        let nodeType1 = $.getNodeType(cSelection.anchorNode);
+                        let nodeType2 = $.getNodeType(cSelection.focusNode);
+                        let test1 = nodeType1 === 3 && nodeType2 === 3;
+                        if (!test1) test1 = cSelection.anchorNode === cSelection.focusNode && nodeType1 === 1;
+                        bool05 = bool05 && test1;
+                    }
+                    if (bool05) {
                         callEventDefault = false;
                         log = ({
                             msg: "copy event - clipboardData replacement is NOT allowed as the text node(s) is/are selected.",
