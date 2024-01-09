@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.18.1.5
+// @version             1.19.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -14,15 +14,13 @@
 // @exclude             https://github.dev/*
 // @exclude             https://vscode.dev/*
 // @exclude             https://www.photopea.com/*
+// @exclude             https://www.google.com/maps/*
 // @exclude             https://docs.google.com/*
 // @exclude             https://drive.google.com/*
 // @exclude             https://mail.google.com/*
-// @exclude             https://www.google.com/maps/*
 // @exclude             https://www.dropbox.com/*
 // @exclude             https://outlook.live.com/mail/*
-// @exclude             https://www.photopea.com/*
 // @exclude             https://www.terabox.com/*
-// @exclude             https://codi.link/*
 // @exclude             https://leetcode.cn/*
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/selection-copier.png
 // @grant               GM_registerMenuCommand
@@ -119,8 +117,25 @@
 // @description:am    የቀኝ ጠቋሚውን ምቀይረህ ለማውረድ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ, ቅጥ ወይም የጽሁፍ መጻፊያውን ለመርዝ ያደረጉትን ማንኛውንም ማግኛት ሊያሳይ ይችላሉ. መልክዎ ከፍተኛ ስለሆነ: Alt አውታርክ ጽሁፍ መርዝ መርጃዎን.
 // @description:km    ដាក់អនុញ្ញាតឱ្យចុចត្រូវលើរបារអង្គចុចស្ដាប់, បិទ, ជ្រើសរើសអត្ថបទ, ម៉ឺនុយចុចស្ដាប់, ការចម្អិនអត្ថបទ, ការជ្រើសរើសអត្ថបទ, ចុចត្រូវលើរបាររូបភាព និងបន្ថែមមនុស្សពីអត្ថបទ: Alt កិច្ចការតម្រូវការចម្អិនអត្ថបទ។
 // ==/UserScript==
-(async function () {
+(async function (context) {
     'use strict';
+
+    const { console: console_ } = context
+
+    const console = new Proxy({}, {
+        get(target, prop) {
+            return target[prop] || console_[prop];
+        },
+        set(target, prop, value) {
+            target[prop] = value.bind(console_);
+            return true;
+        }
+    });
+
+    for (const k of ['log', 'debug', 'dir']) {
+        console[k] = console_[k];
+    }
+    console.log(console)
 
     const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 
@@ -146,6 +161,71 @@
 
     const SCRIPT_TAG = "Selection and Copying Restorer (Universal)";
     const $nil = () => { };
+
+
+    const getStorageSiteByPass = async () => {
+        await Promise.resolve(); // TODO
+        return {};
+    }
+
+    const siteByPassStored = (await getStorageSiteByPass()) || {};
+    const siteByPassDefault = {
+        "gm_remain_focus_on_mousedown": [
+            'https://codi.link'
+        ],
+        "gm_no_custom_context_menu": [
+            "https://www.youtube.com", "https://m.youtube.com",
+            "https://github.dev", "https://vscode.dev",
+            "https://www.photopea.com",
+            "https://www.google.com", "https://docs.google.com", "https://drive.google.com",
+            "https://www.dropbox.com", "https://www.terabox.com",
+            "https://outlook.live.com", "https://mail.yahoo.co.jp",
+        ]
+    };
+
+    // https://stackoverflow.com/questions/68488017/
+    let combine = function* (...iterators) {
+        for (let it of iterators) yield* it;
+    };
+
+    const $settings = (() => {
+
+        const siteByPassMem = {};
+        const keys = combine(Object.keys(siteByPassStored), Object.keys(siteByPassDefault))
+        for (const gmKey of keys) {
+            if (siteByPassMem[gmKey]) continue;
+            const store = siteByPassMem[gmKey] = new Set();
+            const defaultByPass = siteByPassDefault[gmKey];
+            if (defaultByPass && defaultByPass.length >= 1) {
+                for (const site of defaultByPass) {
+                    store.add(site);
+                }
+            }
+            const storage = siteByPassStored[gmKey];
+            if (storage && storage.length >= 1) {
+                for (const value of storage) {
+                    if (value.charAt(0) === '~') store.delete(value.substring(1));
+                    else store.add(value);
+                }
+            }
+        }
+
+        return new Proxy(siteByPassMem, {
+            get(target, prop) {
+                if (!$[prop]) return false;
+                const v = target[prop];
+                if (v) {
+                    if (v.has(location.origin)) return false;
+                }
+                return true;
+            },
+            set(target, prop, value) {
+                return false;
+            }
+        });
+
+
+    })(siteByPassStored);
 
     let focusNotAllowedUntil = 0;
 
@@ -192,6 +272,12 @@
         }
     }
 
+    function cloneRange() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return false;
+        const range = selection.getRangeAt(0);
+        return range.cloneRange();
+    }
 
     /* globals WeakRef:false */
 
@@ -245,6 +331,7 @@
         mAlert_UP: $nil, // dummy function in case alert replacement is not valid
 
 
+        gm_no_custom_context_menu: true,
         lpKeyPressing: false,
         lpKeyPressingPromise: Promise.resolve(),
 
@@ -254,6 +341,9 @@
         isStackCheckForFuncReplacer: false, // multi-line stack in FireFox
         isGlobalEventCheckForFuncReplacer: false,
         enableReturnValueReplacment: false, // set true by code
+
+        rangeOnKeyDown: null,
+        // rangeOnKeyUp: null,
 
         /** @readonly */
         eyEvts: ['keydown', 'keyup', 'copy', 'contextmenu', 'select', 'selectstart', 'dragstart', 'beforecopy'], // slope: throughout
@@ -317,7 +407,7 @@
                     if (typeof selfFunc !== 'function') return false;
                     if (selfFunc[$.ksFuncReplacerCounter] !== id) return false;
                     // if this is null or undefined, or this.onXXX is not this function
-                    if (ev.cancelable !== false && $.isDeactivePreventDefault(ev)) {
+                    if (ev.cancelable !== false && $.shouldDenyPreventDefault(ev)) {
                         if ($.isGlobalEventCheckForFuncReplacer === true) {
                             if (window.event !== ev) return false; // eslint-disable-line
                         }
@@ -380,53 +470,75 @@
 
             // ---- disable text replacement on plain text node(s) ----
 
-            let cSelection = getSelection();
-            if (!cSelection) return; // ?
-            let exactSelectionText = cSelection.toString();
-            let trimedSelectionText = exactSelectionText.trim();
-            if (exactSelectionText.length > 0 && exactSelectionText.length < plainText.length) {
-                let pSelection = trimedSelectionText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
-                let pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
-                // a newline char (\n) could be generated between nodes.
-                let search = pRequest.indexOf(pSelection);
-                if (search >= 0 && search < (plainText.length / 2) + 1 && $.getNodeType(cSelection.anchorNode) === 3 && $.getNodeType(cSelection.focusNode) === 3) {
-                    console.log({
-                        msg: "copy event - clipboardData replacement is NOT allowed as the text node(s) is/are selected.",
+            const rangeOnKeyDown = $.rangeOnKeyDown || 0;
+            let isEditorLikeText = false; // TBC
+            if (typeof rangeOnKeyDown.compareBoundaryPoints === 'function') {
+                const range = cloneRange();
+                if (range) {
+                    // checking whether selection range remains the same (vs Ctrl-C)
+                    const isRangeUnchanged = rangeOnKeyDown.compareBoundaryPoints(Range.START_TO_END, range) === 0;
+                    if(isRangeUnchanged && range.collapsed){
+                        isEditorLikeText = true;
+                    }
+                }
+            }
+            let log = null;
+            let callEventDefault = true;
+            if (isEditorLikeText) {
+
+            } else {
+
+                let cSelection = getSelection();
+                if (!cSelection) return; // ?
+                let exactSelectionText = cSelection.toString();
+                let trimedSelectionText = exactSelectionText.trim();
+                if (exactSelectionText.length > 0 && exactSelectionText.length < plainText.length) {
+                    let pSelection = trimedSelectionText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                    let pRequest = plainText.replace(/[\r\n\t\b\x20\xA0\u200b\uFEFF\u3000]+/g, '');
+                    // a newline char (\n) could be generated between nodes.
+                    let search = pRequest.indexOf(pSelection);
+                    if (search >= 0 && search < (plainText.length / 2) + 1 && $.getNodeType(cSelection.anchorNode) === 3 && $.getNodeType(cSelection.focusNode) === 3) {
+                        callEventDefault = false;
+                        log = ({
+                            msg: "copy event - clipboardData replacement is NOT allowed as the text node(s) is/are selected.",
+                            oldText: trimedSelectionText,
+                            newText: plainText,
+                        });
+                        callEventDefault = false;
+                    }
+                }
+                if(!callEventDefault){
+
+                }else if (trimedSelectionText) {
+                    // there is replacement data and the selection is not empty
+                    log = ({
+                        msg: "copy event - clipboardData replacement is allowed and the selection is not empty",
                         oldText: trimedSelectionText,
                         newText: plainText,
-                    })
-                    return;
+                    });
+                } else {
+                    // there is replacement data and the selection is empty
+                    log = ({
+                        msg: "copy event - clipboardData replacement is allowed and the selection is empty",
+                        oldText: trimedSelectionText,
+                        newText: plainText,
+                    });
                 }
             }
 
-            // --- allow preventDefault for text replacement ---
-
-            $.bypass = true;
-            evt.preventDefault();
-            $.bypass = false;
+            if (callEventDefault) {
+                // --- allow preventDefault for text replacement ---
+                $.bypass = true;
+                evt.preventDefault();
+                $.bypass = false;
+            }
 
             // ---- message log ----
-
-
-            if (trimedSelectionText) {
-                // there is replacement data and the selection is not empty
-                console.log({
-                    msg: "copy event - clipboardData replacement is allowed and the selection is not empty",
-                    oldText: trimedSelectionText,
-                    newText: plainText,
-                })
-            } else {
-                // there is replacement data and the selection is empty
-                console.log({
-                    msg: "copy event - clipboardData replacement is allowed and the selection is empty",
-                    oldText: trimedSelectionText,
-                    newText: plainText,
-                })
-            }
+            log && console.log(log);
 
         },
 
-        isDeactivePreventDefault: function (evt) {
+        shouldDenyPreventDefault: function (evt) {
             if (!evt || $.bypass) return false;
             let j = $.eyEvts.indexOf(evt.type);
             const target = evt.target;
@@ -444,6 +556,8 @@
                     // if(evt.target.hasAttribute('draggable')&&evt.target!=window.getSelection().anchorNode)return false;
                     return true;
                 case 3: // contextmenu
+
+                    if (!$settings.gm_no_custom_context_menu) return false;
 
                     if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
                     if (isCustomContextMenuAllowed) return false;
@@ -470,7 +584,7 @@
                                 return $.gm_native_video_audio_contextmenu ? true : false;
 
                         }
-                        if (target.closest('ytd-player#ytd-player')) return false;
+                        // if (target.closest('ytd-player#ytd-player')) return false;
                         if ((target.textContent || "").trim().length === 0 && target.querySelector('video, audio')) {
                             return false; // exclude elements like video
                         }
@@ -488,6 +602,11 @@
 
                     if (isCustomContextMenuAllowed === null) isCustomContextMenuAllowed = isCustomContextMenuAllowedFn();
                     if (isCustomContextMenuAllowed) return false;
+
+                    if (!(target instanceof Node) && !(target instanceof Window) && !(target instanceof Document)) return false; // bypass unrecognized eventTargets
+                    if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) return false; // bypass input/textarea elements
+                    if (target instanceof HTMLElement && (target.closest('[contenteditable]'))) return false; // bypass [contenteditable] and its descendants
+                    if (target.parentNode instanceof HTMLElement && (target.parentNode.closest('[contenteditable]'))) return false; // bypass textNode under [contenteditable] and its descendants
 
                     if (!('clipboardData' in evt && 'setData' in DataTransfer.prototype)) return true; // Event oncopy not supporting clipboardData
                     if (evt.cancelable === false || evt.defaultPrevented === true) return true;
@@ -546,7 +665,7 @@
 
             Event.prototype.preventDefault = (function (f) {
                 function preventDefault() {
-                    if (this.cancelable !== false && !$.isDeactivePreventDefault(this)) f.call(this);
+                    if (this.cancelable !== false && !$.shouldDenyPreventDefault(this)) f.call(this);
                 }
                 preventDefault.toString = f.toString.bind(f);
                 return preventDefault;
@@ -1495,6 +1614,29 @@
         },
 
         /** @type {EventListener} */
+        copyRangeCheckKeyDown(evt) {
+
+            if (evt.isTrusted && (evt.key === 'Control' || evt.key === 'Meta')) {
+                if (!(getSelection() + "")) {
+                    $.rangeOnKeyDown = false;
+                    return;
+                }
+                $.rangeOnKeyDown = true
+            } else if (evt.isTrusted && ((evt.code === 'KeyC' && $.rangeOnKeyDown === true) || (evt.key === 'Copy'))) {
+                $.rangeOnKeyDown = cloneRange();
+            }
+
+        },
+
+        /** @type {EventListener} */
+        copyRangeCheckKeyUp(evt) {
+
+            if (evt.isTrusted && (evt.key === 'Control' || evt.key === 'Meta')) {
+                $.rangeOnKeyDown = false;
+            }
+        },
+
+        /** @type {EventListener} */
         genericEventHandlerLevel2: (evt) => {
             if ($.gm_absolute_mode) {
                 // inspired by https://greasyfork.org/en/scripts/23772-absolute-enable-right-click-copy
@@ -1504,6 +1646,12 @@
             // .. and more
 
             const evtType = (evt || 0).type
+
+            if (evtType === 'keydown') {
+                $.copyRangeCheckKeyDown(evt);
+            } else if (evtType === 'keyup') {
+                $.copyRangeCheckKeyUp(evt);
+            }
 
             if (evtType && $.enableReturnValueReplacment === true) {
                 // $.listenerDisableAll(evt);
@@ -1646,11 +1794,11 @@
 
     if (typeof originalFocusFn === 'function' && HTMLElement.prototype.focus === originalFocusFn && originalFocusFn.length === 0) {
         const f = HTMLElement.prototype.focus = function () {
-            if (focusNotAllowedUntil && $.gm_remain_focus_on_mousedown && focusNotAllowedUntil > Date.now()) return;
+            if (focusNotAllowedUntil && $settings.gm_remain_focus_on_mousedown && focusNotAllowedUntil > Date.now()) return;
             return originalFocusFn.apply(this, arguments);
         }
         f.toString = originalFocusFn.toString.bind(originalFocusFn);
     }
 
 
-})();
+})({ console });
