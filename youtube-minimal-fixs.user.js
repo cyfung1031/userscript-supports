@@ -261,17 +261,19 @@ SOFTWARE.
         if (!controlsInitialized) {
             controlsInitialized = true;
 
-
             let pb = document.querySelector('.player-controls-pb .ytm-progress-bar')
 
+            if (!pb) {
+                console.log("'.player-controls-pb .ytm-progress-bar' cannot be found");
+            } else {
 
+                pb.addEventListener('mouseup', eventHandlers.pbMouseUp, true)
 
-            pb.addEventListener('mouseup', eventHandlers.pbMouseUp, true)
+                elm.addEventListener('click', eventHandlers.backDropClick, true)
 
-            elm.addEventListener('click', eventHandlers.backDropClick, true)
+                document.addEventListener('keydown', eventHandlers.docKeyDown, true)
 
-
-            document.addEventListener('keydown', eventHandlers.docKeyDown, true)
+            }
 
         }
 
