@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.9.1
+// @version     0.9.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -194,6 +194,10 @@
   }
 
   if (FIX_XHR_REQUESTING) {
+
+    const URL = window.URL || new Function('return URL')();
+    const createObjectURL = URL.createObjectURL.bind(URL);
+
     XMLHttpRequest = (() => {
       const XMLHttpRequest_ = XMLHttpRequest;
       if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
