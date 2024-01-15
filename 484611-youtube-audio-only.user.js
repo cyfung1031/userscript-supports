@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.2
+// @version             1.1.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1261,6 +1261,11 @@
                 }
                 // console.log(a.paused)
                 // console.log(7710)
+
+                if(a.paused === true && a.muted === false && a.networkState === 2 && a.readyState === 0){
+                    if (typeof clickTarget.seekToStreamTime === 'function') clickTarget.seekToStreamTime();
+                    if (typeof clickTarget.seekToLiveHead === 'function') clickTarget.seekToLiveHead();
+                }
 
 
 
