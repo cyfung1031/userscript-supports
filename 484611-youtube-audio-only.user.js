@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.4
+// @version             1.1.5
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1675,7 +1675,9 @@
         .ytp-contextmenu .ytp-menuitem[role="menuitem"] path[d^="M22 34h4V22h-4v12zm2-30C12.95"]{
             animation: contextmenuInfoItemAppeared 1ms linear 0s 1 normal forwards;
        }
-        .with-audio-only-toggle-btn .ytp-contextmenu, .ytp-panel-menu, .ytp-panel {
+       .with-audio-only-toggle-btn .ytp-contextmenu,
+       .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel-menu,
+       .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel {
             height: 40vh !important;
        }
         #confirmDialog794 {
