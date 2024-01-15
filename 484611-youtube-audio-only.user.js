@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.1
+// @version             1.1.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -765,6 +765,7 @@
                                         await delayPn(60);
                                         // await player_.seekToLiveHead(); await delayPn(9);
                                         await player_.seekToStreamTime();
+                                        await player_.seekToLiveHead();
                                         await delayPn(60);
                                     }
                                     while (audio.readyState === 0) {
@@ -776,6 +777,7 @@
                                         await delayPn(60);
                                         // await player_.seekToLiveHead(); await delayPn(9);
                                         await player_.seekToStreamTime();
+                                        await player_.seekToLiveHead();
                                         await delayPn(60);
                                     }
                                 }
