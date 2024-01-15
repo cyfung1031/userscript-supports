@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.3
+// @version             1.1.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -260,16 +260,16 @@
 
         // XMLHttpRequest.prototype.open299 = XMLHttpRequest.prototype.open;
         /*
-    
+
         XMLHttpRequest.prototype.open2 = function(method, url, ...args){
-    
+
               if (typeof url === 'string' && url.length > 24 && url.includes('/videoplayback?') && url.replace('?', '&').includes('&source=')) {
                 if (vcc !== vdd) {
                   vdd = vcc;
                   window.postMessage({ ZECxh: url.includes('source=yt_live_broadcast') }, "*");
                 }
               }
-    
+
           return this.open299(method, url, ...args)
         }*/
 
@@ -326,17 +326,17 @@
             /*
                   Object.defineProperty(Object.prototype, 'videoTrack', {
                     get(){
-            
+
                       return this[s2] || this.audioTrack;
                     },
                     set(nv){
                       this[s2]= nv;
                       return true;
-            
+
                     },
                     enumerable: false,
                     configurable: true
-            
+
                   });
                   */
 
@@ -421,15 +421,15 @@
                 }
 
                 /*
-        
+
                 if(evt ==='player-state-change' || evt == "player-autonav-pause" || evt === "video-data-change" || evt === "state-navigatestart"){
-        
+
                   hn = function(){
-        
+
                     let e = arguments[0];
                     if(e){
                     console.log(213, e.type, e.detail);
-        
+
                     }
                     return fn.apply(this,  arguments)
                   }
@@ -442,14 +442,14 @@
 
             /*
             const XMLHttpRequest_ = XMLHttpRequest;
-      
+
             (() => {
               XMLHttpRequest = class XMLHttpRequest extends XMLHttpRequest_ {
                 constructor(...args) {
                   super(...args);
                 }
                 open(method, url, ...args) {
-      
+
                   if (typeof url === 'string' && url.length > 24 && url.includes('/videoplayback?') && url.replace('?', '&').includes('&source=')) {
                     if (vcc !== vdd) {
                       vdd = vcc;
@@ -751,8 +751,11 @@
                             // }
                             // pw = new PromiseExternal();
 
-                            let ns23 = audio.networkState == 2 || audio.networkState == 3
-                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
+                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
+                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+                                await player_.seekToStreamTime();
+                                await player_.seekToLiveHead();
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
 
                                 // console.log(1201)
                                 await delayPn(60);
@@ -769,8 +772,8 @@
                                         await delayPn(60);
                                     }
                                     while (audio.readyState === 0) {
-                                        await player_.cancelPlayback();  
-                                        await player_.pauseVideo();  
+                                        await player_.cancelPlayback();
+                                        await player_.pauseVideo();
                                         await player_.playVideo(); await delayPn(60);
                                     }
                                     if (!player_.isAtLiveHead()) {
@@ -937,7 +940,124 @@
 
         } else if (location.origin === 'https://m.youtube.com') {
 
+            // let pw = null;
+            (async () => {
+                try {
+                    let player_;
+                    let elm;
+                    const asyncStateChange = async (audio, k) => {
+                        try {
+                            if(!player_ || !elm || typeof player_.getPlayerState !=='function') return;
+                            // console.log(292, !!pw, k===-1, player_.getPlayerState()  == -1);
+                            // if (pw) {
+                            //     pw.resolve();
+                            // }
+                            // pw = new PromiseExternal();
 
+                            let ns23 = audio.networkState == 2 || audio.networkState == 3
+                            console.log(127001, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
+
+                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+                                await player_.seekToStreamTime();
+                                await player_.seekToLiveHead();
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+
+                                // console.log(1201)
+                                await delayPn(60);
+                                // console.log(1202, player_.getPlayerState() ,  audio.readyState , ns23, audio.paused === false, audio.muted === false)
+
+                                console.log(127002, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
+                                    // pw = pw || new PromiseExternal();
+                                    // const pw0 = pw;
+
+                                    console.log(127003)
+                                    if (!player_.isAtLiveHead()) {
+                                        await delayPn(60);
+                                        // await player_.seekToLiveHead(); await delayPn(9);
+                                        await player_.seekToStreamTime();
+                                        await player_.seekToLiveHead();
+                                        await delayPn(60);
+                                    }
+
+                                    console.log(127004, audio.readyState)
+                                    while (audio.readyState === 0) {
+                                        await player_.cancelPlayback();
+                                        await player_.pauseVideo();
+                                        await player_.playVideo(); await delayPn(60);
+                                    }
+                                    console.log(127005, audio.readyState)
+                                    if (!player_.isAtLiveHead()) {
+                                        await delayPn(60);
+                                        // await player_.seekToLiveHead(); await delayPn(9);
+                                        await player_.seekToStreamTime();
+                                        await player_.seekToLiveHead();
+                                        await delayPn(60);
+                                    }
+                                    console.log(127006, audio.readyState)
+
+                                }
+
+                            }
+
+                        } catch (e) {
+                            console.log(e)
+                        }
+
+                    };
+
+                    // console.log(299, player_)
+                    let qz = (e) => {
+                        try {
+
+                            if (e && (e || 0).target) {
+                                elm = player_ = e.target
+                            }
+                            if (!elm || !player_) return;
+                            let k = -2;
+                            if (e && e.detail && e.detail.state) {
+                                k = e.detail.state
+                            }
+                            if (typeof player_.getPlayerState === 'function' && k >= 0 && k === player_.getPlayerState()) {
+                                const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
+                                if (audio) asyncStateChange(audio, k);
+                            }
+                        } catch (e) {
+                            console.log(e)
+                        }
+                    };
+
+                    document.addEventListener('player-state-change', qz, true);
+                    // const state0 = player_.getPlayerState();
+                    // if (typeof state0 === 'number') {
+                    //     qz({ type: 'player-state-change', target: player_, detail: { state: state0 } });
+                    // }
+
+                    document.addEventListener('video-progress', (e) => {
+
+                        if (e && (e || 0).target) {
+
+                            elm = player_ = e.target
+                        }
+                        if (!elm || !player_) return;
+                        Promise.resolve().then(() => {
+                            if(player_ && typeof  player_.updateLastActiveTime === 'function'){
+                                player_.updateLastActiveTime();
+                            }
+                        });
+                    }, true);
+
+
+
+
+                    return player_;
+
+
+                } catch (e) {
+                    console.log(e)
+                }
+
+            })();
 
 
             //       document.addEventListener('DOMContentLoaded', (evt) => {
