@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.6
+// @version             1.1.7
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1668,6 +1668,7 @@
        .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel-menu,
        .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel {
             height: 40vh !important;
+            min-height: 36rem !important;
        }
         #confirmDialog794 {
             z-index:999999 !important;
