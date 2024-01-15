@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.9.2
+// @version     0.9.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -57,7 +57,7 @@
   // << end >>
 
   const FIX_perfNow = true;
-  const ENABLE_ASYNC_DISPATCHEVENT = true;
+  const ENABLE_ASYNC_DISPATCHEVENT = false; // problematic
 
   const UNLOAD_DETACHED_POLYMER = false; // unstable
 
