@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.6
+// @version             0.4.7
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -147,7 +147,7 @@ SOFTWARE.
         if (!location.href.startsWith('https://www.youtube.com/watch')) return;
 
         elements.ytdFlexy = document.querySelector('ytd-watch-flexy');
-        elements.video = document.querySelector('ytd-watch-flexy #movie_player video');
+        elements.video = document.querySelector('ytd-watch-flexy #movie_player video, ytd-watch-flexy #movie_player audio.video-stream.html5-main-video');
         if (elements.ytdFlexy && elements.video) { } else return;
         elements.moviePlayer = elements.video.closest('#movie_player');
         if (!elements.moviePlayer) return;
