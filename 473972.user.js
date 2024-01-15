@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.9.0
+// @version     0.9.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -66,6 +66,7 @@
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
 
+  const FIX_XHR_REQUESTING = true;
 
 
   /*
@@ -190,6 +191,58 @@
       }
       return this.dispatchEvent938(event);
     }
+  }
+
+  if (FIX_XHR_REQUESTING) {
+    XMLHttpRequest = (() => {
+      const XMLHttpRequest_ = XMLHttpRequest;
+      if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
+      const url0 = createObjectURL(new Blob([], { type: 'text/plain' }));
+      const c = class XMLHttpRequest extends XMLHttpRequest_ {
+        constructor(...args) {
+          super(...args);
+        }
+        open(method, url, ...args) {
+          let skip = false;
+          if (!url || typeof url !== 'string') skip = true;
+          else if (typeof url === 'string') {
+            let turl = url[0] === '/' ? `.youtube.com${url}` : `${url}`;
+            if (turl.includes('googleads') || turl.includes('doubleclick.net')) {
+              skip = true;
+            } else if (turl.includes('.youtube.com/pagead/')) {
+              skip = true;
+            } else if (turl.includes('.youtube.com/ptracking')) {
+              skip = true;
+            } else if (turl.includes('.youtube.com/api/stats/')) { // /api/stats/
+              skip = true;
+            } else if (turl.includes('play.google.com/log')) {
+              skip = true;
+            } else if (turl.includes('.youtube.com//?')) { // //?cpn=
+              skip = true;
+            }
+          }
+          if (!skip) {
+            this.__xmMc8__ = 1;
+            return super.open(method, url, ...args);
+          } else {
+            this.__xmMc8__ = 2;
+            return super.open('GET', url0);
+          }
+        }
+        send(...args) {
+          if (this.__xmMc8__ === 1) {
+            return super.send(...args);
+          } else if (this.__xmMc8__ === 2) {
+            return super.send();
+          } else {
+            console.log('xhr warning');
+            return super.send(...args);
+          }
+        }
+      }
+      c.prototype.__xmMc8__ = 0;
+      return c;
+    })();
   }
 
 
