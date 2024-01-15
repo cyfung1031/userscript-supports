@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.5
+// @version             1.1.6
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -216,7 +216,7 @@
 
         let u33 = null;
         let fa = 0;
-        let maj = 0;
+        // let maj = 0;
 
         let cv = null;
         document.addEventListener('durationchange', (evt) => {
@@ -467,30 +467,21 @@
 
         (() => {
 
-
             XMLHttpRequest = (() => {
-
                 const XMLHttpRequest_ = XMLHttpRequest;
-
-                if (XMLHttpRequest_.i9bnj) return XMLHttpRequest_;
-
+                if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
                 const url0 = createObjectURL(new Blob([], { type: 'text/plain' }));
-
-                return class XMLHttpRequest extends XMLHttpRequest_ {
+                const c = class XMLHttpRequest extends XMLHttpRequest_ {
                     constructor(...args) {
                         super(...args);
                     }
                     open(method, url, ...args) {
                         let skip = false;
-
                         if (!url || typeof url !== 'string') skip = true;
-
-                        if (typeof url === 'string') {
+                        else if (typeof url === 'string') {
                             let turl = url[0] === '/' ? `.youtube.com${url}` : `${url}`;
                             if (turl.includes('googleads') || turl.includes('doubleclick.net')) {
                                 skip = true;
-                                // } else if (turl.includes('.youtube.com/generate_204')) {
-                                // skip = true;
                             } else if (turl.includes('.youtube.com/pagead/')) {
                                 skip = true;
                             } else if (turl.includes('.youtube.com/ptracking')) {
@@ -503,35 +494,33 @@
                                 skip = true;
                             }
                         }
-                        // if(typeof method =='string'&& method.toUpperCase() ==='GET' && skip) skip = true;
-                        // else skip = false;
                         if (!skip) {
-                            // console.log(322, url)
                             this.__xmMc8__ = 1;
-                            super.open(method, url, ...args);
+                            return super.open(method, url, ...args);
                         } else {
                             this.__xmMc8__ = 2;
-                            super.open('GET', url0);
+                            return super.open('GET', url0);
                         }
                     }
                     send(...args) {
                         if (this.__xmMc8__ === 1) {
-                            super.send(...args);
+                            return super.send(...args);
                         } else if (this.__xmMc8__ === 2) {
-                            super.send();
+                            return super.send();
+                        } else {
+                            console.log('xhr warning');
+                            return super.send(...args);
                         }
-
                     }
                 }
-
+                c.prototype.__xmMc8__ = 0;
+                return c;
             })();
-            XMLHttpRequest.i9bnj = 1;
-
+              
             const s7 = Symbol();
             const f7 = () => true;
 
-
-            !Object.canRetry9048 && generalRegister('canRetry', s7, (p) => {
+            !window.canRetry9048 && generalRegister('canRetry', s7, (p) => {
                 return typeof p.onStateChange === 'function' && typeof p.dispose === 'function' && typeof p.hide === 'undefined' && typeof p.show === 'undefined' && typeof p.isComplete === 'undefined' && typeof p.getDuration === 'undefined'
             }, {
 
@@ -561,7 +550,7 @@
                 configurable: true
 
             });
-            Object.canRetry9048 = 1;
+            window.canRetry9048 = 1;
 
             // const addProtoToArr = (parent, key, arr) => {
 
@@ -1109,7 +1098,7 @@
                 }
 
 
-                maj = 0;
+                // maj = 0;
 
                 // console.log(5910)
                 try {
@@ -1134,13 +1123,13 @@
 
                             }).then();
 
-                            maj = 0;
+                            // maj = 0;
                             clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
                             await delayPn(1);
                             // if(fa!==1) return;
 
                             if (a.muted === false && a.__spfgs__ !== true && a.paused === true && a.networkState === 0 && a.readyState === 0) {
-                                maj = 0;
+                                // maj = 0;
                                 clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
                                 await delayPn(1);
                                 // if(fa!==1) return;
@@ -1375,7 +1364,7 @@
 
                 if (a.paused === true && a.muted === false && a.readyState === 0 && a.networkState === 2) {
 
-                    maj = 0;
+                    // maj = 0;
                     clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
 
                 }
