@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.0.0
+// @version             1.1.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -92,20 +92,20 @@
         /** @type {globalThis.PromiseConstructor} */
         const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-        // const PromiseExternal = ((resolve_, reject_) => {
-        //   const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
-        //   return class PromiseExternal extends Promise {
-        //     constructor(cb = h) {
-        //       super(cb);
-        //       if (cb === h) {
-        //         /** @type {(value: any) => void} */
-        //         this.resolve = resolve_;
-        //         /** @type {(reason?: any) => void} */
-        //         this.reject = reject_;
-        //       }
-        //     }
-        //   };
-        // })();
+        const PromiseExternal = ((resolve_, reject_) => {
+            const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+            return class PromiseExternal extends Promise {
+                constructor(cb = h) {
+                    super(cb);
+                    if (cb === h) {
+                        /** @type {(value: any) => void} */
+                        this.resolve = resolve_;
+                        /** @type {(reason?: any) => void} */
+                        this.reject = reject_;
+                    }
+                }
+            };
+        })();
 
 
 
@@ -601,7 +601,7 @@
 
             //     const p = typeof v === 'function' ? v.prototype : 0;
             //     if (p
-            //       // && typeof p.canRetry === 'function' 
+            //       // && typeof p.canRetry === 'function'
             //       // && typeof p.dispose === 'function'
             //       && typeof p.onStateChange === 'function'
 
@@ -637,7 +637,7 @@
 
             //       if (typeof v === 'function'
             //       //  && typeof v.prototype.canRetry === 'function'
-            //         // && typeof v.prototype.dispose === 'function' 
+            //         // && typeof v.prototype.dispose === 'function'
             //          && typeof v.prototype.onStateChange === 'function'
 
 
@@ -655,21 +655,21 @@
 
         })();
 
-        // const waitFor = (checker, ms)=>{
+        // const waitFor = (checker, ms) => {
 
-        //   return new Promise(resolve=>{
+        //     return new Promise(resolve => {
 
-        //     let cid = setInterval(() => {
-        //       if(!cid) return;
-        //       let r = checker();
-        //       if (r) {
-        //         clearInterval(cid);
-        //         cid = 0;
-        //         resolve(r);
-        //       }
-        //     }, ms);
+        //         let cid = setInterval(() => {
+        //             if (!cid) return;
+        //             let r = checker();
+        //             if (r) {
+        //                 clearInterval(cid);
+        //                 cid = 0;
+        //                 resolve(r);
+        //             }
+        //         }, ms);
 
-        //   }).catch(console.warn)
+        //     }).catch(console.warn)
 
         // };
 
@@ -737,46 +737,99 @@
             }));
 
 
-            //     const playerAsyncControlled_ = (async ()=>{
-            // try{
+            let pw = null;
+            const playerAsyncControlled_ = (async () => {
+                try {
+                    const player_ = await playerAsync_.then();
+                    const elm = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
+                    if (!elm) return player_;
+                    const asyncStateChange = async (audio, k) => {
+                        try {
+                            // console.log(292, !!pw, k===-1, player_.getPlayerState()  == -1);
+                            if (pw) {
+                                pw.resolve();
+                            }
+                            pw = new PromiseExternal();
+
+                            let ns23 = audio.networkState == 2 || audio.networkState == 3
+                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
+
+                                // console.log(1201)
+                                await delayPn(96);
+                                // console.log(1202, player_.getPlayerState() ,  audio.readyState , ns23, audio.paused === false, audio.muted === false)
+
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
+                                    pw = pw || new PromiseExternal();
+                                    // const pw0 = pw;
+                                    if (!player_.isAtLiveHead()) {
+                                        await player_.seekToStreamTime(); await delayPn(9);
+                                    }
+                                    await player_.cancelPlayback(); await delayPn(9);
+                                    while (audio.readyState === 0) {
+                                        await player_.pauseVideo(); await delayPn(9);
+                                        await player_.playVideo(); await delayPn(9);
+                                        await player_.seekToStreamTime(); await delayPn(9);
+                                    }
+                                }
+
+                            }
+
+                        } catch (e) {
+                            console.log(e)
+                        }
+
+                    };
+
+
+                    // console.log(299, player_)
+                    let qz = (k) => {
+
+                        try {
+                            // console.log(7200, 'onStateChange', k, player_.getPlayerState() ) // -1 1
+
+                            const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
+                            if (audio) {
+
+                                // console.log(399,k,player_.getPlayerState() )
+
+                                if (k === player_.getPlayerState() && k>=0) {
+                                    asyncStateChange(audio, k)
+
+
+                                }
+                                // console.log(7209, audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f
+
+                            }
+
+
+                        } catch (e) {
+                            console.log(e)
+                        }
+
+                    }
+                    player_.addEventListener('onStateChange', qz);
+
+                    if (player_.getPlayerState() === 3) {
+                        qz(3);
+                    }
+
+                    player_.addEventListener('onVideoProgress', ()=>{
+                        Promise.resolve().then(()=>{
+                            player_.updateLastActiveTime();
+                        });
+                    });
 
 
 
-            //       const player_ = await playerAsync_.then();
+
+                    return player_;
 
 
+                } catch (e) {
+                    console.log(e)
+                }
 
-            //       // const elm = [...document.querySelectorAll('ytd-player')].filter(e=>!e.closest('[hidden]'))[0]
-            //       // if(!elm) return player_;
-
-
-            //         // player_.addEventListener('onStateChange',(k)=>{
-
-            //         //   try{
-            //         //   console.log(7200, 'onStateChange', k, player_.getPlayerState() ) // -1 1
-
-            //         //   const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
-            //         //   if(audio){
-
-            //         //     console.log(7209, audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f 
-
-            //         //   }
-
-            //         // }catch(e){
-            //         //   console.log(e)
-            //         // }
-
-            //         // });
-
-
-            //         return player_;
-
-
-            //       }catch(e){
-            //         console.log(e)
-            //       }
-
-            //     })();
+            })();
 
 
             // document.addEventListener('yt-navigate-finish', async () => {
@@ -836,19 +889,19 @@
             //   console.log('x03', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f
             //   // await new Promise(resolve => window.setTimeout(resolve, 1));
 
-            //   // console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f 
+            //   // console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f
             //   await player_.playVideo();
 
             //   await waitFor(() => {
             //     return audio.readyState === 1 && audio.networkState === 2 && !audio.paused && !audio.muted
             //   }, 9);
 
-            //   console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f 
+            //   console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f
 
             //   return;
             //   if (player_.getPlayerState() === 3) {
             //     const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
-            //     console.log('x01', audio.readyState, audio.networkState, audio.paused, audio.muted) //  0 2 f f 
+            //     console.log('x01', audio.readyState, audio.networkState, audio.paused, audio.muted) //  0 2 f f
             //     if (audio.__spfgs__ !== true) { // undefined or false
             //       u33 = new PromiseExternal();
             //       await u33.then();
@@ -857,7 +910,7 @@
             //       return audio.readyState === 1 && audio.networkState === 2 && !audio.paused && !audio.muted
             //     }, 9);
 
-            //     console.log('x02', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f 
+            //     console.log('x02', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f
             //     if (player_.getPlayerState() !== 3 || !audio.isConnected) return;
             //     if (audio && audio.__spfgs__ === true) {
             //       await player_.cancelPlayback();
@@ -869,14 +922,14 @@
             //       console.log('x03', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f
             //       // await new Promise(resolve => window.setTimeout(resolve, 1));
 
-            //       // console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f 
+            //       // console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 t f
             //       await player_.playVideo();
 
             //       await waitFor(() => {
             //         return audio.readyState === 1 && audio.networkState === 2 && !audio.paused && !audio.muted
             //       }, 9);
 
-            //       console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f 
+            //       console.log('x04', audio.readyState, audio.networkState, audio.paused, audio.muted) //  1 2 f f
 
             //     }
             //   }
@@ -1078,7 +1131,7 @@
             // }, true)
             // document.addEventListener('localmediachange', (evt) => {
             //   console.log(evt.type)
-            // }, true) 
+            // }, true)
 
 
 
@@ -1157,16 +1210,16 @@
             // }, true)
             // window.addEventListener('localmediachange', (evt) => {
             //   console.log(evt.type)
-            // }, true) 
+            // }, true)
 
 
 
             // document.addEventListener('player-error', (evt) => {
             //   console.log(3001, evt.type, evt)
-            // }, true) 
+            // }, true)
             // document.addEventListener('player-detailed-error', (evt) => {
             //   console.log(3002, evt.type, evt)
-            // }, true) 
+            // }, true)
 
 
 
