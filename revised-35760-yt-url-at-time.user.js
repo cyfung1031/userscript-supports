@@ -28,13 +28,13 @@ var video = {
   },
 
   get _timehash() {
-    var secs = this.element.currentTime;
+    var secs = Math.floor(this.element.currentTime);
     return [(h = ~~(secs / 3600)) && h + 'h' || null,
     (m = ~~(secs % 3600 / 60)) && m + 'm' || null,
     (s = ~~(secs % 3600 % 60)) && s + 's'].join('');
   },
   get _plaintimehash() {
-    return this.element.currentTime;
+    return Math.floor(this.element.currentTime);
   },
 
   // get timehash() {
