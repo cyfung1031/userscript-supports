@@ -23,18 +23,19 @@
 
 // `video` element utility
 var video = {
-  get element() {
-    return document.querySelector('#movie_player video');
+  get currentTime() {
+    const element = document.querySelector('#movie_player video, #movie_player audio.video-stream.html5-main-video');
+    return Math.floor(element.currentTime);
   },
 
   get _timehash() {
-    var secs = Math.floor(this.element.currentTime);
+    var secs = this.currentTime || 0;
     return [(h = ~~(secs / 3600)) && h + 'h' || null,
     (m = ~~(secs % 3600 / 60)) && m + 'm' || null,
     (s = ~~(secs % 3600 % 60)) && s + 's'].join('');
   },
   get _plaintimehash() {
-    return Math.floor(this.element.currentTime);
+    return `${this.currentTime}`;
   },
 
   // get timehash() {
