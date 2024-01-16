@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.7
+// @version             1.1.8
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1642,6 +1642,11 @@
         const style = document.createElement('style');
         style.id = 'fm9v0';
         style.textContent = `
+
+        #movie_player ytp-iv-video-content {
+            pointer-events: none; /* allow clicking */
+        }
+
         @keyframes mobileMenuItemAppeared {
             0% {
                 background-position-x: 3px;
