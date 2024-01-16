@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.1.10
+// @version             1.2.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1647,7 +1647,7 @@
             pointer-events: none; // allow clicking
         } */
 
-        #movie_player > .html5-video-container {
+        #movie_player > .html5-video-container:not(:empty) {
             box-sizing: border-box;
             height: 100%;
         }
