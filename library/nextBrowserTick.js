@@ -47,9 +47,10 @@
     const messageString = `$$nextBrowserTick$$${uid}$$`
     global[messageString] = 1;
     const mfn = (event) => {
-        if (((event || 0).source || 0)[messageString]) {
-            var data = event.data;
-            if (data === messageString && promise) {
+        const data = promise !== null ? (event || 0).data : 0;
+        if (data === messageString) {
+            const { target, source } = event || {};
+            if (target && source === target) {
                 promise.resolve();
                 promise = null;
             }
