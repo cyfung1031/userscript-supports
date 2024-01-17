@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.9.3
+// @version     0.10.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -67,6 +67,7 @@
   // << end >>
 
   const FIX_XHR_REQUESTING = true;
+  const FIX_VIDEO_BLOCKING = true; // usually it is a ads block issue
 
 
   /*
@@ -94,6 +95,7 @@
 
 
   // const setImmediate = ((self || 0).jmt || 0).setImmediate;
+  /** @type {(f: ()=>{})=>{}} */
   const nextBrowserTick = (self || 0).nextBrowserTick || 0;
 
   let p59 = 0;
@@ -3707,8 +3709,29 @@
       const f = HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
       if (f) HTMLElement.prototype.appendChild = function (a) {
 
-
-        if (this instanceof HTMLElement) {
+        if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING) {
+          try {
+            const src = `${a.src}`;
+            const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
+            console.log(`video element added to dom | treatment = ${b}`, a);
+            if (b) {
+              let target = a;
+              let timeupdated = false;
+              a.addEventListener('timeupdate', (evt) => {
+                timeupdated = true;
+                console.log(`video element added to dom | ontimeupdate`, evt.target);
+              }, {once: true, passive: true, capture: false});
+              nextBrowserTick(() => {
+                if (target && target.paused === true && timeupdated === false && typeof target.play === 'function') {
+                  target.play();
+                }
+                target = null;
+              });
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        } else if (this instanceof HTMLElement) {
 
           if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
             for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
