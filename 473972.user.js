@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.10.1
+// @version     0.10.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3716,13 +3716,17 @@
             if (b) {
               a.addEventListener('canplay', (evt) => {
                 const a = evt.target;
-                console.log(`video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState);
-              }, {once: true, passive: true, capture: false});
+                console.log(`video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                if (a.currentTime < 1e-8 && a.currentTime > -1e-9) a.currentTime += 1e-8;
+              }, { once: true, passive: true, capture: false });
               a.addEventListener('timeupdate', (evt) => {
                 const a = evt.target;
-                console.log(`video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState);
-              }, {once: true, passive: true, capture: false});
-              a.autoplay = true;
+                console.log(`video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                if (a.duration > 1.99 && a.duration < 2.01 && a.currentTime > 0) {
+                  URL.revokeObjectURL(src);
+                  console.log(`video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                }
+              }, { once: true, passive: true, capture: false });
             }
             console.log(`video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
           } catch (e) {
