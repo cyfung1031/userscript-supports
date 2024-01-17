@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.10.4
+// @version     0.10.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3722,9 +3722,12 @@
               a.addEventListener('timeupdate', (evt) => {
                 const a = evt.target;
                 console.log(`video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-                if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src && a.autoplay === false) {
-                  URL.revokeObjectURL(src);
-                  console.log(`video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
+                  try {
+                    URL.revokeObjectURL(src);
+                  } finally {
+                    console.log(`video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                  }
                 }
               }, { once: true, passive: true, capture: false });
             }
