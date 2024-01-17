@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.10.0
+// @version     0.10.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3712,22 +3712,19 @@
         if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING) {
           try {
             const src = `${a.src}`;
-            const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
-            console.log(`video element added to dom | treatment = ${b}`, a);
+            const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
             if (b) {
-              let target = a;
-              let timeupdated = false;
-              a.addEventListener('timeupdate', (evt) => {
-                timeupdated = true;
-                console.log(`video element added to dom | ontimeupdate`, evt.target);
+              a.addEventListener('canplay', (evt) => {
+                const a = evt.target;
+                console.log(`video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState);
               }, {once: true, passive: true, capture: false});
-              nextBrowserTick(() => {
-                if (target && target.paused === true && timeupdated === false && typeof target.play === 'function') {
-                  target.play();
-                }
-                target = null;
-              });
+              a.addEventListener('timeupdate', (evt) => {
+                const a = evt.target;
+                console.log(`video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState);
+              }, {once: true, passive: true, capture: false});
+              a.autoplay = true;
             }
+            console.log(`video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
           } catch (e) {
             console.log(e);
           }
