@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.10.6
+// @version     0.10.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -220,7 +220,7 @@
             } else if (turl.includes('.youtube.com/ptracking')) {
               skip = true;
             } else if (turl.includes('.youtube.com/api/stats/')) { // /api/stats/
-              skip = true;
+              // skip = true; // for user activity logging e.g. watched videos
             } else if (turl.includes('play.google.com/log')) {
               skip = true;
             } else if (turl.includes('.youtube.com//?')) { // //?cpn=

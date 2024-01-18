@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.2.1
+// @version             1.2.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -487,7 +487,7 @@
                             } else if (turl.includes('.youtube.com/ptracking')) {
                                 skip = true;
                             } else if (turl.includes('.youtube.com/api/stats/')) { // /api/stats/
-                                skip = true;
+                                // skip = true; // for user activity logging e.g. watched videos
                             } else if (turl.includes('play.google.com/log')) {
                                 skip = true;
                             } else if (turl.includes('.youtube.com//?')) { // //?cpn=
