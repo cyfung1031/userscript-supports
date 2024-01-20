@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.19.1.1
+// @version             1.19.2.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -173,12 +173,29 @@
             'https://codi.link'
         ],
         "gm_no_custom_context_menu": [
-            "https://www.youtube.com", "https://m.youtube.com",
+            "https://www.youtube.com", "https://m.youtube.com", "https://accounts.youtube.com",
             "https://github.dev", "https://vscode.dev",
             "https://www.photopea.com",
             "https://www.google.com", "https://docs.google.com", "https://drive.google.com",
             "https://www.dropbox.com", "https://www.terabox.com",
             "https://outlook.live.com", "https://mail.yahoo.co.jp",
+            "https://gmail.com", "https://www.gmail.com",
+            "https://chat.openai.com", "https://openai.com",
+            "https://github.com", "https://www.github.com",
+        ],
+        "gm_highlight_color_check": [
+            "https://www.youtube.com", "https://m.youtube.com", "https://accounts.youtube.com",
+            "https://github.dev", "https://vscode.dev",
+            "https://www.photopea.com",
+            "https://www.google.com", "https://docs.google.com", "https://drive.google.com",
+            "https://www.dropbox.com", "https://www.terabox.com",
+            "https://outlook.live.com", "https://mail.yahoo.co.jp",
+            "https://gmail.com", "https://www.gmail.com",
+            "https://chat.openai.com", "https://openai.com",
+            "https://github.com", "https://www.github.com",
+            "https://facebook.com", "https://www.facebook.com",
+            "https://twitter.com", "https://www.twitter.com",
+            "https://x.com",
         ]
     };
 
@@ -331,6 +348,7 @@
 
 
         gm_no_custom_context_menu: true,
+        gm_highlight_color_check: true,
         lpKeyPressing: false,
         lpKeyPressingPromise: Promise.resolve(),
 
@@ -956,7 +974,9 @@
         lpMouseUpClear: function () {
             for (const rootNode of $.lpAltRoots) rootNode.removeAttribute($.utLpSelection);
             $.lpAltRoots.length = 0;
-            if ($.onceCssHighlightSelection) requestAnimationFrame($.onceCssHighlightSelection);
+            if (typeof $.onceCssHighlightSelection === 'function') {
+                if ($settings.gm_highlight_color_check) requestAnimationFrame($.onceCssHighlightSelection);
+            }
         },
 
         /** @type {EventListener} */
