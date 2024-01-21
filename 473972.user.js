@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.0
+// @version     0.11.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3127,7 +3127,8 @@
     // }
 
     if (ENABLE_COMPUTEDSTYLE_CACHE && !window.__native__getComputedStyle__ && typeof window.getComputedStyle === 'function' && window.getComputedStyle.length === 1) {
-      window.__native__getComputedStyle__ = window.getComputedStyle;
+      window.__native__getComputedStyle__ = getComputedStyle;
+      window.__original__getComputedStyle__ = window.getComputedStyle;
       window.getComputedStyle = function (elem) {
         if (!(elem instanceof Element) || (arguments.length === 2 && arguments[1]) || (arguments.length > 2)) {
           return window.__native__getComputedStyle__(...arguments);
