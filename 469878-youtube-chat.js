@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.41
+// @version             0.60.42
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -882,6 +882,97 @@
 
   `;
 
+
+  const konsole = {
+    nil: Symbol(),
+    logs: [],
+    style: '',
+    log(...args) {
+      konsole.logs.push({
+        type: 'log',
+        msg: [konsole.tag || konsole.nil, ...args, konsole.style || konsole.nil].filter(e => e !== konsole.nil)
+      });
+    },
+    setTag(tag) {
+      konsole.tag = tag;
+    },
+    setStyle(style){
+      konsole.style = style;
+    },
+    groupCollapsed(...args){
+
+      konsole.logs.push({
+        type:'groupCollapsed',
+        msg: [...args].filter(e => e !== konsole.nil)
+      });
+    },
+    groupEnd(){
+
+      konsole.logs.push({
+        type:'groupEnd'
+      })
+    },
+    print() {
+      const copy = konsole.logs.slice(0);
+      konsole.logs.length = 0;
+      for (const {type, msg} of copy) {
+        if(type ==='log'){
+          console.log(...msg)
+        }else if (type === 'groupCollapsed'){
+
+          console.groupCollapsed(...msg)
+        }else if(type ==='groupEnd'){
+          console.groupEnd();
+        }
+        
+      }
+
+    }
+  };
+
+  /*
+  konsole.groupCollapsedX = (text1, text2) => {
+
+    if(!text2){
+
+      konsole.groupCollapsed(`%c${text1}`,
+      "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;"
+    );
+    }else{
+
+      konsole.groupCollapsed(`%c${text1}%c${text2}`,
+      "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;",
+      "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
+    );
+    }
+  }
+
+  konsole.groupCollapsedX('YouTube Super Fast Chat');
+
+  setTimeout(()=>{
+
+    konsole.setTag('[[Fonts Pre-Rendering]]');
+    konsole.log(123);
+    konsole.log('wsd',332, 'ssa');
+    konsole.setTag('');
+  }, 100);
+
+  setTimeout(()=>{
+
+    konsole.setTag('[[Fonts Pre-Rendering 2]]');
+    konsole.log(123);
+    konsole.log('wsd',332, 'ssa');
+    konsole.setTag('');
+  }, 300);
+
+  setTimeout(()=>{
+
+  konsole.groupEnd();
+  konsole.print();
+  }, 1000);
+
+  */
+
   const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
 
   // Create a unique key for the script and check if it is already running
@@ -913,20 +1004,20 @@
     return null;
   }
 
-  function removeElementFromArray(arr, index) {
-    if (index >= 0 && index < arr.length) {
-      arr.splice(index, 1);
-    }
-  }
+  // function removeElementFromArray(arr, index) {
+  //   if (index >= 0 && index < arr.length) {
+  //     arr.splice(index, 1);
+  //   }
+  // }
 
-  function getRandomInt(a, b) {
-    // Ensure that 'a' and 'b' are integers
-    a = Math.ceil(a);
-    b = Math.floor(b);
+  // function getRandomInt(a, b) {
+  //   // Ensure that 'a' and 'b' are integers
+  //   a = Math.ceil(a);
+  //   b = Math.floor(b);
 
-    // Generate a random integer in the range [a, b]
-    return Math.floor(Math.random() * (b - a + 1)) + a;
-  }
+  //   // Generate a random integer in the range [a, b]
+  //   return Math.floor(Math.random() * (b - a + 1)) + a;
+  // }
 
   function deepCopy(obj, skipKeys) {
     skipKeys = skipKeys || [];
@@ -1646,6 +1737,15 @@
 
     const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, getComputedStyle, addEventListener, removeEventListener } = __CONTEXT__;
 
+    const wmComputedStyle = new WeakMap();
+    const getComputedStyleCached = (elem) => {
+        let cs = wmComputedStyle.get(elem);
+        if (!cs) {
+            cs = getComputedStyle(elem);
+            wmComputedStyle.set(elem, cs);
+        }
+        return cs;
+    }
 
     let foregroundPromise = null;
     const foregroundPromiseFn = () => (foregroundPromise = (foregroundPromise || new Promise(resolve => {
@@ -2897,7 +2997,7 @@
               items.appendChild(dummy777);
               let container = HTMLElement.prototype.querySelector.call(dummy777, '#container') || 0;
               if (container.isConnected === true) {
-                const evaluated = `${getComputedStyle(container).background}`;
+                const evaluated = `${getComputedStyleCached(container).background}`;
                 container = null;
                 res = evaluated.indexOf('0.') < 4 ? 1 : 2;
               }
@@ -4697,6 +4797,13 @@
         "yt-live-chat-ticker-sponsor-item-renderer"
       ];
 
+      const tagsItemRenderer = [
+        "yt-live-chat-ticker-paid-message-item-renderer",
+        "yt-live-chat-ticker-paid-sticker-item-renderer",
+        "yt-live-chat-ticker-renderer",
+        "yt-live-chat-ticker-sponsor-item-renderer"
+      ];
+
 
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
@@ -4730,7 +4837,7 @@
             console.warn('document.documentElement is not found');
             return false;
           }
-          if (`${getComputedStyle(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
+          if (`${getComputedStyleCached(documentElement).getPropertyValue('--ticker-rtime')}`.length === 0) {
             return false;
           }
 
@@ -4746,7 +4853,7 @@
             }
           );
 
-          let animatedValue = getComputedStyle(document.documentElement).getPropertyValue('--ticker-rtime');
+          let animatedValue = getComputedStyleCached(document.documentElement).getPropertyValue('--ticker-rtime');
           ae.finish();
           if (`${animatedValue}`.length !== 3) return false;
 
@@ -5349,7 +5456,7 @@
         }
 
 
-        for (const tag of tags) { // ##tag##
+        for (const tag of tagsItemRenderer) { // ##tag##
           const dummy = document.createElement(tag);
 
           const cProto = getProto(dummy);
@@ -5377,7 +5484,7 @@
             isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
 
           } else {
-            console.log(`Skip Timing Function Modification for ${tag}`);
+            console.log("ATTEMPT_ANIMATED_TICKER_BACKGROUND", ` ${tag}`, "Skip Timing Function Modification");
             continue;
           }
 
@@ -8422,7 +8529,7 @@
             console.log("CHANGE_DATA_FLUSH_ASYNC - OK");
 
           } else {
-            console.log("CHANGE_DATA_FLUSH_ASYNC - NG");
+            console.log("CHANGE_DATA_FLUSH_ASYNC - NOT REQUIRED");
 
           }
 
