@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.19.2.0
+// @version             1.20.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -149,6 +149,15 @@
     const requestAnimationFrame = uWin.requestAnimationFrame.bind(uWin) || Error()();
     /** @type {(elt: Element, pseudoElt?: string | null) => CSSStyleDeclaration} */
     const getComputedStyle = uWin.getComputedStyle.bind(uWin) || Error()();
+    const wmComputedStyle = new WeakMap();
+    const getComputedStyleCached = (elem) => {
+        let cs = wmComputedStyle.get(elem);
+        if (!cs) {
+            cs = getComputedStyle(elem);
+            wmComputedStyle.set(elem, cs);
+        }
+        return cs;
+    }
 
     const originalFocusFn = HTMLElement.prototype.focus;
 
@@ -460,13 +469,13 @@
             if (selectionBackgroundColor.length > 9 && /^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(selectionBackgroundColor)) {
                 document.documentElement.setAttribute($.utSelectionColorHack, "");
             } else {
-                let bodyBackgroundColor = getComputedStyle(document.body).getPropertyValue('background-color') || '';
+                let bodyBackgroundColor = getComputedStyleCached(document.body).getPropertyValue('background-color') || '';
                 if (bodyBackgroundColor === selectionBackgroundColor) {
                     document.documentElement.setAttribute($.utSelectionColorHack, "");
                 }
             }
             await Promise.resolve();
-            const elmStyle = getComputedStyle(elm);
+            const elmStyle = getComputedStyleCached(elm);
             let highlightColor = elmStyle.getPropertyValue('-webkit-tap-highlight-color') || '';
             if (highlightColor.length > 9 && /^rgba\(\d+,\s*\d+,\s*\d+,\s*0\)$/.test(highlightColor)) document.documentElement.setAttribute($.utTapHighlight, "");
             document.documentElement.setAttribute($.utTapHighlight, "");
@@ -763,7 +772,7 @@
 
         lpCheckPointer: function (targetElm) {
             if (targetElm instanceof Element && targetElm.matches('*:hover')) {
-                if (getComputedStyle(targetElm).getPropertyValue('cursor') === 'pointer' && targetElm.textContent) return true;
+                if (getComputedStyleCached(targetElm).getPropertyValue('cursor') === 'pointer' && targetElm.textContent) return true;
             }
             return false;
         },
@@ -854,7 +863,7 @@
                             let promiseCallback = parentNode => {
                                 if (wmTextWrap.get(parentNode) !== null) return;
                                 const m = [...parentNode.children].some(elm => {
-                                    const value = getComputedStyle(elm).getPropertyValue('z-index') || '';
+                                    const value = getComputedStyleCached(elm).getPropertyValue('z-index') || '';
                                     if (value.length > 0) return $.isNum(+value)
                                     return false
                                 })
@@ -1308,7 +1317,7 @@
                 /** @type {string | null} */
                 let sUrl = null;
 
-                const targetCSS = getComputedStyle(targetElm)
+                const targetCSS = getComputedStyleCached(targetElm)
                 const targetBgImage = targetCSS.getPropertyValue('background-image') || '';
                 let exec1 = null
 
