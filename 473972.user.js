@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.10.7
+// @version     0.11.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -23,6 +23,7 @@
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
+  const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const CHANGE_appendChild = true;
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
@@ -3114,6 +3115,32 @@
       }
     };
 
+
+    const wmComputedStyle = new WeakMap();
+    // const getComputedStyleCached = (elem) => {
+    //     let cs = wmComputedStyle.get(elem);
+    //     if (!cs) {
+    //         cs = getComputedStyle(elem);
+    //         wmComputedStyle.set(elem, cs);
+    //     }
+    //     return cs;
+    // }
+
+    if (ENABLE_COMPUTEDSTYLE_CACHE && !window.__native__getComputedStyle__ && typeof window.getComputedStyle === 'function' && window.getComputedStyle.length === 1) {
+      window.__native__getComputedStyle__ = window.getComputedStyle;
+      window.getComputedStyle = function (elem) {
+        if (!(elem instanceof Element) || (arguments.length === 2 && arguments[1]) || (arguments.length > 2)) {
+          return window.__native__getComputedStyle__(...arguments);
+        }
+        let cs = wmComputedStyle.get(elem);
+        if (!cs) {
+          cs = window.__native__getComputedStyle__(elem);
+          wmComputedStyle.set(elem, cs);
+        }
+        return cs;
+      }
+    }
+
     NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(() => {
       setTimeout(() => {
         NO_PRELOAD_GENERATE_204_BYPASS = true;
@@ -4258,6 +4285,7 @@
 
         k = keyzo
 
+        /*
         const setCSSProp = (() => {
 
           let animationPropCapable = false;
@@ -4342,6 +4370,7 @@
 
 
         })();
+        */
 
 
         const attrUpdateFn = g[k];
