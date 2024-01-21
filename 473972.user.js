@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.2
+// @version     0.11.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -24,6 +24,7 @@
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
+  const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
   const CHANGE_appendChild = true;
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
@@ -3065,13 +3066,22 @@
   };
 
   const promiseForYtActionCalled = new Promise(resolve => {
-    let hn = () => {
-      if (!hn) return;
-      document.removeEventListener('yt-action', hn, true);
-      hn = null;
-      resolve(document.querySelector('ytd-app'));
-    };
-    document.addEventListener('yt-action', hn, true);
+    if (typeof AbortSignal !== 'undefined') {
+      let hn = () => {
+        if (!hn) return;
+        hn = null;
+        resolve(document.querySelector('ytd-app'));
+      };
+      document.addEventListener('yt-action', hn, { capture: true, passive: true, once: true });
+    } else {
+      let hn = () => {
+        if (!hn) return;
+        document.removeEventListener('yt-action', hn, true);
+        hn = null;
+        resolve(document.querySelector('ytd-app'));
+      };
+      document.addEventListener('yt-action', hn, true);
+    }
   });
 
 
@@ -3132,21 +3142,32 @@
     //     return cs;
     // }
 
-    if (ENABLE_COMPUTEDSTYLE_CACHE && !window.__native__getComputedStyle__ && typeof window.getComputedStyle === 'function' && window.getComputedStyle.length === 1) {
+    if (!window.__native__getComputedStyle__ && !window.__jst__getComputedStyle__ && typeof window.getComputedStyle === 'function' && window.getComputedStyle.length === 1) {
       window.__native__getComputedStyle__ = getComputedStyle;
-      window.__original__getComputedStyle__ = window.getComputedStyle;
-      window.getComputedStyle = function (elem) {
-        if (!(elem instanceof Element) || (arguments.length === 2 && arguments[1]) || (arguments.length > 2)) {
-          return window.__native__getComputedStyle__(...arguments);
-        }
-        let cs = wmComputedStyle.get(elem);
-        if (!cs) {
-          cs = window.__native__getComputedStyle__(elem);
-          wmComputedStyle.set(elem, cs);
-        }
-        return cs;
+      if (ENABLE_COMPUTEDSTYLE_CACHE) {
+        window.__original__getComputedStyle__ = window.getComputedStyle;
+        window.getComputedStyle = function (elem) {
+          if (!(elem instanceof Element) || (arguments.length === 2 && arguments[1]) || (arguments.length > 2)) {
+            return window.__native__getComputedStyle__(...arguments);
+          }
+          let cs = wmComputedStyle.get(elem);
+          if (!cs) {
+            cs = window.__native__getComputedStyle__(elem);
+            wmComputedStyle.set(elem, cs);
+          }
+          return cs;
+        };
+      } else {
+        window.__original__getComputedStyle__ = null;
       }
+      window.__jst__getComputedStyle__ = window.getComputedStyle;
     }
+
+    NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE && promiseForYtActionCalled.then(() => {
+      if (typeof window.__jst__getComputedStyle__ === 'function' && window.__jst__getComputedStyle__.length === 1 && window.__jst__getComputedStyle__ !== window.getComputedStyle) {
+        window.getComputedStyle = window.__jst__getComputedStyle__;
+      }
+    });
 
     NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(() => {
       setTimeout(() => {
