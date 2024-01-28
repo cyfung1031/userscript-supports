@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.3
+// @version     2.0.4
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@48a67f75465ee721fc1d39b6af82abcaa51b89d6/library/nextBrowserTick.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
@@ -59,7 +60,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
       '#playlist-action-menu[autoplay-container="1"] .top-level-buttons', // Playlist parent area in general.
       'ytd-playlist-panel-renderer[playlist-type] #playlist-action-menu[autoplay-container="2"]' // Playlist parent area for Mixes.
     ],
-    style: 'YouTube-Prevent-Playlist-Autoplay-Style', // ID for the Style element to be injected into the page.
+    cssId: 'YouTube-Prevent-Playlist-Autoplay-Style', // ID for the Style element to be injected into the page.
     buttonOn: 'YouTube-Prevent-Playlist-Autoplay-Button-On',
     buttonContainer: 'YouTube-Prevent-Playlist-Autoplay-Button-Container',
     buttonBar: 'YouTube-Prevent-Playlist-Autoplay-Button-Bar',
@@ -115,7 +116,11 @@ along with this program. If not, see http://www.gnu.org/licenses/.
       if (debug) customLog('Manager is missing.')
       return
     }
-    if (navigateStatus !== 1) manager.canAutoAdvance_ = !!autoplayStatus;
+    if (typeof manager.canAutoAdvance_ !== 'boolean') {
+      customLog('manager.canAutoAdvance_ is not boolean');
+    } else {
+      if (navigateStatus !== 1) manager.canAutoAdvance_ = !!autoplayStatus;
+    }
     for (const b of document.body.getElementsByClassName(elementCSS.buttonContainer)) {
       b.classList.toggle(elementCSS.buttonOn, autoplayStatus)
       b.setAttribute('title', `Autoplay is ${autoplayStatus ? 'on' : 'off'}`)
@@ -146,7 +151,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   // It is messy to toggle back since various functions switch it.
   // Luckily, all attempts to set it to true are done through the same function.
   // By replacing this function, autoplay can be controlled by the user.
-  function main() {
+  function interceptManagerForAutoplay() {
     const manager = getManager()
     if (!manager) {
       if (debug) customLog('Manager is missing.')
@@ -154,7 +159,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     }
     if (manager.interceptedForAutoplay) return
     manager.interceptedForAutoplay = true
-    addStyle(elementCSS.style, elementCSS.styleSheet)
+    addStyle(elementCSS.cssId, elementCSS.styleText)
     if (debug) customLog('Autoplay is now controlled.')
   }
 
@@ -181,6 +186,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   })
 
   function appendButtonContainer(domElement) {
+    if (!domElement || !(domElement instanceof Element) || !elementCSS.buttonContainer || domElement.querySelector(`.${elementCSS.buttonContainer}`)) return;
     const container = document.createElement('div')
     container.classList.add(elementCSS.buttonContainer)
     container.classList.toggle(elementCSS.buttonOn, autoplayStatus)
@@ -207,10 +213,36 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
   }
 
+  function appendButtonContainerToMenu(menu) {
+    if (!menu || !(menu instanceof Element)) return;
+    const headers = menu.querySelectorAll('.top-level-buttons:not([hidden])')
+    if (headers.length >= 1) {
+      for (const header of headers) {
+        // add button to each matched header, ignore those have been proceeded without re-rendering.
+        appendButtonContainer(header);
+      }
+      menu.setAttribute('autoplay-container', '1');
+    } else {
+      // add button to the menu if no header is found, ignore those have been proceeded without re-rendering.
+      appendButtonContainer(menu);
+      menu.setAttribute('autoplay-container', '2');
+    }
+  }
+
+  const ytReady = new Promise(_resolve => {
+    document.addEventListener('yt-action', async function () {
+      const resolve = _resolve;
+      _resolve = null;
+      if (!resolve) return;
+      await customElements.whenDefined('yt-playlist-manager').then();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      resolve();
+    }, { once: true, passive: true, capture: true });
+  })
+
   async function setupMenu(menu) {
     if (!(menu instanceof Element)) return;
-    await customElements.whenDefined('yt-playlist-manager').then();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await ytReady.then();
 
     // YouTube can have multiple variations of the playlist UI hidden in the page.
     // For instance, the sidebar and corner playlists. They also misuse IDs,
@@ -220,19 +252,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
       // the menu is invalid
       menu.removeAttribute('autoplay-container');
     } else {
-      main()
-      const headers = menu.querySelectorAll('.top-level-buttons:not([hidden])')
-      if (headers.length >= 1) {
-        for (const header of headers) {
-          // add button to each matched header, ignore those have been proceeded without re-rendering.
-          if (!header.querySelector(`.${elementCSS.buttonContainer}`)) appendButtonContainer(header);
-        }
-        menu.setAttribute('autoplay-container', '1');
-      } else {
-        // add button to the menu if no header is found, ignore those have been proceeded without re-rendering.
-        if (!menu.querySelector(`.${elementCSS.buttonContainer}`)) appendButtonContainer(menu);
-        menu.setAttribute('autoplay-container', '2');
-      }
+      interceptManagerForAutoplay()
+      appendButtonContainerToMenu(menu);
       setAssociatedAutoplay() // set canAutoAdvance_ when the page is loaded.
     }
   }
@@ -244,13 +265,19 @@ along with this program. If not, see http://www.gnu.org/licenses/.
     fCounter++;
   }
 
+  function onNavigateCache() {
+    navigateStatus = 1;
+    if (fCounter > 1e9) fCounter = 9;
+    fCounter++;
+  }
+
   function onNavigateFinish() {
     // canAutoAdvance_ will become true in onYtNavigateFinish_
     navigateStatus = 2;
     if (fCounter > 1e9) fCounter = 9;
     fCounter++;
     const t = fCounter;
-    main()
+    interceptManagerForAutoplay()
     setTimeout(() => {
       if (t !== fCounter) return;
       if (navigateStatus === 2) {
@@ -267,7 +294,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
       m.add(entry.target); // avoid proceeding the same element target
     }
     m.forEach((target) => {
-      if (target.isConnected === true) { // ensure the DOM is valid and attached to the document
+      if (target && target.isConnected === true) { // ensure the DOM is valid and attached to the document
         setupMenu(indr(target)['playlist-action-menu']); // add the button to the menu, if applicable
       }
     });
@@ -277,35 +304,11 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
   // listen events on the script execution in document-start
   document.addEventListener('yt-navigate-start', onNavigateStart, false);
+  document.addEventListener('yt-navigate-cache', onNavigateCache, false);
   document.addEventListener('yt-navigate-finish', onNavigateFinish, false);
 
-  await ytZara.docInitializedAsync(); // wait for document.documentElement is provided
 
-  await ytZara.promiseRegistryReady(); // wait for YouTube's customElement Registry is provided (old browser only)
-
-  const cProto = await ytZara.ytProtoAsync('ytd-playlist-panel-renderer'); // wait for customElement registration
-
-  if (cProto.attached145) {
-    console.warn('YouTube Playlist Autoplay Button cannot inject JS code to ytd-playlist-panel-renderer');
-    return;
-  }
-
-  cProto.attached145 = cProto.attached;
-  cProto.attached = function () {
-    Promise.resolve().then(() => { // asynchronous to avoid blocking the DOM tree rendering
-      attrMo.observe(this.hostElement, {
-        attributes: true,
-        attributeFilter: [
-          'has-playlist-buttons', 'has-toolbar', 'hidden', 'playlist-type', 'within-miniplayer', 'hide-header-text'
-        ]
-      });
-      setupMenu(indr(this)['playlist-action-menu']); // add the button to the menu which is just attached to Dom Tree, if applicable
-    });
-    const f = this.attached145;
-    return f ? f.apply(this, arguments) : void 0;
-  }
-
-  elementCSS.styleSheet = `
+  elementCSS.styleText = `
         ${elementCSS.parent.join(', ')} {
             align-items: center;
         }
@@ -341,6 +344,41 @@ along with this program. If not, see http://www.gnu.org/licenses/.
             background-color: var(--paper-toggle-button-checked-button-color, var(--primary-color));
         }
       `;
+
+  await ytZara.docInitializedAsync(); // wait for document.documentElement is provided
+
+  await ytZara.promiseRegistryReady(); // wait for YouTube's customElement Registry is provided (old browser only)
+
+  const cProto = await ytZara.ytProtoAsync('ytd-playlist-panel-renderer'); // wait for customElement registration
+
+  if (cProto.attached145 || cProto.setupPlaylistActionMenu145) {
+    console.warn('YouTube Playlist Autoplay Button cannot inject JS code to ytd-playlist-panel-renderer');
+    return;
+  }
+
+  cProto.attached145 = cProto.attached;
+  cProto.setupPlaylistActionMenu145 = function () {
+    nextBrowserTick(() => { // avoid blocking the DOM tree rendering
+      const hostElement = this.hostElement;
+      if (!hostElement || hostElement.isConnected !== true) return;
+      attrMo.observe(hostElement, {
+        attributes: true,
+        attributeFilter: [
+          'has-playlist-buttons', 'has-toolbar', 'hidden', 'playlist-type', 'within-miniplayer', 'hide-header-text'
+        ]
+      });
+      setupMenu(indr(this)['playlist-action-menu']); // add the button to the menu which is just attached to Dom Tree, if applicable
+    });
+  }
+  cProto.attached = function () {
+    try {
+      this.setupPlaylistActionMenu145();
+    } finally {
+      const f = this.attached145;
+      return f ? f.apply(this, arguments) : void 0;
+    }
+  }
+
   if (debug) customLog('Initialized.')
 
 
