@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.28
+// @version     1.3.29
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -467,13 +467,13 @@
       mRes.set('html5_ignore_h264_framerate_cap', 'true')
 
       mRes.set('html5_allow_asmjs', 'true')
-      mRes.set('html5_defer_modules_on_ads_only', 'true')
+      // mRes.set('html5_defer_modules_on_ads_only', 'true')
       mRes.set('html5_use_drm_retry', 'true')
       mRes.set('html5_delta_encode_fexp', 'true')
       mRes.set('html5_only_send_cas_health_pings', 'true')
 
       mRes.set('html5_modify_caption_vss_logging', 'true')
-      mRes.set('html5_allow_zero_duration_ads_on_timeline', 'true')
+      // mRes.set('html5_allow_zero_duration_ads_on_timeline', 'true')
       mRes.set('html5_reset_daistate_on_audio_codec_change', 'true')
       mRes.set('html5_enable_safari_fairplay', 'true')
 
@@ -497,18 +497,18 @@
       mRes.set('html5_format_hybridization', 'true')
       mRes.set('html5_disable_encrypted_vp9_live_non_2k_4k', 'false')
 
-      mRes.set('html5_default_ad_gain', 'false')
+      // mRes.set('html5_default_ad_gain', 'false')
       mRes.set('html5_use_sabr_requests_for_debugging', 'false')
-      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
-      mRes.set('html5_sabr_live_ultra_low_latency', 'true')
+      // mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      // mRes.set('html5_sabr_live_ultra_low_latency', 'true')
 
-      mRes.set('html5_sabr_live_low_latency', 'true')
-      mRes.set('html5_sabr_live', 'true')
+      // mRes.set('html5_sabr_live_low_latency', 'true')
+      // mRes.set('html5_sabr_live', 'true') // sabr_live for audio only
       mRes.set('html5_sabr_post_live', 'true')
       mRes.set('html5_sabr_premiere', 'true')
 
-      mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
-      mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
+      // mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
+      // mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
 
 
 
