@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.2.2
+// @version             1.4.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -109,34 +109,55 @@
 
 
 
-        // const observablePromise = (proc, timeoutPromise) => {
-        //   let promise = null;
-        //   return {
-        //     obtain() {
-        //       if (!promise) {
-        //         promise = new Promise(resolve => {
-        //           let mo = null;
-        //           const f = () => {
-        //             let t = proc();
-        //             if (t) {
-        //               mo.disconnect();
-        //               mo.takeRecords();
-        //               mo = null;
-        //               resolve(t);
-        //             }
-        //           }
-        //           mo = new MutationObserver(f);
-        //           mo.observe(document, { subtree: true, childList: true })
-        //           f();
-        //           timeoutPromise && timeoutPromise.then(() => {
-        //             resolve(null)
-        //           });
-        //         });
-        //       }
-        //       return promise
-        //     }
-        //   }
-        // }
+
+
+        const createPipeline = () => {
+            let pipelineMutex = Promise.resolve();
+            const pipelineExecution = fn => {
+                return new Promise((resolve, reject) => {
+                    pipelineMutex = pipelineMutex.then(async () => {
+                        let res;
+                        try {
+                            res = await fn();
+                        } catch (e) {
+                            console.log(e);
+                            reject(e);
+                        }
+                        resolve(res);
+                    }).catch(console.warn);
+                });
+            };
+            return pipelineExecution;
+        }
+
+        const observablePromise = (proc, timeoutPromise) => {
+            let promise = null;
+            return {
+                obtain() {
+                    if (!promise) {
+                        promise = new Promise(resolve => {
+                            let mo = null;
+                            const f = () => {
+                                let t = proc();
+                                if (t) {
+                                    mo.disconnect();
+                                    mo.takeRecords();
+                                    mo = null;
+                                    resolve(t);
+                                }
+                            }
+                            mo = new MutationObserver(f);
+                            mo.observe(document, { subtree: true, childList: true })
+                            f();
+                            timeoutPromise && timeoutPromise.then(() => {
+                                resolve(null)
+                            });
+                        });
+                    }
+                    return promise
+                }
+            }
+        }
 
 
         const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
@@ -211,6 +232,40 @@
 
         };
 
+        function removeTempObjectProp01() {
+            delete Object.prototype['kevlar_non_watch_unified_player'];
+            delete Object.prototype['kevlar_unified_player'];
+        }
+
+        Object.defineProperty(Object.prototype, 'kevlar_non_watch_unified_player', {
+            get() {
+                // console.log(501, this.constructor.prototype)
+                return true;
+            },
+            set(nv) {
+                return true;
+            },
+            enumerable: false,
+            configurable: true
+        });
+
+
+        Object.defineProperty(Object.prototype, 'kevlar_unified_player', {
+            get() {
+                // console.log(501, this.constructor.prototype)
+                return true;
+            },
+            set(nv) {
+                return true;
+            },
+            enumerable: false,
+            configurable: true
+        });
+
+        let prr = new PromiseExternal();
+        const prrPipeline = createPipeline();
+        let stopAndReload = false;
+
         // let vcc = 0;
         // let vdd = -1;
 
@@ -235,7 +290,7 @@
 
                 // if (target.readyState === 1) {
 
-                    // vcc++;
+                // vcc++;
 
                 // }
                 if (target.readyState === 1 && target.networkState === 2) {
@@ -516,7 +571,7 @@
                 c.prototype.__xmMc8__ = 0;
                 return c;
             })();
-              
+
             const s7 = Symbol();
             const f7 = () => true;
 
@@ -664,113 +719,197 @@
 
         if (location.origin === 'https://www.youtube.com') {
 
-            document.addEventListener('yt-action', () => {
+            if (location.pathname.startsWith('/embed/')) {
 
 
-                let configs = yt.config_ || 0;
-                configs = configs.WEB_PLAYER_CONTEXT_CONFIGS || {};
-                for (const [key, entry] of Object.entries(configs)) {
+                // document.querySelector('#player > .ytp-embed')
 
-                    if (entry && typeof entry.serializedExperimentFlags === 'string') {
-                        // prevent idle playback failure
-                        entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
-                            return a + '00' + '=' + b + c;
-                        });
+                // console.log(1230)
+
+                const ytEmbedReady = observablePromise(() => document.querySelector('#player > .ytp-embed')).obtain();
+
+                ytEmbedReady.then(async (embedPlayer) => {
+
+                    while (true) {
+                        if (window.yt && window.yt.config_) break;
+                        await delayPn(60);
+                    }
+
+
+                    let configs = yt.config_ || 0;
+                    configs = configs.WEB_PLAYER_CONTEXT_CONFIGS || {};
+                    for (const [key, entry] of Object.entries(configs)) {
+
+                        if (entry && typeof entry.serializedExperimentFlags === 'string') {
+                            // prevent idle playback failure
+                            entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
+                                return a + '00' + '=' + b + c;
+                            });
+
+                        }
 
                     }
 
-                }
 
 
+                    let playerKevlar = null;
+                    try {
+                        playerKevlar = window.yt.config_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
+                    } catch (e) { }
+                    if (playerKevlar) {
+                        playerKevlar.allowWoffleManagement = false;
+                        playerKevlar.cinematicSettingsAvailable = false;
+                        playerKevlar.showMiniplayerButton = false;
+                        playerKevlar.showMiniplayerUiWhenMinimized = false;
+                        playerKevlar.transparentBackground = false;
 
-            }, { once: true, passive: true, capture: true })
+                        playerKevlar.enableCsiLogging = false;
+                        playerKevlar.externalFullscreen = false;
 
 
-            // console.log(1882)
-            const playerAsync_ = window.playerAsync_ || (window.playerAsync_ = new Promise(resolve => {
+                        if (typeof playerKevlar.serializedExperimentFlags === 'string') {
 
-                customElements.whenDefined('ytd-player').then(() => {
-                    // console.log(1883)
+                            playerKevlar.serializedExperimentFlags = '';
 
-                    const dummy = document.createElement('ytd-player');
-                    const cnt = insp(dummy);
-                    const cProto = cnt.constructor.prototype;
-                    cProto.createMainAppPlayer932_ = cProto.createMainAppPlayer_;
-                    cProto.initPlayer932_ = cProto.initPlayer_;
 
-                    cProto.createMainAppPlayer_ = function (a, b, c) {
-                        let r = this.createMainAppPlayer932_(a, b, c);
-                        try {
-                            this.mainAppPlayer_.api.then(function (e) {
-                                resolve(e)
-                            })
-                        } finally {
-                            return r;
+                        }
+
+
+                        if (typeof playerKevlar.serializedExperimentIds === 'string') {
+
+                            playerKevlar.serializedExperimentIds = '';
+
                         }
                     }
-                    cProto.initPlayer_ = function (a) {
-                        let r = this.initPlayer932_(a);
-                        try {
-                            r.then(() => {
-                                resolve(this.player_)
-                            })
-                        } finally {
-                            return r;
-                        }
-                    }
 
 
-                })
+                    const player_ = embedPlayer;
+                    // console.log(player_)
 
 
-            }));
 
 
-            // let pw = null;
-            const playerAsyncControlled_ = (async () => {
-                try {
-                    const player_ = await playerAsync_.then();
-                    const elm = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
-                    if (!elm) return player_;
                     const asyncStateChange = async (audio, k) => {
-                        try {
-                            // console.log(292, !!pw, k===-1, player_.getPlayerState()  == -1);
-                            // if (pw) {
-                            //     pw.resolve();
-                            // }
-                            // pw = new PromiseExternal();
-
-                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
-                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
-                                await player_.seekToStreamTime();
+                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+                            try {
+                                if (audio.readyState == 0) await player_.refreshAllStaleEntities();
+                            } catch (e) {
+                                console.log(e)
+                            }
+                        };
+                        const seekToLiveHeadForLiveStream = async () => {
+                            try {
                                 await player_.seekToLiveHead();
+                                if ((await player_.isAtLiveHead()) === true) {
+                                    await player_.seekToStreamTime();
+                                    return true;
+                                }
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        };
+                        try {
+                            const ns23 = audio.networkState == 2 || audio.networkState == 3;
+                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                                await delayPn(500);
+                                if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                                    if (audio.paused) {
+                                        await player_.clearVideo(); // avoid error in live streaming
+                                        await player_.clearQueue(); // avoid error in live streaming
+                                        await delayPn(300);
+                                        for (let i = 0; i < 3; i++) {
+                                            if (audio.readyState === 0) {
+                                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                            }
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    }
+                                } 
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+                                await seekToLiveHeadForLiveStream();
                             } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
-
-                                // console.log(1201)
                                 await delayPn(60);
-                                // console.log(1202, player_.getPlayerState() ,  audio.readyState , ns23, audio.paused === false, audio.muted === false)
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+                                    if (audio.paused === true) {
+                                        await player_.clearVideo(); // avoid error in live streaming
+                                        await player_.clearQueue(); // avoid error in live streaming
+                                        await delayPn(300);
+                                        for (let i = 0; i < 3; i++) {
+                                            if (audio.readyState === 0) {
+                                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                            }
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    }
+                                }
 
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
-                                    // pw = pw || new PromiseExternal();
-                                    // const pw0 = pw;
-                                    if (!player_.isAtLiveHead()) {
-                                        await delayPn(60);
-                                        // await player_.seekToLiveHead(); await delayPn(9);
-                                        await player_.seekToStreamTime();
-                                        await player_.seekToLiveHead();
-                                        await delayPn(60);
-                                    }
-                                    while (audio.readyState === 0) {
-                                        await player_.cancelPlayback();
-                                        await player_.pauseVideo();
-                                        await player_.playVideo(); await delayPn(60);
-                                    }
-                                    if (!player_.isAtLiveHead()) {
-                                        await delayPn(60);
-                                        // await player_.seekToLiveHead(); await delayPn(9);
-                                        await player_.seekToStreamTime();
-                                        await player_.seekToLiveHead();
-                                        await delayPn(60);
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === true) {
+                                await seekToLiveHeadForLiveStream();
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                                await delayPn(60);
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                                    if (audio.paused === true) {
+                                        await player_.clearVideo(); // avoid error in live streaming
+                                        await player_.clearQueue(); // avoid error in live streaming
+                                        await delayPn(300);
+                                        for (let i = 0; i < 3; i++) {
+                                            if (audio.readyState === 0) {
+                                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                            }
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
                                     }
                                 }
 
@@ -785,8 +924,9 @@
                     // console.log(299, player_)
                     let qz = (k) => {
                         try {
-                            if (k >= 0 && k === player_.getPlayerState()) {
-                                const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
+                            if (typeof k === 'number' && k === player_.getPlayerState()) {
+
+                                const audio = document.querySelector('#player audio.video-stream.html5-main-video');
                                 if (audio) asyncStateChange(audio, k);
                             }
                         } catch (e) {
@@ -800,8 +940,245 @@
                         qz(state0);
                     }
 
-                    player_.addEventListener('onVideoProgress', ()=>{
-                        Promise.resolve().then(()=>{
+                    player_.addEventListener('onVideoProgress', () => {
+                        // console.log('video')
+                    });
+
+                    // console.log(1231)
+                })
+
+
+            } else {
+
+                document.addEventListener('yt-action', () => {
+
+                    const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
+                    if (config_) {
+
+                        let configs = config_.WEB_PLAYER_CONTEXT_CONFIGS || {};
+                        for (const [key, entry] of Object.entries(configs)) {
+
+                            if (entry && typeof entry.serializedExperimentFlags === 'string') {
+                                // prevent idle playback failure
+                                entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
+                                    return a + '00' + '=' + b + c;
+                                });
+
+                            }
+
+                        }
+                        removeTempObjectProp01();
+
+                        const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
+
+                        if (EXPERIMENT_FLAGS) {
+                            EXPERIMENT_FLAGS.kevlar_unified_player = true;
+                            EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
+                        }
+
+
+                        const EXPERIMENTS_FORCED_FLAGS = config_.EXPERIMENTS_FORCED_FLAGS;
+
+                        if (EXPERIMENTS_FORCED_FLAGS) {
+                            EXPERIMENTS_FORCED_FLAGS.kevlar_unified_player = true;
+                            EXPERIMENTS_FORCED_FLAGS.kevlar_non_watch_unified_player = true;
+                        }
+
+                    }
+
+                }, { once: true, passive: true, capture: true })
+
+                const setupAudioPlaying = (player00_) => {
+                    const player_ = player00_;
+                    if (!player_) return;
+                    if (player_.__audio544__) return;
+                    player_.__audio544__ = 1;
+                    // console.log(1233, player_)
+                    let ytdPlayerElement = null;
+                    const asyncStateChange = async (audio, k) => {
+
+                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+                            try {
+                                if (audio.readyState == 0) await player_.refreshAllStaleEntities();
+                            } catch (e) {
+                                console.log(e)
+                            }
+                        };
+                        const seekToLiveHeadForLiveStream = async () => {
+                            try {
+                                await player_.seekToLiveHead();
+                                if ((await player_.isAtLiveHead()) === true) {
+                                    await player_.seekToStreamTime();
+                                    return true;
+                                }
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        };
+                        const stopAndReloadFn = async () => {
+                            if (location.pathname === '/watch') {
+                                player_.destroy();
+                                location.replace(location.href);
+                                await delayPn(8000);
+                            }
+                            // await player_.stopVideo();
+                            // await player_.updateVideoData();
+                            // try{
+                            //     await player_.refreshAllStaleEntities();
+                            // }catch(e){}
+                            // await player_.playVideo();
+                        }
+                        try {
+
+                            const ns23 = audio.networkState == 2 || audio.networkState == 3;
+                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                                await delayPn(500);
+                                if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                                    if (stopAndReload) {
+                                        stopAndReload = false;
+                                        await stopAndReloadFn();
+                                    }
+                                    if (audio.paused) {
+                                        await player_.clearVideo(); // avoid error in live streaming
+                                        await player_.clearQueue(); // avoid error in live streaming
+                                        await delayPn(300);
+                                        for (let i = 0; i < 3; i++) {
+                                            if (audio.readyState === 0) {
+                                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                            }
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.cancelPlayback();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    }
+                                }
+
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+                                await seekToLiveHeadForLiveStream();
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+                                await delayPn(60);
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+                                    if (stopAndReload) {
+                                        stopAndReload = false;
+                                        await stopAndReloadFn();
+                                    }
+                                    if (audio.paused === true) {
+                                        await player_.clearVideo(); // avoid error in live streaming
+                                        await player_.clearQueue(); // avoid error in live streaming
+                                        await delayPn(300);
+                                        for (let i = 0; i < 3; i++) {
+                                            if (audio.readyState === 0) {
+                                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                            }
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.cancelPlayback();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.cancelPlayback();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    }
+                                }
+
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === true) {
+                                await seekToLiveHeadForLiveStream();
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                                await delayPn(60);
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                                    if (audio.paused === true) {
+                                        // single page navigation
+                                        player_.destroy();
+                                        location.replace(location.href);
+                                        // console.log('location,replace');
+                                        await delayPn(8000);
+                                    } else {
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        while (audio.readyState === 0) {
+                                            await refreshAllStaleEntitiesForNonReadyAudio();
+                                            await player_.cancelPlayback();
+                                            await player_.pauseVideo();
+                                            await player_.playVideo();
+                                            await delayPn(300);
+                                        }
+                                        if (!player_.isAtLiveHead()) {
+                                            if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                        }
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                    }
+                                }
+
+                            }
+
+                        } catch (e) {
+                            console.log(e)
+                        }
+
+                    };
+                    let mid = 0;
+                    let qz = (k_) => {
+                        const k = k_;
+                        try {
+                            if (typeof k === 'number' && k === player_.getPlayerState()) {
+                                if (!ytdPlayerElement) {
+                                    ytdPlayerElement = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
+                                }
+                                const audio = ytdPlayerElement ? HTMLElement.prototype.querySelector.call(ytdPlayerElement, '.video-stream.html5-main-video') : null;
+                                if (audio) {
+                                    if (mid > 1e9) mid = 9;
+                                    const t = ++mid;
+                                    prrPipeline(async () => {
+                                        if (t !== mid) return;
+                                        await prr.then();
+                                        if (t !== mid) return;
+                                        await asyncStateChange(audio, k);
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.log(e)
+                        }
+                    };
+
+                    player_.addEventListener('onStateChange', qz);
+                    const state0 = player_.getPlayerState();
+                    // console.log(221, state0)
+                    if (typeof state0 === 'number') {
+                        qz(state0);
+                    }
+
+                    player_.addEventListener('onVideoProgress', () => {
+                        Promise.resolve().then(() => {
                             player_.updateLastActiveTime();
                         });
                     });
@@ -809,14 +1186,53 @@
 
 
 
-                    return player_;
-
-
-                } catch (e) {
-                    console.log(e)
                 }
 
-            })();
+                customElements.whenDefined('ytd-player').then(() => {
+                    const dummy = document.querySelector('ytd-player') || document.createElement('ytd-player');
+                    const cnt = insp(dummy);
+                    const cProto = cnt.constructor.prototype;
+                    cProto.createMainAppPlayer932_ = cProto.createMainAppPlayer_;
+                    cProto.initPlayer932_ = cProto.initPlayer_;
+                    cProto.createMainAppPlayer_ = function (a, b, c) {
+                        let r = this.createMainAppPlayer932_(a, b, c);
+                        try {
+                            this.mainAppPlayer_.api.then(function (e) {
+                                setupAudioPlaying(e);
+                            })
+                        } finally {
+                            return r;
+                        }
+                    }
+                    cProto.initPlayer_ = function (a) {
+                        let r = this.initPlayer932_(a);
+                        try {
+                            r.then(() => {
+                                setupAudioPlaying(this.player_);
+                            })
+                        } finally {
+                            return r;
+                        }
+                    }
+                })
+
+                let useStopAndReload = location.pathname !== '/watch';
+                document.addEventListener('yt-navigate-start', () => {
+                    prr = new PromiseExternal();
+                    if (useStopAndReload) stopAndReload = true;
+                });
+
+                document.addEventListener('yt-navigate-cache', () => {
+                    prr = new PromiseExternal();
+                    if (useStopAndReload) stopAndReload = true;
+                });
+
+                document.addEventListener('yt-navigate-finish', () => {
+                    prr.resolve();
+                });
+
+
+            }
 
 
             // document.addEventListener('yt-navigate-finish', async () => {
@@ -929,61 +1345,179 @@
 
         } else if (location.origin === 'https://m.youtube.com') {
 
+            let player0 = null;
+            let mgg = null;
+            const mff = function (e) {
+
+                if (!player0) {
+
+                    if (e && (e || 0).target) {
+                        player0 = e.target
+
+
+                        if (mgg) mgg();
+
+                    }
+
+                }
+            }
+
+            document.addEventListener('player-initialized', mff, true);
+            document.addEventListener('player-state-change', mff, true);
+            document.addEventListener('player-ad-state-change', mff, true);
+            document.addEventListener('player-detailed-error', mff, true);
+            document.addEventListener('player-error', mff, true);
+            document.addEventListener('on-play-autonav-video', mff, true);
+            document.addEventListener('on-play-previous-autonav-video', mff, true);
+            document.addEventListener('player-fullscreen-change', mff, true);
+            document.addEventListener('player-fullscreen-toggled', mff, true);
+            document.addEventListener('player-dom-paused', mff, true);
+            document.addEventListener('yt-show-toast', mff, true);
+            document.addEventListener('yt-innertube-command', mff, true);
+            document.addEventListener('yt-update-c3-companion', mff, true);
+            document.addEventListener('video-data-change', mff, true);
+            document.addEventListener('video-progress', mff, true);
+            document.addEventListener('local-media-change', mff, true);
+
+            let em = '';
+            let tc = false;
             // let pw = null;
             (async () => {
                 try {
                     let player_;
                     let elm;
                     const asyncStateChange = async (audio, k) => {
+
+                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+                            // try {
+                            //     if (audio.readyState == 0) await player_.refreshAllStaleEntities();
+                            // } catch (e) {
+                            //     console.log(e)
+                            // }
+                        };
+                        const seekToLiveHeadForLiveStream = async () => {
+                            try {
+                                await player_.seekToLiveHead();
+                                if ((await player_.isAtLiveHead()) === true) {
+                                    await player_.seekToStreamTime();
+                                    return true;
+                                }
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        };
+                        // console.log(123)
                         try {
-                            if(!player_ || !elm || typeof player_.getPlayerState !=='function') return;
+                            if (!player_ || !elm || typeof player_.getPlayerState !== 'function') return;
                             // console.log(292, !!pw, k===-1, player_.getPlayerState()  == -1);
                             // if (pw) {
                             //     pw.resolve();
                             // }
                             // pw = new PromiseExternal();
 
-                            let ns23 = audio.networkState == 2 || audio.networkState == 3
-                            console.log(127001, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
+                            const ns23 = audio.networkState == 2 || audio.networkState == 3
+                            // console.log(127001, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
 
-                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
-                                await player_.seekToStreamTime();
-                                await player_.seekToLiveHead();
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+
+                            const f = () => {
+
+                                let closeBtnRenderer = document.querySelector('.ytm-bottom-sheet-overlay-renderer-close.icon-close');
+                                if (closeBtnRenderer) {
+
+                                    const btn = closeBtnRenderer.querySelector('button');
+                                    const container = closeBtnRenderer.closest('#global-loader ~ .ytm-bottom-sheet-overlay-container');
+
+                                    if (container) {
+                                        container.style.visibility = 'collapse';
+                                        container.style.zIndex = '-1';
+                                    }
+                                    if (btn) {
+                                        setTimeout(() => {
+                                            btn.click();
+                                        }, 300);
+                                    }
+                                }
+
+                            }
+
+                            f();
+
+
+
+
+                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState > 0 && ns23 && audio.muted === true) {
+
+                                tc = true;
+
+                            }
+
+                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                                await delayPn(500);
+                                if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+
+                                    // console.log(127003)
+                                    if (!player_.isAtLiveHead()) {
+                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                    }
+
+                                    // console.log(127004, audio.readyState)
+                                    while (audio.readyState === 0) {
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
+                                        await player_.cancelPlayback();
+                                        await player_.pauseVideo();
+                                        await player_.playVideo();
+                                        await delayPn(300);
+                                    }
+                                    // console.log(127005, audio.readyState)
+                                    if (!player_.isAtLiveHead()) {
+                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                                    }
+                                    await refreshAllStaleEntitiesForNonReadyAudio();
+                                    // console.log(127006, audio.readyState)
+
+
+
+
+                                }
+
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+
+                                await seekToLiveHeadForLiveStream();
+
+
+
+                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23) {
 
                                 // console.log(1201)
                                 await delayPn(60);
                                 // console.log(1202, player_.getPlayerState() ,  audio.readyState , ns23, audio.paused === false, audio.muted === false)
 
-                                console.log(127002, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false && audio.muted === false) {
+                                // console.log(127002, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
+                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false) {
                                     // pw = pw || new PromiseExternal();
                                     // const pw0 = pw;
 
-                                    console.log(127003)
+                                    // console.log(127003)
                                     if (!player_.isAtLiveHead()) {
-                                        await delayPn(60);
-                                        // await player_.seekToLiveHead(); await delayPn(9);
-                                        await player_.seekToStreamTime();
-                                        await player_.seekToLiveHead();
-                                        await delayPn(60);
+                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                     }
 
-                                    console.log(127004, audio.readyState)
+                                    // console.log(127004, audio.readyState)
                                     while (audio.readyState === 0) {
+                                        await refreshAllStaleEntitiesForNonReadyAudio();
                                         await player_.cancelPlayback();
                                         await player_.pauseVideo();
                                         await player_.playVideo(); await delayPn(60);
                                     }
-                                    console.log(127005, audio.readyState)
+                                    // console.log(127005, audio.readyState)
                                     if (!player_.isAtLiveHead()) {
-                                        await delayPn(60);
-                                        // await player_.seekToLiveHead(); await delayPn(9);
-                                        await player_.seekToStreamTime();
-                                        await player_.seekToLiveHead();
-                                        await delayPn(60);
+                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                     }
-                                    console.log(127006, audio.readyState)
+                                    await refreshAllStaleEntitiesForNonReadyAudio();
+                                    // console.log(127006, audio.readyState)
+
+
+
 
                                 }
 
@@ -997,6 +1531,7 @@
 
                     // console.log(299, player_)
                     let qz = (e) => {
+                        // console.log(992)
                         try {
 
                             if (e && (e || 0).target) {
@@ -1007,7 +1542,8 @@
                             if (e && e.detail && e.detail.state) {
                                 k = e.detail.state
                             }
-                            if (typeof player_.getPlayerState === 'function' && k >= 0 && k === player_.getPlayerState()) {
+                            // console.log(188, k, player_ )
+                            if (typeof player_.getPlayerState === 'function' && typeof k === 'number' && k === player_.getPlayerState()) {
                                 const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
                                 if (audio) asyncStateChange(audio, k);
                             }
@@ -1017,10 +1553,19 @@
                     };
 
                     document.addEventListener('player-state-change', qz, true);
-                    // const state0 = player_.getPlayerState();
-                    // if (typeof state0 === 'number') {
-                    //     qz({ type: 'player-state-change', target: player_, detail: { state: state0 } });
-                    // }
+
+                    mgg = function () {
+                        if (player0) {
+                            // console.log(22)
+
+                            const player_ = player0
+                            const state0 = player_.getPlayerState();
+                            if (typeof state0 === 'number') {
+                                qz({ type: 'player-state-change', target: player_, detail: { state: state0 } });
+                            }
+                        }
+
+                    }
 
                     document.addEventListener('video-progress', (e) => {
 
@@ -1030,10 +1575,23 @@
                         }
                         if (!elm || !player_) return;
                         Promise.resolve().then(() => {
-                            if(player_ && typeof  player_.updateLastActiveTime === 'function'){
+                            if (player_ && typeof player_.updateLastActiveTime === 'function') {
                                 player_.updateLastActiveTime();
                             }
                         });
+
+                        if (tc) {
+                            tc = false;
+
+                            const audio = HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video');
+
+
+                            if (audio && audio.muted === true && audio.isConnected === true && audio.readyState >= 0 && audio.networkState >= 2 && audio.paused === false) {
+
+                                audio.click();
+                            }
+
+                        }
                     }, true);
 
 
@@ -1047,6 +1605,7 @@
                 }
 
             })();
+
 
 
             //       document.addEventListener('DOMContentLoaded', (evt) => {
@@ -1083,16 +1642,36 @@
             window.addEventListener('state-navigateend', async (evt) => {
 
 
-                let configs = yt.config_ || 0;
-                configs = configs.WEB_PLAYER_CONTEXT_CONFIGS || {};
-                for (const [key, entry] of Object.entries(configs)) {
+                const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
+                if (config_) {
 
-                    if (entry && typeof entry.serializedExperimentFlags === 'string') {
-                        // prevent idle playback failure
-                        entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
-                            return a + '00' + '=' + b + c;
-                        });
+                    let configs = config_.WEB_PLAYER_CONTEXT_CONFIGS || {};
+                    for (const [key, entry] of Object.entries(configs)) {
 
+                        if (entry && typeof entry.serializedExperimentFlags === 'string') {
+                            // prevent idle playback failure
+                            entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
+                                return a + '00' + '=' + b + c;
+                            });
+
+                        }
+
+                    }
+                    removeTempObjectProp01();
+
+                    const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
+
+                    if (EXPERIMENT_FLAGS) {
+                        EXPERIMENT_FLAGS.kevlar_unified_player = true;
+                        EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
+                    }
+
+
+                    const EXPERIMENTS_FORCED_FLAGS = config_.EXPERIMENTS_FORCED_FLAGS;
+
+                    if (EXPERIMENTS_FORCED_FLAGS) {
+                        EXPERIMENTS_FORCED_FLAGS.kevlar_unified_player = true;
+                        EXPERIMENTS_FORCED_FLAGS.kevlar_non_watch_unified_player = true;
                     }
 
                 }
@@ -1371,9 +1950,12 @@
                 // console.log(a.paused)
                 // console.log(7710)
 
-                if(a.paused === true && a.muted === false && a.networkState === 2 && a.readyState === 0){
-                    if (typeof clickTarget.seekToStreamTime === 'function') clickTarget.seekToStreamTime();
-                    if (typeof clickTarget.seekToLiveHead === 'function') clickTarget.seekToLiveHead();
+                if (a.paused === true && a.muted === false && a.networkState === 2 && a.readyState === 0) {
+
+                    if (typeof clickTarget.seekToLiveHead === 'function') await clickTarget.seekToLiveHead();
+                    if (typeof clickTarget.isAtLiveHead === 'function' && (await clickTarget.isAtLiveHead()) === true) {
+                        if (typeof clickTarget.seekToStreamTime === 'function') await clickTarget.seekToStreamTime();
+                    }
                 }
 
 
@@ -1398,6 +1980,100 @@
 
         }
 
+        let kz = false;
+        document.addEventListener('yt-action', function (evt) {
+
+            if (kz) return;
+            kz = true;
+
+            const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
+            if (config_) {
+
+
+                let playerKevlar = null;
+                try {
+                    playerKevlar = config_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH;
+                } catch (e) { }
+                if (playerKevlar) {
+
+                    // console.log(322, playerKevlar)
+                    playerKevlar.allowWoffleManagement = false;
+                    playerKevlar.cinematicSettingsAvailable = false;
+                    playerKevlar.showMiniplayerButton = false;
+                    playerKevlar.showMiniplayerUiWhenMinimized = false;
+                    playerKevlar.transparentBackground = false;
+
+                    playerKevlar.enableCsiLogging = false;
+                    playerKevlar.externalFullscreen = false;
+
+
+                    if (typeof playerKevlar.serializedExperimentFlags === 'string') {
+
+                        playerKevlar.serializedExperimentFlags = '';
+
+                        // playerKevlar.serializedExperimentFlags = playerKevlar.serializedExperimentFlags.replace(/[-\w]+=(\[\]|[.-\d]+|[_a-z]+|)(&|$)/g,'').replace(/&$/,'')
+
+
+
+                    }
+
+
+                    if (typeof playerKevlar.serializedExperimentIds === 'string') {
+
+                        playerKevlar.serializedExperimentIds = '';
+
+                        // playerKevlar.serializedExperimentIds = playerKevlar.serializedExperimentIds.replace(/\d+\s*(,\s*|$)/g,'')
+
+                    }
+
+                }
+
+
+                let configs = config_.WEB_PLAYER_CONTEXT_CONFIGS || {};
+                for (const [key, entry] of Object.entries(configs)) {
+
+                    if (entry && typeof entry.serializedExperimentFlags === 'string') {
+                        // prevent idle playback failure
+                        entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
+                            return a + '00' + '=' + b + c;
+                        });
+
+                    }
+
+                }
+
+                /*
+                const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS
+
+                for(const k in EXPERIMENT_FLAGS){
+                if(EXPERIMENT_FLAGS[k]===true){
+                    EXPERIMENT_FLAGS[k] = false;
+                }
+                }
+                console.log(3277, EXPERIMENT_FLAGS)
+                */
+
+
+                removeTempObjectProp01();
+
+                const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
+
+                if (EXPERIMENT_FLAGS) {
+                    EXPERIMENT_FLAGS.kevlar_unified_player = true;
+                    EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
+                }
+
+
+                const EXPERIMENTS_FORCED_FLAGS = config_.EXPERIMENTS_FORCED_FLAGS;
+
+                if (EXPERIMENTS_FORCED_FLAGS) {
+                    EXPERIMENTS_FORCED_FLAGS.kevlar_unified_player = true;
+                    EXPERIMENTS_FORCED_FLAGS.kevlar_non_watch_unified_player = true;
+                }
+
+            }
+
+        }, { capture: true, passive: true, once: true });
 
 
         let prepared = false;
@@ -1643,6 +2319,10 @@
         style.id = 'fm9v0';
         style.textContent = `
 
+        .html5-video-container {
+            background-color: black;
+        }
+
         /* #movie_player > .ytp-iv-video-content {
             pointer-events: none; // allow clicking
         } */
@@ -1724,4 +2404,3 @@
 
 
 })();
-
