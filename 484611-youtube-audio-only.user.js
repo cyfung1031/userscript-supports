@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.4.3
+// @version             1.4.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1016,17 +1016,27 @@
                             }
                         };
                         const stopAndReloadFn = async () => {
+                            let isLive = false;
                             if (location.pathname === '/watch') {
+                                const liveBtn = document.querySelector('.ytp-live-badge.ytp-button');
+                                try {
+                                    if (liveBtn && !liveBtn.closest('[hidden]') && (liveBtn.textContent || '').trim().length > 0) {
+                                        isLive = true;
+                                    }
+                                } catch (e) { }
+                            }
+                            if (isLive) {
                                 player_.destroy();
                                 location.replace(location.href);
                                 await delayPn(8000);
+                            } else {
+                                // await player_.stopVideo();
+                                // await player_.updateVideoData();
+                                // try{
+                                //     await player_.refreshAllStaleEntities();
+                                // }catch(e){}
+                                // await player_.playVideo();
                             }
-                            // await player_.stopVideo();
-                            // await player_.updateVideoData();
-                            // try{
-                            //     await player_.refreshAllStaleEntities();
-                            // }catch(e){}
-                            // await player_.playVideo();
                         }
                         try {
 
