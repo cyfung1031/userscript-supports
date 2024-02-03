@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.4.2
+// @version             1.4.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2319,7 +2319,7 @@
         style.id = 'fm9v0';
         style.textContent = `
 
-        .html5-video-container {
+        .html5-video-player {
             background-color: black;
         }
 
