@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.5.1
+// @version             1.5.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -81,6 +81,13 @@
 
     if (location.pathname === '/live_chat' || location.pathname === 'live_chat_replay') return;
 
+    const kEventListener = (evt) => {
+        if (document.documentElement.hasAttribute('forceRefresh032')) {
+            evt.stopImmediatePropagation();
+            evt.stopPropagation();
+        }
+    }
+    window.addEventListener('beforeunload', kEventListener, false);
 
     const pageInjectionCode = function () {
 
@@ -1558,6 +1565,7 @@
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {
         await GM.setValue("isEnable_aWsjF", !isEnable);
+        document.documentElement.setAttribute('forceRefresh032', '');
         location.reload();
     });
 
@@ -1576,6 +1584,7 @@
                     busy = true;
                     if (await confirm("Livestream is detected. Press OK to disable YouTube Audio Mode.")) {
                         await GM.setValue("isEnable_aWsjF", !isEnable);
+                        document.documentElement.setAttribute('forceRefresh032', '');
                         location.reload();
                     }
                     busy = false;
@@ -1607,6 +1616,7 @@
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
         newBtn.addEventListener('click', async () => {
             await GM.setValue("isEnable_aWsjF", !isEnable);
+            document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
         let t;
@@ -1632,6 +1642,7 @@
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
         newBtn.addEventListener('click', async () => {
             await GM.setValue("isEnable_aWsjF", !isEnable);
+            document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
     }
