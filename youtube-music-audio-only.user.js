@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.4
+// @version             0.1.5
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -23,6 +23,7 @@
 
 (async function () {
     'use strict';
+
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -78,6 +79,13 @@
 
     if (location.pathname === '/live_chat' || location.pathname === 'live_chat_replay') return;
 
+    const kEventListener = (evt) => {
+        if (document.documentElement.hasAttribute('forceRefresh032')) {
+            evt.stopImmediatePropagation();
+            evt.stopPropagation();
+        }
+    }
+    window.addEventListener('beforeunload', kEventListener, false);
 
     const pageInjectionCode = function () {
 
@@ -917,43 +925,56 @@
 
     function contextmenuInfoItemAppearedFn(target) {
 
-        const btn = target.closest('.ytp-menuitem[role="menuitem"]');
+        const btn = target.closest('[role="option"]');
         if (!btn) return;
-        if (btn.parentNode.querySelector('.ytp-menuitem[role="menuitem"].audio-only-toggle-btn')) return;
+        if (btn.parentNode.querySelector('[role="option"].audio-only-toggle-btn')) return;
         document.documentElement.classList.add('with-audio-only-toggle-btn');
-        const newBtn = btn.cloneNode(true)
-        newBtn.querySelector('.ytp-menuitem-label').textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
+        let m = document.createElement('template');
+        m.innerHTML = btn.outerHTML.replace(/ytmusic-menu-\w+-item-renderer/, 'ytmusic-menu-custom-item-renderer');
+        const newBtn = m.content.firstChild;
+        newBtn.classList.remove('iron-selected');
+        newBtn.classList.remove('focused');
+        newBtn.removeAttribute('iron-selected');
+        newBtn.removeAttribute('focused');
+        let a = newBtn.querySelector('a');
+        if (a) a.removeAttribute('href');
         newBtn.classList.add('audio-only-toggle-btn');
-        btn.parentNode.insertBefore(newBtn, btn.nextSibling);
-        newBtn.addEventListener('click', async () => {
+
+
+        newBtn.addEventListener('click', async (evt) => {
             await GM.setValue("isEnable_aWsjF", !isEnable);
+            document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
-        let t;
-        let h = 0;
-        t = btn.closest('.ytp-panel-menu[style*="height"]');
-        if (t) t.style.height = t.scrollHeight + 'px';
-        t = btn.closest('.ytp-panel[style*="height"]');
-        if (t) t.style.height = (h = t.scrollHeight) + 'px';
-        t = btn.closest('.ytp-popup.ytp-contextmenu[style*="height"]');
-        if (t && h > 0) t.style.height = h + 'px';
+        btn.parentNode.insertBefore(newBtn, null);
+        // let t;
+        // let h = 0;
+        // t = btn.closest('.ytp-panel-menu[style*="height"]');
+        // if (t) t.style.height = t.scrollHeight + 'px';
+        // t = btn.closest('.ytp-panel[style*="height"]');
+        // if (t) t.style.height = (h = t.scrollHeight) + 'px';
+        // t = btn.closest('.ytp-popup.ytp-contextmenu[style*="height"]');
+        // if (t && h > 0) t.style.height = h + 'px';
+
+        const f = ()=>{
+            const mx = newBtn.querySelector('yt-formatted-string');
+            if (mx) {
+                mx.removeAttribute('is-empty');
+                mx.textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
+            }
+            let t;
+            t = btn.closest('ytmusic-menu-popup-renderer[style*="max-height"]');
+            if (t) t.style.maxHeight = t.scrollHeight + 'px';
+        }
+        f();
+        setTimeout(f, 40);
+
+
     }
 
 
     function mobileMenuItemAppearedFn(target) {
 
-        const btn = target.closest('ytm-menu-item');
-        if (!btn) return;
-        if (btn.parentNode.querySelector('ytm-menu-item.audio-only-toggle-btn')) return;
-        document.documentElement.classList.add('with-audio-only-toggle-btn');
-        const newBtn = btn.cloneNode(true);
-        newBtn.querySelector('.menu-item-button').textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
-        newBtn.classList.add('audio-only-toggle-btn');
-        btn.parentNode.insertBefore(newBtn, btn.nextSibling);
-        newBtn.addEventListener('click', async () => {
-            await GM.setValue("isEnable_aWsjF", !isEnable);
-            location.reload();
-        });
     }
 
 
@@ -1009,7 +1030,7 @@
                 background-position-x: 4px;
            }
        }
-        .ytp-contextmenu .ytp-menuitem[role="menuitem"] path[d^="M22 34h4V22h-4v12zm2-30C12.95"]{
+       ytmusic-popup-container.ytmusic-app ytmusic-menu-popup-renderer tp-yt-paper-listbox > [role="option"]:first-child {
             animation: contextmenuInfoItemAppeared 1ms linear 0s 1 normal forwards;
        }
         #confirmDialog794 {
