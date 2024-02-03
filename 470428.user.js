@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.29
+// @version     1.3.30
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -35,6 +35,7 @@
   const NO_ANIMATED_LIKE = false;
   const KEEP_MIDDLEWAVE = true;
   const NO_CINEMATIC_LIGHTING_LABEL = false; // set true to show "Ambient Mode" label instead of "Cinematic lighting" Label
+  const KEEP_unified_player = true; // for YouTube Audio Only
 
   const SET_POLYMER_FLAGS = true;
   const FLAG_STRATEGY_01 = true; // ignore ads related flags
@@ -658,6 +659,11 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (KEEP_unified_player && kl >= 21 && kl <= 31) {
+            if (key === 'kevlar_unified_player') continue;
+            if (key === 'kevlar_non_watch_unified_player') continue;
+          }
 
           if (FLAG_STRATEGY_03 && kl >= 8 && kl <= 31) {
             // do it with your separate script please
