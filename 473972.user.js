@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.3
+// @version     0.11.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -70,6 +70,8 @@
 
   const FIX_XHR_REQUESTING = true;
   const FIX_VIDEO_BLOCKING = true; // usually it is a ads block issue
+
+  const LOG_FETCHMETA_UPDATE = false;
 
 
   /*
@@ -5365,7 +5367,7 @@
               if (!a && (this.data || 0).updatedMetadataEndpoint) {
                 if (mjtRecordedPrevKey && mjtLockPreviousKey !== mjtRecordedPrevKey) {
                   mjtLockPreviousKey = mjtRecordedPrevKey;
-                  continuationLog(mjtLockPreviousKey, '5150 Lock Key', mjtLockPreviousKey);
+                  LOG_FETCHMETA_UPDATE && continuationLog(mjtLockPreviousKey, '5150 Lock Key', mjtLockPreviousKey);
                 }
                 // mjtNextMainKey = true;
                 mtzlastAllowedContinuation = '';
@@ -5382,7 +5384,7 @@
                 if (mpKey22 === a && mpUrl22 === videoPlayingId && mpUrl22 && videoPlayingId && (!pageSetupVideoId || pageSetupVideoId === videoPlayingId)) {
                   update21 = true;
                 } else if (mpKey22 === a && mpUrl22 !== pageSetupVideoId) {
-                  continuationLog(mpKey22, '5060 mpUrl22 mismatched', mpKey22, mpUrl22, pageSetupVideoId  || '(null)' , videoPlayingId  || '(null)' );
+                  LOG_FETCHMETA_UPDATE && continuationLog(mpKey22, '5060 mpUrl22 mismatched', mpKey22, mpUrl22, pageSetupVideoId  || '(null)' , videoPlayingId  || '(null)' );
                   return;
                 }
                 if (update21) {
@@ -5392,7 +5394,7 @@
 
                 if (!mfvContinuationRecorded.has(a)) mfvContinuationRecorded.add(a);
               }
-              continuationLog(a, '5180 fetchUpdatedMetadata\t', a, pageSetupVideoId || '(null)' , videoPlayingY.videoId  || '(null)' );
+              LOG_FETCHMETA_UPDATE && continuationLog(a, '5180 fetchUpdatedMetadata\t', a, pageSetupVideoId || '(null)' , videoPlayingY.videoId  || '(null)' );
               // if (!pageSetupVideoId && typeof a === 'string' && a.length > 40) return; // ignore incorrect continuation
               // if(a === mjtNextMainKey) allowNoDelay322 = false;
               return this.fetchUpdatedMetadata718(a);
@@ -5554,7 +5556,7 @@
 
               if (mfyContinuationIgnored && continuation) {
                 if (mfyContinuationIgnored.has(continuation)) {
-                  continuationLog(continuation, '5260 matched01', continuation)
+                  LOG_FETCHMETA_UPDATE && continuationLog(continuation, '5260 matched01', continuation)
                   return;
                 }
               }
@@ -5619,12 +5621,12 @@
           if (lztContinuation !== mpKey21 || lztContinuation !== mpKey22) return;
           if (!mfyContinuationIgnored.size) return;
           if (mfyContinuationIgnored.size > 1) {
-            continuationLog(lztContinuation, 'delayClearOtherKeys, current = ', lztContinuation);
+            LOG_FETCHMETA_UPDATE && continuationLog(lztContinuation, 'delayClearOtherKeys, current = ', lztContinuation);
           }
           mfyContinuationIgnored.forEach((value, key) => {
             if (key !== lztContinuation) {
               mfyContinuationIgnored.delete(key);
-              continuationLog(key, 'previous continuation removed from ignored store', key);
+              LOG_FETCHMETA_UPDATE && continuationLog(key, 'previous continuation removed from ignored store', key);
             }
           });
 
@@ -5670,7 +5672,7 @@
 
               if (mfyContinuationIgnored && lztContinuation && typeof lztContinuation === 'string') {
                 if (mfyContinuationIgnored.has(lztContinuation)) {
-                  continuationLog(lztContinuation, '5360 matched02', lztContinuation)
+                  LOG_FETCHMETA_UPDATE && continuationLog(lztContinuation, '5360 matched02', lztContinuation)
                   return;
                 }
               }
@@ -5687,7 +5689,7 @@
                 mtzlastAllowedContinuation = lztContinuation;
                 // console.log(70401, lztContinuation, mfyContinuationIgnored.size)
 
-                continuationLog(lztContinuation, '5382 Continuation sets to\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
+                LOG_FETCHMETA_UPDATE && continuationLog(lztContinuation, '5382 Continuation sets to\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
                 mjtRecordedPrevKey = lztContinuation;
                 if (mjtLockPreviousKey === lztContinuation) mjtLockPreviousKey = '';
                 // if (mfyContinuationIgnored.size > 0) {
@@ -5699,7 +5701,7 @@
                 // repeated
                 if (mtzCount > 1e9) mtzCount = 1e4;
                 ++mtzCount;
-                continuationLog(lztContinuation, '5386 Same Continuation\t\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
+                LOG_FETCHMETA_UPDATE && continuationLog(lztContinuation, '5386 Same Continuation\t\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
 
                 // if (mtzCount >= 3) allowNoDelay322 = true;
                 if (mtzCount >= 3 && mfyContinuationIgnored.size > 0) {
