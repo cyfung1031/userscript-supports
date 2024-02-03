@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.5
+// @version             0.1.6
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -929,23 +929,28 @@
         if (!btn) return;
         if (btn.parentNode.querySelector('[role="option"].audio-only-toggle-btn')) return;
         document.documentElement.classList.add('with-audio-only-toggle-btn');
-        let m = document.createElement('template');
-        m.innerHTML = btn.outerHTML.replace(/ytmusic-menu-\w+-item-renderer/, 'ytmusic-menu-custom-item-renderer');
-        const newBtn = m.content.firstChild;
-        newBtn.classList.remove('iron-selected');
-        newBtn.classList.remove('focused');
-        newBtn.removeAttribute('iron-selected');
-        newBtn.removeAttribute('focused');
-        let a = newBtn.querySelector('a');
-        if (a) a.removeAttribute('href');
-        newBtn.classList.add('audio-only-toggle-btn');
-
-
-        newBtn.addEventListener('click', async (evt) => {
+        const newBtn = btn.cloneNode(true);
+        const h = () => {
+            newBtn.classList.remove('iron-selected');
+            newBtn.classList.remove('focused');
+            newBtn.removeAttribute('iron-selected');
+            newBtn.removeAttribute('focused');
+            let a = newBtn.querySelector('a');
+            if (a) a.removeAttribute('href');
+            newBtn.classList.add('audio-only-toggle-btn');
+        }
+        h();
+        async function reloadPage() {
             await GM.setValue("isEnable_aWsjF", !isEnable);
             document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
-        });
+        }
+        newBtn.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            evt.stopImmediatePropagation();
+            evt.stopPropagation();
+            reloadPage();
+        }, true);
         btn.parentNode.insertBefore(newBtn, null);
         // let t;
         // let h = 0;
@@ -956,7 +961,8 @@
         // t = btn.closest('.ytp-popup.ytp-contextmenu[style*="height"]');
         // if (t && h > 0) t.style.height = h + 'px';
 
-        const f = ()=>{
+        const f = () => {
+            h();
             const mx = newBtn.querySelector('yt-formatted-string');
             if (mx) {
                 mx.removeAttribute('is-empty');
