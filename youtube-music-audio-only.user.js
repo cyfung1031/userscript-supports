@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.2
+// @version             0.1.3
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -371,14 +371,53 @@
 
         const avFix = async () => {
 
-            if (cw < 6) cw = 6;
+            // if (cw < 6) cw = 6;
 
             // const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
             // ytConfigFix(config_);
 
 
-            const songImageThumbnail = document.querySelector('#song-image #thumbnail[object-fit="COVER"]');
-            if (songImageThumbnail) songImageThumbnail.setAttribute('object-fit', 'CONTAIN');
+            const songImageThumbnail = document.querySelector('#song-image #thumbnail');
+            if (songImageThumbnail) {
+
+                if (songImageThumbnail.getAttribute('object-fit') !== 'CONTAIN') songImageThumbnail.setAttribute('object-fit', 'CONTAIN');
+
+                mo2.observe(songImageThumbnail, { attributes: true });
+
+                const img = HTMLElement.prototype.querySelector.call(songImageThumbnail, 'img#img[src]');
+                if (img) {
+
+                    mo2.observe(img, { attributes: true });
+
+
+                    const src = img.getAttribute('src');
+                    let m = /\b[a-z0-9]{4,13}\.jpg\b/.exec(src);
+
+                    if (m && m[0]) {
+                        const t = m[0];
+                        if (t === "mqdefault.jpg" || t === "sddefault.jpg") {
+                            let nSrc = src.replace(t, "hqdefault.jpg");
+                            if (nSrc !== src) {
+
+                                img.setAttribute('src', nSrc)
+                            }
+                        }
+                    }
+
+                    /*
+                    iurl: "default.jpg",
+                    iurlmq: "mqdefault.jpg",
+                    iurlhq: "hqdefault.jpg",
+                    iurlsd: "sddefault.jpg",
+                    iurlpop1: "pop1.jpg",
+                    iurlpop2: "pop2.jpg",
+                    iurlhq720: "hq720.jpg",
+                    iurlmaxres: "maxresdefault.jpg"
+                    */
+
+                }
+
+            }
 
             for (const s of document.querySelectorAll('[playback-mode][selected-item-has-video]')) {
                 s.removeAttribute('selected-item-has-video');
@@ -395,7 +434,7 @@
 
             for (const ytElement of document.querySelectorAll('ytmusic-player-page')) {
                 if (ytElement.is === 'ytmusic-player-page') {
-                    mo.observe(ytElement, { attributes: true });
+                    mo2.observe(ytElement, { attributes: true });
 
                     const cnt = insp(ytElement);
 
@@ -425,7 +464,7 @@
 
             for (const ytElement of document.querySelectorAll('ytmusic-av-toggle')) {
                 if (ytElement.is === 'ytmusic-av-toggle') {
-                    mo.observe(ytElement, { attributes: true });
+                    mo2.observe(ytElement, { attributes: true });
 
                     const cnt = insp(ytElement);
                     // cnt.toggleDisabled = false;
@@ -521,7 +560,17 @@
             }
         });
 
-        mo.observe(document, { childList: true, subtree: true })
+        mo.observe(document, { childList: true, subtree: true });
+
+
+        const mo2 = new MutationObserver(() => {
+            if (cw < 1) cw = 1;
+            if (cw > 0) {
+                cw--;
+                avFix();
+            }
+        });
+
 
 
 
@@ -926,6 +975,10 @@
         style.textContent = `
 
         .html5-video-player {
+            background-color: black;
+        }
+
+        #song-image.ytmusic-player {
             background-color: black;
         }
 
