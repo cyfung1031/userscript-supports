@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.6
+// @version             0.1.7
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -1006,6 +1006,17 @@
 
         #song-image.ytmusic-player {
             background-color: black;
+        }
+
+        ytmusic-player-page:not([player-fullscreened]) #main-panel.style-scope.ytmusic-player-page[style*="padding"] {
+            padding: 0px 0px !important;
+            box-sizing: border-box;
+        }
+
+        ytmusic-player-page:not([player-fullscreened]) ytmusic-player#player.style-scope.ytmusic-player-page {
+            max-height: 100%;
+            margin-top: calc(-1*var(--ytmusic-player-page-vertical-padding));
+            box-sizing: border-box;
         }
 
         /* #movie_player > .ytp-iv-video-content {
