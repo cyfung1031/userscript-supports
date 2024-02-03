@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.4.4
+// @version             1.4.5
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -838,7 +838,7 @@
                                         }
                                         await refreshAllStaleEntitiesForNonReadyAudio();
                                     }
-                                } 
+                                }
                             } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
                                 await seekToLiveHeadForLiveStream();
                             } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
@@ -995,6 +995,30 @@
                     player_.__audio544__ = 1;
                     // console.log(1233, player_)
                     let ytdPlayerElement = null;
+
+                    const stopAndReloadFn = async () => {
+                        let isLive = false;
+                        if (location.pathname === '/watch') {
+                            const liveBtn = document.querySelector('.ytp-live-badge.ytp-button');
+                            try {
+                                if (liveBtn && !liveBtn.closest('[hidden]') && (liveBtn.textContent || '').trim().length > 0) {
+                                    isLive = true;
+                                }
+                            } catch (e) { }
+                        }
+                        if (isLive) {
+                            player_.destroy();
+                            location.replace(location.href);
+                            await delayPn(8000);
+                        } else {
+                            // await player_.stopVideo();
+                            // await player_.updateVideoData();
+                            // try{
+                            //     await player_.refreshAllStaleEntities();
+                            // }catch(e){}
+                            // await player_.playVideo();
+                        }
+                    };
                     const asyncStateChange = async (audio, k) => {
 
                         const refreshAllStaleEntitiesForNonReadyAudio = async () => {
@@ -1015,29 +1039,6 @@
                                 console.log(e);
                             }
                         };
-                        const stopAndReloadFn = async () => {
-                            let isLive = false;
-                            if (location.pathname === '/watch') {
-                                const liveBtn = document.querySelector('.ytp-live-badge.ytp-button');
-                                try {
-                                    if (liveBtn && !liveBtn.closest('[hidden]') && (liveBtn.textContent || '').trim().length > 0) {
-                                        isLive = true;
-                                    }
-                                } catch (e) { }
-                            }
-                            if (isLive) {
-                                player_.destroy();
-                                location.replace(location.href);
-                                await delayPn(8000);
-                            } else {
-                                // await player_.stopVideo();
-                                // await player_.updateVideoData();
-                                // try{
-                                //     await player_.refreshAllStaleEntities();
-                                // }catch(e){}
-                                // await player_.playVideo();
-                            }
-                        }
                         try {
 
                             const ns23 = audio.networkState == 2 || audio.networkState == 3;
@@ -1156,27 +1157,38 @@
 
                     };
                     let mid = 0;
+                    const getAudioElement = ()=>{
+                        if (!ytdPlayerElement) {
+                            ytdPlayerElement = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
+                        }
+                        const audio = ytdPlayerElement ? HTMLElement.prototype.querySelector.call(ytdPlayerElement, '.video-stream.html5-main-video') : null;
+                        return audio;
+                    }
                     let qz = (k_) => {
                         const k = k_;
-                        try {
-                            if (typeof k === 'number' && k === player_.getPlayerState()) {
-                                if (!ytdPlayerElement) {
-                                    ytdPlayerElement = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
-                                }
-                                const audio = ytdPlayerElement ? HTMLElement.prototype.querySelector.call(ytdPlayerElement, '.video-stream.html5-main-video') : null;
-                                if (audio) {
-                                    if (mid > 1e9) mid = 9;
-                                    const t = ++mid;
-                                    prrPipeline(async () => {
-                                        if (t !== mid) return;
-                                        await prr.then();
-                                        if (t !== mid) return;
-                                        await asyncStateChange(audio, k);
-                                    });
-                                }
+                        const ps = player_.getPlayerState();
+                        if (stopAndReload) {
+                            stopAndReload = false;
+                            const audio = getAudioElement();
+                            if (audio) {
+                                prrPipeline(async () => {
+                                    await prr.then();
+                                    await stopAndReloadFn();
+                                });
                             }
-                        } catch (e) {
-                            console.log(e)
+                        }
+                        if (typeof k === 'number' && k === ps) {
+                            const audio = getAudioElement();
+                            if (audio) {
+                                if (mid > 1e9) mid = 9;
+                                const t = ++mid;
+                                prrPipeline(async () => {
+                                    if (t !== mid) return;
+                                    await prr.then();
+                                    if (t !== mid) return;
+                                    await asyncStateChange(audio, k);
+                                });
+                            }
                         }
                     };
 
@@ -2291,6 +2303,14 @@
             await GM.setValue("isEnable_aWsjF", !isEnable);
             location.reload();
         });
+        let t;
+        let h = 0;
+        t = btn.closest('.ytp-panel-menu[style*="height"]');
+        if (t) t.style.height = t.scrollHeight + 'px';
+        t = btn.closest('.ytp-panel[style*="height"]');
+        if (t) t.style.height = (h = t.scrollHeight) + 'px';
+        t = btn.closest('.ytp-popup.ytp-contextmenu[style*="height"]');
+        if (t && h > 0) t.style.height = h + 'px';
     }
 
 
@@ -2363,12 +2383,6 @@
        }
         .ytp-contextmenu .ytp-menuitem[role="menuitem"] path[d^="M22 34h4V22h-4v12zm2-30C12.95"]{
             animation: contextmenuInfoItemAppeared 1ms linear 0s 1 normal forwards;
-       }
-       .with-audio-only-toggle-btn .ytp-contextmenu,
-       .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel-menu,
-       .with-audio-only-toggle-btn .ytp-contextmenu .ytp-panel {
-            height: 40vh !important;
-            min-height: 36rem !important;
        }
         #confirmDialog794 {
             z-index:999999 !important;
