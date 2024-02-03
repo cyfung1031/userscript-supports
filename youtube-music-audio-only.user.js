@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.0
+// @version             0.1.1
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -366,12 +366,12 @@
         });
 
 
-        
+
         let cw = 0;
 
-        const avFix = async ()=>{
+        const avFix = async () => {
 
-            cw = 6;
+            if (cw < 6) cw = 6;
 
             // const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
             // ytConfigFix(config_);
@@ -391,57 +391,56 @@
             }
 
             for (const ytElement of document.querySelectorAll('ytmusic-player-page')) {
-                if(ytElement.is === 'ytmusic-player-page'){
+                if (ytElement.is === 'ytmusic-player-page') {
+                    mo.observe(ytElement, { attributes: true });
+
                     const cnt = insp(ytElement);
 
                     const cProto = cnt.constructor.prototype;
 
-                    if(!cProto.setFn322){
-                        cProto.setFn322 = function(){
-
-
+                    if (!cProto.setFn322) {
+                        cProto.setFn322 = function () {
                             if (this.videoMode === true) this.videoMode = false;
                             // if (this.hasAvSwitcher === false) this.hasAvSwitcher = true;
                             if (this.hasAvSwitcher === true) this.hasAvSwitcher = false;
-
                         }
                     }
 
-                    if(typeof cProto.computeShowAvSwitcher ==='function' && !cProto.computeShowAvSwitcher322){
+                    if (typeof cProto.computeShowAvSwitcher === 'function' && !cProto.computeShowAvSwitcher322) {
                         cProto.computeShowAvSwitcher322 = cProto.computeShowAvSwitcher;
-                        cProto.computeShowAvSwitcher = function(){
+                        cProto.computeShowAvSwitcher = function () {
                             this.setFn322();
                             return this.computeShowAvSwitcher322(...arguments);
                         }
                     }
 
-                    
+
                     cnt.setFn322();
                 }
             }
 
 
             for (const ytElement of document.querySelectorAll('ytmusic-av-toggle')) {
-                if(ytElement.is === 'ytmusic-av-toggle'){
+                if (ytElement.is === 'ytmusic-av-toggle') {
+                    mo.observe(ytElement, { attributes: true });
+
                     const cnt = insp(ytElement);
                     // cnt.toggleDisabled = false;
                     const cProto = cnt.constructor.prototype;
 
-                    if(!cProto.setFn322){
-                        cProto.setFn322 = function(){
-
-                            if(this.mustPlayAudioOnly === false) this.mustPlayAudioOnly = true;
-                        }
-                    }
-                    cProto
-
-                    if(typeof cProto.computeToggleDisabled ==='function' && !cProto.computeToggleDisabled322){
-                        cProto.computeToggleDisabled322 = cProto.computeToggleDisabled;
-                        cProto.computeToggleDisabled = function(){
-                            this.setFn322();
+                    if (!cProto.setFn322) {
+                        cProto.setFn322 = function () {
+                            if (this.mustPlayAudioOnly === false) this.mustPlayAudioOnly = true;
                             // if(this.isVideo === true) this.isVideo = false;
                             // if(this.playbackMode !== 'ATV_PREFERRED') this.playbackMode = 'ATV_PREFERRED';
-                            // if(this.selectedItemHasVideo === true) this.selectedItemHasVideo = false;
+                            if (this.selectedItemHasVideo === true) this.selectedItemHasVideo = false;
+                        }
+                    }
+
+                    if (typeof cProto.computeToggleDisabled === 'function' && !cProto.computeToggleDisabled322) {
+                        cProto.computeToggleDisabled322 = cProto.computeToggleDisabled;
+                        cProto.computeToggleDisabled = function () {
+                            this.setFn322();
                             return this.computeToggleDisabled322(...arguments);
                         }
                     }
@@ -508,52 +507,51 @@
                 }
             }
 
-            
+
 
         }
 
-        const mo = new MutationObserver(()=>{
+        const mo = new MutationObserver(() => {
             if (cw > 0) {
                 cw--;
                 avFix();
             }
         });
 
-        mo.observe(document, {childList: true, subtree: true})
+        mo.observe(document, { childList: true, subtree: true })
 
 
 
-        document.addEventListener('fullscreenchange', ()=>{
-            cw=3;
+        document.addEventListener('fullscreenchange', () => {
+            if (cw < 3) cw = 3;
         });
 
-        document.addEventListener('yt-navigate-start', ()=>{
-            cw=3;
+        document.addEventListener('yt-navigate-start', () => {
+            if (cw < 3) cw = 3;
         });
 
-        document.addEventListener('yt-navigate-end', ()=>{
-            cw=3;
+        document.addEventListener('yt-navigate-end', () => {
+            if (cw < 3) cw = 3;
             avFix();
         });
 
-        document.addEventListener('yt-navigate-cache', ()=>{
-            cw=3;
+        document.addEventListener('yt-navigate-cache', () => {
+            if (cw < 3) cw = 3;
         });
 
-        
-        window.addEventListener("updateui", function() {
-            cw=3;
+
+        window.addEventListener("updateui", function () {
+            if (cw < 3) cw = 3;
         });
-        
-        window.addEventListener("resize", ()=>{
-            cw=3;
-            
+
+        window.addEventListener("resize", () => {
+            if (cw < 3) cw = 3;
         });
-        window.addEventListener("state-navigatestart", function() {
-            cw=3;
+        window.addEventListener("state-navigatestart", function () {
+            if (cw < 3) cw = 3;
         });
-        window.addEventListener("state-navigateend",()=>{
-            cw=3;
+        window.addEventListener("state-navigateend", () => {
+            if (cw < 3) cw = 3;
             avFix();
         })
 
@@ -578,8 +576,7 @@
 
                 }
 
-                // avModeFix();
-                cw = 3;
+                if (cw < 3) cw = 3;
                 avFix();
 
 
