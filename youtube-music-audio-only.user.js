@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.1
+// @version             0.1.2
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -377,6 +377,9 @@
             // ytConfigFix(config_);
 
 
+            const songImageThumbnail = document.querySelector('#song-image #thumbnail[object-fit="COVER"]');
+            if (songImageThumbnail) songImageThumbnail.setAttribute('object-fit', 'CONTAIN');
+
             for (const s of document.querySelectorAll('[playback-mode][selected-item-has-video]')) {
                 s.removeAttribute('selected-item-has-video');
             }
@@ -531,7 +534,7 @@
         });
 
         document.addEventListener('yt-navigate-end', () => {
-            if (cw < 3) cw = 3;
+            if (cw < 6) cw = 6;
             avFix();
         });
 
@@ -551,7 +554,7 @@
             if (cw < 3) cw = 3;
         });
         window.addEventListener("state-navigateend", () => {
-            if (cw < 3) cw = 3;
+            if (cw < 6) cw = 6;
             avFix();
         })
 
@@ -576,7 +579,7 @@
 
                 }
 
-                if (cw < 3) cw = 3;
+                if (cw < 6) cw = 6;
                 avFix();
 
 
