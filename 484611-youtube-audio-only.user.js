@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.7
+// @version             1.6.8
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -876,7 +876,7 @@
                     if (player_.__audio544__) return;
                     player_.__audio544__ = 1;
                     // console.log(1233, player_)
-                    let ytdPlayerElement = null;
+                    const mediaCollection = document.getElementsByClassName('html5-main-video');
 
                     const stopAndReloadFn = async () => {
                         let isLive = false;
@@ -905,7 +905,7 @@
 
                         const refreshAllStaleEntitiesForNonReadyAudio = async () => {
                             try {
-                                if (audio.readyState == 0) await player_.refreshAllStaleEntities();
+                                if (audio.readyState == 0 && audio.isConnected === true) await player_.refreshAllStaleEntities();
                             } catch (e) {
                             }
                         };
@@ -916,9 +916,9 @@
                         };
                         const seekToLiveHeadForLiveStream = async () => {
                             try {
-                                await player_.seekToLiveHead();
-                                if ((await player_.isAtLiveHead()) === true) {
-                                    await player_.seekToStreamTime();
+                                audio.isConnected === true && await player_.seekToLiveHead();
+                                if (audio.isConnected === true && (await player_.isAtLiveHead()) === true) {
+                                    audio.isConnected === true && await player_.seekToStreamTime();
                                     return true;
                                 }
                             } catch (e) {
@@ -930,38 +930,38 @@
                                 stopAndReload = false;
                                 await stopAndReloadFn();
                             }
-                            if (audio.paused === true) {
+                            if (audio.isConnected === true && audio.paused === true) {
                                 await player_.clearVideo(); // avoid error in live streaming
                                 await player_.clearQueue(); // avoid error in live streaming
                                 await delayPn(300);
                                 for (let i = 0; i < 3; i++) {
-                                    if (audio.readyState === 0) {
+                                    if (audio.readyState === 0 && audio.isConnected === true) {
                                         if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                     }
                                 }
                                 if (k === -1) {
                                     await refreshAllStaleEntitiesForNonReadyAudio();
                                 } else if (k === 3) {
-                                    while (audio.readyState === 0) {
+                                    while (audio.readyState === 0 && audio.isConnected === true) {
                                         await refreshAllStaleEntitiesForNonReadyAudio();
                                         await triggerPlaying();
                                         await delayPn(300);
                                     }
                                 }
-                            } else if (audio.paused === false) {
-                                if (!player_.isAtLiveHead()) {
+                            } else if (audio.isConnected === true && audio.paused === false) {
+                                if (!player_.isAtLiveHead() && audio.isConnected === true) {
                                     if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                 }
-                                while (audio.readyState === 0) {
+                                while (audio.readyState === 0 && audio.isConnected === true) {
                                     await refreshAllStaleEntitiesForNonReadyAudio();
                                     await triggerPlaying();
                                     await delayPn(300);
                                 }
-                                if (!player_.isAtLiveHead()) {
+                                if (!player_.isAtLiveHead() && audio.isConnected === true) {
                                     if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                 }
                                 await refreshAllStaleEntitiesForNonReadyAudio();
-                                if (audio.readyState > 0 && audio.paused === true) {
+                                if (audio.readyState > 0 && audio.paused === true && audio.isConnected === true) {
                                     await triggerPlaying();
                                 }
                             }
@@ -997,12 +997,18 @@
                     };
                     let mid = 0;
                     const getAudioElement = () => {
-                        if (!ytdPlayerElement) {
-                            ytdPlayerElement = [...document.querySelectorAll('ytd-player')].filter(e => !e.closest('[hidden]'))[0]
+                        if (mediaCollection.length === 0) return null;
+                        if (mediaCollection.length > 1) {
+                            const audios = [...mediaCollection].filter(e => e && !e.closest('[hidden]') && e.closest('ytd-player'));
+                            if (audios.length === 1) {
+                                return audios[0];
+                            }
+                        } else if (mediaCollection.length === 1) {
+                            const e = mediaCollection[0];
+                            if (e && !e.closest('[hidden]') && e.closest('ytd-player')) return e;
                         }
-                        const audio = ytdPlayerElement ? HTMLElement.prototype.querySelector.call(ytdPlayerElement, '.video-stream.html5-main-video') : null;
-                        return audio;
-                    }
+                        return null;
+                    };
                     const _onPlayerStateChange = (k_) => {
                         const k = k_;
                         const ps = player_.getPlayerState();
@@ -1016,18 +1022,20 @@
                                 });
                             }
                         }
-                        if (typeof k === 'number' && k === ps) {
-                            const audio = getAudioElement();
-                            if (audio) {
-                                if (mid > 1e9) mid = 9;
-                                const t = ++mid;
-                                prrPipeline(async () => {
-                                    if (t !== mid) return;
-                                    await prr.then();
-                                    if (t !== mid) return;
+                        if (typeof k === 'number' && k === ps && ps !== 5) {
+
+                            if (mid > 1e9) mid = 9;
+                            const t = ++mid;
+                            prrPipeline(async () => {
+                                if (t !== mid) return;
+                                await prr.then();
+                                if (t !== mid) return;
+                                const audio = getAudioElement();
+
+                                if (audio && player_.getPlayerState() === ps) {
                                     await asyncStateChange(audio, k);
-                                });
-                            }
+                                }
+                            });
                         }
                     };
 
@@ -1265,13 +1273,10 @@
             (async () => {
 
                 let player__;
-                let elm;
 
                 const getAudioElement = () => {
-                    if (!elm) {
-                        elm = player__;
-                    }
-                    const audio = elm ? HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video') : null;
+                    const elm = player__ || player0;
+                    const audio = elm && elm.isConnected === true ? HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video') : null;
                     return audio;
                 }
 
