@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.5
+// @version             1.6.6
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1951,8 +1951,13 @@
                 background-size: contain;
                 background-repeat: no-repeat;
             }
-            .ended-mode [style*="--audio-only-thumbnail-image"]{
+            .html5-video-player.ended-mode [style*="--audio-only-thumbnail-image"]{
                 background-image: none;
+            }
+
+            .html5-video-player.ytp-ce-shown .html5-video-container {
+                opacity: 0.5;
+                transition: opacity 0.5s;
             }
 
             ytd-video-preview #media-container div#player-container,
