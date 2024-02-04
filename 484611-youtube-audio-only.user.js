@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.2
+// @version             1.6.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -129,7 +129,7 @@
                         try {
                             res = await fn();
                         } catch (e) {
-                            console.log(e);
+                            console.log('error_F1', e);
                             reject(e);
                         }
                         resolve(res);
@@ -531,7 +531,7 @@
                 // } else if (evt === 'player-detailed-error') {
                 // } else if (evt === 'video-data-change') {
                 // } else if (evt === 'player-state-change') {
-                // } else 
+                // } else
                 if (evt === 'player-autonav-pause' || evt === 'visibilitychange') {
                     evt += 'y'
                     fn = dummyFn;
@@ -659,7 +659,6 @@
                             try {
                                 if (audio.readyState == 0) await player_.refreshAllStaleEntities();
                             } catch (e) {
-                                console.log(e)
                             }
                         };
                         const triggerPlaying = async () => {
@@ -674,7 +673,7 @@
                                     return true;
                                 }
                             } catch (e) {
-                                console.log(e);
+                                console.log('error_F3',e);
                             }
                         };
                         const fixLiveAudioFn = async () => {
@@ -738,7 +737,7 @@
                             }
 
                         } catch (e) {
-                            console.log(e)
+                            console.log('error_F4', e)
                         }
 
                     };
@@ -752,7 +751,7 @@
                                 if (audio) asyncStateChange(audio, k);
                             }
                         } catch (e) {
-                            console.log(e)
+                            console.log('error_F5', e)
                         }
                     };
 
@@ -908,7 +907,6 @@
                             try {
                                 if (audio.readyState == 0) await player_.refreshAllStaleEntities();
                             } catch (e) {
-                                console.log(e)
                             }
                         };
                         const triggerPlaying = async () => {
@@ -924,7 +922,7 @@
                                     return true;
                                 }
                             } catch (e) {
-                                console.log(e);
+                                console.log('error_F7', e);
                             }
                         };
                         const fixLiveAudioFn = async () => {
@@ -993,7 +991,7 @@
                             }
 
                         } catch (e) {
-                            console.log(e)
+                            console.log('error_F8', e)
                         }
 
                     };
@@ -1276,7 +1274,6 @@
                         // try {
                         //     if (audio.readyState == 0) await player_.refreshAllStaleEntities();
                         // } catch (e) {
-                        //     console.log(e)
                         // }
                     };
                     const triggerPlaying = async () => {
@@ -1292,7 +1289,7 @@
                                 return true;
                             }
                         } catch (e) {
-                            console.log(e);
+                            console.log('error_F9', e);
                         }
                     };
                     const fixLiveAudioFn = async () => {
@@ -1363,7 +1360,7 @@
                         }
 
                     } catch (e) {
-                        console.log(e)
+                        console.log('error_F10', e)
                     }
 
                 };
@@ -1383,7 +1380,7 @@
                             if (audio) asyncStateChange(audio, k);
                         }
                     } catch (e) {
-                        console.log(e)
+                        console.log('error_F11', e)
                     }
                 };
 
@@ -1473,7 +1470,7 @@
 
                     }
 
-                } catch (e) { console.log(e) }
+                } catch (e) { console.log('error_F12', e) }
 
 
             }, false);
@@ -1942,7 +1939,7 @@
         }, true);
 
         const cssForEnabled = isEnable ? `
-                
+
             .html5-video-player {
                 background-color: black;
             }
@@ -1955,28 +1952,28 @@
                 background-repeat: no-repeat;
             }
 
-            ytd-video-preview #media-container div#player-container, 
+            ytd-video-preview #media-container div#player-container,
             ytd-video-preview #media-container div#thumbnail-container{
                 transition: initial !important;
                 transition-duration:0ms !important;
                 transition-delay:0ms !important;
             }
             ytd-video-preview #media-container div#thumbnail-container{
-                pointer-events:none !important;
+                /* pointer-events:none !important; */
                 opacity:0;
-                z-index:-1;
+                /* z-index:-1; */
             }
-            ytd-video-preview #media-container div#player-container, 
+            ytd-video-preview #media-container div#player-container,
             ytd-video-preview #media-container div#inline-preview-player{
                 background-color:transparent !important;
                 background-image:none !important;
             }
-        
+
             #movie_player > .html5-video-container:not(:empty) {
                 box-sizing: border-box;
                 height: 100%;
             }
-        
+
         `: "";
 
         const style = document.createElement('style');
@@ -2047,6 +2044,72 @@
        }
       `
         document.head.appendChild(style);
+
+        if (false && isEnable) {
+            let mzId = 0;
+
+            let mz = 0;
+            const mof = async () => {
+                mzId && clearInterval(mzId);
+                if (mz > 1e9) mz = 9;
+                const mt = ++mz;
+
+                let q = document.querySelector('#video-preview > ytd-video-preview.style-scope.ytd-app');
+                if(!q) return;
+                if (q.hasAttribute('active') && !q.hasAttribute('hidden')) {
+
+                }else{
+                    return;
+                }
+
+
+                let inlinePreviewPlayer = null;
+                const ss = [HTMLElement.prototype.querySelector.call(q, '#inline-preview-player')].filter(e=>e && !e.closest('[hidden]'));
+                if (ss && ss.length === 1) {
+                    inlinePreviewPlayer = ss[0];
+                }
+                if(!inlinePreviewPlayer) return;
+
+                const f = ()=>{
+                    if (mz !== mt || !(q.hasAttribute('active') && !q.hasAttribute('hidden')) || !(inlinePreviewPlayer && inlinePreviewPlayer.isConnected === true)) {
+                        mzId && clearInterval(mzId);
+                        mzId= 0;
+                        return;
+                    }
+
+                    const s = inlinePreviewPlayer;
+                    s.classList.remove('ytp-hide-inline-preview-progress-bar');
+                    s.classList.remove('ytp-hide-inline-preview-audio-controls');
+                    s.classList.add('ytp-show-inline-preview-progress-bar');
+                    s.classList.add('ytp-show-inline-preview-audio-controls');
+                    s.classList.remove('ytp-autohide');
+                    if (q.hasAttribute('hide-volume-controls')) {
+                        q.removeAttribute('hide-volume-controls')
+                    }
+                    
+                    if(s.classList.contains('playing-mode') && !q.hasAttribute('playing')){
+                        q.setAttribute('playing','')
+                    }
+                }
+                mzId = setInterval(f, 40);
+                f();
+
+            }
+            const mo = new MutationObserver(mof);
+            document.addEventListener('yt-navigate-finish', async function () {
+
+                for (const s of document.querySelectorAll('ytd-video-preview')) {
+                    mo.observe(s, {
+                        attributes: true,
+                        attributeFilter: ["hidden", "active"],
+                        attributeOldValue: false
+                    });
+                    mof();
+                }
+
+            }, false);
+            
+        }
     })
 
 
