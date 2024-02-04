@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.8
+// @version             1.7.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -238,6 +238,48 @@
                 enumerable: false,
                 configurable: true
             });
+
+        };
+
+        const mediaNetworkStateReady = async (audio) => {
+
+            if (!(audio instanceof HTMLMediaElement)) {
+                return '';
+            }
+            let done = false;
+            const et = await Promise.race([
+
+                new Promise(resolve => {
+                    audio.addEventListener('timeupdate', (evt) => {
+                        !done && resolve && resolve(evt.type);
+                        resolve = null
+                    }, { once: true, capture: true, passive: true })
+                }),
+
+                new Promise(resolve => {
+                    audio.addEventListener('waiting', (evt) => {
+                        !done && resolve && resolve(evt.type);
+                        resolve = null
+                    }, { once: true, capture: true, passive: true })
+                }),
+
+                new Promise(resolve => {
+                    audio.addEventListener('loadstart', (evt) => {
+                        !done && resolve && resolve(evt.type);
+                        resolve = null
+                    }, { once: true, capture: true, passive: true })
+                }),
+
+                new Promise(resolve => {
+                    audio.addEventListener('durationchange', (evt) => {
+                        !done && resolve && resolve(evt.type);
+                        resolve = null
+                    }, { once: true, capture: true, passive: true })
+                })
+
+            ]);
+            done = true;
+            return et;
 
         };
 
@@ -673,7 +715,7 @@
                                     return true;
                                 }
                             } catch (e) {
-                                console.log('error_F3',e);
+                                console.log('error_F3', e);
                             }
                         };
                         const fixLiveAudioFn = async () => {
@@ -714,7 +756,20 @@
                             }
                         }
                         try {
-                            const ns23 = audio.networkState == 2 || audio.networkState == 3;
+                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
+
+                            if (!ns23 && k === player_.getPlayerState()) {
+                                if (k === -1 && audio.readyState === 0) {
+                                    const et = await mediaNetworkStateReady(audio);
+                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
+                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
+                                    // console.log(503, ns23, et, player_.getPlayerState());
+                                    if (player_.getPlayerState() !== -1) return;
+                                } else {
+                                    console.log(507, k, audio.readyState, audio.networkState)
+                                }
+                            }
+
                             if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
                                 await delayPn(200);
                                 if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
@@ -968,7 +1023,20 @@
                         }
                         try {
 
-                            const ns23 = audio.networkState == 2 || audio.networkState == 3;
+                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
+
+                            if (!ns23 && k === player_.getPlayerState()) {
+                                if (k === -1 && audio.readyState === 0) {
+                                    const et = await mediaNetworkStateReady(audio);
+                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
+                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
+                                    console.log(513, ns23, et, player_.getPlayerState());
+                                    if (player_.getPlayerState() !== -1) return;
+                                } else {
+                                    console.log(517, k, audio.readyState, audio.networkState)
+                                }
+                            }
+
                             if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
                                 await delayPn(200);
                                 if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
@@ -1348,9 +1416,20 @@
                     }
                     try {
 
-                        const ns23 = audio.networkState == 2 || audio.networkState == 3
+                        let ns23 = audio.networkState == 2 || audio.networkState == 3
                         // console.log(127001, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
 
+                        if (!ns23 && k === player_.getPlayerState()) {
+                            if (k === -1 && audio.readyState === 0) {
+                                const et = await mediaNetworkStateReady(audio);
+                                if (audio.isConnected === false || player_.getPlayerState() === 5) return;
+                                ns23 = audio.networkState == 2 || audio.networkState == 3;
+                                console.log(523, ns23, et, player_.getPlayerState());
+                                if (player_.getPlayerState() !== -1) return;
+                            } else {
+                                console.log(527, k, audio.readyState, audio.networkState)
+                            }
+                        }
 
                         if (removeBottomOverlayForMobile) await removeBottomOverlayForMobile(300);
 
@@ -2078,25 +2157,25 @@
                 const mt = ++mz;
 
                 let q = document.querySelector('#video-preview > ytd-video-preview.style-scope.ytd-app');
-                if(!q) return;
+                if (!q) return;
                 if (q.hasAttribute('active') && !q.hasAttribute('hidden')) {
 
-                }else{
+                } else {
                     return;
                 }
 
 
                 let inlinePreviewPlayer = null;
-                const ss = [HTMLElement.prototype.querySelector.call(q, '#inline-preview-player')].filter(e=>e && !e.closest('[hidden]'));
+                const ss = [HTMLElement.prototype.querySelector.call(q, '#inline-preview-player')].filter(e => e && !e.closest('[hidden]'));
                 if (ss && ss.length === 1) {
                     inlinePreviewPlayer = ss[0];
                 }
-                if(!inlinePreviewPlayer) return;
+                if (!inlinePreviewPlayer) return;
 
-                const f = ()=>{
+                const f = () => {
                     if (mz !== mt || !(q.hasAttribute('active') && !q.hasAttribute('hidden')) || !(inlinePreviewPlayer && inlinePreviewPlayer.isConnected === true)) {
                         mzId && clearInterval(mzId);
-                        mzId= 0;
+                        mzId = 0;
                         return;
                     }
 
@@ -2109,9 +2188,9 @@
                     if (q.hasAttribute('hide-volume-controls')) {
                         q.removeAttribute('hide-volume-controls')
                     }
-                    
-                    if(s.classList.contains('playing-mode') && !q.hasAttribute('playing')){
-                        q.setAttribute('playing','')
+
+                    if (s.classList.contains('playing-mode') && !q.hasAttribute('playing')) {
+                        q.setAttribute('playing', '')
                     }
                 }
                 mzId = setInterval(f, 40);
@@ -2131,7 +2210,7 @@
                 }
 
             }, false);
-            
+
         }
     })
 
