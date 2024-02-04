@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.7
+// @version             0.1.8
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -376,6 +376,18 @@
 
 
         let cw = 0;
+        function fixThumbnailURL(src) {
+            if (typeof src === 'string' && src.length >= 4) {
+                let m = /\b[a-z0-9]{4,13}\.jpg\b/.exec(src);
+                if (m && m[0]) {
+                    const t = m[0];
+                    let idx = src.indexOf(t);
+                    let nSrc = idx >= 0 ? src.substring(0, idx + t.length) : '';
+                    return nSrc;
+                }
+            }
+            return src;
+        }
 
         const avFix = async () => {
 
@@ -398,17 +410,12 @@
                     mo2.observe(img, { attributes: true });
 
                     const src = img.getAttribute('src');
-                    let m = /\b[a-z0-9]{4,13}\.jpg\b/.exec(src);
 
-                    if (m && m[0]) {
-                        const t = m[0];
-                        let idx = src.indexOf(t);
-                        let nSrc = idx >= 0 ? src.substring(0, idx + t.length) : '';
-                        if (nSrc !== src && nSrc && src) {
-                            // https://i.ytimg.com/vi/gcCqclvIcn4/sddefault.jpg?sqp=-oa&rs=A
-                            // https://i.ytimg.com/vi/gcCqclvIcn4/sddefault.jpg
-                            img.setAttribute('src', nSrc)
-                        }
+                    let nSrc = fixThumbnailURL(src);
+                    if (nSrc !== src && nSrc && src) {
+                        // https://i.ytimg.com/vi/gcCqclvIcn4/sddefault.jpg?sqp=-oa&rs=A
+                        // https://i.ytimg.com/vi/gcCqclvIcn4/sddefault.jpg
+                        img.setAttribute('src', nSrc)
                     }
 
                     /*
@@ -589,7 +596,7 @@
             if (cw < 3) cw = 3;
         });
 
-        document.addEventListener('yt-navigate-end', () => {
+        document.addEventListener('yt-navigate-finish', () => {
             if (cw < 6) cw = 6;
             avFix();
         });
