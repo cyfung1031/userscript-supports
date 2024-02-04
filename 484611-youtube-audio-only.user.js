@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.7.0
+// @version             1.7.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2074,6 +2074,10 @@
             #movie_player > .html5-video-container:not(:empty) {
                 box-sizing: border-box;
                 height: 100%;
+            }
+
+            #movie_player [style*="--audio-only-thumbnail-image"] ~ .ytp-cued-thumbnail-overlay > .ytp-cued-thumbnail-overlay-image[style*="background-image"] {
+                opacity: 0;
             }
 
         `: "";
