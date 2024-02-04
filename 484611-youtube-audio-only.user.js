@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.1
+// @version             1.6.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1941,31 +1941,49 @@
 
         }, true);
 
+        const cssForEnabled = isEnable ? `
+                
+            .html5-video-player {
+                background-color: black;
+            }
+
+            [style*="--audio-only-thumbnail-image"]{
+                background-image: var(--audio-only-thumbnail-image);
+                object-fit: contain;
+                background-position: center;
+                background-size: contain;
+                background-repeat: no-repeat;
+            }
+
+            ytd-video-preview #media-container div#player-container, 
+            ytd-video-preview #media-container div#thumbnail-container{
+                transition: initial !important;
+                transition-duration:0ms !important;
+                transition-delay:0ms !important;
+            }
+            ytd-video-preview #media-container div#thumbnail-container{
+                pointer-events:none !important;
+                opacity:0;
+                z-index:-1;
+            }
+            ytd-video-preview #media-container div#player-container, 
+            ytd-video-preview #media-container div#inline-preview-player{
+                background-color:transparent !important;
+                background-image:none !important;
+            }
+        
+            #movie_player > .html5-video-container:not(:empty) {
+                box-sizing: border-box;
+                height: 100%;
+            }
+        
+        `: "";
 
         const style = document.createElement('style');
         style.id = 'fm9v0';
         style.textContent = `
 
-        .html5-video-player {
-            background-color: black;
-        }
-
-        [style*="--audio-only-thumbnail-image"]{
-            background-image: var(--audio-only-thumbnail-image);
-            object-fit: contain;
-            background-position: center;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-
-        /* #movie_player > .ytp-iv-video-content {
-            pointer-events: none; // allow clicking
-        } */
-
-        #movie_player > .html5-video-container:not(:empty) {
-            box-sizing: border-box;
-            height: 100%;
-        }
+        ${cssForEnabled}
 
         @keyframes mobileMenuItemAppeared {
             0% {
