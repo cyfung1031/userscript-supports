@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.6.0
+// @version             1.6.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1208,6 +1208,7 @@
 
                 if (removeBottomOverlayForMobile) await removeBottomOverlayForMobile(40);
 
+                await delayPn(80);
                 const audio = moviePlayer;
                 if (audio && audio.muted === true && audio.isConnected === true && audio.readyState >= 0 && audio.networkState >= 2 && audio.paused === false) {
                     await audio.click();
