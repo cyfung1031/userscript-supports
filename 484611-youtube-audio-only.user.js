@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.7.1
+// @version             1.7.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1032,8 +1032,14 @@
                                     ns23 = audio.networkState == 2 || audio.networkState == 3;
                                     console.log(513, ns23, et, player_.getPlayerState());
                                     if (player_.getPlayerState() !== -1) return;
+                                } else if (k === 3 && audio.readyState === 0 && audio.networkState === 0) {
+                                    const et = await Promise.race([mediaNetworkStateReady(audio), delayPn(800)]); // idk
+                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
+                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
+                                    console.log(514, ns23, et, player_.getPlayerState());
+                                    if (player_.getPlayerState() !== 3) return;
                                 } else {
-                                    console.log(517, k, audio.readyState, audio.networkState)
+                                    console.log(517, k, audio.readyState, audio.networkState) // 517 3 0 0 after tab sleeping
                                 }
                             }
 
