@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.4
+// @version     2.0.5
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
@@ -175,7 +175,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   const moButtonAttachment = new MutationObserver((entries) => {
     for (const entry of entries) {
       const { target, previousSibling, removedNodes } = entry;
-      if (removedNodes.length >= 1 && target.isConnected === true && previousSibling.isConnected === true) {
+      if (removedNodes.length >= 1 && target.isConnected === true && previousSibling && previousSibling.isConnected === true) {
         for (const elem of removedNodes) {
           if (elem.classList.contains(`${elementCSS.buttonContainer}`) && elem.isConnected === false) {
             target.insertBefore(elem, previousSibling.nextSibling);
