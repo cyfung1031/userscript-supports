@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.12.01.0
+// @version             2024.02.21.0
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -78,12 +78,11 @@ SOFTWARE.
       configurable: true,
       get() {
         Promise.resolve(new Date).then(fGet).catch(console.warn);
-        let ret = constVal;
-        if (retType === 2) return `${ret}`;
-        return ret;
+        const ret = constVal;
+        return retType === 2 ? `${ret}` : ret;
       },
       set(newValue) {
-        let oldValue = hashMap.get(this);
+        const oldValue = hashMap.get(this);
         Promise.resolve([oldValue, newValue, new Date]).then(fSet).catch(console.warn);
         hashMap.set(this, newValue);
         return true;
@@ -178,7 +177,7 @@ SOFTWARE.
       } catch (e) { }
       if (messages && messages.length > 0) {
         for (const message of messages) {
-          if (message.youThereRenderer) {
+          if ((message || 0).youThereRenderer) {
             let youThereData = null;
             try {
               youThereData = message.youThereRenderer.configData.youThereData;
@@ -194,22 +193,20 @@ SOFTWARE.
       const ytdFlexyCnt = insp(ytdFlexyElm);
 
       if (ytdFlexyCnt) {
-        const youThereManager_ = ytdFlexyElm.youThereManager_ || insp(ytdFlexyElm).youThereManager_;
+        const youThereManager_ = ytdFlexyCnt.youThereManager_ || ytdFlexyElm.youThereManager_ || 0;
         const youThereData_ = (youThereManager_ || 0).youThereData_ || 0;
         if (youThereData_) hookYouThereData(youThereData_);
-        if (typeof ytdFlexyCnt.youthereDataChanged_ === 'function') {
-          let f = ytdFlexyCnt.youthereDataChanged_;
-          if (!f.lq2S7) {
-            ytdFlexyCnt.youthereDataChanged_ = (function (f) {
-              return function () {
-                console.log('youthereDataChanged_()');
-                const ret = f.apply(this, arguments);
-                onPageFinished();
-                return ret;
-              }
-            })(f);
-            ytdFlexyCnt.youthereDataChanged_.lq2S7 = 1;
-          }
+        const f = ytdFlexyCnt.youthereDataChanged_;
+        if (typeof f === 'function' && !f.lq2S7) {
+          ytdFlexyCnt.youthereDataChanged_ = (function (f) {
+            return function () {
+              console.log('youthereDataChanged_()');
+              const ret = f.apply(this, arguments);
+              onPageFinished();
+              return ret;
+            }
+          })(f);
+          ytdFlexyCnt.youthereDataChanged_.lq2S7 = 1;
         }
       }
 
