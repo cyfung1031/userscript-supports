@@ -3,7 +3,7 @@
 // @name:zh-TW          YouTube Popup Window
 // @name:ja             YouTube Popup Window
 // @namespace           http://tampermonkey.net/
-// @version             0.1.3
+// @version             0.2.0
 // @description         Enhances YouTube with a popup window feature.
 // @description:zh-TW   透過彈出視窗功能增強YouTube。
 // @description:ja      YouTubeをポップアップウィンドウ機能で強化します。
@@ -11,14 +11,51 @@
 // @license             MIT
 // @match               https://www.youtube.com/*
 // @icon                https://www.google.com/s2/favicons?sz=64&domain=youtube.com
+// @require             https://cdn.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.1
 // @grant               GM_registerMenuCommand
 // @allFrames           true
 // ==/UserScript==
 
 (function $$() {
     'use strict';
+    const shortcutKey = 'ctrlcmd-a-keya';
+
     const winName = 'x4tGg';
     const styleName = 'rCbM3';
+
+    function getVideo() {
+        return document.querySelector('.video-stream.html5-main-video');
+    }
+
+    function registerKeyboard(o) {
+
+        const { openPopup } = o;
+
+        const { KeyboardService } = VM.shortcut;
+
+        const service = new KeyboardService();
+
+        service.setContext('activeOnInput', false);
+
+        async function updateActiveOnInput() {
+            const elm = document.activeElement;
+            service.setContext('activeOnInput', elm instanceof HTMLInputElement || elm instanceof HTMLTextAreaElement);
+        }
+
+        document.addEventListener('focus', (e) => {
+            updateActiveOnInput();
+        }, true);
+
+        document.addEventListener('blur', (e) => {
+            updateActiveOnInput();
+        }, true);
+
+        service.register(shortcutKey, openPopup, {
+            condition: '!activeOnInput',
+        });
+        service.enable();
+
+    }
 
     if (window.name === winName && window === top) {
 
@@ -57,14 +94,14 @@
     } else if (window === top) {
 
         function openPopup() {
+
             var currentUrl = window.location.href;
             let rect = document.querySelector('ytd-app').getBoundingClientRect();
             let w = rect.width;
             let h = rect.height;
             var popupOptions = `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h}`;
 
-
-            let video = document.querySelector('#player video');
+            let video = getVideo();
 
             if (video) {
                 video.pause();
@@ -72,12 +109,9 @@
             let win = window.open(currentUrl, '', popupOptions);
             win.name = winName;
 
-
             document.querySelector('#x4tGg').remove();
 
         }
-
-
 
         GM_registerMenuCommand('Open Popup Window', function () {
 
@@ -107,6 +141,9 @@
 
         });
 
+        registerKeyboard({ openPopup });
+
     }
     // Your code here...
+
 })();
