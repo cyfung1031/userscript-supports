@@ -3,7 +3,7 @@
 // @name:zh-TW          YouTube Popup Window
 // @name:ja             YouTube Popup Window
 // @namespace           http://tampermonkey.net/
-// @version             0.2.0
+// @version             0.2.1
 // @description         Enhances YouTube with a popup window feature.
 // @description:zh-TW   透過彈出視窗功能增強YouTube。
 // @description:ja      YouTubeをポップアップウィンドウ機能で強化します。
@@ -16,12 +16,41 @@
 // @allFrames           true
 // ==/UserScript==
 
-(function $$() {
+(async function () {
     'use strict';
     const shortcutKey = 'ctrlcmd-a-keya';
 
     const winName = 'x4tGg';
     const styleName = 'rCbM3';
+
+    const observablePromise = (proc, timeoutPromise) => {
+        let promise = null;
+        return {
+            obtain() {
+                if (!promise) {
+                    promise = new Promise(resolve => {
+                        let mo = null;
+                        const f = () => {
+                            let t = proc();
+                            if (t) {
+                                mo.disconnect();
+                                mo.takeRecords();
+                                mo = null;
+                                resolve(t);
+                            }
+                        }
+                        mo = new MutationObserver(f);
+                        mo.observe(document, { subtree: true, childList: true })
+                        f();
+                        timeoutPromise && timeoutPromise.then(() => {
+                            resolve(null)
+                        });
+                    });
+                }
+                return promise
+            }
+        }
+    }
 
     function getVideo() {
         return document.querySelector('.video-stream.html5-main-video');
@@ -59,7 +88,7 @@
 
     if (window.name === winName && window === top) {
 
-        if (!document.head) return requestAnimationFrame($$);
+        if (!document.head) await observablePromise(() => document.head).obtain();
 
         let style = document.createElement('style');
         style.id = styleName;
@@ -75,8 +104,7 @@
 
     } else if (window !== top && top.name === winName) {
 
-
-        if (!document.head) return requestAnimationFrame($$);
+        if (!document.head) await observablePromise(() => document.head).obtain();
 
         let style = document.createElement('style');
         style.id = styleName;
@@ -95,21 +123,24 @@
 
         function openPopup() {
 
-            var currentUrl = window.location.href;
-            let rect = document.querySelector('ytd-app').getBoundingClientRect();
-            let w = rect.width;
-            let h = rect.height;
-            var popupOptions = `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h}`;
+            const currentUrl = window.location.href;
+            const ytdAppElm = document.querySelector('ytd-app');
+            if (!ytdAppElm) return;
+            const rect = ytdAppElm.getBoundingClientRect();
+            const w = rect.width;
+            const h = rect.height;
+            const popupOptions = `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h}`;
 
             let video = getVideo();
 
             if (video) {
                 video.pause();
             }
-            let win = window.open(currentUrl, '', popupOptions);
+            const win = window.open(currentUrl, '', popupOptions);
             win.name = winName;
 
-            document.querySelector('#x4tGg').remove();
+            const b = document.querySelector('#x4tGg');
+            if (b) b.remove();
 
         }
 
@@ -117,7 +148,7 @@
 
             if (document.querySelector('#x4tGg')) return;
 
-            let div = document.body.appendChild(document.createElement('div'));
+            const div = document.body.appendChild(document.createElement('div'));
             div.id = 'x4tGg';
             div.textContent = 'Click to Open Popup'
 
@@ -135,7 +166,6 @@
             })
 
             div.onclick = function () {
-
                 openPopup();
             }
 
