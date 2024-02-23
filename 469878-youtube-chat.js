@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.42
+// @version             0.60.43
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -178,6 +178,8 @@
 
   const skipErrorForhandleAddChatItemAction_ = true; // currently depends on ENABLE_NO_SMOOTH_TRANSFORM
   const fixChildrenIssue801 = true; // if __children801__ is set [fix polymer controller method extration for `.set()`]
+
+  const SUPPRESS_refreshOffsetContainerHeight_ = true; // added in FEB 2024; true for default layout options
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -2388,11 +2390,13 @@
         if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
           const fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
           const s = fiRSCB.split('.');
-          if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
-            console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
-          } else {
-            console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - NG`);
-          }
+          // Feb 2024: 0.403.247 => NG
+          // if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
+          //   console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
+          // } else {
+          //   console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - NG`);
+          // }
+          console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ###`);
         } else {
           console.log("flushRenderStamperComponentBindings_ - not found");
         }
@@ -4028,7 +4032,38 @@
         if ((mclp.flushActiveItems_ || 0).length === 0) {
 
           const sfi = fnIntegrity(mclp.flushActiveItems_);
-          if (sfi === '0.150.84') {
+          if (sfi === '0.156.86') {
+            // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+            
+            // added "refreshOffsetContainerHeight_"
+
+            //   f.flushActiveItems_ = function() {
+            //     var a = this;
+            //     if (0 < this.activeItems_.length)
+            //         if (this.canScrollToBottom_()) {
+            //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+            //             b && this.splice("visibleItems", 0, b);
+            //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+            //                 this.preinsertHeight_ = this.items.clientHeight;
+            //             this.activeItems_.unshift("visibleItems");
+            //             try {
+            //                 this.push.apply(this, this.activeItems_)
+            //             } catch (c) {
+            //                 fm(c)
+            //             }
+            //             this.activeItems_ = [];
+            //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Mw(function() {
+            //                 a.showNewItems_()
+            //             }) : Mw(function() {
+            //                 a.refreshOffsetContainerHeight_();
+            //                 a.maybeScrollToBottom_()
+            //             })
+            //         } else
+            //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
+            // }
+            // ;
+
+          } else if (sfi === '0.150.84') {
             // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
             // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
             //     b && this.splice("visibleItems", 0, b);
@@ -4366,6 +4401,19 @@
           console.log("flushActiveItems_", "OK");
         } else {
           console.log("flushActiveItems_", "NG");
+        }
+
+        if (SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
+          assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
+          mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
+          mclp.refreshOffsetContainerHeight_ = function () {
+            // var a = this.itemScroller.clientHeight;
+            // this.itemOffset.style.height = this.items.clientHeight + "px";
+            // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
+          }
+          console.log("refreshOffsetContainerHeight_", "OK");
+        } else {
+          console.log("refreshOffsetContainerHeight_", "NG");
         }
 
         mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
