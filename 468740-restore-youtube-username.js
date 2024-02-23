@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.4
+// @version             0.10.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -179,6 +179,8 @@ SOFTWARE.
     const USE_LANG_SPECIFIC_NAME = true;
     const UPDATE_PIN_NAME = true; // for USE_LANG_SPECIFIC_NAME
     const FIX_RTL_ISSUE = true;
+
+    const IGNORE_NO_NAME = false;
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -653,9 +655,9 @@ SOFTWARE.
             onDownloaded = null;
             return res.json();
         }).then(resJson => {
-            let resultInfo = ((resJson || 0).metadata || 0).channelMetadataRenderer;
-            let title = resultInfo.title;
-            if (title) {
+            const resultInfo = ((resJson || 0).metadata || 0).channelMetadataRenderer;
+            const title = resultInfo ? resultInfo.title : null;
+            if (title || title === '') {
 
                 resultInfo.title = '';
                 resultInfo.langTitle = title;
@@ -830,7 +832,7 @@ SOFTWARE.
 
             let res = null;
 
-            if (name && uri && mt && mt === channelId) {
+            if ((name || name === '') && uri && mt && mt === channelId) {
 
 
                 let object = channelIdToHandle.get(mt);
@@ -949,6 +951,19 @@ SOFTWARE.
                         // invalid json format
                         setResult(null);
                         return;
+                    }
+
+                    if (IGNORE_NO_NAME) {
+                        const titleForDisplay = resultInfo.langTitle || resultInfo.title;
+                        if (!titleForDisplay) {
+                            const handle = channelIdToHandle.get(channelId);
+                            if (handle && handle.handleText) {
+                                resultInfo.langTitle = resultInfo.title = handle.handleText;
+                            } else {
+                                setResult(null);
+                                return;
+                            }
+                        }
                     }
 
                     cacheHandleToChannel(resultInfo, channelId);
