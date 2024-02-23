@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.44
+// @version             0.61.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3092,11 +3092,26 @@
       }
 
       const mutFn = (items) => {
+        let seqIndex = -1;
+        const elementSet = new Set();
         for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) {
-          if (node.hasAttribute('wSr93')) break;
+          if (node.hasAttribute('wSr93')) {
+            seqIndex = parseInt(node.getAttribute('yt-chat-item-seq'));
+            break;
+          }
           node.setAttribute('wSr93', '');
           visObserver.observe(node);
+          elementSet.add(node);
         }
+        let iter = elementSet.values();
+        let i = seqIndex + elementSet.size;
+        for (let curr; curr = iter.next().value;) {
+          curr.setAttribute('yt-chat-item-seq', i % 60);
+          curr.classList.add('yt-chat-item-' + ((i % 2) ? 'odd' : 'even'));
+          i--;
+        }
+        iter = null;
+        elementSet.clear();
       }
 
       const mutObserver = new MutationObserver((mutations) => {
