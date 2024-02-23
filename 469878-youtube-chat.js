@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.60.43
+// @version             0.60.44
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -47,7 +47,7 @@
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
   const USE_WILL_CHANGE_CONTROLLER = false;               // FALSE for the majority
-  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = true;  // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
+  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = false;  // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
