@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.3
+// @version             0.10.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -1284,16 +1284,14 @@ SOFTWARE.
     }
 
     function updatePinnedCommentBadge(md, title, langTitle) {
-
-
-        let setPinnedCommentBadge = false;
-        if (((((md.pinnedCommentBadge || 0).pinnedCommentBadgeRenderer || 0).label || 0).runs || 0).length === 2) {
-            setPinnedCommentBadge = true;
-        }
-        if (setPinnedCommentBadge) {
+        const titleForDisplay = langTitle || title;
+        if (typeof titleForDisplay !== 'string') return;
+        if (title === titleForDisplay) return;
+        const runs = ((((md.pinnedCommentBadge || 0).pinnedCommentBadgeRenderer || 0).label || 0).runs || 0); // can be 0
+        if (runs.length === 2) {
             let idx = 0;
             let jdx = -1;
-            for (const textRun of md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label.runs) {
+            for (const textRun of runs) {
                 if (textRun.text === title) {
                     jdx = idx;
                     break;
@@ -1302,13 +1300,12 @@ SOFTWARE.
             }
             if (jdx >= 0) {
                 const runs = md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label.runs.slice(0);
-                runs[jdx] = Object.assign({}, runs[jdx], { text: langTitle });
+                runs[jdx] = Object.assign({}, runs[jdx], { text: titleForDisplay });
                 md.pinnedCommentBadge = Object.assign({}, md.pinnedCommentBadge);
                 md.pinnedCommentBadge.pinnedCommentBadgeRenderer = Object.assign({}, md.pinnedCommentBadge.pinnedCommentBadgeRenderer);
                 md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label = Object.assign({}, md.pinnedCommentBadge.pinnedCommentBadgeRenderer.label, { runs });
             }
         }
-
     }
 
     /**
