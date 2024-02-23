@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.0
+// @version             0.10.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -140,7 +140,9 @@ SOFTWARE.
 
 /**
     @typedef {string} ChannelId
-    UC[-_a-zA-Z0-9+=.]+
+    * UC[-_a-zA-Z0-9+=.]{22}
+    * https://support.google.com/youtube/answer/6070344?hl=en
+    * The channel ID is the 24 character alphanumeric string that starts with 'UC' in the channel URL.
 */
 
 /**
@@ -1049,9 +1051,12 @@ SOFTWARE.
      * @returns
      */
     const obtainChannelId = (href) => {
-        let m = /\/channel\/(UC[-_a-zA-Z0-9+=.]+)/.exec(`/${href}`);
-        // let m = /\/channel\/([^/?#\s]+)/.exec(`/${href}`);
-        return !m ? '' : (m[1] || '');
+        const s = `/${href}`;
+        if (s.length >= 33) {
+            const m = /\/channel\/(UC[-_a-zA-Z0-9+=.]{22})(\/|$)/.exec(s);
+            return !m ? '' : (m[1] || '');
+        }
+        return '';
     };
 
 
@@ -1395,7 +1400,7 @@ SOFTWARE.
             const airaLabel = anchor.getAttribute('aria-label');
 
             const kHrefValue = anchor.getAttribute('href'); // guess (Feb 2024)
-            if (displayTextDOM && (airaLabel || /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(kHrefValue))) {
+            if (displayTextDOM && (airaLabel || (kHrefValue.startsWith('/@') && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(kHrefValue)))) {
 
                 const kHrefHandle = kHrefValue.substring(1); // guess (Feb 2024)
                 const kHandlerText = airaLabel ? airaLabel.trim() : kHrefHandle; // guess
@@ -1647,7 +1652,7 @@ SOFTWARE.
                 browseId = (browserEndpoint.browseId || '');
                 const currentDisplayText = runs[0].text || ''
 
-                if (/^UC[-_a-zA-Z0-9+=.]+$/.test(browseId) && isDisplayAsHandle(currentDisplayText)) {
+                if (browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId) && isDisplayAsHandle(currentDisplayText)) {
 
                     if (!channelIdToHandle.has(browseId)) {
                         channelIdToHandle.set(browseId, {
@@ -2117,7 +2122,7 @@ SOFTWARE.
                     if (ytElm) {
                         const cnt = insp(ytElm);
                         const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
-                        if (browseId && canonicalBaseUrl === href && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]+$/.test(browseId)) {
+                        if (browseId && canonicalBaseUrl === href && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
                             const handle = href.substring(2);
                             channelIdToHandle.set(browseId, {
                                 handleText: `@${handle}`
