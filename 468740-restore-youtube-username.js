@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.1
+// @version             0.10.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -815,7 +815,7 @@ SOFTWARE.
                     if (authorChild.nodeName === 'name') name = authorChild.textContent;
                     else if (authorChild.nodeName === 'uri') {
                         uri = authorChild.textContent;
-                        mt = obtainChannelId(uri)
+                        mt = obtainChannelId(uri);
                     }
                 }
 
@@ -1049,6 +1049,7 @@ SOFTWARE.
      *
      * @param {string} href Example: https\:\/\/www\.youtube\.com/channel/UC0gmRdmpDWJ4dt7DAeRaawA
      * @returns
+     * * Outdated?
      */
     const obtainChannelId = (href) => {
         const s = `/${href}`;
@@ -1058,6 +1059,10 @@ SOFTWARE.
         }
         return '';
     };
+
+    const isUCBrowserId = (browseId) => {
+        return typeof browseId === 'string' && browseId.length === 24 && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId);
+    }
 
 
     /**
@@ -1176,11 +1181,13 @@ SOFTWARE.
     const contentTextProcess = (contentTexts, idx) => {
         const contentText = contentTexts[idx];
         const text = (contentText || 0).text;
-        const url = (((contentText.navigationEndpoint || 0).commandMetadata || 0).webCommandMetadata || 0).url;
-        if (typeof url === 'string' && typeof text === 'string') {
+        const browseId = ((contentText.navigationEndpoint || 0).browseEndpoint || 0).browseId || '';
+        const canonicalBaseUrl = ((contentText.navigationEndpoint || 0).browseEndpoint || 0).canonicalBaseUrl || ''; // TBC
+        const url = (((contentText.navigationEndpoint || 0).commandMetadata || 0).webCommandMetadata || 0).url; // TBC
+        if (typeof url === 'string' && typeof text === 'string' && typeof browseId === 'string' && browseId && isUCBrowserId(browseId)) {
 
             if (!isDisplayAsHandle(text)) return null;
-            const channelId = obtainChannelId(url);
+            const channelId = browseId;
 
             return getDisplayName(channelId).then(fetchResult => {
                 let resolveResult = null;
@@ -1208,11 +1215,14 @@ SOFTWARE.
     const editableTextProcess = (editableTexts, idx) => {
         const editableText = editableTexts[idx];
         const text = (editableText || 0).text;
-        const url = (((editableText.navigationEndpoint || 0).commandMetadata || 0).webCommandMetadata || 0).url;
-        if (typeof url === 'string' && typeof text === 'string') {
+
+        const browseId = ((editableText.navigationEndpoint || 0).browseEndpoint || 0).browseId || '';
+        const canonicalBaseUrl = ((editableText.navigationEndpoint || 0).browseEndpoint || 0).canonicalBaseUrl || ''; // TBC
+        const url = (((editableText.navigationEndpoint || 0).commandMetadata || 0).webCommandMetadata || 0).url; // TBC
+        if (typeof url === 'string' && typeof text === 'string' && typeof browseId === 'string' && browseId && isUCBrowserId(browseId)) {
 
             if (!isDisplayAsHandle(text)) return null;
-            const channelId = obtainChannelId(url);
+            const channelId = browseId;
 
             return getDisplayName(channelId).then(fetchResult => {
                 let resolveResult = null;
@@ -1652,7 +1662,7 @@ SOFTWARE.
                 browseId = (browserEndpoint.browseId || '');
                 const currentDisplayText = runs[0].text || ''
 
-                if (browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId) && isDisplayAsHandle(currentDisplayText)) {
+                if (isUCBrowserId(browseId) && isDisplayAsHandle(currentDisplayText)) {
 
                     if (!channelIdToHandle.has(browseId)) {
                         channelIdToHandle.set(browseId, {
@@ -1728,18 +1738,19 @@ SOFTWARE.
             let mainFormattedNameUrl = null;
             let mainChannelText = null;
             let mainFormattedNameText = null;
+            let mainChannelBrowseId = null;
 
             try {
-                mainChannelUrl = channelUrlUnify(channelNameCData.channelUrl)
-                mainFormattedNameUrl = channelUrlUnify(channelNameCData.title.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl)
+                mainChannelUrl = channelUrlUnify(channelNameCData.channelUrl)   // channelUrlUnify("http://www.youtube.com/channel/UC5CwaMl1eIgY8h02uZw7u8A")
+                mainFormattedNameUrl = channelUrlUnify(channelNameCData.title.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl) // channelUrlUnify("/channel/UC5CwaMl1eIgY8h02uZw7u8A")
                 mainChannelText = channelNameCData.channelName
                 mainFormattedNameText = channelNameCData.title.runs[0].text
+                mainChannelBrowseId = channelNameCData.navigationEndpoint.browseEndpoint.browseId;
             } catch (e) { }
 
-            if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
+            if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string' && mainChannelBrowseId && isUCBrowserId(mainChannelBrowseId)) {
 
-
-                let channelId = obtainChannelId(mainChannelUrl);
+                const channelId = mainChannelBrowseId;
                 if (channelId) {
                     if (mainChannelText.startsWith('@')) return;
                     if (mainChannelText.trim() !== mainChannelText) return;
@@ -1768,14 +1779,16 @@ SOFTWARE.
             let mainFormattedNameUrl = null;
             let mainChannelText = null;
             let mainFormattedNameText = null;
+            let mainChannelBrowseId = null;
             try {
                 mainChannelUrl = channelNameCData.channelName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
                 mainFormattedNameUrl = channelNameCData.formattedName.runs[0].navigationEndpoint.browseEndpoint.canonicalBaseUrl
                 mainChannelText = channelNameCData.channelName.runs[0].text
                 mainFormattedNameText = channelNameCData.formattedName.runs[0].text
+                mainChannelBrowseId = channelNameCData.channelName.runs[0].navigationEndpoint.browseEndpoint.browseId;
             } catch (e) { }
 
-            if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string') {
+            if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string' && mainChannelBrowseId && isUCBrowserId(mainChannelBrowseId)) {
 
                 let m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.exec(mainChannelUrl);
 
@@ -1788,7 +1801,7 @@ SOFTWARE.
 
                 } else {
 
-                    let channelId = obtainChannelId(mainChannelUrl);
+                    const channelId = mainChannelBrowseId;
                     if (channelId) {
                         if (mainChannelText.startsWith('@')) return;
                         if (mainChannelText.trim() !== mainChannelText) return;
@@ -2038,10 +2051,14 @@ SOFTWARE.
                     // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
                     const href = anchor.getAttribute('href');
                     const channelId = obtainChannelId(href); // string, can be empty
-                    anchor.setAttribute('jkrgy', channelId);
-                    // intersectionobserver.unobserve(anchor);
-                    // intersectionobserver.observe(anchor); // force first occurance
-                    domCheckAsync(anchor, href, channelId);
+                    if (channelId) {
+                        anchor.setAttribute('jkrgy', channelId);
+                        // intersectionobserver.unobserve(anchor);
+                        // intersectionobserver.observe(anchor); // force first occurance
+                        domCheckAsync(anchor, href, channelId);
+                    } else {
+                        anchor.setAttribute('jkrgy', '');
+                    }
                 }
 
             } catch (e) {
