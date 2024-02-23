@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.9.8
+// @version             0.10.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -390,6 +390,25 @@ SOFTWARE.
     }
     // usage: run network request one by one
     const mutex = new OrderedMutex();
+
+    const createPipeline = () => {
+        let pipelineMutex = Promise.resolve();
+        const pipelineExecution = fn => {
+            return new Promise((resolve, reject) => {
+                pipelineMutex = pipelineMutex.then(async () => {
+                    let res;
+                    try {
+                        res = await fn();
+                    } catch (e) {
+                        console.log('error_F1', e);
+                        reject(e);
+                    }
+                    resolve(res);
+                }).catch(console.warn);
+            });
+        };
+        return pipelineExecution;
+    };
 
     /**
      * @typedef { AsyncValue<T> | T} AsyncOrResolvedValue<T>
@@ -1069,16 +1088,16 @@ SOFTWARE.
     /**
      *
      * @param {HTMLAnchorElement} anchor Example: https\:\/\/www\.youtube\.com/channel/UCRmLncxsQFcOOC8OhzUIfxQ/videos
-     * @param {string} channelHref Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ
+     * @param {string} anchorHref Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ (old)   2024 Feb -> /@user-abc1234
      * @param {string} channelId Example: UCRmLncxsQFcOOC8OhzUIfxQ
      * @returns
      */
-    const anchorIntegrityCheck = (anchor, channelHref, channelId) => {
+    const anchorIntegrityCheck = (anchor, anchorHref) => {
 
         let currentHref = anchor.getAttribute('href');
-        if (currentHref === channelHref) return true; // /channel/UCRmLncxsQFcOOC8OhzUIfxQ // /channel/UCRmLncxsQFcOOC8OhzUIfxQ
+        if (currentHref === anchorHref) return true; // /channel/UCRmLncxsQFcOOC8OhzUIfxQ // /channel/UCRmLncxsQFcOOC8OhzUIfxQ
 
-        return (currentHref + '/').indexOf(channelHref + '/') >= 0;
+        return (currentHref + '/').indexOf(anchorHref + '/') >= 0;
 
     };
 
@@ -1092,8 +1111,8 @@ SOFTWARE.
 
         const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
 
-        const currentDisplayTrimmed = currentDisplayed.trim(); // @IORIMATSUNAGA        
-        const currentDisplayTrimmedLowerCase = currentDisplayTrimmed.toLowerCase(); // @iorimatsunaga        
+        const currentDisplayTrimmed = currentDisplayed.trim(); // @IORIMATSUNAGA
+        const currentDisplayTrimmedLowerCase = currentDisplayTrimmed.toLowerCase(); // @iorimatsunaga
         let match = false;
         if (verified123) {
             match = true;
@@ -1350,12 +1369,21 @@ SOFTWARE.
 
     /**
      * Process Checking when there is new (unprocessed) anchor DOM element with hyperlink of channel
-     * @type { (anchor: HTMLElement, channelHref: string?, mt: string?) => Promise<void> }
+     * @type { (anchor: HTMLElement, anchorHref: string?, mt: string?) => Promise<void> }
      */
-    const domCheckAsync = isMobile ? async (anchor, channelHref, mt) => {
+
+    const getDisplayTextDOMForCommentRenderer = (root) => { // mobile
+        let displayTextDOM = elementQS(root, '.comment-header .comment-title');
+        if (displayTextDOM) {
+            displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
+        }
+        return displayTextDOM;
+    }
+
+    const domCheckAsync = isMobile ? async (anchor, anchorHref, mt) => {
 
         try {
-            if (!channelHref || !mt) return;
+            if (!anchorHref || !mt) return;
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
                 if (parentNode.nodeName === 'YTM-COMMENT-RENDERER' || ('_commentData' in parentNode)) break;
@@ -1363,85 +1391,93 @@ SOFTWARE.
             }
             if (parentNode instanceof Node) { } else return;
 
-            let displayTextDOM = elementQS(parentNode, '.comment-header .comment-title');
-            if (!displayTextDOM) return;
-            displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
-            let airaLabel = anchor.getAttribute('aria-label')
-            const parentNodeData = insp(parentNode).data;
-            let runs = ((parentNodeData || 0).authorText || 0).runs;
+            const displayTextDOM = getDisplayTextDOMForCommentRenderer(parentNode);
+            const airaLabel = anchor.getAttribute('aria-label');
 
-            if (displayTextDOM && airaLabel && displayTextDOM.textContent.trim() === airaLabel.trim() && isDisplayAsHandle(airaLabel) && runs && (runs[0] || 0).text === airaLabel) {
+            const kHrefValue = anchor.getAttribute('href'); // guess (Feb 2024)
+            if (displayTextDOM && (airaLabel || /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(kHrefValue))) {
 
-                if (!channelIdToHandle.has(mt)) {
-                    channelIdToHandle.set(mt, {
-                        handleText: airaLabel.trim(),
-                        justPossible: true
-                    });
-                }
+                const kHrefHandle = kHrefValue.substring(1); // guess (Feb 2024)
+                const kHandlerText = airaLabel ? airaLabel.trim() : kHrefHandle; // guess
+                const kNodeText = airaLabel ? airaLabel : kHrefHandle;
 
-                const fetchResult = await getDisplayName(mt);
+                const parentNodeData = insp(parentNode).data;
+                const runs = ((parentNodeData || 0).authorText || 0).runs;
 
-                if (fetchResult === null) return;
+                if (displayTextDOM.textContent.trim() === kHandlerText && isDisplayAsHandle(kNodeText) && runs && (runs[0] || 0).text === kNodeText) {
 
-                const { title, langTitle, externalId } = fetchResult;
-                const titleForDisplay = langTitle || title;
-                if (externalId !== mt) return; // channel id must be the same
-
-                // anchor href might be changed by external
-                if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
-
-                if (displayTextDOM.isConnected !== true) return; // already removed
-
-                let found = false;
-
-                findTextNodes(displayTextDOM, (textnode) => {
-                    if (textnode.nodeValue === airaLabel) {
-                        textnode.nodeValue = titleForDisplay;
-                        found = true;
-                        return true;
+                    if (!channelIdToHandle.has(mt)) {
+                        channelIdToHandle.set(mt, {
+                            handleText: kHandlerText,
+                            justPossible: true
+                        });
                     }
-                });
 
-                if (!found) return;
-                anchor.setAttribute('aria-label', titleForDisplay);
-                runs[0].text = titleForDisplay;
+                    const fetchResult = await getDisplayName(mt);
 
-                if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
-                    const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
-                    const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
-                    const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
-                    const tc = spanText ? spanText.textContent : '';
-                    updatePinnedCommentBadge(parentNodeData, title, langTitle);
-                    if (tc && tc === spanText.textContent) {
-                        let idx = tc.indexOf(title);
-                        if (idx >= 0) {
-                            spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
+                    if (fetchResult === null) return;
+
+                    const { title, langTitle, externalId } = fetchResult;
+                    const titleForDisplay = langTitle || title;
+                    if (externalId !== mt) return; // channel id must be the same
+
+                    // anchor href might be changed by external
+                    if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+
+                    if (displayTextDOM.isConnected !== true) return; // already removed
+
+                    let found = false;
+
+                    findTextNodes(displayTextDOM, (textnode) => {
+                        if (textnode.nodeValue === kNodeText) {
+                            textnode.nodeValue = titleForDisplay;
+                            found = true;
+                            return true;
                         }
-                    }
-                }
+                    });
 
-                const contentTexts = (parentNodeData.contentText || 0).runs;
-                if (contentTexts && contentTexts.length >= 2) {
-                    for (let aidx = 0; aidx < contentTexts.length; aidx++) {
-                        const contentText = contentTexts[aidx] || 0;
-                        if (contentText.italics !== true) {
-                            let isHandle = isDisplayAsHandle(contentText.text);
-                            if (isHandle) {
-                                mobileContentHandleAsync(parentNode, contentTexts, aidx);
+                    if (!found) return;
+                    if (airaLabel) anchor.setAttribute('aria-label', titleForDisplay);
+                    runs[0].text = titleForDisplay;
+
+                    if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
+                        const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
+                        const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
+                        const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
+                        const tc = spanText ? spanText.textContent : '';
+                        updatePinnedCommentBadge(parentNodeData, title, langTitle);
+                        if (tc && tc === spanText.textContent) {
+                            let idx = tc.indexOf(title);
+                            if (idx >= 0) {
+                                spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
                             }
                         }
                     }
-                }
 
+                    const contentTexts = (parentNodeData.contentText || 0).runs;
+                    if (contentTexts && contentTexts.length >= 2) {
+                        for (let aidx = 0; aidx < contentTexts.length; aidx++) {
+                            const contentText = contentTexts[aidx] || 0;
+                            if (contentText.italics !== true) {
+                                let isHandle = isDisplayAsHandle(contentText.text);
+                                if (isHandle) {
+                                    mobileContentHandleAsync(parentNode, contentTexts, aidx);
+                                }
+                            }
+                        }
+                    }
+
+                }
             }
+
         } catch (e) {
             console.warn(e);
         }
 
-    } : async (anchor, channelHref, mt) => {
+    } : async (anchor, anchorHref, mt) => {
 
         try {
-            if (!channelHref || !mt) return;
+            if (!anchorHref || !mt) return;
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
                 const cnt = insp(parentNode);
@@ -1493,7 +1529,7 @@ SOFTWARE.
             if (externalId !== mt) return; // channel id must be the same
 
             // anchor href might be changed by external
-            if (!anchorIntegrityCheck(anchor, channelHref, externalId)) return;
+            if (!anchorIntegrityCheck(anchor, anchorHref)) return;
 
             const parentNodeData = parentNodeController.data;
             const funcPromises = [];
@@ -1803,7 +1839,7 @@ SOFTWARE.
 
     let lastNewAnchorLastWR = null;
 
-    const mutexForDOMMutations = new Mutex();
+    const pipelineForDOMMutations = createPipeline();
 
     const byPassCheckStore = new WeakSet();
 
@@ -1837,7 +1873,9 @@ SOFTWARE.
     const domCheckSelectorForShorts = [
         'ytd-channel-name.ytd-reel-player-header-renderer:not([jkrgy]) a.yt-simple-endpoint[href]'
     ].join(', ');
-    const domCheckerForShorts = () => {
+
+
+    const domCheckerForShorts = async () => {
 
         if (domCheckScheduledForShorts) return;
         if (document.querySelector(domCheckSelectorForShorts) === null) {
@@ -1845,44 +1883,41 @@ SOFTWARE.
         }
         domCheckScheduledForShorts = true;
 
-        mutexForDOMMutations.lockWith(lockResolve => {
-
-
-            // setTimeout(()=>{ // delay due to data update is after [is-active] switching
-
+        await pipelineForDOMMutations(async () => {
 
             domCheckScheduledForShorts = false;
+            // setTimeout(()=>{ // delay due to data update is after [is-active] switching
 
-            const nodes = document.querySelectorAll(domCheckSelectorForShorts);
-            if (nodes.length === 0) {
-                lockResolve();
-                return;
-            }
+            try {
 
-            for (const node of nodes) {
-
-                const rchannelNameElm = parentYtElement(node, 'YTD-CHANNEL-NAME', 18);
-                if (rchannelNameElm) {
-                    mutObserverForShortsChannelName.observe(rchannelNameElm, {
-                        childList: true,
-                        subtree: true
-                    });
-                    let channelId = '';
-                    byPassCheckStore.add(rchannelNameElm);
-                    channelId = checkShortsChannelName(rchannelNameElm);
-                    rchannelNameElm.setAttribute('jkrgy', channelId || '');
+                const nodes = document.querySelectorAll(domCheckSelectorForShorts);
+                if (nodes.length === 0) {
+                    return;
                 }
 
+                for (const node of nodes) {
+
+                    const rchannelNameElm = parentYtElement(node, 'YTD-CHANNEL-NAME', 18);
+                    if (rchannelNameElm) {
+                        mutObserverForShortsChannelName.observe(rchannelNameElm, {
+                            childList: true,
+                            subtree: true
+                        });
+                        byPassCheckStore.add(rchannelNameElm);
+                        const channelId = checkShortsChannelName(rchannelNameElm);
+                        rchannelNameElm.setAttribute('jkrgy', channelId || '');
+                    }
+
+                }
+
+            } catch (e) {
+                console.log('error occur', e);
             }
 
-            lockResolve();
+        });
+        domCheckScheduledForShorts = false;
 
-            // }, 80);
-
-
-        })
-
-    }
+    };
 
     const domCheckerForDescriptionAnchor = (s) => {
 
@@ -1946,68 +1981,171 @@ SOFTWARE.
         }
     };
 
-    let domCheckScheduled = false;
-    const domCheckSelector = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])';
+    let domCheckScheduled01 = false;
+    let domCheckScheduled02 = false;
+    const domCheckSelector01 = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])';
+    const domCheckSelector02 = isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])';
+
+    const domAuthorNameCheck01 = async () => {
+        // Before Feb 2024
+
+        if (domCheckScheduled01) return;
+        if (document.querySelector(domCheckSelector01) === null) {
+            return;
+        }
+        domCheckScheduled01 = true;
+
+        await pipelineForDOMMutations(async () => {
+
+            domCheckScheduled01 = false;
+            try {
+
+                const newAnchors = document.querySelectorAll(domCheckSelector01);
+                if (newAnchors.length === 0) {
+                    return;
+                }
+
+                const cNewAnchorFirst = newAnchors[0]; // non-null
+                const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
+                /** @type {HTMLElement | null} */
+                const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
+                lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+
+                if (!firstDOMCheck) {
+                    firstDOMCheck = true;
+                    USE_CHANNEL_META && firstDOMChecker();
+                }
+
+                await Promise.resolve();
+
+                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+                    if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                        mutex.nextIndex = 0;
+                    }
+                }
+
+                await Promise.resolve();
+
+                // newAnchorAdded = true;
+                for (const anchor of newAnchors) {
+                    // author-text or name
+                    // normal url: /channel/xxxxxxx
+                    // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
+                    const href = anchor.getAttribute('href');
+                    const channelId = obtainChannelId(href); // string, can be empty
+                    anchor.setAttribute('jkrgy', channelId);
+                    // intersectionobserver.unobserve(anchor);
+                    // intersectionobserver.observe(anchor); // force first occurance
+                    domCheckAsync(anchor, href, channelId);
+                }
+
+            } catch (e) {
+                console.log('error occur', e);
+            }
+
+        });
+        domCheckScheduled01 = false;
+
+    };
+
+    const closestYtParent = (dom) => {
+        while (dom instanceof Element) {
+            if (typeof dom.is === 'string' && dom.is) return dom;
+            dom = dom.parentNode;
+        }
+        return null;
+    };
+    const closestYtmData = (dom) => {
+        while (dom instanceof Element) {
+            if (typeof (dom.data || 0) === 'object') return dom;
+            dom = dom.parentNode;
+        }
+        return null;
+    };
+    const getAuthorBrowseEndpoint = (cnt) => {
+        if (isMobile) {
+            return (((cnt || 0).data || 0).authorEndpoint || 0).browseEndpoint || null;
+        } else {
+            return (((cnt || 0).__data || 0).authorTextCommand || 0).browseEndpoint || null;
+        }
+    };
+    const domAuthorNameCheck02 = async () => {
+        // Feb 2024
+
+        if (domCheckScheduled02) return;
+        if (document.querySelector(domCheckSelector02) === null) {
+            return;
+        }
+        domCheckScheduled02 = true;
+
+        await pipelineForDOMMutations(async () => {
+
+            domCheckScheduled02 = false;
+            try {
+
+                const newAnchors = document.querySelectorAll(domCheckSelector02);
+                if (newAnchors.length === 0) {
+                    return;
+                }
+
+                const cNewAnchorFirst = newAnchors[0]; // non-null
+                const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
+                /** @type {HTMLElement | null} */
+                const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
+                lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+
+                if (!firstDOMCheck) {
+                    firstDOMCheck = true;
+                    USE_CHANNEL_META && firstDOMChecker();
+                }
+
+                await Promise.resolve();
+
+                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+                    if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                        mutex.nextIndex = 0;
+                    }
+                }
+
+                await Promise.resolve();
+
+                // newAnchorAdded = true;
+                for (const anchor of newAnchors) {
+                    const href = anchor.getAttribute('href');
+                    let channelId = '';
+                    const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
+                    if (ytElm) {
+                        const cnt = insp(ytElm);
+                        const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
+                        if (browseId && canonicalBaseUrl === href && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]+$/.test(browseId)) {
+                            const handle = href.substring(2);
+                            channelIdToHandle.set(browseId, {
+                                handleText: `@${handle}`
+                            });
+                            channelId = browseId;
+                        }
+                    }
+                    anchor.setAttribute('jkrgy', channelId);
+                    if (channelId) {
+                        domCheckAsync(anchor, href, channelId);
+                    }
+                }
+
+            } catch (e) {
+                console.log('error occur', e);
+            }
+
+        });
+        domCheckScheduled02 = false;
+
+    };
+
     const domChecker = () => {
 
         doShortsChecking && domCheckerForShorts();
         doDescriptionChecking && domCheckerForDescription();
-
-        if (domCheckScheduled) return;
-        if (document.querySelector(domCheckSelector) === null) {
-            return;
-        }
-        domCheckScheduled = true;
-
-        mutexForDOMMutations.lockWith(lockResolve => {
-            domCheckScheduled = false;
-
-            const newAnchors = document.querySelectorAll(domCheckSelector);
-            if (newAnchors.length === 0) {
-                lockResolve();
-                return;
-            }
-
-            const cNewAnchorFirst = newAnchors[0]; // non-null
-            const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
-            /** @type {HTMLElement | null} */
-            const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-            lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
-
-            if (!firstDOMCheck) {
-                firstDOMCheck = true;
-                USE_CHANNEL_META && firstDOMChecker();
-            }
-
-            Promise.resolve()
-                .then(() => {
-                    if (lastNewAnchorLast && mutex.nextIndex >= 1) {
-                        if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                            mutex.nextIndex = 0;
-                        }
-                    }
-                }).then(() => {
-
-                    // newAnchorAdded = true;
-                    for (const anchor of newAnchors) {
-                        // author-text or name
-                        // normal url: /channel/xxxxxxx
-                        // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
-                        const href = anchor.getAttribute('href');
-                        const channelId = obtainChannelId(href); // string, can be empty
-                        anchor.setAttribute('jkrgy', channelId);
-                        // intersectionobserver.unobserve(anchor);
-                        // intersectionobserver.observe(anchor); // force first occurance
-                        domCheckAsync(anchor, href, channelId);
-                    }
-
-                }).then(lockResolve).catch(e => {
-                    lockResolve();
-                    console.warn(e);
-                });
-
-        });
-
+        domAuthorNameCheck01();
+        domAuthorNameCheck02();
 
     };
 
