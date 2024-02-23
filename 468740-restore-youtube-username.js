@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.2
+// @version             0.10.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -1073,7 +1073,8 @@ SOFTWARE.
         const cnt = insp(ths);
         const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
         if (ytElm instanceof Element) {
-            const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
+            const anchors = elementQSA(ytElm, 'a[id][href][jkrgy]');
+            // const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
             if ((anchors || 0).length >= 1 && (insp(ytElm).data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
                     anchor.removeAttribute('jkrgy');
@@ -1985,6 +1986,8 @@ SOFTWARE.
         });
 
     }
+
+    // domCheckerForDescription: To be reviwed
     const domCheckerForDescription = isMobile ? () => {
         // example https://m.youtube.com/watch?v=jKt4Ah47L7Q
         for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
@@ -2001,8 +2004,8 @@ SOFTWARE.
 
     let domCheckScheduled01 = false;
     let domCheckScheduled02 = false;
-    const domCheckSelector01 = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])';
-    const domCheckSelector02 = isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])';
+    const domCheckSelector01 = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])'; // old
+    const domCheckSelector02 = isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])'; // Feb 2024
 
     const domAuthorNameCheck01 = async () => {
         // Before Feb 2024
