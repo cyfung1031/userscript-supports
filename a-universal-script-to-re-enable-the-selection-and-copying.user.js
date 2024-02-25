@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.20.1.0
+// @version             1.20.1.1
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -338,6 +338,7 @@
         // utNonEmptyElm: 'ilkpvtsnwmjb',
         utNonEmptyElmPrevElm: 'jttkfplemwzo',
         utHoverTextWrap: 'oseksntfvucn',
+        utAltPage: 'vzhwnfgxnool',
         ksFuncReplacerCounter: '___dqzadwpujtct___',
         ksEventReturnValue: ' ___ndjfujndrlsx___',
         ksSetData: '___rgqclrdllmhr___',
@@ -831,6 +832,7 @@
                 if ($.lpKeyPressing === false && (element instanceof Node) && element.parentNode && !evt.repeat && $.noPlayingVideo()) {
 
                     $.lpKeyPressing = true;
+                    document.documentElement.setAttribute($.utAltPage, '');
 
                     $.cid_lpKeyPressing = setInterval(() => {
                         if ($.lpKeyAltLastPressAt + 500 < +new Date) {
@@ -934,6 +936,7 @@
         },
         lpCancelKeyPressAlt: () => {
             $.lpKeyPressing = false;
+            document.documentElement.removeAttribute($.utAltPage);
             if ($.cid_lpKeyPressing > 0) $.cid_lpKeyPressing = clearInterval($.cid_lpKeyPressing);
 
             $.lpKeyPressingPromise = $.lpKeyPressingPromise.then(() => {
@@ -1120,6 +1123,10 @@
                 pointer-events:inherit !important;
                 border-radius: inherit !important;
                 background:none !important;
+            }
+
+            html[${$.utAltPage}] *::before, html[${$.utAltPage}] *::after {
+                pointer-events: none !important;
             }
 
             ${$.customCSSPerSite[location.origin] || ''}
