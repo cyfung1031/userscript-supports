@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.25.4
+// @version             2024.02.25.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -259,7 +259,6 @@ SOFTWARE.
 
     /** @type {(resolve: () => void)}  */
     const infiniteLooper = getRAFHelper(); // rAF will not execute if document is hidden
-    let afInterupterCount = 0;
 
     (() => {
       let afPromiseP = null;
@@ -299,7 +298,6 @@ SOFTWARE.
           promise.resolve(t2 = ++afix);
           t = t2;
         }
-        afInterupterCount = 0;
         return t;
       }
       const sFunc = (propFunc) => {
@@ -341,17 +339,15 @@ SOFTWARE.
 
     })();
 
+    let mInterupter = null;
     setInterval(() => {
       const dInterupter = afInterupter;
-      if (dInterupter !== null) {
-        afInterupterCount++;
-        if (afInterupterCount > 1) {
-          afInterupter = null;
-          afInterupterCount = 0;
-          dInterupter();
-        }
+      if (dInterupter !== null && mInterupter === dInterupter) {
+        afInterupter = null;
+        mInterupter = null;
+        dInterupter();
       } else {
-        afInterupterCount = 0;
+        mInterupter = dInterupter;
       }
     }, 125);
   });
