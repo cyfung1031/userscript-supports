@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.6
+// @version             0.10.7
 // @license             MIT License
 
 // @author              CY Fung
@@ -1761,6 +1761,11 @@ SOFTWARE.
                     if (mainChannelText.startsWith('@')) return;
                     if (mainChannelText.trim() !== mainChannelText) return;
 
+                    if (displayNameResStore.get(channelId)) {
+                        console.warn(`channelId ${channelId} already exists in displayNameResStore`);
+                        return;
+                    }
+
                     displayNameResStore.set(channelId, {
                         channelUrl: `https://www.youtube.com/channel/${channelId}`,
                         externalId: `${channelId}`,
@@ -1811,6 +1816,11 @@ SOFTWARE.
                     if (channelId) {
                         if (mainChannelText.startsWith('@')) return;
                         if (mainChannelText.trim() !== mainChannelText) return;
+
+                        if (displayNameResStore.get(channelId)) {
+                            console.warn(`channelId ${channelId} already exists in displayNameResStore`);
+                            return;
+                        }
 
                         displayNameResStore.set(channelId, {
                             channelUrl: `https://www.youtube.com/channel/${channelId}`,
@@ -1959,6 +1969,11 @@ SOFTWARE.
                 if (channelId) {
                     const h = q.trim();
 
+                    if (!firstDOMCheck) {
+                        firstDOMCheck = true;
+                        USE_CHANNEL_META && firstDOMChecker();
+                    }
+
                     if (!channelIdToHandle.has(channelId)) {
                         channelIdToHandle.set(channelId, {
                             handleText: h,
@@ -1967,7 +1982,6 @@ SOFTWARE.
                     }
 
                     s.setAttribute('jkrgy', channelId);
-
                     getDisplayName(channelId).then(fetchResult => {
 
                         if (fetchResult === null) return;
@@ -1993,7 +2007,8 @@ SOFTWARE.
 
     }
 
-    // domCheckerForDescription: To be reviwed
+    // domCheckerForDescription: To be reviewed
+    // Example: https://www.youtube.com/watch?v=1NL-sIP9p_U
     const domCheckerForDescription = isMobile ? () => {
         // example https://m.youtube.com/watch?v=jKt4Ah47L7Q
         for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcpj])')) {
