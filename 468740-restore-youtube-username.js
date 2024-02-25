@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.8
+// @version             0.10.9
 // @license             MIT License
 
 // @author              CY Fung
@@ -1725,6 +1725,23 @@ SOFTWARE.
     }
 
     let firstDOMCheck = false;
+    const updateDisplayNameFn = (channelId, newName) => {
+        const cached = displayNameResStore.get(channelId);
+        if (typeof (cached || 0).title === 'string') {
+            cached.title = newName;
+        } else if (!cached) {
+            displayNameResStore.set(channelId, {
+                channelUrl: `https://www.youtube.com/channel/${channelId}`,
+                externalId: `${channelId}`,
+                ownerUrls: [],
+                title: newName,
+                vanityChannelUrl: null,
+                verified123: true
+            });
+        } else {
+            console.warn('unexpected display name cache', cached);
+        }
+    };
     const firstDOMChecker = isMobile ? () => {
 
         let playerMicroformatRenderer = null;
@@ -1760,20 +1777,7 @@ SOFTWARE.
                 if (channelId) {
                     if (mainChannelText.startsWith('@')) return;
                     if (mainChannelText.trim() !== mainChannelText) return;
-
-                    if (displayNameResStore.get(channelId)) {
-                        console.warn(`channelId ${channelId} already exists in displayNameResStore`);
-                        return;
-                    }
-
-                    displayNameResStore.set(channelId, {
-                        channelUrl: `https://www.youtube.com/channel/${channelId}`,
-                        externalId: `${channelId}`,
-                        ownerUrls: [],
-                        title: mainChannelText,
-                        vanityChannelUrl: null,
-                        verified123: true
-                    });
+                    updateDisplayNameFn(channelId, mainChannelText);
                 }
 
 
@@ -1801,7 +1805,7 @@ SOFTWARE.
 
             if (mainChannelUrl === mainFormattedNameUrl && mainChannelText === mainFormattedNameText && typeof mainChannelUrl === 'string' && typeof mainChannelText === 'string' && mainChannelBrowseId && isUCBrowserId(mainChannelBrowseId)) {
 
-                let m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.exec(mainChannelUrl);
+                const m = /^\/(@[-_a-zA-Z0-9.]{3,30})$/.exec(mainChannelUrl);
 
                 if (m && m[1] && mainChannelText !== m[1]) {
 
@@ -1816,20 +1820,7 @@ SOFTWARE.
                     if (channelId) {
                         if (mainChannelText.startsWith('@')) return;
                         if (mainChannelText.trim() !== mainChannelText) return;
-
-                        if (displayNameResStore.get(channelId)) {
-                            console.warn(`channelId ${channelId} already exists in displayNameResStore`);
-                            return;
-                        }
-
-                        displayNameResStore.set(channelId, {
-                            channelUrl: `https://www.youtube.com/channel/${channelId}`,
-                            externalId: `${channelId}`,
-                            ownerUrls: [],
-                            title: mainChannelText,
-                            vanityChannelUrl: null,
-                            verified123: true
-                        });
+                        updateDisplayNameFn(channelId, mainChannelText);
                     }
 
                 }
