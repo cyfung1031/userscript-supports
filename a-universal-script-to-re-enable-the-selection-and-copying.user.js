@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.20.0.0
+// @version             1.20.1.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -1046,6 +1046,14 @@
 
         // note: "user-select: XXX" is deemed as invalid property value in FireFox.
 
+        customCSSPerSite: {
+            'https://www.suto.co.kr': `
+                #no_copy::after {
+                    pointer-events: none;
+                }
+            `
+        },
+
         injectCSSRules: () => {
             const cssStyleOnReady = `
 
@@ -1113,6 +1121,8 @@
                 border-radius: inherit !important;
                 background:none !important;
             }
+
+            ${$.customCSSPerSite[location.origin] || ''}
 
             `.trim();
             $.createCSSElement(cssStyleOnReady, document.documentElement);
