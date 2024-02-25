@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.5
+// @version             0.10.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -1272,7 +1272,7 @@ SOFTWARE.
 
     /**
      *
-     * @param {ParentNode} parentNode
+     * @param {ParentNode & Element} parentNode
      * @param {Function} callback
      */
     function findTextNodes(parentNode, callback) {
@@ -1285,13 +1285,11 @@ SOFTWARE.
             if (node.nodeType === Node.TEXT_NODE) {
                 let r = callback(node);
                 if (r === true) return true;
-            }
-
-            let childNode = nodeFirstChild(node);
-            while (childNode) {
-                let r = traverse(childNode);
-                if (r === true) return true;
-                childNode = nodeNextSibling(childNode);
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                for (let childNode = nodeFirstChild(node); childNode; childNode = nodeNextSibling(childNode)) {
+                    const r = traverse(childNode);
+                    if (r === true) return true;
+                }
             }
         }
 
@@ -1684,7 +1682,6 @@ SOFTWARE.
                         });
                     }
 
-
                     // let anchorNode = elementQS(rchannelNameDOM, `a[href="${browserEndpoint.canonicalBaseUrl}"]`);
                     // anchorNode && anchorNode.setAttribute('jkrgy', browseId); // for checking
                     // anchorNode &&
@@ -1705,7 +1702,6 @@ SOFTWARE.
 
                             let runs2 = [Object.assign({}, runs[0], { text: titleForDisplay })];
 
-
                             /*
                                 runs.push({text: title, bold: true, "fontColor": "black",
 
@@ -1720,11 +1716,8 @@ SOFTWARE.
                             byPassCheckStore.delete(rchannelNameDOM);
                         }
 
-
-
                     })
                 }
-
 
             }
         }
@@ -1892,13 +1885,13 @@ SOFTWARE.
                         let t = textDom.textContent.trim()
                         if (t === object.handleText || t === '') {
                             rchannelNameElm.removeAttribute('jkrgy');
-                            Promise.resolve().then(domChecker);
+                            // Promise.resolve().then(domChecker);
                         }
                     }
                 }
             }
         }
-    })
+    });
 
     let domCheckScheduledForShorts = false;
     const domCheckSelectorForShorts = [
@@ -1950,6 +1943,7 @@ SOFTWARE.
 
     };
 
+    /** @param {Element} s */
     const domCheckerForDescriptionAnchor = (s) => {
 
         findTextNodes(s, (textNode) => {
@@ -1963,7 +1957,7 @@ SOFTWARE.
 
                 const channelId = obtainChannelId(href);
                 if (channelId) {
-                    let h = q.trim();
+                    const h = q.trim();
 
                     if (!channelIdToHandle.has(channelId)) {
                         channelIdToHandle.set(channelId, {
@@ -2002,14 +1996,14 @@ SOFTWARE.
     // domCheckerForDescription: To be reviwed
     const domCheckerForDescription = isMobile ? () => {
         // example https://m.youtube.com/watch?v=jKt4Ah47L7Q
-        for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
-            s.setAttribute('dxcPj', '');
+        for (const s of document.querySelectorAll('span.yt-core-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcpj])')) {
+            s.setAttribute('dxcpj', '');
             domCheckerForDescriptionAnchor(s);
         }
     } : () => {
         // example https://www.youtube.com/watch?v=jKt4Ah47L7Q
-        for (const s of document.querySelectorAll('yt-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcPj])')) {
-            s.setAttribute('dxcPj', '');
+        for (const s of document.querySelectorAll('yt-attributed-string a.yt-core-attributed-string__link.yt-core-attributed-string__link--display-type.yt-core-attributed-string__link--call-to-action-color[href*="channel/"]:not([dxcpj])')) {
+            s.setAttribute('dxcpj', '');
             domCheckerForDescriptionAnchor(s);
         }
     };
@@ -2177,7 +2171,76 @@ SOFTWARE.
 
     };
 
-    const domChecker = () => {
+    let _lastAnchorCount = -1;
+    const anchorCollection = document.getElementsByTagName('A');
+
+    /*
+    const collectionChangeObserverFn = (collection)=>{
+        let _len = -1;
+        let ws = null;
+        ws = new WeakSet(collection);
+        return {check: ()=>{
+            const lastLen = _len;
+            const len = collection.length;
+            if(len !== lastLen){
+                ws = new WeakSet(collection);
+                return true;
+            }
+            for (const elm of collection) {
+                if (!ws.has(elm)){
+                    ws = new WeakSet(collection);
+                    return true;
+                }
+            }
+            return false;
+        }}
+
+    }
+    */
+
+    const domChecker = (mutations) => {
+
+        const currAnchorCount = anchorCollection.length;
+        const lastAnchorCount = _lastAnchorCount;
+        _lastAnchorCount = currAnchorCount;
+        if (currAnchorCount === 0) return;
+
+        if (mutations && lastAnchorCount === currAnchorCount) {
+            // test to skip
+            let state = 0;
+            let addedNonElement = false;
+            for (const mutation of mutations) {
+                const addedNodes = mutation.addedNodes || 0;
+                const removedNodes = mutation.removedNodes || 0;
+                const target = mutation.target || 0;
+                if (target.nodeName === 'YT-FORMATTED-STRING') continue; // ignore changes in <yt-formatted-string>
+                if (addedNodes.length >= 1) {
+                    state |= 1;
+                    if (!addedNonElement) {
+                        for (const addedNode of addedNodes) {
+                            if (!(addedNode instanceof Element)) {
+                                addedNonElement = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (state & 2) break;
+                } else if (removedNodes.length >= 1) {
+                    state |= 2;
+                    if (state & 1) break;
+                } else {
+                    state |= 4;
+                    break;
+                }
+            }
+            if (state === 1) {
+                if (!addedNonElement) return; // no change in anchor
+            } else if (state === 2) {
+                return; // only removal
+            } else if (state === 0) {
+                return; // no recognized mutation
+            }
+        }
 
         doShortsChecking && domCheckerForShorts();
         doDescriptionChecking && domCheckerForDescription();
@@ -2245,6 +2308,8 @@ SOFTWARE.
             doShortsChecking = false;
         }
 
+        _lastAnchorCount = -1;
+
         if (!domObserver) {
             domObserver = new MutationObserver(domChecker);
         } else {
@@ -2252,7 +2317,7 @@ SOFTWARE.
             domObserver.disconnect();
         }
 
-        domObserver.observe(app, { childList: true, subtree: true });
+        domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj'] });
         domChecker();
 
     }
