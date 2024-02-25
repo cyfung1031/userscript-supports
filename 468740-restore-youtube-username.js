@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.001
+// @version             0.11.002
 // @license             MIT License
 
 // @author              CY Fung
@@ -1269,6 +1269,112 @@ SOFTWARE.
 
         return null;
     };
+    const contentTextProcessViewModel = async (content, idx) => {
+        const { commandRuns, content: text, styleRuns } = content;
+        if (typeof text !== 'string') return;
+        const names = [];
+
+        function replaceNamePN(o) {
+            return getDisplayName(o.channelId).then(fetchResult => {
+                let resolveResult = null;
+                if (fetchResult) {
+                    const textTrimmed = verifyAndConvertHandle(o.handle, fetchResult);
+                    if (textTrimmed) {
+                        o.display = `@${fetchResult.title}`;
+                        o.newText = o.oldText.replace(o.handle, o.display);
+                    }
+                }
+                return resolveResult; // function as a Promise
+            });
+        }
+        const promises = [];
+        for (const commandRun of commandRuns) {
+            let browseEndpoint = null;
+            if (commandRun.length >= 1 && commandRun.startIndex >= 0 && (browseEndpoint = ((commandRun.onTap || 0).innertubeCommand || 0).browseEndpoint)) {
+                let substr = text.substring(commandRun.startIndex, commandRun.startIndex + commandRun.length);
+                const substrTrimmed = substr.trim();
+                if (isDisplayAsHandle(substrTrimmed) && `/${substrTrimmed}` === browseEndpoint.canonicalBaseUrl && isUCBrowserId(browseEndpoint.browseId)) {
+                    const o = {
+                        startIndex: commandRun.startIndex,
+                        endIndex: commandRun.startIndex + commandRun.length,
+                        handle: substrTrimmed,
+                        oldText: substr,
+                        newText: null,
+                        channelId: browseEndpoint.browseId,
+                        nStartIndex: null,
+                        nEndIndex: null,
+                        nText: null
+                    }
+                    names.push(o);
+                    promises.push(replaceNamePN(o));
+                }
+            }
+        }
+        await Promise.all(promises);
+
+        let offset = 0;
+        for (const o of names) {
+            o.nStartIndex = o.startIndex + offset;
+            o.nText = o.newText === null ? o.oldText : o.newText;
+            o.nEndIndex = o.nStartIndex + offset + o.nText.length;
+            offset += o.nText.length - o.oldText.length;
+        }
+
+        let w1 =0, w2=0;
+        let s = [];
+        let j = 0;
+        for (let i = 0; i < text.length;) {
+            while (w1 < commandRuns.length && commandRuns[w1].startIndex < i) w1++;
+            while (w2 < styleRuns.length && styleRuns[w2].startIndex < i) w2++;
+         
+            if (j < names.length && i == names[j].startIndex) {
+
+                if (w1<commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
+                    const run = commandRuns[w1];
+                    const o = names[j];
+                    if (run.length === o.endIndex - o.startIndex) {
+                        run.startIndex = o.nStartIndex;
+                        run.length = o.nText.length;
+                    }
+                    w1++;
+                }
+
+                if (w2<styleRuns.length &&styleRuns[w2].startIndex === names[j].startIndex) {
+                    const run = styleRuns[w2];
+                    const o = names[j];
+                    if (run.length === o.endIndex - o.startIndex) {
+                        run.startIndex = o.nStartIndex;
+                        run.length = o.nText.length;
+                    }
+                    w2++;
+                }
+
+
+                // s.push(text.substring(names[j].startIndex, names[j].endIndex));
+                s.push(names[j].nText);
+                i = names[j].endIndex;
+                j++;
+            } else {
+                if (j >= names.length) {
+                    s.push(text.substring(i));
+                    i = text.length;
+                } else {
+                    if (j < names.length && names[j].startIndex > i + 1) {
+                        s.push(text.substring(i, names[j].startIndex));
+                        i = names[j].startIndex;
+                    } else {
+                        s.push(text.charAt(i));
+                        i++;
+                    }
+                }
+            }
+        }
+
+        content.content = s.join('');
+        s.length = 0;
+
+
+    };
 
     /**
      *
@@ -1508,7 +1614,7 @@ SOFTWARE.
             let isCommentViewModel = false;
             while (parentNode instanceof Node) {
                 const cnt = insp(parentNode);
-                if (cnt.is === 'ytd-comment-view-model') { isCommentViewModel = true; break;}
+                if (cnt.is === 'ytd-comment-view-model' && cnt.commentEntity) { isCommentViewModel = true; break;}
                 if (typeof cnt.is === 'string' && typeof cnt.dataChanged === 'function') break;
                 parentNode = nodeParent(parentNode);
             }
@@ -1517,8 +1623,9 @@ SOFTWARE.
 
             if (isCommentViewModel) {
 
-                const authorText = (parentNodeController.__data || 0).authorChannelName;
-                const currentDisplayed = authorText;
+                const commentEntity = parentNodeController.commentEntity;
+                const commentEntityAuthor = commentEntity.author;
+                const currentDisplayed = commentEntityAuthor.displayName;
                 if (typeof currentDisplayed !== 'string') return;
                 if (!isDisplayAsHandle(currentDisplayed)) return;
                 if (!channelIdToHandle.has(mt)) {
@@ -1537,21 +1644,38 @@ SOFTWARE.
 
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+ 
+                if(commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt){
+                    commentEntityAuthor.displayName = titleForDisplay;
 
-                let authorTextAnchor = (parentNodeController.$ || 0)['author-text'] || 0;
+                    if(commentEntity.properties){
+                        if(commentEntity.properties.authorButtonA11y === currentDisplayed){
+                            commentEntity.properties.authorButtonA11y = titleForDisplay;
+                        }
 
-                if (authorTextAnchor) {
-                    let anchorTextParentNode = null;
-                    if (authorTextAnchor.firstElementChild === null) {
-                        anchorTextParentNode = authorTextAnchor;
-                    } else if (authorTextAnchor.firstElementChild === authorTextAnchor.lastElementChild) {
-                        anchorTextParentNode = authorTextAnchor.firstElementChild;
+                        // the inside hyperlinks will be only converted if its parent author name is handle
+                        const content = commentEntity.properties.content;
+                        if (content && (content.commandRuns || 0).length >= 1) {
+                            try {
+                                await contentTextProcessViewModel(content);
+
+                                // $0.polymerController.commentEntity = Object.assign({}, $0.polymerController.commentEntity , { properties: Object.assign({}, $0.polymerController.commentEntity.properties, { content: Object.assign({},$0.polymerController.commentEntity.properties.content)  } )})
+
+                                // parentNodeController.commentEntity.properties = Object.assign({}, parentNodeController.commentEntity.properties, {
+                                //     content: Object.assign({}, parentNodeController.commentEntity.properties.content)
+                                // });
+
+                                commentEntity.properties.content = Object.assign({}, content);
+                            } catch (e) {
+                                console.log(e);
+                            }
+
+                        }
+
                     }
-                    let textNode = null;
-                    if (anchorTextParentNode && (textNode = anchorTextParentNode.firstChild) && textNode.nodeType === Node.TEXT_NODE) {
-                        parentNodeController.__data.authorChannelName = titleForDisplay;
-                        textNode.nodeValue = textNode.nodeValue.replace(currentDisplayed, titleForDisplay);
-                    }
+
+                    parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity );
+
                 }
 
             } else {
