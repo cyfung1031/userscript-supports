@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.003
+// @version             0.11.004
 // @license             MIT License
 
 // @author              CY Fung
@@ -2475,6 +2475,29 @@ SOFTWARE.
 
     };
 
+
+    let mActive = false;
+    let lastContent = '';
+    const removeAttrs = ()=>{
+            for (const s of document.querySelectorAll('a[href][dxcpj]')) {
+                s.removeAttribute('dxcpj');
+            }
+
+            for (const s of document.querySelectorAll('a[href][jkrgy]')) {
+                s.removeAttribute('jkrgy');
+            }
+
+    }
+
+    setInterval(() => {
+        if (!mActive) return;
+        let content = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
+        if (content !== lastContent) {
+            lastContent = content;
+            removeAttrs();
+        }
+    }, 400);
+
     /**
      *
      * @param {Node} app
@@ -2504,13 +2527,9 @@ SOFTWARE.
             domObserver.disconnect();
         }
 
-        for (const s of document.querySelectorAll('a[href][dxcpj]')) {
-            s.removeAttribute('dxcpj');
-        }
-
-        for (const s of document.querySelectorAll('a[href][jkrgy]')) {
-            s.removeAttribute('jkrgy');
-        }
+        lastContent = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
+        mActive = true;
+        removeAttrs();
 
         domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj'] });
         domChecker();
