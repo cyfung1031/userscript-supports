@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.20.1.1
+// @version             1.20.1.2
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -834,11 +834,11 @@
                     $.lpKeyPressing = true;
                     document.documentElement.setAttribute($.utAltPage, '');
 
-                    $.cid_lpKeyPressing = setInterval(() => {
-                        if ($.lpKeyAltLastPressAt + 500 < +new Date) {
-                            $.lpCancelKeyPressAlt();
-                        }
-                    }, 137);
+                    // $.cid_lpKeyPressing = setInterval(() => {
+                    //     if ($.lpKeyAltLastPressAt + 500 < +new Date) {
+                    //         $.lpCancelKeyPressAlt();
+                    //     }
+                    // }, 137);
 
                     const rootNode = $.rootHTML(element);
                     if (rootNode) {
@@ -937,7 +937,7 @@
         lpCancelKeyPressAlt: () => {
             $.lpKeyPressing = false;
             document.documentElement.removeAttribute($.utAltPage);
-            if ($.cid_lpKeyPressing > 0) $.cid_lpKeyPressing = clearInterval($.cid_lpKeyPressing);
+            // if ($.cid_lpKeyPressing > 0) $.cid_lpKeyPressing = clearInterval($.cid_lpKeyPressing);
 
             $.lpKeyPressingPromise = $.lpKeyPressingPromise.then(() => {
                 for (const elm of $.lpHoverBlocks) {
