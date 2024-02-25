@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.10.9
+// @version             0.11.001
 // @license             MIT License
 
 // @author              CY Fung
@@ -1505,129 +1505,174 @@ SOFTWARE.
         try {
             if (!anchorHref || !mt) return;
             let parentNode = nodeParent(anchor);
+            let isCommentViewModel = false;
             while (parentNode instanceof Node) {
                 const cnt = insp(parentNode);
+                if (cnt.is === 'ytd-comment-view-model') { isCommentViewModel = true; break;}
                 if (typeof cnt.is === 'string' && typeof cnt.dataChanged === 'function') break;
                 parentNode = nodeParent(parentNode);
             }
             if (parentNode instanceof Node) { } else return;
             const parentNodeController = insp(parentNode);
-            const authorText = (parentNodeController.data || 0).authorText;
-            const currentDisplayed = (authorText || 0).simpleText;
-            if (typeof currentDisplayed !== 'string') return;
-            if (!isDisplayAsHandle(currentDisplayed)) return;
 
-            if (!channelIdToHandle.has(mt)) {
-                channelIdToHandle.set(mt, {
-                    handleText: currentDisplayed.trim(),
-                    justPossible: true
-                });
-            }
+            if (isCommentViewModel) {
 
-            let oldDataChangedFn = parentNodeController.dataChanged;
-            if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
-                let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
-                if (!newDataChangedFn) {
-                    newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
-                    newDataChangedFn.jkrgx = 1;
-                    dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
+                const authorText = (parentNodeController.__data || 0).authorChannelName;
+                const currentDisplayed = authorText;
+                if (typeof currentDisplayed !== 'string') return;
+                if (!isDisplayAsHandle(currentDisplayed)) return;
+                if (!channelIdToHandle.has(mt)) {
+                    channelIdToHandle.set(mt, {
+                        handleText: currentDisplayed.trim(),
+                        justPossible: true
+                    });
                 }
-                parentNodeController.dataChanged = newDataChangedFn;
-            }
+                const fetchResult = await getDisplayName(mt);
 
-            oldDataChangedFn = parentNodeController.hostElement.dataChanged;
-            if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
-                let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
-                if (!newDataChangedFn) {
-                    newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
-                    newDataChangedFn.jkrgx = 1;
-                    dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
+                if (fetchResult === null) return;
+
+                const { title, langTitle, externalId } = fetchResult;
+                const titleForDisplay = langTitle || title;
+                if (externalId !== mt) return; // channel id must be the same
+
+                // anchor href might be changed by external
+                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+
+                let authorTextAnchor = (parentNodeController.$ || 0)['author-text'] || 0;
+
+                if (authorTextAnchor) {
+                    let anchorTextParentNode = null;
+                    if (authorTextAnchor.firstElementChild === null) {
+                        anchorTextParentNode = authorTextAnchor;
+                    } else if (authorTextAnchor.firstElementChild === authorTextAnchor.lastElementChild) {
+                        anchorTextParentNode = authorTextAnchor.firstElementChild;
+                    }
+                    let textNode = null;
+                    if (anchorTextParentNode && (textNode = anchorTextParentNode.firstChild) && textNode.nodeType === Node.TEXT_NODE) {
+                        parentNodeController.__data.authorChannelName = titleForDisplay;
+                        textNode.nodeValue = textNode.nodeValue.replace(currentDisplayed, titleForDisplay);
+                    }
                 }
-                parentNodeController.hostElement.dataChanged = newDataChangedFn;
-            }
 
-            const fetchResult = await getDisplayName(mt);
+            } else {
 
-            if (fetchResult === null) return;
-
-            const { title, langTitle, externalId } = fetchResult;
-            const titleForDisplay = langTitle || title;
-            if (externalId !== mt) return; // channel id must be the same
-
-            // anchor href might be changed by external
-            if (!anchorIntegrityCheck(anchor, anchorHref)) return;
-
-            const parentNodeData = parentNodeController.data;
-            const funcPromises = [];
-
-            if (parentNodeController.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
-
-                if (authorText.simpleText !== currentDisplayed) return;
-                const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
-                const cSimpleText = ((parentNodeData.authorText || 0).simpleText || '');
-                if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
-
-                    // the inside hyperlinks will be only converted if its parent author name is handle
-                    const contentTexts = (parentNodeData.contentText || 0).runs;
-                    if (contentTexts && contentTexts.length >= 1) {
-                        for (let aidx = 0; aidx < contentTexts.length; aidx++) {
-                            const r = contentTextProcess(contentTexts, aidx);
-                            if (r instanceof Promise) funcPromises.push(r);
-                        }
+                const authorText = (parentNodeController.data || 0).authorText;
+                const currentDisplayed = (authorText || 0).simpleText;
+                if (typeof currentDisplayed !== 'string') return;
+                if (!isDisplayAsHandle(currentDisplayed)) return;
+    
+                if (!channelIdToHandle.has(mt)) {
+                    channelIdToHandle.set(mt, {
+                        handleText: currentDisplayed.trim(),
+                        justPossible: true
+                    });
+                }
+    
+                let oldDataChangedFn = parentNodeController.dataChanged;
+                if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
+                    let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
+                    if (!newDataChangedFn) {
+                        newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
+                        newDataChangedFn.jkrgx = 1;
+                        dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
                     }
-
-                    const md = Object.assign({}, parentNodeData);
-                    let setBadge = false;
-                    if (((((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0).simpleText || '').trim() === cSimpleText.trim()) {
-                        setBadge = true;
+                    parentNodeController.dataChanged = newDataChangedFn;
+                }
+    
+                oldDataChangedFn = parentNodeController.hostElement.dataChanged;
+                if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
+                    let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
+                    if (!newDataChangedFn) {
+                        newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
+                        newDataChangedFn.jkrgx = 1;
+                        dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
                     }
-                    // parentNode.data = Object.assign({}, { jkrgx: 1 });
-                    md.authorText = Object.assign({}, md.authorText, { simpleText: currentDisplayed.replace(currentDisplayTrimmed, titleForDisplay) });
-                    if (setBadge) {
-                        md.authorCommentBadge = Object.assign({}, md.authorCommentBadge);
-                        md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
-                        md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
-
-                    }
-
-                    let setReplyEditableText = false;
-                    if (((((((((parentNodeData.actionButtons || 0).commentActionButtonsRenderer || 0).replyButton || 0).buttonRenderer || 0).navigationEndpoint || 0).createCommentReplyDialogEndpoint || 0).dialog || 0).commentReplyDialogRenderer || 0).editableText) {
-                        setReplyEditableText = true;
-                    }
-                    if (setReplyEditableText) {
-                        const commentReplyDialogRenderer = parentNodeData.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
-                        const editableText = commentReplyDialogRenderer.editableText;
-                        const editableTexts = editableText.runs;
-                        if (editableTexts && editableTexts.length >= 1) {
-                            for (let aidx = 0; aidx < editableTexts.length; aidx++) {
-                                const r = editableTextProcess(editableTexts, aidx);
+                    parentNodeController.hostElement.dataChanged = newDataChangedFn;
+                }
+    
+                const fetchResult = await getDisplayName(mt);
+    
+                if (fetchResult === null) return;
+    
+                const { title, langTitle, externalId } = fetchResult;
+                const titleForDisplay = langTitle || title;
+                if (externalId !== mt) return; // channel id must be the same
+    
+                // anchor href might be changed by external
+                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+    
+                const parentNodeData = parentNodeController.data;
+                const funcPromises = [];
+    
+                if (parentNodeController.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
+    
+                    if (authorText.simpleText !== currentDisplayed) return;
+                    const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
+                    const cSimpleText = ((parentNodeData.authorText || 0).simpleText || '');
+                    if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
+    
+                        // the inside hyperlinks will be only converted if its parent author name is handle
+                        const contentTexts = (parentNodeData.contentText || 0).runs;
+                        if (contentTexts && contentTexts.length >= 1) {
+                            for (let aidx = 0; aidx < contentTexts.length; aidx++) {
+                                const r = contentTextProcess(contentTexts, aidx);
                                 if (r instanceof Promise) funcPromises.push(r);
                             }
                         }
-                    }
-
-                    if (UPDATE_PIN_NAME) {
-                        updatePinnedCommentBadge(md, title, langTitle);
-                    }
-
-                    if (funcPromises.length >= 1) {
-                        let funcs = await Promise.all(funcPromises);
-
-                        for (const func of funcs) {
-                            if (typeof func === 'function') {
-                                func(md);
+    
+                        const md = Object.assign({}, parentNodeData);
+                        let setBadge = false;
+                        if (((((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0).simpleText || '').trim() === cSimpleText.trim()) {
+                            setBadge = true;
+                        }
+                        // parentNode.data = Object.assign({}, { jkrgx: 1 });
+                        md.authorText = Object.assign({}, md.authorText, { simpleText: currentDisplayed.replace(currentDisplayTrimmed, titleForDisplay) });
+                        if (setBadge) {
+                            md.authorCommentBadge = Object.assign({}, md.authorCommentBadge);
+                            md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
+                            md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
+    
+                        }
+    
+                        let setReplyEditableText = false;
+                        if (((((((((parentNodeData.actionButtons || 0).commentActionButtonsRenderer || 0).replyButton || 0).buttonRenderer || 0).navigationEndpoint || 0).createCommentReplyDialogEndpoint || 0).dialog || 0).commentReplyDialogRenderer || 0).editableText) {
+                            setReplyEditableText = true;
+                        }
+                        if (setReplyEditableText) {
+                            const commentReplyDialogRenderer = parentNodeData.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                            const editableText = commentReplyDialogRenderer.editableText;
+                            const editableTexts = editableText.runs;
+                            if (editableTexts && editableTexts.length >= 1) {
+                                for (let aidx = 0; aidx < editableTexts.length; aidx++) {
+                                    const r = editableTextProcess(editableTexts, aidx);
+                                    if (r instanceof Promise) funcPromises.push(r);
+                                }
                             }
                         }
+    
+                        if (UPDATE_PIN_NAME) {
+                            updatePinnedCommentBadge(md, title, langTitle);
+                        }
+    
+                        if (funcPromises.length >= 1) {
+                            let funcs = await Promise.all(funcPromises);
+    
+                            for (const func of funcs) {
+                                if (typeof func === 'function') {
+                                    func(md);
+                                }
+                            }
+                        }
+    
+                        if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
+                            parentNodeController.data = Object.assign({}, md, { jkrgx: 1 });
+                            addCSSRulesIfRequired();
+                        }
+    
+    
                     }
-
-                    if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
-                        parentNodeController.data = Object.assign({}, md, { jkrgx: 1 });
-                        addCSSRulesIfRequired();
-                    }
-
-
+    
                 }
-
             }
         } catch (e) {
             console.warn(e);
@@ -2100,11 +2145,23 @@ SOFTWARE.
         return null;
     };
     const getAuthorBrowseEndpoint = (cnt) => {
+        let d;
         if (isMobile) {
-            return (((cnt || 0).data || 0).authorEndpoint || 0).browseEndpoint || null;
+            const data = ((cnt || 0).data || 0);
+            if (data) {
+                if (d = data.authorEndpoint) return d.browseEndpoint || null;
+                console.log('no browseEndpoint can be found');
+            }
         } else {
-            return (((cnt || 0).__data || 0).authorTextCommand || 0).browseEndpoint || null;
+            const __data = ((cnt || 0).__data || 0);
+            if (__data) {
+                if (d = __data.authorTextCommand) return d.browseEndpoint || null; // ytd-comment-renderer
+                if (d = __data.authorEndpoint) return d.browseEndpoint || null; // ytd-comment-view-model
+                if (d = (__data.data || 0).authorEndpoint) return d.browseEndpoint || null; // ytd-author-comment-badge-renderer
+                console.log('no browseEndpoint can be found');
+            }
         }
+        return null;
     };
     const domAuthorNameCheck02 = async () => {
         // Feb 2024
