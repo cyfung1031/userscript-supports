@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.25.2
+// @version             2024.02.25.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -264,6 +264,42 @@ SOFTWARE.
       let afPromiseP = null;
       let afPromiseQ = null;
       let afix = 0;
+      const eFunc = async () => {
+        const rP = afPromiseP && !afPromiseP.resolved ? afPromiseP : null;
+        const rQ = afPromiseQ && !afPromiseQ.resolved ? afPromiseQ : null;
+        let t = 0, t1, t2;
+        if (rP && rQ) {
+          t1 = await rP;
+          t2 = await rQ;
+          t = t1 > t2 ? t1 : t2;
+        } else if (!rP && !rQ) {
+          const promise = afPromiseP = new PromiseExternal();
+          const promise2 = afPromiseQ = new PromiseExternal();
+          await new Promise(infiniteLooper);
+          const tmp = new Promise(infiniteLooper);
+          promise.resolved = true;
+          promise.resolve(t1 = ++afix);
+          await tmp;
+          promise2.resolved = true;
+          promise2.resolve(t2 = ++afix);
+          t = t2;
+        } else if (!rP && rQ) {
+          const promise = afPromiseP = new PromiseExternal();
+          t2 = await rQ;
+          await new Promise(infiniteLooper);
+          promise.resolved = true;
+          promise.resolve(t1 = ++afix);
+          t = t1;
+        } else if (rP && !rQ) {
+          const promise = afPromiseQ = new PromiseExternal();
+          t1 = await rP;
+          await new Promise(infiniteLooper);
+          promise.resolved = true;
+          promise.resolve(t2 = ++afix);
+          t = t2;
+        }
+        return t;
+      }
       const sFunc = (propFunc) => {
         return (func, ms, ...args) => {
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
@@ -272,41 +308,7 @@ SOFTWARE.
             let lastExecution = 0;
             return propFunc(async () => {
               try {
-
-                const rP = afPromiseP && !afPromiseP.resolved ? afPromiseP : null;
-                const rQ = afPromiseQ && !afPromiseQ.resolved ? afPromiseQ : null;
-
-                let t, t1, t2;
-                if (rP && rQ) {
-                  t1 = await rP;
-                  t2 = await rQ;
-                  t = t1 > t2 ? t1 : t2;
-                }else if (!rP && !rQ) {
-                  const promise = afPromiseP = new PromiseExternal();
-                  const promise2 = afPromiseQ = new PromiseExternal();
-                  await new Promise(infiniteLooper);
-                  const tmp = new Promise(infiniteLooper);
-                  promise.resolved = true;
-                  promise.resolve(t1 = ++afix);
-                  await tmp;
-                  promise2.resolved = true;
-                  promise2.resolve(t2 = ++afix);
-                  t = t2;
-                } else if (!rP && rQ) {
-                  const promise = afPromiseP = new PromiseExternal();
-                  t2 = await rQ;
-                  await new Promise(infiniteLooper);
-                  promise.resolved = true;
-                  promise.resolve(t1 = ++afix);
-                  t = t1;
-                } else if (rP && !rQ) {
-                  const promise = afPromiseQ = new PromiseExternal();
-                  t1 = await rP;
-                  await new Promise(infiniteLooper);
-                  promise.resolved = true;
-                  promise.resolve(t2 = ++afix);
-                  t = t2;
-                }
+                const t = await eFunc();
                 if (t !== lastExecution) {
                   lastExecution = t;
                   if (afix > 1e9) afix = 9;
