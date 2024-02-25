@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.25
+// @version             2024.02.25.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -137,6 +137,20 @@ SOFTWARE.
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const PromiseExternal = ((resolve_, reject_) => {
+    const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+    return class PromiseExternal extends Promise {
+      constructor(cb = h) {
+        super(cb);
+        if (cb === h) {
+          /** @type {(value: any) => void} */
+          this.resolve = resolve_;
+          /** @type {(reason?: any) => void} */
+          this.reject = reject_;
+        }
+      }
+    };
+  })();
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -257,8 +271,14 @@ SOFTWARE.
             return propFunc(async () => {
               try {
                 const t = ++lastExecution;
-                await (afPromise || (afPromise = new Promise(infiniteLooper)));
-                afPromise = null;
+                if (afPromise) await afPromise;
+                else {
+                  const promise = afPromise = new PromiseExternal();
+                  await new Promise(infiniteLooper);
+                  await new Promise(infiniteLooper);
+                  afPromise = null;
+                  promise.resolve();
+                }
                 if (t === lastExecution) {
                   if (lastExecution > 1e9) lastExecution = 9;
                   handler();
