@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.002
+// @version             0.11.003
 // @license             MIT License
 
 // @author              CY Fung
@@ -2506,6 +2506,10 @@ SOFTWARE.
 
         for (const s of document.querySelectorAll('a[href][dxcpj]')) {
             s.removeAttribute('dxcpj');
+        }
+
+        for (const s of document.querySelectorAll('a[href][jkrgy]')) {
+            s.removeAttribute('jkrgy');
         }
 
         domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj'] });
