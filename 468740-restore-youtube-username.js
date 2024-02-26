@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.004
+// @version             0.11.005
 // @license             MIT License
 
 // @author              CY Fung
@@ -1100,16 +1100,21 @@ SOFTWARE.
 
     /**
      *
-     * @param {Function} dataChanged original dataChanged function
-     * @returns new dataChanged function
+     * @param {Element} ytElm
      */
-    const dataChangeFuncProducer = (dataChanged) => {
-        /** @this HTMLElement */
-        return function () {
-            resetWhenDataChanged(this);
-            return dataChanged.apply(this, arguments);
+    const resetWhenPropChanged = (ths) => {
+        const cnt = insp(ths);
+        const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
+        if (ytElm instanceof Element) {
+            const anchors = elementQSA(ytElm, 'a[id][href][jkrgy]');
+            // const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
+            if ((anchors || 0).length >= 1 && ((insp(ytElm).commentEntity || 0).author || 0).jkrgx !== 1) {
+                for (const anchor of anchors) {
+                    anchor.removeAttribute('jkrgy');
+                }
+            }
         }
-    };
+    }
 
     /**
      *
@@ -1614,8 +1619,10 @@ SOFTWARE.
             let isCommentViewModel = false;
             while (parentNode instanceof Node) {
                 const cnt = insp(parentNode);
-                if (cnt.is === 'ytd-comment-view-model' && cnt.commentEntity) { isCommentViewModel = true; break;}
-                if (typeof cnt.is === 'string' && typeof cnt.dataChanged === 'function') break;
+                if (typeof cnt.is === 'string') {
+                    if (cnt.commentEntity && cnt._propertiesChanged) { isCommentViewModel = true; break; } // Feb 2024: ytd-comment-view-model
+                    else if (typeof cnt.dataChanged === 'function') break;
+                }
                 parentNode = nodeParent(parentNode);
             }
             if (parentNode instanceof Node) { } else return;
@@ -1634,6 +1641,17 @@ SOFTWARE.
                         justPossible: true
                     });
                 }
+
+                if (typeof parentNodeController._propertiesChanged === 'function' && !parentNodeController._propertiesChanged159) {
+                    const cntp = parentNodeController.constructor.prototype;
+                    const c = cntp._propertiesChanged === parentNodeController._propertiesChanged ? cntp : parentNodeController;
+                    c._propertiesChanged159 = c._propertiesChanged;
+                    c._propertiesChanged = function () {
+                        resetWhenPropChanged(this);
+                        return this._propertiesChanged159.apply(this, arguments);
+                    };
+                }
+
                 const fetchResult = await getDisplayName(mt);
 
                 if (fetchResult === null) return;
@@ -1648,8 +1666,8 @@ SOFTWARE.
                 if(commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt){
                     commentEntityAuthor.displayName = titleForDisplay;
 
-                    if(commentEntity.properties){
-                        if(commentEntity.properties.authorButtonA11y === currentDisplayed){
+                    if (commentEntity.properties) {
+                        if (commentEntity.properties.authorButtonA11y === currentDisplayed) {
                             commentEntity.properties.authorButtonA11y = titleForDisplay;
                         }
 
@@ -1674,6 +1692,11 @@ SOFTWARE.
 
                     }
 
+                    if (commentEntityAuthor && parentNodeController.isAttached === true && parentNode.isConnected === true) {
+                        commentEntityAuthor.jkrgx = 1;
+                        addCSSRulesIfRequired();
+                    }
+
                     parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity );
 
                 }
@@ -1691,27 +1714,15 @@ SOFTWARE.
                         justPossible: true
                     });
                 }
-    
-                let oldDataChangedFn = parentNodeController.dataChanged;
-                if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
-                    let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
-                    if (!newDataChangedFn) {
-                        newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
-                        newDataChangedFn.jkrgx = 1;
-                        dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
-                    }
-                    parentNodeController.dataChanged = newDataChangedFn;
-                }
-    
-                oldDataChangedFn = parentNodeController.hostElement.dataChanged;
-                if (typeof oldDataChangedFn === 'function' && !oldDataChangedFn.jkrgx) {
-                    let newDataChangedFn = dataChangedFuncStore.get(oldDataChangedFn);
-                    if (!newDataChangedFn) {
-                        newDataChangedFn = dataChangeFuncProducer(oldDataChangedFn);
-                        newDataChangedFn.jkrgx = 1;
-                        dataChangedFuncStore.set(oldDataChangedFn, newDataChangedFn);
-                    }
-                    parentNodeController.hostElement.dataChanged = newDataChangedFn;
+
+                if (typeof parentNodeController.dataChanged === 'function' && !parentNodeController.dataChanged159) {
+                    const cntp = parentNodeController.constructor.prototype;
+                    const c = cntp.dataChanged === parentNodeController.dataChanged ? cntp : parentNodeController;
+                    c.dataChanged159 = c.dataChanged;
+                    c.dataChanged = function () {
+                        resetWhenDataChanged(this);
+                        return this.dataChanged159.apply(this, arguments);
+                    };
                 }
     
                 const fetchResult = await getDisplayName(mt);
@@ -2476,8 +2487,8 @@ SOFTWARE.
     };
 
 
-    let mActive = false;
-    let lastContent = '';
+    // let mActive = false;
+    // let lastContent = '';
     const removeAttrs = ()=>{
             for (const s of document.querySelectorAll('a[href][dxcpj]')) {
                 s.removeAttribute('dxcpj');
@@ -2489,14 +2500,14 @@ SOFTWARE.
 
     }
 
-    setInterval(() => {
-        if (!mActive) return;
-        let content = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
-        if (content !== lastContent) {
-            lastContent = content;
-            removeAttrs();
-        }
-    }, 400);
+    // setInterval(() => {
+    //     if (!mActive) return;
+    //     let content = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
+    //     if (content !== lastContent) {
+    //         lastContent = content;
+    //         removeAttrs();
+    //     }
+    // }, 400);
 
     /**
      *
@@ -2527,8 +2538,8 @@ SOFTWARE.
             domObserver.disconnect();
         }
 
-        lastContent = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
-        mActive = true;
+        // lastContent = (document.querySelector('ytd-comments-header-renderer #title') || 0).textContent || '';
+        // mActive = true;
         removeAttrs();
 
         domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj'] });
