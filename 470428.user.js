@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.30
+// @version     1.3.31
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -43,6 +43,8 @@
   const FLAG_STRATEGY_02 = true; // ignore player related flags
 
   const FLAG_STRATEGY_03 = true; // ignore adblock related flags
+
+  const FLAG_SKIP_CHAT_BUTTON = true;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -659,6 +661,11 @@
           const kl5 = kl % 5;
           const kl3 = kl % 3;
           const kl2 = kl % 2;
+
+          if (FLAG_SKIP_CHAT_BUTTON && kl >= 28 && kl <= 37) {
+            if (key === 'live_chat_overflow_hide_chat') continue;
+            if (key === 'web_watch_chat_hide_button_killswitch') continue;
+          }
 
           if (KEEP_unified_player && kl >= 21 && kl <= 31) {
             if (key === 'kevlar_unified_player') continue;
