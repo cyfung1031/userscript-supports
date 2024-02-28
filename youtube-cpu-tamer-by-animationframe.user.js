@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.25.5
+// @version             2024.02.28.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -300,15 +300,19 @@ SOFTWARE.
         }
         return t;
       }
+      const inExec = new Set();
       const sFunc = (propFunc) => {
         return (func, ms, ...args) => {
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
             const hasArgs = args.length > 0;
             const handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
             let lastExecution = 0;
-            return propFunc(async () => {
+            const cid = propFunc(async () => {
               try {
+                inExec.add(cid);
                 const t = await eFunc();
+                if (!inExec.has(cid)) return;
+                inExec.delete(cid);
                 if (t !== lastExecution) {
                   lastExecution = t;
                   if (afix > 1e9) afix = 9;
@@ -319,6 +323,7 @@ SOFTWARE.
                 throw e;
               }
             }, ms);
+            return cid;
           } else {
             return propFunc(func, ms, ...args);
           }
@@ -327,8 +332,19 @@ SOFTWARE.
       win.setTimeout = sFunc(setTimeout);
       win.setInterval = sFunc(setInterval);
 
-      win.clearTimeout = clearTimeout;
-      win.clearInterval = clearInterval;
+      const dFunc = (propFunc) => {
+        return (cid) => {
+          if (typeof cid === 'number') { // number cid only
+            if (inExec.has(cid)) inExec.delete(cid);
+            else return propFunc(cid);
+          } else {
+            return propFunc(...arguments);
+          }
+        };
+      }
+
+      win.clearTimeout = dFunc(clearTimeout);
+      win.clearInterval = dFunc(clearInterval);
 
       try {
         win.setTimeout.toString = setTimeout.toString.bind(setTimeout)
