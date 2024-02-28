@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.28.0
+// @version             2024.02.28.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -338,7 +338,7 @@ SOFTWARE.
             if (inExec.has(cid)) inExec.delete(cid);
             else return propFunc(cid);
           } else {
-            return propFunc(...arguments);
+            return propFunc(cid);
           }
         };
       }
