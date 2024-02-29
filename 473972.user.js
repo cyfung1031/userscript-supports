@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.4
+// @version     0.11.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -50,7 +50,7 @@
   // const FIX_onClick = true;
   const FIX_onStateChange = true;
   const FIX_onLoopRangeChange = true;
-  const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
+  // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
   const ENABLE_discreteTasking = true;
@@ -3563,91 +3563,91 @@
     // onVideoDataChange
     // onVideoProgress
 
-    (FIX_maybeUpdateFlexibleMenu || WEAK_REF_BINDING) && (async () => {
+    // (FIX_maybeUpdateFlexibleMenu || WEAK_REF_BINDING) && (async () => {
 
 
-      const dummy = await new Promise(resolve => {
+    //   const dummy = await new Promise(resolve => {
 
-        promiseForCustomYtElementsReady.then(() => {
-          customElements.whenDefined('ytd-menu-renderer').then(() => {
+    //     promiseForCustomYtElementsReady.then(() => {
+    //       customElements.whenDefined('ytd-menu-renderer').then(() => {
 
-            resolve(document.createElement('ytd-menu-renderer'));
-          });
-        });
-
-
-
-      });
-
-
-      if (!dummy || dummy.is !== 'ytd-menu-renderer') return;
-
-      const cProto = insp(dummy).constructor.prototype;
-
-      if (FIX_maybeUpdateFlexibleMenu && typeof cProto.created === 'function' && !cProto.created58) {
-        cProto.created58 = cProto.created;
-        cProto.created = function (...args) {
-          const r = this.created58(...args);
-          if (typeof this.maybeUpdateFlexibleMenu === 'function' && !this.maybeUpdateFlexibleMenu57) {
-            this.maybeUpdateFlexibleMenu57 = this.maybeUpdateFlexibleMenu;
-            this.maybeUpdateFlexibleMenu = function (...args) {
-              Promise.resolve().then(() => this.maybeUpdateFlexibleMenu57(...args));
-            }
-          }
-          return r;
-        }
-
-      }
+    //         resolve(document.createElement('ytd-menu-renderer'));
+    //       });
+    //     });
 
 
 
-      // if (WEAK_REF_BINDING && typeof cProto.setupFlexibleMenu === 'function' && !cProto.setupFlexibleMenu58) {
-      //   cProto.setupFlexibleMenu58 = cProto.setupFlexibleMenu;
-      //   cProto.setupFlexibleMenu = function () {
-
-      //     const hostElement = this.hostElement;
-      //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      //       return void 0;
-      //     } else {
-      //       return this.setupFlexibleMenu58.apply(this, arguments);
-      //     }
-
-      //   }
+    //   });
 
 
+    //   if (!dummy || dummy.is !== 'ytd-menu-renderer') return;
 
-      // }
+    //   const cProto = insp(dummy).constructor.prototype;
 
+    //   if (FIX_maybeUpdateFlexibleMenu && typeof cProto.created === 'function' && !cProto.created58) {
+    //     cProto.created58 = cProto.created;
+    //     cProto.created = function (...args) {
+    //       const r = this.created58(...args);
+    //       if (typeof this.maybeUpdateFlexibleMenu === 'function' && !this.maybeUpdateFlexibleMenu57) {
+    //         this.maybeUpdateFlexibleMenu57 = this.maybeUpdateFlexibleMenu;
+    //         this.maybeUpdateFlexibleMenu = function (...args) {
+    //           Promise.resolve().then(() => this.maybeUpdateFlexibleMenu57(...args));
+    //         }
+    //       }
+    //       return r;
+    //     }
 
-      // if (WEAK_REF_BINDING && typeof cProto.stampDomArray_ === 'function' && !cProto.stampDomArray58_) {
-      //   cProto.stampDomArray58_ = cProto.stampDomArray_;
-      //   cProto.stampDomArray_ = function (a, b, c, d, e, h) {
-
-      //     const hostElement = this.hostElement;
-      //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      //       return void 0;
-      //     } else {
-      //       return this.stampDomArray58_.apply(this, arguments);
-      //     }
-
-      //   }
+    //   }
 
 
 
-      // }
+    //   // if (WEAK_REF_BINDING && typeof cProto.setupFlexibleMenu === 'function' && !cProto.setupFlexibleMenu58) {
+    //   //   cProto.setupFlexibleMenu58 = cProto.setupFlexibleMenu;
+    //   //   cProto.setupFlexibleMenu = function () {
+
+    //   //     const hostElement = this.hostElement;
+    //   //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+    //   //       return void 0;
+    //   //     } else {
+    //   //       return this.setupFlexibleMenu58.apply(this, arguments);
+    //   //     }
+
+    //   //   }
 
 
 
+    //   // }
 
 
-      //console.log(144,cProto.maybeUpdateFlexibleMenu)
+    //   // if (WEAK_REF_BINDING && typeof cProto.stampDomArray_ === 'function' && !cProto.stampDomArray58_) {
+    //   //   cProto.stampDomArray58_ = cProto.stampDomArray_;
+    //   //   cProto.stampDomArray_ = function (a, b, c, d, e, h) {
+
+    //   //     const hostElement = this.hostElement;
+    //   //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
+    //   //       return void 0;
+    //   //     } else {
+    //   //       return this.stampDomArray58_.apply(this, arguments);
+    //   //     }
+
+    //   //   }
+
+
+
+    //   // }
 
 
 
 
 
+    //   //console.log(144,cProto.maybeUpdateFlexibleMenu)
 
-    })();
+
+
+
+
+
+    // })();
 
     (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER) && (async () => {
 
