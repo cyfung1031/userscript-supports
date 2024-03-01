@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.006
+// @version             0.11.007
 // @license             MIT License
 
 // @author              CY Fung
@@ -1331,7 +1331,7 @@ SOFTWARE.
         for (let i = 0; i < text.length;) {
             while (w1 < commandRuns.length && commandRuns[w1].startIndex < i) w1++;
             while (w2 < styleRuns.length && styleRuns[w2].startIndex < i) w2++;
-         
+
             if (j < names.length && i == names[j].startIndex) {
 
                 if (w1<commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
@@ -1519,6 +1519,8 @@ SOFTWARE.
 
     const domCheckAsync = isMobile ? async (anchor, anchorHref, mt) => {
 
+        let sHandleName = null;
+        let sNodeValue = null;
         try {
             if (!anchorHref || !mt) return;
             let parentNode = nodeParent(anchor);
@@ -1532,79 +1534,100 @@ SOFTWARE.
             const airaLabel = anchor.getAttribute('aria-label');
 
             const kHrefValue = anchor.getAttribute('href'); // guess (Feb 2024)
+
+            const cnt = insp(parentNode);
+            const parentNodeData = cnt._commentData || cnt.data;
+            const runs = ((parentNodeData || 0).authorText || 0).runs;
+
             if (displayTextDOM && (airaLabel || (kHrefValue.startsWith('/@') && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(kHrefValue)))) {
 
                 const kHrefHandle = kHrefValue.substring(1); // guess (Feb 2024)
                 const kHandlerText = airaLabel ? airaLabel.trim() : kHrefHandle; // guess
                 const kNodeText = airaLabel ? airaLabel : kHrefHandle;
 
-                const parentNodeData = insp(parentNode).data;
-                const runs = ((parentNodeData || 0).authorText || 0).runs;
-
                 if (displayTextDOM.textContent.trim() === kHandlerText && isDisplayAsHandle(kNodeText) && runs && (runs[0] || 0).text === kNodeText) {
 
-                    if (!channelIdToHandle.has(mt)) {
-                        channelIdToHandle.set(mt, {
-                            handleText: kHandlerText,
-                            justPossible: true
-                        });
-                    }
-
-                    const fetchResult = await getDisplayName(mt);
-
-                    if (fetchResult === null) return;
-
-                    const { title, langTitle, externalId } = fetchResult;
-                    const titleForDisplay = langTitle || title;
-                    if (externalId !== mt) return; // channel id must be the same
-
-                    // anchor href might be changed by external
-                    if (!anchorIntegrityCheck(anchor, anchorHref)) return;
-
-                    if (displayTextDOM.isConnected !== true) return; // already removed
-
-                    let found = false;
-
-                    findTextNodes(displayTextDOM, (textnode) => {
-                        if (textnode.nodeValue === kNodeText) {
-                            textnode.nodeValue = titleForDisplay;
-                            found = true;
-                            return true;
-                        }
-                    });
-
-                    if (!found) return;
-                    if (airaLabel) anchor.setAttribute('aria-label', titleForDisplay);
-                    runs[0].text = titleForDisplay;
-
-                    if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
-                        const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
-                        const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
-                        const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
-                        const tc = spanText ? spanText.textContent : '';
-                        updatePinnedCommentBadge(parentNodeData, title, langTitle);
-                        if (tc && tc === spanText.textContent) {
-                            let idx = tc.indexOf(title);
-                            if (idx >= 0) {
-                                spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
-                            }
-                        }
-                    }
-
-                    const contentTexts = (parentNodeData.contentText || 0).runs;
-                    if (contentTexts && contentTexts.length >= 2) {
-                        for (let aidx = 0; aidx < contentTexts.length; aidx++) {
-                            const contentText = contentTexts[aidx] || 0;
-                            if (contentText.italics !== true) {
-                                let isHandle = isDisplayAsHandle(contentText.text);
-                                if (isHandle) {
-                                    mobileContentHandleAsync(parentNode, contentTexts, aidx);
-                                }
-                            }
-                        }
-                    }
+                    sHandleName = kHandlerText;
+                    sNodeValue = kNodeText;
 
                 }
+
+            } else if (displayTextDOM && kHrefValue.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(kHrefValue)) {
+
+                const handleName = runs.length === 1 ? runs[0].text : null;
+
+                if (typeof handleName === 'string' && displayTextDOM.textContent.trim() === handleName) {
+
+                    sHandleName = handleName;
+                    sNodeValue = handleName;
+
+                }
+
+            }
+
+            if (typeof sHandleName === 'string' && typeof sNodeValue === 'string' && runs && runs.length === 1) {
+
+                if (!channelIdToHandle.has(mt)) {
+                    channelIdToHandle.set(mt, {
+                        handleText: sHandleName,
+                        justPossible: true
+                    });
+                }
+
+                const fetchResult = await getDisplayName(mt);
+
+                if (fetchResult === null) return;
+
+                const { title, langTitle, externalId } = fetchResult;
+                const titleForDisplay = langTitle || title;
+                if (externalId !== mt) return; // channel id must be the same
+
+                // anchor href might be changed by external
+                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+
+                if (displayTextDOM.isConnected !== true) return; // already removed
+
+                let found = false;
+
+                findTextNodes(displayTextDOM, (textnode) => {
+                    if (textnode.nodeValue === sNodeValue) {
+                        textnode.nodeValue = titleForDisplay;
+                        found = true;
+                        return true;
+                    }
+                });
+
+                if (!found) return;
+                if (airaLabel) anchor.setAttribute('aria-label', titleForDisplay);
+                runs[0].text = titleForDisplay;
+
+                if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
+                    const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
+                    const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
+                    const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
+                    const tc = spanText ? spanText.textContent : '';
+                    updatePinnedCommentBadge(parentNodeData, title, langTitle);
+                    if (tc && tc === spanText.textContent) {
+                        let idx = tc.indexOf(title);
+                        if (idx >= 0) {
+                            spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
+                        }
+                    }
+                }
+
+                const contentTexts = (parentNodeData.contentText || 0).runs;
+                if (contentTexts && contentTexts.length >= 2) {
+                    for (let aidx = 0; aidx < contentTexts.length; aidx++) {
+                        const contentText = contentTexts[aidx] || 0;
+                        if (contentText.italics !== true) {
+                            let isHandle = isDisplayAsHandle(contentText.text);
+                            if (isHandle) {
+                                mobileContentHandleAsync(parentNode, contentTexts, aidx);
+                            }
+                        }
+                    }
+                }
+
             }
 
         } catch (e) {
@@ -1662,7 +1685,7 @@ SOFTWARE.
 
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, anchorHref)) return;
- 
+
                 if(commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt){
                     commentEntityAuthor.displayName = titleForDisplay;
 
@@ -1707,7 +1730,7 @@ SOFTWARE.
                 const currentDisplayed = (authorText || 0).simpleText;
                 if (typeof currentDisplayed !== 'string') return;
                 if (!isDisplayAsHandle(currentDisplayed)) return;
-    
+
                 if (!channelIdToHandle.has(mt)) {
                     channelIdToHandle.set(mt, {
                         handleText: currentDisplayed.trim(),
@@ -1724,28 +1747,28 @@ SOFTWARE.
                         return this.dataChanged159.apply(this, arguments);
                     };
                 }
-    
+
                 const fetchResult = await getDisplayName(mt);
-    
+
                 if (fetchResult === null) return;
-    
+
                 const { title, langTitle, externalId } = fetchResult;
                 const titleForDisplay = langTitle || title;
                 if (externalId !== mt) return; // channel id must be the same
-    
+
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, anchorHref)) return;
-    
+
                 const parentNodeData = parentNodeController.data;
                 const funcPromises = [];
-    
+
                 if (parentNodeController.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
-    
+
                     if (authorText.simpleText !== currentDisplayed) return;
                     const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
                     const cSimpleText = ((parentNodeData.authorText || 0).simpleText || '');
                     if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
-    
+
                         // the inside hyperlinks will be only converted if its parent author name is handle
                         const contentTexts = (parentNodeData.contentText || 0).runs;
                         if (contentTexts && contentTexts.length >= 1) {
@@ -1754,7 +1777,7 @@ SOFTWARE.
                                 if (r instanceof Promise) funcPromises.push(r);
                             }
                         }
-    
+
                         const md = Object.assign({}, parentNodeData);
                         let setBadge = false;
                         if (((((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0).simpleText || '').trim() === cSimpleText.trim()) {
@@ -1766,9 +1789,9 @@ SOFTWARE.
                             md.authorCommentBadge = Object.assign({}, md.authorCommentBadge);
                             md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
                             md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
-    
+
                         }
-    
+
                         let setReplyEditableText = false;
                         if (((((((((parentNodeData.actionButtons || 0).commentActionButtonsRenderer || 0).replyButton || 0).buttonRenderer || 0).navigationEndpoint || 0).createCommentReplyDialogEndpoint || 0).dialog || 0).commentReplyDialogRenderer || 0).editableText) {
                             setReplyEditableText = true;
@@ -1784,29 +1807,29 @@ SOFTWARE.
                                 }
                             }
                         }
-    
+
                         if (UPDATE_PIN_NAME) {
                             updatePinnedCommentBadge(md, title, langTitle);
                         }
-    
+
                         if (funcPromises.length >= 1) {
                             let funcs = await Promise.all(funcPromises);
-    
+
                             for (const func of funcs) {
                                 if (typeof func === 'function') {
                                     func(md);
                                 }
                             }
                         }
-    
+
                         if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
                             parentNodeController.data = Object.assign({}, md, { jkrgx: 1 });
                             addCSSRulesIfRequired();
                         }
-    
-    
+
+
                     }
-    
+
                 }
             }
         } catch (e) {
@@ -2194,76 +2217,85 @@ SOFTWARE.
         }
     };
 
-    let domCheckScheduled01 = false;
-    let domCheckScheduled02 = false;
-    const domCheckSelector01 = isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])'; // old
-    const domCheckSelector02 = isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])'; // Feb 2024
+    const domCheckScheduledBools = [];
+    const domCheckScheduledSelectors = [
+        (isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])'), // old; Before Feb 2024
+        (isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])'), // Feb 2024
+        (isMobile ? 'a.comment-icon-container[href*="channel/"]:not([jkrgy])' : '') // Mar 2024
+    ];
 
-    const domAuthorNameCheck01 = async () => {
-        // Before Feb 2024
+    const doForNewAnchors = async (newAnchors)=>{
 
-        if (domCheckScheduled01) return;
-        if (document.querySelector(domCheckSelector01) === null) {
-            return;
+        const cNewAnchorFirst = newAnchors[0]; // non-null
+        const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
+        /** @type {HTMLElement | null} */
+        const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
+        lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
+
+        if (!firstDOMCheck) {
+            firstDOMCheck = true;
+            USE_CHANNEL_META && firstDOMChecker();
         }
-        domCheckScheduled01 = true;
 
-        await pipelineForDOMMutations(async () => {
+        await Promise.resolve();
 
-            domCheckScheduled01 = false;
-            try {
+        if (lastNewAnchorLast && mutex.nextIndex >= 1) {
+            if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
+                mutex.nextIndex = 0;
+            }
+        }
 
-                const newAnchors = document.querySelectorAll(domCheckSelector01);
-                if (newAnchors.length === 0) {
-                    return;
-                }
+        await Promise.resolve();
 
-                const cNewAnchorFirst = newAnchors[0]; // non-null
-                const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
-                /** @type {HTMLElement | null} */
-                const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-                lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
-
-                if (!firstDOMCheck) {
-                    firstDOMCheck = true;
-                    USE_CHANNEL_META && firstDOMChecker();
-                }
-
-                await Promise.resolve();
-
-                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
-                    if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                        mutex.nextIndex = 0;
+        // newAnchorAdded = true;
+        for (const anchor of newAnchors) {
+            const href = anchor.getAttribute('href');
+            let channelId = '';
+            const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
+            if (ytElm) {
+                const cnt = insp(ytElm);
+                const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
+                const isBrowseDataMatch = browseId && canonicalBaseUrl === href;
+                if (isBrowseDataMatch && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+                    if (href === `/channel/${browseId}`) {
+                        if (isMobile && (((ytElm._commentData || 0).authorText || 0).runs || 0).length === 1) { // mobile only
+                            const handle = ytElm._commentData.authorText.runs[0].text;
+                            if (typeof handle === 'string' && /^@[-_a-zA-Z0-9.]{3,30}$/.test(handle)) {
+                                channelIdToHandle.set(browseId, {
+                                    handleText: `${handle}`
+                                });
+                                channelId = browseId;
+                            }
+                        }
                     }
+                } else if (isBrowseDataMatch && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+                    const handle = href.substring(2);
+                    channelIdToHandle.set(browseId, {
+                        handleText: `@${handle}`
+                    });
+                    channelId = browseId;
                 }
 
-                await Promise.resolve();
+                if (!channelId && href) { // for old version; & web
 
-                // newAnchorAdded = true;
-                for (const anchor of newAnchors) {
                     // author-text or name
                     // normal url: /channel/xxxxxxx
                     // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
-                    const href = anchor.getAttribute('href');
-                    const channelId = obtainChannelId(href); // string, can be empty
-                    if (channelId) {
-                        anchor.setAttribute('jkrgy', channelId);
-                        // intersectionobserver.unobserve(anchor);
-                        // intersectionobserver.observe(anchor); // force first occurance
-                        domCheckAsync(anchor, href, channelId);
-                    } else {
-                        anchor.setAttribute('jkrgy', '');
+
+                    const temp = obtainChannelId(href); // string, can be empty
+                    if (temp) {
+                        channelId = temp;
                     }
+
                 }
-
-            } catch (e) {
-                console.log('error occur', e);
             }
+            anchor.setAttribute('jkrgy', channelId);
+            if (channelId) {
+                domCheckAsync(anchor, href, channelId);
+            }
+        }
 
-        });
-        domCheckScheduled01 = false;
-
-    };
+    }
 
     const closestYtParent = (dom) => {
         while (dom instanceof Element) {
@@ -2304,74 +2336,34 @@ SOFTWARE.
         }
         return null;
     };
-    const domAuthorNameCheck02 = async () => {
-        // Feb 2024
 
-        if (domCheckScheduled02) return;
-        if (document.querySelector(domCheckSelector02) === null) {
+    const domAuthorNameCheckN = async (kq) => {
+
+        if (domCheckScheduledBools[kq]) return;
+        const selector = domCheckScheduledSelectors[kq];
+        if (!selector || document.querySelector(selector) === null) {
             return;
         }
-        domCheckScheduled02 = true;
+        domCheckScheduledBools[kq] = true;
 
         await pipelineForDOMMutations(async () => {
 
-            domCheckScheduled02 = false;
+            domCheckScheduledBools[kq] = false;
             try {
 
-                const newAnchors = document.querySelectorAll(domCheckSelector02);
+                const newAnchors = document.querySelectorAll(selector);
                 if (newAnchors.length === 0) {
                     return;
                 }
 
-                const cNewAnchorFirst = newAnchors[0]; // non-null
-                const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
-                /** @type {HTMLElement | null} */
-                const lastNewAnchorLast = kRef(lastNewAnchorLastWR); // HTMLElement | null
-                lastNewAnchorLastWR = mWeakRef(cNewAnchorLast);
-
-                if (!firstDOMCheck) {
-                    firstDOMCheck = true;
-                    USE_CHANNEL_META && firstDOMChecker();
-                }
-
-                await Promise.resolve();
-
-                if (lastNewAnchorLast && mutex.nextIndex >= 1) {
-                    if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
-                        mutex.nextIndex = 0;
-                    }
-                }
-
-                await Promise.resolve();
-
-                // newAnchorAdded = true;
-                for (const anchor of newAnchors) {
-                    const href = anchor.getAttribute('href');
-                    let channelId = '';
-                    const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
-                    if (ytElm) {
-                        const cnt = insp(ytElm);
-                        const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
-                        if (browseId && canonicalBaseUrl === href && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
-                            const handle = href.substring(2);
-                            channelIdToHandle.set(browseId, {
-                                handleText: `@${handle}`
-                            });
-                            channelId = browseId;
-                        }
-                    }
-                    anchor.setAttribute('jkrgy', channelId);
-                    if (channelId) {
-                        domCheckAsync(anchor, href, channelId);
-                    }
-                }
+                await doForNewAnchors(newAnchors);
 
             } catch (e) {
                 console.log('error occur', e);
             }
 
         });
-        domCheckScheduled02 = false;
+        domCheckScheduledBools[kq] = false;
 
     };
 
@@ -2448,8 +2440,9 @@ SOFTWARE.
 
         doShortsChecking && domCheckerForShorts();
         doDescriptionChecking && domCheckerForDescription();
-        domAuthorNameCheck01();
-        domAuthorNameCheck02();
+        domAuthorNameCheckN(0);
+        domAuthorNameCheckN(1);
+        domAuthorNameCheckN(2);
 
     };
 
