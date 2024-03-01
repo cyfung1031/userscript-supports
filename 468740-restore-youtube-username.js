@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.007
+// @version             0.11.010
 // @license             MIT License
 
 // @author              CY Fung
@@ -1325,7 +1325,7 @@ SOFTWARE.
             offset += o.nText.length - o.oldText.length;
         }
 
-        let w1 =0, w2=0;
+        let w1 = 0, w2 = 0;
         let s = [];
         let j = 0;
         for (let i = 0; i < text.length;) {
@@ -1334,7 +1334,7 @@ SOFTWARE.
 
             if (j < names.length && i == names[j].startIndex) {
 
-                if (w1<commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
+                if (w1 < commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
                     const run = commandRuns[w1];
                     const o = names[j];
                     if (run.length === o.endIndex - o.startIndex) {
@@ -1344,7 +1344,7 @@ SOFTWARE.
                     w1++;
                 }
 
-                if (w2<styleRuns.length &&styleRuns[w2].startIndex === names[j].startIndex) {
+                if (w2 < styleRuns.length && styleRuns[w2].startIndex === names[j].startIndex) {
                     const run = styleRuns[w2];
                     const o = names[j];
                     if (run.length === o.endIndex - o.startIndex) {
@@ -1517,6 +1517,56 @@ SOFTWARE.
         return displayTextDOM;
     }
 
+    const ytPathnameExtract = (href) => {
+
+        if (!href || typeof href !== 'string') return '';
+        let i = 0;
+        if (href.startsWith('/')) {
+
+        } else if ((i = href.indexOf('youtube.com/')) >= 0) {
+            href = href.substring(i + 11);
+        } else {
+            return '';
+        }
+        return href;
+
+    }
+
+    const getHrefType = (href) => {
+        if (href.length === 33 && href.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href)) {
+            return 1;
+        } else if (href.length >= 5 && href.length <= 32 && href.startsWith('/@') && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href)) {
+            return 2;
+        }
+        return 0;
+    }
+
+    const getYTextType = (text) => {
+        if (typeof text === 'string') return 1;
+        if (typeof text === 'object' && text) {
+            if ('simpleText' in text) return 2;
+            if ('runs' in text) {
+                const runs = text.runs;
+                let r;
+                return runs.length === 1 ? (typeof (r = runs[0]) === 'string' ? 3 : typeof r.text === 'string' ? 4 : null) : null;
+            }
+        }
+        return null;
+    }
+
+    const getYTextContent = (text) => {
+        if (typeof text === 'string') return text;
+        if (typeof text === 'object' && text) {
+            if ('simpleText' in text) return text.simpleText;
+            if ('runs' in text) {
+                const runs = text.runs;
+                let r;
+                return runs.length === 1 ? (typeof (r = runs[0]) === 'string' ? r : typeof r.text === 'string' ? r.text : null) : null;
+            }
+        }
+        return null;
+    }
+
     const domCheckAsync = isMobile ? async (anchor, anchorHref, mt) => {
 
         let sHandleName = null;
@@ -1530,39 +1580,27 @@ SOFTWARE.
             }
             if (parentNode instanceof Node) { } else return;
 
-            const displayTextDOM = getDisplayTextDOMForCommentRenderer(parentNode);
-            const airaLabel = anchor.getAttribute('aria-label');
-
-            const kHrefValue = anchor.getAttribute('href'); // guess (Feb 2024)
+            const commentRendererAuthorTextDOM = getDisplayTextDOMForCommentRenderer(parentNode);
+            const anchorAiraLabel = anchor.getAttribute('aria-label');
+            const anchorHrefValue = ytPathnameExtract(anchor.getAttribute('href')); // guess (Feb 2024)
 
             const cnt = insp(parentNode);
             const parentNodeData = cnt._commentData || cnt.data;
             const runs = ((parentNodeData || 0).authorText || 0).runs;
 
-            if (displayTextDOM && (airaLabel || (kHrefValue.startsWith('/@') && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(kHrefValue)))) {
+            let tHandleName = null;
 
-                const kHrefHandle = kHrefValue.substring(1); // guess (Feb 2024)
-                const kHandlerText = airaLabel ? airaLabel.trim() : kHrefHandle; // guess
-                const kNodeText = airaLabel ? airaLabel : kHrefHandle;
-
-                if (displayTextDOM.textContent.trim() === kHandlerText && isDisplayAsHandle(kNodeText) && runs && (runs[0] || 0).text === kNodeText) {
-
-                    sHandleName = kHandlerText;
-                    sNodeValue = kNodeText;
-
+            if (commentRendererAuthorTextDOM && runs) {
+                const hType = getHrefType(anchorHrefValue);
+                if (hType === 2) {
+                    tHandleName = anchorHrefValue.substring(1); // guess
+                } else if (hType === 1) {
+                    tHandleName = runs.length === 1 ? runs[0].text : null;
                 }
-
-            } else if (displayTextDOM && kHrefValue.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(kHrefValue)) {
-
-                const handleName = runs.length === 1 ? runs[0].text : null;
-
-                if (typeof handleName === 'string' && displayTextDOM.textContent.trim() === handleName) {
-
-                    sHandleName = handleName;
-                    sNodeValue = handleName;
-
+                if (typeof tHandleName === 'string' && commentRendererAuthorTextDOM.textContent.trim() === tHandleName && isDisplayAsHandle(tHandleName) && (runs[0] || 0).text === tHandleName) {
+                    sHandleName = tHandleName;
+                    sNodeValue = tHandleName;
                 }
-
             }
 
             if (typeof sHandleName === 'string' && typeof sNodeValue === 'string' && runs && runs.length === 1) {
@@ -1585,11 +1623,11 @@ SOFTWARE.
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, anchorHref)) return;
 
-                if (displayTextDOM.isConnected !== true) return; // already removed
+                if (commentRendererAuthorTextDOM.isConnected !== true) return; // already removed
 
                 let found = false;
 
-                findTextNodes(displayTextDOM, (textnode) => {
+                findTextNodes(commentRendererAuthorTextDOM, (textnode) => {
                     if (textnode.nodeValue === sNodeValue) {
                         textnode.nodeValue = titleForDisplay;
                         found = true;
@@ -1598,7 +1636,7 @@ SOFTWARE.
                 });
 
                 if (!found) return;
-                if (airaLabel) anchor.setAttribute('aria-label', titleForDisplay);
+                if (anchorAiraLabel && anchorAiraLabel.trim() === sHandleName) anchor.setAttribute('aria-label', anchorAiraLabel.replace(sHandleName, titleForDisplay));
                 runs[0].text = titleForDisplay;
 
                 if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
@@ -1607,11 +1645,9 @@ SOFTWARE.
                     const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
                     const tc = spanText ? spanText.textContent : '';
                     updatePinnedCommentBadge(parentNodeData, title, langTitle);
-                    if (tc && tc === spanText.textContent) {
-                        let idx = tc.indexOf(title);
-                        if (idx >= 0) {
-                            spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
-                        }
+                    let idx;
+                    if (tc && tc === spanText.textContent && (idx = tc.indexOf(title)) >= 0) {
+                        spanText.textContent = tc.substring(0, idx) + langTitle + tc.substring(idx + title.length);
                     }
                 }
 
@@ -1619,11 +1655,8 @@ SOFTWARE.
                 if (contentTexts && contentTexts.length >= 2) {
                     for (let aidx = 0; aidx < contentTexts.length; aidx++) {
                         const contentText = contentTexts[aidx] || 0;
-                        if (contentText.italics !== true) {
-                            let isHandle = isDisplayAsHandle(contentText.text);
-                            if (isHandle) {
-                                mobileContentHandleAsync(parentNode, contentTexts, aidx);
-                            }
+                        if (contentText.italics !== true && isDisplayAsHandle(contentText.text)) {
+                            mobileContentHandleAsync(parentNode, contentTexts, aidx);
                         }
                     }
                 }
@@ -1653,9 +1686,9 @@ SOFTWARE.
 
             if (isCommentViewModel) {
 
-                const commentEntity = parentNodeController.commentEntity;
-                const commentEntityAuthor = commentEntity.author;
-                const currentDisplayed = commentEntityAuthor.displayName;
+                const commentEntity = parentNodeController.commentEntity || 0;
+                const commentEntityAuthor = commentEntity.author || 0;
+                const currentDisplayed = commentEntityAuthor.displayName || 0;
                 if (typeof currentDisplayed !== 'string') return;
                 if (!isDisplayAsHandle(currentDisplayed)) return;
                 if (!channelIdToHandle.has(mt)) {
@@ -1686,7 +1719,7 @@ SOFTWARE.
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, anchorHref)) return;
 
-                if(commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt){
+                if (commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt) {
                     commentEntityAuthor.displayName = titleForDisplay;
 
                     if (commentEntity.properties) {
@@ -1720,13 +1753,17 @@ SOFTWARE.
                         addCSSRulesIfRequired();
                     }
 
-                    parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity );
+                    parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity);
 
                 }
 
             } else {
 
                 const authorText = (parentNodeController.data || 0).authorText;
+                if (getYTextType(authorText) !== 2) {
+                    console.log('text type mismatched 001');
+                    return;
+                }
                 const currentDisplayed = (authorText || 0).simpleText;
                 if (typeof currentDisplayed !== 'string') return;
                 if (!isDisplayAsHandle(currentDisplayed)) return;
@@ -1870,8 +1907,10 @@ SOFTWARE.
 
         if (pDom instanceof HTMLElement) {
             const pDomController = insp(pDom);
-            const runs = (((pDomController.data || 0).channelTitleText || 0).runs || 0);
-            if (runs.length === 1) {
+            const channelTitleText = (pDomController.data || 0).channelTitleText || 0;
+            const runs = ((channelTitleText || 0).runs || 0);
+            const channelTitleTextType = getYTextType(channelTitleText);
+            if (channelTitleTextType === 4) {
                 const browserEndpoint = (((runs[0] || 0).navigationEndpoint || 0).browseEndpoint || 0);
                 browseId = (browserEndpoint.browseId || '');
                 const currentDisplayText = runs[0].text || ''
@@ -1896,14 +1935,16 @@ SOFTWARE.
                         const titleForDisplay = langTitle || title;
                         if (externalId !== browseId) return; // channel id must be the same
 
-                        let hDom = pDom;
+                        const hDom = pDom;
                         const hDomHostElement = hDom.hostElement || hDom;
                         const hDomController = insp(hDom);
-                        let hData = (hDomController || 0).data || 0;
-                        const runs = (((hData || 0).channelTitleText || 0).runs || 0);
-                        if (runs && runs.length === 1 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
+                        const hData = (hDomController || 0).data || 0;
+                        const hChannelTitleText = (hData || 0).channelTitleText || 0;
+                        const hChannelTitleTextType = getYTextType(hChannelTitleText);
+                        const runs = ((hChannelTitleText).runs || 0);
+                        if (hChannelTitleTextType === 4 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
 
-                            let runs2 = [Object.assign({}, runs[0], { text: titleForDisplay })];
+                            const runs2 = [Object.assign({}, runs[0], { text: titleForDisplay })];
 
                             /*
                                 runs.push({text: title, bold: true, "fontColor": "black",
@@ -2218,13 +2259,16 @@ SOFTWARE.
     };
 
     const domCheckScheduledBools = [];
-    const domCheckScheduledSelectors = [
-        (isMobile ? 'a[aria-label^="@"][href*="channel/"]:not([jkrgy])' : 'a[id][href*="channel/"]:not([jkrgy])'), // old; Before Feb 2024
-        (isMobile ? 'a.comment-icon-container[href*="/@"]:not([jkrgy])' : 'a[id].yt-simple-endpoint.style-scope[href^="/@"]:not([jkrgy])'), // Feb 2024
-        (isMobile ? 'a.comment-icon-container[href*="channel/"]:not([jkrgy])' : '') // Mar 2024
+    const domCheckScheduledSelectors = isMobile ? [
+        'a[aria-label^="@"][href*="channel/"]:not([jkrgy])', // old; Before Feb 2024
+        'a.comment-icon-container[href*="/@"]:not([jkrgy])', // Feb 2024
+        'a.comment-icon-container[href*="channel/"]:not([jkrgy])' // Mar 2024
+    ] : [
+        'a[id][href*="channel/"]:not([jkrgy])', // old; Before Feb 2024
+        'a.yt-simple-endpoint.style-scope[id][href^="/@"]:not([jkrgy])' // Feb 2024
     ];
 
-    const doForNewAnchors = async (newAnchors)=>{
+    const newAuthorAnchorsProceed = async (newAnchors) => {
 
         const cNewAnchorFirst = newAnchors[0]; // non-null
         const cNewAnchorLast = newAnchors[newAnchors.length - 1]; // non-null
@@ -2243,40 +2287,50 @@ SOFTWARE.
             if ((lastNewAnchorLast.compareDocumentPosition(cNewAnchorFirst) & 2) === 2) {
                 mutex.nextIndex = 0;
             }
+            await Promise.resolve();
         }
-
-        await Promise.resolve();
 
         // newAnchorAdded = true;
         for (const anchor of newAnchors) {
-            const href = anchor.getAttribute('href');
+            const href = ytPathnameExtract(anchor.getAttribute('href'));
             let channelId = '';
             const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
             if (ytElm) {
                 const cnt = insp(ytElm);
                 const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
-                const isBrowseDataMatch = browseId && canonicalBaseUrl === href;
-                if (isBrowseDataMatch && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
-                    if (href === `/channel/${browseId}`) {
-                        if (isMobile && (((ytElm._commentData || 0).authorText || 0).runs || 0).length === 1) { // mobile only
-                            const handle = ytElm._commentData.authorText.runs[0].text;
-                            if (typeof handle === 'string' && /^@[-_a-zA-Z0-9.]{3,30}$/.test(handle)) {
-                                channelIdToHandle.set(browseId, {
-                                    handleText: `${handle}`
-                                });
-                                channelId = browseId;
+
+                if (browseId && canonicalBaseUrl === href && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+
+                    const hrefType = getHrefType(href);
+                    if (hrefType === 1) {
+                        if (href === `/channel/${browseId}`) {
+                            let authorText = null;
+                            if (isMobile) { // mobile only
+                                authorText = (cnt._commentData || cnt.data || ytElm._commentData || ytElm.data || 0).authorText || 0;
+                            } else if (!isMobile) {
+                                authorText = (cnt.data || 0).authorText || 0;
                             }
+                            if (authorText) {
+                                const text = getYTextContent(authorText);
+                                if (typeof text === 'string' && text.startsWith('@') && /^@[-_a-zA-Z0-9.]{3,30}$/.test(text)) {
+                                    channelIdToHandle.set(browseId, {
+                                        handleText: `${text}`
+                                    });
+                                }
+                            }
+                            channelId = browseId;
                         }
+                    } else if (hrefType === 2) {
+                        const handle = href.substring(2);
+                        channelIdToHandle.set(browseId, {
+                            handleText: `@${handle}`
+                        });
+                        channelId = browseId;
                     }
-                } else if (isBrowseDataMatch && /^\/@[-_a-zA-Z0-9.]{3,30}$/.test(href) && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
-                    const handle = href.substring(2);
-                    channelIdToHandle.set(browseId, {
-                        handleText: `@${handle}`
-                    });
-                    channelId = browseId;
+
                 }
 
-                if (!channelId && href) { // for old version; & web
+                if (!channelId && href) { // fallback
 
                     // author-text or name
                     // normal url: /channel/xxxxxxx
@@ -2306,21 +2360,26 @@ SOFTWARE.
     };
     const closestYtmData = (dom) => {
         while (dom instanceof Element) {
-            if (typeof (dom.data || 0) === 'object') return dom;
+            if (typeof (dom._commentData || dom.data || 0) === 'object') return dom;
             dom = dom.parentNode;
         }
         return null;
     };
     const getAuthorBrowseEndpoint = (cnt) => {
         let d;
+        cnt = cnt || 0;
         if (isMobile) {
             const data = ((cnt || 0).data || 0);
             if (data) {
                 if (d = data.authorEndpoint) return d.browseEndpoint || null;
                 if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
                     return null; // skip console logging
+                } else if (cnt.is === 'ytd-thumbnail') {
+                    return null;
+                } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
+                    return null;
                 }
-                console.log('no browseEndpoint can be found');
+                console.log('no browseEndpoint can be found', cnt.is);
             }
         } else {
             const __data = ((cnt || 0).__data || 0);
@@ -2330,41 +2389,33 @@ SOFTWARE.
                 if (d = (__data.data || 0).authorEndpoint) return d.browseEndpoint || null; // ytd-author-comment-badge-renderer
                 if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
                     return null; // skip console logging
+                } else if (cnt.is === 'ytd-thumbnail') {
+                    return null;
+                } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
+                    return null;
                 }
-                console.log('no browseEndpoint can be found');
+                console.log('no browseEndpoint can be found', cnt.is);
             }
         }
         return null;
     };
 
     const domAuthorNameCheckN = async (kq) => {
-
         if (domCheckScheduledBools[kq]) return;
         const selector = domCheckScheduledSelectors[kq];
-        if (!selector || document.querySelector(selector) === null) {
-            return;
-        }
+        if (!selector || document.querySelector(selector) === null) return;
         domCheckScheduledBools[kq] = true;
-
         await pipelineForDOMMutations(async () => {
-
             domCheckScheduledBools[kq] = false;
             try {
-
                 const newAnchors = document.querySelectorAll(selector);
-                if (newAnchors.length === 0) {
-                    return;
-                }
-
-                await doForNewAnchors(newAnchors);
-
+                if (newAnchors.length === 0) return;
+                await newAuthorAnchorsProceed(newAnchors);
             } catch (e) {
                 console.log('error occur', e);
             }
-
         });
         domCheckScheduledBools[kq] = false;
-
     };
 
     let _lastAnchorCount = -1;
@@ -2440,9 +2491,7 @@ SOFTWARE.
 
         doShortsChecking && domCheckerForShorts();
         doDescriptionChecking && domCheckerForDescription();
-        domAuthorNameCheckN(0);
-        domAuthorNameCheckN(1);
-        domAuthorNameCheckN(2);
+        for (let i = 0; i < domCheckScheduledSelectors.length; i++) domAuthorNameCheckN(i);
 
     };
 
@@ -2488,15 +2537,13 @@ SOFTWARE.
 
     // let mActive = false;
     // let lastContent = '';
-    const removeAttrs = ()=>{
-            for (const s of document.querySelectorAll('a[href][dxcpj]')) {
-                s.removeAttribute('dxcpj');
-            }
-
-            for (const s of document.querySelectorAll('a[href][jkrgy]')) {
-                s.removeAttribute('jkrgy');
-            }
-
+    const removeAttrs = () => {
+        for (const s of document.querySelectorAll('a[href][dxcpj]')) {
+            s.removeAttribute('dxcpj');
+        }
+        for (const s of document.querySelectorAll('a[href][jkrgy]')) {
+            s.removeAttribute('jkrgy');
+        }
     }
 
     // setInterval(() => {
