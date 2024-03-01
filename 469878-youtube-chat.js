@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.0
+// @version             0.61.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -180,6 +180,8 @@
   const fixChildrenIssue801 = true; // if __children801__ is set [fix polymer controller method extration for `.set()`]
 
   const SUPPRESS_refreshOffsetContainerHeight_ = true; // added in FEB 2024; true for default layout options
+
+  const NO_FILTER_DROPDOWN_BORDER = true; // added in 2024.03.02
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -635,7 +637,13 @@
     [menu-visible] #menu {
       --sfc47-text-select: inherit;
     }
-  `
+  `;
+
+  const cssText14_NO_FILTER_DROPDOWN_BORDER = NO_FILTER_DROPDOWN_BORDER ? `
+  yt-live-chat-header-renderer.yt-live-chat-renderer #label.yt-dropdown-menu::before {
+    border:0;
+  }
+  ` : '';
 
 
   const addCss = () => `
@@ -881,6 +889,8 @@
     ${cssText12_nowrap_tooltip}
 
     ${cssText13_no_text_select_when_menu_visible}
+
+    ${cssText14_NO_FILTER_DROPDOWN_BORDER}
 
   `;
 
