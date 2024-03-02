@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.010
+// @version             0.11.011
 // @license             MIT License
 
 // @author              CY Fung
@@ -1119,16 +1119,16 @@ SOFTWARE.
     /**
      *
      * @param {HTMLAnchorElement} anchor Example: https\:\/\/www\.youtube\.com/channel/UCRmLncxsQFcOOC8OhzUIfxQ/videos
-     * @param {string} anchorHref Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ (old)   2024 Feb -> /@user-abc1234
+     * @param {string} hrefAttribute Example: /channel/UCRmLncxsQFcOOC8OhzUIfxQ (old)   2024 Feb -> /@user-abc1234
      * @param {string} channelId Example: UCRmLncxsQFcOOC8OhzUIfxQ
      * @returns
      */
-    const anchorIntegrityCheck = (anchor, anchorHref) => {
+    const anchorIntegrityCheck = (anchor, hrefAttribute) => {
 
         let currentHref = anchor.getAttribute('href');
-        if (currentHref === anchorHref) return true; // /channel/UCRmLncxsQFcOOC8OhzUIfxQ // /channel/UCRmLncxsQFcOOC8OhzUIfxQ
+        if (currentHref === hrefAttribute) return true; // /channel/UCRmLncxsQFcOOC8OhzUIfxQ // /channel/UCRmLncxsQFcOOC8OhzUIfxQ
 
-        return (currentHref + '/').indexOf(anchorHref + '/') >= 0;
+        return (currentHref + '/').indexOf(hrefAttribute + '/') >= 0;
 
     };
 
@@ -1542,37 +1542,56 @@ SOFTWARE.
     }
 
     const getYTextType = (text) => {
-        if (typeof text === 'string') return 1;
+        // if (typeof text === 'string') return 1;
         if (typeof text === 'object' && text) {
-            if ('simpleText' in text) return 2;
-            if ('runs' in text) {
-                const runs = text.runs;
-                let r;
-                return runs.length === 1 ? (typeof (r = runs[0]) === 'string' ? 3 : typeof r.text === 'string' ? 4 : null) : null;
+            if (typeof text.simpleText === 'string') return 2;
+            const runs = text.runs;
+            if (runs && runs.length === 1) {
+                let r = runs[0];
+                return typeof r === 'string' ? 3 : typeof (r || 0).text === 'string' ? 4 : null;
             }
         }
         return null;
     }
 
     const getYTextContent = (text) => {
-        if (typeof text === 'string') return text;
+        // if (typeof text === 'string') return text;
         if (typeof text === 'object' && text) {
-            if ('simpleText' in text) return text.simpleText;
-            if ('runs' in text) {
-                const runs = text.runs;
-                let r;
-                return runs.length === 1 ? (typeof (r = runs[0]) === 'string' ? r : typeof r.text === 'string' ? r.text : null) : null;
+            const simpleText = text.simpleText;
+            if (typeof simpleText === 'string') return simpleText;
+            const runs = text.runs;
+            if (runs && runs.length === 1) {
+                let r = runs[0];
+                return typeof r === 'string' ? r : typeof (r || 0).text === 'string' ? r.text : null;
             }
         }
         return null;
     }
 
-    const domCheckAsync = isMobile ? async (anchor, anchorHref, mt) => {
+    const setYTextContent = (text, fn) => {
+        // if (typeof text === 'string') {
+        //     res=fn(text);
+        // }
+        if (typeof text === 'object' && text) {
+            const simpleText = text.simpleText;
+            if (typeof simpleText === 'string') {
+                return Object.assign({}, text, { simpleText: fn(simpleText) });
+            }
+            const runs = text.runs;
+            if (runs && runs.length === 1) {
+                let r = runs[0];
+                return typeof r === 'string' ? Object.assign({}, text, { runs: [fn(r)] }) : typeof (r || 0).text === 'string' ? Object.assign({}, text, { runs: [Object.assign({}, r, { text: fn(r.text) })] }) : null;
+            }
+        }
+        return null;
+    }
+
+    const domCheckAsync = isMobile ? async (anchor, hrefAttribute, mt) => {
 
         let sHandleName = null;
         let sNodeValue = null;
         try {
-            if (!anchorHref || !mt) return;
+            if (!hrefAttribute || !mt) return;
             let parentNode = nodeParent(anchor);
             while (parentNode instanceof Node) {
                 if (parentNode.nodeName === 'YTM-COMMENT-RENDERER' || ('_commentData' in parentNode)) break;
@@ -1585,25 +1604,30 @@ SOFTWARE.
             const anchorHrefValue = ytPathnameExtract(anchor.getAttribute('href')); // guess (Feb 2024)
 
             const cnt = insp(parentNode);
-            const parentNodeData = cnt._commentData || cnt.data;
-            const runs = ((parentNodeData || 0).authorText || 0).runs;
+            const parentNodeData = cnt._commentData || cnt.data || 0;
+            const authorTextData = (parentNodeData.authorText || 0);
 
             let tHandleName = null;
 
-            if (commentRendererAuthorTextDOM && runs) {
+            if (commentRendererAuthorTextDOM && authorTextData) {
                 const hType = getHrefType(anchorHrefValue);
+                let ytext = null;
                 if (hType === 2) {
                     tHandleName = anchorHrefValue.substring(1); // guess
                 } else if (hType === 1) {
-                    tHandleName = runs.length === 1 ? runs[0].text : null;
+                    ytext = getYTextContent(authorTextData)
+                    tHandleName = ytext; // authorTextData.runs[0].text
                 }
-                if (typeof tHandleName === 'string' && commentRendererAuthorTextDOM.textContent.trim() === tHandleName && isDisplayAsHandle(tHandleName) && (runs[0] || 0).text === tHandleName) {
-                    sHandleName = tHandleName;
-                    sNodeValue = tHandleName;
+                if (typeof tHandleName === 'string' && commentRendererAuthorTextDOM.textContent.trim() === tHandleName && isDisplayAsHandle(tHandleName)) {
+                    ytext = ytext || getYTextContent(authorTextData)
+                    if (ytext === tHandleName) {
+                        sHandleName = tHandleName;
+                        sNodeValue = tHandleName;
+                    }
                 }
             }
 
-            if (typeof sHandleName === 'string' && typeof sNodeValue === 'string' && runs && runs.length === 1) {
+            if (typeof sHandleName === 'string' && typeof sNodeValue === 'string') {
 
                 if (!channelIdToHandle.has(mt)) {
                     channelIdToHandle.set(mt, {
@@ -1621,7 +1645,7 @@ SOFTWARE.
                 if (externalId !== mt) return; // channel id must be the same
 
                 // anchor href might be changed by external
-                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+                if (!anchorIntegrityCheck(anchor, hrefAttribute)) return;
 
                 if (commentRendererAuthorTextDOM.isConnected !== true) return; // already removed
 
@@ -1637,7 +1661,10 @@ SOFTWARE.
 
                 if (!found) return;
                 if (anchorAiraLabel && anchorAiraLabel.trim() === sHandleName) anchor.setAttribute('aria-label', anchorAiraLabel.replace(sHandleName, titleForDisplay));
-                runs[0].text = titleForDisplay;
+                const authorTextDataNew = setYTextContent(authorTextData, (t) => t.replace(t.trim(), titleForDisplay));
+                if (authorTextDataNew && parentNodeData.authorText === authorTextData) {
+                    parentNodeData.authorText = authorTextDataNew;
+                }
 
                 if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
                     const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
@@ -1667,10 +1694,10 @@ SOFTWARE.
             console.warn(e);
         }
 
-    } : async (anchor, anchorHref, mt) => {
+    } : async (anchor, hrefAttribute, mt) => {
 
         try {
-            if (!anchorHref || !mt) return;
+            if (!hrefAttribute || !mt) return;
             let parentNode = nodeParent(anchor);
             let isCommentViewModel = false;
             while (parentNode instanceof Node) {
@@ -1717,7 +1744,7 @@ SOFTWARE.
                 if (externalId !== mt) return; // channel id must be the same
 
                 // anchor href might be changed by external
-                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+                if (!anchorIntegrityCheck(anchor, hrefAttribute)) return;
 
                 if (commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt) {
                     commentEntityAuthor.displayName = titleForDisplay;
@@ -1760,11 +1787,7 @@ SOFTWARE.
             } else {
 
                 const authorText = (parentNodeController.data || 0).authorText;
-                if (getYTextType(authorText) !== 2) {
-                    console.log('text type mismatched 001');
-                    return;
-                }
-                const currentDisplayed = (authorText || 0).simpleText;
+                const currentDisplayed = getYTextContent(authorText || 0);   // authorText.simpleText
                 if (typeof currentDisplayed !== 'string') return;
                 if (!isDisplayAsHandle(currentDisplayed)) return;
 
@@ -1794,16 +1817,16 @@ SOFTWARE.
                 if (externalId !== mt) return; // channel id must be the same
 
                 // anchor href might be changed by external
-                if (!anchorIntegrityCheck(anchor, anchorHref)) return;
+                if (!anchorIntegrityCheck(anchor, hrefAttribute)) return;
 
                 const parentNodeData = parentNodeController.data;
                 const funcPromises = [];
 
                 if (parentNodeController.isAttached === true && parentNode.isConnected === true && typeof parentNodeData === 'object' && parentNodeData && parentNodeData.authorText === authorText) {
 
-                    if (authorText.simpleText !== currentDisplayed) return;
+                    if (getYTextContent(authorText) !== currentDisplayed) return;
                     const currentDisplayTrimmed = verifyAndConvertHandle(currentDisplayed, fetchResult);
-                    const cSimpleText = ((parentNodeData.authorText || 0).simpleText || '');
+                    const cSimpleText = (getYTextContent(parentNodeData.authorText || 0) || '');
                     if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
 
                         // the inside hyperlinks will be only converted if its parent author name is handle
@@ -1816,17 +1839,23 @@ SOFTWARE.
                         }
 
                         const md = Object.assign({}, parentNodeData);
-                        let setBadge = false;
-                        if (((((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0).simpleText || '').trim() === cSimpleText.trim()) {
-                            setBadge = true;
-                        }
-                        // parentNode.data = Object.assign({}, { jkrgx: 1 });
-                        md.authorText = Object.assign({}, md.authorText, { simpleText: currentDisplayed.replace(currentDisplayTrimmed, titleForDisplay) });
-                        if (setBadge) {
-                            md.authorCommentBadge = Object.assign({}, md.authorCommentBadge);
-                            md.authorCommentBadge.authorCommentBadgeRenderer = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer);
-                            md.authorCommentBadge.authorCommentBadgeRenderer.authorText = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer.authorText, { simpleText: titleForDisplay });
+                        const authorCommentBadgeAuthorText = (((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0);
 
+                        const authorCommentBadgeAuthorTextNew = authorCommentBadgeAuthorText ? setYTextContent(authorCommentBadgeAuthorText, (currentText) => {
+                            if ((currentText || '').trim() === cSimpleText.trim()) {
+                                return (currentText || '').replace((currentText || '').trim(), titleForDisplay);
+                            } else {
+                                return currentText;
+                            }
+                        }) : null;
+
+                        // parentNode.data = Object.assign({}, { jkrgx: 1 });
+                        const authorTextNew = setYTextContent(md.authorText, (t) => t.replace(currentDisplayTrimmed, titleForDisplay))
+                        md.authorText = authorTextNew;
+
+                        if (authorCommentBadgeAuthorTextNew) {
+                            const authorCommentBadgeRendererNew = Object.assign({}, md.authorCommentBadge.authorCommentBadgeRenderer, { authorText: authorCommentBadgeAuthorTextNew });
+                            md.authorCommentBadge = Object.assign({}, md.authorCommentBadge, { authorCommentBadgeRenderer: authorCommentBadgeRendererNew });
                         }
 
                         let setReplyEditableText = false;
@@ -1909,8 +1938,7 @@ SOFTWARE.
             const pDomController = insp(pDom);
             const channelTitleText = (pDomController.data || 0).channelTitleText || 0;
             const runs = ((channelTitleText || 0).runs || 0);
-            const channelTitleTextType = getYTextType(channelTitleText);
-            if (channelTitleTextType === 4) {
+            if (getYTextType(channelTitleText) === 4) {
                 const browserEndpoint = (((runs[0] || 0).navigationEndpoint || 0).browseEndpoint || 0);
                 browseId = (browserEndpoint.browseId || '');
                 const currentDisplayText = runs[0].text || ''
@@ -1940,21 +1968,12 @@ SOFTWARE.
                         const hDomController = insp(hDom);
                         const hData = (hDomController || 0).data || 0;
                         const hChannelTitleText = (hData || 0).channelTitleText || 0;
-                        const hChannelTitleTextType = getYTextType(hChannelTitleText);
                         const runs = ((hChannelTitleText).runs || 0);
-                        if (hChannelTitleTextType === 4 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
+                        if (getYTextType(hChannelTitleText) === 4 && (runs[0] || 0).text === currentDisplayText && hDomHostElement.isConnected === true) {
 
-                            const runs2 = [Object.assign({}, runs[0], { text: titleForDisplay })];
+                            const channelTitleTextNew = { runs: [Object.assign({}, runs[0], { text: titleForDisplay })] }
 
-                            /*
-                                runs.push({text: title, bold: true, "fontColor": "black",
-
-                                    size: "SIZE_DEFAULT",
-                                    style: "STYLE_TEXT",
-                                });
-                            */
-
-                            hDomController.data = Object.assign({}, hDomController.data, { channelTitleText: { runs: runs2 }, rSk0e: 1 });
+                            hDomController.data = Object.assign({}, hDomController.data, { channelTitleText: channelTitleTextNew, rSk0e: 1 });
                             addCSSRulesIfRequired();
 
                             byPassCheckStore.delete(rchannelNameDOM);
@@ -2292,18 +2311,19 @@ SOFTWARE.
 
         // newAnchorAdded = true;
         for (const anchor of newAnchors) {
-            const href = ytPathnameExtract(anchor.getAttribute('href'));
+            const hrefAttribute = anchor.getAttribute('href');
+            const hrefV = ytPathnameExtract(hrefAttribute);
             let channelId = '';
             const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
             if (ytElm) {
                 const cnt = insp(ytElm);
                 const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
 
-                if (browseId && canonicalBaseUrl === href && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+                if (browseId && canonicalBaseUrl === hrefV && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
 
-                    const hrefType = getHrefType(href);
+                    const hrefType = getHrefType(hrefV);
                     if (hrefType === 1) {
-                        if (href === `/channel/${browseId}`) {
+                        if (hrefV === `/channel/${browseId}`) {
                             let authorText = null;
                             if (isMobile) { // mobile only
                                 authorText = (cnt._commentData || cnt.data || ytElm._commentData || ytElm.data || 0).authorText || 0;
@@ -2314,14 +2334,15 @@ SOFTWARE.
                                 const text = getYTextContent(authorText);
                                 if (typeof text === 'string' && text.startsWith('@') && /^@[-_a-zA-Z0-9.]{3,30}$/.test(text)) {
                                     channelIdToHandle.set(browseId, {
-                                        handleText: `${text}`
+                                        handleText: `${text}`,
+                                        justPossible: true
                                     });
                                 }
                             }
                             channelId = browseId;
                         }
                     } else if (hrefType === 2) {
-                        const handle = href.substring(2);
+                        const handle = hrefV.substring(2);
                         channelIdToHandle.set(browseId, {
                             handleText: `@${handle}`
                         });
@@ -2330,13 +2351,13 @@ SOFTWARE.
 
                 }
 
-                if (!channelId && href) { // fallback
+                if (!channelId && hrefV) { // fallback
 
                     // author-text or name
                     // normal url: /channel/xxxxxxx
                     // Improve YouTube! - https://www.youtube.com/channel/xxxxxxx/videos
 
-                    const temp = obtainChannelId(href); // string, can be empty
+                    const temp = obtainChannelId(hrefV); // string, can be empty
                     if (temp) {
                         channelId = temp;
                     }
@@ -2345,7 +2366,7 @@ SOFTWARE.
             }
             anchor.setAttribute('jkrgy', channelId);
             if (channelId) {
-                domCheckAsync(anchor, href, channelId);
+                domCheckAsync(anchor, hrefAttribute, channelId);
             }
         }
 
