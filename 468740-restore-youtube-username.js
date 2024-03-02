@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.013
+// @version             0.11.014
 // @license             MIT License
 
 // @author              CY Fung
@@ -2386,6 +2386,7 @@ SOFTWARE.
         }
         return null;
     };
+    const noAuthorDataSet = new Set();
     const getAuthorBrowseEndpoint = (cnt) => {
         let d;
         let haveData = false;
@@ -2405,18 +2406,24 @@ SOFTWARE.
             }
         }
         if (haveData) {
-            if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
-                return null; // skip console logging
-            } else if (cnt.is === 'ytd-thumbnail') {
-                return null;
-            } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
-                return null;
-            } else if (cnt.is === 'ytd-rich-grid-media') {
-                return null;
-            } else if (cnt.is === 'ytd-rich-metadata-renderer') {
-                return null;
+            const tag = cnt.is;
+            if (!noAuthorDataSet.has(tag)) {
+                noAuthorDataSet.add(tag);
+                if (tag === 'ytd-video-description-infocards-section-renderer') {
+                    return null; // skip console logging
+                } else if (tag === 'ytd-thumbnail') {
+                    return null;
+                } else if (tag === 'ytd-structured-description-channel-lockup-renderer') {
+                    return null;
+                } else if (tag === 'ytd-rich-grid-media') {
+                    return null;
+                } else if (tag === 'ytd-rich-metadata-renderer') {
+                    return null;
+                } else if (tag === 'ytd-guide-entry-renderer') {
+                    return null;
+                }
+                console.log('no browseEndpoint can be found', tag);
             }
-            console.log('no browseEndpoint can be found', cnt.is);
         } else {
             console.log('no browseEndpoint can be found', (cnt || 0).is, 'NO DATA');
         }
