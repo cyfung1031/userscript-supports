@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.011
+// @version             0.11.012
 // @license             MIT License
 
 // @author              CY Fung
@@ -2399,6 +2399,8 @@ SOFTWARE.
                     return null;
                 } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
                     return null;
+                } else if (cnt.is === 'ytd-rich-grid-media') {
+                    return null;
                 }
                 console.log('no browseEndpoint can be found', cnt.is);
             }
@@ -2413,6 +2415,8 @@ SOFTWARE.
                 } else if (cnt.is === 'ytd-thumbnail') {
                     return null;
                 } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
+                    return null;
+                } else if (cnt.is === 'ytd-rich-grid-media') {
                     return null;
                 }
                 console.log('no browseEndpoint can be found', cnt.is);
