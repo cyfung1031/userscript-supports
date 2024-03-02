@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.012
+// @version             0.11.013
 // @license             MIT License
 
 // @author              CY Fung
@@ -2388,39 +2388,37 @@ SOFTWARE.
     };
     const getAuthorBrowseEndpoint = (cnt) => {
         let d;
-        cnt = cnt || 0;
+        let haveData = false;
         if (isMobile) {
             const data = ((cnt || 0).data || 0);
             if (data) {
+                haveData = true;
                 if (d = data.authorEndpoint) return d.browseEndpoint || null;
-                if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
-                    return null; // skip console logging
-                } else if (cnt.is === 'ytd-thumbnail') {
-                    return null;
-                } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
-                    return null;
-                } else if (cnt.is === 'ytd-rich-grid-media') {
-                    return null;
-                }
-                console.log('no browseEndpoint can be found', cnt.is);
             }
         } else {
             const __data = ((cnt || 0).__data || 0);
             if (__data) {
+                haveData = true;
                 if (d = __data.authorTextCommand) return d.browseEndpoint || null; // ytd-comment-renderer
                 if (d = __data.authorEndpoint) return d.browseEndpoint || null; // ytd-comment-view-model
                 if (d = (__data.data || 0).authorEndpoint) return d.browseEndpoint || null; // ytd-author-comment-badge-renderer
-                if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
-                    return null; // skip console logging
-                } else if (cnt.is === 'ytd-thumbnail') {
-                    return null;
-                } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
-                    return null;
-                } else if (cnt.is === 'ytd-rich-grid-media') {
-                    return null;
-                }
-                console.log('no browseEndpoint can be found', cnt.is);
             }
+        }
+        if (haveData) {
+            if (cnt.is === 'ytd-video-description-infocards-section-renderer') {
+                return null; // skip console logging
+            } else if (cnt.is === 'ytd-thumbnail') {
+                return null;
+            } else if (cnt.is === 'ytd-structured-description-channel-lockup-renderer') {
+                return null;
+            } else if (cnt.is === 'ytd-rich-grid-media') {
+                return null;
+            } else if (cnt.is === 'ytd-rich-metadata-renderer') {
+                return null;
+            }
+            console.log('no browseEndpoint can be found', cnt.is);
+        } else {
+            console.log('no browseEndpoint can be found', (cnt || 0).is, 'NO DATA');
         }
         return null;
     };
