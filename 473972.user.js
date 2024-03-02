@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.8
+// @version     0.11.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -73,6 +73,9 @@
   const LOG_FETCHMETA_UPDATE = false;
 
   const IGNORE_bufferhealth_CHECK = true; // experimental
+
+  const DENY_requestStorageAccess = true; // remove document.requestStorageAccess
+  const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
 
   /*
   window.addEventListener('edm',()=>{
@@ -147,6 +150,20 @@
 
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+  if (typeof Document.prototype.requestStorageAccessFor === 'function') {
+    if (DENY_requestStorageAccess) {
+      // https://developer.mozilla.org/en-US/docs/Web/API/Document/requestStorageAccessFor
+      Document.prototype.requestStorageAccessFor = undefined;
+      console.log('requestStorageAccessFor is removed by YouTube JS Engine Tamer');
+    } else if (DISABLE_IFRAME_requestStorageAccess && window !== top) {
+      Document.prototype.requestStorageAccessFor = function () {
+        return new Promise((resolve, reject) => {
+          reject();
+        });
+      };
+    }
+  }
 
   FIX_perfNow && (() => {
     let nowh = -1;
@@ -4521,8 +4538,8 @@
 
         if (!keyST || !keyj || !keyB) return;
 
-        for(const k of possibleKs){
-          if(k === keyST || k === keyj || k === keyB) {
+        for (const k of possibleKs) {
+          if (k === keyST || k === keyj || k === keyB) {
             continue;
           }
           const v = gkp[k];
