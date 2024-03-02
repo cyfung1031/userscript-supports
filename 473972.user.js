@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.6
+// @version     0.11.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -72,6 +72,7 @@
 
   const LOG_FETCHMETA_UPDATE = false;
 
+  const IGNORE_bufferhealth_CHECK = true; // experimental
 
   /*
   window.addEventListener('edm',()=>{
@@ -2686,9 +2687,9 @@
     }
   };
 
-  const getZq = (_yt_player) => {
+  const getZqOu = (_yt_player) => {
 
-    const w = 'Zq';
+    const w = 'ZqOu';
 
     let arr = [];
 
@@ -2696,7 +2697,45 @@
 
       const p = typeof v === 'function' ? v.prototype : 0;
       if (p
-        && typeof p.start === 'function' && p.start.length === 0
+        && typeof p.start === 'function' && p.start.length === 0 // Ou
+        && typeof p.isActive === 'function' && p.isActive.length === 0
+        && typeof p.stop === 'function' && p.stop.length === 0
+        && !p.isComplete && !p.getStatus && !p.getResponseHeader && !p.getLastError
+        && !p.send && !p.abort
+        && !p.sample && !p.initialize && !p.fail && !p.getName
+        // && !p.dispose && !p.isDisposed
+
+      ) {
+        arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+
+      }
+
+    }
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      console.log(`[${w}]`, arr);
+      return arr[0];
+    }
+
+  }
+
+  const getZqQu = (_yt_player) => {
+
+    const w = 'ZqQu';
+
+    let arr = [];
+
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+      if (p
+        && typeof p.start === 'function' && p.start.length === 1 // Qu
         && typeof p.isActive === 'function' && p.isActive.length === 0
         && typeof p.stop === 'function' && p.stop.length === 0
         && !p.isComplete && !p.getStatus && !p.getResponseHeader && !p.getLastError
@@ -3010,20 +3049,6 @@
 
 
     performance.now17 = perfNow.bind(performance);
-    // performance.now = performance.now16;
-    /*
-    let nowh = -1;
-    performance.now = function () {
-      let t = nowh;
-      let c = this.now17();
-      return (nowh = (t + 1e-7 > c ? t + 0.1 : c));
-    }
-    */
-
-    // console.log(performance.now())
-    // console.log(performance.now())
-    // console.log(performance.now())
-    // console.log(performance.now())
 
 
 
@@ -3037,14 +3062,6 @@
         resolve(hRes);
       });
     }));
-
-    const getForegroundPromise = () => {
-      if (document.visibilityState === 'visible') {
-        return Promise.resolve();
-      } else {
-        return getRafPromise();
-      }
-    };
 
 
     const wmComputedStyle = new WeakMap();
@@ -3839,10 +3856,10 @@
               // }
 
               if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
-                  target[timerIdProp] = baseRAF.apply(window, requestingArgs);
+                target[timerIdProp] = baseRAF.apply(window, requestingArgs);
               } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
                 // rare
-                  target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
               } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
                 // often
                 if ((FIX_schedulerInstanceInstance & 4) && typeof nextBrowserTick == 'function') {
@@ -3864,9 +3881,9 @@
                 }
               } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
                 // often
-                if(requestingFn === requestIdleCallback){
+                if (requestingFn === requestIdleCallback) {
                   target[timerIdProp] = requestIdleCallback.apply(window, requestingArgs);
-                }else{
+                } else {
                   target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
                 }
               } else {
@@ -3882,7 +3899,7 @@
 
         let startBusy = false;
         schedulerInstanceInstance_.start = function () {
-          if(startBusy) return;
+          if (startBusy) return;
           startBusy = true;
           try {
             mkFns[0] = window.requestAnimationFrame;
@@ -3913,6 +3930,7 @@
     })();
 
     FIX_yt_player && (async () => {
+      // rAf scheduling
 
       // const rafHub = new RAFHub();
 
@@ -3920,25 +3938,14 @@
 
       if (!_yt_player || typeof _yt_player !== 'object') return;
 
-      let keyZq = getZq(_yt_player);
-      // let keyVG = getVG(_yt_player);
-      // let buildVG = _yt_player[keyVG];
-      // let u = new buildVG({
-      //   api: {},
-      //   element: document.createElement('noscript'),
-      //   api: {},
-      //   hide: () => { }
-      // }, 250);
-      // const timeDelayConstructor = u.delay.constructor; // g.br
-      // console.log(keyVG, u)
-      // buildVG.prototype.show = function(){}
-      // _yt_player[keyZq] = g.k
+      let keyZqOu = getZqOu(_yt_player);
 
-      if (!keyZq) return;
+
+      if (!keyZqOu) return;
 
 
       const g = _yt_player
-      let k = keyZq
+      let k = keyZqOu
 
       const gk = g[k];
       if (typeof gk !== 'function') return;
@@ -4428,6 +4435,194 @@
 
     })();
 
+    FIX_yt_player && (async () => {
+      // timer scheduling
+
+      const _yt_player = await _yt_player_observable.obtain();
+
+      if (!_yt_player || typeof _yt_player !== 'object') return;
+
+      let keyZqQu = getZqQu(_yt_player);
+
+      if (!keyZqQu) return;
+
+      const g = _yt_player
+      let k = keyZqQu
+
+      const gk = g[k];
+      if (typeof gk !== 'function') return;
+      const gkp = gk.prototype;
+
+      const extractKeysZqQu = () => {
+
+
+        let _keyeC = '';
+        try {
+          gkp.stop.call(new Proxy({
+            isActive: () => { }
+          }, {
+            set(target, prop, value) {
+              if (value === 0) _keyeC = prop;
+              return true;
+            }
+          }));
+        } catch (e) { }
+        if (!_keyeC) return;
+        const keyeC = _keyeC;
+
+        let keyC = ''; // this.C = this.ST.bind(this)
+        let keyhj = ''; // 1000ms
+        try {
+          gkp.start.call(new Proxy({
+            stop: () => { },
+            [keyeC]: 0,
+          }, {
+            get(target, prop) {
+              if (prop in target) return target[prop];
+              if (!keyC) {
+                keyC = prop;
+                return null; // throw error
+              }
+              else if (!keyhj) {
+                keyhj = prop;
+              }
+
+            }
+          }));
+        } catch (e) {
+          console.log(e)
+        }
+
+        if (!keyC || !keyhj) return;
+        let keyST = '';
+        let keyj = '';
+        let keyB = '';
+        let keyxa = '';
+
+        const possibleKs = new Set();
+
+        for (const [k, v] of Object.entries(gkp)) {
+          if (k === 'stop' || k === 'start' || k === 'isActive' || k === 'constructor' || k === keyeC || k === keyC || k === keyhj) {
+            continue;
+          }
+          if (typeof v === 'function') {
+            const m = /this\.(\w+)\.call\(this\.(\w+)\)/.exec(v + '');
+            if (m) {
+              keyST = k;
+              keyj = m[1];
+              keyB = m[2];
+            } else {
+              possibleKs.add(k);
+            }
+          }
+        }
+
+        if (!keyST || !keyj || !keyB) return;
+
+        for(const k of possibleKs){
+          if(k === keyST || k === keyj || k === keyB) {
+            continue;
+          }
+          const v = gkp[k];
+          if (typeof v === 'function' && (v + '').includes(`this.stop();delete this.${keyj};delete this.${keyB}`)) {
+            keyxa = k;
+          }
+        }
+
+        return [keyeC, keyC, keyhj, keyST, keyj, keyB, keyxa];
+
+      }
+
+      const keys = extractKeysZqQu();
+      if (!keys || !keys.length) return;
+      const [keyeC, keyC, keyhj, keyST, keyj, keyB, keyxa] = keys; // [timerId, binded executorFn, 1000ms, executorFn, dataJ, objectB, disposeFn]
+
+      if (!keyeC || !keyC || !keyhj || !keyST || !keyj || !keyB || !keyxa) return;
+
+      gkp[keyxa] = function () {
+        // dispose
+        if (this[keyeC] > 0) this.stop();
+        for (const [k, v] in Object.entries(this)) {
+          if ((v || 0).length >= 1) v.length = 0; // function (){if(this.fn)for(;this.fn.length;)this.fn.shift()()}
+        }
+        this[keyj] = null;
+        this[keyB] = null;
+      };
+
+      gkp.start = function (a) {
+        if (this[keyeC] > 0) this.stop();
+        const delay = void 0 !== a ? a : this[keyhj];
+        this[keyeC] = window.setTimeout(this[keyC], delay);
+
+      };
+      gkp.stop = function () {
+        if (this[keyeC] > 0) {
+          window.clearTimeout(this[keyeC]);
+          this[keyeC] = 0;
+        }
+      };
+
+      gkp.isActive = function () {
+        return this[keyeC] > 0;
+      };
+
+      gkp[keyST] = function () {
+        if (this[keyeC] > 0) {
+          this[keyeC] = 0;
+          const fn = this[keyj];
+          const obj = this[keyB];
+          let skip = false;
+          if (!fn) skip = true;
+          else if (IGNORE_bufferhealth_CHECK && obj) {
+            if (obj[keyC] instanceof Map) {
+              if (obj[keyC].has("bufferhealth")) skip = true;
+            } else if (obj[keyj] instanceof Map) {
+              if (obj[keyj].has("bufferhealth")) skip = true;
+            }
+          }
+          if (!skip) {
+            fn.call(obj);
+          }
+        }
+      };
+
+
+
+      /*
+
+      g.k.eC = 0;
+      g.k.xa = function() {
+          g.Qu.Vf.xa.call(this);
+          this.stop();
+          delete this.j;
+          delete this.B
+      }
+      ;
+      g.k.start = function(a) {
+          this.stop();
+          this.eC = g.gg(this.C, void 0 !== a ? a : this.hj)
+      }
+      ;
+      g.k.stop = function() {
+          this.isActive() && g.Sa.clearTimeout(this.eC);
+          this.eC = 0
+      }
+      ;
+      g.k.isActive = function() {
+          return 0 != this.eC
+      }
+      ;
+      g.k.ST = function() {
+          this.eC = 0;
+          this.j && this.j.call(this.B)
+      }
+      ;
+      */
+
+
+
+
+    })();
 
     FIX_Animation_n_timeline && (async () => {
 
