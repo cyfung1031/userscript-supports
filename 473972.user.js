@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.7
+// @version     0.11.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4490,7 +4490,9 @@
             }
           }));
         } catch (e) {
-          console.log(e)
+          if (!keyC || !keyhj) {
+            console.log(e)
+          }
         }
 
         if (!keyC || !keyhj) return;
