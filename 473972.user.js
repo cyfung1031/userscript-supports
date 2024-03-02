@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.5
+// @version     0.11.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -18,8 +18,7 @@
 (() => {
 
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
-  const FIX_schedulerInstanceInstance_V1 = false;
-  const FIX_schedulerInstanceInstance_V2 = true;
+  const FIX_schedulerInstanceInstance = 2 | 4;
   const FIX_yt_player = true;
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
@@ -2722,9 +2721,6 @@
       return arr[0];
     }
 
-
-
-
   }
 
 
@@ -2859,92 +2855,9 @@
   }
 
 
-
-  // << if FIX_schedulerInstanceInstance_ >>
-
-  let idleFrom = Date.now() + 2700;
-  let slowMode = false;
-
-  let ytEvented = false;
-
-
-  const setupEvents = FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 ? () => {
-
-    document.addEventListener('yt-navigate', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      idleFrom = Date.now() + 2700;
-
-    });
-    document.addEventListener('yt-navigate-start', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      idleFrom = Date.now() + 2700;
-
-    });
-
-    document.addEventListener('yt-page-type-changed', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      idleFrom = Date.now() + 1700;
-
-    });
-
-
-    document.addEventListener('yt-player-updated', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      idleFrom = Date.now() + 1700;
-
-    });
-
-
-    document.addEventListener('yt-page-data-fetched', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      idleFrom = Date.now() + 1700;
-
-    });
-
-    document.addEventListener('yt-navigate-finish', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      let t = Date.now() + 700;
-      if (t > idleFrom) idleFrom = t;
-
-    });
-
-    document.addEventListener('yt-page-data-updated', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      let t = Date.now() + 700;
-      if (t > idleFrom) idleFrom = t;
-
-    });
-
-    document.addEventListener('yt-watch-comments-ready', () => {
-
-      ytEvented = true;
-      slowMode = false;
-      let t = Date.now() + 700;
-      if (t > idleFrom) idleFrom = t;
-
-    });
-  } : () => { };
-
-
-  // << end >>
-
   const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
 
-  let pageSetupVideoId = null; // set at finish; '' for indeterminate state 
+  let pageSetupVideoId = null; // set at finish; '' for indeterminate state
   let pageSetupState = 0;
 
   isPrepareCachedV && (() => {
@@ -2979,8 +2892,8 @@
 
     let getNext = true;
     let videoPlayingX = {
-      get videoId(){
-        if(getNext){
+      get videoId() {
+        if (getNext) {
           getNext = false;
 
           let elements = document.querySelectorAll('ytd-watch-flexy[video-id]');
@@ -2992,9 +2905,9 @@
           else {
             this.__videoId__ = arr[0].getAttribute('video-id');
           }
-          
+
         }
-        return this.__videoId__  || '';
+        return this.__videoId__ || '';
       }
     }
 
@@ -3851,111 +3764,41 @@
     }
 
 
-    FIX_schedulerInstanceInstance_V1 && !FIX_schedulerInstanceInstance_V2 && (async () => {
-
+    // let schedulerInstancePropOfTimerType = '';
+    // let schedulerInstancePropOfTimerId = '';
+    (FIX_schedulerInstanceInstance & 2) && (async () => {
 
       const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
 
       if (!schedulerInstanceInstance_) return;
 
-
-      if (!ytEvented) {
-        idleFrom = Date.now() + 2700;
-        slowMode = false; // integrity
-      }
-
-      const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start991 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
+      const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
       if (checkOK) {
 
-
-        schedulerInstanceInstance_.start991 = schedulerInstanceInstance_.start;
+        schedulerInstanceInstance_.start993 = schedulerInstanceInstance_.start;
 
         let requestingFn = null;
         let requestingArgs = null;
-        let requestingDT = 0;
 
-        // let timerId = null;
-        const entries = [];
         const f = function () {
           requestingFn = this.fn;
           requestingArgs = [...arguments];
-          requestingDT = Date.now();
-          entries.push({
-            fn: requestingFn,
-            args: requestingArgs,
-            t: requestingDT
-          });
-          // if (Date.now() < idleFrom) {
-          //   timerId = this.fn.apply(window, arguments);
-          // } else {
-          //   timerId = this.fn.apply(window, arguments);
-
-          // }
-          // timerId = 12377;
-          return 12377;
-        }
-
+          return 12373;
+        };
 
         const fakeFns = [
           f.bind({ fn: requestAnimationFrame }),
           f.bind({ fn: setInterval }),
           f.bind({ fn: setTimeout }),
           f.bind({ fn: requestIdleCallback })
-        ]
-
-
-
-
-        let timerResolve = null;
-        setInterval(() => {
-          timerResolve && timerResolve();
-          timerResolve = null;
-          if (!slowMode && Date.now() > idleFrom) slowMode = true;
-        }, 250);
+        ];
 
         let mzt = 0;
 
-        let fnSelectorProp = null;
+        let _fnSelectorProp = null;
+        const mkFns = new Array(4);
 
-        schedulerInstanceInstance_.start = function () {
-
-          const mk1 = window.requestAnimationFrame
-          const mk2 = window.setInterval
-          const mk3 = window.setTimeout
-          const mk4 = window.requestIdleCallback
-
-          const tThis = this['$$12378$$'] || this;
-
-
-          window.requestAnimationFrame = fakeFns[0]
-          window.setInterval = fakeFns[1]
-          window.setTimeout = fakeFns[2]
-          window.requestIdleCallback = fakeFns[3]
-
-          fnSelectorProp = null;
-
-
-          tThis.start991.call(new Proxy(tThis, {
-            get(target, prop, receiver) {
-              if (prop === '$$12377$$') return true;
-              if (prop === '$$12378$$') return target;
-
-              // console.log('get',prop)
-              return target[prop]
-            },
-            set(target, prop, value, receiver) {
-              // console.log('set', prop, value)
-
-
-              if (value >= 1 && value <= 4) fnSelectorProp = prop;
-              if (value === 12377 && fnSelectorProp) {
-
-                const originalSelection = target[fnSelectorProp];
-                const timerIdProp = prop;
-
-                /*
-
-
+        /*
           case 1:
               var a = this.K;
               this.g = this.I ? window.requestIdleCallback(a, {
@@ -3972,201 +3815,110 @@
               this.g = window.setTimeout(this.J, 0)
           }
 
-          */
+        */
+        const startFnHandler = {
+          get(target, prop, receiver) {
+            if (prop === '$$12377$$') return true;
+            if (prop === '$$12378$$') return target;
 
-                const doForegroundSlowMode = () => {
+            // console.log('get',prop)
+            return target[prop]
+          },
+          set(target, prop, value, receiver) {
+            // console.log('set', prop, value)
 
-                  const tir = ++mzt;
+            if (value >= 1 && value <= 4) _fnSelectorProp = prop;
+            if (value === 12373 && _fnSelectorProp) {
+
+              const schedulerTypeSelection = target[_fnSelectorProp];
+              const timerIdProp = prop;
+
+              // if (schedulerTypeSelection && schedulerTypeSelection >= 1 && schedulerTypeSelection <= 4 && timerIdProp) {
+              //   schedulerInstancePropOfTimerType = _fnSelectorProp || '';
+              //   schedulerInstancePropOfTimerId = timerIdProp || '';
+              // }
+
+              if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
+                  target[timerIdProp] = baseRAF.apply(window, requestingArgs);
+              } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
+                // rare
+                  target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+              } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
+                // often
+                if ((FIX_schedulerInstanceInstance & 4) && typeof nextBrowserTick == 'function') {
                   const f = requestingArgs[0];
-
-
-                  getForegroundPromise().then(() => {
-
-
-                    new Promise(r => {
-                      timerResolve = r
-                    }).then(() => {
-                      if (target[timerIdProp] === -tir) f();
-                    });
-
-                  })
-
-                  target[fnSelectorProp] = 931;
-                  target[prop] = -tir;
-                }
-
-                if (target[fnSelectorProp] === 2 && requestingFn === setTimeout) {
-                  if (slowMode && !(requestingArgs[1] > 250)) {
-
-                    doForegroundSlowMode();
-
-                  } else {
-                    target[prop] = setTimeout.apply(window, requestingArgs);
-
-                  }
-
-                } else if (target[fnSelectorProp] === 3 && requestingFn === requestAnimationFrame) {
-
-                  if (slowMode) {
-
-                    doForegroundSlowMode();
-
-                  } else {
-                    target[prop] = requestAnimationFrame.apply(window, requestingArgs);
-                  }
-
-
-                } else if (target[fnSelectorProp] === 4 && requestingFn === setTimeout && !requestingArgs[1]) {
-
+                  const tir = ++mzt;
+                  nextBrowserTick(() => {
+                    if (target[timerIdProp] === -tir) f();
+                  });
+                  target[_fnSelectorProp] = 940;
+                  target[timerIdProp] = -tir;
+                } else {
                   const f = requestingArgs[0];
                   const tir = ++mzt;
                   Promise.resolve().then(() => {
                     if (target[timerIdProp] === -tir) f();
                   });
-                  target[fnSelectorProp] = 930;
-                  target[prop] = -tir;
-
-                } else if (target[fnSelectorProp] === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) {
-
-                  doForegroundSlowMode();
-
-                } else {
-                  // target[prop] = timerId;
-                  target[fnSelectorProp] = 0;
-                  target[prop] = 0;
+                  target[_fnSelectorProp] = 930;
+                  target[timerIdProp] = -tir;
                 }
-
-                // *****
-                // console.log('[[set]]', slowMode , prop, value, `fnSelectorProp: ${originalSelection} -> ${target[fnSelectorProp]}`)
+              } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
+                // often
+                if(requestingFn === requestIdleCallback){
+                  target[timerIdProp] = requestIdleCallback.apply(window, requestingArgs);
+                }else{
+                  target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                }
               } else {
-
-                target[prop] = value;
+                target[_fnSelectorProp] = 0;
+                target[timerIdProp] = 0;
               }
-              // console.log('set',prop,value)
-              return true;
+            } else {
+              target[prop] = value;
             }
-          }));
-
-          fnSelectorProp = null;
-
-
-          window.requestAnimationFrame = mk1;
-          window.setInterval = mk2
-          window.setTimeout = mk3
-          window.requestIdleCallback = mk4;
-
-
-
-        }
-
-        schedulerInstanceInstance_.start.toString = function () {
-          return schedulerInstanceInstance_.start991.toString();
-        }
-
-        // const funcNames = [...(schedulerInstanceInstance_.start + "").matchAll(/[\(,]this\.(\w{1,2})[,\)]/g)].map(e => e[1]).map(prop => ({
-        //   prop,
-        //   value: schedulerInstanceInstance_[prop],
-        //   type: typeof schedulerInstanceInstance_[prop]
-
-        // }));
-        // console.log('fcc', funcNames)
-
-
-
-
-      }
-    })();
-
-
-
-    FIX_schedulerInstanceInstance_V2 && !FIX_schedulerInstanceInstance_V1 && (async () => {
-
-
-      const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
-
-      if (!schedulerInstanceInstance_) return;
-
-
-      const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start991 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
-      if (checkOK) {
-
-        schedulerInstanceInstance_.start991 = schedulerInstanceInstance_.start;
-
-
-
-        let busy = false;
-
-        // console.log('1667',schedulerInstanceInstance_.start);
-        schedulerInstanceInstance_.start = function () {
-
-          // p59 || console.log(location.pathname, 16400);
-
-          if (busy) {
-
-            return this.start991.call(this);
-
+            return true;
           }
+        };
 
-          busy = true;
-
-          const mk1 = window.requestAnimationFrame
-          // const mk2 = window.setInterval
-          // const mk3 = window.setTimeout
-          // const mk4 = window.requestIdleCallback
-
-          // by pass Youtube Engine's wrapping
-          window.requestAnimationFrame = baseRAF;
-          // window.setInterval = setInterval
-          // window.setTimeout = setTimeout
-          // window.requestIdleCallback = requestIdleCallback
-
-
-          this.start991.call(this);
-
-
-          window.requestAnimationFrame = mk1;
-          // window.setInterval = mk2
-          // window.setTimeout = mk3
-          // window.requestIdleCallback = mk4;
-
-          busy = false;
-
-
-
+        let startBusy = false;
+        schedulerInstanceInstance_.start = function () {
+          if(startBusy) return;
+          startBusy = true;
+          try {
+            mkFns[0] = window.requestAnimationFrame;
+            mkFns[1] = window.setInterval;
+            mkFns[2] = window.setTimeout;
+            mkFns[3] = window.requestIdleCallback;
+            const tThis = this['$$12378$$'] || this;
+            window.requestAnimationFrame = fakeFns[0]
+            window.setInterval = fakeFns[1]
+            window.setTimeout = fakeFns[2]
+            window.requestIdleCallback = fakeFns[3]
+            _fnSelectorProp = null;
+            tThis.start993.call(new Proxy(tThis, startFnHandler));
+            _fnSelectorProp = null;
+            window.requestAnimationFrame = mkFns[0];
+            window.setInterval = mkFns[1];
+            window.setTimeout = mkFns[2];
+            window.requestIdleCallback = mkFns[3];
+          } catch (e) {
+            console.warn(e);
+          }
+          startBusy = false;
         }
 
-        schedulerInstanceInstance_.start.toString = function () {
-          return schedulerInstanceInstance_.start991.toString();
-        }
-
-        // const funcNames = [...(schedulerInstanceInstance_.start + "").matchAll(/[\(,]this\.(\w{1,2})[,\)]/g)].map(e => e[1]).map(prop => ({
-        //   prop,
-        //   value: schedulerInstanceInstance_[prop],
-        //   type: typeof schedulerInstanceInstance_[prop]
-
-        // }));
-        // console.log('fcc', funcNames)
-
-
-
+        schedulerInstanceInstance_.start.toString = schedulerInstanceInstance_.start993.toString.bind(schedulerInstanceInstance_.start993);
 
       }
     })();
 
     FIX_yt_player && (async () => {
 
-
-
       // const rafHub = new RAFHub();
-
 
       const _yt_player = await _yt_player_observable.obtain();
 
-
-
       if (!_yt_player || typeof _yt_player !== 'object') return;
-
-
 
       let keyZq = getZq(_yt_player);
       // let keyVG = getVG(_yt_player);
@@ -4247,22 +3999,7 @@
         }
       };
 
-      dummyObject.start.call(new Proxy(dummyObject, dummyObjectProxyHandler))
-
-      /*
-            console.log({
-              keyBoolD,
-              keyFuncC,
-              keyWindow,
-              keyCidj
-            })
-
-            console.log( dummyObject[keyFuncC])
-
-
-            console.log(2222222222)
-      */
-
+      dummyObject.start.call(new Proxy(dummyObject, dummyObjectProxyHandler));
 
       // console.log('gkp.start',gkp.start);
       // console.log('gkp.stop',gkp.stop);
@@ -4306,8 +4043,6 @@
             this.j = null
         }
       */
-
-
 
       const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
 
@@ -4668,10 +4403,8 @@
               cache.value = b;
             }
 
-
             return this.updateValue31(a, b);
           }
-
 
           /*
             g.k.update = function(a) {
@@ -4685,7 +4418,6 @@
             }
           */
 
-
         }
 
 
@@ -4697,9 +4429,7 @@
     })();
 
 
-
     FIX_Animation_n_timeline && (async () => {
-
 
       const [timeline, Animation] = await Promise.all([timelineObservable.obtain(), animationObservable.obtain()]);
 
@@ -5171,7 +4901,7 @@
           }
         }
 
-        removeAdd(key){
+        removeAdd(key) {
           super.delete(key);
           super.add(key);
         }
@@ -5384,7 +5114,7 @@
                 if (mpKey22 === a && mpUrl22 === videoPlayingId && mpUrl22 && videoPlayingId && (!pageSetupVideoId || pageSetupVideoId === videoPlayingId)) {
                   update21 = true;
                 } else if (mpKey22 === a && mpUrl22 !== pageSetupVideoId) {
-                  LOG_FETCHMETA_UPDATE && continuationLog(mpKey22, '5060 mpUrl22 mismatched', mpKey22, mpUrl22, pageSetupVideoId  || '(null)' , videoPlayingId  || '(null)' );
+                  LOG_FETCHMETA_UPDATE && continuationLog(mpKey22, '5060 mpUrl22 mismatched', mpKey22, mpUrl22, pageSetupVideoId || '(null)', videoPlayingId || '(null)');
                   return;
                 }
                 if (update21) {
@@ -5394,7 +5124,7 @@
 
                 if (!mfvContinuationRecorded.has(a)) mfvContinuationRecorded.add(a);
               }
-              LOG_FETCHMETA_UPDATE && continuationLog(a, '5180 fetchUpdatedMetadata\t', a, pageSetupVideoId || '(null)' , videoPlayingY.videoId  || '(null)' );
+              LOG_FETCHMETA_UPDATE && continuationLog(a, '5180 fetchUpdatedMetadata\t', a, pageSetupVideoId || '(null)', videoPlayingY.videoId || '(null)');
               // if (!pageSetupVideoId && typeof a === 'string' && a.length > 40) return; // ignore incorrect continuation
               // if(a === mjtNextMainKey) allowNoDelay322 = false;
               return this.fetchUpdatedMetadata718(a);
@@ -5714,7 +5444,7 @@
 
               }
 
-              if (typeof lztContinuation === 'string' && lztContinuation && (pageSetupVideoId || videoPlayingY.videoId) ) {
+              if (typeof lztContinuation === 'string' && lztContinuation && (pageSetupVideoId || videoPlayingY.videoId)) {
                 mpKey22 = lztContinuation;
                 mpUrl22 = pageSetupVideoId || videoPlayingY.videoId;
               }
@@ -5898,8 +5628,6 @@
 
   });
 
-
-  setupEvents();
 
 
 
