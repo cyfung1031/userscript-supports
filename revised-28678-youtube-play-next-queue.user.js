@@ -241,8 +241,8 @@
         }
 
         function isPlayerAvailable() {
-            script.ytplayer =  getVideoPlayer();
-            return script.ytplayer !== null && !!script.ytplayer.getVideoData().video_id;
+            script.ytplayer = getVideoPlayer();
+            return script.ytplayer && typeof script.ytplayer.getVideoData === 'function' && script.ytplayer.getVideoData().video_id;
         }
 
         function isPlaylist() {
@@ -939,7 +939,7 @@ ytd-thumbnail-overlay-toggle-button-renderer[aria-label=Queued] { display: none;
 
         function isPlayerAvailable() {
             script.ytplayer = getVideoPlayer();
-            return script.ytplayer !== null && script.ytplayer.getVideoData().video_id;
+            return script.ytplayer && typeof script.ytplayer.getVideoData === 'function' && script.ytplayer.getVideoData().video_id;
         }
 
         function isPlaylist() {
