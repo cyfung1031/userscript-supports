@@ -1,0 +1,46 @@
+/* ==UserStyle==
+@name           LIHKG Smooth Drawer
+@namespace      github.com/openstyles/stylus
+@version        1.0.0
+@description    A new userstyle
+==/UserStyle== */
+
+@-moz-document url-prefix("https://lihkg.com/") {
+    
+    b[class]:first-child:empty{
+        opacity: var(--lihkg-opacity, 0) !important;
+        transition: opacity 0ms;
+    }
+    b[class]:first-child:empty+div[class]:last-child[style^="left:"]{
+        left: 0px !important;
+        transition: margin-left 0ms;
+        margin-left: var(--lihkg-margin-left, -280px);
+       
+    }
+    
+    
+    div:not([class$=" "]){
+        --lihkg-opacity: 1;
+    }
+    div[class$=" "]{
+        --lihkg-opacity: 0;
+    }
+     
+    div:not([class$=" "]) > b[class]:first-child:empty+div[class]:last-child[style="left: -280px;"]{
+        --lihkg-margin-left: -280px;
+    }
+    div:not([class$=" "]) > b[class]:first-child:empty+div[class]:last-child:not([style="left: -280px;"]){
+        --lihkg-margin-left: 0px;
+    }
+    
+    
+    div[class$=" "] > b[class]:first-child:empty+div[class]:last-child[style="left: 0px;"]{
+        --lihkg-margin-left: 0px;
+    }
+    div[class$=" "] > b[class]:first-child:empty+div[class]:last-child:not([style="left: 0px;"]){
+        --lihkg-margin-left: -280px;
+    }
+    
+    
+    /* Insert code here... */
+}

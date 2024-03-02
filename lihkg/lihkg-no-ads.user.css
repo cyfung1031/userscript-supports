@@ -1,0 +1,14 @@
+/* ==UserStyle==
+@name           LIHKG NO ADS
+@namespace      github.com/openstyles/stylus
+@version        1.0.0
+@description    A new userstyle
+==/UserStyle== */
+
+@-moz-document domain("lihkg.com") {
+    
+    script[src*="https://pb.lihkg.com/"], iframe[src*="https://pb.lihkg.com/"] {
+        display: none !important;
+    }
+    /* Insert code here... */
+}
