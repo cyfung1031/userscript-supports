@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.28.1
+// @version             2024.03.04.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -258,45 +258,34 @@ SOFTWARE.
     };
 
     /** @type {(resolve: () => void)}  */
-    const infiniteLooper = getRAFHelper(); // rAF will not execute if document is hidden
+    const rafPN = getRAFHelper(); // rAF will not execute if document is hidden
 
     (() => {
-      let afPromiseP = null;
-      let afPromiseQ = null;
+      let afPromiseP, afPromiseQ; // non-null
+      afPromiseP = afPromiseQ = { resolved: true }; // initial state for !rP && !rQ
       let afix = 0;
+      const afResolve = async (rX) => {
+        await new Promise(rafPN);
+        rX.resolved = true;
+        const t = ++afix;
+        if (t > 9e9) afix = 9;
+        return rX.resolve(t), t;
+      };
       const eFunc = async () => {
-        const rP = afPromiseP && !afPromiseP.resolved ? afPromiseP : null;
-        const rQ = afPromiseQ && !afPromiseQ.resolved ? afPromiseQ : null;
-        let t = 0, t1, t2;
-        if (rP && rQ) {
-          t1 = await rP;
-          t2 = await rQ;
-          t = t1 > t2 ? t1 : t2;
-        } else if (!rP && !rQ) {
-          const promise = afPromiseP = new PromiseExternal();
-          const promise2 = afPromiseQ = new PromiseExternal();
-          await new Promise(infiniteLooper);
-          const tmp = new Promise(infiniteLooper);
-          promise.resolved = true;
-          promise.resolve(t1 = ++afix);
-          await tmp;
-          promise2.resolved = true;
-          promise2.resolve(t2 = ++afix);
-          t = t2;
-        } else if (!rP && rQ) {
-          const promise = afPromiseP = new PromiseExternal();
-          t2 = await rQ;
-          await new Promise(infiniteLooper);
-          promise.resolved = true;
-          promise.resolve(t1 = ++afix);
-          t = t1;
-        } else if (rP && !rQ) {
-          const promise = afPromiseQ = new PromiseExternal();
-          t1 = await rP;
-          await new Promise(infiniteLooper);
-          promise.resolved = true;
-          promise.resolve(t2 = ++afix);
-          t = t2;
+        const uP = !afPromiseP.resolved ? afPromiseP : null;
+        const uQ = !afPromiseQ.resolved ? afPromiseQ : null;
+        let t = 0;
+        if (uP && uQ) {
+          const t1 = await uP;
+          const t2 = await uQ;
+          t = t1 > t2 && t1 - t2 < 8e9 ? t1 : t2;
+        } else {
+          const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
+          const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;
+          if (uP) await uP;
+          if (uQ) await uQ;
+          if (vP) t = await afResolve(vP);
+          if (vQ) t = await afResolve(vQ);
         }
         return t;
       }
@@ -311,12 +300,12 @@ SOFTWARE.
               try {
                 inExec.add(cid);
                 const t = await eFunc();
-                if (!inExec.has(cid)) return;
-                inExec.delete(cid);
-                if (t !== lastExecution) {
-                  lastExecution = t;
-                  if (afix > 1e9) afix = 9;
-                  handler();
+                if (inExec.has(cid)) {
+                  inExec.delete(cid);
+                  if (t !== lastExecution) {
+                    lastExecution = t;
+                    handler();
+                  }
                 }
               } catch (e) {
                 console.error(e);
@@ -334,14 +323,12 @@ SOFTWARE.
 
       const dFunc = (propFunc) => {
         return (cid) => {
-          if (typeof cid === 'number') { // number cid only
-            if (inExec.has(cid)) inExec.delete(cid);
-            else return propFunc(cid);
-          } else {
+          if (typeof cid !== 'number' || !inExec.has(cid)) {
             return propFunc(cid);
           }
+          inExec.delete(cid);
         };
-      }
+      };
 
       win.clearTimeout = dFunc(clearTimeout);
       win.clearInterval = dFunc(clearInterval);
@@ -349,8 +336,8 @@ SOFTWARE.
       try {
         win.setTimeout.toString = setTimeout.toString.bind(setTimeout)
         win.setInterval.toString = setInterval.toString.bind(setInterval)
-        // win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout)
-        // win.clearInterval.toString = clearInterval.toString.bind(clearInterval)
+        win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout)
+        win.clearInterval.toString = clearInterval.toString.bind(clearInterval)
       } catch (e) { console.warn(e) }
 
     })();
