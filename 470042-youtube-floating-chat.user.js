@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            YouTube: Floating Chat Window on Fullscreen
 // @namespace       UserScript
-// @version         0.5.1
+// @version         0.5.2
 // @license         MIT License
 // @author          CY Fung
 // @match           https://www.youtube.com/*
@@ -285,6 +285,7 @@
     [floating-chat-window]:fullscreen ytd-live-chat-frame#chat:not([collapsed]) #show-hide-button.ytd-live-chat-frame>ytd-toggle-button-renderer.ytd-live-chat-frame {
       background: transparent;
     }
+
   
     :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] [role="text"] {
       display: none;
@@ -292,6 +293,14 @@
   
     :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] button::before {
       content:'ϞϞϞϞϞϞϞϞϞϞϞ';
+    }
+
+    ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] {
+      display: var(--chat-show-button-display, none);
+    }
+
+    :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] {
+      --chat-show-button-display: invalid;
     }
   
   
