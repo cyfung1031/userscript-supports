@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.03.04.1
+// @version             2024.03.04.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -283,7 +283,7 @@ SOFTWARE.
           const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
           const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;
           if (uP) await uP;
-          if (uQ) await uQ;
+          else if (uQ) await uQ;
           if (vP) t = await afResolve(vP);
           if (vQ) t = await afResolve(vQ);
         }
