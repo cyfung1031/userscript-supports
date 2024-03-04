@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            YouTube: Floating Chat Window on Fullscreen
 // @namespace       UserScript
-// @version         0.5.2
+// @version         0.5.3
 // @license         MIT License
 // @author          CY Fung
 // @match           https://www.youtube.com/*
@@ -286,21 +286,22 @@
       background: transparent;
     }
 
+    :fullscreen ytd-live-chat-frame#chat:not([collapsed]) {
+        --chat-show-button-display: block;
+        --chat-show-text-display: none;
+        --chat-show-btn-text: 'ϞϞϞϞϞϞϞϞϞϞϞ';
+    }
   
     :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] [role="text"] {
-      display: none;
+      display: var(--chat-show-text-display);
     }
   
     :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] button::before {
-      content:'ϞϞϞϞϞϞϞϞϞϞϞ';
+      content: var(--chat-show-btn-text);
     }
 
-    ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] {
-      display: var(--chat-show-button-display, none);
-    }
-
-    :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button] {
-      --chat-show-button-display: invalid;
+    :fullscreen ytd-live-chat-frame#chat:not([collapsed]) [is-show-button][hidden] {
+      display: var(--chat-show-button-display) !important;
     }
   
   
@@ -1087,6 +1088,7 @@
                 const chatWindow = chatWindowWR ? kRef(chatWindowWR) : null;
 
                 if (!(chatWindow instanceof Element)) return;
+                if (chatWindow.hasAttribute('collapsed')) return;
                 const chatWindowCnt = insp(chatWindow);
 
                 if (!chatWindowCnt) return;
@@ -1094,12 +1096,13 @@
                 const btn = HTMLElement.prototype.querySelector.call(chatWindow, '#show-hide-button[hidden]')
                 if (!btn) return;
 
-                btn.removeAttribute('hidden');
-                const liveChatRenderer = ((chatWindowCnt || 0).data || 0).liveChatRenderer || 0;
-                if (liveChatRenderer && liveChatRenderer.showButton && !liveChatRenderer.showHideButton) {
-
-
-                    btn.setAttribute('is-show-button', '')
+                if (btn && filteroutHidden(chatWindow)) {
+                    const liveChatRenderer = ((chatWindowCnt || 0).data || 0).liveChatRenderer || 0;
+                    if (liveChatRenderer && liveChatRenderer.showButton && !liveChatRenderer.showHideButton) {
+                        btn.setAttribute('is-show-button', '')
+                    } else {
+                        btn.removeAttribute('is-show-button')
+                    }
                 }
 
             });
@@ -1165,14 +1168,14 @@
             else if (showButton) showButton.removeEventListener("mousedown", initializeMove, false);
 
             if (chat) {
-                mutationObserver.observe(chat, { attributes: true, attributeFilter: ['collapsed'] });
+                mutationObserver.observe(chat, { attributes: true, attributeFilter: ['collapsed', 'hidden'] });
                 mutationObserverFn();
             }
 
 
             chatWindow = chat;
-            showHideButton = filteroutHidden(HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
-            showButton = filteroutHidden(HTMLElement.prototype.querySelector.call(chat, '#show-button'));
+            showHideButton = (HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
+            showButton = (HTMLElement.prototype.querySelector.call(chat, '#show-button'));
             chatWindowWR = mWeakRef(chat)
             showHideButtonWR = mWeakRef(showHideButton);
             showButtonWR = mWeakRef(showButton);
@@ -1222,8 +1225,8 @@
             chat.removeEventListener("mousedown", initializeResize, false);
 
 
-            showHideButton = filteroutHidden(HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
-            showButton = filteroutHidden(HTMLElement.prototype.querySelector.call(chat, '#show-button'));
+            showHideButton = (HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
+            showButton = (HTMLElement.prototype.querySelector.call(chat, '#show-button'));
 
             if (showHideButton) showHideButton.removeEventListener("mousedown", initializeMove, false);
             else if (showButton) showButton.removeEventListener("mousedown", initializeMove, false);
