@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.11
+// @version     0.11.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -72,7 +72,7 @@
 
   const LOG_FETCHMETA_UPDATE = false;
 
-  const IGNORE_bufferhealth_CHECK = true; // experimental
+  const IGNORE_bufferhealth_CHECK = false; // experimental; true will make "Stats for nerds" no info.
 
   const DENY_requestStorageAccess = true; // remove document.requestStorageAccess
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
