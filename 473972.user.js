@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.12
+// @version     0.11.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -155,7 +155,7 @@
     if (DENY_requestStorageAccess) {
       // https://developer.mozilla.org/en-US/docs/Web/API/Document/requestStorageAccessFor
       Document.prototype.requestStorageAccessFor = undefined;
-      console.log('requestStorageAccessFor is removed by YouTube JS Engine Tamer');
+      console.log('YouTube JS Engine Tamer', 'requestStorageAccessFor is removed.');
     } else if (DISABLE_IFRAME_requestStorageAccess && window !== top) {
       Document.prototype.requestStorageAccessFor = function () {
         return new Promise((resolve, reject) => {
@@ -268,7 +268,7 @@
           } else if (this.__xmMc8__ === 2) {
             return super.send();
           } else {
-            console.log('xhr warning');
+            console.log('YouTube JS Engine Tamer', 'xhr warning');
             return super.send(...args);
           }
         }
@@ -3134,67 +3134,67 @@
     });
 
 
-    class RAFHub {
-      constructor() {
-        /** @type {number} */
-        this.startAt = 8170;
-        /** @type {number} */
-        this.counter = 0;
-        /** @type {number} */
-        this.rid = 0;
-        /** @type {Map<number, FrameRequestCallback>} */
-        this.funcs = new Map();
-        const funcs = this.funcs;
-        /** @type {FrameRequestCallback} */
-        this.bCallback = this.mCallback.bind(this);
-        this.pClear = () => funcs.clear();
-      }
-      /** @param {DOMHighResTimeStamp} highResTime */
-      mCallback(highResTime) {
-        this.rid = 0;
-        Promise.resolve().then(this.pClear);
-        this.funcs.forEach(func => Promise.resolve(highResTime).then(func).catch(console.warn));
-      }
-      /** @param {FrameRequestCallback} f */
-      request(f) {
-        if (this.counter > 1e9) this.counter = 9;
-        let cid = this.startAt + (++this.counter);
-        this.funcs.set(cid, f);
-        if (this.rid === 0) {
-          console.log(2455)
-          this.rid = requestAnimationFrame(this.bCallback);
-        }
-        return cid;
-      }
-      /** @param {number} cid */
-      cancel(cid) {
-        cid = +cid;
-        if (cid > 0) {
-          if (cid <= this.startAt) {
-            return cancelAnimationFrame(cid);
-          }
-          if (this.rid > 0) {
-            this.funcs.delete(cid);
-            if (this.funcs.size === 0) {
-              cancelAnimationFrame(this.rid);
-              this.rid = 0;
-            }
-          }
-        }
-      }
-      /** @param {number} cid */
-      /** @param {FrameRequestCallback} f */
-      replaceFunc(cid, f) {
-        if (typeof this.funcs.get(cid) === 'function') {
-          this.funcs.set(cid, f);
-          return cid;
-        } else {
-          let r = this.request(f);
-          this.cancel(cid);
-          return r;
-        }
-      }
-    }
+    // class RAFHub {
+    //   constructor() {
+    //     /** @type {number} */
+    //     this.startAt = 8170;
+    //     /** @type {number} */
+    //     this.counter = 0;
+    //     /** @type {number} */
+    //     this.rid = 0;
+    //     /** @type {Map<number, FrameRequestCallback>} */
+    //     this.funcs = new Map();
+    //     const funcs = this.funcs;
+    //     /** @type {FrameRequestCallback} */
+    //     this.bCallback = this.mCallback.bind(this);
+    //     this.pClear = () => funcs.clear();
+    //   }
+    //   /** @param {DOMHighResTimeStamp} highResTime */
+    //   mCallback(highResTime) {
+    //     this.rid = 0;
+    //     Promise.resolve().then(this.pClear);
+    //     this.funcs.forEach(func => Promise.resolve(highResTime).then(func).catch(console.warn));
+    //   }
+    //   /** @param {FrameRequestCallback} f */
+    //   request(f) {
+    //     if (this.counter > 1e9) this.counter = 9;
+    //     let cid = this.startAt + (++this.counter);
+    //     this.funcs.set(cid, f);
+    //     if (this.rid === 0) {
+    //       // console.log(2455)
+    //       this.rid = requestAnimationFrame(this.bCallback);
+    //     }
+    //     return cid;
+    //   }
+    //   /** @param {number} cid */
+    //   cancel(cid) {
+    //     cid = +cid;
+    //     if (cid > 0) {
+    //       if (cid <= this.startAt) {
+    //         return cancelAnimationFrame(cid);
+    //       }
+    //       if (this.rid > 0) {
+    //         this.funcs.delete(cid);
+    //         if (this.funcs.size === 0) {
+    //           cancelAnimationFrame(this.rid);
+    //           this.rid = 0;
+    //         }
+    //       }
+    //     }
+    //   }
+    //   /** @param {number} cid */
+    //   /** @param {FrameRequestCallback} f */
+    //   replaceFunc(cid, f) {
+    //     if (typeof this.funcs.get(cid) === 'function') {
+    //       this.funcs.set(cid, f);
+    //       return cid;
+    //     } else {
+    //       let r = this.request(f);
+    //       this.cancel(cid);
+    //       return r;
+    //     }
+    //   }
+    // }
 
 
     //     WEAK_REF_BINDING && (async () => {
@@ -3720,22 +3720,22 @@
             if (b) {
               a.addEventListener('canplay', (evt) => {
                 const a = evt.target;
-                console.log(`video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                console.log('YouTube JS Engine Tamer', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                 if (a.currentTime < 1e-8 && a.currentTime > -1e-9 && a.autoplay === false) a.currentTime += 1e-8;
               }, { once: true, passive: true, capture: false });
               a.addEventListener('timeupdate', (evt) => {
                 const a = evt.target;
-                console.log(`video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                console.log('YouTube JS Engine Tamer', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                 if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
                   try {
                     URL.revokeObjectURL(src);
                   } finally {
-                    console.log(`video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                    console.log('YouTube JS Engine Tamer', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                   }
                 }
               }, { once: true, passive: true, capture: false });
             }
-            console.log(`video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
+            console.log('YouTube JS Engine Tamer', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
           } catch (e) {
             console.log(e);
           }
@@ -5219,7 +5219,7 @@
               this.fetchUpdatedMetadata717(a);
             }, delay);
 
-            console.log('5190 delayed fetchUpdatedMetadata', delay);
+            console.log('YouTube JS Engine Tamer', '5190 delayed fetchUpdatedMetadata', delay);
 
           }
 
@@ -5245,7 +5245,7 @@
 
               // console.log('fum377', a)
               if (typeof a === 'string' && mfyContinuationIgnored.has(a)) {
-                console.log('5040 skip fetchUpdatedMetadata', a);
+                console.log('YouTube JS Engine Tamer', '5040 skip fetchUpdatedMetadata', a);
                 return;
               }
 
@@ -5320,7 +5320,7 @@
               const taskMgr = this.__getEmittorTaskMgr859__();
               if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714 && taskMgr.addJob && taskMgr.cancelJob) setup_ytTaskEmitterBehavior_TaskMgr374(taskMgr);
               if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714) {
-                console.log('YouTube Super Fast Chat', 'scheduleInitialUpdatedMetadataRequest error 507');
+                console.log('YouTube JS Engine Tamer', 'scheduleInitialUpdatedMetadataRequest error 507');
               }
 
               // prevent depulicated schedule job by clearing previous JobId
@@ -5354,7 +5354,7 @@
                 return res;
 
               } else {
-                console.log('YouTube Super Fast Chat', 'scheduleInitialUpdatedMetadataRequest error 601');
+                console.log('YouTube JS Engine Tamer', 'scheduleInitialUpdatedMetadataRequest error 601');
               }
 
             } catch (e) {
