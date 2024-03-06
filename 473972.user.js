@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.10
+// @version     0.11.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4183,14 +4183,19 @@
           'padding': new WeakMap(),
         }
 
-        g[k] = function (a, b, c) {
+        const modifiedFn = (a, b, c) => {
 
           // console.log(140000, a, b, c);
+          if (typeof c === 'number') {
+            const num = c;
+            c = `${num}`;
+            if (c.length > 5) c = `${num.toFixed(3)}`;
+          }
 
-          if(typeof c === 'string' && a instanceof HTMLElement){
+          if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
 
             if (b === "transform") {
- 
+
               const a_ = a;
               elmTransformSet.set(a_, c);
               nextBrowserTick(() => {
@@ -4200,7 +4205,7 @@
                 zoTransform(a_, c_);
               });
               return;
-  
+
             } else if (b === "display") {
 
               const a_ = a;
@@ -4208,20 +4213,20 @@
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
               // nextBrowserTick(() => {  // applying nextBrowserTick to 'display', 'width', 'height' to be confirmed
-                const c_ = elmPropSet.get(a_);
-                if (c_ === undefined) {
-                  // mostly width & height
-                  return;
-                }
-                elmPropSet.delete(a_);
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
+              const c_ = elmPropSet.get(a_);
+              if (c_ === undefined) {
+                // mostly width & height
+                return;
+              }
+              elmPropSet.delete(a_);
+              const style = a.style;
+              const cv = style[b_];
+              if (!cv && !c) return;
+              if (cv === c) return;
+              style[b_] = c;
               // });
               return;
-  
+
             } else if (b === "width" || b === "height") {
 
               const a_ = a;
@@ -4239,10 +4244,10 @@
                 style[b_] = c;
               });
               return;
-  
-           
+
+
             } else if (b === "outline-width") {
-  
+
               const a_ = a;
               const b_ = 'outlineWidth';
               const elmPropSet = elmPropSets[b_];
@@ -4258,8 +4263,8 @@
                 style[b_] = c;
               });
               return;
-  
-             
+
+
             } else if (b === "position" || b === "padding") {
 
               const a_ = a;
@@ -4267,17 +4272,17 @@
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
               // nextBrowserTick(() => {  // applying nextBrowserTick to 'position', 'padding' to be confirmed
-                const c_ = elmPropSet.get(a_);
-                if (c_ === undefined) return;
-                elmPropSet.delete(a_);
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
+              const c_ = elmPropSet.get(a_);
+              if (c_ === undefined) return;
+              elmPropSet.delete(a_);
+              const style = a.style;
+              const cv = style[b_];
+              if (!cv && !c) return;
+              if (cv === c) return;
+              style[b_] = c;
               // });
               return;
-  
+
             } else {
               // cssText, right
               // console.log(5991, a,b,c)
@@ -4285,11 +4290,14 @@
 
             attrUpdateFn.call(this, a, b, c);
             return;
-          } else {
+          } else if (typeof (b || 0) === 'object') {
 
-            if ((b || 0).transform !== undefined) {
-              console.log(2188, b)
+            for (const [k, v] of Object.entries(b)) {
+              modifiedFn(a, k, v);
             }
+
+          } else {
+            console.log(2199, a, b, c);
 
             attrUpdateFn.call(this, a, b, c);
             return;
@@ -4297,7 +4305,8 @@
 
           // console.log(130000, a, b, c);
 
-        }
+        };
+        g[k] = modifiedFn;
 
 
         /*
