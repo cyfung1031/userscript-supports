@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.15
+// @version     0.11.16
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4174,8 +4174,8 @@
 
         };
 
-        const elmTransformSet = new WeakMap();
-        const elmPropSets = {
+        const elmTransformTemp = new WeakMap();
+        const elmPropTemps = {
           'display': new WeakMap(),
           'width': new WeakMap(),
           'height': new WeakMap(),
@@ -4187,6 +4187,11 @@
           "left": new WeakMap(),
           "top": new WeakMap(),
           "bottom": new WeakMap(),
+          "transitionDelay": new WeakMap(),
+          "marginLeft": new WeakMap(),
+          "marginTop": new WeakMap(),
+          "marginRight": new WeakMap(),
+          "marginBottom": new WeakMap(),
         }
 
         const ns5 = Symbol();
@@ -4218,38 +4223,17 @@
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
 
+            const elmPropSet = elmPropTemps[b];
+
             if (b === "transform") {
 
-              nextModify(a, c, elmTransformSet, zoTransform);
+              nextModify(a, c, elmTransformTemp, zoTransform);
               return;
 
-            } else if (b === "display") {
-
-              /*
-              const b_ = b;
-              const style = a.style;
-              const cv = style[b_];
-              if (!cv && !c) return;
-              if (cv === c) return;
-              style[b_] = c;
-              return;
-              */
+            } else if (elmPropSet) {
 
               const b_ = b;
-              const elmPropSet = elmPropSets[b_];
-              nextModify(a, c, elmPropSet, (a, c) => {
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-              });
-              return;
-
-            } else if (b === "width" || b === "height") {
-
-              const b_ = b;
-              const elmPropSet = elmPropSets[b_];
+              const elmPropSet = elmPropTemps[b_];
               nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
@@ -4261,8 +4245,8 @@
 
             } else if (b === "outline-width") {
 
-              const b_ = b;
-              const elmPropSet = elmPropSets[b_];
+              const b_ = 'outlineWidth';
+              const elmPropSet = elmPropTemps[b_];
               nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
@@ -4272,9 +4256,9 @@
               });
               return;
 
-            } else if (b === "position" || b === "padding") {
+            } else if (b === 'maxWidth' || b === 'maxHeight') {
+              // I think these can be directly assigned.
 
-              /*
               const b_ = b;
               const style = a.style;
               const cv = style[b_];
@@ -4282,34 +4266,8 @@
               if (cv === c) return;
               style[b_] = c;
               return;
-              */
-
-              const b_ = b;
-              const elmPropSet = elmPropSets[b_];
-              nextModify(a, c, elmPropSet, (a, c) => {
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-              });
-              return;
-            } else if (b === "cssText" || b === "right" || b === "left" || b === "top" || b === "bottom") {
-
-
-              const b_ = b;
-              const elmPropSet = elmPropSets[b_];
-              nextModify(a, c, elmPropSet, (a, c) => {
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-              });
-              return;
 
             } else {
-              // cssText, right
               console.log(27304, a, b, c)
             }
 
