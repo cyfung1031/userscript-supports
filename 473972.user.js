@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.17
+// @version     0.11.18
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -156,7 +156,7 @@
     if (DENY_requestStorageAccess) {
       // https://developer.mozilla.org/en-US/docs/Web/API/Document/requestStorageAccessFor
       Document.prototype.requestStorageAccessFor = undefined;
-      console.log('YouTube JS Engine Tamer', 'requestStorageAccessFor is removed.');
+      console.log('[yt-js-engine-tamer]', 'requestStorageAccessFor is removed.');
     } else if (DISABLE_IFRAME_requestStorageAccess && window !== top) {
       Document.prototype.requestStorageAccessFor = function () {
         return new Promise((resolve, reject) => {
@@ -269,7 +269,7 @@
           } else if (this.__xmMc8__ === 2) {
             return super.send();
           } else {
-            console.log('YouTube JS Engine Tamer', 'xhr warning');
+            console.log('[yt-js-engine-tamer]', 'xhr warning');
             return super.send(...args);
           }
         }
@@ -2079,7 +2079,7 @@
 
   const keyStConnectedCallback = Symbol(); // avoid copying the value
 
-  const keyStDisconnectedCallback = Symbol(); // avoid copying the value
+  // const keyStDisconnectedCallback = Symbol(); // avoid copying the value
   const cmf = new WeakMap();
   const dmf = new WeakMap();
 
@@ -3721,22 +3721,22 @@
             if (b) {
               a.addEventListener('canplay', (evt) => {
                 const a = evt.target;
-                console.log('YouTube JS Engine Tamer', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                console.log('[yt-js-engine-tamer]', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                 if (a.currentTime < 1e-8 && a.currentTime > -1e-9 && a.autoplay === false) a.currentTime += 1e-8;
               }, { once: true, passive: true, capture: false });
               a.addEventListener('timeupdate', (evt) => {
                 const a = evt.target;
-                console.log('YouTube JS Engine Tamer', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                console.log('[yt-js-engine-tamer]', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                 if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
                   try {
                     URL.revokeObjectURL(src);
                   } finally {
-                    console.log('YouTube JS Engine Tamer', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+                    console.log('[yt-js-engine-tamer]', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
                   }
                 }
               }, { once: true, passive: true, capture: false });
             }
-            console.log('YouTube JS Engine Tamer', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
+            console.log('[yt-js-engine-tamer]', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
           } catch (e) {
             console.log(e);
           }
@@ -4220,22 +4220,25 @@
           if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
             const num = c;
             c = `${num}`;
-            if (c.length > 5 && num < 1e9 && num > -1e9) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
+            if (c.length > 5) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
           }
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
 
-            const elmPropSet = elmPropTemps[b];
+            let elmPropSet = null;
 
             if (b === "transform") {
 
               nextModify(a, c, elmTransformTemp, zoTransform);
               return;
 
-            } else if (elmPropSet) {
+            } else if (elmPropSet = elmPropTemps[b]) {
+
+              // if (c.length > 5 && c.includes('.')) {
+              //   console.log(123213, c)
+              // }
 
               const b_ = b;
-              const elmPropSet = elmPropTemps[b_];
               nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
@@ -4248,7 +4251,7 @@
             } else if (b === "outline-width") {
 
               const b_ = 'outlineWidth';
-              const elmPropSet = elmPropTemps[b_];
+              elmPropSet = elmPropTemps[b_];
               nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
@@ -4276,10 +4279,7 @@
               // console.log(27304, a, b, c)
               if (!set66.has(b)) {
                 set66.add(b);
-                if (a.classList.contains('caption-window') || a.classList.contains('ytp-caption-segment')) {
-
-                } else {
-
+                if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
                   console.log(27304, a, b, c)
                 }
               }
@@ -5216,7 +5216,7 @@
               this.fetchUpdatedMetadata717(a);
             }, delay);
 
-            console.log('YouTube JS Engine Tamer', '5190 delayed fetchUpdatedMetadata', delay);
+            console.log('[yt-js-engine-tamer]', '5190 delayed fetchUpdatedMetadata', delay);
 
           }
 
@@ -5242,7 +5242,7 @@
 
               // console.log('fum377', a)
               if (typeof a === 'string' && mfyContinuationIgnored.has(a)) {
-                console.log('YouTube JS Engine Tamer', '5040 skip fetchUpdatedMetadata', a);
+                console.log('[yt-js-engine-tamer]', '5040 skip fetchUpdatedMetadata', a);
                 return;
               }
 
@@ -5317,7 +5317,7 @@
               const taskMgr = this.__getEmittorTaskMgr859__();
               if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714 && taskMgr.addJob && taskMgr.cancelJob) setup_ytTaskEmitterBehavior_TaskMgr374(taskMgr);
               if (FIX_avoid_incorrect_video_meta_emitterBehavior && taskMgr && !taskMgr.addJob714) {
-                console.log('YouTube JS Engine Tamer', 'scheduleInitialUpdatedMetadataRequest error 507');
+                console.log('[yt-js-engine-tamer]', 'scheduleInitialUpdatedMetadataRequest error 507');
               }
 
               // prevent depulicated schedule job by clearing previous JobId
@@ -5351,7 +5351,7 @@
                 return res;
 
               } else {
-                console.log('YouTube JS Engine Tamer', 'scheduleInitialUpdatedMetadataRequest error 601');
+                console.log('[yt-js-engine-tamer]', 'scheduleInitialUpdatedMetadataRequest error 601');
               }
 
             } catch (e) {
