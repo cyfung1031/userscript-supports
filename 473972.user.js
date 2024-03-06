@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.9
+// @version     0.11.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4072,299 +4072,231 @@
 
       if (keyzo) {
 
-        k = keyzo
-
-        /*
-        const setCSSProp = (() => {
-
-          let animationPropCapable = false;
-          try {
-            const propName = "--ibxpf"
-            const value = 2;
-            const keyframes = [{
-              [propName]: value
-            }];
-            window.CSS.registerProperty({
-              name: "--ibxpf",
-              syntax: "<number>",
-              inherits: false,
-              initialValue: 1,
-            });
-            animationPropCapable = '1' === `${getComputedStyle(document.documentElement).getPropertyValue('--ibxpf')}`
-          } catch (e) { }
-
-          if (!animationPropCapable) {
-            return (element, cssProp, value) => {
-
-
-              element.style.setProperty(cssProp, value);
-
-            }
-          }
-
-          const propMaps = new Map();
-
-          function setCustomCSSProperty(element, propName, value) {
-            let wm = propMaps.get(propName);
-            if (!wm) {
-
-              try {
-                window.CSS.registerProperty({
-                  name: propName,
-                  syntax: "*",
-                  inherits: false
-                });
-              } catch (e) {
-                console.warn(e);
-              }
-
-              propMaps.set(propName, (wm = new WeakMap()));
-            }
-
-            // Create the animation keyframes with the provided property and value
-            const keyframes = [{
-              [propName]: value
-            }];
-
-            let currentAnimation = wm.get(element);
-            if (currentAnimation) {
-
-              currentAnimation.effect.setKeyframes(keyframes);
-
-            } else {
-
-
-
-              // Set the animation on the element and immediately pause it
-              const animation = animate.call(element, keyframes, {
-                duration: 1, // Very short duration as we just want to set the value
-                fill: 'forwards',
-                iterationStart: 1,
-                iterations: 2,
-                direction: 'alternate'
-              });
-
-
-              // animation.currentTime = 1;
-              animation.pause();
-
-              wm.set(element, animation);
-
-
-            }
-
-          }
-
-          return setCustomCSSProperty;
-
-
-        })();
-        */
-
+        k = keyzo;
 
         const attrUpdateFn = g[k];
+        // console.log(5992, attrUpdateFn)
         g['$$original$$' + k] = attrUpdateFn;
-        g[k] = function (a, b, c) {
-
-          // console.log(140000, a, b, c);
+        const zoTransform = async (a, c) => {
 
           let transformType = '';
           let transformValue = 0;
           let transformUnit = '';
+          let transformTypeI = 0;
 
-          let byPassDefaultFn = false;
-          if (b === "transform" && typeof c === 'string') {
+          const aStyle = a.style;
 
-            byPassDefaultFn = true;
+          if (c.length < 9) {
 
-            const aStyle = a.style;
-
-            // let beforeMq = aStyle.getPropertyValue('--mq-transform');
-            if (!(a instanceof HTMLElement)) return;
-            if (c.length === 0) {
-
-            } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1 + 1e-5) {
-                transformType = 'scalex'
-                transformValue = q;
-                transformUnit = '';
-              }
-
-
-            } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
-
-              let p = c.substring(11, c.length - 3);
-              let q = p.length >= 1 ? parseFloat(p) : NaN;
-
-              if (typeof q === 'number' && !isNaN(q)) {
-                transformType = 'translateX'
-                transformValue = q;
-                transformUnit = 'px';
-              }
-
-
-            } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1 + 1e-5) {
-                transformType = 'scaley'
-                transformValue = q;
-                transformUnit = '';
-              }
-
-
-            } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
-
-              let p = c.substring(11, c.length - 3);
-              let q = p.length >= 1 ? parseFloat(p) : NaN;
-
-              if (typeof q === 'number' && !isNaN(q)) {
-                transformType = 'translateY'
-                transformValue = q;
-                transformUnit = 'px';
-              }
-
-
+          } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
+            let p = c.substring(7, c.length - 1);
+            let q = p.length >= 1 ? parseFloat(p) : -1;
+            if (q > -1e-5 && q < 1 + 1e-5) {
+              transformType = 'scaleX'
+              transformValue = q;
+              transformUnit = '';
+              transformTypeI = 1;
             }
+          } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
+            let p = c.substring(11, c.length - 3);
+            let q = p.length >= 1 ? parseFloat(p) : NaN;
+            if (typeof q === 'number' && !isNaN(q)) {
+              transformType = 'translateX'
+              transformValue = q;
+              transformUnit = 'px';
+              transformTypeI = 2;
+            } else if (p === 'NaN') {
+              return;
+            }
+          } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
+            let p = c.substring(7, c.length - 1);
+            let q = p.length >= 1 ? parseFloat(p) : -1;
+            if (q > -1e-5 && q < 1 + 1e-5) {
+              transformType = 'scaleY'
+              transformValue = q;
+              transformUnit = '';
+              transformTypeI = 1;
+            }
+          } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
+            let p = c.substring(11, c.length - 3);
+            let q = p.length >= 1 ? parseFloat(p) : NaN;
+            if (typeof q === 'number' && !isNaN(q)) {
+              transformType = 'translateY'
+              transformValue = q;
+              transformUnit = 'px';
+              transformTypeI = 2;
+            } else if (p === 'NaN') {
+              return;
+            }
+          } else if (c.startsWith('scalex(') && c.includes('e-')) {
+            // scalex(1.252057684158767e-16)
+            // scalex(3.0393632069734948e-9)
+            let p = c.substring(7, c.length - 1);
+            let q = p.length >= 1 ? parseFloat(p) : -1;
+            if (q > -1e-5 && q < 1e-5) {
+              transformType = 'scaleX'
+              transformValue = 0;
+              transformUnit = '';
+              transformTypeI = 1;
+            }
+          } else if (c.startsWith('scaley(') && c.includes('e-')) {
+            let p = c.substring(7, c.length - 1);
+            let q = p.length >= 1 ? parseFloat(p) : -1;
+            if (q > -1e-5 && q < 1e-5) {
+              transformType = 'scaleY'
+              transformValue = 0;
+              transformUnit = '';
+              transformTypeI = 1;
+            }
+          }
 
-            if (transformType) {
+          if (transformTypeI === 1) {
+            const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
+            const vz = +q.toFixed(3);
+            c = `${transformType}(${vz})`;
+            const cv = aStyle.transform;
+            if (c === cv) return;
+            aStyle.transform = c;
+          } else if (transformTypeI === 2) {
+            const q = transformValue;
+            const vz = +q.toFixed(1);
+            c = `${transformType}(${vz}${transformUnit})`;
+            const cv = aStyle.transform;
+            if (c === cv) return;
+            aStyle.transform = c;
+          } else { // eg empty
+            const cv = aStyle.transform;
+            if (!c && !cv) return;
+            else if (c === cv) return;
+            aStyle.transform = c;
+          }
 
-              if (transformType === 'scalex' || transformType === 'scaley') {
+        };
 
-                const q = transformValue;
+        const elmTransformSet = new WeakMap();
+        const elmPropSets = {
+          'display': new WeakMap(),
+          'width': new WeakMap(),
+          'height': new WeakMap(),
+          'outlineWidth': new WeakMap(),
+          'position': new WeakMap(),
+          'padding': new WeakMap(),
+        }
 
+        g[k] = function (a, b, c) {
 
-                /*
+          // console.log(140000, a, b, c);
 
-                let vz = Math.round(steppingScaleN * q);
-                const customPropName = '--discrete-'+transformType
+          if(typeof c === 'string' && a instanceof HTMLElement){
 
-                const currentValue = aStyle.getPropertyValue(customPropName);
+            if (b === "transform") {
+ 
+              const a_ = a;
+              elmTransformSet.set(a_, c);
+              nextBrowserTick(() => {
+                const c_ = elmTransformSet.get(a_);
+                if (c_ === undefined) return;
+                elmTransformSet.delete(a_);
+                zoTransform(a_, c_);
+              });
+              return;
+  
+            } else if (b === "display") {
 
-                const transform = (aStyle.transform || '');
-                const u = transform.includes(customPropName)
-                if (`${currentValue}` === `${vz}`) {
-                  if (u) return;
+              const a_ = a;
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              elmPropSet.set(a_, c);
+              // nextBrowserTick(() => {  // applying nextBrowserTick to 'display', 'width', 'height' to be confirmed
+                const c_ = elmPropSet.get(a_);
+                if (c_ === undefined) {
+                  // mostly width & height
+                  return;
                 }
+                elmPropSet.delete(a_);
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              // });
+              return;
+  
+            } else if (b === "width" || b === "height") {
 
+              const a_ = a;
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              elmPropSet.set(a_, c);
+              nextBrowserTick(() => {  // applying nextBrowserTick to 'width', 'height' to be confirmed
+                const c_ = elmPropSet.get(a_);
+                if (c_ === undefined) return;
+                elmPropSet.delete(a_);
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              });
+              return;
+  
+           
+            } else if (b === "outline-width") {
+  
+              const a_ = a;
+              const b_ = 'outlineWidth';
+              const elmPropSet = elmPropSets[b_];
+              elmPropSet.set(a_, c);
+              nextBrowserTick(() => {  // applying nextBrowserTick to 'outline-width' to be confirmed
+                const c_ = elmPropSet.get(a_);
+                if (c_ === undefined) return;
+                elmPropSet.delete(a_);
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              });
+              return;
+  
+             
+            } else if (b === "position" || b === "padding") {
 
-                setCSSProp(a,customPropName, vz);
-                // aStyle.setProperty(customPropName, vz)
-
-                let ck = '';
-
-                if (c.length === 9) ck = c;
-                else if (!u) ck = c.replace(/[.\d]+/, '0.5');
-
-                if (ck && beforeMq !== ck) {
-                  aStyle.setProperty('--mq-transform', ck);
-                }
-
-                if (u) return;
-                c = `${transformType}(calc(var(--discrete-${transformType})/${steppingScaleN}))`;
-
-
-
-                */
-
-                const vz = +(Math.round(q * steppingScaleN) / steppingScaleN).toFixed(3);
-
-                c = `${transformType === 'scalex' ? 'scaleX' : 'scaleY'}(${vz})`
-                const cv = aStyle.transform;
-
-                // console.log(157, cv,c)
-
-                if (c === cv) return;
-                // console.log(257, cv,c)
-
-                aStyle.transform = c;
-
-                // return;
-
-              } else if (transformType === 'translateX' || transformType === 'translateY') {
-
-                const q = transformValue;
-
-                /*
-
-                let vz = q.toFixed(1);
-                const customPropName = '--discrete-'+transformType
-
-                const aStyle = a.style;
-                const currentValue = (aStyle.getPropertyValue(customPropName) || '').replace('px', '');
-
-
-                const transform = (aStyle.transform || '');
-                const u = transform.includes(customPropName)
-                if (parseFloat(currentValue).toFixed(1) === vz) {
-                  if (u) return;
-                }
-
-                setCSSProp(a,customPropName, vz + 'px');
-                // aStyle.setProperty(customPropName, vz + 'px')
-
-                let ck = '';
-                if (c.length === 15) ck = c;
-                else if (!u) ck = c.replace(/[.\d]+/, '0.5');
-
-                if (ck && beforeMq !== ck) {
-                  aStyle.setProperty('--mq-transform', ck);
-                }
-
-                if (u) return;
-                c = `${transformType}(var(--discrete-${transformType}))`;
-
-                */
-
-
-                const vz = +q.toFixed(1);
-
-                c = `${transformType}(${vz}${transformUnit})`
-                const cv = aStyle.transform;
-
-                // console.log(158, cv,c)
-
-                if (c === cv) return;
-                // console.log(258, cv,c)
-
-                aStyle.transform = c;
-
-                // return;
-
-              } else {
-                throw new Error();
-              }
-
+              const a_ = a;
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              elmPropSet.set(a_, c);
+              // nextBrowserTick(() => {  // applying nextBrowserTick to 'position', 'padding' to be confirmed
+                const c_ = elmPropSet.get(a_);
+                if (c_ === undefined) return;
+                elmPropSet.delete(a_);
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              // });
+              return;
+  
             } else {
-              // if(beforeMq) a.style.setProperty('--mq-transform', '');
-              const cv = aStyle.transform
-              if (!c && !cv) return;
-              else if (c === cv) return;
-              aStyle.transform = c;
-              // return;
+              // cssText, right
+              // console.log(5991, a,b,c)
             }
 
-          } else if (b === "display") {
+            attrUpdateFn.call(this, a, b, c);
+            return;
+          } else {
 
-            const cv = a.style.display;
-            if (!cv && !c) return;
-            if (cv === c) return;
+            if ((b || 0).transform !== undefined) {
+              console.log(2188, b)
+            }
 
-
-          } else if (b === "width") {
-
-            const cv = a.style.width;
-            if (!cv && !c) return;
-            if (cv === c) return;
-
+            attrUpdateFn.call(this, a, b, c);
+            return;
           }
 
           // console.log(130000, a, b, c);
 
-          if (byPassDefaultFn) return;
-          return attrUpdateFn.call(this, a, b, c);
         }
 
 
