@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.14
+// @version     0.11.15
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4182,62 +4182,75 @@
           'outlineWidth': new WeakMap(),
           'position': new WeakMap(),
           'padding': new WeakMap(),
+          "cssText": new WeakMap(),
+          "right": new WeakMap(),
+          "left": new WeakMap(),
+          "top": new WeakMap(),
+          "bottom": new WeakMap(),
         }
+
+        const ns5 = Symbol();
+        const nextModify = (a, c, m, f) => {
+          const a_ = a;
+          const m_ = m;
+          if (!m_.has(a_)) {
+            f(a_, c);
+            m_.set(a_, ns5);
+            nextBrowserTick_(() => {
+              const d = m_.get(a_);
+              if (d === undefined) return;
+              m_.delete(a_);
+              if (d !== ns5) f(a_, d);
+            });
+          } else {
+            m_.set(a_, c);
+          }
+        };
 
         const modifiedFn = (a, b, c) => {
 
           // console.log(140000, a, b, c);
-          if (typeof c === 'number') {
+          if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
             const num = c;
             c = `${num}`;
-            if (c.length > 5) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
+            if (c.length > 5 && num < 1e9 && num > -1e9) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
           }
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
 
             if (b === "transform") {
 
-              const a_ = a;
-              elmTransformSet.set(a_, c);
-              nextBrowserTick_(() => {
-                const c_ = elmTransformSet.get(a_);
-                if (c_ === undefined) return;
-                elmTransformSet.delete(a_);
-                zoTransform(a_, c_);
-              });
+              nextModify(a, c, elmTransformSet, zoTransform);
               return;
 
             } else if (b === "display") {
 
-              const a_ = a;
+              /*
               const b_ = b;
-              const elmPropSet = elmPropSets[b_];
-              elmPropSet.set(a_, c);
-              // nextBrowserTick_(() => {  // applying nextBrowserTick to 'display', 'width', 'height' to be confirmed
-              const c_ = elmPropSet.get(a_);
-              if (c_ === undefined) {
-                // mostly width & height
-                return;
-              }
-              elmPropSet.delete(a_);
               const style = a.style;
               const cv = style[b_];
               if (!cv && !c) return;
               if (cv === c) return;
               style[b_] = c;
-              // });
+              return;
+              */
+
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              nextModify(a, c, elmPropSet, (a, c) => {
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              });
               return;
 
             } else if (b === "width" || b === "height") {
 
-              const a_ = a;
               const b_ = b;
               const elmPropSet = elmPropSets[b_];
-              elmPropSet.set(a_, c);
-              nextBrowserTick_(() => {  // applying nextBrowserTick to 'width', 'height' to be confirmed
-                const c_ = elmPropSet.get(a_);
-                if (c_ === undefined) return;
-                elmPropSet.delete(a_);
+              nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
                 if (!cv && !c) return;
@@ -4245,18 +4258,12 @@
                 style[b_] = c;
               });
               return;
-
 
             } else if (b === "outline-width") {
 
-              const a_ = a;
-              const b_ = 'outlineWidth';
+              const b_ = b;
               const elmPropSet = elmPropSets[b_];
-              elmPropSet.set(a_, c);
-              nextBrowserTick_(() => {  // applying nextBrowserTick to 'outline-width' to be confirmed
-                const c_ = elmPropSet.get(a_);
-                if (c_ === undefined) return;
-                elmPropSet.delete(a_);
+              nextModify(a, c, elmPropSet, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
                 if (!cv && !c) return;
@@ -4265,28 +4272,45 @@
               });
               return;
 
-
             } else if (b === "position" || b === "padding") {
 
-              const a_ = a;
+              /*
               const b_ = b;
-              const elmPropSet = elmPropSets[b_];
-              elmPropSet.set(a_, c);
-              // nextBrowserTick_(() => {  // applying nextBrowserTick to 'position', 'padding' to be confirmed
-              const c_ = elmPropSet.get(a_);
-              if (c_ === undefined) return;
-              elmPropSet.delete(a_);
               const style = a.style;
               const cv = style[b_];
               if (!cv && !c) return;
               if (cv === c) return;
               style[b_] = c;
-              // });
+              return;
+              */
+
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              nextModify(a, c, elmPropSet, (a, c) => {
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              });
+              return;
+            } else if (b === "cssText" || b === "right" || b === "left" || b === "top" || b === "bottom") {
+
+
+              const b_ = b;
+              const elmPropSet = elmPropSets[b_];
+              nextModify(a, c, elmPropSet, (a, c) => {
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+              });
               return;
 
             } else {
               // cssText, right
-              // console.log(5991, a,b,c)
+              console.log(27304, a, b, c)
             }
 
             attrUpdateFn.call(this, a, b, c);
@@ -4298,7 +4322,7 @@
             }
 
           } else {
-            console.log(2199, a, b, c);
+            console.log(27306, a, b, c);
 
             attrUpdateFn.call(this, a, b, c);
             return;
