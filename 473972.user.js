@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.16
+// @version     0.11.17
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4212,6 +4212,8 @@
           }
         };
 
+        const set66 = new Set();
+
         const modifiedFn = (a, b, c) => {
 
           // console.log(140000, a, b, c);
@@ -4268,7 +4270,19 @@
               return;
 
             } else {
-              console.log(27304, a, b, c)
+              // caption-window
+              // margin-left max-height max-width font-family fill color font-size background white-space margin
+              // text-align background-color
+              // console.log(27304, a, b, c)
+              if (!set66.has(b)) {
+                set66.add(b);
+                if (a.classList.contains('caption-window') || a.classList.contains('ytp-caption-segment')) {
+
+                } else {
+
+                  console.log(27304, a, b, c)
+                }
+              }
             }
 
             attrUpdateFn.call(this, a, b, c);
