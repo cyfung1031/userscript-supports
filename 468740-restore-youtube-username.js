@@ -2421,6 +2421,10 @@ SOFTWARE.
                     return null;
                 } else if (tag === 'ytd-guide-entry-renderer') {
                     return null;
+                } else if (tag === 'ytd-grid-channel-renderer') {
+                    return null;
+                } else if (tag === 'ytd-channel-renderer') {
+                    return null;
                 }
                 console.log('no browseEndpoint can be found', tag);
             }
