@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.18
+// @version     0.11.19
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4199,8 +4199,8 @@
           const a_ = a;
           const m_ = m;
           if (!m_.has(a_)) {
-            f(a_, c);
             m_.set(a_, ns5);
+            f(a_, c);
             nextBrowserTick_(() => {
               const d = m_.get(a_);
               if (d === undefined) return;
@@ -4213,8 +4213,9 @@
         };
 
         const set66 = new Set();
+        const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
 
-        const modifiedFn = (a, b, c) => {
+        const modifiedFn = (a, b, c, immediateChange = false) => {
 
           // console.log(140000, a, b, c);
           if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
@@ -4225,21 +4226,24 @@
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
 
-            let elmPropSet = null;
+            let elmPropTemp = null;
 
             if (b === "transform") {
 
               nextModify(a, c, elmTransformTemp, zoTransform);
               return;
 
-            } else if (elmPropSet = elmPropTemps[b]) {
+            } else if (elmPropTemp = elmPropTemps[b]) {
 
+              if (immediateChange) { // caption segment
+                if (elmPropTemp.has(a)) elmPropTemp.delete(a);
+              }
               // if (c.length > 5 && c.includes('.')) {
               //   console.log(123213, c)
               // }
 
               const b_ = b;
-              nextModify(a, c, elmPropSet, (a, c) => {
+              nextModify(a, c, elmPropTemp, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
                 if (!cv && !c) return;
@@ -4251,8 +4255,8 @@
             } else if (b === "outline-width") {
 
               const b_ = 'outlineWidth';
-              elmPropSet = elmPropTemps[b_];
-              nextModify(a, c, elmPropSet, (a, c) => {
+              elmPropTemp = elmPropTemps[b_];
+              nextModify(a, c, elmPropTemp, (a, c) => {
                 const style = a.style;
                 const cv = style[b_];
                 if (!cv && !c) return;
@@ -4273,6 +4277,9 @@
               return;
 
             } else {
+              // if(immediate && elmPropTemps[b]){
+              //   console.log(5191, b)
+              // }
               // caption-window
               // margin-left max-height max-width font-family fill color font-size background white-space margin
               // text-align background-color
@@ -4289,8 +4296,10 @@
             return;
           } else if (typeof (b || 0) === 'object') {
 
+            let immediate = false; // this is to fix caption positioning
             for (const [k, v] of Object.entries(b)) {
-              modifiedFn(a, k, v);
+              if(!immediate && set77.has(k)) immediate = true;
+              modifiedFn(a, k, v, immediate);
             }
 
           } else {
