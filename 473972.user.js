@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.13
+// @version     0.11.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -104,6 +104,7 @@
   // const setImmediate = ((self || 0).jmt || 0).setImmediate;
   /** @type {(f: ()=>{})=>{}} */
   const nextBrowserTick = (self || 0).nextBrowserTick || 0;
+  const nextBrowserTick_ = nextBrowserTick || (f => f());
 
   let p59 = 0;
 
@@ -4189,7 +4190,7 @@
           if (typeof c === 'number') {
             const num = c;
             c = `${num}`;
-            if (c.length > 5) c = `${num.toFixed(3)}`;
+            if (c.length > 5) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
           }
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
@@ -4198,7 +4199,7 @@
 
               const a_ = a;
               elmTransformSet.set(a_, c);
-              nextBrowserTick(() => {
+              nextBrowserTick_(() => {
                 const c_ = elmTransformSet.get(a_);
                 if (c_ === undefined) return;
                 elmTransformSet.delete(a_);
@@ -4212,7 +4213,7 @@
               const b_ = b;
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
-              // nextBrowserTick(() => {  // applying nextBrowserTick to 'display', 'width', 'height' to be confirmed
+              // nextBrowserTick_(() => {  // applying nextBrowserTick to 'display', 'width', 'height' to be confirmed
               const c_ = elmPropSet.get(a_);
               if (c_ === undefined) {
                 // mostly width & height
@@ -4233,7 +4234,7 @@
               const b_ = b;
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
-              nextBrowserTick(() => {  // applying nextBrowserTick to 'width', 'height' to be confirmed
+              nextBrowserTick_(() => {  // applying nextBrowserTick to 'width', 'height' to be confirmed
                 const c_ = elmPropSet.get(a_);
                 if (c_ === undefined) return;
                 elmPropSet.delete(a_);
@@ -4252,7 +4253,7 @@
               const b_ = 'outlineWidth';
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
-              nextBrowserTick(() => {  // applying nextBrowserTick to 'outline-width' to be confirmed
+              nextBrowserTick_(() => {  // applying nextBrowserTick to 'outline-width' to be confirmed
                 const c_ = elmPropSet.get(a_);
                 if (c_ === undefined) return;
                 elmPropSet.delete(a_);
@@ -4271,7 +4272,7 @@
               const b_ = b;
               const elmPropSet = elmPropSets[b_];
               elmPropSet.set(a_, c);
-              // nextBrowserTick(() => {  // applying nextBrowserTick to 'position', 'padding' to be confirmed
+              // nextBrowserTick_(() => {  // applying nextBrowserTick to 'position', 'padding' to be confirmed
               const c_ = elmPropSet.get(a_);
               if (c_ === undefined) return;
               elmPropSet.delete(a_);
