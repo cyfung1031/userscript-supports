@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.19
+// @version     0.11.20
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4195,13 +4195,14 @@
         }
 
         const ns5 = Symbol();
-        const nextModify = (a, c, m, f) => {
+        const nextModify = (a, c, m, f, immediate) => {
           const a_ = a;
           const m_ = m;
-          if (!m_.has(a_)) {
+          const noKey = !m_.has(a_);
+          if (immediate || noKey) {
             m_.set(a_, ns5);
             f(a_, c);
-            nextBrowserTick_(() => {
+            noKey && nextBrowserTick_(() => {
               const d = m_.get(a_);
               if (d === undefined) return;
               m_.delete(a_);
@@ -4213,7 +4214,7 @@
         };
 
         const set66 = new Set();
-        const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
+        // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
 
         const modifiedFn = (a, b, c, immediateChange = false) => {
 
@@ -4230,14 +4231,11 @@
 
             if (b === "transform") {
 
-              nextModify(a, c, elmTransformTemp, zoTransform);
+              nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
               return;
 
             } else if (elmPropTemp = elmPropTemps[b]) {
 
-              if (immediateChange) { // caption segment
-                if (elmPropTemp.has(a)) elmPropTemp.delete(a);
-              }
               // if (c.length > 5 && c.includes('.')) {
               //   console.log(123213, c)
               // }
@@ -4249,7 +4247,7 @@
                 if (!cv && !c) return;
                 if (cv === c) return;
                 style[b_] = c;
-              });
+              }, immediateChange);
               return;
 
             } else if (b === "outline-width") {
@@ -4262,7 +4260,7 @@
                 if (!cv && !c) return;
                 if (cv === c) return;
                 style[b_] = c;
-              });
+              }, immediateChange);
               return;
 
             } else if (b === 'maxWidth' || b === 'maxHeight') {
@@ -4296,9 +4294,10 @@
             return;
           } else if (typeof (b || 0) === 'object') {
 
-            let immediate = false; // this is to fix caption positioning
+            // this is to fix caption positioning
+            // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
+            const immediate = (a.id || 0).length > 14;
             for (const [k, v] of Object.entries(b)) {
-              if(!immediate && set77.has(k)) immediate = true;
               modifiedFn(a, k, v, immediate);
             }
 
