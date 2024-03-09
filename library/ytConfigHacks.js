@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.3.4
+// @version      0.3.5
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -78,9 +78,8 @@ SOFTWARE.
       }
     };
 
-    const hookIntoYtCSI = () => {
-      const ytcsi = win.ytcsi;
-      if (ytcsi) {
+    const hookIntoYtCSI = (ytcsi) => {
+      if (ytcsi = (ytcsi || win.ytcsi)) {
         win.ytcsi = new Proxy(ytcsi, {
           get(target, prop, receiver) {
             if (prop === 'originalYtcsi') return target;
@@ -88,18 +87,18 @@ SOFTWARE.
             return target[prop];
           }
         });
+        return true;
       }
     };
 
-    win.ytcsi ? hookIntoYtCSI() : Object.defineProperty(win, 'ytcsi', {
+    hookIntoYtCSI() || Object.defineProperty(win, 'ytcsi', {
       get() {
         return undefined;
       },
       set(newValue) {
         if (newValue) {
           delete win.ytcsi;
-          win.ytcsi = newValue;
-          hookIntoYtCSI();
+          hookIntoYtCSI(newValue);
         }
         return true;
       },
