@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.31
+// @version     1.3.32
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -12,7 +12,7 @@
 // @run-at      document-start
 // @allFrames   true
 // @inject-into page
-// @require     https://update.greasyfork.org/scripts/475632/1252746/ytConfigHacks.js
+// @require     https://update.greasyfork.org/scripts/475632/1340102/ytConfigHacks.js
 // ==/UserScript==
 
 (() => {

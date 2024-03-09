@@ -2,7 +2,7 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.5.2
+// @version             0.5.3
 // @license             MIT
 // @author              CY Fung
 // @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -12,7 +12,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-// @require             https://greasyfork.org/scripts/475632-ytconfighacks/code/ytConfigHacks.js?version=1252732
+// @require             https://update.greasyfork.org/scripts/475632/1340102/ytConfigHacks.js
 // ==/UserScript==
 
 // html5_exponential_memory_for_sticky
