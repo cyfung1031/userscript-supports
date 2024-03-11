@@ -5,9 +5,10 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.0.3
+// @version     0.1.0
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
 // @license     MIT
 // ==/UserScript==
 
@@ -22,6 +23,25 @@
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
   const Promise = (async () => { })().constructor;
+
+  const createPipeline = () => {
+    let pipelineMutex = Promise.resolve();
+    const pipelineExecution = fn => {
+      return new Promise((resolve, reject) => {
+        pipelineMutex = pipelineMutex.then(async () => {
+          let res;
+          try {
+            res = await fn();
+          } catch (e) {
+            console.log('error_F1', e);
+            reject(e);
+          }
+          resolve(res);
+        }).catch(console.warn);
+      });
+    };
+    return pipelineExecution;
+  };
 
   let rafPromise = null;
   const rafFn = (typeof webkitRequestAnimationFrame !== 'undefined' ? webkitRequestAnimationFrame : requestAnimationFrame).bind(window); // eslint-disable-line no-undef, no-constant-condition
@@ -75,8 +95,24 @@
   }
 
 
+  let cachedSCUsage = null;
+
+  function getShouldSingleColumn() {
+    if (typeof cachedSCUsage == 'boolean') return cachedSCUsage;
+    const { clientHeight, clientWidth } = document.documentElement;
+    if (clientHeight > clientWidth) {
+      const referenceVideoHeight = clientWidth * videoRatio;
+      const belowSpace = clientHeight - referenceVideoHeight;
+      if (belowSpace > -1e-3 && belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight > -1e-3) {
+        return (cachedSCUsage = true);
+      }
+    }
+    return (cachedSCUsage = false);
+  }
+
+  /** @type {Set<WeakRef<Object>>} */
   const querySet = new Set();
-  (async () => {
+  const fn01 = async () => {
 
     await customElements.whenDefined('iron-media-query');
     const dummy = document.querySelector('iron-media-query') || document.createElement('iron-media-query');
@@ -122,38 +158,15 @@
           this.query = q;
         }
 
-
-
-
       }
 
       return this.queryChanged71();
 
     }
 
-  })();
+  };
 
-  let cachedSCUsage = null;
-
-  function getShouldSingleColumn() {
-    if (typeof cachedSCUsage == 'boolean') return cachedSCUsage;
-    const { clientHeight, clientWidth } = document.documentElement;
-    if (clientHeight > clientWidth) {
-      let referenceVideoHeight = clientWidth * videoRatio;
-      let belowSpace = clientHeight - referenceVideoHeight;
-      if (belowSpace > -1e-3) {
-        if (belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight > -1e-3) {
-          cachedSCUsage = true;
-          return true;
-        }
-      }
-    }
-    cachedSCUsage = false;
-    return false;
-  }
-
-
-  (async () => {
+  const fn02 = async () => {
 
     await customElements.whenDefined('ytd-watch-flexy');
     const dummy = document.querySelector('ytd-watch-flexy') || document.createElement('ytd-watch-flexy');
@@ -165,48 +178,45 @@
       if (videoRatio > 1e-5) { } else return;
       let changeCSS = false;
 
-      let always_single_column_ = always_single_column;
+      const always_single_column_ = always_single_column;
       always_single_column = getShouldSingleColumn();
       let action = 0;
       if (always_single_column !== always_single_column_) {
         action |= 4;
       }
       if (!always_single_column) {
-        if (videoRatio > 1.6 && videoRatio < 2.7) {
-          if (!qm) {
-            changeCSS = true;
-            qm = 1;
-            action |= 1;
-          }
-        } else {
-          if (qm) {
-            changeCSS = true;
-            qm = 0;
-            action |= 2;
-          }
+        const ratio2 = videoRatio > 1.6 && videoRatio < 2.7;
+        if (ratio2 && !qm) {
+          changeCSS = true;
+          qm = 1;
+          action |= 1;
+        } else if (!ratio2 && qm) {
+          changeCSS = true;
+          qm = 0;
+          action |= 2;
         }
       }
       if (action) {
         for (const p of querySet) {
-          let elm = p.deref();
-          if (!elm || !elm.lastQuery53_) continue;
+          const qnt = p.deref();
+          if (!qnt || !qnt.lastQuery53_) continue;
           if (action & 4) {
-            if (!elm.q00 && !elm.q02 && always_single_column) {
-              elm.q00 = elm.lastQuery53_;
-              elm.q02 = changeQ_alwaysSingleColumn(elm.q00);
+            if (!qnt.q00 && !qnt.q02 && always_single_column) {
+              qnt.q00 = qnt.lastQuery53_;
+              qnt.q02 = changeQ_alwaysSingleColumn(qnt.q00);
             }
             action |= 8;
           }
           if (action & 1) {
-            if (!elm.q00 && !elm.q01) {
-              elm.q00 = elm.lastQuery53_;
-              elm.q01 = changeQ(elm.q00);
+            if (!qnt.q00 && !qnt.q01) {
+              qnt.q00 = qnt.lastQuery53_;
+              qnt.q01 = changeQ(qnt.q00);
             }
-            if (elm.q00 && elm.q01) {
+            if (qnt.q00 && qnt.q01) {
               action |= 8;
             }
           } else if (action & 2) {
-            if (elm.q00 && elm.q01) {
+            if (qnt.q00 && qnt.q01) {
               action |= 8;
             }
           }
@@ -215,10 +225,9 @@
         if (action & 8) {
           bypass = true;
           for (const p of querySet) {
-            let elm = p.deref();
-            if (!elm) continue;
-            if (elm.lastQuery53_ && elm.query) {
-              elm.queryChanged();
+            const qnt = p.deref();
+            if (qnt && qnt.lastQuery53_ && qnt.query) {
+              qnt.queryChanged();
             }
           }
           bypass = false;
@@ -230,7 +239,7 @@
 
       if (changeCSS) {
 
-        cssElm = cssElm | document.querySelector('style#oh7T7lsvcHJQ');
+        cssElm = cssElm || document.querySelector('style#oh7T7lsvcHJQ');
 
         if (!cssElm) {
 
@@ -254,7 +263,7 @@
         }
       }
 
-      cssElm = cssElm | document.querySelector('style#oh7T7lsvcHJQ');
+      cssElm = cssElm || document.querySelector('style#oh7T7lsvcHJQ');
       if (cssElm) {
         if (qm && cssElm.disabled) cssElm.disabled = false;
         else if (!qm && !cssElm.disabled) cssElm.disabled = true;
@@ -262,31 +271,44 @@
     };
 
     cProto.videoHeightToWidthRatioChanged_ = function () {
-      videoRatio = this.videoHeightToWidthRatio_;
-      cachedSCUsage = null;
-      Promise.resolve().then(ratioQueryFix24_);
-      return this.videoHeightToWidthRatioChanged23_.apply(this, arguments);
+      try {
+        cachedSCUsage = null;
+        videoRatio = this.videoHeightToWidthRatio_;
+        resizePipeline(ratioQueryFix24_);
+      } catch (e) {
+      }
+      return this.videoHeightToWidthRatioChanged23_(...arguments);
     };
 
-    let resizeBusy = false;
-    let resizeQuene = Promise.resolve();
+    const resizePipeline = createPipeline();
 
+    let rzid = 0;
     Window.prototype.addEventListener.call(window, 'resize', function () {
+      cachedSCUsage = null;
       if (videoRatio > 1e-5) { } else return;
-      if (resizeBusy) return;
-      resizeBusy = true;
-      resizeQuene = resizeQuene
-        .then(() => getRafPromise().then())
-        .then(() => {
-          cachedSCUsage = null;
-          let k = getShouldSingleColumn();
-          if (always_single_column !== k) {
-            Promise.resolve().then(ratioQueryFix24_);
-          }
-        }).then(() => {
-          resizeBusy = false;
-        });
+      if (rzid > 1e9) rzid = 9;
+      const t = ++rzid;
+      resizePipeline(async () => {
+        if (t !== rzid) return;
+        await getRafPromise();
+        if (t !== rzid) return;
+        let k = getShouldSingleColumn();
+        if (always_single_column !== k) {
+          resizePipeline(ratioQueryFix24_);
+        }
+      });
     }, { capture: false, passive: true });
+
+  };
+
+  (async () => {
+
+    if (!document.documentElement) await ytZara.docInitializedAsync(); // wait for document.documentElement is provided
+
+    await ytZara.promiseRegistryReady(); // wait for YouTube's customElement Registry is provided (old browser only)
+
+    fn01();
+    fn02();
 
   })();
 
