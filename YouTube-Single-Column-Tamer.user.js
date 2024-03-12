@@ -5,7 +5,7 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.1.0
+// @version     0.1.1
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
@@ -17,7 +17,7 @@
 
   // protait screen & vertical live
 
-  let always_single_column = false;
+  let isSingleColumnPreferred = false;
   let bypass = false;
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
@@ -112,7 +112,7 @@
 
   /** @type {Set<WeakRef<Object>>} */
   const querySet = new Set();
-  const fn01 = async () => {
+  const protoFnQueryChanged = async () => {
 
     await customElements.whenDefined('iron-media-query');
     const dummy = document.querySelector('iron-media-query') || document.createElement('iron-media-query');
@@ -144,7 +144,7 @@
 
         if (this.lastQuery53_) {
 
-          if (always_single_column) {
+          if (isSingleColumnPreferred) {
             q = changeQ_alwaysSingleColumn(this.lastQuery53_);
           } else if (qm) {
             q = changeQ(this.lastQuery53_);
@@ -166,11 +166,15 @@
 
   };
 
-  const fn02 = async () => {
+  const protoFnRatioChanged = async () => {
 
     await customElements.whenDefined('ytd-watch-flexy');
     const dummy = document.querySelector('ytd-watch-flexy') || document.createElement('ytd-watch-flexy');
     const cProto = getProto(dummy);
+
+    if (typeof cProto.videoHeightToWidthRatioChanged_ !== 'function') return;
+    if (cProto.videoHeightToWidthRatioChanged23_) return;
+    // if (cProto.videoHeightToWidthRatioChanged_.length !== 2) return;
 
     cProto.videoHeightToWidthRatioChanged23_ = cProto.videoHeightToWidthRatioChanged_;
     const ratioQueryFix24_ = () => {
@@ -178,13 +182,12 @@
       if (videoRatio > 1e-5) { } else return;
       let changeCSS = false;
 
-      const always_single_column_ = always_single_column;
-      always_single_column = getShouldSingleColumn();
+      const changedSingleColumn = isSingleColumnPreferred !== (isSingleColumnPreferred = getShouldSingleColumn());
       let action = 0;
-      if (always_single_column !== always_single_column_) {
+      if (changedSingleColumn) {
         action |= 4;
       }
-      if (!always_single_column) {
+      if (!isSingleColumnPreferred) {
         const ratio2 = videoRatio > 1.6 && videoRatio < 2.7;
         if (ratio2 && !qm) {
           changeCSS = true;
@@ -201,7 +204,7 @@
           const qnt = p.deref();
           if (!qnt || !qnt.lastQuery53_) continue;
           if (action & 4) {
-            if (!qnt.q00 && !qnt.q02 && always_single_column) {
+            if (!qnt.q00 && !qnt.q02 && isSingleColumnPreferred) {
               qnt.q00 = qnt.lastQuery53_;
               qnt.q02 = changeQ_alwaysSingleColumn(qnt.q00);
             }
@@ -270,6 +273,8 @@
       }
     };
 
+    const resizePipeline = createPipeline();
+
     cProto.videoHeightToWidthRatioChanged_ = function () {
       try {
         cachedSCUsage = null;
@@ -279,8 +284,6 @@
       }
       return this.videoHeightToWidthRatioChanged23_(...arguments);
     };
-
-    const resizePipeline = createPipeline();
 
     let rzid = 0;
     Window.prototype.addEventListener.call(window, 'resize', function () {
@@ -293,7 +296,7 @@
         await getRafPromise();
         if (t !== rzid) return;
         let k = getShouldSingleColumn();
-        if (always_single_column !== k) {
+        if (isSingleColumnPreferred !== k) {
           resizePipeline(ratioQueryFix24_);
         }
       });
@@ -307,8 +310,8 @@
 
     await ytZara.promiseRegistryReady(); // wait for YouTube's customElement Registry is provided (old browser only)
 
-    fn01();
-    fn02();
+    protoFnQueryChanged();
+    protoFnRatioChanged();
 
   })();
 
