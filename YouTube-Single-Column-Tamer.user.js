@@ -5,10 +5,11 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.1.1
+// @version     0.1.2
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
+// @require     https://update.greasyfork.org/scripts/475632/1340102/ytConfigHacks.js
 // @license     MIT
 // ==/UserScript==
 
@@ -303,6 +304,18 @@
     }, { capture: false, passive: true });
 
   };
+
+  window._ytConfigHacks.add((config_) => {
+
+    const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
+
+    if (EXPERIMENT_FLAGS) {
+
+      EXPERIMENT_FLAGS.kevlar_set_internal_player_size = false; // vertical live -> schedulePlayerSizeUpdate_
+
+    }
+
+  });
 
   (async () => {
 
