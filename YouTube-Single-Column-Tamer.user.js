@@ -5,7 +5,7 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.1.2
+// @version     0.1.3
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
@@ -18,8 +18,11 @@
 
   // protait screen & vertical live
 
-  let isSingleColumnPreferred = false;
+  let _isSingleColumnPreferred = false;
   let bypass = false;
+  let videoRatio = null;
+  let _forceTwoCols = 0;
+  let cachedSCUsage = null;
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
@@ -54,49 +57,35 @@
     });
   }));
 
-  let videoRatio = null;
-
   const getProto = (element) => {
     if (element) {
       const cnt = insp(element);
       return cnt.constructor.prototype || null;
     }
     return null;
-  }
+  };
 
-  let qm = 0;
-
-  function changeQ(q) {
-
-    if (!q || typeof q !== 'string') return q;
-
-    q = q.replace('1000px', '200.2px');
-    q = q.replace('629px', '129.2px');
-    q = q.replace('657px', '157.2px');
-    q = q.replace('630px', '130.2px');
-    q = q.replace('1327px', '237.2px');
-
+  function toQueryForcedTwoCols(q) {
+    if (q && typeof q === 'string') {
+      q = q.replace('1000px', '200.2px');
+      q = q.replace('629px', '129.2px');
+      q = q.replace('657px', '157.2px');
+      q = q.replace('630px', '130.2px');
+      q = q.replace('1327px', '237.2px');
+    }
     return q;
-
   }
 
-
-  function changeQ_alwaysSingleColumn(q) {
-
-    if (!q || typeof q !== 'string') return q;
-
-    q = q.replace('1000px', '998200.3px');
-    q = q.replace('629px', '998129.3px');
-    q = q.replace('657px', '998157.3px');
-    q = q.replace('630px', '998130.3px');
-    q = q.replace('1327px', '998237.3px');
-
+  function toQueryForcedOneCol(q) {
+    if (q && typeof q === 'string') {
+      q = q.replace('1000px', '998200.3px');
+      q = q.replace('629px', '998129.3px');
+      q = q.replace('657px', '998157.3px');
+      q = q.replace('630px', '998130.3px');
+      q = q.replace('1327px', '998237.3px');
+    }
     return q;
-
   }
-
-
-  let cachedSCUsage = null;
 
   function getShouldSingleColumn() {
     if (typeof cachedSCUsage == 'boolean') return cachedSCUsage;
@@ -104,7 +93,7 @@
     if (clientHeight > clientWidth) {
       const referenceVideoHeight = clientWidth * videoRatio;
       const belowSpace = clientHeight - referenceVideoHeight;
-      if (belowSpace > -1e-3 && belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight > -1e-3) {
+      if (belowSpace > -1e-3 && belowSpace - ENABLE_WHEN_CONTENT_OCCUPY_MORE_THAN * clientHeight > -1e-3 && belowSpace > 65) {
         return (cachedSCUsage = true);
       }
     }
@@ -145,10 +134,10 @@
 
         if (this.lastQuery53_) {
 
-          if (isSingleColumnPreferred) {
-            q = changeQ_alwaysSingleColumn(this.lastQuery53_);
-          } else if (qm) {
-            q = changeQ(this.lastQuery53_);
+          if (_isSingleColumnPreferred) {
+            q = toQueryForcedOneCol(this.lastQuery53_);
+          } else if (_forceTwoCols) {
+            q = toQueryForcedTwoCols(this.lastQuery53_);
           } else {
             q = this.lastQuery53_;
           }
@@ -167,6 +156,27 @@
 
   };
 
+  const createCSSElement = ()=>{
+    
+    const cssElm = document.createElement('style');
+    cssElm.id = 'oh7T7lsvcHJQ';
+    document.head.appendChild(cssElm);
+
+    cssElm.textContent = `
+
+        ytd-watch-flexy[flexy][is-two-columns_] {
+          --ytd-watch-flexy-min-player-height-ss: 10px;
+        }
+        ytd-watch-flexy[flexy][is-two-columns_] #primary.ytd-watch-flexy {
+          min-width: calc(var(--ytd-watch-flexy-min-player-height-ss)*1.7777777778);
+        }
+        ytd-watch-flexy[flexy][is-two-columns_]:not([is-four-three-to-sixteen-nine-video_]):not([is-extra-wide-video_]):not([full-bleed-player][full-bleed-no-max-width-columns]):not([fixed-panels]) #primary.ytd-watch-flexy {
+          min-width: calc(var(--ytd-watch-flexy-min-player-height-ss)*1.7777777778);
+        }
+    `;
+    return cssElm;
+  }
+
   const protoFnRatioChanged = async () => {
 
     await customElements.whenDefined('ytd-watch-flexy');
@@ -183,20 +193,20 @@
       if (videoRatio > 1e-5) { } else return;
       let changeCSS = false;
 
-      const changedSingleColumn = isSingleColumnPreferred !== (isSingleColumnPreferred = getShouldSingleColumn());
+      const changedSingleColumn = _isSingleColumnPreferred !== (_isSingleColumnPreferred = getShouldSingleColumn());
       let action = 0;
       if (changedSingleColumn) {
         action |= 4;
       }
-      if (!isSingleColumnPreferred) {
-        const ratio2 = videoRatio > 1.6 && videoRatio < 2.7;
-        if (ratio2 && !qm) {
+      if (!_isSingleColumnPreferred) {
+        const isVerticalRatio = videoRatio > 1.6 && videoRatio < 2.7;
+        if (isVerticalRatio && !_forceTwoCols) {
           changeCSS = true;
-          qm = 1;
+          _forceTwoCols = 1;
           action |= 1;
-        } else if (!ratio2 && qm) {
+        } else if (!isVerticalRatio && _forceTwoCols) {
           changeCSS = true;
-          qm = 0;
+          _forceTwoCols = 0;
           action |= 2;
         }
       }
@@ -205,16 +215,16 @@
           const qnt = p.deref();
           if (!qnt || !qnt.lastQuery53_) continue;
           if (action & 4) {
-            if (!qnt.q00 && !qnt.q02 && isSingleColumnPreferred) {
+            if (!qnt.q00 && !qnt.q02 && _isSingleColumnPreferred) {
               qnt.q00 = qnt.lastQuery53_;
-              qnt.q02 = changeQ_alwaysSingleColumn(qnt.q00);
+              qnt.q02 = toQueryForcedOneCol(qnt.q00);
             }
             action |= 8;
           }
           if (action & 1) {
             if (!qnt.q00 && !qnt.q01) {
               qnt.q00 = qnt.lastQuery53_;
-              qnt.q01 = changeQ(qnt.q00);
+              qnt.q01 = toQueryForcedTwoCols(qnt.q00);
             }
             if (qnt.q00 && qnt.q01) {
               action |= 8;
@@ -242,35 +252,14 @@
       let cssElm = null;
 
       if (changeCSS) {
-
+        cssElm = cssElm || document.querySelector('style#oh7T7lsvcHJQ') || createCSSElement();
+      } else {
         cssElm = cssElm || document.querySelector('style#oh7T7lsvcHJQ');
-
-        if (!cssElm) {
-
-          cssElm = document.createElement('style');
-          cssElm.id = 'oh7T7lsvcHJQ';
-          document.head.appendChild(cssElm);
-
-          cssElm.textContent = `
-
-              ytd-watch-flexy[flexy][is-two-columns_] {
-                --ytd-watch-flexy-min-player-height-ss: 10px;
-              }
-              ytd-watch-flexy[flexy][is-two-columns_] #primary.ytd-watch-flexy {
-                min-width: calc(var(--ytd-watch-flexy-min-player-height-ss)*1.7777777778);
-              }
-              ytd-watch-flexy[flexy][is-two-columns_]:not([is-four-three-to-sixteen-nine-video_]):not([is-extra-wide-video_]):not([full-bleed-player][full-bleed-no-max-width-columns]):not([fixed-panels]) #primary.ytd-watch-flexy {
-                min-width: calc(var(--ytd-watch-flexy-min-player-height-ss)*1.7777777778);
-              }
-          `;
-
-        }
       }
-
-      cssElm = cssElm || document.querySelector('style#oh7T7lsvcHJQ');
+      
       if (cssElm) {
-        if (qm && cssElm.disabled) cssElm.disabled = false;
-        else if (!qm && !cssElm.disabled) cssElm.disabled = true;
+        if (_forceTwoCols && cssElm.disabled) cssElm.disabled = false;
+        else if (!_forceTwoCols && !cssElm.disabled) cssElm.disabled = true;
       }
     };
 
@@ -297,7 +286,7 @@
         await getRafPromise();
         if (t !== rzid) return;
         let k = getShouldSingleColumn();
-        if (isSingleColumnPreferred !== k) {
+        if (_isSingleColumnPreferred !== k) {
           resizePipeline(ratioQueryFix24_);
         }
       });
