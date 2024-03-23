@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.03.04.2
+// @version             2024.03.24.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -300,12 +300,10 @@ SOFTWARE.
               try {
                 inExec.add(cid);
                 const t = await eFunc();
-                if (inExec.has(cid)) {
-                  inExec.delete(cid);
-                  if (t !== lastExecution) {
-                    lastExecution = t;
-                    handler();
-                  }
+                const didNotRemove = inExec.delete(cid); // true for valid key
+                if (didNotRemove && t !== lastExecution) {
+                  lastExecution = t;
+                  handler();
                 }
               } catch (e) {
                 console.error(e);
@@ -323,7 +321,7 @@ SOFTWARE.
 
       const dFunc = (propFunc) => {
         return (cid) => {
-          if (cid) inExec.has(cid) ? inExec.delete(cid) : propFunc(cid);
+          if (cid) inExec.delete(cid) || propFunc(cid);
         };
       };
 
