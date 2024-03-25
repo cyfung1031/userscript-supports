@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.2
+// @version             0.61.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -908,35 +908,35 @@
     setTag(tag) {
       konsole.tag = tag;
     },
-    setStyle(style){
+    setStyle(style) {
       konsole.style = style;
     },
-    groupCollapsed(...args){
+    groupCollapsed(...args) {
 
       konsole.logs.push({
-        type:'groupCollapsed',
+        type: 'groupCollapsed',
         msg: [...args].filter(e => e !== konsole.nil)
       });
     },
-    groupEnd(){
+    groupEnd() {
 
       konsole.logs.push({
-        type:'groupEnd'
+        type: 'groupEnd'
       })
     },
     print() {
       const copy = konsole.logs.slice(0);
       konsole.logs.length = 0;
-      for (const {type, msg} of copy) {
-        if(type ==='log'){
+      for (const { type, msg } of copy) {
+        if (type === 'log') {
           console.log(...msg)
-        }else if (type === 'groupCollapsed'){
+        } else if (type === 'groupCollapsed') {
 
           console.groupCollapsed(...msg)
-        }else if(type ==='groupEnd'){
+        } else if (type === 'groupEnd') {
           console.groupEnd();
         }
-        
+
       }
 
     }
@@ -1014,6 +1014,79 @@
       if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
     }
     return null;
+  }
+  
+    /**
+   * Takes in a __SORTED__ array and inserts the provided value into
+   * the correct, sorted, position.
+   * > https://github.com/bhowell2/binary-insert-js/
+   * @param array the sorted array where the provided value needs to be inserted (in order)
+   * @param insertValue value to be added to the array
+   * @param comparator function that helps determine where to insert the value (
+   */
+  function binaryInsert(array, insertValue, comparator) {
+    let left = 0;
+    let right = array.length;
+
+    let z;
+    // Directly return if array is empty or the insertValue should be at the end
+    if (right === 0 || (z = comparator(array[right - 1], insertValue)) <= 0) {
+      array.push(insertValue);
+      return array;
+    }
+
+    // Check if the insertValue should be at the beginning
+    if ((right === 1 ? z : comparator(array[0], insertValue)) >= 0) {
+      array.unshift(insertValue);
+      return array;
+    }
+    ++left; --right;
+
+    // Main binary search loop to find the insertion position
+    while (left < right) {
+      const mid = Math.floor((right + left) / 2);
+      const compared = comparator(array[mid], insertValue);
+      if (compared < 0) {
+        left = mid + 1;
+      } else if (compared > 0) {
+        right = mid;
+      } else {
+        // If equal, insert at the mid position
+        left = right = mid;
+        break;
+      }
+    }
+
+    // Insertion is always at the right position due to the nature of the binary search
+    array.splice(right, 0, insertValue);
+    return array;
+  }
+    
+    
+    
+
+  class LimitedSizeSet extends Set {
+    constructor(n) {
+      super();
+
+      this.limit = n;
+    }
+
+    add(key) {
+      if (!super.has(key)) {
+        super.add(key); // Set the key with a dummy value (true)
+        while (super.size > this.limit) {
+          const firstKey = super.values().next().value; // Get the first (oldest) key
+          super.delete(firstKey); // Delete the oldest key
+        }
+      }
+    }
+
+    removeAdd(key) {
+      super.delete(key);
+      super.add(key);
+    }
+
   }
 
   // function removeElementFromArray(arr, index) {
@@ -1751,12 +1824,12 @@
 
     const wmComputedStyle = new WeakMap();
     const getComputedStyleCached = (elem) => {
-        let cs = wmComputedStyle.get(elem);
-        if (!cs) {
-            cs = getComputedStyle(elem);
-            wmComputedStyle.set(elem, cs);
-        }
-        return cs;
+      let cs = wmComputedStyle.get(elem);
+      if (!cs) {
+        cs = getComputedStyle(elem);
+        wmComputedStyle.set(elem, cs);
+      }
+      return cs;
     }
 
     let foregroundPromise = null;
@@ -3106,7 +3179,7 @@
         const elementSet = new Set();
         for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) {
           if (node.hasAttribute('wSr93')) {
-            seqIndex = parseInt(node.getAttribute('yt-chat-item-seq'));
+            seqIndex = parseInt(node.getAttribute('yt-chat-item-seq'), 10);
             break;
           }
           node.setAttribute('wSr93', '');
@@ -4059,7 +4132,7 @@
           const sfi = fnIntegrity(mclp.flushActiveItems_);
           if (sfi === '0.156.86') {
             // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-            
+
             // added "refreshOffsetContainerHeight_"
 
             //   f.flushActiveItems_ = function() {
@@ -5750,14 +5823,128 @@
             return;
           }
 
-          if (AMEND_TICKER_handleLiveChatAction
-            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && '|1.63.48|1.64.48|'.includes(`|${fnIntegrity(cProto.handleLiveChatAction)}|`)
-            && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && fnIntegrity(cProto.handleLiveChatActions) === '1.23.12'
+          const do_amend_ticker_handleLiveChatAction = AMEND_TICKER_handleLiveChatAction
+            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && cProto.handleLiveChatAction.length === 1
+            && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && cProto.handleLiveChatActions.length === 1
             && typeof cProto.unshift === 'function' && cProto.unshift.length === 1
             && typeof cProto.handleMarkChatItemAsDeletedAction === 'function' && cProto.handleMarkChatItemAsDeletedAction.length === 1
             && typeof cProto.removeTickerItemById === 'function' && cProto.removeTickerItemById.length === 1
             && typeof cProto.handleMarkChatItemsByAuthorAsDeletedAction === 'function' && cProto.handleMarkChatItemsByAuthorAsDeletedAction.length === 1
             && typeof cProto.handleRemoveChatItemByAuthorAction === 'function' && cProto.handleRemoveChatItemByAuthorAction.length === 1
+            ;
+
+          console.log('do_amend_ticker_handleLiveChatAction', fnIntegrity(cProto.handleLiveChatAction), fnIntegrity(cProto.handleLiveChatActions))
+
+
+          if (do_amend_ticker_handleLiveChatAction) {
+
+
+            if (fnIntegrity(cProto.handleLiveChatActions) === '1.23.12') {
+
+              console.log(`handleLiveChatActions`, 'modified');
+
+              cProto.handleLiveChatActions45 = cProto.handleLiveChatActions;
+
+              cProto.handleLiveChatActions = function (a) {
+                /**
+                 *
+                    f.handleLiveChatActions = function(a) {
+                        a.length && (a.forEach(this.handleLiveChatAction, this),
+                        this.updateHighlightedItem(),
+                        this.shouldAnimateIn = !0)
+                    }
+                 *
+                 */
+                const len = a.length;
+                if (len) {
+                  const batchToken = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
+
+                  if (FIX_BATCH_TICKER_ORDER && len >= 2) {
+                    
+                    // Primarily for the initial batch, this is due to replayBuffer._back.
+                    const entries = [];
+                    const entriesI = [];
+                    for (let i = 0; i < len; i++) {
+                      const item = ((a[i] || 0).addLiveChatTickerItemAction || 0).item || 0;
+                      const timestampUsec = item ? parseInt(getTimestampUsec(item[firstObjectKey(item)]), 10) : 0;
+                      if (timestampUsec > 0) {
+                        entriesI.push(i);
+                        binaryInsert(entries, { e: a[i], timestampUsec }, (a, b) => {
+                          const diff = a.timestampUsec - b.timestampUsec;
+                          return diff > 0.1 ? 1 : diff < -0.1 ? -1 : 0;
+                        });
+                      }
+                    }
+                    const mLen = entries.length;
+                    if (mLen >= 2) {
+                      for (let j = 0; j < mLen; j++) {
+                        a[entriesI[j]] = entries[j].e;
+                      }
+                    }
+                    entries.length = 0;
+                    entriesI.length = 0;
+                  }
+                  for (const action of a) {
+                    action.__batchId45__ = batchToken;
+                    this.handleLiveChatAction(action);
+                  }
+                }
+              }
+
+
+            }
+
+
+            console.log(`handleLiveChatAction`, 'modified');
+
+            const cacheChatActions = new LimitedSizeSet(16);
+
+            cProto.handleLiveChatAction45 = cProto.handleLiveChatAction;
+
+            cProto.handleLiveChatAction = function (a) {
+
+              const key = firstObjectKey(a);
+              if (!key) return;
+
+              const val = a[key];
+              let itemKey = '';
+              let itemId = '';
+              const valItem = val ? val.item : null;
+              if (valItem) {
+                itemKey = firstObjectKey(valItem);
+                if (itemKey) {
+                  const itemVal = valItem[itemKey];
+                  itemId = itemVal ? itemVal.id : '';
+                  if (itemId) {
+
+                    const cacheKey = `${key}.${itemKey}::${itemId}`;
+
+                    if (key === 'addChatItemAction' && itemId) return; // no need
+
+                    if (cacheChatActions.has(cacheKey)) {
+
+                      console.log('handleLiveChatAction Repeated Item', cacheKey);
+                      return;
+
+                    } else {
+                      cacheChatActions.add(cacheKey);
+
+                    }
+
+
+                  }
+                }
+              }
+
+              return this.handleLiveChatAction45(a);
+
+            };
+
+            console.log("AMEND_TICKER_handleLiveChatAction - OK (v2)");
+
+          } else if (0 && do_amend_ticker_handleLiveChatAction
+            && '|1.63.48|1.64.48|'.includes(`|${fnIntegrity(cProto.handleLiveChatAction)}|`)
+            && fnIntegrity(cProto.handleLiveChatActions) === '1.23.12'
           ) {
 
             cProto.handleLiveChatActions45 = cProto.handleLiveChatActions;
@@ -5788,7 +5975,7 @@
                       if (itemRenderer) {
                         let timestampUsec = getTimestampUsec(itemRenderer);
                         if (timestampUsec !== null) {
-                          timestampUsec = parseInt(timestampUsec);
+                          timestampUsec = parseInt(timestampUsec, 10);
                           if (timestampUsec > 0) {
                             entriesI.push(i);
                             entries.push({ e: a[i], timestampUsec })
@@ -6040,7 +6227,7 @@
 
             }
 
-            console.log("AMEND_TICKER_handleLiveChatAction - OK");
+            console.log("AMEND_TICKER_handleLiveChatAction - OK (v1)");
           } else {
             console.log("AMEND_TICKER_handleLiveChatAction - NG");
           }
@@ -6068,7 +6255,7 @@
           }
 
 
-          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.43.31' && fnIntegrity(cProto.scrollIncrementally) === '1.82.43') {
+          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.43.31' && '|1.78.45|1.82.43|'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
             // to be replaced by animator
 
             cProto.startScrolling = function (a) {
@@ -6082,12 +6269,32 @@
 
             // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
 
+            // 2024.03.26
+            // https://www.youtube.com/s/desktop/436f2749/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+            /*
+
+                f.scrollIncrementally = function(a) {
+                    var b = a - (this.lastFrameTimestamp || 0);
+                    Q(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+                    this.maybeClampScroll();
+                    this.updateArrows();
+                    this.lastFrameTimestamp = a;
+                    0 < Q(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this)) : this.stopScrolling()
+                }
+            */
+
+            cProto.__getTickerBarQuery__ = function () {
+              const tickerBarQuery = this.tickerBarQuery === '#items' ? this.$.items : this.hostElement.querySelector(this.tickerBarQuery);
+              return tickerBarQuery;
+            }
+
             cProto.scrollIncrementally = (RAF_FIX_scrollIncrementally === 2) ? function (a) {
               const b = a - (this.lastFrameTimestamp || 0);
               const rate = this.scrollRatePixelsPerSecond
               const q = b / 1E3 * (rate || 0);
 
-              const sl = this.$.items.scrollLeft;
+              const tickerBarQuery = this.__getTickerBarQuery__();
+              const sl = tickerBarQuery.scrollLeft;
               // console.log(rate, sl, q)
               if (this.lastFrameTimestamp == this.scrollStartTime) {
 
@@ -6098,7 +6305,7 @@
                 let cond2 = sl > 0 && rate < 0 && q < 0;
                 let cond3 = sl < 1e-5 && sl > -1e-5 && rate > 0 && q > 0;
                 if (cond1 || cond2 || cond3) {
-                  this.$.items.scrollLeft += q;
+                  tickerBarQuery.scrollLeft += q;
                   this.maybeClampScroll();
                   this.updateArrows();
                 }
@@ -6106,21 +6313,24 @@
 
               this.lastFrameTimestamp = a;
               this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              0 < this.$.items.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              0 < tickerBarQuery.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
             } : function (a) {
               const b = a - (this.lastFrameTimestamp || 0);
-              this.$.items.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+              const tickerBarQuery = this.__getTickerBarQuery__();
+              tickerBarQuery.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
               this.maybeClampScroll();
               this.updateArrows();
               this.lastFrameTimestamp = a;
               this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              0 < this.$.items.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              0 < tickerBarQuery.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
             };
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
             assertor(() => fnIntegrity(cProto.startScrolling, '1.43.31'));
             assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
+            console.log('cProto.startScrolling', cProto.startScrolling);
+            console.log('cProto.scrollIncrementally', cProto.scrollIncrementally);
             console.log('RAF_FIX: scrollIncrementally', tag, "NG")
           }
 
