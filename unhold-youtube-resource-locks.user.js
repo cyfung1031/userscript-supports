@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2023.07.22.0
+// @version             2024.03.27.0
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -63,14 +63,13 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-(function (__Promise__) {
+(function (__window__) {
   'use strict';
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
   const DEBUG_LOG = false;
-  let initialChecking = null;
   const store = []
   let cidxx = 0;
   const dbSet = new Set();
@@ -85,7 +84,12 @@ SOFTWARE.
 
   const isSupported = (function (console, consoleX) {
     'use strict';
-    let [window] = new Function('return [window];')(); // real window object
+    let ww;
+    try {
+      ww = new Function('return [window];')()[0]; // real window object
+    } catch (e) { }
+
+    const window = ww || __window__;
 
     if (typeof (((window || 0).navigator || 0).locks || 0).request === 'function') {
       // disable WebLock
@@ -117,7 +121,6 @@ SOFTWARE.
       const message = (message) => {
         msgStore.push(message);
       };
-      const mTime = Date.now()
       async function releaseOnIdleHandler() {
         // console.log('OCK1', openCount, store.length);
         if (!cidxx) return
@@ -194,13 +197,11 @@ SOFTWARE.
         return function (event) {
           DEBUG_LOG && console.log(32, 'addEventListener', databaseId, eventType, event.type);
           handler.call(this, arguments);
-          const target = (event || 0).target
-          if (dbSet.has(target)) {
-
+          const target = (event || 0).target;
+          const didNotRemove = dbSet.delete(target);
+          if (didNotRemove) {
             releaseOnIdle(target.result, databaseId, eventType, event.type); // start waiting after success / failed of the first lock
-
             console.log('releaseOnIdle', store.length, databaseId);
-            dbSet.delete(target)
           }
           // dbSet.add()
           DEBUG_LOG && console.log(441, 'addEventListener', databaseId, eventType, event.type);
@@ -208,43 +209,38 @@ SOFTWARE.
       }
 
       function makeAddEventListener(databaseId) {
-        console.log('makeAddEventListener1', databaseId)
+        DEBUG_LOG && console.log('makeAddEventListener1', databaseId)
         return function (eventType, handler) {
-          console.log('makeAddEventListener2', databaseId)
-          const addEventListener = this[addEventListenerKey];
-          if (arguments.length !== 2) return addEventListener.call(this, ...arguments);
-          if (eventType === 'error' || eventType === 'success') {
+          DEBUG_LOG && console.log('makeAddEventListener2', databaseId)
+          if (arguments.length === 2 && eventType === 'error' || eventType === 'success') {
             DEBUG_LOG && console.log(31, databaseId, eventType);
             let gx = funcHooks.get(handler);
             if (!gx) {
               gx = makeHandler(handler, databaseId, eventType); // databaseId and eventType are just for logging; not reliable
               funcHooks.set(handler, gx);
             }
-            return addEventListener.call(this, eventType, gx);
+            return this[addEventListenerKey](eventType, gx);
           }
-          return addEventListener.call(this, ...arguments);
+          return this[addEventListenerKey](...arguments);
         }
       }
 
       function makeRemoveEventListener(databaseId) {
         return function (eventType, handler) {
-          const removeEventListener = this[removeEventListenerKey];
-          if (arguments.length !== 2) return removeEventListener.call(this, ...arguments);
-          if (eventType === 'error' || eventType === 'success') {
-            let gx = funcHooks.get(handler);
+          if (arguments.length === 2 && eventType === 'error' || eventType === 'success') {
+            const gx = funcHooks.get(handler);
             DEBUG_LOG && console.log(30, 'removeEventListener', databaseId, eventType);
-            let ret = removeEventListener.call(this, eventType, gx || handler);
+            const ret = this[removeEventListenerKey](eventType, gx || handler);
             DEBUG_LOG && console.log(442, 'removeEventListener', databaseId, eventType);
             return ret;
           }
-          return removeEventListener.call(this, ...arguments);
+          return this[removeEventListenerKey](...arguments);
         }
       }
 
       function makeOpen() {
         return function (databaseId) {
-          initialChecking && initialChecking();
-          let request = this[openKey](databaseId); // IDBRequest
+          const request = this[openKey](databaseId); // IDBRequest
           request[addEventListenerKey] = request.addEventListener;
           request.addEventListener = makeAddEventListener(databaseId);
           request[removeEventListenerKey] = request.removeEventListener;
@@ -270,4 +266,4 @@ SOFTWARE.
   })(DEBUG_LOG ? console : Object.assign({}, console, { log: function () { } }), console);
 
 
-})(Promise);
+})(this instanceof Window ? this : self instanceof Window ? self : window);
