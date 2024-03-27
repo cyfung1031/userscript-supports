@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.20
+// @version     0.11.21
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -24,7 +24,7 @@
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
-  const CHANGE_appendChild = true;
+  const CHANGE_appendChild = false; // discussions#236759
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
   // const FIX_error_many_stack_keepAliveDuration = 200; // ms
