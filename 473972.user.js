@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.21
+// @version     0.11.22
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -24,7 +24,7 @@
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
-  const CHANGE_appendChild = false; // discussions#236759
+  const CHANGE_appendChild = true; // discussions#236759
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
   // const FIX_error_many_stack_keepAliveDuration = 200; // ms
@@ -3709,68 +3709,92 @@
 
     })();
 
-    CHANGE_appendChild && (() => {
 
-      const f = HTMLElement.prototype.appendChild73 = HTMLElement.prototype.appendChild;
-      if (f) HTMLElement.prototype.appendChild = function (a) {
+      /*
 
-        if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING) {
+        e.nativeAppendChild = d.prototype.appendChild,
+        d.prototype.appendChild = function(h) {
+            return function(l) {
+                if (l instanceof DocumentFragment) {
+                    var m = Array.from(l.children);
+                    l = h.nativeAppendChild.call(this, l);
+                    if (this.isConnected) {
+                        m = g(m);
+                        for (var p = m.next(); !p.done; p = m.next())
+                            YD(p.value)
+                    }
+                    return l
+                }
+                m = l instanceof Element && l.isConnected;
+                p = h.nativeAppendChild.call(this, l);
+                m && ZD(l);
+                this.isConnected && YD(l);
+                return p
+            }
+        }(e),
+
+      */
+
+    CHANGE_appendChild && !Node.prototype.appendChild73 && Node.prototype.appendChild && (() => {
+
+      const handlerCanplay = (evt) => {
+        const a = evt.target;
+        console.log('[yt-js-engine-tamer]', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+        if (a.currentTime < 1e-8 && a.currentTime > -1e-9 && a.autoplay === false) a.currentTime += 1e-8;
+      };
+
+      const handlerTimeupdate = (evt) => {
+        const a = evt.target;
+        console.log('[yt-js-engine-tamer]', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+        if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
           try {
-            const src = `${a.src}`;
-            const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
-            if (b) {
-              a.addEventListener('canplay', (evt) => {
-                const a = evt.target;
-                console.log('[yt-js-engine-tamer]', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-                if (a.currentTime < 1e-8 && a.currentTime > -1e-9 && a.autoplay === false) a.currentTime += 1e-8;
-              }, { once: true, passive: true, capture: false });
-              a.addEventListener('timeupdate', (evt) => {
-                const a = evt.target;
-                console.log('[yt-js-engine-tamer]', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-                if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
-                  try {
-                    URL.revokeObjectURL(src);
-                  } finally {
-                    console.log('[yt-js-engine-tamer]', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+            URL.revokeObjectURL(src);
+          } finally {
+            console.log('[yt-js-engine-tamer]', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
+          }
+        }
+      };
+
+      const f = Node.prototype.appendChild73 = Node.prototype.appendChild;
+      if (f) Node.prototype.appendChild = function (a) {
+        if (this instanceof Element) { // exclude DocumentFragment
+          try {
+            if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING) {
+              const src = `${a.src}`;
+              const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
+              if (b) {
+                a.addEventListener('canplay', handlerCanplay, { once: true, passive: true, capture: false });
+                a.addEventListener('timeupdate', handlerTimeupdate, { once: true, passive: true, capture: false });
+              }
+              console.log('[yt-js-engine-tamer]', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
+            } else {
+              let checkFragmentA = true;
+              if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
+                for (let node = this.firstElementChild; node instanceof Element; node = node.nextElementSibling) {
+                  if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
+                    node.__m848__ = 1;
+                    node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
                   }
                 }
-              }, { once: true, passive: true, capture: false });
+              } else if (this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
+                checkFragmentA = false;
+              }
+              if ((a instanceof DocumentFragment) && checkFragmentA && a.firstElementChild === null) {
+                // no element in fragmentA
+                let child = a.firstChild; // could be null
+                let doNormal = false;
+                while (child instanceof Node) {
+                  if (child.nodeType === 3) { doNormal = true; break; }
+                  child = child.nextSibling;
+                }
+                if (!doNormal) return a;
+              }
             }
-            console.log('[yt-js-engine-tamer]', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
           } catch (e) {
             console.log(e);
           }
-        } else if (this instanceof HTMLElement) {
-
-          if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
-            for (let node = this.firstElementChild; node instanceof HTMLElement; node = node.nextElementSibling) {
-              if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
-                node.__m848__ = 1;
-                node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
-              }
-            }
-          } else if (this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
-            return this.appendChild73.apply(this, arguments);
-          }
-
-          if (a instanceof DocumentFragment) {
-            if (a.firstElementChild === null) {
-              let child = a.firstChild;
-              if (child === null) return a;
-              let doNormal = false;
-              while (child instanceof Node) {
-                if (child.nodeType === 3) { doNormal = true; break; }
-                child = child.nextSibling;
-              }
-              if (!doNormal) return a;
-            }
-          }
-
-          return (this.appendChild73 || f).apply(this, arguments);
         }
-
-
-        return (HTMLElement.prototype.appendChild73 || f).apply(this, arguments);
+        return arguments.length === 1 && this.appendChild73 ? this.appendChild73(a) : (this.appendChild73 || Node.prototype.appendChild73 || f).apply(this, arguments);
       }
 
 
