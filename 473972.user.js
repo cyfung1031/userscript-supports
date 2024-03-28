@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.22
+// @version     0.11.23
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3737,6 +3737,7 @@
 
     CHANGE_appendChild && !Node.prototype.appendChild73 && Node.prototype.appendChild && (() => {
 
+      let __src__ = '';
       const handlerCanplay = (evt) => {
         const a = evt.target;
         console.log('[yt-js-engine-tamer]', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
@@ -3746,9 +3747,10 @@
       const handlerTimeupdate = (evt) => {
         const a = evt.target;
         console.log('[yt-js-engine-tamer]', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-        if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === src) {
+        if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === __src__) {
           try {
-            URL.revokeObjectURL(src);
+            URL.revokeObjectURL(__src__);
+            __src__ = '';
           } finally {
             console.log('[yt-js-engine-tamer]', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
           }
@@ -3763,6 +3765,7 @@
               const src = `${a.src}`;
               const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
               if (b) {
+                __src__ = src;
                 a.addEventListener('canplay', handlerCanplay, { once: true, passive: true, capture: false });
                 a.addEventListener('timeupdate', handlerTimeupdate, { once: true, passive: true, capture: false });
               }
