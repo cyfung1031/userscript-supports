@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.23
+// @version     0.11.24
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2645,6 +2645,7 @@
   } catch (e) { }
 
   let NO_PRELOAD_GENERATE_204_BYPASS = NO_PRELOAD_GENERATE_204 ? false : true;
+  let headLinkCollection = null;
 
   const onRegistryReady = (callback) => {
     if (typeof customElements === 'undefined') {
@@ -3122,6 +3123,7 @@
     NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(() => {
       setTimeout(() => {
         NO_PRELOAD_GENERATE_204_BYPASS = true;
+        headLinkCollection = null;
       }, 1270);
     });
 
@@ -3773,9 +3775,9 @@
             } else {
               let checkFragmentA = true;
               if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
-                for (let node = this.firstElementChild; node instanceof Element; node = node.nextElementSibling) {
-                  if (node.nodeName === 'LINK' && node.rel === 'preload' && node.as === 'fetch' && !node.__m848__) {
-                    node.__m848__ = 1;
+                if (headLinkCollection === null) headLinkCollection = document.head.getElementsByTagName('LINK');
+                for (const node of headLinkCollection) {
+                  if (node.rel === 'preload' && node.as === 'fetch') {
                     node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
                   }
                 }
@@ -3784,11 +3786,9 @@
               }
               if ((a instanceof DocumentFragment) && checkFragmentA && a.firstElementChild === null) {
                 // no element in fragmentA
-                let child = a.firstChild; // could be null
                 let doNormal = false;
-                while (child instanceof Node) {
+                for (let child = a.firstChild; child instanceof Node; child = child.nextSibling) {
                   if (child.nodeType === 3) { doNormal = true; break; }
-                  child = child.nextSibling;
                 }
                 if (!doNormal) return a;
               }
