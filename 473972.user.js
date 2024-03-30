@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.24
+// @version     0.11.25
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -20,6 +20,7 @@
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance = 2 | 4;
   const FIX_yt_player = true;
+  const FIX_yt_player_timer_scheduling = false; // buggy; see https://greasyfork.org/en/scripts/473972/discussions/237140
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
@@ -4530,6 +4531,8 @@
       const [keyeC, keyC, keyhj, keyST, keyj, keyB, keyxa] = keys; // [timerId, binded executorFn, 1000ms, executorFn, dataJ, objectB, disposeFn]
 
       if (!keyeC || !keyC || !keyhj || !keyST || !keyj || !keyB || !keyxa) return;
+
+      if (!FIX_yt_player_timer_scheduling) return;
 
       gkp[keyxa] = function () {
         // dispose
