@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.26
+// @version     0.11.27
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4534,11 +4534,21 @@
 
       if (!keyeC || !keyC || !keyhj || !keyST || !keyj || !keyB || !keyxa) return;
 
-
+      let disposeKeys = null;
 
       gkp[keyxa] = function () {
         // dispose
-        for (const [k, v] in Object.entries(this)) {
+        if (!disposeKeys) {
+          disposeKeys = Object.getOwnPropertyNames(this).filter(key => {
+            if (key != keyeC && key != keyC && key != keyhj && key != keyST && key != keyj && key != keyB && key != keyxa) {
+              const t = typeof this[key];
+              return t === 'undefined' || t === 'object'
+            }
+            return false;
+          });
+        }
+        for (const key of disposeKeys) {
+          const v = this[key];
           if ((v || 0).length >= 1) v.length = 0; // function (){if(this.fn)for(;this.fn.length;)this.fn.shift()()}
         }
         if (this[keyeC] > 0) this.stop();
