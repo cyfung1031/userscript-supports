@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.27
+// @version     0.11.28
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -72,10 +72,7 @@
 
   const LOG_FETCHMETA_UPDATE = false;
 
-  const FIX_yt_player_timer_scheduling = false; // buggy; see https://greasyfork.org/en/scripts/473972/discussions/237140
-  // << if FIX_yt_player_timer_scheduling >>
   const IGNORE_bufferhealth_CHECK = false; // experimental; true will make "Stats for nerds" no info.
-  // << end >>
 
   const DENY_requestStorageAccess = true; // remove document.requestStorageAccess
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
@@ -4560,7 +4557,6 @@
         if (this[keyeC] > 0) this.stop();
         const delay = void 0 !== a ? a : this[keyhj];
         this[keyeC] = window.setTimeout(this[keyC], delay);
-
       };
       gkp.stop = function () {
         if (this[keyeC] > 0) {
@@ -4573,29 +4569,22 @@
         return this[keyeC] > 0;
       };
 
-      if (FIX_yt_player_timer_scheduling) {
-
-        gkp[keyST] = function () {
-          if (this[keyeC] > 0) {
-            this[keyeC] = 0;
-            const fn = this[keyj];
-            const obj = this[keyB];
-            let skip = false;
-            if (!fn) skip = true;
-            else if (IGNORE_bufferhealth_CHECK && obj) {
-              if (obj[keyC] instanceof Map) {
-                if (obj[keyC].has("bufferhealth")) skip = true;
-              } else if (obj[keyj] instanceof Map) {
-                if (obj[keyj].has("bufferhealth")) skip = true;
-              }
-            }
-            if (!skip) {
-              fn.call(obj);
-            }
+      gkp[keyST] = function () {
+        this.stop(); // this[keyeC] = 0;
+        const fn = this[keyj];
+        const obj = this[keyB];
+        let skip = false;
+        if (!fn) skip = true;
+        else if (IGNORE_bufferhealth_CHECK && obj) {
+          let m;
+          if ((m = obj[keyC]) instanceof Map || (m = obj[keyj]) instanceof Map) {
+            if (m.has("bufferhealth")) skip = true;
           }
-        };
-
-      }
+        }
+        if (!skip) {
+          fn.call(obj);
+        }
+      };
 
 
 
