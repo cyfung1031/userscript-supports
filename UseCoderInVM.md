@@ -1,3 +1,5 @@
+* Use them in chrome-extension://jinjaccalgkegednnccohejagnlnfdag/options/index.html (Editor Mode)
+
 ## Setup
 
 1. Open Dev Tools (Meta+Opt+I in Mac)
