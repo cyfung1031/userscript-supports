@@ -1,4 +1,4 @@
-// javascript:((script,ci,b,bu)=>{(ci='d39c598537ba8b58200f933bddce9d060d2387aa')&&fetch(`https://raw.githubusercontent.com/cyfung1031/userscript-supports/${ci}/tools/coder.js`).then(r=>r.text()).then(t=>[(b=new Blob([t],{type:'text/javascript; charset=UTF-8'})),(bu=URL.createObjectURL(b)),(script.src=bu),document.head.appendChild(script)]&&new Promise(r=>script.onload=r)).then(k=>URL.revokeObjectURL(bu)).then(e=>console.log('JS Injected'))})(document.createElement('script'));
+// javascript:((script,ci,b,bu)=>{(ci='4472e5a6f788cf6e6460624269160ce50b43e9ff')&&fetch(`https://raw.githubusercontent.com/cyfung1031/userscript-supports/${ci}/tools/coder.js`).then(r=>r.text()).then(t=>[(b=new Blob([t],{type:'text/javascript; charset=UTF-8'})),(bu=URL.createObjectURL(b)),(script.src=bu),document.head.appendChild(script)]&&new Promise(r=>script.onload=r)).then(k=>URL.revokeObjectURL(bu)).then(e=>console.log('JS Injected'))})(document.createElement('script'));
 
 console.log('Coder.js');
 
