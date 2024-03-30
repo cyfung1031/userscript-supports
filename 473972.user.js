@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.28
+// @version     0.11.29
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4791,7 +4791,7 @@
               height: 0px !important;
               contain: strict !important;
               pointer-events: none !important;
-              animation: 1ms steps(2) 0ms infinite alternate forwards running aF1 !important;
+              animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
             }
           `;
           (document.head || document.documentElement).appendChild(style);
