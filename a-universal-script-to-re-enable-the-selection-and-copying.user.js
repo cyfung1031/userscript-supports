@@ -2,7 +2,7 @@
 // @name                Selection and Copying Restorer (Universal)
 // @name:zh-TW          Selection and Copying Restorer (Universal)
 // @name:zh-CN          选择和复制还原器（通用）
-// @version             1.20.1.2
+// @version             1.21.0.0
 // @description         Unlock right-click, remove restrictions on copy, cut, select text, right-click menu, text copying, text selection, image right-click, and enhance functionality: Alt key hyperlink text selection.
 // @namespace           https://greasyfork.org/users/371179
 // @author              CY Fung
@@ -1135,6 +1135,31 @@
             $.createCSSElement(cssStyleOnReady, document.documentElement);
         },
 
+        overrideComputedStyle: () => {
+            if (typeof uWin.getComputedStyle !== 'function' || typeof uWin.getComputedStyle591 === 'function') return;
+            const f = uWin.getComputedStyle591 = uWin.getComputedStyle;
+            uWin.getComputedStyle = function (elm, pseudoElt = void 0) {
+                const p = (this || 0).getComputedStyle591 ? this.getComputedStyle591(elm, pseudoElt) : f.call(uWin, elm, pseudoElt);
+                return p;
+            }
+            const cssProto = typeof uWin.CSSStyleDeclaration === 'function' ? uWin.CSSStyleDeclaration.prototype : null;
+            if (cssProto && typeof cssProto.getPropertyValue === 'function' && typeof cssProto.getPropertyValue591 !== 'function') {
+                cssProto.getPropertyValue591 = cssProto.getPropertyValue;
+                cssProto.getPropertyValue = function (prop) {
+                    let val = this.getPropertyValue591(prop);
+                    if (prop === 'userSelect' && val === 'auto') val = 'none';
+                    return val;
+                }
+            }
+            if (cssProto) {
+                Object.defineProperty(cssProto, 'userSelect', {
+                    get() {
+                        return 'none'
+                    }
+                });
+            }
+        },
+
         disableHoverBlock: () => {
 
             const nMap = new WeakMap();
@@ -1807,6 +1832,9 @@
     $.eventsInjection();
     $.enableSelectClickCopy()
     $.injectCSSRules();
+    if (location.host === 'novelpia.com') {
+        $.overrideComputedStyle();
+    }
 
     if (isSupportAdvancedEventListener()) $.lpEnable(); // top capture event for alt-click
 
