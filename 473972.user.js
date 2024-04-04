@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.29
+// @version     0.11.30
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -124,6 +124,15 @@
       }
     };
   })();
+
+  /** 
+    @param {number} x 
+    @param {number} d */
+  const toFixed2 = (x, d) => {
+    let t = x.toFixed(d);
+    let y = `${+t}`;
+    return y.length > t.length ? t : y;
+  }
 
 
   let pf31 = new PromiseExternal();
@@ -4180,14 +4189,14 @@
 
           if (transformTypeI === 1) {
             const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
-            const vz = +q.toFixed(3);
+            const vz = toFixed2(q, 3);
             c = `${transformType}(${vz})`;
             const cv = aStyle.transform;
             if (c === cv) return;
             aStyle.transform = c;
           } else if (transformTypeI === 2) {
             const q = transformValue;
-            const vz = +q.toFixed(1);
+            const vz = toFixed2(q, 1);
             c = `${transformType}(${vz}${transformUnit})`;
             const cv = aStyle.transform;
             if (c === cv) return;
@@ -4249,7 +4258,7 @@
           if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
             const num = c;
             c = `${num}`;
-            if (c.length > 5) c = (num < 10 && num > -10) ? `${num.toFixed(3)}` : `${+num.toFixed(1)}`;
+            if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
           }
 
           if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
