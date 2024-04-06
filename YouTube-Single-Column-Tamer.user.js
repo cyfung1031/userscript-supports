@@ -5,10 +5,10 @@
 // @grant       none
 // @unwrap
 // @inject-into page
-// @version     0.1.3
+// @version     0.1.4
 // @author      CY Fung
 // @description Re-adoption of Single Column Detection against video and browser sizes
-// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@ea433e2401dd5c8fdd799fda078fe19859b087f9/library/ytZara.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@8fac46500c5a916e6ed21149f6c25f8d1c56a6a3/library/ytZara.js
 // @require     https://update.greasyfork.org/scripts/475632/1340102/ytConfigHacks.js
 // @license     MIT
 // ==/UserScript==
