@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.33
+// @version     1.3.34
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -51,12 +51,12 @@
   const ALLOW_FLAGS_202404_flags41 = new Set([
     'action_companion_center_align_description',
     'disable_child_node_auto_formatted_strings',
-    'enable_native_bridge_view_saved_playables',
+    // 'enable_native_bridge_view_saved_playables',
     'enable_shadydom_free_scoped_query_methods',
-    'enable_skippable_ads_for_unplugged_ad_pod',
+    // 'enable_skippable_ads_for_unplugged_ad_pod',
     'enable_sparkles_web_clickable_description',
     'enable_window_constrained_buy_flow_dialog',
-    'html5_enable_ads_client_monitoring_log_tv',
+    // 'html5_enable_ads_client_monitoring_log_tv',
     'is_part_of_any_user_engagement_experiment',
     // 'kevlar_chapters_list_view_seek_by_chapter',
     // 'kevlar_enable_shorts_prefetch_in_sequence',
@@ -65,11 +65,11 @@
     'live_chat_enable_send_button_in_slow_mode',
     'live_chat_web_use_emoji_manager_singleton',
     'remove_masthead_channel_banner_on_refresh',
-    'web_deprecate_service_ajax_map_dependency',
+    // 'web_deprecate_service_ajax_map_dependency',
     'web_modern_player_settings_quality_bottom',
-    'web_player_always_enable_auto_translation',
-    'web_player_enable_cultural_moment_overlay',
-    'ytidb_fetch_datasync_ids_for_data_cleanup',
+    // 'web_player_always_enable_auto_translation',
+    // 'web_player_enable_cultural_moment_overlay',
+    // 'ytidb_fetch_datasync_ids_for_data_cleanup',
     'kevlar_tuner_should_test_reuse_components',
   ]);
   
@@ -79,11 +79,11 @@
     // 'trigger_impression_pings_on_view_search_desktop',
   ]);
 
-  const ALLOW_FLAGS_202404_flags11 = new Set([
-    'use_core_sm',
-    'use_new_cml',
-    'web_api_url',
-  ]);
+  // const ALLOW_FLAGS_202404_flags11 = new Set([
+  //   // 'use_core_sm',
+  //   // 'use_new_cml',
+  //   // 'web_api_url',
+  // ]);
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -706,13 +706,13 @@
             if (kl === 26) {
 
 
-              if (key === 'disable_features_for_supex') continue;
-              if (key === 'export_networkless_options') continue;
+              // if (key === 'disable_features_for_supex') continue;
+              // if (key === 'export_networkless_options') continue;
               if (key === 'suppress_error_204_logging') continue;
               if (key === 'use_request_time_ms_header') continue;
 
 
-              if (key === 'disable_features_for_supex') continue;
+              // if (key === 'disable_features_for_supex') continue;
 
               if (key === 'live_chat_channel_activity') continue;
 
@@ -720,7 +720,7 @@
             } else if (kl === 41) {
 
               if (key === 'remove_masthead_channel_banner_on_refresh') continue;
-              if (key === 'ytidb_fetch_datasync_ids_for_data_cleanup') continue;
+              // if (key === 'ytidb_fetch_datasync_ids_for_data_cleanup') continue;
               if (ALLOW_FLAGS_202404_flags41.has(key)) continue;
 
             }
@@ -734,7 +734,7 @@
             } else if (kl === 11) {
 
               if (key === 'defer_menus') continue;
-              if (ALLOW_FLAGS_202404_flags11.has(key)) continue;
+              // if (ALLOW_FLAGS_202404_flags11.has(key)) continue;
 
             }
 
