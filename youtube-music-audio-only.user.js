@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.9
+// @version             0.1.10
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -748,12 +748,13 @@
 
                 for (const [k, v] of Object.entries(_yt_player)) {
 
-                    if (typeof v === 'function' && typeof v.prototype.clone === 'function'
-                        && typeof v.prototype.get === 'function' && typeof v.prototype.set === 'function'
+                    const p = typeof v === 'function' ? v.prototype : 0;
 
-                        && typeof v.prototype.isEmpty === 'undefined' && typeof v.prototype.forEach === 'undefined'
-                        && typeof v.prototype.clear === 'undefined'
-
+                    if (p
+                        && typeof p.clone === 'function'
+                        && typeof p.get === 'function' && typeof p.set === 'function'
+                        && typeof p.isEmpty === 'undefined' && typeof p.forEach === 'undefined'
+                        && typeof p.clear === 'undefined'
                     ) {
 
                         key = k;
