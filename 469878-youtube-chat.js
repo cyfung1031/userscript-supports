@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.3
+// @version             0.61.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -87,6 +87,9 @@
 
   // reuse yt components
   const ENABLE_FLAGS_REUSE_COMPONENTS = true;
+
+  // ShadyDom Free is buggy
+  const DISABLE_FLAGS_SHADYDOM_FREE = true;
 
   // images <Group#I01>
   const AUTHOR_PHOTO_SINGLE_THUMBNAIL = 1;  // 0 - disable; 1- smallest; 2- largest
@@ -1216,7 +1219,7 @@
   const px2mm = (px) => px * window.devicePixelRatio * 0.26458333;
 
 
-  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS) && (() => {
+  ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS || DISABLE_FLAGS_SHADYDOM_FREE) && (() => {
 
     const _config_ = () => {
       try {
@@ -1243,6 +1246,15 @@
         EXPERIMENT_FLAGS.kevlar_tuner_should_test_reuse_components = true;
         EXPERIMENT_FLAGS.kevlar_tuner_should_reuse_components = true;
         // console.log(702);
+      }
+
+      if (DISABLE_FLAGS_SHADYDOM_FREE) {
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_node_methods = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_query_methods = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_readonly_properties_batch_one = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_parent_node = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_children = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_last_child = false;
       }
 
     };
