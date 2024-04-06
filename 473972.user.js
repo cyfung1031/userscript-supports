@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.30
+// @version     0.11.31
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -2656,7 +2656,10 @@
   let NO_PRELOAD_GENERATE_204_BYPASS = NO_PRELOAD_GENERATE_204 ? false : true;
   let headLinkCollection = null;
 
-  const onRegistryReady = (callback) => {
+  const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
+
+  const promiseForCustomYtElementsReady = isCustomElementsProvided ? null : new Promise((callback) => {
+    const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
     if (typeof customElements === 'undefined') {
       if (!('__CE_registry' in document)) {
         // https://github.com/webcomponents/polyfills/
@@ -2687,10 +2690,13 @@
     } else {
       callback();
     }
-  };
+  });
 
+  const whenCEDefined = isCustomElementsProvided
+    ? (nodeName) => customElements.whenDefined(nodeName)
+    : (nodeName) => promiseForCustomYtElementsReady.then(() => customElements.whenDefined(nodeName));
 
-  const assertor = (f) => f() || console.assert(false, f + "");
+  // const assertor = (f) => f() || console.assert(false, f + "");
 
   const fnIntegrity = (f, d) => {
     if (!f || typeof f !== 'function') {
@@ -3068,8 +3074,6 @@
 
 
 
-  const promiseForCustomYtElementsReady = new Promise(onRegistryReady);
-
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
@@ -3129,20 +3133,32 @@
       }
     });
 
-    NO_PRELOAD_GENERATE_204_BYPASS || promiseForCustomYtElementsReady.then(() => {
-      setTimeout(() => {
-        NO_PRELOAD_GENERATE_204_BYPASS = true;
-        headLinkCollection = null;
-      }, 1270);
-    });
+    const isUrlInEmbed = location.href.includes('.youtube.com/embed/');
+    const isAbortSignalSupported = typeof AbortSignal !== "undefined";
 
     const promiseForTamerTimeout = new Promise(resolve => {
-      promiseForCustomYtElementsReady.then(() => {
-        customElements.whenDefined('ytd-app').then(() => {
-          setTimeout(resolve, 1200);
-        });
+      !isUrlInEmbed && isAbortSignalSupported && document.addEventListener('yt-action', function () {
+        setTimeout(resolve, 480);
+      }, { capture: true, passive: true, once: true });
+      !isUrlInEmbed && isAbortSignalSupported && typeof customElements === "object" && whenCEDefined('ytd-app').then(() => {
+        setTimeout(resolve, 1200);
       });
       setTimeout(resolve, 3000);
+    });
+
+    const promiseForPageInitied = new Promise(resolve => {
+      !isUrlInEmbed && isAbortSignalSupported && document.addEventListener('yt-action', function () {
+        setTimeout(resolve, 450);
+      }, { capture: true, passive: true, once: true });
+      !isUrlInEmbed && isAbortSignalSupported && typeof customElements === "object" && whenCEDefined('ytd-app').then(() => {
+        setTimeout(resolve, 900);
+      });
+      setTimeout(resolve, 1800);
+    });
+
+    NO_PRELOAD_GENERATE_204_BYPASS || promiseForPageInitied.then(() => {
+      NO_PRELOAD_GENERATE_204_BYPASS = true;
+      headLinkCollection = null;
     });
 
 
@@ -3214,11 +3230,9 @@
     //       ['tp-yt-paper-menu-button'].forEach(async tag => {
 
     //         const dummy = await new Promise(resolve => {
-    //           promiseForCustomYtElementsReady.then(() => {
-    //             customElements.whenDefined(tag).then(() => {
+    //             whenCEDefined(tag).then(() => {
     //               resolve(document.createElement(tag));
     //             });
-    //           });
 
     //         });
 
@@ -3258,25 +3272,23 @@
 
       const ytdApp = await new Promise(resolve => {
 
-        promiseForCustomYtElementsReady.then(() => {
-          customElements.whenDefined('ytd-app').then(() => {
+        whenCEDefined('ytd-app').then(() => {
+          const ytdApp = document.querySelector('ytd-app');
+          if (ytdApp) {
+            resolve(ytdApp);
+            return;
+          }
+          let mo = new MutationObserver(() => {
             const ytdApp = document.querySelector('ytd-app');
-            if (ytdApp) {
-              resolve(ytdApp);
-              return;
+            if (!ytdApp) return;
+            if (mo) {
+              mo.disconnect();
+              mo.takeRecords();
+              mo = null;
             }
-            let mo = new MutationObserver(() => {
-              const ytdApp = document.querySelector('ytd-app');
-              if (!ytdApp) return;
-              if (mo) {
-                mo.disconnect();
-                mo.takeRecords();
-                mo = null;
-              }
-              resolve(ytdApp);
-            });
-            mo.observe(document, { subtree: true, childList: true });
+            resolve(ytdApp);
           });
+          mo.observe(document, { subtree: true, childList: true });
         });
 
       });
@@ -3527,12 +3539,10 @@
 
     //   const dummy = await new Promise(resolve => {
 
-    //     promiseForCustomYtElementsReady.then(() => {
-    //       customElements.whenDefined('ytd-menu-renderer').then(() => {
+    //       whenCEDefined('ytd-menu-renderer').then(() => {
 
     //         resolve(document.createElement('ytd-menu-renderer'));
     //       });
-    //     });
 
 
 
@@ -5083,7 +5093,7 @@
 
     })();
 
-    promiseForCustomYtElementsReady.then(() => {
+    !isUrlInEmbed && Promise.resolve().then(() => {
 
       // ==================================== FIX_avoid_incorrect_video_meta ====================================
 
@@ -5210,10 +5220,10 @@
       }
 
 
-      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && (pageSetupVideoId !== null) && check_for_set_key_order;
+      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && isPrepareCachedV && check_for_set_key_order;
 
 
-      FIX_avoid_incorrect_video_meta_bool && customElements.whenDefined('ytd-video-primary-info-renderer').then(() => {
+      FIX_avoid_incorrect_video_meta_bool && whenCEDefined('ytd-video-primary-info-renderer').then(() => {
         let dummy;
         let cProto;
         // let mc = 4;
@@ -5675,7 +5685,7 @@
       // ==================================== FIX_avoid_incorrect_video_meta ====================================
 
 
-      FIX_ytdExpander_childrenChanged && customElements.whenDefined('ytd-expander').then(() => {
+      FIX_ytdExpander_childrenChanged && whenCEDefined('ytd-expander').then(() => {
 
         let dummy;
         let cProto;
@@ -5723,7 +5733,7 @@
       });
 
 
-      FIX_paper_ripple_animate && customElements.whenDefined('paper-ripple').then(() => {
+      FIX_paper_ripple_animate && whenCEDefined('paper-ripple').then(() => {
 
         let dummy;
         let cProto;
@@ -5762,7 +5772,6 @@
       });
 
       if (FIX_doIdomRender) {
-
 
         const xsetTimeout = function (f, d) {
           if (xsetTimeout.m511 === 1 && !d) {
@@ -5805,7 +5814,7 @@
         for (const ytTag of ['ytd-lottie-player', 'yt-attributed-string', 'yt-image', 'yt-icon-shape', 'yt-button-shape', 'yt-button-view-model', 'yt-icon-badge-shape']) {
 
 
-          customElements.whenDefined(ytTag).then(() => {
+          whenCEDefined(ytTag).then(() => {
 
             let dummy;
             let cProto;
