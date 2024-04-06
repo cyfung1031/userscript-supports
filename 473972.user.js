@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.31
+// @version     0.11.32
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -175,7 +175,7 @@
     }
   }
 
-  FIX_perfNow && (() => {
+  FIX_perfNow && typeof DocumentTimeline !== "undefined" && (() => {
     let nowh = -1;
     const dtl = new DocumentTimeline();
     performance.now = performance.now16 = function () {
