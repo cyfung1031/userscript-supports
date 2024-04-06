@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.016
+// @version             0.11.017
 // @license             MIT License
 
 // @author              CY Fung
@@ -835,15 +835,15 @@ SOFTWARE.
             if ((name || name === '') && uri && mt && mt === channelId) {
 
 
-                let object = channelIdToHandle.get(mt);
+                const handleObj = channelIdToHandle.get(mt);
 
-                if (object) {
+                if (handleObj) {
 
-                    const handleText = object.handleText;
+                    const handleText = handleObj.handleText;
 
                     if (handleText === name) channelIdToHandle.delete(mt);
                     else {
-                        object.justPossible = false; // ignore @handle checking
+                        handleObj.justPossible = false; // ignore @handle checking
 
                         res = {
                             "title": name,
@@ -875,6 +875,8 @@ SOFTWARE.
 
     }
 
+    sessionStorage.setItem('js-yt-usernames', '');
+    let isFirstStackNewRequestSuccess = true;
     /**
      *
      * @param {string} channelId
@@ -953,16 +955,15 @@ SOFTWARE.
                         return;
                     }
 
-                    if (IGNORE_NO_NAME) {
-                        const titleForDisplay = resultInfo.langTitle || resultInfo.title;
-                        if (!titleForDisplay) {
-                            const handle = channelIdToHandle.get(channelId);
-                            if (handle && handle.handleText) {
-                                resultInfo.langTitle = resultInfo.title = handle.handleText;
-                            } else {
-                                setResult(null);
-                                return;
-                            }
+                    const titleForDisplay = resultInfo.langTitle || resultInfo.title;
+                    const handleObj = channelIdToHandle.get(channelId);
+                    const handleId = handleObj ? handleObj.handleText : '';
+                    if (IGNORE_NO_NAME && !titleForDisplay) {
+                        if (handleId) {
+                            resultInfo.langTitle = resultInfo.title = handleObj.handleText;
+                        } else {
+                            setResult(null);
+                            return;
                         }
                     }
 
@@ -971,6 +972,26 @@ SOFTWARE.
                     const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl } = resultInfo;
 
                     const displayNameRes = { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123: false };
+
+                    if (handleId) {
+                        if (isFirstStackNewRequestSuccess) {
+                            isFirstStackNewRequestSuccess = false;
+                            sessionStorage.setItem('js-yt-usernames', `${handleId}\t${titleForDisplay}`);
+                        } else {
+                            let current = sessionStorage.getItem('js-yt-usernames') || '';
+                            if (current.length > 900000) {
+                                const na = current.split('\n');
+                                const n3 = Math.floor(na.length / 3);
+                                if (n3 > 2) {
+                                    const newText = na.slice(0, n3).concat(na.slice(na.length - n3)).join('\n');
+                                    if (newText.length < 720000) {
+                                        current = newText;
+                                    }
+                                }
+                            }
+                            sessionStorage.setItem('js-yt-usernames', `${current}\n${handleId}\t${titleForDisplay}`);
+                        }
+                    }
 
                     setResult(displayNameRes);
                 },
@@ -1056,7 +1077,8 @@ SOFTWARE.
             aResult.fetchingState = 1;
             stackNewRequest(channelId);
         }
-        return await aResult.getValue();
+        const result = await aResult.getValue();
+        return result;
     }
 
 
@@ -2142,12 +2164,12 @@ SOFTWARE.
             const channelId = rchannelNameElm.getAttribute('jkrgy');
             if (channelId) {
                 if (byPassCheckStore.has(rchannelNameElm)) continue;
-                const object = channelIdToHandle.get(channelId);
-                if (object && object.handleText && !object.justPossible) {
+                const handleObj = channelIdToHandle.get(channelId);
+                if (handleObj && handleObj.handleText && !handleObj.justPossible) {
                     const textDom = ((rchannelNameCnt.$ || 0).text || 0);
                     if (textDom) {
                         let t = textDom.textContent.trim()
-                        if (t === object.handleText || t === '') {
+                        if (t === handleObj.handleText || t === '') {
                             rchannelNameElm.removeAttribute('jkrgy');
                             // Promise.resolve().then(domChecker);
                         }
