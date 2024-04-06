@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.34
+// @version     1.3.35
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -62,8 +62,8 @@
     // 'kevlar_enable_shorts_prefetch_in_sequence',
     // 'kevlar_resolve_command_for_confirm_dialog',
     // 'kevlar_shorts_seedless_retry_initial_load',
-    'live_chat_enable_send_button_in_slow_mode',
-    'live_chat_web_use_emoji_manager_singleton',
+    // 'live_chat_enable_send_button_in_slow_mode',
+    // 'live_chat_web_use_emoji_manager_singleton',
     'remove_masthead_channel_banner_on_refresh',
     // 'web_deprecate_service_ajax_map_dependency',
     'web_modern_player_settings_quality_bottom',
@@ -585,19 +585,32 @@
   }
 
 
-  const all_live_chat_flags = new Set([
-    "live_chat_banner_expansion_fix",
-    "live_chat_enable_mod_view",
-    "live_chat_enable_qna_banner_overflow_menu_actions",
-    "live_chat_enable_qna_channel",
-    "live_chat_enable_send_button_in_slow_mode",
-    "live_chat_filter_emoji_suggestions",
-    "live_chat_increased_min_height",
-    "live_chat_over_playlist",
-    "live_chat_web_enable_command_handler",
-    "live_chat_web_use_emoji_manager_singleton",
-    "live_chat_whole_message_clickable"
-  ]);
+  const all_live_chat_flags = new Set(`
+
+  live_chat_banner_expansion_fix
+  live_chat_enable_mod_view
+  live_chat_enable_qna_banner_overflow_menu_actions
+  live_chat_enable_qna_channel
+  live_chat_enable_send_button_in_slow_mode
+  live_chat_filter_emoji_suggestions
+  live_chat_increased_min_height
+  live_chat_over_playlist
+  live_chat_web_enable_command_handler
+  live_chat_web_use_emoji_manager_singleton
+  live_chat_whole_message_clickable
+
+  live_chat_channel_activity
+  live_chat_web_input_update
+
+
+  live_chat_emoji_picker_toggle_state
+  live_chat_enable_command_handler_resolver_map
+  live_chat_enable_controller_extraction
+  live_chat_enable_rta_manager
+  live_chat_require_space_for_autocomplete_emoji
+  live_chat_unclickable_message
+
+  `.trim().split(/\s+/));
 
   const all_noti_flags = new Set([ // not sure
     // "check_user_lact_at_prompt_shown_time_on_web",
@@ -714,9 +727,9 @@
 
               // if (key === 'disable_features_for_supex') continue;
 
-              if (key === 'live_chat_channel_activity') continue;
+              // if (key === 'live_chat_channel_activity') continue;
 
-              if (key === 'live_chat_web_input_update') continue;
+              // if (key === 'live_chat_web_input_update') continue;
             } else if (kl === 41) {
 
               if (key === 'remove_masthead_channel_banner_on_refresh') continue;
