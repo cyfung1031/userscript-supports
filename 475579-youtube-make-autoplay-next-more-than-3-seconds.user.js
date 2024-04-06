@@ -2,7 +2,7 @@
 // @name        YouTube: Make AutoPlay Next More Than 3 seconds
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.0
+// @version     0.2.1
 // @author      CY Fung
 // @license     MIT
 // @description To make AutoPlay Next Duration longer
@@ -303,27 +303,7 @@
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
 
-    const { requestAnimationFrame, setTimeout, cancelAnimationFrame, setInterval, clearInterval, animate, requestIdleCallback, getComputedStyle } = __CONTEXT__;
-
-
-
-    let rafPromiseForTickers = null;
-
-    const getRafPromiseForTickers = () => rafPromiseForTickers || (rafPromiseForTickers = new Promise(resolve => {
-      requestAnimationFrame(hRes => {
-        rafPromiseForTickers = null;
-        resolve(hRes);
-      });
-    }));
-
-    const getForegroundPromise = () => {
-      if (document.visibilityState === 'visible') {
-        return Promise.resolve();
-      } else {
-        return getRafPromiseForTickers();
-      }
-    };
-
+    const { setTimeout } = __CONTEXT__;
 
     const isUrlInEmbed = location.href.includes('.youtube.com/embed/');
     const isAbortSignalSupported = typeof AbortSignal !== "undefined";
@@ -337,55 +317,6 @@
       });
       setTimeout(resolve, 3000);
     });
-
-
-    class RAFHub {
-      constructor() {
-        /** @type {number} */
-        this.startAt = 8170;
-        /** @type {number} */
-        this.counter = 0;
-        /** @type {number} */
-        this.rid = 0;
-        /** @type {Map<number, FrameRequestCallback>} */
-        this.funcs = new Map();
-        const funcs = this.funcs;
-        /** @type {FrameRequestCallback} */
-        this.bCallback = this.mCallback.bind(this);
-        this.pClear = () => funcs.clear();
-      }
-      /** @param {DOMHighResTimeStamp} highResTime */
-      mCallback(highResTime) {
-        this.rid = 0;
-        Promise.resolve().then(this.pClear);
-        this.funcs.forEach(func => Promise.resolve(highResTime).then(func).catch(console.warn));
-      }
-      /** @param {FrameRequestCallback} f */
-      request(f) {
-        if (this.counter > 1e9) this.counter = 9;
-        let cid = this.startAt + (++this.counter);
-        this.funcs.set(cid, f);
-        if (this.rid === 0) this.rid = requestAnimationFrame(this.bCallback);
-        return cid;
-      }
-      /** @param {number} cid */
-      cancel(cid) {
-        cid = +cid;
-        if (cid > 0) {
-          if (cid <= this.startAt) {
-            return cancelAnimationFrame(cid);
-          }
-          if (this.rid > 0) {
-            this.funcs.delete(cid);
-            if (this.funcs.size === 0) {
-              cancelAnimationFrame(this.rid);
-              this.rid = 0;
-            }
-          }
-        }
-      }
-    }
-
 
 
     const PromiseExternal = ((resolve_, reject_) => {
@@ -407,8 +338,6 @@
 
       const dataSetPromise = new PromiseExternal();
       const instSetPromise = new PromiseExternal();
-
-      const rafHub = new RAFHub();
 
       const observablePromise = (proc, timeoutPromise) => {
         let promise = null;
@@ -439,7 +368,7 @@
         }
       }
 
-      if (typeof AbortSignal !== 'undefined') {
+      if (isAbortSignalSupported && !isUrlInEmbed) {
         await customElements.whenDefined('ytd-player');
       }
 
@@ -452,21 +381,16 @@
       function baseSet() {
         let r = setDataHolder();
         if (r) qrz ? assignDurationToData(pm.playerOverlayAutoplayRenderer, null) : dataSetPromise.resolve();
-        if (pm.targetKeys && pm.instsT) {
-
-          qtd = true;
-        }
+        // if (pm.targetKeys && pm.instsT) {
+        //   qtd = true;
+        // }
       }
 
-
       function onSetsT(inst) {
-
         if (!inst) return;
         baseSet();
         instSetPromise.resolve();
-
       }
-
 
       const pm = new Proxy({}, {
         set(target, prop, value, receiver) {
@@ -477,9 +401,6 @@
           }
         }
       });
-
-
-
 
       const assignDurationToData = (playerOverlayAutoplayRenderer) => {
         if (!playerOverlayAutoplayRenderer) return;
@@ -492,9 +413,8 @@
       }
 
       let qrz = false;
-      let qtd = false;
+      // let qtd = false;
       Promise.all([dataSetPromise, instSetPromise]).then(() => {
-
 
         const inst = pm.instsT;
         const playerOverlayAutoplayRenderer = pm.playerOverlayAutoplayRenderer;
@@ -522,7 +442,7 @@
 
         qrz = true;
 
-      })
+      });
 
       const setDataHolder = () => {
 
@@ -541,15 +461,11 @@
           return true;
         }
 
-      }
+      };
 
       document.addEventListener('yt-navigate-finish', function () {
         // onSetsT(pm.instsT)
-
-
         baseSet();
-
-
       }, false);
 
       const g = _yt_player;
@@ -611,17 +527,17 @@
           gkp.isLoaded75 = gkp.isLoaded;
           gkp.isLoaded = function () {
             pm.instsT = this;
-            if (qtd) {
-              qtd = false;
+            // if (qtd) {
+            //   qtd = false;
 
-              setTimeout(() => {
-                const inst = pm.instsT;
-                if (pm.targetKeys && inst) {
-                  const entries = pm.targetKeys.map(k => [k, inst[k]]);
-                  console.log(`sT:`, entries, entries.length);
-                }
-              }, 80);
-            }
+            //   setTimeout(() => {
+            //     const inst = pm.instsT;
+            //     if (pm.targetKeys && inst) {
+            //       const entries = pm.targetKeys.map(k => [k, inst[k]]);
+            //       console.log(`sT:`, entries, entries.length);
+            //     }
+            //   }, 80);
+            // }
 
             return this.isLoaded75.apply(this, arguments);
           }
