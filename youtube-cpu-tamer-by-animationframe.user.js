@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.03.31.0
+// @version             2024.04.06.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -290,27 +290,28 @@ SOFTWARE.
         return t;
       }
       const inExec = new Set();
+      const wFunc = async (handler, wStore) => {
+        try {
+          const cid = wStore.cid;
+          inExec.add(cid);
+          const t = await eFunc();
+          const didNotRemove = inExec.delete(cid); // true for valid key
+          if (didNotRemove && t !== wStore.lastExecution) {
+            wStore.lastExecution = t;
+            handler();
+          }
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
+      };
       const sFunc = (propFunc) => {
         return (func, ms = 0, ...args) => {
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
             const hasArgs = args.length > 0;
             const handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
-            let lastExecution = 0;
-            const cid = propFunc(async () => {
-              try {
-                inExec.add(cid);
-                const t = await eFunc();
-                const didNotRemove = inExec.delete(cid); // true for valid key
-                if (didNotRemove && t !== lastExecution) {
-                  lastExecution = t;
-                  handler();
-                }
-              } catch (e) {
-                console.error(e);
-                throw e;
-              }
-            }, ms);
-            return cid;
+            const wStore = {};
+            return (wStore.cid = propFunc(wFunc, ms, handler, wStore));
           } else {
             return propFunc(func, ms, ...args);
           }
@@ -329,10 +330,10 @@ SOFTWARE.
       win.clearInterval = dFunc(clearInterval);
 
       try {
-        win.setTimeout.toString = setTimeout.toString.bind(setTimeout)
-        win.setInterval.toString = setInterval.toString.bind(setInterval)
-        win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout)
-        win.clearInterval.toString = clearInterval.toString.bind(clearInterval)
+        win.setTimeout.toString = setTimeout.toString.bind(setTimeout);
+        win.setInterval.toString = setInterval.toString.bind(setInterval);
+        win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout);
+        win.clearInterval.toString = clearInterval.toString.bind(clearInterval);
       } catch (e) { console.warn(e) }
 
     })();
