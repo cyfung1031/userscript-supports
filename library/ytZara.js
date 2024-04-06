@@ -82,6 +82,7 @@ var ytZara = (function () {
       return this._promiseRegistryReady || (this._promiseRegistryReady = new Promise(this.onRegistryReady));
     },
     onRegistryReady(callback) {
+      const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
       if (typeof customElements === 'undefined') {
         if (!('__CE_registry' in document)) {
           // https://github.com/webcomponents/polyfills/
