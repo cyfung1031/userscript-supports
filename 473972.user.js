@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.33
+// @version     0.11.34
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -4263,7 +4263,7 @@
         const set66 = new Set();
         // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
 
-        const modifiedFn = (a, b, c, immediateChange = false) => {
+        const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
 
           // console.log(140000, a, b, c);
           if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
@@ -4345,7 +4345,7 @@
             // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
             const immediate = (a.id || 0).length > 14;
             for (const [k, v] of Object.entries(b)) {
-              modifiedFn(a, k, v, immediate);
+              modifiedFn.call(this, a, k, v, immediate);
             }
 
           } else {
