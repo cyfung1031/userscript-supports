@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.32
+// @version     0.11.33
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -54,7 +54,7 @@
 
   const ENABLE_discreteTasking = true;
   // << if ENABLE_discreteTasking >>
-  const ENABLE_weakenStampReferences = true;
+  const ENABLE_weakenStampReferences = true; // disabled in old browsers
   // << end >>
 
   const FIX_perfNow = true;
@@ -1675,7 +1675,8 @@
     }
 
     FIX_stampDomArray_stableList && fixStampDomArrayStableList(h);
-    ENABLE_weakenStampReferences && weakenStampReferences(h);
+    const ENABLE_weakenStampReferencesQ = ENABLE_weakenStampReferences && typeof DocumentTimeline !== 'undefined' && typeof WeakRef !== 'undefined';
+    ENABLE_weakenStampReferencesQ && weakenStampReferences(h);
 
 
 
