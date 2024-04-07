@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.6
+// @version             0.61.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -651,32 +651,37 @@
   ` : '';
 
   const cssText15_FIX_ANIMATION_TICKER_TEXT_POSITION = FIX_ANIMATION_TICKER_TEXT_POSITION ? `
-  
     .style-scope.yt-live-chat-ticker-renderer #animation-container[id][class] {
       position: relative;
       display: grid;
       grid-auto-columns: 1fr;
       grid-auto-rows: 1fr;
       grid-template-columns: repeat(1, 1fr);
-      gap: 9px;
+      gap: 8px;
       padding-bottom: 0;
       margin-bottom: 0;
       padding-top: 0;
-      margin-top: 0;
-      margin-top: -2px;
-    }
+      align-self: flex-start;
+      flex-wrap: nowrap;
+      margin-top: 2px;
+  }
 
-    .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class] {
+  .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class] {
       margin-top: 0px;
       margin-bottom: 0px;
-      flex-direction: column;
-      justify-content: center;
-    }
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-start;
+  }
 
-    .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class]:first-child {
-      display: flex;
-    }
-
+  .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class]:first-child::after {
+      content: '補';
+      visibility: collapse;
+      display: inline-block;
+      position: relative;
+      width: 0;
+  }
 
   ` : '';
 
