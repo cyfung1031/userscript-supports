@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.7
+// @version             0.61.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -657,13 +657,13 @@
       grid-auto-columns: 1fr;
       grid-auto-rows: 1fr;
       grid-template-columns: repeat(1, 1fr);
-      gap: 8px;
+      gap: 9px;
       padding-bottom: 0;
       margin-bottom: 0;
       padding-top: 0;
       align-self: flex-start;
       flex-wrap: nowrap;
-      margin-top: 2px;
+      margin-top: 1px;
   }
 
   .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class] {
