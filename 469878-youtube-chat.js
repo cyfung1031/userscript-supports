@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.4
+// @version             0.61.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -185,6 +185,8 @@
   const SUPPRESS_refreshOffsetContainerHeight_ = true; // added in FEB 2024; true for default layout options
 
   const NO_FILTER_DROPDOWN_BORDER = true; // added in 2024.03.02
+
+  const FIX_ANIMATION_TICKER_TEXT_POSITION = true; // CSS fix; experimential; added in 2024.04.07
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -648,6 +650,31 @@
   }
   ` : '';
 
+  const cssText15_FIX_ANIMATION_TICKER_TEXT_POSITION = FIX_ANIMATION_TICKER_TEXT_POSITION ? `
+  
+    .style-scope.yt-live-chat-ticker-renderer #animation-container[id][class] {
+      position: relative;
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-auto-rows: 1fr;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 9px;
+      padding-bottom: 0;
+      margin-bottom: 0;
+      padding-top: 0;
+      margin-top: 0;
+      margin-top: -2px;
+    }
+
+    .style-scope.yt-live-chat-ticker-renderer #animation-container > [id][class] {
+      margin-top: 0px;
+      margin-bottom: 0px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+  ` : '';
+
 
   const addCss = () => `
 
@@ -894,6 +921,8 @@
     ${cssText13_no_text_select_when_menu_visible}
 
     ${cssText14_NO_FILTER_DROPDOWN_BORDER}
+
+    ${cssText15_FIX_ANIMATION_TICKER_TEXT_POSITION}
 
   `;
 
