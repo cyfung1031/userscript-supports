@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.3.35
+// @version     1.4.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -47,43 +47,6 @@
   const FLAG_SKIP_CHAT_BUTTON = true;
 
   const ALLOW_FLAGS_202404 = true;
-
-  const ALLOW_FLAGS_202404_flags41 = new Set([
-    'action_companion_center_align_description',
-    'disable_child_node_auto_formatted_strings',
-    // 'enable_native_bridge_view_saved_playables',
-    'enable_shadydom_free_scoped_query_methods',
-    // 'enable_skippable_ads_for_unplugged_ad_pod',
-    'enable_sparkles_web_clickable_description',
-    'enable_window_constrained_buy_flow_dialog',
-    // 'html5_enable_ads_client_monitoring_log_tv',
-    'is_part_of_any_user_engagement_experiment',
-    // 'kevlar_chapters_list_view_seek_by_chapter',
-    // 'kevlar_enable_shorts_prefetch_in_sequence',
-    // 'kevlar_resolve_command_for_confirm_dialog',
-    // 'kevlar_shorts_seedless_retry_initial_load',
-    // 'live_chat_enable_send_button_in_slow_mode',
-    // 'live_chat_web_use_emoji_manager_singleton',
-    'remove_masthead_channel_banner_on_refresh',
-    // 'web_deprecate_service_ajax_map_dependency',
-    'web_modern_player_settings_quality_bottom',
-    // 'web_player_always_enable_auto_translation',
-    // 'web_player_enable_cultural_moment_overlay',
-    // 'ytidb_fetch_datasync_ids_for_data_cleanup',
-    'kevlar_tuner_should_test_reuse_components',
-  ]);
-  
-  const ALLOW_FLAGS_202404_flags47 = new Set([
-    'web_player_ve_conversion_fixes_for_channel_info',
-    'web_watch_updated_metadata_server_initial_delay',
-    // 'trigger_impression_pings_on_view_search_desktop',
-  ]);
-
-  // const ALLOW_FLAGS_202404_flags11 = new Set([
-  //   // 'use_core_sm',
-  //   // 'use_new_cml',
-  //   // 'web_api_url',
-  // ]);
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -157,255 +120,244 @@
   const fOperAccept = Symbol();
   const fOperReject = Symbol();
 
-  const autoplayKeys = new Set([
-    // 'player_allow_autonav_after_playlist',
-    'web_player_autonav_toggle_always_listen',
-    // 'web_player_offline_playlist_auto_refresh',
+  // h5 flags
+  const fOperAcceptList = new Set([
 
-    // 'allow_live_autoplay',
-    // 'allow_poltergust_autoplay',
-    // 'autoplay_time',
-    // 'autoplay_time_for_fullscreen',
-    // 'autoplay_time_for_music_content',
-    'client_respect_autoplay_switch_button_renderer',
-    // 'embeds_enable_muted_autoplay',
-    // 'embeds_web_enable_autoplay_not_supported_logging_fix',
-    // 'embeds_web_enable_log_splay_as_autoplay',
-    // 'embeds_web_enable_mobile_autoplay',
-    // 'html5_autoplay_default_quality_cap',
-    // 'mweb_muted_autoplay_animation',
+    ...(NO_CINEMATIC_LIGHTING_LABEL ? [
+      'web_player_use_cinematic_label', // fallback
+      'web_player_use_cinematic_label_0', // fallback
+      'web_player_use_cinematic_label_1', // fallback
+      'web_player_use_cinematic_label_2',
+      'web_player_use_cinematic_label_3', // fallback
+    ] : []),
 
-    // 'html5_player_autonav_logging',
-    // 'web_player_always_enable_auto_translation',
-    // 'web_player_autonav_empty_suggestions_fix',
-    // 'web_player_autonav_use_server_provided_state',
-    'web_player_decouple_autonav',
-    'web_player_move_autonav_toggle',
+    ...(FLAG_STRATEGY_03 ? [
+      // do it with your separate script please
+      'ab_pl_man', // https://www.uedbox.com/post/69238/
+      'ab_fk_sk_cl', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      'ab_det_apb_b',
+      'ab_det_el_h',
+      'ab_det_fet_wr',
+      'ab_det_fet_wr_en',
+      'ab_det_gen_re',
+      'web_enable_ab_rsp_cl',
+      'enable_ab_rp_int',
+      'enable_ab_report_on_errorscreen',
+      'enable_pl_r_si_fa',
+      'ab_det_sc_inj_enf',
+      'service_worker_enabled', // https://gist.github.com/BrokenGabe/51d55a11c2090d9402e40f12a6ece275
+      'ab_deg_unex_thr', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      'ab_net_tp_e', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      'ad_net_pb_ab', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      'ab_mis_log_err', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+    ] : []),
+
+
+
+    ...(FLAG_STRATEGY_01 ? [
+      'web_player_defer_modules',
+      'html5_defer_modules_on_ads_only',
+      'web_player_defer_ad',
+      'disable_defer_admodule_on_advertiser_video',
+      'html5_onesie_defer_content_loader_ms',
+      'html5_defer_fetch_att_ms',
+      'embeds_web_enable_defer_loading_remote_js',
+    ] : []),
+
+    ...(KEEP_MIDDLEWAVE ? [
+      'web_player_entities_middleware'
+    ] : []),
+
+
+    'web_settings_menu_icons',
+    // see https://github.com/cyfung1031/userscript-supports/issues/27
+    // see https://greasyfork.org/scripts/470428/discussions/216363
+
+
+    // 'disable_new_pause_state3',
+    // 'enable_cast_on_music_web',
+    // 'gcf_config_store_enabled',
+    // 'gel_queue_timeout_max_ms',
+    // 'network_polling_interval',
+    'player_doubletap_to_seek',
+    // 'polymer_bad_build_labels',
+    // 'skip_invalid_ytcsi_ticks',
+    // 'use_player_cue_range_set',
+    // 'woffle_used_state_report',
+
   ]);
+
+  const fOperMapFn = (o) => new Map(Object.entries({
+    // 1 true 2 false 3 
+
+    ...((o.no_autoplay_toggle !== true) ? {
+
+      // 'player_allow_autonav_after_playlist',
+      'web_player_autonav_toggle_always_listen': 1,
+      // 'web_player_offline_playlist_auto_refresh',
+
+      // 'allow_live_autoplay',
+      // 'allow_poltergust_autoplay',
+      // 'autoplay_time',
+      // 'autoplay_time_for_fullscreen',
+      // 'autoplay_time_for_music_content',
+      'client_respect_autoplay_switch_button_renderer': 1,
+      // 'embeds_enable_muted_autoplay',
+      // 'embeds_web_enable_autoplay_not_supported_logging_fix',
+      // 'embeds_web_enable_log_splay_as_autoplay',
+      // 'embeds_web_enable_mobile_autoplay',
+      // 'html5_autoplay_default_quality_cap',
+      // 'mweb_muted_autoplay_animation',
+
+      // 'html5_player_autonav_logging',
+      // 'web_player_always_enable_auto_translation',
+      // 'web_player_autonav_empty_suggestions_fix',
+      // 'web_player_autonav_use_server_provided_state',
+      'web_player_decouple_autonav': 1,
+      'web_player_move_autonav_toggle': 1,
+
+    } : {}),
+
+    ...(IGNORE_VIDEO_SOURCE_RELATED ? {
+
+      'html5_live_use_alternate_bandwidth_window_sizes': 1,
+      'html5_live_ultra_low_latency_bandwidth_window': 1,
+      'html5_live_low_latency_bandwidth_window': 1,
+      'html5_live_normal_latency_bandwidth_window': 1,
+      // 'html5_skip_slow_ad_delay_ms': 1,
+      'html5_player_preload_ad_fix': 1,
+      // if (key.includes('_ad_') || key.includes('_ads_')) {
+      'html5_ssdai_adfetch_dynamic_timeout_ms': 2,
+      'html5_log_ssdai_fallback_ads': 2,
+      'html5_deprecate_adservice': 2,
+      // !key.includes('deprecat')) keep = true;
+
+
+      //  if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
+      'fix_h5_toggle_button_a11y': 1,
+      'h5_companion_enable_adcpn_macro_substitution_for_click_pings': 2,
+      'h5_enable_generic_error_logging_event': 2,
+      'h5_enable_unified_csi_preroll': 1,
+      'h5_reset_cache_and_filter_before_update_masthead': 1,
+      'web_player_enable_premium_hbr_in_h5_api': 1,
+      // !key.includes('deprecat')) keep = true;
+
+    } : {}),
+
+
+    ...(KEEP_PLAYER_QUALITY_STICKY ? {
+
+      html5_onesie_sticky_server_side: 2,
+      html5_perf_cap_override_sticky: 1,
+      html5_ustreamer_cap_override_sticky: 1,
+      html5_exponential_memory_for_sticky: 1
+
+    } : {}),
+
+
+    'html5_streaming_xhr_time_based_consolidation_ms': 1,
+    'html5_bypass_contention_secs': 1,
+
+    'vp9_drm_live': 1,
+    'html5_log_rebuffer_reason': 2,
+    'html5_enable_audio_track_log': 2,
+
+
+    'html5_safari_desktop_eme_min_version': 1,
+
+    'html5_disable_av1': 1,
+    'html5_disable_av1_hdr': 1,
+    'html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported': 1,
+    'html5_account_onesie_format_selection_during_format_filter': 1,
+    'html5_prefer_hbr_vp9_over_av1': 1,
+
+    ...(!DISABLE_CINEMATICS ? {
+      'web_cinematic_watch_settings': 1
+    } : {}),
+
+    'html5_apply_start_time_within_ads_for_ssdai_transitions': 2,
+    'html5_enable_ads_client_monitoring_log_tv': 2,
+    'html5_ignore_interruptive_ads_for_server_stitched': 1,
+
+    'html5_no_video_to_ad_on_preroll': 1,
+    'html5_no_video_to_ad_on_preroll_reset': 1,
+    'html5_rebase_video_to_ad_timeline': 1,
+    'html5_report_slow_ads_as_error': 1,
+
+    'html5_default_ad_gain': 1, // just keep
+    'html5_min_startup_buffered_ad_media_duration_secs': 1, // just keep
+
+    'html5_skip_slow_ad_delay_ms': 7,
+    'check_navigator_accuracy_timeout_ms': 8,
+    'html5_ad_timeout_ms': 8,
+    'html5_ads_preroll_lock_timeout_delay_ms': 9,
+    'html5_slow_start_timeout_delay_ms': 8,
+    'variable_buffer_timeout_ms': 9,
+
+    'h5_expr_b9Nkc': 1,
+
+  }));
+
+  var fOperMap;
+
+  const valur = (value, k) => {
+    if (+value === 0) value = k;
+    else if (+value > +k) value = k;
+    return value;
+  }
 
   function fOper(key, value) {
 
-    const kl = key.length;
+    if (fOperAcceptList.has(key)) return fOperAccept;
 
-    if (NO_CINEMATIC_LIGHTING_LABEL && kl > 29) {
-      if (key === 'web_player_use_cinematic_label') return fOperAccept; // fallback
-      if (key === 'web_player_use_cinematic_label_0') return fOperAccept; // fallback
-      if (key === 'web_player_use_cinematic_label_1') return fOperAccept; // fallback
-      if (key === 'web_player_use_cinematic_label_2') return fOperAccept;
-      if (key === 'web_player_use_cinematic_label_3') return fOperAccept; // fallback
-    }
-
-    if (FLAG_STRATEGY_03 && kl > 8 && kl < 32) { //  && key.includes('ab') && /\bab\b/.test(key.replace(/_/g, '.'))
-      // do it with your separate script please
-      if (key === 'ab_det_apb_b') return fOperAccept;
-      if (key === 'ab_det_el_h') return fOperAccept;
-      if (key === 'ab_det_fet_wr') return fOperAccept;
-      if (key === 'ab_det_fet_wr_en') return fOperAccept;
-      if (key === 'ab_det_gen_re') return fOperAccept;
-      if (key === 'enable_ab_report_on_errorscreen') return fOperAccept;
-      if (key === 'enable_ab_rp_int') return fOperAccept;
-      if (key === 'web_enable_ab_em_rsp') return fOperAccept;
-      if (key === 'web_enable_ab_rsp_cl') return fOperAccept;
-      if (key === 'webfe_disable_ab_em_plb') return fOperAccept;
-
-      // fallback
-      if (key === 'ab_pl_man') return fOperAccept;
-      if (key === 'ab_fk_sk_cl') return fOperAccept;
-      if (key === 'enable_pl_r_si_fa') return fOperAccept;
-      if (key === 'ab_det_sc_inj_enf') return fOperAccept;
-      if (key === 'service_worker_enabled') return fOperAccept;
-      if (key === 'ab_deg_unex_thr') return fOperAccept;
-      if (key === 'ab_net_tp_e') return fOperAccept;
-      if (key === 'ad_net_pb_ab') return fOperAccept;
-      if (key === 'ab_mis_log_err') return fOperAccept;
-
-
-    }
-
-    if (FLAG_STRATEGY_01 && kl > 18 && kl < 43) {
-
-      if (key === 'web_player_defer_modules') return fOperAccept;
-      if (key === 'html5_defer_modules_on_ads_only') return fOperAccept;
-      if (key === 'web_player_defer_ad') return fOperAccept;
-      if (key === 'disable_defer_admodule_on_advertiser_video') return fOperAccept;
-      if (key === 'html5_onesie_defer_content_loader_ms') return fOperAccept;
-      if (key === 'html5_defer_fetch_att_ms') return fOperAccept;
-      if (key === 'embeds_web_enable_defer_loading_remote_js') return fOperAccept;
-
-    }
-
-    if (kl === 23) {
-
-      if (KEEP_MIDDLEWAVE && key === 'web_key_moments_markers') return fOperAccept;
-
-      // web_settings_menu_icons
-      if (key === 'web_settings_menu_icons') return fOperAccept;
-      // see https://github.com/cyfung1031/userscript-supports/issues/27
-      // see https://greasyfork.org/scripts/470428/discussions/216363
-
-    }
-
-    if (kl === 24) {
-
-      // if(key ==='disable_new_pause_state3') return fOperAccept;
-      // if(key ==='enable_cast_on_music_web') return fOperAccept;
-      // if(key ==='gcf_config_store_enabled') return fOperAccept;
-      // if(key ==='gel_queue_timeout_max_ms') return fOperAccept;
-      // if(key ==='network_polling_interval') return fOperAccept;
-      if (key === 'player_doubletap_to_seek') return fOperAccept;
-      // if(key ==='polymer_bad_build_labels') return fOperAccept;
-      // if(key ==='skip_invalid_ytcsi_ticks') return fOperAccept;
-      // if(key ==='use_player_cue_range_set') return fOperAccept;
-      // if(key ==='woffle_used_state_report') return fOperAccept;
-
-    }
-
+    // const kl = key.length;
 
     let keep = false;
     let nv = undefined;
 
     const no_autoplay_toggle = ENABLE_EXPERIMENT_FLAGS_NO_AUTOPLAY_TOGGLE.currentValue;
 
-    if (no_autoplay_toggle === true) {
+    fOperMap = fOperMap || fOperMapFn({ no_autoplay_toggle });
 
-    } else if (kl > 4 && key.indexOf('auto') >= 0 && key.indexOf('play') >= 0) {
-      if (autoplayKeys.has(key)) {
-        keep = true;
-      }
-    }
+    const fm1 = fOperMap.get(key);
 
-    if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('html5_') >= 0) {
-
-
-      if (key === 'html5_live_use_alternate_bandwidth_window_sizes') {
+    switch (fm1) {
+      case 1:
         keep = true;
-      }
-      else if (key === 'html5_live_ultra_low_latency_bandwidth_window') {
+        break;
+      case 2:
+        keep = false;
+        break;
+      case 7:
+        const kv = typeof value === 'string' && +value > 2;
+        keep = kv;
+        if (kv && +value > 4) nv = '4';
+        break;
+      case 8:
+        nv = valur(value, '4');
         keep = true;
-      }
-      else if (key === 'html5_live_low_latency_bandwidth_window') {
-        keep = true;
-      }
-      else if (key === 'html5_live_normal_latency_bandwidth_window') {
-        keep = true;
-      } else if (key === 'html5_skip_slow_ad_delay_ms') {
-        keep = true;
-        if (typeof value === 'string' && +value > 2) {
-          keep = true;
-          if (+value > 4) nv = '4';
-        } else {
+        break;
+      case 9:
+        keep = false;
+        break;
+      default:
+        if (key.includes('deprecat')) {
           keep = false;
+        } else if (IGNORE_VIDEO_SOURCE_RELATED && key.includes('html5_') && !key.includes('_ad_') && !key.includes('_ads_')) {
+          keep = true;
+        } else if (IGNORE_VIDEO_SOURCE_RELATED && key.includes('h5_')) {
+          keep = true;
+        } else if (key.includes('_timeout') && typeof value === 'string') {
+          if (+value > 3000) nv = '3000';
+          keep = true;
+        } else if (KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')) {
+          keep = true;
+        } else if (key.startsWith('h5_expr_')) {
+          // by userscript
+          keep = true;
         }
-      } else if (key === 'html5_player_preload_ad_fix') {
-        keep = true;
-      } else if (key.includes('_ad_') || key.includes('_ads_')) {
-        keep = false;
-      } else if (key === 'html5_ssdai_adfetch_dynamic_timeout_ms') {
-        keep = false;
-      } else if (key === 'html5_log_ssdai_fallback_ads' || key === 'html5_deprecate_adservice') {
-        keep = false;
-      } else {
-        if (!key.includes('deprecat')) keep = true;
-      }
-
-
-    } else if (IGNORE_VIDEO_SOURCE_RELATED && key.indexOf('h5_') >= 0) {
-      if (key.startsWith('enable_h5_player_ad_block_')) keep = false;
-      else if (key === 'fix_h5_toggle_button_a11y') keep = true;
-      else if (key === 'h5_companion_enable_adcpn_macro_substitution_for_click_pings') keep = false;
-      else if (key === 'h5_enable_generic_error_logging_event') keep = false;
-      else if (key === 'h5_enable_unified_csi_preroll') keep = true;
-      else if (key === 'h5_reset_cache_and_filter_before_update_masthead') keep = true;
-      else if (key === 'web_player_enable_premium_hbr_in_h5_api') keep = true;
-      else {
-        if (!key.includes('deprecat')) keep = true;
-      }
     }
 
-    // if(key.includes('sticky')){
-
-    // console.log(5599,key)
-    // }
-
-    if (key.includes('_timeout') && typeof value === 'string') {
-      const valur = (value, k) => {
-        if (+value === 0) value = k;
-        else if (+value > +k) value = k;
-        return value;
-      }
-      if (key === 'check_navigator_accuracy_timeout_ms') {
-        nv = valur(value, '4');
-        keep = true;
-      } else if (key === 'html5_ad_timeout_ms') {
-        nv = valur(value, '4');
-        keep = true;
-      } else if (key === 'html5_ads_preroll_lock_timeout_delay_ms') {
-        // value = valur(value, '4');
-        // keep = true;
-        keep = false;
-      } else if (key === 'html5_slow_start_timeout_delay_ms') {
-        nv = valur(value, '4');
-        keep = true;
-      } else if (key === 'variable_buffer_timeout_ms') {
-        // value = valur(value, '4');
-        // keep = true;
-        keep = false;
-      } else {
-        if (+value > 3000) nv = '3000';
-        keep = true;
-      }
-    }
-
-
-    if (KEEP_PLAYER_QUALITY_STICKY && key.includes('_sticky')) {
-
-
-      if (key === 'html5_onesie_sticky_server_side') {
-        keep = false;
-
-      } else if (key === 'html5_perf_cap_override_sticky') {
-        keep = true;
-
-      } else if (key === 'html5_ustreamer_cap_override_sticky') {
-        keep = true;
-
-
-      } else if (key === 'html5_exponential_memory_for_sticky') {
-        keep = true;
-
-      } else {
-        keep = true;
-
-      }
-
-    }
-
-
-    if (key === 'html5_streaming_xhr_time_based_consolidation_ms') keep = true;
-    if (key === 'html5_bypass_contention_secs') keep = true;
-
-    if (key === 'vp9_drm_live') keep = true;
-    if (key === 'html5_log_rebuffer_reason') keep = false;
-    if (key === 'html5_enable_audio_track_log') keep = false;
-
-    if (key.startsWith('h5_expr_')) {
-      // by userscript
-      keep = true;
-    } else if (key.includes('deprecat')) {
-      keep = false;
-    }
-
-    if (key === 'html5_safari_desktop_eme_min_version') keep = true;
-
-    if (key === 'html5_disable_av1') keep = true;
-    if (key === 'html5_disable_av1_hdr') keep = true;
-    if (key === 'html5_disable_hfr_when_vp9_encrypted_2k4k_unsupported') keep = true;
-    if (key === 'html5_account_onesie_format_selection_during_format_filter') keep = true;
-    if (key === 'html5_prefer_hbr_vp9_over_av1') keep = true;
-
-    if (!DISABLE_CINEMATICS && key === 'web_cinematic_watch_settings') {
-      keep = true;
-    }
     if (!keep) {
       return fOperReject;
       // vRes.delete(key);
@@ -433,7 +385,7 @@
         const key = str.substring(start, equalsSign);
         const value = str.substring(equalsSign + 1, end);
 
-        let r = fOper(key, value);
+        const r = fOper(key, value);
         if (typeof r !== 'symbol') {
           map.set(key, r)
         } else if (r === fOperAccept) {
@@ -447,9 +399,10 @@
     }
 
     map.toString = function () {
-      const res = [];
+      const res = new Array(map.size);
+      let i = 0;
       this.forEach((value, key) => {
-        res.push(`${key}=${value}`);
+        res[i++] = `${key}=${value}`;
       });
       return res.join('&');
     }
@@ -483,8 +436,6 @@
         mRes.set('html5_disable_av1', 'true');
         mRes.set('html5_disable_av1_hdr', 'true');
         mRes.set('html5_prefer_hbr_vp9_over_av1', 'true');
-
-
 
       } else if (supportAV1 === true && supportVP9 === true && localStorage['yt-player-av1-pref'] === '8192') {
 
@@ -552,20 +503,11 @@
       // mRes.set('html5_enable_sabr_live_streaming_xhr', 'true')
       // mRes.set('html5_enable_sabr_live_non_streaming_xhr', 'true')
 
-
-
       mRes.set('html5_enable_subsegment_readahead_v3', 'true')
       mRes.set('html5_ultra_low_latency_subsegment_readahead', 'true')
       mRes.set('html5_disable_move_pssh_to_moov', 'true')
 
-
-
       mRes.set('html5_modern_vp9_mime_type', 'true')
-
-
-
-
-
 
     }
 
@@ -585,92 +527,6 @@
   }
 
 
-  const all_live_chat_flags = new Set(`
-
-  live_chat_banner_expansion_fix
-  live_chat_enable_mod_view
-  live_chat_enable_qna_banner_overflow_menu_actions
-  live_chat_enable_qna_channel
-  live_chat_enable_send_button_in_slow_mode
-  live_chat_filter_emoji_suggestions
-  live_chat_increased_min_height
-  live_chat_over_playlist
-  live_chat_web_enable_command_handler
-  live_chat_web_use_emoji_manager_singleton
-  live_chat_whole_message_clickable
-
-  live_chat_channel_activity
-  live_chat_web_input_update
-
-
-  live_chat_emoji_picker_toggle_state
-  live_chat_enable_command_handler_resolver_map
-  live_chat_enable_controller_extraction
-  live_chat_enable_rta_manager
-  live_chat_require_space_for_autocomplete_emoji
-  live_chat_unclickable_message
-
-  `.trim().split(/\s+/));
-
-  const all_noti_flags = new Set([ // not sure
-    // "check_user_lact_at_prompt_shown_time_on_web",
-    "clear_user_partitioned_ls",
-    "desktop_notification_high_priority_ignore_push",
-    "desktop_notification_set_title_bar",
-    "enable_first_user_action_csi_logging",
-    "enable_get_account_switcher_endpoint_on_webfe",
-    "enable_handles_account_menu_switcher",
-    "enable_names_handles_account_switcher", // TBC
-    "enable_pass_sdc_get_accounts_list",
-    "enable_server_stitched_dai",
-    "enable_yt_ata_iframe_authuser",
-    // "fill_single_video_with_notify_to_lasr",
-    "html5_server_stitched_dai_group",
-    // "is_part_of_any_user_engagement_experiment",
-    "kevlar_miniplayer_queue_user_activation",
-    // "rich_grid_resize_observer",
-    // "rich_grid_resize_observer_only"
-  ]);
-
-  const all_list_flags = new Set([
-
-    "shorts_in_playlists_web",
-
-
-    "live_chat_over_playlist",
-
-    "web_amsterdam_playlists",
-
-    "browse_next_continuations_migration_playlist",
-    "desktop_add_to_playlist_renderer_dialog_popup",
-    "enable_horizontal_list_renderer_scroll_based_on_items_visibility",
-    "enable_pass_sdc_get_accounts_list",
-    "enable_programmed_playlist_color_sample",
-    "enable_programmed_playlist_redesign",
-    "enable_section_list_scroll_to_item_section_web",
-    "gda_enable_playlist_download",
-    "include_autoplay_count_in_playlists",
-    "kevlar_chapters_list_view_seek_by_chapter",
-    "kevlar_enable_editable_playlists",
-    "kevlar_enable_reorderable_playlists",
-    "kevlar_fix_playlist_continuation",
-    "kevlar_hide_playlist_playback_status",
-    "kevlar_lazy_list_resume_for_autofill",
-    "kevlar_no_autoscroll_on_playlist_hover",
-    "kevlar_passive_event_listeners",
-    "kevlar_player_playlist_use_local_index",
-    "kevlar_playlist_drag_handles",
-    "kevlar_playlist_use_x_close_button",
-    "kevlar_rendererstamper_event_listener",
-    "kevlar_should_maintain_stable_list",
-    "kevlar_show_playlist_dl_btn",
-    "music_on_main_open_playlist_recommended_videos_in_miniplayer",
-    "player_allow_autonav_after_playlist",
-    "player_enable_playback_playlist_change",
-    "web_amsterdam_post_mvp_playlists",
-
-  ]);
-
   let brc = 1000;
 
   if (typeof AbortSignal !== 'undefined') {
@@ -679,6 +535,418 @@
       brc = 0;
     }, { capture: true, passive: true, once: true });
   }
+
+
+  // yt flags
+  const cachedSetFn = (o) => {
+
+    const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = o;
+
+    const BY_PASS = [
+
+      ...(ALLOW_FLAGS_202404 ? [
+
+        'suppress_error_204_logging',
+        'use_request_time_ms_header',
+
+        'remove_masthead_channel_banner_on_refresh',
+        'action_companion_center_align_description',
+        'disable_child_node_auto_formatted_strings',
+        // 'enable_native_bridge_view_saved_playables',
+        'enable_shadydom_free_scoped_query_methods',
+        // 'enable_skippable_ads_for_unplugged_ad_pod',
+        'enable_sparkles_web_clickable_description',
+        'enable_window_constrained_buy_flow_dialog',
+        // 'html5_enable_ads_client_monitoring_log_tv',
+        'is_part_of_any_user_engagement_experiment',
+        // 'kevlar_chapters_list_view_seek_by_chapter',
+        // 'kevlar_enable_shorts_prefetch_in_sequence',
+        // 'kevlar_resolve_command_for_confirm_dialog',
+        // 'kevlar_shorts_seedless_retry_initial_load',
+        // 'live_chat_enable_send_button_in_slow_mode',
+        // 'live_chat_web_use_emoji_manager_singleton',
+        'remove_masthead_channel_banner_on_refresh',
+        // 'web_deprecate_service_ajax_map_dependency',
+        'web_modern_player_settings_quality_bottom',
+        // 'web_player_always_enable_auto_translation',
+        // 'web_player_enable_cultural_moment_overlay',
+        // 'ytidb_fetch_datasync_ids_for_data_cleanup',
+        'kevlar_tuner_should_test_reuse_components',
+
+        'web_player_ve_conversion_fixes_for_channel_info',
+        'web_watch_updated_metadata_server_initial_delay',
+        // 'trigger_impression_pings_on_view_search_desktop',
+
+        'defer_menus',
+
+      ] : []),
+
+      ...(FLAG_SKIP_CHAT_BUTTON ? [
+        'live_chat_overflow_hide_chat',
+        'web_watch_chat_hide_button_killswitch',
+      ] : []),
+
+
+      ...(KEEP_unified_player ? [
+        'kevlar_unified_player',
+        'kevlar_non_watch_unified_player',
+      ] : []),
+
+
+
+      ...(FLAG_STRATEGY_03 ? [
+        // do it with your separate script please
+        'ab_pl_man', // https://www.uedbox.com/post/69238/
+        'ab_fk_sk_cl', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+        'ab_det_apb_b',
+        'ab_det_el_h',
+        'ab_det_fet_wr',
+        'ab_det_fet_wr_en',
+        'ab_det_gen_re',
+        'web_enable_ab_rsp_cl',
+        'enable_ab_rp_int',
+        'enable_ab_report_on_errorscreen',
+        'enable_pl_r_si_fa',
+        'ab_det_sc_inj_enf',
+        'service_worker_enabled', // https://gist.github.com/BrokenGabe/51d55a11c2090d9402e40f12a6ece275
+        'ab_deg_unex_thr', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+        'ab_net_tp_e', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+        'ad_net_pb_ab', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+        'ab_mis_log_err', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      ] : []),
+
+
+      ...(FLAG_STRATEGY_02 ? [
+        // do it with your separate script please
+        'kevlar_client_enable_shorts_player_bootstrap',
+        'kevlar_early_popup_close',
+        'kevlar_hide_pp_url_param',
+        'kevlar_touch_gesture_ves',
+        'player_doubletap_to_seek',
+        'shorts_controller_retrieve_seedless_sequence',
+        'shorts_overlay_reshuffle',
+      ] : []),
+
+
+      ...(SET_POLYMER_FLAGS ? [
+        'polymer_enable_mdx_queue',
+        'polymer_on_demand_shady_dom',
+      ] : []),
+
+      ...(FLAG_STRATEGY_01 ? [
+        'web_player_defer_modules',
+        'html5_defer_modules_on_ads_only',
+        'web_player_defer_ad',
+        'disable_defer_admodule_on_advertiser_video',
+        'html5_onesie_defer_content_loader_ms',
+        'html5_defer_fetch_att_ms',
+        'embeds_web_enable_defer_loading_remote_js',
+      ] : []),
+
+      ...(KEEP_MIDDLEWAVE ? [
+        'web_player_entities_middleware'
+      ] : []),
+
+      'desktop_keyboard_capture_keydown_killswitch', // TBC
+      'kevlar_autofocus_menu_on_keyboard_nav', // TBC
+      'kevlar_keyboard_button_focus', // TBC
+      'kevlar_macro_markers_keyboard_shortcut', // required
+
+      // 'kevlar_appbehavior_attach_startup_tasks'
+      // 'kevlar_clear_non_displayable_url_params'
+      'kevlar_command_handler_formatted_string', // see https://github.com/cyfung1031/userscript-supports/issues/20
+      'kevlar_miniplayer_queue_user_activation',
+      'kevlar_player_watch_endpoint_navigation',
+      // 'kevlar_watch_focus_on_engagement_panels'
+
+      // playlist related flags
+      "shorts_in_playlists_web",
+      "live_chat_over_playlist",
+      "web_amsterdam_playlists",
+      "browse_next_continuations_migration_playlist",
+      "desktop_add_to_playlist_renderer_dialog_popup",
+      "enable_horizontal_list_renderer_scroll_based_on_items_visibility",
+      "enable_pass_sdc_get_accounts_list",
+      "enable_programmed_playlist_color_sample",
+      "enable_programmed_playlist_redesign",
+      "enable_section_list_scroll_to_item_section_web",
+      "gda_enable_playlist_download",
+      "include_autoplay_count_in_playlists",
+      "kevlar_chapters_list_view_seek_by_chapter",
+      "kevlar_enable_editable_playlists",
+      "kevlar_enable_reorderable_playlists",
+      "kevlar_fix_playlist_continuation",
+      "kevlar_hide_playlist_playback_status",
+      "kevlar_lazy_list_resume_for_autofill",
+      "kevlar_no_autoscroll_on_playlist_hover",
+      "kevlar_passive_event_listeners",
+      "kevlar_player_playlist_use_local_index",
+      "kevlar_playlist_drag_handles",
+      "kevlar_playlist_use_x_close_button",
+      "kevlar_rendererstamper_event_listener",
+      "kevlar_should_maintain_stable_list",
+      "kevlar_show_playlist_dl_btn",
+      "music_on_main_open_playlist_recommended_videos_in_miniplayer",
+      "player_allow_autonav_after_playlist",
+      "player_enable_playback_playlist_change",
+      "web_amsterdam_post_mvp_playlists",
+
+      // not sure
+      // "check_user_lact_at_prompt_shown_time_on_web",
+      "clear_user_partitioned_ls",
+      "desktop_notification_high_priority_ignore_push",
+      "desktop_notification_set_title_bar",
+      "enable_first_user_action_csi_logging",
+      "enable_get_account_switcher_endpoint_on_webfe",
+      "enable_handles_account_menu_switcher",
+      "enable_names_handles_account_switcher", // TBC
+      "enable_pass_sdc_get_accounts_list",
+      "enable_server_stitched_dai",
+      "enable_yt_ata_iframe_authuser",
+      // "fill_single_video_with_notify_to_lasr",
+      "html5_server_stitched_dai_group",
+      // "is_part_of_any_user_engagement_experiment",
+      "kevlar_miniplayer_queue_user_activation",
+      // "rich_grid_resize_observer",
+      // "rich_grid_resize_observer_only",
+
+      'desktop_add_to_playlist_renderer_dialog_popup',
+
+      ...(!DISABLE_CINEMATICS ? [
+
+        'kevlar_measure_ambient_mode_idle',
+        'kevlar_watch_cinematics_invisible',
+        'web_cinematic_theater_mode',
+        'web_cinematic_fullscreen',
+
+        'enable_cinematic_blur_desktop_loading',
+        'kevlar_watch_cinematics',
+        'web_cinematic_masthead',
+        'web_watch_cinematics_preferred_reduced_motion_default_disabled'
+
+      ] : []),
+
+
+
+      'kevlar_rendererstamper_event_listener', // https://github.com/cyfung1031/userscript-supports/issues/11
+
+
+
+
+      'live_chat_web_enable_command_handler',
+      'live_chat_channel_activity',
+      'live_chat_web_input_update',
+
+      'live_chat_web_enable_command_handler',
+
+      ...(ALLOW_ALL_LIVE_CHATS_FLAGS ? [
+
+        'live_chat_banner_expansion_fix',
+        'live_chat_enable_mod_view',
+        'live_chat_enable_qna_banner_overflow_menu_actions',
+        'live_chat_enable_qna_channel',
+        'live_chat_enable_send_button_in_slow_mode',
+        'live_chat_filter_emoji_suggestions',
+        'live_chat_increased_min_height',
+        'live_chat_over_playlist',
+        'live_chat_web_use_emoji_manager_singleton',
+        'live_chat_whole_message_clickable',
+
+        'live_chat_emoji_picker_toggle_state',
+        'live_chat_enable_command_handler_resolver_map',
+        'live_chat_enable_controller_extraction',
+        'live_chat_enable_rta_manager',
+        'live_chat_require_space_for_autocomplete_emoji',
+        'live_chat_unclickable_message',
+
+      ] : []),
+
+      'kevlar_rendererstamper_event_listener', // https://github.com/cyfung1031/userscript-supports/issues/11
+
+      // kevlar_enable_up_arrow - no use
+      // kevlar_help_use_locale - might use
+      // kevlar_refresh_gesture - might use
+      // kevlar_smart_downloads - might use
+      // kevlar_thumbnail_fluid
+      'kevlar_ytb_live_badges',
+
+      ...(!use_maintain_stable_list ? [
+        'kevlar_tuner_should_test_maintain_stable_list',
+        'kevlar_should_maintain_stable_list',
+        'kevlar_tuner_should_maintain_stable_list', // fallback
+
+
+      ] : []),
+
+
+      ...(!use_maintain_reuse_components ? [
+
+        'kevlar_tuner_should_test_reuse_components',
+        'kevlar_tuner_should_reuse_components',
+        'kevlar_should_reuse_components' // fallback
+
+      ] : []),
+
+
+      'kevlar_system_icons',
+
+      // 'kevlar_prefetch_data_augments_network_data' continue;
+
+      // home page / watch page icons
+      'kevlar_three_dot_ink',
+      'kevlar_use_wil_icons',
+      'kevlar_home_skeleton',
+
+      'kevlar_fluid_touch_scroll',
+      'kevlar_watch_color_update',
+      'kevlar_use_vimio_behavior', // home page - channel icon
+
+      // collapsed meta; no teaser, use latest collapsed meta design
+      'kevlar_structured_description_content_inline',
+      'kevlar_watch_metadata_refresh',
+
+      'kevlar_watch_js_panel_height', // affect Tabview Youtube
+
+      'shorts_desktop_watch_while_p2',
+      'web_button_rework',
+      'web_darker_dark_theme_live_chat',
+      'web_darker_dark_theme', // it also affect cinemtaics
+
+      // modern menu
+      'web_button_rework_with_live',
+      'web_fix_fine_scrubbing_drag',
+
+      // full screen -buggy
+      'external_fullscreen',
+
+      // minimize menu
+      'web_modern_buttons',
+      'web_modern_dialogs',
+
+      // Tabview Youtube - multiline transcript
+      'enable_mixed_direction_formatted_strings',
+
+      'enable_unknown_lact_fix_on_html5',
+
+
+
+
+      'live_chat_chunk_across_update_interval',
+
+      'enable_native_live_chat_on_kevlar',
+
+      'live_chat_author_name_color_usernames',
+      'live_chat_seed_color_usernames',
+      'live_chat_colored_usernames',
+      'live_chat_simple_color_usernames',
+      'web_button_rework_with_live',
+      'live_chat_hide_avatars',
+      'live_chat_enable_qna_replay',
+      'live_chat_aggregation',
+      'live_chat_web_use_emoji_manager_singleton',
+      'enable_docked_chat_messages',
+      'live_chat_taller_emoji_picker',
+      'live_chat_emoji_picker_restyle',
+      'live_chat_emoji_picker_restyle_remain_open_on_send',
+      'live_chat_web_input_update',
+      'live_chat_enable_send_button_in_slow_mode',
+
+      'kevlar_watch_metadata_refresh_no_old_primary_data',
+      // 'kevlar_watch_metadata_refresh_no_old_secondary_data', // for Tabview Youtube
+      'enable_web_cosmetic_refresh_hashtag_page',
+      'kevlar_watch_metadata_refresh_description_lines',
+
+
+
+
+      'enable_service_ajax_csn',
+
+      'kevlar_use_vimio_behavior',
+
+      'web_use_cache_for_image_fallback',
+      'kevlar_woffle_fallback_image',
+      'yt_img_shadow_trigger_show_on_visible',
+      'kevlar_thumbnail_bg',
+      'web_rounded_thumbnails',
+
+
+
+      'kevlar_rendererstamper_event_listener',
+
+      'dialog_behavior_no_tap_killswitch',
+
+      'handle_service_request_actions',
+
+      'live_chat_whole_message_clickable',
+
+      'live_chat_require_space_for_autocomplete_emoji',
+
+      'kevlar_keyboard_button_focus',
+
+      'live_chat_emoji_picker_toggle_state',
+      'super_sticker_emoji_picker_category_button_icon_filled',
+      'enable_super_chat_buy_flow_revamp_web',
+
+
+      'web_modern_buttons',
+
+
+      'web_modern_dialogs',
+      'live_chat_disable_chat_feed_animation',
+      'live_chat_overflow_hide_chat',
+      'web_darker_dark_theme_live_chat',
+      'live_chat_channel_activity',
+      'live_chat_emoji_picker_restyle_remain_open_on_click_to_input_area',
+      'live_chat_top_chat_sampling_enabled',
+
+      'live_chat_enable_mod_view',
+      'live_chat_web_enable_command_handler_action_handling',
+      'web_modern_dialogs',
+      'web_modern_dialog_layout',
+      'web_modern_typography',
+
+      'kevlar_disable_component_resizing_support',
+      'web_rounded_thumbnails',
+      'enable_quiz_desktop_animation',
+      'kevlar_thumbnail_fluid',
+      'web_enable_playlist_video_lockup_equalizer',
+      'web_modern_collections_v2',
+      'animated_live_badge_icon',
+      'use_color_palettes_modern_collections_v2',
+      'web_amsterdam_post_mvp_playlists',
+      'enable_desktop_search_bigger_thumbs',
+      'web_animated_actions',
+      'mweb_animated_actions',
+      'enable_desktop_amsterdam_info_panels',
+
+      'kevlar_modern_sd',
+      'problem_walkthrough_sd',
+      'polymer_video_renderer_defer_menu',
+
+
+      'enable_html5_teal_ad_badge',
+      'kevlar_ytb_live_badges',
+      'live_chat_enable_new_moderator_badge',
+      'live_chat_prepend_badges',
+      'live_chat_bold_color_usernames',
+      'render_custom_emojis_as_small_images',
+
+      'web_enable_dynamic_metadata',
+
+      'web_animated_like',
+      'web_animated_like_lazy_load',
+      'desktop_delay_player_resizing',
+
+
+    ];
+
+
+    const s = new Set(BY_PASS);
+
+    return s;
+
+  };
+  let cachedSet = null;
 
   const hExperimentFlagsFn = () => {
 
@@ -695,6 +963,8 @@
     if (use_defer_detach) Promise.resolve().then(() => console.debug("use_defer_detach"));
     if (no_autoplay_toggle) Promise.resolve().then(() => console.debug("no_autoplay_toggle"));
 
+    cachedSet = cachedSet || cachedSetFn({ use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach, no_autoplay_toggle });
+
     // I don't know why it requires to be extracted function.
     const mex = (EXPERIMENT_FLAGS, mzFlagDetected, fEntries) => {
 
@@ -708,216 +978,16 @@
           if (mzFlagDetected.has(key)) continue;
           mzFlagDetected.add(key);
 
-          const kl = key.length;
-          const kl7 = kl % 7;
-          const kl5 = kl % 5;
-          const kl3 = kl % 3;
-          const kl2 = kl % 2;
+          if (cachedSet.has(key)) continue;
 
-          if (ALLOW_FLAGS_202404) {
-
-            if (kl === 26) {
+          // const kl = key.length;
+          // const kl7 = kl % 7;
+          // const kl5 = kl % 5;
+          // const kl3 = kl % 3;
+          // const kl2 = kl % 2;
 
 
-              // if (key === 'disable_features_for_supex') continue;
-              // if (key === 'export_networkless_options') continue;
-              if (key === 'suppress_error_204_logging') continue;
-              if (key === 'use_request_time_ms_header') continue;
-
-
-              // if (key === 'disable_features_for_supex') continue;
-
-              // if (key === 'live_chat_channel_activity') continue;
-
-              // if (key === 'live_chat_web_input_update') continue;
-            } else if (kl === 41) {
-
-              if (key === 'remove_masthead_channel_banner_on_refresh') continue;
-              // if (key === 'ytidb_fetch_datasync_ids_for_data_cleanup') continue;
-              if (ALLOW_FLAGS_202404_flags41.has(key)) continue;
-
-            }
-
-
-            else if (kl === 47) {
-
-
-              if (ALLOW_FLAGS_202404_flags47.has(key)) continue;
-
-            } else if (kl === 11) {
-
-              if (key === 'defer_menus') continue;
-              // if (ALLOW_FLAGS_202404_flags11.has(key)) continue;
-
-            }
-
-
-          } 
-
-          if (FLAG_SKIP_CHAT_BUTTON && kl >= 28 && kl <= 37) {
-            if (key === 'live_chat_overflow_hide_chat') continue;
-            if (key === 'web_watch_chat_hide_button_killswitch') continue;
-          }
-
-          if (KEEP_unified_player && kl >= 21 && kl <= 31) {
-            if (key === 'kevlar_unified_player') continue;
-            if (key === 'kevlar_non_watch_unified_player') continue;
-          }
-
-          if (FLAG_STRATEGY_03 && kl >= 8 && kl <= 31) {
-            // do it with your separate script please
-            if (key === 'ab_pl_man') continue; // https://www.uedbox.com/post/69238/
-            if (key === 'ab_fk_sk_cl') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
-            if (key === 'ab_det_apb_b') continue;
-            if (key === 'ab_det_el_h') continue;
-            if (key === 'ab_det_fet_wr') continue;
-            if (key === 'ab_det_fet_wr_en') continue;
-            if (key === 'ab_det_gen_re') continue;
-            if (key === 'web_enable_ab_rsp_cl') continue;
-            if (key === 'enable_ab_rp_int') continue;
-            if (key === 'enable_ab_report_on_errorscreen') continue;
-            if (key === 'enable_pl_r_si_fa') continue;
-            if (key === 'ab_det_sc_inj_enf') continue;
-            if (key === 'service_worker_enabled') continue; // https://gist.github.com/BrokenGabe/51d55a11c2090d9402e40f12a6ece275
-            if (key === 'ab_deg_unex_thr') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
-            if (key === 'ab_net_tp_e') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
-            if (key === 'ad_net_pb_ab') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
-            if (key === 'ab_mis_log_err') continue; // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
-          }
-
-          if (FLAG_STRATEGY_02) {
-
-
-            if (kl === 24 || kl === 44) {
-
-
-              if (key === 'kevlar_client_enable_shorts_player_bootstrap') continue;
-              if (key === 'kevlar_early_popup_close') continue;
-              if (key === 'kevlar_hide_pp_url_param') continue;
-              if (key === 'kevlar_touch_gesture_ves') continue;
-              if (key === 'player_doubletap_to_seek') continue;
-              if (key === 'shorts_controller_retrieve_seedless_sequence') continue;
-              if (key === 'shorts_overlay_reshuffle') continue;
-
-              // if (
-              //   [
-
-              //     // 'enable_offer_suppression'
-              //     // 'enable_purchase_activity_in_paid_memberships'
-              //     // 'enable_time_out_messages'
-              //     // 'enable_true_inline_for_desktop_home_feed_vac'
-              //     // 'enable_wiz_next_lp2_msof'
-              //     // 'enable_ytc_refunds_submit_form_signal_action'
-              //     // 'gcf_config_store_enabled'
-              //     'kevlar_client_enable_shorts_player_bootstrap',
-              //     'kevlar_early_popup_close',
-              //     // 'kevlar_gel_error_routing'
-              //     'kevlar_hide_pp_url_param',
-              //     // 'kevlar_startup_lifecycle'
-              //     // 'kevlar_structured_description_content_inline'
-              //     'kevlar_touch_gesture_ves',
-              //     // 'kevlar_typography_update'
-              //     // 'kevlar_voice_logging_fix'
-              //     // 'kevlar_watch_disable_legacy_metadata_updates'
-              //     // 'migrate_remaining_web_ad_badges_to_innertube'
-              //     // 'mweb_render_wrapped_icon'
-              //     'player_doubletap_to_seek',
-              //     // 'polymer_bad_build_labels'
-              //     'shorts_controller_retrieve_seedless_sequence',
-              //     'shorts_overlay_reshuffle',
-              //     // 'show_civ_reminder_on_web'
-              //     // 'skip_invalid_ytcsi_ticks'
-              //     // 'web_hide_autonav_keyline'
-              //     // 'web_player_autonav_use_server_provided_state'
-              //   ].includes(key)
-              // ) continue;
-
-            }
-
-          }
-
-          if (SET_POLYMER_FLAGS) {
-
-            if (key === 'polymer_enable_mdx_queue') continue;
-            if (key === 'polymer_on_demand_shady_dom') continue;
-
-          }
-
-          if (FLAG_STRATEGY_01) {
-
-            if (key === 'web_player_defer_modules') continue;
-            if (key === 'html5_defer_modules_on_ads_only') continue;
-            if (key === 'web_player_defer_ad') continue;
-            if (key === 'disable_defer_admodule_on_advertiser_video') continue;
-            if (key === 'html5_onesie_defer_content_loader_ms') continue;
-            if (key === 'html5_defer_fetch_att_ms') continue;
-            if (key === 'embeds_web_enable_defer_loading_remote_js') continue;
-
-          }
-
-          if (kl === 30) {
-            if (KEEP_MIDDLEWAVE && key === 'web_player_entities_middleware') continue;
-          }
-
-          if (kl > 27 && kl < 44) {
-            if (key === 'desktop_keyboard_capture_keydown_killswitch') continue; // TBC
-            if (key === 'kevlar_autofocus_menu_on_keyboard_nav') continue; // TBC
-            if (key === 'kevlar_keyboard_button_focus') continue; // TBC
-            if (key === 'kevlar_macro_markers_keyboard_shortcut') continue; // required
-          }
-
-          if (kl === 39) {
-            // if(key === 'kevlar_appbehavior_attach_startup_tasks') continue;
-            // if(key === 'kevlar_clear_non_displayable_url_params') continue;
-            if (key === 'kevlar_command_handler_formatted_string') continue; // see https://github.com/cyfung1031/userscript-supports/issues/20
-            if (key === 'kevlar_miniplayer_queue_user_activation') continue;
-            if (key === 'kevlar_player_watch_endpoint_navigation') continue;
-            // if(key === 'kevlar_watch_focus_on_engagement_panels') continue;
-
-          }
-
-          if (kl > 16) {
-            if (all_list_flags.has(key)) continue;
-          }
-
-          if (kl > 24 && kl < 50 && all_noti_flags.has(key)) continue;
-
-          // if (kl > 4 && (key.includes("server") || key.includes("notif") || key.includes("account") || key.includes("user"))){
-          //   console.log(key)
-          //   continue;
-          // }
-
-          if (kl === 45) {
-            if (key === 'desktop_add_to_playlist_renderer_dialog_popup') continue;
-            // if(key === 'enable_buenos_aires_page_header_mini_app_dest')continue;
-            // if(key === 'enable_dsa_compliant_banner_image_ad_renderer')continue;
-            // if(key === 'enable_get_account_switcher_endpoint_on_webfe')continue;
-            // if(key === 'enable_structured_description_shorts_web_mweb')continue;
-            // if(key === 'kevlar_fill_offline_availability_type_for_gda')continue;
-            // if(key === 'kevlar_text_inline_expander_formatted_snippet')continue;
-          }
-
-          if (!DISABLE_CINEMATICS) {
-
-            // web_watch_cinematics_disabled_by_default
-            // web_watch_cinematics_preferred_reduced_motion_default_disabled
-
-            if (key === 'kevlar_measure_ambient_mode_idle' || key === 'kevlar_watch_cinematics_invisible' || key === 'web_cinematic_theater_mode' || key === 'web_cinematic_fullscreen') {
-              continue;
-            }
-
-
-            let cineKey = key === 'enable_cinematic_blur_desktop_loading' ? 1
-              : key === 'kevlar_watch_cinematics' ? 2
-                : key === 'web_cinematic_masthead' ? 3
-                  : key === 'web_watch_cinematics_preferred_reduced_motion_default_disabled' ? 4 : 0;
-            if (cineKey > 0) {
-              return;
-            }
-          }
-
-          if (key.indexOf('html5_') === 0) {
-
+          if (key.startsWith('html5_')) {
 
             if (IGNORE_VIDEO_SOURCE_RELATED) {
               continue;
@@ -931,251 +1001,11 @@
             //   if(key ==='html5_prefer_hbr_vp9_over_av1') continue;
             // }
 
-          } else if (key.indexOf('kevlar_') === 0) {
-
-
-
-            if (kl7 === 2 && kl5 === 2 && kl2 === 1 && kl3 === 1) {
-              if (key === 'kevlar_rendererstamper_event_listener') continue; // https://github.com/cyfung1031/userscript-supports/issues/11
-            }
-
-            if (kl === 22) {
-              // kevlar_enable_up_arrow - no use
-              // kevlar_help_use_locale - might use
-              // kevlar_refresh_gesture - might use
-              // kevlar_smart_downloads - might use
-              // kevlar_thumbnail_fluid
-              // kevlar_ytb_live_badges
-
-              if (key === 'kevlar_ytb_live_badges') continue;
-
-            }
-
-
-            // if (!use_maintain_stable_list) {
-
-            if (key === 'kevlar_tuner_should_test_maintain_stable_list') continue;
-            if (key === 'kevlar_should_maintain_stable_list') continue;
-            if (key === 'kevlar_tuner_should_maintain_stable_list') continue; // fallback
-            // }
-            // if (!use_maintain_reuse_components) {
-
-            if (key === 'kevlar_tuner_should_test_reuse_components') continue;
-            if (key === 'kevlar_tuner_should_reuse_components') continue;
-            if (key === 'kevlar_should_reuse_components') continue; // fallback
-            // }
-
-            if (key === 'kevlar_tuner_should_defer_detach') continue;
-
-            if (kl7 === 5 && kl5 == 4 && kl2 === 1 && kl3 === 1) {
-              if (key === 'kevlar_system_icons') continue;
-            }
-
-            // if(key==='kevlar_prefetch_data_augments_network_data') continue;
-
-            if (kl7 === 6 && kl5 === 0 && kl3 === 2 && kl2 === 0) { // home page / watch page icons
-
-              if (key === 'kevlar_three_dot_ink') continue;
-              if (key === 'kevlar_use_wil_icons') continue;
-              if (key === 'kevlar_home_skeleton') continue;
-            }
-
-            if (kl7 === 4 && kl5 === 0 && kl3 === 1 && kl2 === 1) {
-
-              if (key === 'kevlar_fluid_touch_scroll') continue;
-              if (key === 'kevlar_watch_color_update') continue;
-              if (key === 'kevlar_use_vimio_behavior') continue; // home page - channel icon
-
-            }
-
-            if (kl3 === 2 && kl5 === 4 && kl2 < 2) {  // collapsed meta
-              // no teaser, use latest collapsed meta design
-              if (key === 'kevlar_structured_description_content_inline') continue;
-              if (key === 'kevlar_watch_metadata_refresh') continue;
-
-            }
-
-
-            if (kl5 === 3 && kl3 === 1 && kl2 === 0) {
-
-              if (key === 'kevlar_watch_js_panel_height') continue; // affect Tabview Youtube
-
-
-            }
-
+          } else if (key.startsWith('kevlar_')) {
 
           } else {
 
-
-            if (ALLOW_ALL_LIVE_CHATS_FLAGS && kl > 20 && kl < 55 && all_live_chat_flags.has(key)) {
-              continue;
-              /*
-               *
-              live_chat_banner_expansion_fix
-              live_chat_enable_mod_view
-              live_chat_enable_qna_banner_overflow_menu_actions
-              live_chat_enable_qna_channel
-              live_chat_enable_send_button_in_slow_mode
-              live_chat_filter_emoji_suggestions
-              live_chat_increased_min_height
-              live_chat_over_playlist
-              live_chat_web_enable_command_handler
-              live_chat_web_use_emoji_manager_singleton
-              live_chat_whole_message_clickable
-
-              */
-            }
-
-            if (kl7 === 1 && kl5 === 1 && kl2 === 0 && kl3 === 0) {
-              if (key === 'live_chat_web_enable_command_handler') continue;
-
-            }
-            if (kl7 === 1 && kl5 === 4 && kl3 === 2 && kl2 === 1) {
-
-              if (key === 'shorts_desktop_watch_while_p2') continue;
-            }
-
-            if (key === 'web_button_rework') continue;
-
-            if (kl7 === 3 && kl5 == 1 && kl2 === 1 && kl3 === 1) {
-              if (key === 'web_darker_dark_theme_live_chat') continue;
-            }
-
-            if (kl5 === 1 && kl3 === 0 && kl2 === 1 && kl7 === 0) {
-              if (key === 'web_darker_dark_theme') return; // it also affect cinemtaics
-            }
-
-            if (kl3 === 0 && kl5 === 2) {  // modern menu
-
-              if (key === 'web_button_rework_with_live') continue;
-              if (key === 'web_fix_fine_scrubbing_drag') continue;
-            }
-
-
-            if (kl3 === 1 && kl5 === 4 && kl2 === 1) {  // full screen -buggy
-              if (key === 'external_fullscreen') continue;
-            }
-
-            if (kl3 === 0 && kl5 === 3 && kl2 === 0) { // minimize menu
-              if (key === 'web_modern_buttons') continue;
-              if (key === 'web_modern_dialogs') continue;
-
-            }
-
-            if (kl3 === 1 && kl5 === 0 && kl7 === 5 && kl2 === 0) { // Tabview Youtube - multiline transcript
-              if (key === 'enable_mixed_direction_formatted_strings') continue;
-            }
-
-            if (key === 'enable_unknown_lact_fix_on_html5') continue;
-
           }
-
-          if (key === 'live_chat_chunk_across_update_interval') continue;
-
-          if (key === 'enable_native_live_chat_on_kevlar') continue;
-
-          if (key === 'live_chat_author_name_color_usernames') continue;
-          if (key === 'live_chat_seed_color_usernames') continue;
-          if (key === 'live_chat_colored_usernames') continue;
-          if (key === 'live_chat_simple_color_usernames') continue;
-          if (key === 'web_button_rework_with_live') continue;
-          if (key === 'live_chat_hide_avatars') continue;
-          if (key === 'live_chat_enable_qna_replay') continue;
-          if (key === 'live_chat_aggregation') continue;
-          if (key === 'live_chat_web_use_emoji_manager_singleton') continue;
-          if (key === 'enable_docked_chat_messages') continue;
-          if (key === 'live_chat_taller_emoji_picker') continue;
-          if (key === 'live_chat_emoji_picker_restyle') continue;
-          if (key === 'live_chat_emoji_picker_restyle_remain_open_on_send') continue;
-          if (key === 'live_chat_web_input_update') continue;
-          if (key === 'live_chat_enable_send_button_in_slow_mode') continue;
-
-          if (key === 'kevlar_watch_metadata_refresh_no_old_primary_data') continue;
-          // if (key === 'kevlar_watch_metadata_refresh_no_old_secondary_data') continue; // for Tabview Youtube
-          if (key === 'enable_web_cosmetic_refresh_hashtag_page') continue;
-          if (key === 'kevlar_watch_metadata_refresh_description_lines') continue;
-
-
-
-
-          if (key === 'enable_service_ajax_csn') continue;
-
-          if (key === 'kevlar_use_vimio_behavior') continue;
-
-          if (key === 'web_use_cache_for_image_fallback') continue;
-          if (key === 'kevlar_woffle_fallback_image') continue;
-          if (key === 'yt_img_shadow_trigger_show_on_visible') continue;
-          if (key === 'kevlar_thumbnail_bg') continue;
-          if (key === 'web_rounded_thumbnails') continue;
-
-
-
-          if (key === 'kevlar_rendererstamper_event_listener') continue;
-
-          if (key === 'dialog_behavior_no_tap_killswitch') continue;
-
-          if (key === 'handle_service_request_actions') continue;
-
-          if (key === 'live_chat_whole_message_clickable') continue;
-
-          if (key === 'live_chat_require_space_for_autocomplete_emoji') continue;
-
-          if (key === 'kevlar_keyboard_button_focus') continue;
-
-          if (key === 'live_chat_emoji_picker_toggle_state') continue;
-          if (key === 'super_sticker_emoji_picker_category_button_icon_filled') continue;
-          if (key === 'enable_super_chat_buy_flow_revamp_web') continue;
-
-
-          if (key === 'web_modern_buttons') continue;
-
-
-          if (key === 'web_modern_dialogs') continue;
-          if (key === 'live_chat_disable_chat_feed_animation') continue;
-          if (key === 'live_chat_overflow_hide_chat') continue;
-          if (key === 'web_darker_dark_theme_live_chat') continue;
-          if (key === 'live_chat_channel_activity') continue;
-          if (key === 'live_chat_emoji_picker_restyle_remain_open_on_click_to_input_area') continue;
-          if (key === 'live_chat_top_chat_sampling_enabled') continue;
-
-          if (key === 'live_chat_enable_mod_view') continue;
-          if (key === 'live_chat_web_enable_command_handler_action_handling') continue;
-          if (key === 'web_modern_dialogs') continue;
-          if (key === 'web_modern_dialog_layout') continue;
-          if (key === 'web_modern_typography') continue;
-
-          if (key === 'kevlar_disable_component_resizing_support') continue;
-          if (key === 'web_rounded_thumbnails') continue;
-          if (key === 'enable_quiz_desktop_animation') continue;
-          if (key === 'kevlar_thumbnail_fluid') continue;
-          if (key === 'web_enable_playlist_video_lockup_equalizer') continue;
-          if (key === 'web_modern_collections_v2') continue;
-          if (key === 'animated_live_badge_icon') continue;
-          if (key === 'use_color_palettes_modern_collections_v2') continue;
-          if (key === 'web_amsterdam_post_mvp_playlists') continue;
-          if (key === 'enable_desktop_search_bigger_thumbs') continue;
-          if (key === 'web_animated_actions') continue;
-          if (key === 'mweb_animated_actions') continue;
-          if (key === 'enable_desktop_amsterdam_info_panels') continue;
-
-          if (key === 'kevlar_modern_sd') continue;
-          if (key === 'problem_walkthrough_sd') continue;
-          if (key === 'polymer_video_renderer_defer_menu') continue;
-
-
-          if (key === 'enable_html5_teal_ad_badge') continue;
-          if (key === 'kevlar_ytb_live_badges') continue;
-          if (key === 'live_chat_enable_new_moderator_badge') continue;
-          if (key === 'live_chat_prepend_badges') continue;
-          if (key === 'live_chat_bold_color_usernames') continue;
-          if (key === 'render_custom_emojis_as_small_images') continue;
-
-          if (key === 'web_enable_dynamic_metadata') continue;
-
-          if (key === 'web_animated_like') continue;
-          if (key === 'web_animated_like_lazy_load') continue;
-          if (key === 'desktop_delay_player_resizing') continue;
-
 
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
@@ -1185,61 +1015,10 @@
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
       // return;
-      /*
-      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
-
-      EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = false; // for Tabview Youtube
-      EXPERIMENT_FLAGS.kevlar_unified_player = true;
 
 
-      EXPERIMENT_FLAGS.defer_menus = true;
-      EXPERIMENT_FLAGS.defer_overlays = true;
-      EXPERIMENT_FLAGS.faster_load_overlay = true;
-      EXPERIMENT_FLAGS.disable_moving_thumbs_handling = true;
-      EXPERIMENT_FLAGS.polymer_video_renderer_defer_menu = true;
-      EXPERIMENT_FLAGS.web_announce_stop_seeing_this_ad_text_a11y_bugfix = true;
-
-      EXPERIMENT_FLAGS.disable_chips_intersection_observer = true;
-
-      EXPERIMENT_FLAGS.live_chat_top_chat_sampling_enabled = true;
-
-      EXPERIMENT_FLAGS.kevlar_dropdown_fix = true;
-
-      EXPERIMENT_FLAGS.debug_forward_web_query_parameters = false;
-      EXPERIMENT_FLAGS.cancel_pending_navs = true;
-      EXPERIMENT_FLAGS.web_no_lock_on_touchstart_killswitch = false;
-
-
-*/
-
-      if (SET_POLYMER_FLAGS) {
-        // EXPERIMENT_FLAGS.polymer_video_renderer_defer_menu = true;
-        // EXPERIMENT_FLAGS.polymer_on_demand_shady_dom = true;
-        // EXPERIMENT_FLAGS.polymer_enable_mdx_queue = true;
-      }
-
-
-      // EXPERIMENT_FLAGS.kevlar_appbehavior_attach_startup_tasks = true;
-      // EXPERIMENT_FLAGS.kevlar_clear_non_displayable_url_params = true;
-      // EXPERIMENT_FLAGS.kevlar_command_handler_formatted_string = true;
-      // EXPERIMENT_FLAGS.kevlar_miniplayer_queue_user_activation = true;
-      // EXPERIMENT_FLAGS.kevlar_player_watch_endpoint_navigation = true;
-      // EXPERIMENT_FLAGS.kevlar_watch_focus_on_engagement_panels = true;
-
-      // EXPERIMENT_FLAGS.live_chat_author_name_color_usernames = true;
-      // EXPERIMENT_FLAGS.live_chat_seed_color_usernames = true;
-      // EXPERIMENT_FLAGS.live_chat_colored_usernames = true;
-      // EXPERIMENT_FLAGS.live_chat_simple_color_usernames = true;
-      // live_chat_hide_avatars
       if (ENABLE_MINOR_CHAT_FEATURE_UPGRADE) {
 
-
-
-        // EXPERIMENT_FLAGS.mweb_wiz_skip_render = true;
-        // EXPERIMENT_FLAGS.kevlar_wiz_prototype_enable_all_components= true;
-        // EXPERIMENT_FLAGS.kevlar_wiz_enable_on_demand_alternative_components= true;
-
-        // EXPERIMENT_FLAGS.web_enable_dynamic_metadata = true;
 
         EXPERIMENT_FLAGS.web_supports_animations_api = true;
         EXPERIMENT_FLAGS.smartimation_background = true;
@@ -1299,15 +1078,7 @@
         EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_standardized_body_typography = false;
         EXPERIMENT_FLAGS.kevlar_refresh_gesture = false;
 
-
       }
-
-      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_primary_data = true;
-      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_no_old_secondary_data = true;
-      // EXPERIMENT_FLAGS.enable_web_cosmetic_refresh_hashtag_page = true;
-      // EXPERIMENT_FLAGS.kevlar_watch_metadata_refresh_description_lines = true;
-
-
 
 
       if (NO_DESKTOP_DELAY_PLAYER_RESIZING) {
