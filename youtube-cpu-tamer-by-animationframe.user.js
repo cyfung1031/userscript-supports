@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.04.06.0
+// @version             2024.04.08.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -225,34 +225,38 @@ SOFTWARE.
           qr = null;
         }
       }
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyFrames aF1 {
-          0% {
-            order: 0;
+      if (!document.getElementById('afscript')) {
+        const style = document.createElement('style');
+        style.id = 'afscript';
+        style.textContent = `
+          @keyFrames aF1 {
+            0% {
+              order: 0;
+            }
+            100% {
+              order: 1;
+            }
           }
-          100% {
-            order: 6;
+          #a-f[id] {
+            visibility: collapse !important;
+            position: fixed !important;
+            display: block !important;
+            top: -100px !important;
+            left: -100px !important;
+            margin:0 !important;
+            padding:0 !important;
+            outline:0 !important;
+            border:0 !important;
+            z-index:-1 !important;
+            width: 0px !important;
+            height: 0px !important;
+            contain: strict !important;
+            pointer-events: none !important;
+            animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
           }
-        }
-        #a-f[id] {
-          visibility: collapse !important;
-          position: fixed !important;
-          top: -100px !important;
-          left: -100px !important;
-          margin:0 !important;
-          padding:0 !important;
-          outline:0 !important;
-          border:0 !important;
-          z-index:-1 !important;
-          width: 0px !important;
-          height: 0px !important;
-          contain: strict !important;
-          pointer-events: none !important;
-          animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
-        }
-      `;
-      (document.head || document.documentElement).appendChild(style);
+        `;
+        (document.head || document.documentElement).appendChild(style);
+      }
       document.documentElement.insertBefore(asc, document.documentElement.firstChild);
       return (resolve) => (qr = afInterupter = resolve);
     };
@@ -262,7 +266,7 @@ SOFTWARE.
 
     (() => {
       let afPromiseP, afPromiseQ; // non-null
-      afPromiseP = afPromiseQ = { resolved: true }; // initial state for !rP && !rQ
+      afPromiseP = afPromiseQ = { resolved: true }; // initial state for !uP && !uQ
       let afix = 0;
       const afResolve = async (rX) => {
         await new Promise(rafPN);
@@ -282,8 +286,7 @@ SOFTWARE.
         } else {
           const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
           const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;
-          if (uP) await uP;
-          else if (uQ) await uQ;
+          if (uQ) await uQ; else if (uP) await uP;
           if (vP) t = await afResolve(vP);
           if (vQ) t = await afResolve(vQ);
         }
@@ -308,10 +311,8 @@ SOFTWARE.
       const sFunc = (propFunc) => {
         return (func, ms = 0, ...args) => {
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
-            const hasArgs = args.length > 0;
-            const handler = hasArgs ? func.bind(null, ...args) : func; // original func if no extra argument
             const wStore = {};
-            return (wStore.cid = propFunc(wFunc, ms, handler, wStore));
+            return (wStore.cid = propFunc(wFunc, ms, (args.length > 0 ? func.bind(null, ...args) : func), wStore));
           } else {
             return propFunc(func, ms, ...args);
           }
@@ -340,13 +341,10 @@ SOFTWARE.
 
     let mInterupter = null;
     setInterval(() => {
-      const dInterupter = afInterupter;
-      if (dInterupter !== null && mInterupter === dInterupter) {
-        afInterupter = null;
-        mInterupter = null;
-        dInterupter();
+      if (mInterupter === afInterupter) {
+        if (mInterupter !== null) afInterupter = mInterupter = (mInterupter(), null);
       } else {
-        mInterupter = dInterupter;
+        mInterupter = afInterupter;
       }
     }, 125);
   });
