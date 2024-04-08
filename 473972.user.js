@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.35
+// @version     0.11.36
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -3732,30 +3732,30 @@
     })();
 
 
-      /*
+    /*
 
-        e.nativeAppendChild = d.prototype.appendChild,
-        d.prototype.appendChild = function(h) {
-            return function(l) {
-                if (l instanceof DocumentFragment) {
-                    var m = Array.from(l.children);
-                    l = h.nativeAppendChild.call(this, l);
-                    if (this.isConnected) {
-                        m = g(m);
-                        for (var p = m.next(); !p.done; p = m.next())
-                            YD(p.value)
-                    }
-                    return l
-                }
-                m = l instanceof Element && l.isConnected;
-                p = h.nativeAppendChild.call(this, l);
-                m && ZD(l);
-                this.isConnected && YD(l);
-                return p
-            }
-        }(e),
+      e.nativeAppendChild = d.prototype.appendChild,
+      d.prototype.appendChild = function(h) {
+          return function(l) {
+              if (l instanceof DocumentFragment) {
+                  var m = Array.from(l.children);
+                  l = h.nativeAppendChild.call(this, l);
+                  if (this.isConnected) {
+                      m = g(m);
+                      for (var p = m.next(); !p.done; p = m.next())
+                          YD(p.value)
+                  }
+                  return l
+              }
+              m = l instanceof Element && l.isConnected;
+              p = h.nativeAppendChild.call(this, l);
+              m && ZD(l);
+              this.isConnected && YD(l);
+              return p
+          }
+      }(e),
 
-      */
+    */
 
     CHANGE_appendChild && !Node.prototype.appendChild73 && Node.prototype.appendChild && (() => {
 
@@ -4789,34 +4789,38 @@
           const acs = document.createElement('a-f');
           acs.id = 'a-f';
 
-          const style = document.createElement('style');
-          style.textContent = `
-            @keyFrames aF1 {
-              0% {
-                order: 0;
+          if (!document.getElementById('afscript')) {
+            const style = document.createElement('style');
+            style.id = 'afscript';
+            style.textContent = `
+              @keyFrames aF1 {
+                0% {
+                  order: 0;
+                }
+                100% {
+                  order: 1;
+                }
               }
-              100% {
-                order: 6;
+              #a-f[id] {
+                visibility: collapse !important;
+                position: fixed !important;
+                display: block !important;
+                top: -100px !important;
+                left: -100px !important;
+                margin:0 !important;
+                padding:0 !important;
+                outline:0 !important;
+                border:0 !important;
+                z-index:-1 !important;
+                width: 0px !important;
+                height: 0px !important;
+                contain: strict !important;
+                pointer-events: none !important;
+                animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
               }
-            }
-            #a-f[id] {
-              visibility: collapse !important;
-              position: fixed !important;
-              top: -100px !important;
-              left: -100px !important;
-              margin:0 !important;
-              padding:0 !important;
-              outline:0 !important;
-              border:0 !important;
-              z-index:-1 !important;
-              width: 0px !important;
-              height: 0px !important;
-              contain: strict !important;
-              pointer-events: none !important;
-              animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
-            }
-          `;
-          (document.head || document.documentElement).appendChild(style);
+            `;
+            (document.head || document.documentElement).appendChild(style);
+          }
 
           document.documentElement.insertBefore(acs, document.documentElement.firstChild);
 
