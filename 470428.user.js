@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.4.0
+// @version     1.4.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -150,6 +150,7 @@
       'ab_net_tp_e', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
       'ad_net_pb_ab', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
       'ab_mis_log_err', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+      'ad_net_pb_pbp',
     ] : []),
 
 
