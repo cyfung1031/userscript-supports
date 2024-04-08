@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.7
+// @version     2.0.8
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@8fac46500c5a916e6ed21149f6c25f8d1c56a6a3/library/ytZara.js
-// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@48a67f75465ee721fc1d39b6af82abcaa51b89d6/library/nextBrowserTick.min.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@7221a4efffd49d852de0074ec503d4febb99f28b/library/nextBrowserTick.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
