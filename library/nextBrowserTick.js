@@ -1,19 +1,19 @@
-(function (global) {
+(function (world) {
     "use strict";
 
-    if (global.nextBrowserTick) {
+    if (world.nextBrowserTick) {
         return;
     }
 
     function canUsePostMessage() {
-        if (global.postMessage && !global.importScripts && global.addEventListener) {
-            var ok = true;
-            var mfn = function () {
+        if (world.postMessage && !world.importScripts && world.addEventListener) {
+            let ok = true;
+            let mfn = () => {
                 ok = false;
             }
-            global.addEventListener('message', mfn, false);
-            global.postMessage("", "*");
-            global.removeEventListener('message', mfn, false);
+            world.addEventListener('message', mfn, false);
+            world.postMessage("", "*");
+            world.removeEventListener('message', mfn, false);
             return ok;
         }
     }
@@ -43,25 +43,25 @@
 
     let promise = null;
 
-    const uid = (Math.random() + 8).toString().slice(2);
-    const messageString = `$$nextBrowserTick$$${uid}$$`
-    global[messageString] = 1;
-    const mfn = (event) => {
-        const data = promise !== null ? (event || 0).data : 0;
-        if (data === messageString) {
-            const { target, source } = event || {};
-            if (target && source === target) {
-                promise.resolve();
-                promise = null;
-            }
+    let tmp;
+    do {
+        const uid = (Math.random() + 8).toString().slice(2);
+        tmp = `$$nextBrowserTick$$${uid}$$`;
+    } while (tmp in world);
+    const messageString = tmp;
+    world[messageString] = 1;
+    const mfn = (evt) => {
+        const data = promise !== null ? (evt || 0).data : 0;
+        if (data === messageString && evt.source === (evt.target || 1)) {
+            promise.resolve(promise = null);
         }
     }
-    global.addEventListener('message', mfn, false);
+    world.addEventListener('message', mfn, false);
 
-    global.nextBrowserTick = (f) => {
+    world.nextBrowserTick = (f) => {
         if (!promise) {
             promise = new PromiseExternal();
-            global.postMessage(messageString, "*");
+            world.postMessage(messageString, "*");
         }
         promise.then(f).catch(console.warn);
     }
