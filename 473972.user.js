@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.37
+// @version     0.11.38
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -155,6 +155,15 @@
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
 
+  const prototypeInherit = (d, b) => {
+    const m = Object.getOwnPropertyDescriptors(b);
+    for (const p in m) {
+      if (!Object.getOwnPropertyDescriptor(d, p)) {
+        Object.defineProperty(d, p, m[p]);
+      }
+    }
+  };
+
   /** @type {(o: Object | null) => WeakRef | null} */
   const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
 
@@ -284,6 +293,7 @@
         }
       }
       c.prototype.__xmMc8__ = 0;
+      prototypeInherit(c.prototype, XMLHttpRequest_.prototype);
       return c;
     })();
   }

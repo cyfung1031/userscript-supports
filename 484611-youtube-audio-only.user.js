@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.7.3
+// @version             1.7.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -170,6 +170,15 @@
 
 
         const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+
+        const prototypeInherit = (d, b) => {
+            const m = Object.getOwnPropertyDescriptors(b);
+            for (const p in m) {
+                if (!Object.getOwnPropertyDescriptor(d, p)) {
+                    Object.defineProperty(d, p, m[p]);
+                }
+            }
+        };
 
         let setTimeout_ = setTimeout;
         let clearTimeout_ = clearTimeout;
@@ -638,6 +647,7 @@
                     }
                 }
                 c.prototype.__xmMc8__ = 0;
+                prototypeInherit(c.prototype, XMLHttpRequest_.prototype);
                 return c;
             })();
 
@@ -1828,6 +1838,7 @@
                     }
                 }
                 _yt_player[key].luX1Y = 1;
+                prototypeInherit(_yt_player[key].prototype, ClassX.prototype);
             }
 
         }

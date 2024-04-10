@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.10
+// @version             0.1.11
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -166,6 +166,15 @@
 
 
         const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+
+        const prototypeInherit = (d, b) => {
+            const m = Object.getOwnPropertyDescriptors(b);
+            for (const p in m) {
+                if (!Object.getOwnPropertyDescriptor(d, p)) {
+                    Object.defineProperty(d, p, m[p]);
+                }
+            }
+        };
 
         let setTimeout_ = setTimeout;
         let clearTimeout_ = clearTimeout;
@@ -777,6 +786,7 @@
                     }
                 }
                 _yt_player[key].luX1Y = 1;
+                prototypeInherit(_yt_player[key].prototype, ClassX.prototype);
             }
 
         }
