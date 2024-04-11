@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.10
+// @version             0.61.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -658,7 +658,7 @@
       grid-auto-columns: 1fr;
       grid-auto-rows: 1fr;
       grid-template-columns: repeat(1, 1fr);
-      gap: 9px;
+      gap: 7px;
       padding-bottom: 0;
       margin-bottom: 0;
       padding-top: 0;
