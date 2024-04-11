@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.38
+// @version     0.11.39
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -66,6 +66,9 @@
   // << if WEAK_REF_BINDING >>
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
+
+  const TO_REMOVE_PRUNE_propNeedles = true; // brave scriptlet related
+  const DEBUG_removePrune = false; // true for DEBUG
 
   const FIX_XHR_REQUESTING = true;
   const FIX_VIDEO_BLOCKING = true; // usually it is a ads block issue
@@ -233,6 +236,37 @@
       }
       return this.dispatchEvent938(event);
     }
+  }
+
+  // avoid REGEXP testPattern execution in Brave's scriptlet for performance boost
+  const removePrune_propNeedles = () => {
+    // const xhr = new XMLHttpRequest;
+    const pdOri = Object.getOwnPropertyDescriptor(Map.prototype, 'size');
+    if (!pdOri || pdOri.configurable !== true) return;
+    let propNeedles = null;
+    const pdNew = {
+      configurable: true,
+      enumerable: true,
+      get: function () {
+        propNeedles = this;
+        if (DEBUG_removePrune) debugger; // to locate Brave scriptlets
+        throw new Error();
+      }
+    }
+    Object.defineProperty(Map.prototype, 'size', pdNew);
+    try {
+      XMLHttpRequest.prototype.open.call(0);
+      // xhr.open.call(null)
+    } catch (e) { }
+    Object.defineProperty(Map.prototype, 'size', pdOri);
+    if (!propNeedles) return;
+    const entries = [...propNeedles.entries()];
+    propNeedles.clear();
+    console.log('[yt-js-engine-tamer] propNeedles is cleared from scriptlet', entries, propNeedles);
+  }
+
+  if (TO_REMOVE_PRUNE_propNeedles) {
+    removePrune_propNeedles();
   }
 
   if (FIX_XHR_REQUESTING) {
