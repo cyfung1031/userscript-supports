@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.4.1
+// @version     1.4.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -151,6 +151,16 @@
       'ad_net_pb_ab', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
       'ab_mis_log_err', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
       'ad_net_pb_pbp',
+
+      'ab_det_sc_inj',
+      'ab_det_sc_inj_val',
+      'disable_enf_isd',
+      'ks_det_gpbl',
+      'ks_get_o_pp',
+      'ab_deg_unex_thr',
+      'enable_pl_r_si_fa',
+      'debug_sk_em_precheck',
+
     ] : []),
 
 
@@ -614,6 +624,16 @@
         'ab_net_tp_e', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
         'ad_net_pb_ab', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
         'ab_mis_log_err', // https://www.youtube.com/s/desktop/28b0985e/jsbin/desktop_polymer.vflset/desktop_polymer.js
+
+        'ab_det_sc_inj',
+        'ab_det_sc_inj_val',
+        'disable_enf_isd',
+        'ks_det_gpbl',
+        'ks_get_o_pp',
+        'ab_deg_unex_thr',
+        'enable_pl_r_si_fa',
+        'debug_sk_em_precheck',
+
       ] : []),
 
 
