@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.4.2
+// @version     1.5.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -43,6 +43,8 @@
   const FLAG_STRATEGY_02 = true; // ignore player related flags
 
   const FLAG_STRATEGY_03 = true; // ignore adblock related flags
+
+  const FLAG_STRATEGY_20240413 = true; // ignore adblock related flags
 
   const FLAG_SKIP_CHAT_BUTTON = true;
 
@@ -352,7 +354,13 @@
         keep = false;
         break;
       default:
-        if (key.includes('deprecat')) {
+
+        if (FLAG_STRATEGY_20240413 && key.includes('network')) keep = true;
+        else if (FLAG_STRATEGY_20240413 && key.includes('less')) keep = true;
+        else if (FLAG_STRATEGY_20240413 && key.includes('latency')) keep = true;
+        else if (FLAG_STRATEGY_20240413 && key.includes('slow')) keep = true;
+        else if (FLAG_STRATEGY_20240413 && key.includes('steam')) keep = true;
+        else if (key.includes('deprecat')) {
           keep = false;
         } else if (IGNORE_VIDEO_SOURCE_RELATED && key.includes('html5_') && !key.includes('_ad_') && !key.includes('_ads_')) {
           keep = true;
@@ -1001,6 +1009,12 @@
 
           if (cachedSet.has(key)) continue;
 
+          if (FLAG_STRATEGY_20240413 && key.includes('network')) continue;
+          if (FLAG_STRATEGY_20240413 && key.includes('less')) continue;
+          if (FLAG_STRATEGY_20240413 && key.includes('latency')) continue;
+          if (FLAG_STRATEGY_20240413 && key.includes('slow')) continue;
+          if (FLAG_STRATEGY_20240413 && key.includes('steam')) continue;
+
           // const kl = key.length;
           // const kl7 = kl % 7;
           // const kl5 = kl % 5;
@@ -1037,6 +1051,16 @@
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
       // return;
 
+      if (FLAG_STRATEGY_20240413) {
+        EXPERIMENT_FLAGS.kevlar_watch_grid = false;
+        EXPERIMENT_FLAGS.kevlar_watch_grid_hide_chips = false;
+        EXPERIMENT_FLAGS.kevlar_watch_grid_reduced_top_margin_rich_grid = false;
+        EXPERIMENT_FLAGS.kevlar_watch_grid_top_companion = false;
+        EXPERIMENT_FLAGS.kevlar_watch_fixie = false;
+        EXPERIMENT_FLAGS.kevlar_watch_grid_auto_open_playlist = false;
+        EXPERIMENT_FLAGS.action_companion_center_align_description = false;
+        EXPERIMENT_FLAGS.action_companion_truncate_domain = false;
+      }
 
       if (ENABLE_MINOR_CHAT_FEATURE_UPGRADE) {
 
