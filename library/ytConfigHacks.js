@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.4.0
+// @version      0.4.1
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -64,32 +64,35 @@ SOFTWARE.
       }
     };
 
-    let _configReady = false;
+    let isValidConfig = null;
     const detectConfigDone = () => {
       if (remainingCalls >= 1) {
         const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-        if (!config) return;
-        if (!_configReady) {
-          const descriptor = Object.getOwnPropertyDescriptor(config, 'EXPERIMENT_FLAGS')
-          if (descriptor && descriptor.enumerable && descriptor.configurable && descriptor.writable && typeof descriptor.value === 'object') {
-            _configReady = true;
-          }
-        }
-        if (_configReady && 'EXPERIMENT_FLAGS' in config) {
+        if (config && 'EXPERIMENT_FLAGS' in config) {
           if (--remainingCalls <= 0) restoreOriginalYtCSI && restoreOriginalYtCSI();
-          for (const hook of _ytConfigHacks) {
-            hook(config);
+          if (isValidConfig === null) {
+            const descriptor = Object.getOwnPropertyDescriptor(config, 'EXPERIMENT_FLAGS')
+            isValidConfig = (descriptor
+              && descriptor.enumerable && descriptor.configurable && descriptor.writable
+              && typeof descriptor.value === 'object');
+          }
+          if (isValidConfig) {
+            for (const hook of _ytConfigHacks) {
+              hook(config);
+            }
           }
         }
       }
     };
 
+    let restoreOriginalYtCSICount = 1;
     const hookIntoYtCSI = (ytcsi) => {
       if (ytcsi = (ytcsi || win.ytcsi)) {
         // delete win.ytcsi; // optional
         win.ytcsi = new Proxy(ytcsi, {
           get(target, prop, receiver) {
             if (prop === 'originalYtcsi') return target;
+            if (--restoreOriginalYtCSICount <= 0) restoreOriginalYtCSI && restoreOriginalYtCSI();
             detectConfigDone();
             return target[prop];
           }
