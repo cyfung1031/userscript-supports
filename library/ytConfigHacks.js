@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.4.1
+// @version      0.4.2
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -92,8 +92,8 @@ SOFTWARE.
         win.ytcsi = new Proxy(ytcsi, {
           get(target, prop, receiver) {
             if (prop === 'originalYtcsi') return target;
-            if (--restoreOriginalYtCSICount <= 0) restoreOriginalYtCSI && restoreOriginalYtCSI();
             detectConfigDone();
+            if (isValidConfig && --restoreOriginalYtCSICount <= 0) restoreOriginalYtCSI && restoreOriginalYtCSI();
             return target[prop];
           }
         });
