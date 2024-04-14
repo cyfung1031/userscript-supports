@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.3.0
+// @version      1.3.0.001
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -999,10 +999,19 @@ function init() {
         if (origin_Request.toString() !== 'function Request() { [native code] }') {
             log('Request have been modified', -1)
         }
+        const requestBodyMap = new WeakMap();
         unsafeWindow.Request = class extends unsafeWindow.Request {
             constructor(input, options = void 0) {
                 super(input, options);
-                if (options && options['body']) this['body_'] = options['body'];
+                try {
+                    const p = Object.getOwnPropertyDescriptor(options, 'body') || {};
+                    if (typeof (p.value || 0) === "string") {
+                        requestBodyMap.set(this, p.value);
+                    }
+                } catch (e) { }
+            }
+            get body_() {
+                return requestBodyMap.get(this) || undefined;
             }
         };
     }
