@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.12.0
+// @version     0.12.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -57,7 +57,7 @@
   const ENABLE_weakenStampReferences = true; // disabled in old browsers
   // << end >>
 
-  const FIX_perfNow = true;
+  const FIX_perfNow = true; // history state issue; see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
   const ENABLE_ASYNC_DISPATCHEVENT = false; // problematic
 
   const UNLOAD_DETACHED_POLYMER = false; // unstable
@@ -73,7 +73,7 @@
   const FIX_XHR_REQUESTING = true;
   const FIX_VIDEO_BLOCKING = true; // usually it is a ads block issue
 
-  const LOG_FETCHMETA_UPDATE = false;
+  const LOG_FETCHMETA_UPDATE = false; // for DEBUG
 
   const IGNORE_bufferhealth_CHECK = false; // experimental; true will make "Stats for nerds" no info.
 
@@ -193,7 +193,7 @@
 
     let k = 0; // 0 <= k < 9998m
     let u = 0;
-    let s = ((performance.timeOrigin % 7) + 1) / 7; // s >= 0.14
+    let s = ((performance.timeOrigin % 7) + 1) / 7 - 1e-2 / 7; // s > 0.14
 
     // By definition, performance.now() is mono increasing.
     // Fixing in YouTube.com is required to ensure performance.now() is strictly increasing.
@@ -209,14 +209,25 @@
       // see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
       // see https://bugzilla.mozilla.org/show_bug.cgi?id=1842437
 
-      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s; // v >= 0.1
+      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s; // v > 0.14
       if (u + 0.0015 < (u = v)) k = 0; // note: hRes should be accurate to 5 µs in isolated contexts
       else if (k < 0.001428) k += 1e-6 / 7; // M = 10000 * m; m * 9996 = 0.001428
-      else { // more than 9997 consecutive calls; in reality, the max no. of consecutive calls would be much below 7500
+      else { // more than 9998 consecutive calls
+        /**
+         * 
+         * max no. of consecutive calls
+         * 
+         * Sample Size: 4800
+         * Sample Avg = 1565.375
+         * Sample Median = 1469.5
+         * Sample Max = 5660 << 7500 << 9999
+         * 
+         * 
+         *  */
         k = 0;
-        s += 1;
+        s += 1 / 7;
       }
-      return v - 1e-2 / 7 + k; // 0 < v - M < v - M + k < v
+      return v + k; // 0 < v - M < v - M + k < v
     }
 
     let loggerMsg = '';
@@ -310,6 +321,8 @@
             } else if (turl.includes('.youtube.com/pagead/')) {
               skip = true;
             } else if (turl.includes('.youtube.com/ptracking')) {
+              skip = true;
+            } else if (turl.includes('.youtube.com/youtubei/v1/log_event?')){
               skip = true;
             } else if (turl.includes('.youtube.com/api/stats/')) { // /api/stats/
               if (turl.includes('.youtube.com/api/stats/qoe?')) {
