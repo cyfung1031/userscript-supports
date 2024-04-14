@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.40
+// @version     0.11.41
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -187,14 +187,17 @@
     }
   }
 
-  FIX_perfNow && (() => {
+  FIX_perfNow && performance.timeOrigin > 9 && (() => {
     if (performance.now23 || performance.now16 || typeof Performance.prototype.now !== 'function') return;
     const f = performance.now23 = Performance.prototype.now;
-    let k = 0;
-    let lastV = 0;
-    let s = 1;
-    performance.now = performance.now16 = function () {
 
+    let k = 0; // 0 <= k < 9998m
+    let u = 0;
+    let s = ((performance.timeOrigin % 7) + 1) / 7; // s >= 0.14
+
+    // By definition, performance.now() is mono increasing.
+    // Fixing in YouTube.com is required to ensure performance.now() is strictly increasing.
+    performance.now = performance.now16 = function () {
       /**
        * Bug 1842437 - When attempting to go back on youtube.com, the content remains the same
        *
@@ -203,20 +206,26 @@
        * and modifying its return value slightly to make sure two close consecutive calls don't
        * get the same result helped with resolving the issue.
        */
+      // see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
+      // see https://bugzilla.mozilla.org/show_bug.cgi?id=1842437
 
-      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s;
-      if (lastV + 0.0015 < (lastV = v)) k = 0;
-      else if (k > 0.001428) { // (1e-2 / 7) = 10000 * (1e-6 / 7);  (1e-6 / 7) * 9996 = 0.001428
+      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s; // v >= 0.1
+      if (u + 0.0015 < (u = v)) k = 0; // note: hRes should be accurate to 5 µs in isolated contexts
+      else if (k < 0.001428) k += 1e-6 / 7; // M = 10000 * m; m * 9996 = 0.001428
+      else { // more than 9997 consecutive calls; in reality, the max no. of consecutive calls would be below 900
         k = 0;
         s += 1;
-      } else {
-        k += 1e-6 / 7;
       }
-      return v - 1e-2 / 7 + k; // v - 1e-2 / 7 + k < v
+      return v - 1e-2 / 7 + k; // 0 < v - M < v - M + k < v
     }
-    if (performance.now !== performance.now16) { // might not able to set in Firefox
-      if (performance.now() === performance.now()) console.warn('performance.now() is not mono increasing.');
+
+    let loggerMsg = '';
+    if (`${performance.now()}` === `${performance.now()}`) {
+      const msg1 = 'performance.now is modified but performance.now() is not strictly increasing.';
+      const msg2 = 'performance.now cannot be modified and performance.now() is not strictly increasing.';
+      loggerMsg = performance.now !== performance.now16 ? msg1 : msg2; // might not able to set in Firefox
     }
+    loggerMsg && console.warn(loggerMsg);
   })();
 
   if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
