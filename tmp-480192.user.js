@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.3.0.001
+// @version      1.3.1.001
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -1328,7 +1328,7 @@ function config_init(tmp_language = null) {
         }
     }
     if (['zh-CN', 'zh-TW', 'zh-HK', 'en'].indexOf(user_data.language) === -1) {
-        log(`Does not support language ${user_data.language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.` , -1);
+        log(`Does not support language ${user_data.language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.`, -1);
         user_data.language = user_data.language.indexOf('en-') === 0 ? 'en' : 'zh-CN'
     } else {
         user_data.language = user_data.language
@@ -1800,38 +1800,45 @@ function obj_process_filter(path_info, json_obj) {
     ]
     let upcoming_express = ['thumbnailOverlayTimeStatusRenderer.text.runs[0].text.........=- =' + flag_info.upcoming, 'thumbnailOverlayTimeStatusRenderer.text.simpleText.......=- =' + flag_info.upcoming]
     if (live_express.includes(path_info.express)) {
-        let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"(.*?)"/)
-        let id
-        if (match && match.length > 1) id = match[1]
-        if (!id) {
-            log('id获取失败\n' + JSON.stringify(path_info), -1)
-        }
-        if (!user_data.channel_infos.ids.includes(id)) {
-            log('过滤' + id + '的直播', 0)
-        } else {
-            let index = user_data.channel_infos.ids.indexOf(id)
-            let name = user_data.channel_infos.names[index]
-            log('不过滤' + name + '的直播', 0)
-            return true
+        try {
+            let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"(.*?)"/)
+            let id
+            if (match && match.length > 1) id = match[1]
+            if (!id) {
+                log('id获取失败\n' + JSON.stringify(path_info), -1)
+            }
+            if (!user_data.channel_infos.ids.includes(id)) {
+                log('过滤' + id + '的直播', 0)
+            } else {
+                let index = user_data.channel_infos.ids.indexOf(id)
+                let name = user_data.channel_infos.names[index]
+                log('不过滤' + name + '的直播', 0)
+                return true
+            }
+        } catch (error) {
+            log(error, -1)
         }
     }
 
     if (upcoming_express.includes(path_info.express)) {
-        let match = JSON.stringify(data_process.string_to_value(path_info.deal_path)).match(/"browseId"\:"(.*?)"/)
-        let id
-        if (match && match.length > 1) id = match[1]
-        if (!id) {
-            log('id获取失败\n' + JSON.stringify(path_info), -1)
+        try {
+            let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"(.*?)"/)
+            let id
+            if (match && match.length > 1) id = match[1]
+            if (!id) {
+                log('id获取失败\n' + JSON.stringify(path_info), -1)
+            }
+            if (!user_data.channel_infos.ids.includes(id)) {
+                log('过滤' + id + '等待发布的直播', 0)
+            } else {
+                let index = user_data.channel_infos.ids.indexOf(id)
+                let name = user_data.channel_infos.names[index]
+                log('不过滤' + name + '等待发布的直播', 0)
+                return true
+            }
+        } catch (error) {
+            log(error, -1)
         }
-        if (!user_data.channel_infos.ids.includes(id)) {
-            log('过滤' + id + '等待发布的直播', 0)
-        } else {
-            let index = user_data.channel_infos.ids.indexOf(id)
-            let name = user_data.channel_infos.names[index]
-            log('不过滤' + name + '等待发布的直播', 0)
-            return true
-        }
-
     }
     return false
 }
