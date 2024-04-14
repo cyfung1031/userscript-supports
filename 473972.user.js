@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.39
+// @version     0.11.40
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -187,9 +187,12 @@
     }
   }
 
-  FIX_perfNow && typeof DocumentTimeline !== "undefined" && (() => {
-    let nowh = -1;
-    const dtl = new DocumentTimeline();
+  FIX_perfNow && (() => {
+    if (performance.now23 || performance.now16 || typeof Performance.prototype.now !== 'function') return;
+    const f = performance.now23 = Performance.prototype.now;
+    let k = 0;
+    let lastV = 0;
+    let s = 1;
     performance.now = performance.now16 = function () {
 
       /**
@@ -201,9 +204,15 @@
        * get the same result helped with resolving the issue.
        */
 
-      let t = nowh;
-      let c = dtl.currentTime;
-      return (nowh = (t + 1e-7 > c ? t + 1e-5 : c));
+      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s;
+      if (lastV + 0.0015 < (lastV = v)) k = 0;
+      else if (k > 0.001428) { // (1e-2 / 7) = 10000 * (1e-6 / 7);  (1e-6 / 7) * 9996 = 0.001428
+        k = 0;
+        s += 1;
+      } else {
+        k += 1e-6 / 7;
+      }
+      return v - 1e-2 / 7 + k; // v - 1e-2 / 7 + k < v
     }
     if (performance.now !== performance.now16) { // might not able to set in Firefox
       if (performance.now() === performance.now()) console.warn('performance.now() is not mono increasing.');
