@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.11.41
+// @version     0.12.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -34,7 +34,6 @@
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
-  const FIX_stampDomArray_stableList = true;
   const FIX_ytdExpander_childrenChanged = true;
   const FIX_paper_ripple_animate = true;
   const FIX_avoid_incorrect_video_meta = true; // omit the incorrect yt-animated-rolling-number
@@ -54,6 +53,7 @@
 
   const ENABLE_discreteTasking = true;
   // << if ENABLE_discreteTasking >>
+  const FIX_stampDomArray_stableList = true;
   const ENABLE_weakenStampReferences = true; // disabled in old browsers
   // << end >>
 
@@ -81,17 +81,17 @@
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
 
   /*
-  window.addEventListener('edm',()=>{
-    let p = [...this.onerror.errorTokens][0].token; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
-  });
+    window.addEventListener('edm',()=>{
+      let p = [...this.onerror.errorTokens][0].token; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+    });
 
-  window.addEventListener('edn',()=>{
-    let p = [...this.onerror.errorTokens][0].token+"X"; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
-  });
-  window.addEventListener('edr',()=>{
-    let p = '123'; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
-  });
-*/
+    window.addEventListener('edn',()=>{
+      let p = [...this.onerror.errorTokens][0].token+"X"; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+    });
+    window.addEventListener('edr',()=>{
+      let p = '123'; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
+    });
+  */
 
   // only for macOS with Chrome/Firefox 100+
   const advanceLogging = typeof AbortSignal !== 'undefined' && typeof (AbortSignal || 0).timeout === 'function' && typeof navigator !== 'undefined' && /\b(Macintosh|Mac\s*OS)\b/i.test((navigator || 0).userAgent || '');
@@ -212,7 +212,7 @@
       const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s; // v >= 0.1
       if (u + 0.0015 < (u = v)) k = 0; // note: hRes should be accurate to 5 µs in isolated contexts
       else if (k < 0.001428) k += 1e-6 / 7; // M = 10000 * m; m * 9996 = 0.001428
-      else { // more than 9997 consecutive calls; in reality, the max no. of consecutive calls would be below 900
+      else { // more than 9997 consecutive calls; in reality, the max no. of consecutive calls would be much below 7500
         k = 0;
         s += 1;
       }
@@ -351,7 +351,6 @@
   }
 
 
-
   const check_for_set_key_order = (() => {
 
     let mySet = new Set();
@@ -402,7 +401,6 @@
   })();
 
 
-
   // const qm47 = Symbol();
   const qm57 = Symbol();
   const qm53 = Symbol();
@@ -420,7 +418,6 @@
     const z = `${s}72`;
 
     if (s in elm) {
-      // console.log(1162, elm[s], elm)
 
       const p = elm[s];
 
@@ -462,10 +459,6 @@
   const setup$ = typeof WeakRef !== 'undefined' ? function (dh) {
 
     const $ = dh.$;
-    // const elements_ = dh.elements_;
-
-    // setupD(dh, '$');
-
 
     if (WEAK_REF_PROXY_DOLLAR && $ && typeof $ === 'object' && !dh.$ky37) {
 
@@ -473,21 +466,11 @@
 
       if (!myMap.has($)) {
 
-
-
-
-        for (const k of Object.keys($)) {
-
-          const v = $[k];
-          if ($[k] instanceof Node) {
-
-            $[k] = mWeakRef($[k]);
-
+        for (const [k, v] of Object.entries($)) {
+          if (v instanceof Node) {
+            $[k] = mWeakRef(v);
           }
-
         }
-
-
 
         dh.$ = mxMap.get($) || new Proxy($, {
           get(obj, prop) {
@@ -512,72 +495,7 @@
 
       }
 
-
-
-
     }
-
-
-
-
-    //     if (WEAK_REF_PROXY_DOLLAR && elements_ && typeof elements_ === 'object' && !dh.$ky38) {
-
-    //       dh.$ky38 = 1;
-
-    //       if (!myMap.has(elements_)) {
-
-
-
-
-    //         for (const k of Object.keys(elements_)) {
-
-    //           const v = elements_[k];
-    //           if (elements_[k] instanceof Node) {
-
-    //             elements_[k] = new WeakRef(elements_[k]);
-
-    //           }
-
-    //         }
-
-    //         /*
-
-
-
-    //         dh.elements_ = mxMap.get(elements_) || new Proxy(elements_, {
-    //           get(obj, prop) {
-    //             const val = obj[prop];
-    //             if (typeof (val || 0).deref === 'function') {
-    //               return val.deref();
-    //             }
-    //             return val;
-    //           },
-    //           set(obj, prop, val) {
-    //             if (val instanceof Node) {
-    //               obj[prop] = new WeakRef(val);
-    //             } else {
-    //               obj[prop] = val;
-    //             }
-    //             return true;
-    //           }
-    //         });
-
-    //         console.log(dh, dh.elements_, elements_)
-
-    //         mxMap.set(elements_, dh.elements_);
-    //         myMap.add(dh.elements_);
-
-    // */
-    //       }
-
-
-
-
-    //     }
-
-
-
-
 
   } : null;
 
@@ -597,30 +515,6 @@
     } else {
       return this.getParentRenderer27();
     }
-  }
-  const readyT = function () {
-    const hostElement = this.hostElement;
-    let b = false;
-    if (this.enableContentEditableChanged_) {
-      b = true;
-    } else if (this.is && this.is.length > 15 && this.is.length < 20) {
-
-    } else {
-      b = true;
-    }
-    if (b) {
-      if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-        return void 0;
-      }
-    }
-    return this.ready27.apply(this, arguments);
-  }
-  const _enablePropertiesT = function () {
-    const hostElement = this.hostElement;
-    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      return void 0;
-    }
-    return this._enableProperties27();
   }
 
   const attachedT = function () {
@@ -652,9 +546,6 @@
         }
       } catch (e) { }
     }
-    // if (dh.__dataEnabled === true) {
-    //   dh.__dataEnabled = false;
-    // }
   };
   const setupDataHost = setupD && setup$ ? function (dh, opt) {
 
@@ -669,20 +560,6 @@
         dh.getParentRenderer27 = dh.getParentRenderer;
         dh.getParentRenderer = getParentRendererT;
       }
-
-      // if (!opt) {
-
-      //   if (typeof dh.ready === 'function' && !dh.ready27) {
-      //     dh.ready27 = dh.ready;
-      //     dh.ready = readyT;
-      //   }
-
-      // }
-
-      // if (typeof dh._enableProperties === 'function' && !dh._enableProperties27) {
-      //   dh._enableProperties27 = dh._enableProperties;
-      //   dh._enableProperties = _enablePropertiesT;
-      // }
 
       if (typeof dh.attached === 'function' && !dh.attached27) {
         dh.attached27 = dh.attached;
@@ -703,8 +580,6 @@
 
       const elements_ = dh.elements_;
       if (elements_ && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupD(dh, 'elements_');
-
-
 
       setup$(dh);
     }
@@ -789,16 +664,6 @@
         return target[prop];
       }
     }
-    const handler3 = {
-      get(target, prop, receiver) {
-        if (prop === '__proxy312__') return 1;
-        let w = target[prop]
-        if (w && typeof w === 'object' && typeof w.deref === 'function') {
-          return w.deref();
-        }
-        return w;
-      }
-    }
     return (h) => {
 
       if (h.rendererStamperApplyChangeRecord_ || h.stampDomArraySplices_) {
@@ -815,21 +680,13 @@
             "deferRenderStamperBinding_", // 3
           ];
           for (const key of list) {
-            const pey = `${key}$wq0iw_`
-            if (typeof proto[key] !== 'function') continue;
-            // console.log( proto.isRenderer_, 'ms_'+key, proto[key].length, h.is)
-            if (proto[pey] || proto[key].length === 0) continue;
+            const pey = `${key}$wq0iw_`;
+            const vKey = proto[key];
+            if (typeof vKey !== 'function') continue;
+            if (proto[pey] || vKey.length === 0) continue;
 
-            // proto[pey] = proto[key];
-            // proto[key] = function () {
-            //   console.log(key, arguments.length, [...arguments]);
-
-            //   return proto[pey].apply(this, arguments);
-            // }
-
-
-            if (key === 'stampDomArraySplices_' && proto[key].length === 3) {
-              proto[pey] = proto[key];
+            if (key === 'stampDomArraySplices_' && vKey.length === 3) {
+              proto[pey] = vKey;
               proto[key] = function (a, b, c) {
 
                 if (typeof a === 'string' && typeof b === 'string' && typeof c === 'object' && c && c.indexSplices && c.indexSplices.length >= 1 && !c.indexSplices.rzgjr) {
@@ -852,71 +709,14 @@
                 return proto[pey].call(this, a, b, c);
               }
 
-            } else if (key === 'rendererStamperApplyChangeRecord_' && proto[key].length === 3) {
-
-
-              // proto[pey] = proto[key];
-              // proto[key] = function (a, b, c) {
-
-              //   if (typeof a === 'string' && typeof b === 'string' && typeof c === 'object' && c && c.value && c.base) {
-
-              //     if(c.value.length >=1){
-
-
-              //       c.value = c.value.map(e=>{
-
-              //         if(!e.__proxy312__){
-
-              //         for (const k of Object.keys(e)) {
-              //           const v = e[k];
-              //           if(typeof v ==='object' && v && typeof v.length ==='undefined' && !v.deref) e[k] = mWeakRef(v)
-
-              //         }
-              //         return new Proxy(e, handler3);
-
-              //       }
-
-              //       })
-
-
-              //       window.se3=c.value;
-
-              //     }
-
-              //     if(c.base.length >=1){
-
-              //       c.base = c.base.map(e=>{
-
-              //         if(!e.__proxy312__){
-
-
-              //           for (const k of Object.keys(e)) {
-              //             const v = e[k];
-              //             if(typeof v ==='object' && v && typeof v.length ==='undefined' && !v.deref) e[k] = mWeakRef(v)
-              //           }
-              //           return new Proxy(e, handler3);
-              //         }
-
-
-              //       })
-
-              //       console.log(c.base);
-
-
-              //       window.se4=c.base;
-
-              //     }
-
-
-              //   }
-              //   // console.log(key, arguments.length, [...arguments]);
-              //   return proto[pey].call(this, a, b, c);
-              // }
+            } else if (key === 'rendererStamperApplyChangeRecord_' && vKey.length === 3) {
+              
+              // Nil
 
             } else if (DEBUG_STAMP) {
 
-              console.log(proto.isRenderer_, 'ms_' + key, proto[key].length, h.is)
-              proto[pey] = proto[key];
+              console.log(proto.isRenderer_, 'ms_' + key, vKey.length, h.is)
+              proto[pey] = vKey;
               proto[key] = function () {
                 if (key === 'rendererStamperApplyChangeRecord_' && typeof arguments[3] === 'object') {
                   console.log(key, arguments.length, { value: arguments[3].value, base: arguments[3].base, })
@@ -960,9 +760,6 @@
 
     }
 
-
-
-
     if (typeof h.onYtUpdateDescriptionAction === 'function' && !(h.onYtUpdateDescriptionAction.km34)) {
       const f = h.onYtUpdateDescriptionAction;
       const g = ump3.get(f) || function (a) {
@@ -973,8 +770,6 @@
       h.onYtUpdateDescriptionAction = g;
 
     }
-
-
 
     if (typeof h.handleUpdateDescriptionAction === 'function' && !(h.handleUpdateDescriptionAction.km34)) {
       const f = h.handleUpdateDescriptionAction;
@@ -998,26 +793,6 @@
 
     }
 
-
-
-    /*
-
-
-    if (typeof h.onYtAction_ === 'function' && !(h.onYtAction_.km34)) {
-      const f = h.onYtAction_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onYtAction_ = g;
-
-    }
-
-    */
-
-
-
     if (typeof h.onTextChanged === 'function' && !(h.onTextChanged.km34)) {
       const f = h.onTextChanged;
       const g = ump3.get(f) || function () {
@@ -1028,11 +803,6 @@
       h.onTextChanged = g;
 
     }
-
-
-
-
-
 
     if (typeof h.onVideoDataChange === 'function' && !(h.onVideoDataChange.km34)) {
       const f = h.onVideoDataChange;
@@ -1045,10 +815,6 @@
 
     }
 
-
-
-
-
     if (typeof h.onVideoDataChange_ === 'function' && !(h.onVideoDataChange_.km34)) {
       const f = h.onVideoDataChange_;
       const g = ump3.get(f) || function () {
@@ -1059,9 +825,6 @@
       h.onVideoDataChange_ = g;
 
     }
-
-
-
 
     if (typeof h.addTooltips === 'function' && !(h.addTooltips.km34)) {
 
@@ -1075,9 +838,6 @@
 
     }
 
-
-
-
     if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
 
       const f = h.addTooltips_;
@@ -1090,8 +850,6 @@
 
     }
 
-
-
     if (typeof h.updateRenderedElements === 'function' && !(h.updateRenderedElements.km34)) {
 
       const f = h.updateRenderedElements;
@@ -1103,36 +861,6 @@
       h.updateRenderedElements = g;
 
     }
-
-
-
-
-    /*
-    // buggy for yt-player-updated
-    if (typeof h.startLoadingWatch === 'function' && !(h.startLoadingWatch.km34)) {
-
-      const f = h.startLoadingWatch;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.startLoadingWatch = g;
-
-    }
-    */
-
-
-
-
-
-
-
-
-
-
-
-
 
     if (typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
       const f = h.loadPage_;
@@ -1154,14 +882,6 @@
       h.updatePageData_ = g;
 
     }
-
-
-
-
-
-
-
-
 
     if (typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
 
@@ -1187,7 +907,6 @@
 
     }
 
-
     if (typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
 
       const f = h.buttonClassChanged_;
@@ -1199,7 +918,6 @@
       h.buttonClassChanged_ = g;
 
     }
-
 
     if (typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
 
@@ -1213,7 +931,6 @@
 
     }
 
-
     if (typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
 
       const f = h.dataChangedInBehavior_;
@@ -1225,10 +942,6 @@
       h.dataChangedInBehavior_ = g;
 
     }
-
-
-
-
 
     if (typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
 
@@ -1242,7 +955,6 @@
 
     }
 
-
     if (typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
 
       const f = h.forceChatPoll_;
@@ -1254,8 +966,6 @@
       h.forceChatPoll_ = g;
 
     }
-
-
 
     if (typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
 
@@ -1269,7 +979,6 @@
 
     }
 
-
     if (typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
 
       const f = h.onEndpointTap_;
@@ -1282,7 +991,6 @@
 
     }
 
-
     if (typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
 
       const f = h.handleClick_;
@@ -1294,12 +1002,6 @@
       h.handleClick_ = g;
 
     }
-
-
-
-    // return;
-
-
 
     if (typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
 
@@ -1325,7 +1027,6 @@
 
     }
 
-
     if (typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
 
       const f = h.readyStateChangeHandler_;
@@ -1337,9 +1038,6 @@
       h.readyStateChangeHandler_ = g;
 
     }
-
-
-
 
     if (typeof h.xmlHttpHandler_ === 'function' && !(h.xmlHttpHandler_.km34)) {
 
@@ -1353,7 +1051,6 @@
 
     }
 
-
     if (typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
 
       const f = h.executeCallbacks_; // overloaded
@@ -1365,8 +1062,6 @@
       h.executeCallbacks_ = g;
 
     }
-
-
 
     if (typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
 
@@ -1392,7 +1087,6 @@
 
     }
 
-
     if (typeof h.trigger_ === 'function' && !(h.trigger_.km34)) {
 
       const f = h.trigger_;
@@ -1404,7 +1098,6 @@
       h.trigger_ = g;
 
     }
-
 
     if (typeof h.requestData_ === 'function' && !(h.requestData_.km34)) {
 
@@ -1429,8 +1122,6 @@
       h.onLoadReloadContinuation_ = g;
 
     }
-
-
 
     if (typeof h.onLoadIncrementalContinuation_ === 'function' && !(h.onLoadIncrementalContinuation_.km34)) {
 
@@ -1478,21 +1169,6 @@
 
     }
 
-    /*
-    if(typeof h.deferRenderStamperBinding_ ==='function' && !(h.deferRenderStamperBinding_.km34)){
-
-            const f = h.deferRenderStamperBinding_;
-      const g = function(){
-        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.deferRenderStamperBinding_ = g;
-
-    }
-    */
-
-
-
     if (typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
 
       const f = h.ytRendererBehaviorDataObserver_;
@@ -1529,8 +1205,6 @@
 
     }
 
-
-
     if (typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
 
       const f = h.textChanged_;
@@ -1550,69 +1224,18 @@
     }
 
 
-
-
-    /*
-    if(typeof h.stampDomArray_ ==='function' && !(h.stampDomArray_.km34)){
-
-      if( h.stampDomArray_.length === 6){
-
-            const f = h.stampDomArray_;
-      const g = function(a,b,c,d,e,h){
-        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.stampDomArray_ = g;
-
-      }else{
-
-
-
-            const f = h.stampDomArray_;
-      const g = function(){
-        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.stampDomArray_ = g;
-      }
-
-
-    }
-    */
-
-    /*
-    if(typeof h.stampDomArraySplices_ ==='function' && !(h.stampDomArraySplices_.km34)){
-
-      if(h.stampDomArraySplices_.length === 3){
-
-
-
-            const f = h.stampDomArraySplices_;
-      const g = function(a,b,c){
-        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.stampDomArraySplices_ = g;
-
-
-      }else{
-
-
-
-            const f = h.stampDomArraySplices_;
-      const g = function(){
-        Promise.resolve().then(()=>f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.stampDomArraySplices_ = g;
-
-
-      }
-
-    }
-    */
-
-
+    /**
+     * 
+     * Neglect following
+     * 
+     * h.onYtAction_
+     * h.startLoadingWatch [ buggy for yt-player-updated ]
+     * h.deferRenderStamperBinding_
+     * 
+     * h.stampDomArray_
+     * h.stampDomArraySplices_
+     * 
+     */
 
 
     // RP.prototype.searchChanged_ = RP.prototype.searchChanged_;
@@ -1621,8 +1244,6 @@
     // RP.prototype.onSelectCategory_ = RP.prototype.onSelectCategory_;
     // RP.prototype.onShowEmojiVariantSelector = RP.prototype.onShowEmojiVariantSelector;
     // RP.prototype.updateCategoriesAndPlaceholder_ = RP.prototype.updateCategoriesAndPlaceholder_;
-
-
 
     if (typeof h.searchChanged_ === 'function' && !(h.searchChanged_.km34)) {
 
@@ -1696,10 +1317,6 @@
 
     }
 
-
-
-
-
     if (typeof h.watchPageActiveChanged_ === 'function' && !(h.watchPageActiveChanged_.km34)) {
 
       const f = h.watchPageActiveChanged_;
@@ -1711,7 +1328,6 @@
       h.watchPageActiveChanged_ = g;
 
     }
-
 
     if (typeof h.activate_ === 'function' && !(h.activate_.km34)) {
 
@@ -1739,249 +1355,18 @@
     FIX_stampDomArray_stableList && fixStampDomArrayStableList(h);
     const ENABLE_weakenStampReferencesQ = ENABLE_weakenStampReferences && typeof DocumentTimeline !== 'undefined' && typeof WeakRef !== 'undefined';
     ENABLE_weakenStampReferencesQ && weakenStampReferences(h);
+ 
 
-
-
-    /// -----------------------
-
-
-    // const isMainRenderer = (h) => {
-    //   if (h.is && h.$ && h.__dataEnabled && h.__dataReady && h.__shady && h.__templateInfo && h.root && h.hostElement) {
-    //     const q = (h.parentComponent ? 1 : 0) | (h.ytComponentBehavior ? 2 : 0);
-    //     if (q === 3) {
-    //       // chat renderer
-    //       if (h.is.endsWith('-renderer')) {
-    //         return true;
-    //       }
-    //     } else if (q === 0) {
-    //       // custom lyrics engagement panel
-    //       if (h.is.endsWith('-renderer')) {
-    //         return true;
-    //       }
-    //     } else if (q === 1) {
-    //       // input renderer
-    //       if (h.is.endsWith('-renderer')) {
-    //         return true;
-    //       }
-    //     }
-    //   }
-    //   return false;
-    // }
-
-    // const skipRenderer = (h) => {
-    //   return (h.is === 'yt-live-chat-renderer') ||
-    //     (h.is === 'yt-live-chat-item-list-renderer') ||
-    //     (h.is === 'yt-live-chat-text-input-field-renderer') ||
-    //     (h.is === 'yt-live-chat-message-buy-flow-renderer') ||
-    //     false;
-    // }
-
-
-    /*
-    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km31) && h.rendererStamperApplyChangeRecord_.length === 3) {
-
-      const f = h.rendererStamperApplyChangeRecord_;
-      h.rendererStamperApplyChangeRecord31_ = f;
-      const g = ump3.get(f) || function (a, b, c) {
-        if (isMainRenderer(this) || (this.updateChildVisibilityProperties && !this.markDirty)) {
-          let y = false;
-          if (!this.markDirty) {
-            // yt-live-chat-dialog-renderer
-            // ytd-engagement-panel-section-list-renderer
-            y = true;
-          } else if (!this.visibilityObserverForChild_ && !!this.getVisibilityObserverForChild) {
-            const lobs = this.localVisibilityObserver_;
-            if (this.isRenderer_ === true) {
-              if (lobs) {
-                if (lobs.observer && lobs.isConnected === true) {
-                  // if (lobs.observer && lobs.isConnected === true && lobs.pauseObservingUntilReconnect === false && lobs.handlers && lobs.handlers.size > 0) {
-                  // if ((this.__data || 0).isEmpty === false) {
-                  //   // by pass
-                  // } else if (this.is === 'yt-live-chat-renderer') {
-                  //   y = true;
-                  // }
-                  if (this.is === 'yt-live-chat-renderer') {
-                    y = true;
-                  }
-                } else {
-                  y = true;
-                }
-              } else if (lobs === null) {
-                y = true;
-              } else {
-                console.log('renderer-check-failure 01', this.is)
-              }
-            } else {
-              console.log('renderer-check-failure 02', this.is)
-            }
-          }
-          if (y) {
-            return f.apply(this, arguments);
-          }
-        }
-        let c2 = c;
-        if (c && typeof c === 'object') {
-          c2 = {};
-          for (const entry of Object.entries(c)) {
-            const [key, value] = entry;
-            let choice = 0;
-            if (value && typeof value === 'object') {
-              if (key === 'base' && value.length >= 1) choice = 1;
-              else if (key === 'value' && value.indexSplices && value.indexSplices.length >= 1) choice = 2;
-            }
-            if (choice === 1) c2[key] = value.slice(0);
-            else if (choice === 2) c2[key] = Object.assign({}, value, { indexSplices: value.indexSplices.map(splice=>{
-
-              if (!splice || typeof splice !== 'object') return splice;
-              if (splice.removed && splice.removed.length >= 1) splice.removed = splice.removed.slice(0);
-              if (splice.object && splice.object.length >= 1) splice.object = splice.object.slice(0);
-
-              return splice;
-
-            }) });
-            else c2[key] = value;
-          }
-        }
-        const acceptable = () => {
-          return this.isAttached && this.data && this.__dataEnabled
-        }
-        // sequence on the same proto
-        this[qm47] = (this[qm47] || Promise.resolve()).then(() => acceptable() && this.rendererStamperApplyChangeRecord31_(a, b, c2)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km31 = 1;
-      h.rendererStamperApplyChangeRecord_ = g;
-
-
-    }
-    */
-
-
-
-
-    /*
-    if (typeof h.rendererStamperObserver_ === 'function' && !(h.rendererStamperObserver_.km34)) {
-
-      const f = h.rendererStamperObserver_;
-      const g = ump3.get(f) || function (a, b, c) {
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.rendererStamperObserver_ = g;
-
-    }
-
-
-    if (typeof h.rendererStamperApplyChangeRecord_ === 'function' && !(h.rendererStamperApplyChangeRecord_.km34)) {
-
-      const f = h.rendererStamperApplyChangeRecord_;
-      const g = ump3.get(f) || function () {
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.rendererStamperApplyChangeRecord_ = g;
-
-    }
-
-
-
-    if (typeof h.flushRenderStamperComponentBindings_ === 'function' && !(h.flushRenderStamperComponentBindings_.km34)) {
-
-      const f = h.flushRenderStamperComponentBindings_;
-      const g = ump3.get(f) || function () {
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.flushRenderStamperComponentBindings_ = g;
-
-    }
-
-
-    if (typeof h.forwardRendererStamperChanges_ === 'function' && !(h.forwardRendererStamperChanges_.km34)) {
-
-      const f = h.forwardRendererStamperChanges_;
-      const g = ump3.get(f) || function () {
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.forwardRendererStamperChanges_ = g;
-
-    }
-    */
-
-
-
-
-
-    // console.log(123)
-
-    // return;
-
-
-    /*
-
-    // buggy for page swtiching
-
-    if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km31)) {
-
-
-
-
-      const f = h.dataChanged_;
-      h.dataChanged31_ = f;
-      const g = ump3.get(f) || function (...args) {
-
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-
-        // sequence on the same proto
-        this[qm47] = (this[qm47] || Promise.resolve()).then(() => this.dataChanged31_(...args)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km31 = 1;
-      h.dataChanged_ = g;
-
-
-    }
-    */
-
-
-    /*
-
-    if (typeof h.dataChanged_ === 'function' && !(h.dataChanged_.km34)) {
-
-      const f = h.dataChanged_;
-      const g = ump3.get(f) || function () {
-        if (isMainRenderer(this)) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.dataChanged_ = g;
-
-    }
-    */
-
-
+    /**
+     * 
+     * Neglect following
+     * 
+     * h.rendererStamperObserver_
+     * h.rendererStamperApplyChangeRecord_
+     * h.flushRenderStamperComponentBindings_
+     * h.forwardRendererStamperChanges_
+     * 
+     */
 
     if (typeof h.tryRenderChunk_ === 'function' && !(h.tryRenderChunk_.km34)) {
 
@@ -2020,7 +1405,6 @@
 
     }
 
-
     if (typeof h.onItemsUpdated_ === 'function' && !(h.onItemsUpdated_.km34)) {
 
       const f = h.onItemsUpdated_;
@@ -2032,22 +1416,6 @@
       h.onItemsUpdated_ = g;
 
     }
-
-    /*
-    // see https://github.com/cyfung1031/userscript-supports/issues/20
-    if (typeof h.updateChangeRecord_ === 'function' && !(h.updateChangeRecord_.km34)) {
-
-      const f = h.updateChangeRecord_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.updateChangeRecord_ = g;
-
-    }
-    */
-
 
     if (typeof h.requestRenderChunk_ === 'function' && !(h.requestRenderChunk_.km34)) {
 
@@ -2061,90 +1429,21 @@
 
     }
 
-
-
-
-
-    return;
-
-
-
-    /*
-    if (typeof h.cancelPendingTasks_ === 'function' && !(h.cancelPendingTasks_.km34)) {
-
-      const f = h.cancelPendingTasks_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.cancelPendingTasks_ = g;
-
-    }
-
-
-    if (typeof h.fillRange_ === 'function' && !(h.fillRange_.km34)) {
-
-      const f = h.fillRange_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.fillRange_ = g;
-
-    }
-    */
-
-
-
-
-    if (typeof h.addTextNodes_ === 'function' && !(h.addTextNodes_.km34)) {
-
-      const f = h.addTextNodes_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.addTextNodes_ = g;
-
-    }
-
-
-
-
-    if (typeof h.updateText_ === 'function' && !(h.updateText_.km34)) {
-
-      const f = h.updateText_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.updateText_ = g;
-
-    }
-
-
-
-
-
-    if (typeof h.stampTypeChanged_ === 'function' && !(h.stampTypeChanged_.km34)) {
-
-      const f = h.stampTypeChanged_;
-      const g = function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);;
-      }
-      g.km34 = 1;
-      h.stampTypeChanged_ = g;
-
-    }
-
-
-
-
-    // console.log(166)
-
-
+    /**
+     * 
+     * Neglect following
+     * 
+     * h.dataChanged_ [ buggy for page swtiching ]
+     * 
+     * h.updateChangeRecord_ [ see https://github.com/cyfung1031/userscript-supports/issues/20 ]
+     * 
+     * h.cancelPendingTasks_
+     * h.fillRange_
+     * h.addTextNodes_
+     * h.updateText_
+     * h.stampTypeChanged_
+     * 
+     */
 
 
   }
@@ -2217,41 +1516,26 @@
 
         for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
           setupD(h, s);
-
         }
 
         const dh = h.__dataHost;
-
-        setupDataHost(dh, skip)
+        setupDataHost(dh, skip);
       }
-
-
-
 
       if (hostElement) {
 
         for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
           setupD(hostElement, s);
-
         }
 
         const dh = hostElement.__dataHost;
-
-        setupDataHost(dh, skip)
-
-
-
+        setupDataHost(dh, skip);
 
         aDelay().then(() => {
           setupD(hostElement, '__CE_shadowRoot');
         });
 
-
       }
-
-
-
-
 
     }
 
@@ -2341,10 +1625,6 @@
       p59 = 1;
     }, false);
     document.body.appendChild(st);
-
-
-    // console.debug('90002', location.pathname)
-    // console.log(90000, location.pathname)
 
   });
 
@@ -2549,151 +1829,6 @@
 
 
   })();
-
-
-
-  // ================================================ 0.4.5 ================================================
-
-
-  // ; (() => {
-
-  //   if (FIX_error_many_stack && self instanceof Window) {
-  //     // infinite stack due to matchesStackTrace inside objectPrune of AdsBlock
-
-  //     const pdK = Object.getOwnPropertyDescriptor(window, 'onerror');
-  //     if (!pdK || (pdK.get && pdK.configurable)) {
-
-  //     } else {
-  //       return;
-  //     }
-
-  //     let unsupportErrorFix = false;
-
-  //     let firstHook = true;
-  //     let busy33 = false;
-
-  //     let state = 0;
-
-  //     if (pdK) {
-  //       delete window['onerror'];
-  //     }
-
-  //     const pd = {
-  //       get() {
-  //         const stack = (new Error()).stack;
-  //         // targetStack = stack;
-  //         let isGetExceptionToken = stack.indexOf('getExceptionToken') >= 0;
-  //         state = isGetExceptionToken ? 1 : 0;
-  //         delete Window.prototype['onerror'];
-  //         let r = pdK ? pdK.get.call(this) : this.onerror;
-  //         Object.defineProperty(Window.prototype, 'onerror', pd);
-  //         //        console.log('onerror get', r)
-  //         return r;
-  //       },
-  //       set(nv) {
-  //         const stack = (new Error()).stack;
-  //         let isGetExceptionToken = stack.indexOf('getExceptionToken') >= 0;
-  //         state = state === 1 && isGetExceptionToken ? 2 : 0;
-  //         /** @type {string?} */
-  //         let sToken = null;
-  //         if (unsupportErrorFix || busy33) {
-
-  //         } else if (typeof nv === 'function' && state === 2) {
-  //           if (firstHook) {
-  //             firstHook = false;
-  //             console.groupCollapsed('Infinite onerror Bug Found');
-  //             console.log(location.href);
-  //             console.log(stack);
-  //             console.log(nv);
-  //             console.groupEnd();
-  //           }
-  //           let _token = null;
-  //           busy33 = true;
-  //           String.prototype.includes76 = String.prototype.includes;
-  //           String.prototype.includes = function (token) {
-  //             _token = token;
-  //             return true;
-  //           }
-  //           nv('token');
-  //           String.prototype.includes = String.prototype.includes76;
-  //           sToken = _token;
-  //           busy33 = false;
-  //           if (typeof sToken !== 'string') {
-  //             unsupportErrorFix = true;
-  //           }
-  //         }
-  //         delete Window.prototype['onerror'];
-  //         if (typeof sToken === 'string' && sToken.length > 1) {
-  //           /** @type {string} */
-  //           const token = sToken;
-  //           /** @type {OnErrorEventHandler & {errorTokens: Set<string>?} } */
-  //           const currentOnerror = pdK ? pdK.get.call(this) : this.onerror;
-
-  //           const now = Date.now();
-  //           const tokenEntry = {
-  //             token,
-  //             expired: now + FIX_error_many_stack_keepAliveDuration
-  //           }
-  //           /** @typedef {typeof tokenEntry} TokenEntry */
-
-  //           /** @type {Set<TokenEntry>} */
-  //           const errorTokens = currentOnerror.errorTokens;
-
-  //           if (errorTokens) {
-  //             if (errorTokens.size > FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than) {
-  //               for (const entry of errorTokens) {
-  //                 if (entry.expired < now) {
-  //                   errorTokens.delete(entry);
-  //                 }
-  //               }
-  //             }
-  //             errorTokens.add(tokenEntry)
-  //           } else {
-  //             /** @type {Set<TokenEntry>} */
-  //             const errorTokens = new Set([tokenEntry]);
-  //             /** @type {OnErrorEventHandler & {errorTokens: Set<string>} } */
-  //             const newOnerror = ((oe) => {
-  //               const r = function (msg, ...args) {
-  //                 if (typeof msg === 'string' && errorTokens.size > 0) {
-  //                   for (const entry of errorTokens) {
-  //                     if (msg.includes(entry.token)) return true;
-  //                   }
-  //                 }
-  //                 if (typeof oe === 'function') {
-  //                   return oe.apply(this, arguments);
-  //                 }
-  //               };
-  //               r.errorTokens = errorTokens;
-  //               return r;
-  //             })(currentOnerror);
-
-  //             if (pdK && pdK.set) pdK.set.call(this, newOnerror);
-  //             else this.onerror = newOnerror;
-  //           }
-  //         } else {
-  //           if (pdK && pdK.set) pdK.set.call(this, nv);
-  //           else this.onerror = nv;
-  //         }
-  //         Object.defineProperty(Window.prototype, 'onerror', pd);
-
-  //         // console.log('onerror set', nv)
-  //         return true;
-  //       },
-  //       enumerable: true,
-  //       configurable: true
-  //     }
-
-  //     Object.defineProperty(Window.prototype, 'onerror', pd);
-
-
-  //   }
-
-
-  // })();
-
-
-
-  // ================================================ 0.4.5 ================================================
 
 
   // << if FIX_yt_player >>
@@ -3160,14 +2295,6 @@
 
 
     const wmComputedStyle = new WeakMap();
-    // const getComputedStyleCached = (elem) => {
-    //     let cs = wmComputedStyle.get(elem);
-    //     if (!cs) {
-    //         cs = getComputedStyle(elem);
-    //         wmComputedStyle.set(elem, cs);
-    //     }
-    //     return cs;
-    // }
 
     if (!window.__native__getComputedStyle__ && !window.__jst__getComputedStyle__ && typeof window.getComputedStyle === 'function' && window.getComputedStyle.length === 1) {
       window.__native__getComputedStyle__ = getComputedStyle;
@@ -3224,104 +2351,6 @@
       headLinkCollection = null;
     });
 
-
-    // class RAFHub {
-    //   constructor() {
-    //     /** @type {number} */
-    //     this.startAt = 8170;
-    //     /** @type {number} */
-    //     this.counter = 0;
-    //     /** @type {number} */
-    //     this.rid = 0;
-    //     /** @type {Map<number, FrameRequestCallback>} */
-    //     this.funcs = new Map();
-    //     const funcs = this.funcs;
-    //     /** @type {FrameRequestCallback} */
-    //     this.bCallback = this.mCallback.bind(this);
-    //     this.pClear = () => funcs.clear();
-    //   }
-    //   /** @param {DOMHighResTimeStamp} highResTime */
-    //   mCallback(highResTime) {
-    //     this.rid = 0;
-    //     Promise.resolve().then(this.pClear);
-    //     this.funcs.forEach(func => Promise.resolve(highResTime).then(func).catch(console.warn));
-    //   }
-    //   /** @param {FrameRequestCallback} f */
-    //   request(f) {
-    //     if (this.counter > 1e9) this.counter = 9;
-    //     let cid = this.startAt + (++this.counter);
-    //     this.funcs.set(cid, f);
-    //     if (this.rid === 0) {
-    //       // console.log(2455)
-    //       this.rid = requestAnimationFrame(this.bCallback);
-    //     }
-    //     return cid;
-    //   }
-    //   /** @param {number} cid */
-    //   cancel(cid) {
-    //     cid = +cid;
-    //     if (cid > 0) {
-    //       if (cid <= this.startAt) {
-    //         return cancelAnimationFrame(cid);
-    //       }
-    //       if (this.rid > 0) {
-    //         this.funcs.delete(cid);
-    //         if (this.funcs.size === 0) {
-    //           cancelAnimationFrame(this.rid);
-    //           this.rid = 0;
-    //         }
-    //       }
-    //     }
-    //   }
-    //   /** @param {number} cid */
-    //   /** @param {FrameRequestCallback} f */
-    //   replaceFunc(cid, f) {
-    //     if (typeof this.funcs.get(cid) === 'function') {
-    //       this.funcs.set(cid, f);
-    //       return cid;
-    //     } else {
-    //       let r = this.request(f);
-    //       this.cancel(cid);
-    //       return r;
-    //     }
-    //   }
-    // }
-
-
-    //     WEAK_REF_BINDING && (async () => {
-
-    //       ['tp-yt-paper-menu-button'].forEach(async tag => {
-
-    //         const dummy = await new Promise(resolve => {
-    //             whenCEDefined(tag).then(() => {
-    //               resolve(document.createElement(tag));
-    //             });
-
-    //         });
-
-    //         if (!dummy || dummy.is !== tag) return;
-
-    //         const cProto = insp(dummy).constructor.prototype;
-
-    //         if (typeof cProto.close === 'function' && !cProto.close58) {
-    //           cProto.close58 = cProto.close;
-    //           console.log(cProto.close58)
-    //           cProto.close = function () {
-    //             // const dropdown = (this.$ || 0).dropdown || 0;
-    //             // if (!dropdown) return;
-    //             try{
-    //               return this.close58.apply(this, arguments);
-    //             }catch(e){
-
-    //             }
-
-    //           }
-    //         }
-
-
-    //       });
-
-    //     })();
 
     NATIVE_CANVAS_ANIMATION && (() => {
 
@@ -3497,10 +2526,6 @@
       const fvKey = `${_fvKey}`;
       const debug = !!_debug;
 
-
-      // const rafHub = new RAFHub();
-
-
       const _yt_player = await _yt_player_observable.obtain();
 
 
@@ -3597,89 +2622,6 @@
     // onVideoDataChange
     // onVideoProgress
 
-    // (FIX_maybeUpdateFlexibleMenu || WEAK_REF_BINDING) && (async () => {
-
-
-    //   const dummy = await new Promise(resolve => {
-
-    //       whenCEDefined('ytd-menu-renderer').then(() => {
-
-    //         resolve(document.createElement('ytd-menu-renderer'));
-    //       });
-
-
-
-    //   });
-
-
-    //   if (!dummy || dummy.is !== 'ytd-menu-renderer') return;
-
-    //   const cProto = insp(dummy).constructor.prototype;
-
-    //   if (FIX_maybeUpdateFlexibleMenu && typeof cProto.created === 'function' && !cProto.created58) {
-    //     cProto.created58 = cProto.created;
-    //     cProto.created = function (...args) {
-    //       const r = this.created58(...args);
-    //       if (typeof this.maybeUpdateFlexibleMenu === 'function' && !this.maybeUpdateFlexibleMenu57) {
-    //         this.maybeUpdateFlexibleMenu57 = this.maybeUpdateFlexibleMenu;
-    //         this.maybeUpdateFlexibleMenu = function (...args) {
-    //           Promise.resolve().then(() => this.maybeUpdateFlexibleMenu57(...args));
-    //         }
-    //       }
-    //       return r;
-    //     }
-
-    //   }
-
-
-
-    //   // if (WEAK_REF_BINDING && typeof cProto.setupFlexibleMenu === 'function' && !cProto.setupFlexibleMenu58) {
-    //   //   cProto.setupFlexibleMenu58 = cProto.setupFlexibleMenu;
-    //   //   cProto.setupFlexibleMenu = function () {
-
-    //   //     const hostElement = this.hostElement;
-    //   //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-    //   //       return void 0;
-    //   //     } else {
-    //   //       return this.setupFlexibleMenu58.apply(this, arguments);
-    //   //     }
-
-    //   //   }
-
-
-
-    //   // }
-
-
-    //   // if (WEAK_REF_BINDING && typeof cProto.stampDomArray_ === 'function' && !cProto.stampDomArray58_) {
-    //   //   cProto.stampDomArray58_ = cProto.stampDomArray_;
-    //   //   cProto.stampDomArray_ = function (a, b, c, d, e, h) {
-
-    //   //     const hostElement = this.hostElement;
-    //   //     if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-    //   //       return void 0;
-    //   //     } else {
-    //   //       return this.stampDomArray58_.apply(this, arguments);
-    //   //     }
-
-    //   //   }
-
-
-
-    //   // }
-
-
-
-
-
-    //   //console.log(144,cProto.maybeUpdateFlexibleMenu)
-
-
-
-
-
-
-    // })();
 
     (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER) && (async () => {
 
@@ -3716,28 +2658,6 @@
 
           elem.__dataCounter = 0;
           elem.__serializing = false;
-
-          // if (elem.$) elem.$ = {};
-          // if (elem.root) elem.root = null;
-
-          // let hostElement = elem.hostElement, tlm;
-          // if (hostElement instanceof Node) {
-          //   // if (hostElement.isConnected === false) {
-          //   // while (tlm = hostElement.firstChild) tlm.remove();
-          //   // }
-          //   elem.hostElement = hostElement = null;
-          // }
-
-
-          // if (hostElement === null) {
-
-          //   if (elem.animatedIconElement instanceof Node) elem.animatedIconElement = null;
-          //   if (elem._target instanceof Node) elem._target = null;
-          //   if (elem.iconset instanceof Node) elem.iconset = null;
-          //   if (elem._svgIcon instanceof Node) elem._svgIcon = null;
-
-          // }
-
 
         }
         Polymer.Base.detached = function () {
@@ -4058,8 +2978,6 @@
 
     FIX_yt_player && (async () => {
       // rAf scheduling
-
-      // const rafHub = new RAFHub();
 
       const _yt_player = await _yt_player_observable.obtain();
 
