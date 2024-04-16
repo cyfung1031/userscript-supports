@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.13
+// @version             0.61.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -15,7 +15,7 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-// @require             https://update.greasyfork.org/scripts/475632/1359675/ytConfigHacks.js
+// @require             https://update.greasyfork.org/scripts/475632/1361351/ytConfigHacks.js
 //
 // @compatible          firefox Violentmonkey
 // @compatible          firefox Tampermonkey

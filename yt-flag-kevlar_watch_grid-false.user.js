@@ -3,13 +3,13 @@
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
 // @grant       none
-// @version     0.1.0
+// @version     0.1.1
 // @author      CY Fung
 // @description Disable kevlar_watch_grid
 // @run-at      document-start
 // @inject-into page
 // @unwrap
-// @require     https://update.greasyfork.org/scripts/475632/1359675/ytConfigHacks.js
+// @require     https://update.greasyfork.org/scripts/475632/1361351/ytConfigHacks.js
 // @license     MIT
 // ==/UserScript==
 
