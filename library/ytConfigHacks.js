@@ -2,7 +2,7 @@
 // @name         ytConfigHacks
 // @description  To provide a way to hack the yt.config_ such as EXPERIMENT_FLAGS
 // @author       CY Fung
-// @version      0.4.2
+// @version      0.4.3
 // @supportURL   https://github.com/cyfung1031/userscript-supports/
 // @license      MIT
 // @match        https://www.youtube.com/*
@@ -68,18 +68,11 @@ SOFTWARE.
     const detectConfigDone = () => {
       if (remainingCalls >= 1) {
         const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-        if (config && 'EXPERIMENT_FLAGS' in config) {
+        if (typeof config.INNERTUBE_API_KEY === 'string' && typeof config.EXPERIMENT_FLAGS === 'object') {
           if (--remainingCalls <= 0) restoreOriginalYtCSI && restoreOriginalYtCSI();
-          if (isValidConfig === null) {
-            const descriptor = Object.getOwnPropertyDescriptor(config, 'EXPERIMENT_FLAGS')
-            isValidConfig = (descriptor
-              && descriptor.enumerable && descriptor.configurable && descriptor.writable
-              && typeof descriptor.value === 'object');
-          }
-          if (isValidConfig) {
-            for (const hook of _ytConfigHacks) {
-              hook(config);
-            }
+          isValidConfig = true;
+          for (const hook of _ytConfigHacks) {
+            hook(config);
           }
         }
       }
