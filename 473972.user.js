@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.12.1
+// @version     0.12.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -79,6 +79,8 @@
 
   const DENY_requestStorageAccess = true; // remove document.requestStorageAccess
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
+
+  const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
   /*
     window.addEventListener('edm',()=>{
@@ -361,6 +363,209 @@
       prototypeInherit(c.prototype, XMLHttpRequest_.prototype);
       return c;
     })();
+  }
+
+  // Alternative HACK -> Tabview Youtube
+  if (DISABLE_COOLDOWN_SCROLLING && typeof EventTarget.prototype.addEventListener52178 !== 'function' && typeof EventTarget.prototype.addEventListener === 'function') {
+
+    // ---- << this.overscrollConfig HACK >>  -----
+
+    // 2024.04.19 - Playlist in Single Column Mode cannot be scrolled correctly.
+
+    /*
+
+      ;function gZb(a, b) {
+          b = void 0 === b ? !0 : b;
+          a.addEventListener("wheel", hZb);
+          a.overscrollConfig = {
+              cooldown: b
+          }
+      }
+      function iZb(a) {
+          a.overscrollConfig = void 0;
+          a.removeEventListener("wheel", hZb)
+      }
+      function hZb(a) {
+          var b = a.deltaY
+            , c = a.target
+            , d = null;
+          if (window.Polymer && window.Polymer.Element) {
+              if (c = a.path || a.composedPath && a.composedPath()) {
+                  c = g(c);
+                  for (var e = c.next(); !e.done && (e = e.value,
+                  !jZb(e, b)); e = c.next())
+                      if (e.overscrollConfig) {
+                          d = e;
+                          break
+                      }
+              }
+          } else
+              for (; c && !jZb(c, b); ) {
+                  if (c.overscrollConfig) {
+                      d = c;
+                      break
+                  }
+                  c = c.parentElement
+              }
+          d && (b = d.overscrollConfig,
+          b.cooldown ? (d = a.deltaY,
+          c = b.lastDeltaY || 0,
+          b.lastDeltaY = d,
+          e = b.lastStopped || 0,
+          c && e && 0 < c == 0 < d ? Math.abs(c) >= Math.abs(d) ? (d = e + 1200,
+          c = !1) : (d = e + 600,
+          c = !0) : (d = Date.now() + 600,
+          c = !0),
+          d > Date.now() && (a.preventDefault(),
+          c && (b.lastStopped = Date.now()))) : a.preventDefault())
+      }
+    */
+
+    const wheelHandler = function (a) {
+      if (window.Polymer && window.Polymer.Element) {
+        let c;
+        if (c = a.path || a.composedPath && a.composedPath()) {
+          for (const e of c) {
+            const cnt = insp(e);
+            if (e.overscrollConfig) e.overscrollConfig = void 0;
+            if (cnt.overscrollConfig) cnt.overscrollConfig = void 0;
+          }
+        }
+      } else {
+        let e = a.target;
+        for (; e instanceof Element; e = e.parentElement) {
+          const cnt = insp(e);
+          if (e.overscrollConfig) e.overscrollConfig = void 0;
+          if (cnt.overscrollConfig) cnt.overscrollConfig = void 0;
+        }
+      }
+    };
+
+    let checkWheelListenerObjs = null;
+
+    const getObjsFn = () => {
+      let euyVal = 0;
+      const eukElm = {};
+      Object.setPrototypeOf(eukElm, HTMLElement.prototype);
+      const euzObj = new Proxy(eukElm, {
+        get(target, prop) {
+          throw `ErrorF31.get(${prop})`
+        },
+        set(target, prop, value) {
+          throw `ErrorF33.set(${prop}, ${value})`
+        }
+      });
+      const euxElm = new Proxy(eukElm, {
+        get(target, prop) {
+          if (prop === 'scrollTop') {
+            euyVal = euyVal | 8;
+            return 0;
+          }
+          if (prop === 'overscrollConfig') {
+            euyVal = euyVal | 16;
+            return void 0;
+          }
+          if (prop === 'scrollHeight' || prop === 'clientHeight' || prop === 'offsetHeight') {
+            return 640;
+          }
+          if (prop === 'scrollLeft') {
+            euyVal = euyVal | 8;
+            return 0;
+          }
+          if (prop === 'scrollWidth' || prop === 'clientWidth' || prop === 'offsetWidth') {
+            return 800;
+          }
+          throw `ErrorF45.get(${prop})`
+        },
+        set(target, prop, value) {
+          throw `ErrorF47.set(${prop}, ${value})`
+        }
+      });
+      const eukEvt = {};
+      Object.setPrototypeOf(eukEvt, WheelEvent.prototype);
+      const euyEvt = new Proxy(eukEvt, {
+        get(target, prop) {
+          if (prop === 'deltaY' || prop === 'deltaX') {
+            euyVal = euyVal | 1;
+            return -999;
+          }
+          if (prop === 'target') {
+            euyVal = euyVal | 2;
+            return euxElm
+          }
+          if (prop === 'path' || prop === 'composedPath') {
+            euyVal = euyVal | 2;
+            return [euxElm]
+          }
+          throw `ErrorF51.get(${prop})`
+        },
+        set(target, prop, value) {
+          throw `ErrorF53.set(${prop}, ${value})`
+        }
+      });
+      const setVal = (v) => {
+        euyVal = v;
+      }
+      const getVal = () => {
+        return euyVal;
+      }
+      return { euzObj, euyEvt, setVal, getVal };
+    }
+
+    const checkWheelListener = (callback) => {
+
+      let callbackIdentifier = '';
+
+      let res = null;
+      try {
+        const { euzObj, euyEvt, getVal, setVal } = checkWheelListenerObjs || (checkWheelListenerObjs = getObjsFn());
+        setVal(0);
+        if (callback.call(euzObj, euyEvt) !== void 0) throw 'ErrorF99';
+        throw `RESULT${getVal()}`;
+      } catch (e) {
+        res = e;
+      }
+
+      res = `${res}` || `${null}`;
+      if (res.length > 20) res = `${res.substring(0, 20)}...`;
+
+      callbackIdentifier = res;
+      if (callbackIdentifier === 'RESULT27') 0;
+      else if (callbackIdentifier === 'RESULT0') {
+        // a.isSearch && !a.disableWheelScroll && B("desktop_enable_dmpanel_wheel_scroll")
+      } else if (callbackIdentifier.startsWith('RESULT')) {
+        console.log('wheel eventListener - RESULT', callbackIdentifier, callback)
+      }
+      return callbackIdentifier;
+
+    };
+
+    let callbackFound = false;
+    EventTarget.prototype.addEventListener52178 = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (type, callback, option = void 0) {
+      // M-youtube-js-engine-tamer.52178
+      if (type === 'wheel' && !option && typeof callback === 'function' && callback.length === 1) {
+        // (( match with signature `a.addEventListener("wheel", hZb);` )) [subject to further review]
+        const callbackIdentifier = callback.yaujmoms || (callbackFound ? 'IGNORE' : (callback.yaujmoms = checkWheelListener(callback)));
+        // RESULTXX / ErrorFXX / Other...
+        if (callbackIdentifier === 'RESULT27') {
+          this.overscrollConfigDisable = true;
+          if (!callbackFound) {
+            callbackFound = true; // suppose only one function is assigned to overscrollConfig cooldown [no function binding]
+            checkWheelListener = null;
+            checkWheelListenerObjs = null;
+          }
+          return void 0;
+        } else if (!callbackFound && !this.overscrollConfigDisable) {
+          this.overscrollConfigDisable = true;
+          this.addEventListener52178('wheel', wheelHandler, { passive: false });
+        }
+      }
+      return this.addEventListener52178(type, callback, option);
+    };
+
+    // ---- << this.overscrollConfig HACK >>  -----
+
   }
 
 
