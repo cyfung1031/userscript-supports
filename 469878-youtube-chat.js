@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.14
+// @version             0.61.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6823,7 +6823,7 @@
             }
 
 
-            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
+            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
 
 
 
@@ -6850,29 +6850,51 @@
 
                 */
 
+
+                /* 2024.04.20 */
+                /*
+                  for (var b = Tx(N(this.hostElement).querySelector("#image")); b.firstChild; )
+                      b.removeChild(b.firstChild);
+                  if (a)
+                      if (a.icon) {
+                          var c = document.createElement("yt-icon");
+                          "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
+                          c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                          b.appendChild(c)
+                      } else if (a.customThumbnail) {
+                          c = document.createElement("img");
+                          var d;
+                          (d = (d = WD(a.customThumbnail.thumbnails, 16)) ? Sb(ec(d)) : null) ? (c.src = d,
+                          b.appendChild(c),
+                          c.setAttribute("alt", this.hostElement.ariaLabel || "")) : nr(new mn("Could not compute URL for thumbnail",a.customThumbnail))
+                      }
+                */
+
                 const image = ((this || 0).$ || 0).image
                 if (image && a && image.firstElementChild) {
-                  let exisiting = image.firstElementChild;
+                  const exisiting = image.firstElementChild;
                   if (exisiting === image.lastElementChild) {
 
 
                     if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
 
-                      let c = exisiting;
+                      const c = exisiting;
+                      const t = insp(c);
+                      const w = ('icon' in t || 'defaultToFilled' in t) ? t : c;
                       if ("MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge) {
-                        if (c.icon !== "yt-sys-icons:shield-filled") c.icon = "yt-sys-icons:shield-filled";
-                        if (c.defaultToFilled !== true) c.defaultToFilled = true;
+                        if (w.icon !== "yt-sys-icons:shield-filled") w.icon = "yt-sys-icons:shield-filled";
+                        if (w.defaultToFilled !== true) w.defaultToFilled = true;
                       } else {
-                        let p = "live-chat-badges:" + a.icon.iconType.toLowerCase();;
-                        if (c.icon !== p) c.icon = p;
-                        if (c.defaultToFilled !== false) c.defaultToFilled = false;
+                        const p = "live-chat-badges:" + a.icon.iconType.toLowerCase();;
+                        if (w.icon !== p) w.icon = p;
+                        if (w.defaultToFilled !== false) w.defaultToFilled = false;
                       }
                       return;
 
 
                     } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
 
-                      let c = exisiting;
+                      const c = exisiting;
                       if (a.customThumbnail.thumbnails.map(e => e.url).includes(c.src)) {
 
                         c.setAttribute("alt", this.hostElement.ariaLabel || "");
@@ -6897,7 +6919,7 @@
               console.log("cProto.dataChanged - OK");
 
             } else {
-              assertor(() => fnIntegrity(cProto.dataChanged, '1.160.97'));
+              assertor(() => fnIntegrity(cProto.dataChanged, '1.162.100'));
               console.log("cProto.dataChanged - NG");
 
             }
@@ -7089,8 +7111,8 @@
               muzTimestamp = 0;
               nszDropdown = null;
 
-              const kurMPC = kRef(currentMenuPivotWR) || 0;
-              const hostElement = kurMPC.hostElement || kurMPC;
+              const kurMPCe = kRef(currentMenuPivotWR) || 0;
+              const hostElement = kurMPCe.hostElement || kurMPCe; // should be always hostElement === kurMPCe ?
               if (!hostElement.hasAttribute('menu-visible')) return;
 
               const chatBanner = HTMLElement.prototype.closest.call(hostElement, 'yt-live-chat-banner-renderer') || 0;
@@ -7160,13 +7182,13 @@
 
 
               if (evt) {
-                const kurMPC = kRef(currentMenuPivotWR) || 0;
-                const cnt = insp(kurMPC);
-                const hostElement = cnt.hostElement || cnt;
-                if (!cnt || cnt.isAttached !== true || hostElement.isConnected !== true) return;
+                const kurMPCe = kRef(currentMenuPivotWR) || 0;
+                const kurMPCc = insp(kurMPCe);
+                const hostElement = kurMPCc.hostElement || kurMPCc;
+                if (!kurMPCc || kurMPCc.isAttached !== true || hostElement.isConnected !== true) return;
                 switch (evt.type) {
                   // case 'mousedown':
-                  // return this.mdHandler282.call(kurMPC, evt);
+                  // return this.mdHandler282.call(kurMPCe, evt);
                   case 'mouseup':
                     return this.muHandler282(evt);
                   case 'mouseleave':
@@ -7196,8 +7218,8 @@
             /*
             const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
             if(parentButton){
-              const kurMPC = HTMLElement.prototype.closest.call(parentButton, '[whole-message-clickable]') || 0;
-              if(kurMPC){
+              const kurMPCe = HTMLElement.prototype.closest.call(parentButton, '[whole-message-clickable]') || 0;
+              if(kurMPCe){
                 evt.preventDefault();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
@@ -7209,13 +7231,15 @@
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
             if (!kurMP) return;
-            const kurMPC = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0;
+            const kurMPCe = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0; // element
 
-            if (!kurMPC || !kurMPC.hasAttribute('whole-message-clickable')) return;
+            if (!kurMPCe || !kurMPCe.hasAttribute('whole-message-clickable')) return;
 
-            if (!kurMPC.isClickableChatRow111 || !kurMPC.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPC, evt.target)) return;
+            const kurMPCc = insp(kurMPCe); // controller
 
-            const chatBanner = HTMLElement.prototype.closest.call(kurMPC, 'yt-live-chat-banner-renderer') || 0;
+            if (!kurMPCc.isClickableChatRow111 || !kurMPCc.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPCe, evt.target)) return;
+
+            const chatBanner = HTMLElement.prototype.closest.call(kurMPCe, 'yt-live-chat-banner-renderer') || 0;
             if (chatBanner) return;
 
 
@@ -7234,7 +7258,7 @@
               evt.preventDefault();
               evt.stopImmediatePropagation();
               evt.stopPropagation();
-              currentMenuPivotWR = mWeakRef(kurMPC);
+              currentMenuPivotWR = mWeakRef(kurMPCe);
               return;
             }
             */
@@ -7243,7 +7267,7 @@
               muzTimestamp = Date.now();
               evt.stopImmediatePropagation();
               evt.stopPropagation();
-              currentMenuPivotWR = mWeakRef(kurMPC);
+              currentMenuPivotWR = mWeakRef(kurMPCe);
 
               const listenOpts = { capture: true, passive: false, once: true };
 
