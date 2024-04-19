@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.12.2
+// @version     0.12.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -421,7 +421,7 @@
       }
     */
 
-    const wheelHandler = function (a) {
+    let wheelHandler = function (a) {
       if (window.Polymer && window.Polymer.Element) {
         let c;
         if (c = a.path || a.composedPath && a.composedPath()) {
@@ -443,7 +443,7 @@
 
     let checkWheelListenerObjs = null;
 
-    const getObjsFn = () => {
+    let getObjsFn = () => {
       let euyVal = 0;
       const eukElm = {};
       Object.setPrototypeOf(eukElm, HTMLElement.prototype);
@@ -512,7 +512,7 @@
       return { euzObj, euyEvt, setVal, getVal };
     }
 
-    const checkWheelListener = (callback) => {
+    let checkWheelListener = (callback) => {
 
       let callbackIdentifier = '';
 
@@ -552,8 +552,9 @@
           this.overscrollConfigDisable = true;
           if (!callbackFound) {
             callbackFound = true; // suppose only one function is assigned to overscrollConfig cooldown [no function binding]
-            checkWheelListener = null;
+            getObjsFn = checkWheelListener = null;
             checkWheelListenerObjs = null;
+            wheelHandler = null;
           }
           return void 0;
         } else if (!callbackFound && !this.overscrollConfigDisable) {
