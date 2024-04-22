@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.12.3
+// @version     0.13.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -19,7 +19,7 @@
 
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance = 2 | 4;
-  const FIX_yt_player = true;
+  const FIX_yt_player = true; // DONT CHANGE
   const FIX_Animation_n_timeline = true;
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
@@ -82,6 +82,23 @@
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
+  // ----------------------------- Shortkey Keyboard Control ----------------------------- 
+  // dependency: FIX_yt_player
+
+  const FIX_SHORTCUTKEYS = 2; // 0 - no fix; 1 - basic fix; 2 - advanced fix
+  // [0] no fix - not recommended
+  // [1] basic fix - just fix the global focus detection variable
+  // [2] advanced fix - call the shortcut actions directly, auto foucs change, direct control of spacebar behavior, etc
+  // (note) 0 or 1 if you find conflict with other userscripts/plugin
+
+  const CHANGE_SPEEDMASTER_SPACEBAR_CONTROL = 0; // 0 - disable; 1 - force true; 2 - force false
+  const USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER = true; // only for SPEEDMASTER = false & FIX_SHORTCUTKEYS = 2
+
+
+  // const CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE = false; // NO USE; TO BE REVIEWED
+
+  // ----------------------------- Shortkey Keyboard Control ----------------------------- 
+
   /*
     window.addEventListener('edm',()=>{
       let p = [...this.onerror.errorTokens][0].token; (()=>{ console.log(p); throw new Error(p);console.log(334,p) })()
@@ -130,8 +147,8 @@
     };
   })();
 
-  /** 
-    @param {number} x 
+  /**
+    @param {number} x
     @param {number} d */
   const toFixed2 = (x, d) => {
     let t = x.toFixed(d);
@@ -216,15 +233,15 @@
       else if (k < 0.001428) k += 1e-6 / 7; // M = 10000 * m; m * 9996 = 0.001428
       else { // more than 9998 consecutive calls
         /**
-         * 
+         *
          * max no. of consecutive calls
-         * 
+         *
          * Sample Size: 4800
          * Sample Avg = 1565.375
          * Sample Median = 1469.5
          * Sample Max = 5660 << 7500 << 9999
-         * 
-         * 
+         *
+         *
          *  */
         k = 0;
         s += 1 / 7;
@@ -324,7 +341,7 @@
               skip = true;
             } else if (turl.includes('.youtube.com/ptracking')) {
               skip = true;
-            } else if (turl.includes('.youtube.com/youtubei/v1/log_event?')){
+            } else if (turl.includes('.youtube.com/youtubei/v1/log_event?')) {
               skip = true;
             } else if (turl.includes('.youtube.com/api/stats/')) { // /api/stats/
               if (turl.includes('.youtube.com/api/stats/qoe?')) {
@@ -568,6 +585,809 @@
     // ---- << this.overscrollConfig HACK >>  -----
 
   }
+
+  const { pageMediaWatcher, shortcutKeysFixer, keyboardController } = (() => {
+
+    let p_a_objWR = null;
+    let isSpaceKeyImmediate = false; // for ADVANCED_FIX_SHORTCUTKEYS
+    let ytPageReady = 0;
+
+    let isSpeedMastSpacebarControlEnabled = false; // youtube experimental feature // can be forced by CHANGE_SPEEDMASTER_SPACEBAR_CONTROL
+    let mediaPlayerElementWR = null;
+    let focusedElementAtSelection = null;
+
+    // let want_control_video = false;
+
+    let spaceBarControl_keyG = '';
+
+    let lastUserAction = 0;
+
+    const wmKeyControlPhase = new WeakMap();
+
+    let currentSelectionText = null;
+
+    const getCurrentSelectionText = () => {
+      if (currentSelectionText !== null) return currentSelectionText
+      return (currentSelectionText = getSelection() + "")
+    }
+
+    const pageMediaWatcher = () => {
+
+      // CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE && document.addEventListener('wheel', () => {
+      //   want_control_video = false;
+      // }, { capture: true, passive: true });
+
+      document.addEventListener('yt-navigate', () => {
+        ytPageReady = 0;
+      });
+      document.addEventListener('yt-navigate-start', () => {
+        ytPageReady = 0;
+      });
+      document.addEventListener('yt-navigate-cache', () => {
+        ytPageReady = 0;
+      });
+
+      document.addEventListener('yt-navigate-finish', () => {
+        ytPageReady = 1;
+      });
+
+      document.addEventListener('durationchange', () => {
+        for (const elm of document.querySelectorAll('#movie_player video[src], #movie_player audio[src]')) {
+          if (elm.duration > 0.01) {
+            if (elm.closest('[hidden]')) continue;
+            mediaPlayerElementWR = mWeakRef(elm);
+            return;
+          }
+        }
+      }, { capture: true, passive: true });
+
+      document.addEventListener('selectionchange', (evt) => {
+        if (!evt || !evt.isTrusted || !(evt instanceof Event)) return;
+        currentSelectionText = null;
+        if (!(evt.target instanceof Node)) return;
+        focusedElementAtSelection = evt.target;
+      }, { capture: true, passive: true })
+
+      document.addEventListener('pointerdown', (evt) => {
+        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
+      }, { capture: true, passive: true });
+
+
+      document.addEventListener('pointerup', (evt) => {
+        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
+      }, { capture: true, passive: true });
+
+
+      document.addEventListener('keydown', (evt) => {
+        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
+      }, { capture: true, passive: true });
+
+      document.addEventListener('keyup', (evt) => {
+        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
+      }, { capture: true, passive: true });
+
+    };
+
+
+    const checkKeyB = (p_a_obj) => {
+
+      const boolList = new Set();
+      const p_a_obj_api = p_a_obj.api;
+
+      const nilFunc0 = function () {
+        return void 0
+      };
+      const mt = new Proxy({}, {
+        get(target, prop) {
+          if (prop === 'get') return nilFunc0;
+          return mt;
+        }
+      });
+      const nilFunc = function () {
+        return mt
+      };
+      const mw = new Proxy({}, {
+        get(target, prop) {
+          if (prop in p_a_obj_api) {
+            if (typeof p_a_obj_api.constructor.prototype[prop] === 'function') return nilFunc;
+            let q = Object.getOwnPropertyDescriptor(p_a_obj_api, prop);
+            if (q && q.value) {
+              if (!q.writable) return q.value;
+              if (typeof q.value === 'string') return '';
+              if (typeof q.value === 'number') return 0;
+              if (typeof q.value === 'boolean') return false;
+              if (q.value && typeof q.value === 'object') return {};
+            }
+          }
+          return undefined;
+        },
+        set(target, prop) {
+          throw 'mwSet';
+        }
+      });
+
+      const mq = new Proxy({}, {
+        get(target, prop) {
+          if (prop === 'api') return mw;
+          if (prop in p_a_obj) {
+            if (typeof p_a_obj.constructor.prototype[prop] === 'function') return nilFunc;
+            let q = Object.getOwnPropertyDescriptor(p_a_obj, prop);
+            if (q && q.value) {
+              if (!q.writable) return q.value;
+              if (typeof q.value === 'string') return '';
+              if (typeof q.value === 'number') return 0;
+              if (typeof q.value === 'boolean') return false;
+              if (q.value && typeof q.value === 'object') return {};
+            }
+          }
+          return undefined;
+        },
+        set(target, prop, val) {
+          if (typeof val === 'boolean') boolList.add(prop)
+          throw `mqSet(${prop},${val})`;
+        }
+      });
+
+      let res = ''
+      try {
+        res = `RESULT::${p_a_obj.handleGlobalKeyUp.call(mq, 9, false, false, false, false, "Tab", "Tab")}`;
+      } catch (e) {
+        res = `ERROR::${e}`;
+      }
+
+      if (boolList.size === 1) {
+        const value = boolList.values().next().value;
+        if (res === `ERROR::mqSet(${value},${true})`) {
+          p_a_obj.__uZWaD__ = value;
+        }
+      }
+
+      console.log('[yt-js-engine-tamer] global shortcut control', { '__uZWaD__': p_a_obj.__uZWaD__ });
+
+    }
+
+
+    let pm_p_a = null;
+
+    const p_a_init = function () {
+      const r = this.init91();
+      const keyBw = this.__cPzfo__ || '__NIL__';
+      const p_a_obj = this[keyBw];
+      if (!p_a_obj) return;
+      try {
+        checkKeyB(p_a_obj);
+      } catch (e) { }
+      p_a_objWR = mWeakRef(p_a_obj);
+      if (FIX_SHORTCUTKEYS > 0) {
+        if (p_a_obj && !p_a_obj.hVhtg) {
+          p_a_obj.hVhtg = 1;
+          p_a_obj.handleGlobalKeyUp91 = p_a_obj.handleGlobalKeyUp;
+          p_a_obj.handleGlobalKeyUp = p_a_xt.handleGlobalKeyUp;
+          p_a_obj.handleGlobalKeyDown91 = p_a_obj.handleGlobalKeyDown;
+          p_a_obj.handleGlobalKeyDown = p_a_xt.handleGlobalKeyDown;
+          p_a_obj.__handleGlobalKeyBefore__ = p_a_xt.__handleGlobalKeyBefore__;
+          p_a_obj.__handleGlobalKeyAfter__ = p_a_xt.__handleGlobalKeyAfter__;
+        }
+        // if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE && p_a_obj && p_a_obj.api && !p_a_obj.api.hVhtg) {
+        //   const api = p_a_obj.api
+        //   api.hVhtg = 1;
+        //   api.playVideo91 = api.playVideo;
+        //   api.playVideo = p_a_jt.playVideo;
+        //   api.pauseVideo91 = api.pauseVideo;
+        //   api.pauseVideo = p_a_jt.pauseVideo;
+        // }
+      }
+      if (pm_p_a) {
+        pm_p_a.resolve();
+        pm_p_a = null;
+      }
+      return r;
+    };
+
+    const p_a_xt = {
+
+      __handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) {
+
+        if (FIX_SHORTCUTKEYS === 2) {
+
+          if (activeElement) {
+
+            const controlPhaseCache = wmKeyControlPhase.get(activeElement);
+
+            if (controlPhaseCache === 6 && getCurrentSelectionText() !== "") void 0;
+            else if (controlPhaseCache === 1 || controlPhaseCache === 2 || controlPhaseCache === 5) return false;
+            else if ((controlPhaseCache !== 6 || focusedElementAtSelection === document.activeElement) && getCurrentSelectionText() !== "") return false;
+
+          }
+
+          const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
+          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && isSpeedMastSpacebarControlEnabled;
+          // console.log(582, isDelayedSpaceBar)
+          if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
+
+          if (activeElement && (h === 'Space' || h === 'Enter')) {
+            const controlPhase = wmKeyControlPhase.get(activeElement);
+            if (controlPhase === 4 || controlPhase === 5) return false;
+          }
+          if (focusedElementAtSelection === activeElement && getCurrentSelectionText() !== "") return false;
+          // if (!isSpeedMastSpacebarControlEnabled && a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space') {
+          //   if (!isSpaceKeyImmediate) return false;
+          // }
+        }
+
+      },
+
+      __handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret) {
+
+
+        if (FIX_SHORTCUTKEYS === 2 && ret && a >= 32 && ytPageReady === 1 && Date.now() - lastUserAction < 40 && activeElement === document.activeElement) {
+
+          const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
+          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && isSpeedMastSpacebarControlEnabled;
+          // console.log(583, isDelayedSpaceBar)
+          if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
+
+          const mediaPlayerElement = kRef(mediaPlayerElementWR);
+
+          let mediaWorking = false;
+          if (mediaPlayerElement && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2 && mediaPlayerElement.duration > 0.01) {
+            mediaWorking = true;
+          } else if (mediaPlayerElement && !mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
+            mediaWorking = true;
+          }
+          // console.log(182, mediaWorking, mediaPlayerElement.readyState , mediaPlayerElement.networkState)
+          mediaWorking && Promise.resolve().then(() => {
+            if (activeElement === document.activeElement) {
+              return activeElement.blur()
+            } else {
+              return false
+            }
+          }).then((r) => {
+            r !== false && mediaPlayerElement.focus();
+          });
+        }
+      },
+
+
+      handleGlobalKeyUp(a, b, c, d, e, f, h) {
+
+        const activeElement = document.activeElement;
+
+        const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
+        if (allow === false) return false;
+
+        const ret = this.handleGlobalKeyUp91(a, b, c, d, e, f, h);
+        // console.log('handleGlobalKeyUp',ret, a, b, c, d, e, f, h);
+
+        typeof this.__handleGlobalKeyAfter__ === 'function' && this.__handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret);
+
+        return ret;
+      },
+      handleGlobalKeyDown(a, b, c, d, e, f, h, l) {
+
+        const activeElement = document.activeElement;
+        if (!isSpeedMastSpacebarControlEnabled && a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space') {
+          return false;
+        }
+        const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
+        if (allow === false) return false;
+
+        const ret = this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
+        // console.log('handleGlobalKeyDown',ret, a, b, c, d, e, f, h,l)
+
+        typeof this.__handleGlobalKeyAfter__ === 'function' && this.__handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret);
+
+        return ret;
+      }
+
+    };
+
+    // const p_a_jt = { // API
+
+    //   playVideo(a) { // without spinner effect
+
+    //     if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE) {
+
+    //       const mediaPlayerElement = kRef(mediaPlayerElementWR);
+    //       if (mediaPlayerElement && !mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
+    //         want_control_video = true;
+    //         // Promise.resolve().then(()=> mediaPlayerElement.focus() );
+    //       }
+
+    //     }
+    //     return this.playVideo91(a);
+
+    //   },
+
+    //   pauseVideo(a) { // without spinner effect
+
+    //     if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE) {
+
+    //       const mediaPlayerElement = kRef(mediaPlayerElementWR);
+    //       if (mediaPlayerElement && mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
+    //         want_control_video = true;
+    //         // Promise.resolve().then(()=> mediaPlayerElement.focus() );
+    //       }
+
+    //     }
+    //     return this.pauseVideo91(a);
+
+    //   }
+    // };
+
+
+    const keyboardController = async (_yt_player) => {
+
+      const keyQT = getQT(_yt_player);
+      const keySV = getSV(_yt_player);
+      const keyDX = getDX(_yt_player);
+      console.log(`[QT,SV,DX]`, [keyQT, keySV, keyDX]);
+
+      if (!keyDX) return;
+      if (keyDX === keyQT || keyDX === keySV) return;
+
+      if (typeof keyDX !== 'string') return;
+
+      let lastAccessKey = '';
+      let lastAccessKeyConfirmed = '';
+      const mb = new Proxy({}, {
+        get(target, prop) {
+          if (prop === 'handleGlobalKeyUp') lastAccessKeyConfirmed = lastAccessKey;
+          throw 'mbGet'
+        },
+        set(target, prop, val) {
+          throw 'mbSet'
+        }
+      });
+      const ma = new Proxy({}, {
+        get(target, prop) {
+          lastAccessKey = prop;
+          return mb
+        },
+        set(target, prop, val) {
+          throw 'maSet'
+        }
+      });
+
+      let keyBw = '';
+      try {
+        _yt_player[keyDX].prototype.handleGlobalKeyUp.call(ma);
+      } catch (e) {
+        if (e === 'mbGet' && typeof lastAccessKeyConfirmed === 'string' && lastAccessKeyConfirmed.length > 0) {
+          keyBw = lastAccessKeyConfirmed;
+        }
+      }
+
+      if (!keyBw) return;
+
+      if (typeof _yt_player[keyDX].prototype.init !== 'function' || _yt_player[keyDX].prototype.init.length !== 0) return;
+
+      pm_p_a = new PromiseExternal();
+
+      _yt_player[keyDX].prototype.__cPzfo__ = keyBw;
+
+      _yt_player[keyDX].prototype.init91 = _yt_player[keyDX].prototype.init;
+
+      _yt_player[keyDX].prototype.init = p_a_init;
+
+      await pm_p_a.then();
+      const p_a_obj = kRef(p_a_objWR);
+
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control) {
+        isSpeedMastSpacebarControlEnabled = true;
+      }
+      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control) {
+        isSpeedMastSpacebarControlEnabled = true;
+      }
+
+      const isSpeedMastSpacebarControlEnabledA = isSpeedMastSpacebarControlEnabled;
+
+      if (CHANGE_SPEEDMASTER_SPACEBAR_CONTROL > 0) {
+
+        isSpeedMastSpacebarControlEnabled = CHANGE_SPEEDMASTER_SPACEBAR_CONTROL == 1;
+
+        if (!isSpeedMastSpacebarControlEnabled) {
+
+          if (config && config.EXPERIMENT_FLAGS) {
+            config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = false;
+          }
+          if (config && config.EXPERIMENTS_FORCED_FLAGS) {
+            config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control = false;
+          }
+
+        } else {
+
+          if (config && config.EXPERIMENT_FLAGS) {
+            config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = true;
+          }
+          if (config && config.EXPERIMENTS_FORCED_FLAGS) {
+            config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control = true;
+          }
+
+        }
+
+      }
+
+      const isSpeedMastSpacebarControlEnabledB = isSpeedMastSpacebarControlEnabled;
+
+      console.log('[yt-js-engine-tamer] speedmaster by space (yt setting)', isSpeedMastSpacebarControlEnabledA, isSpeedMastSpacebarControlEnabledB);
+
+      // console.log(p_a_obj.handleGlobalKeyUp)
+      console.log('[yt-js-engine-tamer] p_a', p_a_obj)
+
+      // console.log(p_a_obj.api)
+
+
+      // QT -> DX(SV) -> p_a
+
+
+      /*
+       *
+       *
+        g.k.handleGlobalKeyUp = function(a, b, c, d, e, f, h) {
+            b = void 0 === b ? !1 : b;
+            c = void 0 === c ? !1 : c;
+            d = void 0 === d ? !1 : d;
+            e = void 0 === e ? !1 : e;
+            var l = g.PT(this);
+            l && l.handleGlobalKeyUp(a, b, c, d, e, f, h)
+        }
+
+      */
+
+      /*
+       *
+       *
+       *
+        g.k.handleGlobalKeyUp = function(a, b, c, d, e, f, h) {
+            return this.Bw ? this.Bw.handleGlobalKeyUp(a, b, c, d, e, f, h) : !1
+        }
+
+      */
+
+
+      // if(!keyDX) return;
+
+      // console.log(4999, keyDX)
+
+    };
+
+
+    const ytResumeFn = function () { // ADVANCED_FIX_SHORTCUTKEYS
+
+      const p_a_obj = kRef(p_a_objWR);
+      // const api = p_a_obj.api;
+
+
+      // console.log(540);
+
+      let boolList = null;
+      let ret;
+      isSpaceKeyImmediate = true;
+      try {
+
+        ret = 0;
+        ret = ret | (p_a_obj.handleGlobalKeyDown(32, false, false, false, false, ' ', 'Space', false) ? 1 : 0);
+        let p_a_objT;
+        if (!spaceBarControl_keyG) { // just in case
+          boolList = new Set();
+          p_a_objT = new Proxy(p_a_obj, {
+            get(target, prop, handler) {
+              const val = target[prop];
+              if (typeof val !== 'boolean') return val;
+              boolList.add(prop);
+              // console.log(555, prop, val);
+              if (typeof prop === 'string' && prop.length <= 3 && val === true && boolList.length === 1) {
+                spaceBarControl_keyG = prop;
+                p_a_obj.__uZWaD__ = spaceBarControl_keyG;
+                val = false;
+              }
+              return val;
+            }
+          });
+
+
+        } else if (p_a_obj[spaceBarControl_keyG] === true) {
+          p_a_obj[spaceBarControl_keyG] = false;
+          p_a_objT = p_a_obj;
+          // console.log(p_a_obj, spaceBarControl_keyG, p_a_obj[spaceBarControl_keyG] )
+        } else {
+
+          p_a_objT = p_a_obj;
+        }
+
+        ret = ret | (p_a_objT.handleGlobalKeyUp(32, false, false, false, false, ' ', 'Space') ? 2 : 0);
+
+
+      } catch (e) {
+        console.log(e)
+      }
+      isSpaceKeyImmediate = false;
+
+      if (boolList && boolList.size === 1) {
+        const value = boolList.values().next().value;
+        spaceBarControl_keyG = value;
+        p_a_obj.__uZWaD__ = spaceBarControl_keyG;
+
+      }
+
+      if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
+
+      return ret;
+    }
+
+    const shortcutKeysFixer = () => {
+
+      let pausePromiseControlJ = 0;
+
+
+      const obtainCurrentControlPhase = (evt, mediaPlayerElement) => {
+
+        let controlPhase = 0;
+        const aElm = document.activeElement;
+
+        if (aElm) {
+
+          const controlPhaseCache = wmKeyControlPhase.get(aElm);
+
+          if (typeof controlPhaseCache === 'number') {
+
+            controlPhase = controlPhaseCache;
+          } else {
+
+            if (aElm instanceof HTMLInputElement) controlPhase = 1;
+            else if (aElm instanceof HTMLTextAreaElement) controlPhase = 1;
+            else if (aElm instanceof HTMLButtonElement) controlPhase = 2;
+            else if (aElm instanceof HTMLIFrameElement) controlPhase = 2;
+            else if (aElm instanceof HTMLImageElement) controlPhase = 2;
+            else if (aElm instanceof HTMLEmbedElement) controlPhase = 2;
+            else {
+              if (aElm instanceof HTMLElement && aElm.closest('[role]')) controlPhase = 5;
+              if (aElm instanceof HTMLDivElement) controlPhase = 2;
+              else if (aElm instanceof HTMLAnchorElement) controlPhase = 2;
+              else if (!(aElm instanceof HTMLElement) && (aElm instanceof Element)) controlPhase = 2; // svg
+            }
+
+            if ((controlPhase === 2 || controlPhase === 5) && (aElm instanceof HTMLElement) && aElm.contains(mediaPlayerElement)) {
+              controlPhase = 0;
+            }
+
+            if ((controlPhase === 2 || controlPhase === 5) && evt && evt.target && evt.target === aElm) {
+              if (aElm.closest('[contenteditable], input, textarea')) {
+                controlPhase = 5;
+              } else if (aElm.closest('button')) {
+                controlPhase = 4;
+              }
+            }
+
+            if (aElm.closest('#movie_player')) controlPhase = 6;
+
+            wmKeyControlPhase.set(aElm, controlPhase);
+
+          }
+        }
+
+        return controlPhase;
+
+      }
+
+      const isStateControllable = (api) => {
+        let appState = null;
+        let playerState = null;
+        let adState = null;
+        try {
+          appState = api.getAppState();
+          playerState = api.getPlayerState();
+          adState = api.getAdState();
+        } catch (e) { }
+        // ignore playerState -1
+        return appState === 5 && adState === -1 && (playerState === 1 || playerState === 2 || playerState === 3);
+      };
+
+
+      const keyEventListener = (evt) => {
+
+        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
+        if (isSpaceKeyImmediate || !evt.isTrusted || !(evt instanceof KeyboardEvent)) return;
+        if (!ytPageReady) return;
+
+        if (evt.defaultPrevented === true) return;
+
+        const p_a_obj = kRef(p_a_objWR);
+
+        if (!p_a_obj) return;
+
+        const mediaPlayerElement = kRef(mediaPlayerElementWR);
+        if (!mediaPlayerElement) return;
+
+        // let focusBodyIfSuccess = false;
+
+        const controlPhase = obtainCurrentControlPhase(evt, mediaPlayerElement);
+
+        if (controlPhase === 6 && getCurrentSelectionText() !== "") void 0;
+        else if (controlPhase === 1 || controlPhase === 2 || controlPhase === 5) return;
+        else if ((controlPhase !== 6 || focusedElementAtSelection === document.activeElement) && getCurrentSelectionText() !== "") return;
+
+
+        // console.log(`${evt.type}::controlPhase`,controlPhase)
+
+        // if (controlPhase == 4) {
+        //   focusBodyIfSuccess = true;
+        // }
+
+        spaceBarControl_keyG = spaceBarControl_keyG || p_a_obj.__uZWaD__ || ''
+        if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
+
+        if (FIX_SHORTCUTKEYS < 2) return;
+        if (!(!evt.shiftKey && !evt.ctrlKey && !evt.altKey && !evt.metaKey)) return; // ignore if modifier key is pressed -> let other event listener to handle first
+
+        let rr;
+        const isSpaceBar = evt.code === 'Space' && !evt.shiftKey && !evt.ctrlKey && !evt.altKey && !evt.metaKey;
+
+
+
+        let useImprovedPauseResume = false;
+
+        if (USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER && isSpaceBar && !isSpeedMastSpacebarControlEnabled) {
+
+          const api = p_a_obj.api;
+          const stateControllable = isStateControllable(api);
+          // console.log(2122, appState, playerState, adState)
+
+          if (stateControllable && location.pathname === '/watch' && mediaPlayerElement.duration > 0.01 && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2) {
+
+            useImprovedPauseResume = true;
+
+          }
+
+
+        }
+
+
+        // force flag: CHANGE_SPEEDMASTER_SPACEBAR_CONTROL
+        if (evt.type === 'keydown') {
+
+          if (useImprovedPauseResume) {
+
+            const isPaused = mediaPlayerElement.paused;
+
+            const cj = ++pausePromiseControlJ;
+            Promise.resolve().then(() => {
+
+              if (cj !== pausePromiseControlJ) return;
+
+              if (mediaPlayerElement.paused !== isPaused) return;
+
+              const ret = ytResumeFn();
+              if (!ret) { // fallback
+                isPaused ? api.playVideo() : api.pauseVideo();
+              }
+
+              /*
+                  let a = void 0;
+                  console.log('Rb', api.Rb())
+                  a = !window._yt_player.nL(api.Rb());
+                  p_a_obj.Wd.kG(a)
+                      a ? api.playVideo() : api.pauseVideo();
+          
+              */
+
+
+            });
+            rr = true;
+          } else {
+
+            isSpaceKeyImmediate = true;
+            rr = p_a_obj.handleGlobalKeyDown(evt.keyCode, evt.shiftKey, evt.ctrlKey, evt.altKey, evt.metaKey, evt.key, evt.code, evt.repeat);
+            isSpaceKeyImmediate = false;
+            if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
+
+          }
+
+
+        } else if (evt.type === 'keyup') {
+
+          if (isSpaceBar && useImprovedPauseResume && !isSpeedMastSpacebarControlEnabled) {
+
+            rr = true;
+          } else {
+
+            isSpaceKeyImmediate = true;
+            rr = p_a_obj.handleGlobalKeyUp(evt.keyCode, evt.shiftKey, evt.ctrlKey, evt.altKey, evt.metaKey, evt.key, evt.code);
+            isSpaceKeyImmediate = false;
+            if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
+
+          }
+
+
+          /*
+        
+              if (d)
+                  switch (c) {
+                  case 32:
+                  case 13:
+                      if ("BUTTON" === d.tagName || "A" === d.tagName || "INPUT" === d.tagName)
+                          b = !0,
+                          e = !1;
+                      else if (e) {
+                          var m = d.getAttribute("role");
+                          !m || "option" !== m && "button" !== m && 0 !== m.indexOf("menuitem") || (b = !0,
+                          d.click(),
+                          f = !0)
+                      }
+                      break;
+                  case 37:
+                  case 39:
+                  case 36:
+                  case 35:
+                      b = "slider" === d.getAttribute("role");
+                      break;
+                  case 38:
+                  case 40:
+                      m = d.getAttribute("role"),
+                      d = 38 === c ? d.previousSibling : d.nextSibling,
+                      "slider" === m ? b = !0 : e && ("option" === m ? (d && "option" === d.getAttribute("role") && d.focus(),
+                      f = b = !0) : m && 0 === m.indexOf("menuitem") && (d && d.hasAttribute("role") && 0 === d.getAttribute("role").indexOf("menuitem") && d.focus(),
+                      f = b = !0))
+                  }
+              if (e && !f)
+                  switch (c) {
+                  case 38:
+                      f = Math.min(this.api.getVolume() + 5, 100);
+                      XV(this.Wd, f, !1);
+                      this.api.setVolume(f);
+                      h = f = !0;
+                      break;
+                  case 40:
+                      f = Math.max(this.api.getVolume() - 5, 0);
+                      XV(this.Wd, f, !0);
+                      this.api.setVolume(f);
+                      h = f = !0;
+                      break;
+                  case 36:
+                      this.api.Yh() && (this.api.startSeekCsiAction(),
+                      this.api.seekTo(0, void 0, void 0, void 0, 79),
+                      h = f = !0);
+                      break;
+                  case 35:
+                      this.api.Yh() && (this.api.startSeekCsiAction(),
+                      this.api.seekTo(Infinity, void 0, void 0, void 0, 80),
+                      h = f = !0)
+                  }
+          */
+
+        }
+
+
+        if (rr) {
+
+          // focusBodyIfSuccess && Promise.resolve().then(() => {
+          //   activeElement === document.activeElement && activeElement.blur();
+          // });
+
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          evt.stopPropagation();
+
+        }
+
+      };
+
+      document.addEventListener('keydown', keyEventListener, { capture: true });
+
+
+      document.addEventListener('keyup', keyEventListener, { capture: true });
+
+    }
+
+    return { pageMediaWatcher, shortcutKeysFixer, keyboardController };
+
+  })();
+
+
+  pageMediaWatcher();
+  FIX_SHORTCUTKEYS > 0 && shortcutKeysFixer();
 
 
   const check_for_set_key_order = (() => {
@@ -929,7 +1749,7 @@
               }
 
             } else if (key === 'rendererStamperApplyChangeRecord_' && vKey.length === 3) {
-              
+
               // Nil
 
             } else if (DEBUG_STAMP) {
@@ -1444,16 +2264,16 @@
 
 
     /**
-     * 
+     *
      * Neglect following
-     * 
+     *
      * h.onYtAction_
      * h.startLoadingWatch [ buggy for yt-player-updated ]
      * h.deferRenderStamperBinding_
-     * 
+     *
      * h.stampDomArray_
      * h.stampDomArraySplices_
-     * 
+     *
      */
 
 
@@ -1574,17 +2394,17 @@
     FIX_stampDomArray_stableList && fixStampDomArrayStableList(h);
     const ENABLE_weakenStampReferencesQ = ENABLE_weakenStampReferences && typeof DocumentTimeline !== 'undefined' && typeof WeakRef !== 'undefined';
     ENABLE_weakenStampReferencesQ && weakenStampReferences(h);
- 
+
 
     /**
-     * 
+     *
      * Neglect following
-     * 
+     *
      * h.rendererStamperObserver_
      * h.rendererStamperApplyChangeRecord_
      * h.flushRenderStamperComponentBindings_
      * h.forwardRendererStamperChanges_
-     * 
+     *
      */
 
     if (typeof h.tryRenderChunk_ === 'function' && !(h.tryRenderChunk_.km34)) {
@@ -1649,19 +2469,19 @@
     }
 
     /**
-     * 
+     *
      * Neglect following
-     * 
+     *
      * h.dataChanged_ [ buggy for page swtiching ]
-     * 
+     *
      * h.updateChangeRecord_ [ see https://github.com/cyfung1031/userscript-supports/issues/20 ]
-     * 
+     *
      * h.cancelPendingTasks_
      * h.fillRange_
      * h.addTextNodes_
      * h.updateText_
      * h.stampTypeChanged_
-     * 
+     *
      */
 
 
@@ -2343,6 +3163,278 @@
     }
 
   }
+
+
+  const getQT = (_yt_player) => {
+    const w = 'QT';
+
+    let arr = [];
+    let brr = new Map();
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+      if (p) {
+        let q = 0;
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
+        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
+        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
+
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q -= 600; // avoid SV
+
+        if (q < 200) continue; // p.handleGlobalKeyUp must be available
+
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
+        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
+        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
+
+
+        // differentiate QT and DX
+
+        q += 280;
+        if (typeof p.cueVideoByPlayerVars === 'function') q += 4;
+        if (typeof p.loadVideoByPlayerVars === 'function') q += 4;
+        if (typeof p.preloadVideoByPlayerVars === 'function') q += 4;
+        if (typeof p.seekBy === 'function') q += 4;
+        if (typeof p.seekTo === 'function') q += 4;
+        if (typeof p.getStoryboardFormat === 'function') q += 4;
+        if (typeof p.getDuration === 'function') q += 4;
+        if (typeof p.loadModule === 'function') q += 4;
+        if (typeof p.unloadModule === 'function') q += 4;
+        if (typeof p.getOption === 'function') q += 4;
+        if (typeof p.getOptions === 'function') q += 4;
+        if (typeof p.setOption === 'function') q += 4;
+        if (typeof p.addCueRange === 'function') q += 4;
+        if (typeof p.getDebugText === 'function') q += 4;
+        if (typeof p.getCurrentBroadcastId === 'function') q += 4;
+        if (typeof p.setSizeStyle === 'function') q += 4;
+        if (typeof p.showControls === 'function') q += 4;
+        if (typeof p.hideControls === 'function') q += 4;
+        if (typeof p.getVideoContentRect === 'function') q += 4;
+        if (typeof p.toggleFullscreen === 'function') q += 4;
+        if (typeof p.isFullscreen === 'function') q += 4;
+        if (typeof p.cancelPlayback === 'function') q += 4;
+        if (typeof p.getProgressState === 'function') q += 4;
+        if (typeof p.isInline === 'function') q += 4;
+        if (typeof p.setInline === 'function') q += 4;
+        if (typeof p.toggleSubtitles === 'function') q += 4;
+        if (typeof p.getPlayerSize === 'function') q += 4;
+        if (typeof p.wakeUpControls === 'function') q += 4;
+        if (typeof p.setCenterCrop === 'function') q += 4;
+        if (typeof p.getLoopVideo === 'function') q += 4;
+        if (typeof p.setLoopVideo === 'function') q += 4;
+
+
+        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+        if (q > 0) brr.set(k, q);
+
+      }
+
+    }
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      arr = arr.map(key => [key, (brr.get(key) || 0)]);
+
+      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
+
+      if (arr.length > 2) console.log(`[${w}]`, arr);
+      return arr[0][0];
+    }
+
+
+
+  }
+
+
+
+  const getSV = (_yt_player) => {
+    const w = 'SV';
+
+    let arr = [];
+    let brr = new Map();
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+      if (p) {
+        let q = 0;
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
+        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
+        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
+
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q += 600; // SV
+
+        if (q < 200) continue; // p.handleGlobalKeyUp must be available
+
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
+        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
+        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
+
+
+        // differentiate QT and DX
+
+
+        q += 280;
+
+        if (typeof p.cueVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.loadVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.preloadVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.seekBy === 'function') q -= 4;
+        if (typeof p.seekTo === 'function') q -= 4;
+        if (typeof p.getStoryboardFormat === 'function') q -= 4;
+        if (typeof p.getDuration === 'function') q -= 4;
+        if (typeof p.loadModule === 'function') q -= 4;
+        if (typeof p.unloadModule === 'function') q -= 4;
+        if (typeof p.getOption === 'function') q -= 4;
+        if (typeof p.getOptions === 'function') q -= 4;
+        if (typeof p.setOption === 'function') q -= 4;
+        if (typeof p.addCueRange === 'function') q -= 4;
+        if (typeof p.getDebugText === 'function') q -= 4;
+        if (typeof p.getCurrentBroadcastId === 'function') q -= 4;
+        if (typeof p.setSizeStyle === 'function') q -= 4;
+        if (typeof p.showControls === 'function') q -= 4;
+        if (typeof p.hideControls === 'function') q -= 4;
+        if (typeof p.getVideoContentRect === 'function') q -= 4;
+        if (typeof p.toggleFullscreen === 'function') q -= 4;
+        if (typeof p.isFullscreen === 'function') q -= 4;
+        if (typeof p.cancelPlayback === 'function') q -= 4;
+        if (typeof p.getProgressState === 'function') q -= 4;
+        if (typeof p.isInline === 'function') q -= 4;
+        if (typeof p.setInline === 'function') q -= 4;
+        if (typeof p.toggleSubtitles === 'function') q -= 4;
+        if (typeof p.getPlayerSize === 'function') q -= 4;
+        if (typeof p.wakeUpControls === 'function') q -= 4;
+        if (typeof p.setCenterCrop === 'function') q -= 4;
+        if (typeof p.getLoopVideo === 'function') q -= 4;
+        if (typeof p.setLoopVideo === 'function') q -= 4;
+
+
+        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+        if (q > 0) brr.set(k, q);
+
+      }
+
+    }
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      arr = arr.map(key => [key, (brr.get(key) || 0)]);
+
+      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
+
+      if (arr.length > 2) console.log(`[${w}]`, arr);
+      return arr[0][0];
+    }
+
+
+
+  }
+
+
+
+
+  const getDX = (_yt_player) => {
+    const w = 'DX';
+
+    let arr = [];
+    let brr = new Map();
+
+    for (const [k, v] of Object.entries(_yt_player)) {
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+      if (p) {
+        let q = 0;
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
+        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
+        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
+
+        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q -= 600; // avoid SV
+
+
+        if (!(typeof p.init === 'function' && p.init.length === 0)) q -= 300; // init is required
+
+        if (q < 200) continue; // p.handleGlobalKeyUp must be available
+
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
+        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
+        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
+        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
+
+
+        // differentiate QT and DX
+
+
+        q += 280;
+
+        if (typeof p.cueVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.loadVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.preloadVideoByPlayerVars === 'function') q -= 4;
+        if (typeof p.seekBy === 'function') q -= 4;
+        if (typeof p.seekTo === 'function') q -= 4;
+        if (typeof p.getStoryboardFormat === 'function') q -= 4;
+        if (typeof p.getDuration === 'function') q -= 4;
+        if (typeof p.loadModule === 'function') q -= 4;
+        if (typeof p.unloadModule === 'function') q -= 4;
+        if (typeof p.getOption === 'function') q -= 4;
+        if (typeof p.getOptions === 'function') q -= 4;
+        if (typeof p.setOption === 'function') q -= 4;
+        if (typeof p.addCueRange === 'function') q -= 4;
+        if (typeof p.getDebugText === 'function') q -= 4;
+        if (typeof p.getCurrentBroadcastId === 'function') q -= 4;
+        if (typeof p.setSizeStyle === 'function') q -= 4;
+        if (typeof p.showControls === 'function') q -= 4;
+        if (typeof p.hideControls === 'function') q -= 4;
+        if (typeof p.getVideoContentRect === 'function') q -= 4;
+        if (typeof p.toggleFullscreen === 'function') q -= 4;
+        if (typeof p.isFullscreen === 'function') q -= 4;
+        if (typeof p.cancelPlayback === 'function') q -= 4;
+        if (typeof p.getProgressState === 'function') q -= 4;
+        if (typeof p.isInline === 'function') q -= 4;
+        if (typeof p.setInline === 'function') q -= 4;
+        if (typeof p.toggleSubtitles === 'function') q -= 4;
+        if (typeof p.getPlayerSize === 'function') q -= 4;
+        if (typeof p.wakeUpControls === 'function') q -= 4;
+        if (typeof p.setCenterCrop === 'function') q -= 4;
+        if (typeof p.getLoopVideo === 'function') q -= 4;
+        if (typeof p.setLoopVideo === 'function') q -= 4;
+
+
+        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+        if (q > 0) brr.set(k, q);
+
+      }
+
+    }
+
+    if (arr.length === 0) {
+
+      console.warn(`Key does not exist. [${w}]`);
+    } else {
+
+      arr = arr.map(key => [key, (brr.get(key) || 0)]);
+
+      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
+
+      if (arr.length > 2) console.log(`[${w}]`, arr);
+      return arr[0][0];
+    }
+
+
+
+  }
+
 
 
   const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
@@ -3643,6 +4735,18 @@
 
 
 
+
+    })();
+
+
+    FIX_yt_player && FIX_SHORTCUTKEYS > 0 && (async () => {
+      // keyboard shortcut keys controller
+
+      const _yt_player = await _yt_player_observable.obtain();
+
+      if (!_yt_player || typeof _yt_player !== 'object') return;
+
+      keyboardController(_yt_player);
 
     })();
 
