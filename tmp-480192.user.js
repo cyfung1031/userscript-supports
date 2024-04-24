@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.3.1.001
+// @version      1.3.1.002
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -1609,10 +1609,11 @@ function url_observer() {
 }
 
 function url_change(event = null) {
-    if (event && event.destination.url.indexOf('about:blank') === 0) return
-    href = event ? event.destination.url : location.href
-    log('网页url改变 href -> ' + href, 0)
-    config_init()
+    const destinationUrl = ((event || 0).destination || 0).url || '';
+    if (destinationUrl.indexOf('about:blank') === 0) return;
+    href = destinationUrl || location.href;
+    log('网页url改变 href -> ' + href, 0);
+    config_init();
 }
 
 let debugger_config_info = {
