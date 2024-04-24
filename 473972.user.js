@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.0
+// @version     0.14.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -314,8 +314,8 @@
 
 
     if (sdp && sdp.configurable && sdp.value && sdp.enumerable && sdp.writable && !sdp.get && !sdp.set) {
-    }else if(!sdp){
-    }else{
+    } else if (!sdp) {
+    } else {
       console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [ PropertyDescriptor issue ]', sdp);
       return;
     }
@@ -371,7 +371,7 @@
                 Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
                   get() {
                     let w = shadyDOMNodeWRM.get(this);
-                    if (typeof w === 'object') w = kRef(w);
+                    if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
                     // if (typeof w === 'undefined') {
                     //   if (!dummyElementOnPage) {
                     //     dummyElementOnPage = document.createElement('noscript');
@@ -383,26 +383,34 @@
                     return w;
                   },
                   set(nv) {
-                    // note: do not unlink the previous ShadowDOM
                     const isValidNV = typeof nv === 'object' && nv;
                     if (isValidNV && typeof nv.deref === 'function') nv = nv.deref();
                     if (nv !== this) {
-                      // if (isValidNV) {
-                      //   let y = shadyDOMNodeWRM.get(nv);
-                      //   if (y && typeof y === 'object') y = kRef(y);
-                      //   shadyDOMNodeWRM.delete(y);
-                      //   shadyDOMNodeWRM.delete(nv);
-                      // }
-                      let w = shadyDOMNodeWRM.get(this);
-                      if (typeof w === 'object') {
-                        w = kRef(w);
-                        w && shadyDOMNodeWRM.delete(w);
-                      }
-                      if (isValidNV) {
-                        shadyDOMNodeWRM.set(this, mWeakRef(nv));
-                        shadyDOMNodeWRM.set(nv, mWeakRef(this));
+                      if (isValidNV && nv) {
+                        let nvWR;
+                        let y = shadyDOMNodeWRM.get(nv);
+                        if (y && typeof y === 'object') {
+                          y = kRef(y);
+                          y && (nvWR = shadyDOMNodeWRM.get(y));
+                          // note: do not unlink the previous ShadowDOM; keep prevShadow -> changedElm*[old]
+                        }
+                        if (y !== this) {
+                          if (!nvWR) nvWR = mWeakRef(nv);
+                          let w = shadyDOMNodeWRM.get(this);
+                          if (typeof w === 'object') {
+                            w = kRef(w);
+                            w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
+                          }
+                          shadyDOMNodeWRM.set(this, nvWR); // set newShadow -> changedElm*[old]
+                          shadyDOMNodeWRM.set(nv, mWeakRef(this)); // update changedElm -> newShadow*[new]
+                        }
                       } else {
-                        shadyDOMNodeWRM.delete(this);
+                        let w = shadyDOMNodeWRM.get(this);
+                        if (typeof w === 'object') {
+                          w = kRef(w);
+                          w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
+                        }
+                        shadyDOMNodeWRM.delete(this); // update newShadow -> CLEAR
                       }
                     }
                     return true;
@@ -2122,7 +2130,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&2) && typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 2) && typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
       const f = h.loadPage_;
       const g = ump3.get(f) || function (a) {
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
@@ -2133,7 +2141,7 @@
 
     }
     // updatePageData_ : possible conflict with Omit ShadyDOM
-    if ((WEAK_REF_BINDING_CONTROL&2) && typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 2) && typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
       const f = h.updatePageData_;
       const g = ump3.get(f) || function (a) {
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
@@ -2144,8 +2152,8 @@
 
     }
 
-    
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
+
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
 
       const f = h.onFocus_;
       const g = ump3.get(f) || function () {
@@ -2157,7 +2165,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
 
       const f = h.onBlur_;
       const g = ump3.get(f) || function () {
@@ -2170,7 +2178,7 @@
     }
 
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
 
       const f = h.buttonClassChanged_;
       const g = ump3.get(f) || function (a, b) {
@@ -2182,7 +2190,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
 
       const f = h.buttonIconChanged_;
       const g = ump3.get(f) || function (a) {
@@ -2193,8 +2201,8 @@
       h.buttonIconChanged_ = g;
 
     }
-    
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
+
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
 
       const f = h.dataChangedInBehavior_;
       const g = ump3.get(f) || function () {
@@ -2206,7 +2214,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
 
       const f = h.continuationsChanged_;
       const g = ump3.get(f) || function () {
@@ -2219,7 +2227,7 @@
     }
 
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
 
       const f = h.forceChatPoll_;
       const g = ump3.get(f) || function (a) {
@@ -2231,7 +2239,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
 
       const f = h.onEndpointClick_;
       const g = ump3.get(f) || function (a) {
@@ -2243,7 +2251,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
 
       const f = h.onEndpointTap_;
       const g = ump3.get(f) || function (a) {
@@ -2255,7 +2263,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
 
       const f = h.handleClick_;
       const g = ump3.get(f) || function (a, b) {
@@ -2267,7 +2275,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
 
       const f = h.onReadyStateChange_;
       const g = ump3.get(f) || function () {
@@ -2279,7 +2287,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
 
       const f = h.onReadyStateChangeEntryPoint_;
       const g = ump3.get(f) || function () {
@@ -2291,7 +2299,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
 
       const f = h.readyStateChangeHandler_;
       const g = ump3.get(f) || function (a) {
@@ -2315,7 +2323,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
 
       const f = h.executeCallbacks_; // overloaded
       const g = ump3.get(f) || function (a) {
@@ -2327,7 +2335,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
 
       const f = h.handleInvalidationData_;
       const g = ump3.get(f) || function (a, b) {
@@ -2420,7 +2428,7 @@
       h.onLoadReplayContinuation_ = g;
 
     }
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
 
       const f = h.onNavigate_;
       const g = ump3.get(f) || function (a) {
@@ -2432,7 +2440,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
 
       const f = h.ytRendererBehaviorDataObserver_;
       const g = ump3.get(f) || function () {
@@ -2444,7 +2452,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
 
       const f = h.ytRendererBehaviorTargetIdObserver_;
       const g = ump3.get(f) || function () {
@@ -2456,7 +2464,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
 
       const f = h.unregisterRenderer_;
       const g = ump3.get(f) || function (a) {
@@ -2468,7 +2476,7 @@
 
     }
 
-    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
 
       const f = h.textChanged_;
       const g = ump3.get(f) || function (a) {
@@ -2888,7 +2896,7 @@
       pf31.resolve();
       p59 = 1;
     }, false);
-    (document.body ||  document.head || document.documentElement).appendChild(st);
+    (document.body || document.head || document.documentElement).appendChild(st);
 
   });
 
