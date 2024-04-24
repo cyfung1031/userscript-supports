@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.13.0
+// @version     0.14.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -43,6 +43,16 @@
 
   const FIX_Shady = true;
 
+  // [[ 2024.04.24 ]]
+  const MODIFY_ShadyDOM_OBJ = true;
+  // << if MODIFY_ShadyDOM_OBJ >>
+  const WEAKREF_ShadyDOM = true;
+  const OMIT_ShadyDOM_EXPERIMENTAL = 1 | 0; // 1 => enable; 2 => composedPath
+  const OMIT_ShadyDOM_settings = 0 | 0 | 0; // 1: inUse; 2: handlesDynamicScoping; 4: force // {{ PRELIM TESTING PURPOSE }}
+  // << end >>
+
+  const WEAK_REF_BINDING_CONTROL = 1 | 2; // 2 - conflict control with ShadyDOM weakref
+
   const FIX_ytAction_ = true; // ytd-app
   const FIX_onVideoDataChange = false;
   // const FIX_onClick = true;
@@ -82,7 +92,7 @@
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
-  // ----------------------------- Shortkey Keyboard Control ----------------------------- 
+  // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
 
   const FIX_SHORTCUTKEYS = 2; // 0 - no fix; 1 - basic fix; 2 - advanced fix
@@ -97,7 +107,7 @@
 
   // const CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE = false; // NO USE; TO BE REVIEWED
 
-  // ----------------------------- Shortkey Keyboard Control ----------------------------- 
+  // ----------------------------- Shortkey Keyboard Control -----------------------------
 
   /*
     window.addEventListener('edm',()=>{
@@ -256,6 +266,217 @@
       loggerMsg = performance.now !== performance.now16 ? msg1 : msg2; // might not able to set in Firefox
     }
     loggerMsg && console.warn(loggerMsg);
+  })();
+
+  // WEAKREF_ShadyDOM
+
+  MODIFY_ShadyDOM_OBJ && (() => {
+
+    const setupPlainShadyDOM = (b) => {
+      (OMIT_ShadyDOM_settings & 1) && (b.inUse === true) && (b.inUse = false);
+      (OMIT_ShadyDOM_settings & 2) && (b.handlesDynamicScoping === true) && (b.handlesDynamicScoping = false);
+      (OMIT_ShadyDOM_settings & 4) && (b.force === true) && (b.force = false);
+      b.patchOnDemand = true;
+      b.preferPerformance = true;
+      b.noPatch = true;
+    }
+
+    const isPlainObject = (b, m) => {
+      if (!b || typeof b !== 'object') return false;
+      const e = Object.getOwnPropertyDescriptors(b);
+      if (e.length <= m) return false;
+      let pr = 0;
+      for (const k in e) {
+        const d = e[k];
+        if (!d || d.get || d.set || !d.enumerable || !d.configurable) return false;
+        if (!('value' in d) || typeof d.value === 'function') return false;
+        pr++;
+      }
+      return pr > m;
+    }
+
+    let b;
+
+    let lz = 0;
+
+    const sdp = Object.getOwnPropertyDescriptor(window, 'ShadyDOM');
+    if (sdp && sdp.configurable && sdp.value && sdp.enumerable && sdp.writable) {
+
+      // Brave - ShadyDOM exists before userscripting
+      b = sdp.value;
+
+      if (b && typeof b === 'object' && isPlainObject(b, 0)) {
+        OMIT_ShadyDOM_EXPERIMENTAL && setupPlainShadyDOM(b);
+        lz = 1;
+      }
+
+    }
+
+
+    if (sdp && sdp.configurable && sdp.value && sdp.enumerable && sdp.writable && !sdp.get && !sdp.set) {
+    }else if(!sdp){
+    }else{
+      console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [ PropertyDescriptor issue ]', sdp);
+      return;
+    }
+
+    console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
+
+    delete window.ShadyDOM;
+
+    Object.defineProperty(window, 'ShadyDOM', {
+      get() {
+        return b;
+      },
+      set(nv) {
+        let ret = 0;
+        try {
+          do {
+            if (!nv || !nv.settings) {
+              if (lz < 1 && nv && typeof nv === 'object' && isPlainObject(nv, 0)) {
+                OMIT_ShadyDOM_EXPERIMENTAL && setupPlainShadyDOM(nv);
+                lz = 1;
+                break;
+              } else {
+                console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [nv:null]', nv);
+                break;
+              }
+            }
+
+            const sdp = Object.getOwnPropertyDescriptor(this || {}, 'ShadyDOM');
+            if (!(sdp && sdp.configurable && sdp.get && sdp.set)) {
+              console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [ incorrect PropertyDescriptor ]', nv);
+              break;
+            }
+
+            const ShadyDOM = nv;
+
+            const ShadyDOMSettings = ShadyDOM.settings;
+            if (!(ShadyDOMSettings.inUse === true && ShadyDOM.inUse === true && (ShadyDOMSettings.handlesDynamicScoping || ShadyDOM.handlesDynamicScoping) === true)) {
+              console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
+              break;
+            }
+
+            const shadyDOMNodeWRM = new WeakMap();
+            if (WEAKREF_ShadyDOM && lz < 3 && typeof WeakRef === 'function' && typeof ShadyDOM.Wrapper === 'function' && ShadyDOM.Wrapper.length === 1 && typeof (ShadyDOM.Wrapper.prototype || 0) === 'object') {
+
+              let nullElement = { node: null };
+              Object.setPrototypeOf(nullElement, Element.prototype);
+              let p = new ShadyDOM.Wrapper(nullElement);
+              let d = Object.getOwnPropertyDescriptor(p, 'node');
+              // let dummyElementOnPage = null; // strong reference
+              // let dummyElementShadowDOM = null;
+              if (d.configurable && d.enumerable && !d.get && !d.set && d.writable && d.value === nullElement && !Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')) {
+
+                Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
+                  get() {
+                    let w = shadyDOMNodeWRM.get(this);
+                    if (typeof w === 'object') w = kRef(w);
+                    // if (typeof w === 'undefined') {
+                    //   if (!dummyElementOnPage) {
+                    //     dummyElementOnPage = document.createElement('noscript');
+                    //     document.documentElement.appendChild(dummyElementOnPage);
+                    //     dummyElementShadowDOM = new ShadyDOM.Wrapper(dummyElementOnPage);
+                    //   }
+                    //   w = dummyElementOnPage;
+                    // }
+                    return w;
+                  },
+                  set(nv) {
+                    // note: do not unlink the previous ShadowDOM
+                    const isValidNV = typeof nv === 'object' && nv;
+                    if (isValidNV && typeof nv.deref === 'function') nv = nv.deref();
+                    if (nv !== this) {
+                      // if (isValidNV) {
+                      //   let y = shadyDOMNodeWRM.get(nv);
+                      //   if (y && typeof y === 'object') y = kRef(y);
+                      //   shadyDOMNodeWRM.delete(y);
+                      //   shadyDOMNodeWRM.delete(nv);
+                      // }
+                      let w = shadyDOMNodeWRM.get(this);
+                      if (typeof w === 'object') {
+                        w = kRef(w);
+                        w && shadyDOMNodeWRM.delete(w);
+                      }
+                      if (isValidNV) {
+                        shadyDOMNodeWRM.set(this, mWeakRef(nv));
+                        shadyDOMNodeWRM.set(nv, mWeakRef(this));
+                      } else {
+                        shadyDOMNodeWRM.delete(this);
+                      }
+                    }
+                    return true;
+                  },
+                  enumerable: true,
+                  configurable: true
+                });
+                console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
+              }
+              // Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')
+              // console.log()
+            }
+
+            if (OMIT_ShadyDOM_EXPERIMENTAL && lz < 3) {
+
+              setupPlainShadyDOM(ShadyDOMSettings);
+              setupPlainShadyDOM(ShadyDOM);
+
+              const standardWrap = function (a) {
+                if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
+                let u = shadyDOMNodeWRM.get(a);
+                if (typeof u === 'object') u = kRef(u);
+                if (typeof u === 'object' && u) {
+                  return u;
+                }
+                return new ShadyDOM.Wrapper(a);
+              }
+
+              ShadyDOM.isShadyRoot = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - isShadyRoot'); return false; }
+
+              if (typeof ShadyDOM.wrap === 'function' && ShadyDOM.wrap.length === 1) {
+                ShadyDOM.wrap = function (a) { 0 && console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
+              }
+              if (typeof ShadyDOM.wrapIfNeeded === 'function' && ShadyDOM.wrapIfNeeded.length === 1) {
+                ShadyDOM.wrapIfNeeded = function (a) { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrapIfNeeded'); return standardWrap(a) }
+              }
+              ShadyDOM.patchElementProto = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patchElementProto') }
+              ShadyDOM.patch = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patch') }
+
+              // To be confirmed
+              if (OMIT_ShadyDOM_EXPERIMENTAL & 2) {
+                ShadyDOM.composedPath = function (e) {
+                  const t = (e || 0).target || null;
+                  if (!(t instanceof HTMLElement)) {
+                    console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
+                  }
+                  return t instanceof HTMLElement ? [t] : [];
+                };
+              }
+
+            }
+
+            lz = 3;
+
+            console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 02 >>', nv)
+
+            ret = 1;
+
+          } while (0);
+        } catch (e) {
+          console.log('[yt-js-engine-tamer] FIX::ShadyDOM << ERROR >>', e)
+        }
+
+        if (!ret) b = nv;
+        else {
+          delete this.ShadyDOM;
+          this.ShadyDOM = nv;
+        }
+        return true;
+      },
+      enumerable: false,
+      configurable: true
+    });
+
   })();
 
   if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
@@ -1270,7 +1491,7 @@
                   a = !window._yt_player.nL(api.Rb());
                   p_a_obj.Wd.kG(a)
                       a ? api.playVideo() : api.pauseVideo();
-          
+
               */
 
 
@@ -1302,7 +1523,7 @@
 
 
           /*
-        
+
               if (d)
                   switch (c) {
                   case 32:
@@ -1901,7 +2122,7 @@
 
     }
 
-    if (typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&2) && typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
       const f = h.loadPage_;
       const g = ump3.get(f) || function (a) {
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
@@ -1911,7 +2132,8 @@
       h.loadPage_ = g;
 
     }
-    if (typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
+    // updatePageData_ : possible conflict with Omit ShadyDOM
+    if ((WEAK_REF_BINDING_CONTROL&2) && typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
       const f = h.updatePageData_;
       const g = ump3.get(f) || function (a) {
         Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
@@ -1922,7 +2144,8 @@
 
     }
 
-    if (typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
+    
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
 
       const f = h.onFocus_;
       const g = ump3.get(f) || function () {
@@ -1934,7 +2157,7 @@
 
     }
 
-    if (typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
 
       const f = h.onBlur_;
       const g = ump3.get(f) || function () {
@@ -1946,7 +2169,8 @@
 
     }
 
-    if (typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
+
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
 
       const f = h.buttonClassChanged_;
       const g = ump3.get(f) || function (a, b) {
@@ -1958,7 +2182,7 @@
 
     }
 
-    if (typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
 
       const f = h.buttonIconChanged_;
       const g = ump3.get(f) || function (a) {
@@ -1969,8 +2193,8 @@
       h.buttonIconChanged_ = g;
 
     }
-
-    if (typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
+    
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
 
       const f = h.dataChangedInBehavior_;
       const g = ump3.get(f) || function () {
@@ -1982,7 +2206,7 @@
 
     }
 
-    if (typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
 
       const f = h.continuationsChanged_;
       const g = ump3.get(f) || function () {
@@ -1994,7 +2218,8 @@
 
     }
 
-    if (typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
+
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
 
       const f = h.forceChatPoll_;
       const g = ump3.get(f) || function (a) {
@@ -2006,7 +2231,7 @@
 
     }
 
-    if (typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
 
       const f = h.onEndpointClick_;
       const g = ump3.get(f) || function (a) {
@@ -2018,7 +2243,7 @@
 
     }
 
-    if (typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
 
       const f = h.onEndpointTap_;
       const g = ump3.get(f) || function (a) {
@@ -2030,7 +2255,7 @@
 
     }
 
-    if (typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
 
       const f = h.handleClick_;
       const g = ump3.get(f) || function (a, b) {
@@ -2042,7 +2267,7 @@
 
     }
 
-    if (typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
 
       const f = h.onReadyStateChange_;
       const g = ump3.get(f) || function () {
@@ -2054,7 +2279,7 @@
 
     }
 
-    if (typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
 
       const f = h.onReadyStateChangeEntryPoint_;
       const g = ump3.get(f) || function () {
@@ -2066,7 +2291,7 @@
 
     }
 
-    if (typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
 
       const f = h.readyStateChangeHandler_;
       const g = ump3.get(f) || function (a) {
@@ -2090,7 +2315,7 @@
 
     }
 
-    if (typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
 
       const f = h.executeCallbacks_; // overloaded
       const g = ump3.get(f) || function (a) {
@@ -2102,7 +2327,7 @@
 
     }
 
-    if (typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
 
       const f = h.handleInvalidationData_;
       const g = ump3.get(f) || function (a, b) {
@@ -2125,7 +2350,6 @@
       h.onInput_ = g;
 
     }
-
     if (typeof h.trigger_ === 'function' && !(h.trigger_.km34)) {
 
       const f = h.trigger_;
@@ -2196,7 +2420,7 @@
       h.onLoadReplayContinuation_ = g;
 
     }
-    if (typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
 
       const f = h.onNavigate_;
       const g = ump3.get(f) || function (a) {
@@ -2208,7 +2432,7 @@
 
     }
 
-    if (typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
 
       const f = h.ytRendererBehaviorDataObserver_;
       const g = ump3.get(f) || function () {
@@ -2220,7 +2444,7 @@
 
     }
 
-    if (typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
 
       const f = h.ytRendererBehaviorTargetIdObserver_;
       const g = ump3.get(f) || function () {
@@ -2232,7 +2456,7 @@
 
     }
 
-    if (typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
 
       const f = h.unregisterRenderer_;
       const g = ump3.get(f) || function (a) {
@@ -2244,7 +2468,7 @@
 
     }
 
-    if (typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
+    if ((WEAK_REF_BINDING_CONTROL&1) && typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
 
       const f = h.textChanged_;
       const g = ump3.get(f) || function (a) {
@@ -2261,6 +2485,7 @@
       h.textChanged_ = g;
 
     }
+
 
 
     /**
@@ -2663,7 +2888,7 @@
       pf31.resolve();
       p59 = 1;
     }, false);
-    document.body.appendChild(st);
+    (document.body ||  document.head || document.documentElement).appendChild(st);
 
   });
 
