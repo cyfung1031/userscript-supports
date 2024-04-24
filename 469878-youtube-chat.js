@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.15
+// @version             0.61.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -186,8 +186,10 @@
 
   const NO_FILTER_DROPDOWN_BORDER = true; // added in 2024.03.02
 
-  const FIX_ANIMATION_TICKER_TEXT_POSITION = true; // CSS fix; experimential; added in 2024.04.07
+  const FIX_ANIMATION_TICKER_TEXT_POSITION = true; // CSS fix; experimental; added in 2024.04.07
   const FIX_AUTHOR_CHIP_BADGE_POSITION = true;
+
+  const FIX_ToggleRenderPolymerControllerExtractionBug = false; // to be reviewed
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -695,16 +697,24 @@
         flex-direction: row;
         text-wrap: nowrap;
         flex-shrink: 0;
-        align-items: center;    
+        align-items: center;
     }
-    
+
     #card  #author-name-chip {
         display: inline-flex;
         flex-direction: row;
         align-items: flex-start;
     }
-  `:'';
+  `: '';
 
+
+  // Example: https://www.youtube.com/watch?v=Xfytz-igsuc
+  const cssText17_FIX_overwidth_banner_message = `
+    yt-live-chat-banner-manager#live-chat-banner.style-scope.yt-live-chat-item-list-renderer {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+  `;
 
   const addCss = () => `
 
@@ -956,6 +966,8 @@
 
     ${cssText16_FIX_AUTHOR_CHIP_BADGE_POSITION}
 
+    ${cssText17_FIX_overwidth_banner_message}
+
   `;
 
 
@@ -1079,15 +1091,15 @@
     }
     return null;
   }
-  
-    /**
-   * Takes in a __SORTED__ array and inserts the provided value into
-   * the correct, sorted, position.
-   * > https://github.com/bhowell2/binary-insert-js/
-   * @param array the sorted array where the provided value needs to be inserted (in order)
-   * @param insertValue value to be added to the array
-   * @param comparator function that helps determine where to insert the value (
-   */
+
+  /**
+ * Takes in a __SORTED__ array and inserts the provided value into
+ * the correct, sorted, position.
+ * > https://github.com/bhowell2/binary-insert-js/
+ * @param array the sorted array where the provided value needs to be inserted (in order)
+ * @param insertValue value to be added to the array
+ * @param comparator function that helps determine where to insert the value (
+ */
   function binaryInsert(array, insertValue, comparator) {
     let left = 0;
     let right = array.length;
@@ -1125,9 +1137,9 @@
     array.splice(right, 0, insertValue);
     return array;
   }
-    
-    
-    
+
+
+
 
   class LimitedSizeSet extends Set {
     constructor(n) {
@@ -5933,7 +5945,7 @@
                   const batchToken = String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
 
                   if (FIX_BATCH_TICKER_ORDER && len >= 2) {
-                    
+
                     // Primarily for the initial batch, this is due to replayBuffer._back.
                     const entries = [];
                     const entriesI = [];
@@ -8444,7 +8456,62 @@
 
 
 
+      FIX_ToggleRenderPolymerControllerExtractionBug && customElements.whenDefined('yt-live-chat-toggle-renderer').then(() => {
 
+        mightFirstCheckOnYtInit();
+        groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-toggle-renderer hacks");
+        console.log("[Begin]");
+        (() => {
+
+          const tag = "yt-live-chat-toggle-renderer";
+          const dummy = document.createElement(tag);
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+          // cProto.attached718 = cProto.attached;
+
+
+          // cProto.attached = function () {
+          //   const dataDP = Object.getOwnPropertyDescriptor(this, 'data');
+          //   if (dataDP) return cProto.attached718();
+          //   let f = {};
+          //   let e = f;
+          //   Object.defineProperty(this, 'data', {
+          //     get() {
+          //       return e;
+          //     },
+          //     set(nv) {
+          //       e = nv;
+          //       return true;
+          //     },
+          //     enumerable: false,
+          //     configurable: true
+          //   });
+          //   let err = null;
+          //   let r;
+          //   try {
+          //     r = cProto.attached718();
+          //   } catch (e2) {
+          //     err = e2;
+          //   }
+          //   delete this.data;
+          //   if (e !== f) this.data = e;
+          //   if (err) throw err;
+          //   return r;
+          // }
+
+          // console.log(2989, cProto.attached);
+
+        })();
+
+        console.log("[End]");
+        console.groupEnd();
+
+      });
 
 
 
