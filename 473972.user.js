@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.1
+// @version     0.14.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -320,7 +320,215 @@
       return;
     }
 
+    const shadyDOMNodeWRM = new WeakMap();
+
     console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
+
+
+
+    function weakWrapper(_ShadyDOM) {
+      const ShadyDOM = _ShadyDOM;
+
+
+      if (WEAKREF_ShadyDOM && lz < 3 && typeof WeakRef === 'function' && typeof ShadyDOM.Wrapper === 'function' && ShadyDOM.Wrapper.length === 1 && typeof (ShadyDOM.Wrapper.prototype || 0) === 'object') {
+
+        let nullElement = { node: null };
+        Object.setPrototypeOf(nullElement, Element.prototype);
+        let p = new ShadyDOM.Wrapper(nullElement);
+        let d = Object.getOwnPropertyDescriptor(p, 'node');
+        // let dummyElementOnPage = null; // strong reference
+        // let dummyElementShadowDOM = null;
+        if (d.configurable && d.enumerable && !d.get && !d.set && d.writable && d.value === nullElement && !Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')) {
+
+          Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
+            get() {
+              let w = shadyDOMNodeWRM.get(this);
+              if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
+              // if (typeof w === 'undefined') {
+              //   if (!dummyElementOnPage) {
+              //     dummyElementOnPage = document.createElement('noscript');
+              //     document.documentElement.appendChild(dummyElementOnPage);
+              //     dummyElementShadowDOM = new ShadyDOM.Wrapper(dummyElementOnPage);
+              //   }
+              //   w = dummyElementOnPage;
+              // }
+              return w;
+            },
+            set(nv) {
+              const isValidNV = typeof nv === 'object' && nv;
+              if (isValidNV && typeof nv.deref === 'function') nv = nv.deref();
+              if (nv !== this) {
+                if (isValidNV && nv) {
+                  let nvWR;
+                  let y = shadyDOMNodeWRM.get(nv);
+                  if (y && typeof y === 'object') {
+                    y = kRef(y);
+                    y && (nvWR = shadyDOMNodeWRM.get(y));
+                    // note: do not unlink the previous ShadowDOM; keep prevShadow -> changedElm*[old]
+                  }
+                  if (y !== this) {
+                    if (!nvWR) nvWR = mWeakRef(nv);
+                    let w = shadyDOMNodeWRM.get(this);
+                    if (typeof w === 'object') {
+                      w = kRef(w);
+                      w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
+                    }
+                    shadyDOMNodeWRM.set(this, nvWR); // set newShadow -> changedElm*[old]
+                    shadyDOMNodeWRM.set(nv, mWeakRef(this)); // update changedElm -> newShadow*[new]
+                  }
+                } else {
+                  let w = shadyDOMNodeWRM.get(this);
+                  if (typeof w === 'object') {
+                    w = kRef(w);
+                    w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
+                  }
+                  shadyDOMNodeWRM.delete(this); // update newShadow -> CLEAR
+                }
+              }
+              return true;
+            },
+            enumerable: true,
+            configurable: true
+          });
+          console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
+        }
+        // Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')
+        // console.log()
+      }
+
+
+    }
+
+
+    const standardWrap = function (a) {
+      if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
+      let u = shadyDOMNodeWRM.get(a);
+      if (typeof u === 'object') u = kRef(u);
+      if (typeof u === 'object' && u) {
+        return u;
+      }
+      return new ShadyDOM.Wrapper(a);
+    }
+
+
+    function setupWrapFunc(_ShadyDOM) {
+      const ShadyDOM = _ShadyDOM;
+
+
+      const wmPD = Object.getOwnPropertyDescriptor(WeakMap.prototype, 'get');
+      if (!(wmPD && wmPD.writable && !wmPD.enumerable && wmPD.configurable && wmPD.value && !wmPD.get && !wmPD.set)) {
+        return;
+      }
+      let mm = new Set();
+      const pget = wmPD.value;
+      WeakMap.prototype.get = function (a) {
+        mm.add(this);
+        return a;
+      }
+      try {
+        let nullElement = { node: null };
+        Object.setPrototypeOf(nullElement, Element.prototype);
+        ShadyDOM.wrapIfNeeded(nullElement)
+        ShadyDOM.wrap(nullElement)
+      } catch (e) { }
+      WeakMap.prototype.get = pget;
+      if (mm.size !== 1) {
+        mm.clear();
+        return;
+      }
+      const p = mm.values().next().value;
+      mm.clear();
+      if (!(p instanceof WeakMap)) return;
+      // p.clear();
+      p.get = function (a) { return a }
+      p.set = function (a, b) { return this }
+      // console.log(188, window.n2n = mm, window.n2p = p)
+
+
+      if (typeof ShadyDOM.wrap === 'function' && ShadyDOM.wrap.length === 1) {
+        ShadyDOM.wrap = function (a) { 0 && console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
+      }
+      if (typeof ShadyDOM.wrapIfNeeded === 'function' && ShadyDOM.wrapIfNeeded.length === 1) {
+        ShadyDOM.wrapIfNeeded = function (a) { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrapIfNeeded'); return standardWrap(a) }
+      }
+
+    }
+
+    function setupLZ3(nv) {
+
+      const ShadyDOM = nv;
+
+      const ShadyDOMSettings = ShadyDOM.settings;
+      if (!(ShadyDOMSettings.inUse === true && ShadyDOM.inUse === true && (ShadyDOMSettings.handlesDynamicScoping || ShadyDOM.handlesDynamicScoping) === true)) {
+        console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
+        return false;
+      }
+
+      weakWrapper(ShadyDOM);
+
+      if (OMIT_ShadyDOM_EXPERIMENTAL && lz < 3) {
+
+        setupPlainShadyDOM(ShadyDOMSettings);
+        setupPlainShadyDOM(ShadyDOM);
+
+        ShadyDOM.isShadyRoot = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - isShadyRoot'); return false; }
+
+        setupWrapFunc(ShadyDOM);
+        ShadyDOM.patchElementProto = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patchElementProto') }
+        ShadyDOM.patch = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patch') }
+
+        // To be confirmed
+        if (OMIT_ShadyDOM_EXPERIMENTAL & 2) {
+          ShadyDOM.composedPath = function (e) {
+            const t = (e || 0).target || null;
+            if (!(t instanceof HTMLElement)) {
+              console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
+            }
+            return t instanceof HTMLElement ? [t] : [];
+          };
+        }
+
+      }
+
+    }
+
+
+    function setupLZ6(nv) {
+
+      const ShadyDOM = nv;
+
+      const ShadyDOMSettings = ShadyDOM.settings;
+
+      if (!(ShadyDOMSettings.inUse === true && ShadyDOM.inUse === true && (ShadyDOMSettings.handlesDynamicScoping || ShadyDOM.handlesDynamicScoping) === true)) {
+        console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
+        return false;
+      }
+
+      weakWrapper(ShadyDOM);
+
+      if (OMIT_ShadyDOM_EXPERIMENTAL && lz < 3) {
+
+        setupPlainShadyDOM(ShadyDOMSettings);
+        setupPlainShadyDOM(ShadyDOM);
+
+        setupWrapFunc(ShadyDOM);
+
+      }
+
+    }
+
+    if (b && typeof b.Wrapper === 'function' && typeof b.settings === 'object' && typeof b.wrap === 'function') {
+
+      const nv = b;
+
+      if (setupLZ6(nv) === false) return;
+
+      lz = 6;
+
+      console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 02b >>', nv)
+
+      return;
+    }
 
     delete window.ShadyDOM;
 
@@ -349,123 +557,11 @@
               break;
             }
 
-            const ShadyDOM = nv;
-
-            const ShadyDOMSettings = ShadyDOM.settings;
-            if (!(ShadyDOMSettings.inUse === true && ShadyDOM.inUse === true && (ShadyDOMSettings.handlesDynamicScoping || ShadyDOM.handlesDynamicScoping) === true)) {
-              console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
-              break;
-            }
-
-            const shadyDOMNodeWRM = new WeakMap();
-            if (WEAKREF_ShadyDOM && lz < 3 && typeof WeakRef === 'function' && typeof ShadyDOM.Wrapper === 'function' && ShadyDOM.Wrapper.length === 1 && typeof (ShadyDOM.Wrapper.prototype || 0) === 'object') {
-
-              let nullElement = { node: null };
-              Object.setPrototypeOf(nullElement, Element.prototype);
-              let p = new ShadyDOM.Wrapper(nullElement);
-              let d = Object.getOwnPropertyDescriptor(p, 'node');
-              // let dummyElementOnPage = null; // strong reference
-              // let dummyElementShadowDOM = null;
-              if (d.configurable && d.enumerable && !d.get && !d.set && d.writable && d.value === nullElement && !Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')) {
-
-                Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
-                  get() {
-                    let w = shadyDOMNodeWRM.get(this);
-                    if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
-                    // if (typeof w === 'undefined') {
-                    //   if (!dummyElementOnPage) {
-                    //     dummyElementOnPage = document.createElement('noscript');
-                    //     document.documentElement.appendChild(dummyElementOnPage);
-                    //     dummyElementShadowDOM = new ShadyDOM.Wrapper(dummyElementOnPage);
-                    //   }
-                    //   w = dummyElementOnPage;
-                    // }
-                    return w;
-                  },
-                  set(nv) {
-                    const isValidNV = typeof nv === 'object' && nv;
-                    if (isValidNV && typeof nv.deref === 'function') nv = nv.deref();
-                    if (nv !== this) {
-                      if (isValidNV && nv) {
-                        let nvWR;
-                        let y = shadyDOMNodeWRM.get(nv);
-                        if (y && typeof y === 'object') {
-                          y = kRef(y);
-                          y && (nvWR = shadyDOMNodeWRM.get(y));
-                          // note: do not unlink the previous ShadowDOM; keep prevShadow -> changedElm*[old]
-                        }
-                        if (y !== this) {
-                          if (!nvWR) nvWR = mWeakRef(nv);
-                          let w = shadyDOMNodeWRM.get(this);
-                          if (typeof w === 'object') {
-                            w = kRef(w);
-                            w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
-                          }
-                          shadyDOMNodeWRM.set(this, nvWR); // set newShadow -> changedElm*[old]
-                          shadyDOMNodeWRM.set(nv, mWeakRef(this)); // update changedElm -> newShadow*[new]
-                        }
-                      } else {
-                        let w = shadyDOMNodeWRM.get(this);
-                        if (typeof w === 'object') {
-                          w = kRef(w);
-                          w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
-                        }
-                        shadyDOMNodeWRM.delete(this); // update newShadow -> CLEAR
-                      }
-                    }
-                    return true;
-                  },
-                  enumerable: true,
-                  configurable: true
-                });
-                console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
-              }
-              // Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')
-              // console.log()
-            }
-
-            if (OMIT_ShadyDOM_EXPERIMENTAL && lz < 3) {
-
-              setupPlainShadyDOM(ShadyDOMSettings);
-              setupPlainShadyDOM(ShadyDOM);
-
-              const standardWrap = function (a) {
-                if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
-                let u = shadyDOMNodeWRM.get(a);
-                if (typeof u === 'object') u = kRef(u);
-                if (typeof u === 'object' && u) {
-                  return u;
-                }
-                return new ShadyDOM.Wrapper(a);
-              }
-
-              ShadyDOM.isShadyRoot = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - isShadyRoot'); return false; }
-
-              if (typeof ShadyDOM.wrap === 'function' && ShadyDOM.wrap.length === 1) {
-                ShadyDOM.wrap = function (a) { 0 && console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
-              }
-              if (typeof ShadyDOM.wrapIfNeeded === 'function' && ShadyDOM.wrapIfNeeded.length === 1) {
-                ShadyDOM.wrapIfNeeded = function (a) { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrapIfNeeded'); return standardWrap(a) }
-              }
-              ShadyDOM.patchElementProto = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patchElementProto') }
-              ShadyDOM.patch = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patch') }
-
-              // To be confirmed
-              if (OMIT_ShadyDOM_EXPERIMENTAL & 2) {
-                ShadyDOM.composedPath = function (e) {
-                  const t = (e || 0).target || null;
-                  if (!(t instanceof HTMLElement)) {
-                    console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
-                  }
-                  return t instanceof HTMLElement ? [t] : [];
-                };
-              }
-
-            }
+            if (setupLZ3(nv) === false) break;
 
             lz = 3;
 
-            console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 02 >>', nv)
+            console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 02a >>', nv)
 
             ret = 1;
 
