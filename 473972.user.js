@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.2
+// @version     0.14.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -270,7 +270,7 @@
 
   // WEAKREF_ShadyDOM
 
-  MODIFY_ShadyDOM_OBJ && (() => {
+  MODIFY_ShadyDOM_OBJ && ((WeakRef) => {
 
     const setupPlainShadyDOM = (b) => {
       (OMIT_ShadyDOM_settings & 1) && (b.inUse === true) && (b.inUse = false);
@@ -324,67 +324,22 @@
 
     console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
 
-
-
     function weakWrapper(_ShadyDOM) {
       const ShadyDOM = _ShadyDOM;
-
-
       if (WEAKREF_ShadyDOM && lz < 3 && typeof WeakRef === 'function' && typeof ShadyDOM.Wrapper === 'function' && ShadyDOM.Wrapper.length === 1 && typeof (ShadyDOM.Wrapper.prototype || 0) === 'object') {
-
         let nullElement = { node: null };
         Object.setPrototypeOf(nullElement, Element.prototype);
         let p = new ShadyDOM.Wrapper(nullElement);
         let d = Object.getOwnPropertyDescriptor(p, 'node');
-        // let dummyElementOnPage = null; // strong reference
-        // let dummyElementShadowDOM = null;
         if (d.configurable && d.enumerable && !d.get && !d.set && d.writable && d.value === nullElement && !Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')) {
-
           Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
             get() {
               let w = shadyDOMNodeWRM.get(this);
               if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
-              // if (typeof w === 'undefined') {
-              //   if (!dummyElementOnPage) {
-              //     dummyElementOnPage = document.createElement('noscript');
-              //     document.documentElement.appendChild(dummyElementOnPage);
-              //     dummyElementShadowDOM = new ShadyDOM.Wrapper(dummyElementOnPage);
-              //   }
-              //   w = dummyElementOnPage;
-              // }
               return w;
             },
             set(nv) {
-              const isValidNV = typeof nv === 'object' && nv;
-              if (isValidNV && typeof nv.deref === 'function') nv = nv.deref();
-              if (nv !== this) {
-                if (isValidNV && nv) {
-                  let nvWR;
-                  let y = shadyDOMNodeWRM.get(nv);
-                  if (y && typeof y === 'object') {
-                    y = kRef(y);
-                    y && (nvWR = shadyDOMNodeWRM.get(y));
-                    // note: do not unlink the previous ShadowDOM; keep prevShadow -> changedElm*[old]
-                  }
-                  if (y !== this) {
-                    if (!nvWR) nvWR = mWeakRef(nv);
-                    let w = shadyDOMNodeWRM.get(this);
-                    if (typeof w === 'object') {
-                      w = kRef(w);
-                      w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
-                    }
-                    shadyDOMNodeWRM.set(this, nvWR); // set newShadow -> changedElm*[old]
-                    shadyDOMNodeWRM.set(nv, mWeakRef(this)); // update changedElm -> newShadow*[new]
-                  }
-                } else {
-                  let w = shadyDOMNodeWRM.get(this);
-                  if (typeof w === 'object') {
-                    w = kRef(w);
-                    w && shadyDOMNodeWRM.delete(w); // update prevElm -> CLEAR
-                  }
-                  shadyDOMNodeWRM.delete(this); // update newShadow -> CLEAR
-                }
-              }
+              shadyDOMNodeWRM.set(this, mWeakRef(nv));
               return true;
             },
             enumerable: true,
@@ -392,22 +347,17 @@
           });
           console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
         }
-        // Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')
-        // console.log()
       }
-
-
     }
-
 
     const standardWrap = function (a) {
       if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
-      let u = shadyDOMNodeWRM.get(a);
-      if (typeof u === 'object') u = kRef(u);
-      if (typeof u === 'object' && u) {
-        return u;
+      let u = kRef(shadyDOMNodeWRM.get(a));
+      if (!u) {
+        u = new ShadyDOM.Wrapper(a);
+        shadyDOMNodeWRM.set(a, mWeakRef(u));
       }
-      return new ShadyDOM.Wrapper(a);
+      return u;
     }
 
 
@@ -581,7 +531,7 @@
       configurable: true
     });
 
-  })();
+  })(typeof WeakRef !== 'undefined' ? WeakRef : function () { });
 
   if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
     const filter = new Set([
@@ -1126,7 +1076,7 @@
           }
 
           const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
-          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && isSpeedMastSpacebarControlEnabled;
+          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && (isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag());
           // console.log(582, isDelayedSpaceBar)
           if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
 
@@ -1148,7 +1098,7 @@
         if (FIX_SHORTCUTKEYS === 2 && ret && a >= 32 && ytPageReady === 1 && Date.now() - lastUserAction < 40 && activeElement === document.activeElement) {
 
           const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
-          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && isSpeedMastSpacebarControlEnabled;
+          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && (isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag());
           // console.log(583, isDelayedSpaceBar)
           if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
 
@@ -1191,7 +1141,7 @@
       handleGlobalKeyDown(a, b, c, d, e, f, h, l) {
 
         const activeElement = document.activeElement;
-        if (!isSpeedMastSpacebarControlEnabled && a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space') {
+        if (a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space' && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
           return false;
         }
         const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
@@ -1240,6 +1190,18 @@
     //   }
     // };
 
+    const getSpeedMasterControlFlag = () => {
+
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control) {
+        isSpeedMastSpacebarControlEnabled = true;
+      }
+      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control) {
+        isSpeedMastSpacebarControlEnabled = true;
+      }
+
+      return isSpeedMastSpacebarControlEnabled;
+    }
 
     const keyboardController = async (_yt_player) => {
 
@@ -1298,15 +1260,8 @@
       await pm_p_a.then();
       const p_a_obj = kRef(p_a_objWR);
 
-      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control) {
-        isSpeedMastSpacebarControlEnabled = true;
-      }
-      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control) {
-        isSpeedMastSpacebarControlEnabled = true;
-      }
+      const isSpeedMastSpacebarControlEnabledA = getSpeedMasterControlFlag();
 
-      const isSpeedMastSpacebarControlEnabledA = isSpeedMastSpacebarControlEnabled;
 
       if (CHANGE_SPEEDMASTER_SPACEBAR_CONTROL > 0) {
 
@@ -1334,7 +1289,7 @@
 
       }
 
-      const isSpeedMastSpacebarControlEnabledB = isSpeedMastSpacebarControlEnabled;
+      const isSpeedMastSpacebarControlEnabledB = getSpeedMasterControlFlag();
 
       console.log('[yt-js-engine-tamer] speedmaster by space (yt setting)', isSpeedMastSpacebarControlEnabledA, isSpeedMastSpacebarControlEnabledB);
 
@@ -1554,7 +1509,7 @@
 
         let useImprovedPauseResume = false;
 
-        if (USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER && isSpaceBar && !isSpeedMastSpacebarControlEnabled) {
+        if (USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER && isSpaceBar && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
 
           const api = p_a_obj.api;
           const stateControllable = isStateControllable(api);
@@ -1613,7 +1568,7 @@
 
         } else if (evt.type === 'keyup') {
 
-          if (isSpaceBar && useImprovedPauseResume && !isSpeedMastSpacebarControlEnabled) {
+          if (isSpaceBar && useImprovedPauseResume && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
 
             rr = true;
           } else {
