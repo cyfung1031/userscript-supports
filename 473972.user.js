@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.5
+// @version     0.14.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -328,6 +328,20 @@
 
     console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
 
+    const weakWrapperNodeHandlerFn = ()=>({
+      get() {
+        let w = shadyDOMNodeWRM.get(this);
+        if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
+        return w;
+      },
+      set(nv) {
+        shadyDOMNodeWRM.set(this, mWeakRef(nv));
+        return true;
+      },
+      enumerable: true,
+      configurable: true
+    });
+
     function weakWrapper(_ShadyDOM) {
       const ShadyDOM = _ShadyDOM;
       if (WEAKREF_ShadyDOM && lz < 3 && typeof WeakRef === 'function' && typeof ShadyDOM.Wrapper === 'function' && ShadyDOM.Wrapper.length === 1 && typeof (ShadyDOM.Wrapper.prototype || 0) === 'object') {
@@ -336,19 +350,7 @@
         let p = new ShadyDOM.Wrapper(nullElement);
         let d = Object.getOwnPropertyDescriptor(p, 'node');
         if (d.configurable && d.enumerable && !d.get && !d.set && d.writable && d.value === nullElement && !Object.getOwnPropertyDescriptor(ShadyDOM.Wrapper.prototype, 'node')) {
-          Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', {
-            get() {
-              let w = shadyDOMNodeWRM.get(this);
-              if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
-              return w;
-            },
-            set(nv) {
-              shadyDOMNodeWRM.set(this, mWeakRef(nv));
-              return true;
-            },
-            enumerable: true,
-            configurable: true
-          });
+          Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', weakWrapperNodeHandlerFn());
           console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
         }
       }
@@ -1793,87 +1795,88 @@
   stp.id = 'weakref-placeholder'
 
 
-  const setupD = typeof WeakRef !== 'undefined' ? (elm, s, usePlaceholder) => {
+  const handlerWFs = {};
+  
+  const createHandlerWF = (z, usePlaceholder) =>{
 
+    return {
+      get() {
+        const elm = this;
+        const wr = elm[z];
+        if (!wr) return null;
+        const m = kRef(wr);
+        if (!m && usePlaceholder) {
+          if (typeof usePlaceholder === 'function') usePlaceholder(elm);
+          return stp;
+        }
+        return m;
+      },
+      set(nv) {
+        const elm = this;
+        elm[z] = nv ? mWeakRef(nv) : null;
+        return true;
+      },
+      configurable: true,
+      enumerable: true
+
+    }
+  }
+
+  const setupWF = typeof WeakRef !== 'undefined' ? (elm, s, usePlaceholder) => {
     const z = `${s}72`;
-
-    if (s in elm) {
-
-      const p = elm[s];
-
+    if(z in elm) return;
+    const pd = Object.getOwnPropertyDescriptor(elm,s);
+    if (pd && pd.configurable && !pd.get && !pd.set) {
+      const p = pd.value;
       delete elm[s];
-
-      Object.defineProperty(elm, s, {
-        get() {
-          const elm = this;
-          const wr = elm[z];
-          if (!wr) return null;
-          const m = kRef(wr);
-          if (!m && usePlaceholder) {
-            if (typeof usePlaceholder === 'function') usePlaceholder(elm);
-            return stp;
-          }
-          return m;
-        },
-        set(nv) {
-          const elm = this;
-          elm[z] = nv ? mWeakRef(nv) : null;
-          return true;
-        },
-        configurable: true,
-        enumerable: true
-
-      });
-
+      const handlerWF = handlerWFs[s] || (handlerWFs[s] = createHandlerWF(z, usePlaceholder));
+      Object.defineProperty(elm, s, handlerWF);
       elm[s] = p;
       elm = null;
-
-
     }
   } : null;
 
-  const mxMap = new WeakMap();
+  const mxMapPD = new WeakMap();
 
-  const myMap = new WeakSet();
-
-  const setup$ = typeof WeakRef !== 'undefined' ? function (dh) {
-
-    const $ = dh.$;
-
-    if (WEAK_REF_PROXY_DOLLAR && $ && typeof $ === 'object' && !dh.$ky37) {
-
-      dh.$ky37 = 1;
-
-      if (!myMap.has($)) {
-
-        for (const [k, v] of Object.entries($)) {
-          if (v instanceof Node) {
-            $[k] = mWeakRef(v);
-          }
-        }
-
-        dh.$ = mxMap.get($) || new Proxy($, {
-          get(obj, prop) {
-            const val = obj[prop];
-            if (typeof (val || 0).deref === 'function') {
-              return val.deref();
-            }
-            return val;
-          },
-          set(obj, prop, val) {
-            if (val instanceof Node) {
-              obj[prop] = mWeakRef(val);
-            } else {
-              obj[prop] = val;
-            }
-            return true;
-          }
-        });
-
-        mxMap.set($, dh.$);
-        myMap.add(dh.$);
-
+  const identifierWD = Symbol();
+  const handlerWD = {
+    get(obj, prop) {
+      if (prop === identifierWD) return true;
+      const val = obj[prop];
+      if (typeof (val || 0).deref === 'function') {
+        return val.deref();
       }
+      return val;
+    },
+    set(obj, prop, val) {
+      if (val instanceof Node) {
+        obj[prop] = mWeakRef(val);
+      } else {
+        obj[prop] = val;
+      }
+      return true;
+    }
+  };
+
+  const setupWD = WEAK_REF_PROXY_DOLLAR && typeof WeakRef !== 'undefined' ? function (dh) {
+
+    const $ = dh ? dh.$ : 0;
+
+    if (typeof ($ || 0) === 'object' && $[identifierWD] !== true) {
+
+      for (const [k, v] of Object.entries($)) {
+        if (v instanceof Node) {
+          $[k] = mWeakRef(v);
+        }
+      }
+
+      let kPD = mxMapPD.get($);
+      if (!kPD) {
+        kPD = new Proxy($, handlerWD);
+        mxMapPD.set($, kPD);
+      }
+      delete dh.$;
+      dh.$ = kPD;
 
     }
 
@@ -1927,9 +1930,10 @@
       } catch (e) { }
     }
   };
-  const setupDataHost = setupD && setup$ ? function (dh, opt) {
 
-    if (dh && typeof dh === 'object') {
+  const setupDataHost = WEAK_REF_BINDING && setupWF && setupWD ? function (dh, opt) {
+
+    if (typeof (dh||0) === 'object') {
 
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
@@ -1946,22 +1950,24 @@
         dh.attached = attachedT;
       }
 
-      setupD(dh, 'hostElement', hostElementCleanUp);
-      setupD(dh, 'parentComponent');
-      setupD(dh, 'localVisibilityObserver_');
-      setupD(dh, 'cachedProviderNode_');
+      dh.m822 = (dh.m822 || 0) + 1;
+
+      setupWF(dh, 'hostElement', hostElementCleanUp);
+      setupWF(dh, 'parentComponent');
+      setupWF(dh, 'localVisibilityObserver_');
+      setupWF(dh, 'cachedProviderNode_');
 
 
-      setupD(dh, '__template');
-      setupD(dh, '__templatizeOwner');
-      setupD(dh, '__templateInfo');
+      setupWF(dh, '__template');
+      setupWF(dh, '__templatizeOwner');
+      setupWF(dh, '__templateInfo');
 
-      // setupD(dh, 'root', 1);
+      // setupD1(dh, 'root', 1);
 
-      const elements_ = dh.elements_;
-      if (elements_ && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupD(dh, 'elements_');
+      let elements_;
+      if (!('elements_72' in dh) && (elements_ = dh.elements_) && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupWF(dh, 'elements_');
 
-      setup$(dh);
+      setupWD(dh);
     }
 
 
@@ -2876,10 +2882,43 @@
     };
   }
 
+  const assignedHolderWS = new WeakSet();
+
   const setupWeakRef = (h) => {
 
 
-    if (WEAK_REF_BINDING && !h.kz62 && setup$ && setupD && setupDataHost && (h.is || h.__dataHost)) {
+
+    /*
+    if(typeof h.is === 'string'){
+
+      const holder = h.hostElement || h;
+      if (holder instanceof Node) {
+        if (!assignedHolderWS.has(holder)) {
+          assignedHolderWS.add(holder);
+          h.kz62 = 0;
+        }
+      }
+
+    }
+
+    */
+
+    // if(h.is === 'ytd-metadata-row-container-renderer'){
+
+    //   if(!h.mk2145) h.mk2145 = crypto.randomUUID();
+
+    //   let ww = '';
+    //   const holder = h.hostElement || h;
+    //   if(holder && holder.setAttribute){
+    //     holder.setAttribute('sww',(holder.getAttribute('sww' ) || '' )+"*" )
+
+    //     ww = holder.getAttribute('sww')
+    //   }
+    //   console.log(2929,  `a.${'hostElement' in h};b.${'hostElement72' in h}`, h.mk2145,  h.is ,ww, h, `kz62=${h.kz62}` , !!(setupWD && setupWF && setupDataHost && (h.is || h.__dataHost)) )
+      
+    // } 
+
+    if ( setupDataHost!==null  && ('hostElement' in h) && !('hostElement72' in h)) {
 
       let skip = false;
       // if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
@@ -2889,37 +2928,26 @@
       //   }
       // }
 
-      h.kz62 = 1;
+      h.kz62 = (h.kz62||0)+1;
 
       //
 
-      setup$(h);
+      setupWD(h);
       const hostElement = h.hostElement;
 
-      if (hostElement !== h) {
-
-        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
-          setupD(h, s);
-        }
-
-        const dh = h.__dataHost;
-        setupDataHost(dh, skip);
+      for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
+        setupWF(h, s);
+        setupWF(hostElement, s);
       }
 
-      if (hostElement) {
+      setupDataHost(h.__dataHost, skip);
+      setupDataHost(hostElement.__dataHost, skip);
 
-        for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
-          setupD(hostElement, s);
-        }
+      hostElement && aDelay().then(() => {
+        setupWF(hostElement, '__CE_shadowRoot');
+      }); 
 
-        const dh = hostElement.__dataHost;
-        setupDataHost(dh, skip);
-
-        aDelay().then(() => {
-          setupD(hostElement, '__CE_shadowRoot');
-        });
-
-      }
+       if(!h.m822) setupDataHost(h)
 
     }
 
@@ -2943,7 +2971,8 @@
       if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
 
       if (WEAK_REF_BINDING && (this instanceof Node) && (this.is || this.__dataHost)) {
-        setupWeakRef(this)
+        
+        setupWeakRef( insp(this))
         // setupWeakRef(this.__dataHost)
       }
       return r;
