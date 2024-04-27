@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.5.5
+// @version     1.6.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -77,6 +77,8 @@
   const USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET = false;
 
   const COMMENTS_NO_DELAY = true;
+
+  const SPACEBAR_CONTROL = 0; // 0 - only scroll down; 1 - global pause; 2 - speed control pause
 
 
 
@@ -201,7 +203,7 @@
   ]);
 
   const fOperMapFn = (o) => new Map(Object.entries({
-    // 1 true 2 false 3 
+    // 1 true 2 false 3
 
     ...((o.no_autoplay_toggle !== true) ? {
 
@@ -322,7 +324,14 @@
   function fOper(key, value) {
 
     if (fOperAcceptList.has(key)) return fOperAccept;
+    if (key.length === 22 || key.length === 27 || key.length === 32) {
 
+      if (SPACEBAR_CONTROL === 2 && key.includes('speedmaster')) {
+        return fOperAccept;
+      }
+
+    }
+    // if(key.length < 30)continue;
     // const kl = key.length;
 
     let keep = false;
@@ -1009,6 +1018,9 @@
 
           if (cachedSet.has(key)) continue;
 
+
+
+
           if (FLAG_STRATEGY_20240413 && key.includes('network')) continue;
           if (FLAG_STRATEGY_20240413 && key.includes('less')) continue;
           if (FLAG_STRATEGY_20240413 && key.includes('latency')) continue;
@@ -1050,6 +1062,22 @@
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
       // return;
+
+      if (SPACEBAR_CONTROL === 0) {
+        EXPERIMENT_FLAGS.disable_space_scroll_fix = false;
+        EXPERIMENT_FLAGS.global_spacebar_pause = false;
+        EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = false;
+      } else if (SPACEBAR_CONTROL === 1) {
+
+        EXPERIMENT_FLAGS.disable_space_scroll_fix = false;
+        EXPERIMENT_FLAGS.global_spacebar_pause = true;
+        EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = false;
+      } else if (SPACEBAR_CONTROL === 2) {
+
+        EXPERIMENT_FLAGS.disable_space_scroll_fix = false;
+        EXPERIMENT_FLAGS.global_spacebar_pause = true;
+        EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = true;
+      }
 
       EXPERIMENT_FLAGS.use_cfr_monitor = false;
       EXPERIMENT_FLAGS.skip_network_check_if_cfr = false;
