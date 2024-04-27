@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.3
+// @version     0.14.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -131,6 +131,10 @@
   const hkey_script = 'jswylcojvzts';
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
+
+
+
+  let BY_PASS_KEYBOARD_CONTROL = false;
 
 
   // const setImmediate = ((self || 0).jmt || 0).setImmediate;
@@ -868,6 +872,7 @@
     let ytPageReady = 0;
 
     let isSpeedMastSpacebarControlEnabled = false; // youtube experimental feature // can be forced by CHANGE_SPEEDMASTER_SPACEBAR_CONTROL
+    let isGlobalSpaceControl = true;
     let mediaPlayerElementWR = null;
     let focusedElementAtSelection = null;
 
@@ -1036,12 +1041,14 @@
       if (FIX_SHORTCUTKEYS > 0) {
         if (p_a_obj && !p_a_obj.hVhtg) {
           p_a_obj.hVhtg = 1;
+
           p_a_obj.handleGlobalKeyUp91 = p_a_obj.handleGlobalKeyUp;
           p_a_obj.handleGlobalKeyUp = p_a_xt.handleGlobalKeyUp;
           p_a_obj.handleGlobalKeyDown91 = p_a_obj.handleGlobalKeyDown;
           p_a_obj.handleGlobalKeyDown = p_a_xt.handleGlobalKeyDown;
           p_a_obj.__handleGlobalKeyBefore__ = p_a_xt.__handleGlobalKeyBefore__;
           p_a_obj.__handleGlobalKeyAfter__ = p_a_xt.__handleGlobalKeyAfter__;
+
         }
         // if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE && p_a_obj && p_a_obj.api && !p_a_obj.api.hVhtg) {
         //   const api = p_a_obj.api
@@ -1094,7 +1101,6 @@
 
       __handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret) {
 
-
         if (FIX_SHORTCUTKEYS === 2 && ret && a >= 32 && ytPageReady === 1 && Date.now() - lastUserAction < 40 && activeElement === document.activeElement) {
 
           const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
@@ -1126,6 +1132,9 @@
 
       handleGlobalKeyUp(a, b, c, d, e, f, h) {
 
+        if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyUp91(a, b, c, d, e, f, h);
+        if (!getGlobalSpacebarControlFlag()) return false;
+
         const activeElement = document.activeElement;
 
         const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
@@ -1140,10 +1149,15 @@
       },
       handleGlobalKeyDown(a, b, c, d, e, f, h, l) {
 
+
+        if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
+
+        if (!getGlobalSpacebarControlFlag()) return false;
+
         const activeElement = document.activeElement;
-        if (a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space' && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
-          return false;
-        }
+        // if (a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space' && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
+        //   return this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
+        // }
         const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
         if (allow === false) return false;
 
@@ -1190,9 +1204,11 @@
     //   }
     // };
 
+    let flagSpeedMaster = null;
     const getSpeedMasterControlFlag = () => {
 
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      isSpeedMastSpacebarControlEnabled = false;
       if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control) {
         isSpeedMastSpacebarControlEnabled = true;
       }
@@ -1200,7 +1216,35 @@
         isSpeedMastSpacebarControlEnabled = true;
       }
 
+      if (flagSpeedMaster === null) {
+        const p = (((config || 0).WEB_PLAYER_CONTEXT_CONFIGS || 0).WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH || 0).serializedExperimentFlags;
+        if (!p) {
+          flagSpeedMaster = false;
+        } else {
+
+          flagSpeedMaster = (p.includes('web_enable_speedmaster=true') && p.includes('web_speedmaster_spacebar_control=true') && p.includes('web_speedmaster_updated_edu=true'));
+
+        }
+
+      }
+      if (!flagSpeedMaster) isSpeedMastSpacebarControlEnabled = false;
+
       return isSpeedMastSpacebarControlEnabled;
+    }
+
+
+    const getGlobalSpacebarControlFlag = () => {
+
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      isGlobalSpaceControl = false;
+      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.global_spacebar_pause) {
+        isGlobalSpaceControl = true;
+      }
+      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.global_spacebar_pause) {
+        isGlobalSpaceControl = true;
+      }
+
+      return isGlobalSpaceControl;
     }
 
     const keyboardController = async (_yt_player) => {
@@ -1290,6 +1334,9 @@
       }
 
       const isSpeedMastSpacebarControlEnabledB = getSpeedMasterControlFlag();
+
+
+
 
       console.log('[yt-js-engine-tamer] speedmaster by space (yt setting)', isSpeedMastSpacebarControlEnabledA, isSpeedMastSpacebarControlEnabledB);
 
@@ -1467,6 +1514,7 @@
 
 
       const keyEventListener = (evt) => {
+        if (BY_PASS_KEYBOARD_CONTROL) return;
 
         if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
         if (isSpaceKeyImmediate || !evt.isTrusted || !(evt instanceof KeyboardEvent)) return;
@@ -1477,6 +1525,7 @@
         const p_a_obj = kRef(p_a_objWR);
 
         if (!p_a_obj) return;
+
 
         const mediaPlayerElement = kRef(mediaPlayerElementWR);
         if (!mediaPlayerElement) return;
@@ -1489,6 +1538,8 @@
         else if (controlPhase === 1 || controlPhase === 2 || controlPhase === 5) return;
         else if ((controlPhase !== 6 || focusedElementAtSelection === document.activeElement) && getCurrentSelectionText() !== "") return;
 
+
+        if (evt.code === 'Space' && !getGlobalSpacebarControlFlag()) return;
 
         // console.log(`${evt.type}::controlPhase`,controlPhase)
 
