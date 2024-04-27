@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.5.4
+// @version     1.5.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -95,7 +95,7 @@
   // kevlar_tuner_default_comments_delay
   // kevlar_tuner_run_default_comments_delay
 
-  // cinematic feature is no longer an experimential feature.
+  // cinematic feature is no longer an experimental feature.
   // It has been officially implemented.
   // To disable cinematics, the user shall use other userscripts or just turn off the option in the video options.
 
@@ -1050,6 +1050,9 @@
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
       // return;
+
+      EXPERIMENT_FLAGS.use_cfr_monitor = false;
+      EXPERIMENT_FLAGS.skip_network_check_if_cfr = false;
 
       if (FLAG_STRATEGY_20240413) {
         EXPERIMENT_FLAGS.kevlar_watch_grid = false;
