@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.4
+// @version     0.14.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
@@ -354,8 +354,17 @@
       }
     }
 
+    let previousWrapStore = null;
+
     const standardWrap = function (a) {
       if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
+      if (previousWrapStore) {
+        const s = kRef(previousWrapStore.get(a)); // kRef for play safe only
+        if (s) {
+          previousWrapStore.delete(a);
+          shadyDOMNodeWRM.set(a, mWeakRef(s));
+        }
+      }
       let u = kRef(shadyDOMNodeWRM.get(a));
       if (!u) {
         u = new ShadyDOM.Wrapper(a);
@@ -391,13 +400,14 @@
         return;
       }
       const p = mm.values().next().value;
-      mm.clear();
       if (!(p instanceof WeakMap)) return;
       // p.clear();
-      p.get = function (a) { return a }
-      p.set = function (a, b) { return this }
+      // p.get = function (a) { return a }
+      // p.set = function (a, b) { return this }
       // console.log(188, window.n2n = mm, window.n2p = p)
 
+      // console.log(34929,p.size)
+      previousWrapStore = p;
 
       if (typeof ShadyDOM.wrap === 'function' && ShadyDOM.wrap.length === 1) {
         ShadyDOM.wrap = function (a) { 0 && console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
