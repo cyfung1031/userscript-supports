@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.0
+// @version     0.15.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -131,6 +131,10 @@
     'filledButtonOverrides', 'openPopupConfig', 'supportsInlineActionButtons', 'allowedProps',
 
     'dimension', 'loadTime', 'pendingPaint',
+
+    'countdownDurationMs', 'countdownMs', 'lastCountdownTimeMs', 'rafId', 'playerProgressSec', 'detlaSincePausedSecs', 'behaviorActionMap', 'selected', 'maxLikeCount', 'maxReplyCount', 'isMouseOver',
+
+    'respectLangDir', 'noEndpoints',
 
 
     'objectURL', 
