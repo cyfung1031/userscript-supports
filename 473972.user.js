@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.7
+// @version     0.14.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -1145,7 +1145,7 @@
       handleGlobalKeyUp(a, b, c, d, e, f, h) {
 
         if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyUp91(a, b, c, d, e, f, h);
-        if (!getGlobalSpacebarControlFlag()) return false;
+        if (flagSpeedMaster !== false && !getGlobalSpacebarControlFlag()) return false;
 
         const activeElement = document.activeElement;
 
@@ -1164,7 +1164,7 @@
 
         if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
 
-        if (!getGlobalSpacebarControlFlag()) return false;
+        if (flagSpeedMaster !== false && !getGlobalSpacebarControlFlag()) return false;
 
         const activeElement = document.activeElement;
         // if (a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space' && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
