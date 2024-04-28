@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.14.9
+// @version     0.15.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -103,6 +103,85 @@
 
   const CHANGE_SPEEDMASTER_SPACEBAR_CONTROL = 0; // 0 - disable; 1 - force true; 2 - force false
   const USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER = true; // only for SPEEDMASTER = false & FIX_SHORTCUTKEYS = 2
+
+  const PROP_OverReInclusion_AVOID = true;
+  const PROP_OverReInclusion_DEBUGLOG = false;
+  const PROP_OverReInclusion_LIST = new Set([
+    'hostElement72',
+    'parentComponent72',
+    'localVisibilityObserver_72',
+    'cachedProviderNode_72',
+    '__template72',
+    '__templatizeOwner72',
+    '__templateInfo72',
+    '__dataHost72',
+    '__CE_shadowRoot72',
+    'elements_72',
+
+    'ky36',
+    'kz62',
+    'm822',
+
+
+
+    // To be reviewed.
+
+    // chat messages
+    'disabled', 'allowedProps',
+    'filledButtonOverrides', 'openPopupConfig', 'supportsInlineActionButtons', 'allowedProps',
+
+    'dimension', 'loadTime', 'pendingPaint',
+
+
+    'objectURL', 
+    'buttonOverrides', 'queuedMessages',
+    'STEP', 'BLOCK_ON', 'MIN_PROGESS', 'MAX_PROGESS',
+    'DISMISSED_CONTENT_KEYSPACE', 'followUpDialogPromise', 'followUpDialogPromiseResolve', 'followUpDialogPromiseReject', 
+    'hoverJobId', 'JSC$14573_touched',
+
+
+    // tbc
+    'toggleable', 'isConnected',
+    'scrollDistance', 'dragging', 'dragMouseStart', 'dragOffsetStart', 'containerWidthDiff',
+    'disableDeselectEvent',
+    'emojiSize',
+
+    'buttonOverride',
+    'shouldUseStickyPreferences', 'longPressTimeoutId',
+
+    // others
+    'observeVisibleOption', 'observeHiddenOption', 'observePrescanOption', 'visibilityMonitorKeys', 
+    // 'filledButtonOverrides', 'openPopupConfig', 'supportsInlineActionButtons',
+    'observeVisibleOption', 'observeHiddenOption', 'observePrescanOption', 'visibilityMonitorKeys',
+    //  'dimension', 'loadTime', 'pendingPaint',
+  //  'disabled', 'allowedProps',
+
+
+    // 'enableMssLazyLoad', 'popupContainerConfig', 'actionRouterNode', 'actionRouterIsRoot', 'actionMap', 'dynamicActionMap',
+    // 'actionMap',
+
+    // 'sharedTooltipPosition', 'sharedTooltipAnimationDelay', 'disableEmojiPickerIncrementalLoading', 'useResolveCommand', 'activeRequest', 'popoutWindowCheckIntervalId', 'supportedTooltipTargets', 'closeActionPanelTimerId', 'delayCloseActionPanelTimerId', 'tooltipTimerIds', 'queuedTooltips', 'isPopupConfigReady', 'popoutWindow', 'actionMap',
+
+    'clearTimeout',
+    'switchTemplateAtRegistration','hasUnmounted',
+    'switchTemplateAtRegistration','stopKeyboardEventPropagation',
+    'tangoConfiguration',
+    'itemIdToDockDurationMap',
+    'actionMap',
+
+    'emojiManager', 'inputMethodEditorActive', 'suggestionIndex', 'JSC$10745_lastSuggestionRange',
+    'actionMap', 'asyncHandle', 'shouldAnimateIn', 'lastFrameTimestamp', 'scrollClampRaf',
+    'scrollRatePixelsPerSecond', 'scrollStartTime', 'scrollStopHandle'
+
+    // 'buttonOverrides', 'queuedMessages', 'clearTimeout', 'actionMap',
+    // 'stopKeyboardEventPropagation', 'emojiSize',
+    // 'switchTemplateAtRegistration', 'hasUnmounted',
+    // 'buttonOverrides', 'queuedMessages', 'clearTimeout', 'actionMap',
+    // 'isReusable', 'tangoConfiguration',
+    // 'itemIdToDockDurationMap', 'bottomAlignMessages', 'actionMap',
+    // */
+
+  ]);
 
 
   // const CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE = false; // NO USE; TO BE REVIEWED
@@ -219,6 +298,48 @@
       };
     }
   }
+
+
+
+  const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
+
+  const promiseForCustomYtElementsReady = isCustomElementsProvided ? Promise.resolve(0) : new Promise((callback) => {
+    const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
+    if (typeof customElements === 'undefined') {
+      if (!('__CE_registry' in document)) {
+        // https://github.com/webcomponents/polyfills/
+        Object.defineProperty(document, '__CE_registry', {
+          get() {
+            // return undefined
+          },
+          set(nv) {
+            if (typeof nv == 'object') {
+              delete this.__CE_registry;
+              this.__CE_registry = nv;
+              this.dispatchEvent(new CustomEvent(EVENT_KEY_ON_REGISTRY_READY));
+            }
+            return true;
+          },
+          enumerable: false,
+          configurable: true
+        })
+      }
+      let eventHandler = (evt) => {
+        document.removeEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+        const f = callback;
+        callback = null;
+        eventHandler = null;
+        f();
+      };
+      document.addEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+    } else {
+      callback();
+    }
+  });
+
+  const whenCEDefined = isCustomElementsProvided
+    ? (nodeName) => customElements.whenDefined(nodeName)
+    : (nodeName) => promiseForCustomYtElementsReady.then(() => customElements.whenDefined(nodeName));
 
   FIX_perfNow && performance.timeOrigin > 9 && (() => {
     if (performance.now23 || performance.now16 || typeof Performance.prototype.now !== 'function') return;
@@ -1974,6 +2095,113 @@
 
   } : null;
 
+  PROP_OverReInclusion_AVOID && (()=>{
+
+    
+    if(typeof HTMLElement.prototype.hasOwnProperty72 === 'function' || typeof HTMLElement.prototype.hasOwnProperty !== 'function') return;
+    const f = HTMLElement.prototype.hasOwnProperty72 = HTMLElement.prototype.hasOwnProperty;
+    let byPassVal = null;
+    let byPassCount = 0;
+    let mmw = new Set()
+    HTMLElement.prototype.hasOwnProperty = function (prop) {
+      if (arguments.length !== 1) return f.apply(this, arguments);
+      if (byPassVal !== null && typeof prop === 'string'){
+
+ 
+        if(PROP_OverReInclusion_LIST.has(prop)){
+          
+          byPassCount++;
+          return byPassVal;
+        }
+
+        // if(byPassVal === true && !this.hasOwnProperty72(prop)){
+
+        //   Object.de
+
+        // }
+
+        PROP_OverReInclusion_DEBUGLOG && mmw.add(prop);
+
+
+      }
+      return this.hasOwnProperty72(prop);
+    }
+    
+
+/*
+
+
+        z.prototype.forwardDynamicProps = function() {
+            var B = m(this.inst);
+            B = h(B);
+            for (var F = B.next(); !F.done; F = B.next()) {
+                var H = h(F.value);
+                F = H.next().value;
+                H = H.next().value;
+                my(this, F, H);
+                r(b) && !ly(F) && Wua(this.inst, F)
+            }
+        }
+
+        */
+
+
+
+    let byPassZeroShowed = false;
+    const forwardDynamicPropsGeneral = function () {
+      byPassVal = true;
+      byPassCount = 0;
+      PROP_OverReInclusion_DEBUGLOG && mmw.clear();
+      const ret = this.forwardDynamicProps72();
+      byPassVal = null;
+      if (byPassCount === 0 && !byPassZeroShowed) {
+        byPassZeroShowed = true;
+        console.log('[yt-js-engine-tamer] byPassCount = 0 in forwardDynamicProps')
+      }
+      byPassCount = 0;
+      if(PROP_OverReInclusion_DEBUGLOG && mmw.size>0) console.log(399,'[yt-js-engine-tamer]',[...mmw])
+      PROP_OverReInclusion_DEBUGLOG && mmw.clear();
+      return ret;
+    };
+
+    const propCheck = (proto)=>{
+      if( typeof (proto ||0 ) == 'object' && typeof proto.forwardDynamicProps ==='function' && typeof proto.forwardDynamicProps72 !=='function'){
+        proto.forwardDynamicProps72 = proto.forwardDynamicProps;
+        if(proto.forwardDynamicProps.length === 0){
+          proto.forwardDynamicProps = forwardDynamicPropsGeneral;
+        }
+      }
+    };
+    
+    const valMap = new WeakMap();
+    Object.defineProperty(HTMLElement.prototype, 'didForwardDynamicProps', {
+      get() {
+        propCheck(this.constructor.prototype);
+        return valMap.get(this);
+      },
+      set(nv) {
+        propCheck(this.constructor.prototype);
+        valMap.set(this, nv);
+        return true;
+      },
+      enumerable: false,
+      configurable: true
+
+    });
+
+    promiseForCustomYtElementsReady.then(() => {
+      if (typeof customElements !== 'object' || typeof customElements.define72 === 'function' || typeof customElements.define !== 'function') return;
+      if (customElements.define.length !== 2) return;
+      customElements.define72 = customElements.define;
+      customElements.define = function (b, w) {
+        propCheck(w.prototype);
+        const ret = this.define72(b, w);
+        return ret;
+      }
+    });
+
+  })();
+
 
   let delay300 = null;
 
@@ -2881,7 +3109,7 @@
     };
   }
 
-  const assignedHolderWS = new WeakSet();
+  // const assignedHolderWS = new WeakSet();
 
   const setupWeakRef = (h) => {
 
@@ -3266,45 +3494,6 @@
   let NO_PRELOAD_GENERATE_204_BYPASS = NO_PRELOAD_GENERATE_204 ? false : true;
   let headLinkCollection = null;
 
-  const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
-
-  const promiseForCustomYtElementsReady = isCustomElementsProvided ? null : new Promise((callback) => {
-    const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
-    if (typeof customElements === 'undefined') {
-      if (!('__CE_registry' in document)) {
-        // https://github.com/webcomponents/polyfills/
-        Object.defineProperty(document, '__CE_registry', {
-          get() {
-            // return undefined
-          },
-          set(nv) {
-            if (typeof nv == 'object') {
-              delete this.__CE_registry;
-              this.__CE_registry = nv;
-              this.dispatchEvent(new CustomEvent(EVENT_KEY_ON_REGISTRY_READY));
-            }
-            return true;
-          },
-          enumerable: false,
-          configurable: true
-        })
-      }
-      let eventHandler = (evt) => {
-        document.removeEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
-        const f = callback;
-        callback = null;
-        eventHandler = null;
-        f();
-      };
-      document.addEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
-    } else {
-      callback();
-    }
-  });
-
-  const whenCEDefined = isCustomElementsProvided
-    ? (nodeName) => customElements.whenDefined(nodeName)
-    : (nodeName) => promiseForCustomYtElementsReady.then(() => customElements.whenDefined(nodeName));
 
   // const assertor = (f) => f() || console.assert(false, f + "");
 
