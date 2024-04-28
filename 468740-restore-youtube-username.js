@@ -26,14 +26,14 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.017
+// @version             0.11.018
 // @license             MIT License
 
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://m.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
-// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/general-icon.png
+// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/general-icon.png
 // @supportURL          https://github.com/cyfung1031/userscript-supports
 // @run-at              document-start
 // @grant               none

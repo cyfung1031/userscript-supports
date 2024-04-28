@@ -28,10 +28,10 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.15
+// @version             0.1.16
 // @license             MIT License
 // @author              CY Fung
-// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
+// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
 // @run-at              document-start
 // @unwrap
 // @inject-into         page

@@ -2,10 +2,10 @@
 // @name                YouTube: Force html5_exponential_memory_for_sticky
 // @namespace           Violentmonkey Scripts
 // @match               https://www.youtube.com/*
-// @version             0.5.7
+// @version             0.5.8
 // @license             MIT
 // @author              CY Fung
-// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
+// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
 // @description         To prevent YouTube to change the video quality automatically during YouTube Live Streaming.
 // @run-at              document-start
 // @grant               none

@@ -2,10 +2,10 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.1
+// @version     1.6.2
 // @license     MIT
 // @author      CY Fung
-// @icon        https://github.com/cyfung1031/userscript-supports/raw/main/icons/yt-engine.png
+// @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
 // @description Adjust EXPERIMENT_FLAGS
 // @grant       none
 // @unwrap

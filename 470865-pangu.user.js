@@ -2,7 +2,7 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.11
+// @version             0.7.12
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
@@ -13,7 +13,7 @@
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @exclude             /^shttps?://yuzu-emu.org/*$/
 
-// @icon                https://github.com/cyfung1031/userscript-supports/raw/main/icons/blank-letter.png
+// @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/blank-letter.png
 // @grant               GM_setValue
 // @grant               unsafeWindow
 // @run-at              document-start
