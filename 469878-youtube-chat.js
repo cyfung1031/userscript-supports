@@ -2123,30 +2123,43 @@
 
 
 
-      const spliceIndicesFunc = (beforeParticipants, participants, idsBefore, idsAfter) => {
+      let participantsForSpliceWR = null;
 
-        const handler1 = {
-          get(target, prop, receiver) {
-            if (prop === 'object') {
-              return participants; // avoid memory leakage
-            }
-            if (prop === 'type') {
-              return 'splice';
-            }
-            if (prop === '__proxy312__') return 1;
-            return target[prop];
-          }
-        };
-        const releaser = () => {
-          participants = null;
+      class IndexSpliceEntry {
+        /**
+         * 
+         * @param {number} _index 
+         * @param {number} _addedCount 
+         * @param {any[]} _removed 
+         */
+        constructor(_index, _addedCount, _removed){
+          this.index = _index;
+          this.addedCount = _addedCount;
+          this.removed= _removed;
         }
+        get __proxy312__() {
+          return 1
+        }
+        get type() {
+          return 'splice'
+        }
+        get object() {
+          return kRef(participantsForSpliceWR); // avoid memory leakage
+        }
+      }
+
+      const spliceIndicesFunc = (beforeParticipants, participants, idsBefore, idsAfter) => {
 
         let foundsForAfter = foundMap(idsAfter, idsBefore);
         let foundsForBefore = foundMap(idsBefore, idsAfter);
 
-        let indexSplices = [];
-        let contentUpdates = [];
-        for (let i = 0, j = 0; i < foundsForBefore.length || j < foundsForAfter.length;) {
+        const nAfter = foundsForAfter.length;
+        const nBefore = foundsForBefore.length;
+
+        const indexSplices = [];
+        const contentUpdates = [];
+        participantsForSpliceWR = null;
+        for (let i = 0, j = 0; i < nBefore || j < nAfter;) {
           if (beforeParticipants[i] === participants[j]) {
             i++; j++;
           } else if (idsBefore[i] === idsAfter[j]) {
@@ -2155,23 +2168,24 @@
             i++; j++;
           } else {
             let addedCount = 0;
-            for (let q = j; q < foundsForAfter.length; q++) {
+            for (let q = j; q < nAfter; q++) {
               if (foundsForAfter[q] === false) addedCount++;
               else break;
             }
             let removedCount = 0;
-            for (let q = i; q < foundsForBefore.length; q++) {
+            for (let q = i; q < nBefore; q++) {
               if (foundsForBefore[q] === false) removedCount++;
               else break;
             }
             if (!addedCount && !removedCount) {
               throw 'ERROR(0xFF32): spliceIndicesFunc';
             }
-            indexSplices.push(new Proxy({
-              index: j,
-              addedCount: addedCount,
-              removed: removedCount >= 1 ? beforeParticipants.slice(i, i + removedCount) : []
-            }, handler1));
+            const entry = new IndexSpliceEntry(
+              j,
+              addedCount,
+              removedCount >= 1 ? beforeParticipants.slice(i, i + removedCount) : []
+            );
+            indexSplices.push(entry);
             i += removedCount;
             j += addedCount;
           }
@@ -2181,7 +2195,9 @@
         idsBefore = null;
         idsAfter = null;
         beforeParticipants = null;
-        return { indexSplices, contentUpdates, releaser };
+        participantsForSpliceWR = indexSplices.length > 0 ? mWeakRef(participants) : null;
+        participants = null;
+        return { indexSplices, contentUpdates };
 
       }
 
@@ -2355,7 +2371,7 @@
             const idsBefore = convertToIds(beforeParticipants);
             const idsAfter = convertToIds(participants);
 
-            let { indexSplices, contentUpdates, releaser } = spliceIndicesFunc(beforeParticipants, participants, idsBefore, idsAfter);
+            let { indexSplices, contentUpdates } = spliceIndicesFunc(beforeParticipants, participants, idsBefore, idsAfter);
 
             let res = 1; // default 1 for no update
 
@@ -2380,18 +2396,23 @@
                   indexSplices
                 });
                 indexSplices = null;
-                releaser();
-                releaser = null;
+                participantsForSpliceWR = null;
                 cnt.__notifyPath5036__("participantsManager.participants.length",
                   participants.length
                 );
 
               });
 
-              await Promise.resolve(0); // play safe for the change of 'length'
+              // play safe for the change of 'length'
+              if (typeof nextBrowserTick !== 'function') {
+                await Promise.resolve(0);
+              } else {
+                await new Promise(resolve => nextBrowserTick(resolve)).then();
+              }
+              
               countOfElements = cnt.__getAllParticipantsDOMRenderedLength__();
 
-              let wrongSize = participants.length !== countOfElements
+              const wrongSize = participants.length !== countOfElements
               if (wrongSize) {
                 console.warn("ERROR(0xE2C3): notifyPath7081", beforeParticipants.length, participants.length, doms.length)
                 return 0;
@@ -2402,8 +2423,7 @@
             } else {
 
               indexSplices = null;
-              releaser();
-              releaser = null;
+              participantsForSpliceWR = null;
 
               if (participants.length !== countOfElements) {
                 // other unhandled cases
@@ -3085,7 +3105,7 @@
               // page visibly ready -> load the latest comments at initial loading
               const lcRenderer = lcRendererElm();
               if (lcRenderer) {
-                if (typeof window.nextBrowserTick !== 'function') {
+                if (typeof nextBrowserTick !== 'function') {
                   insp(lcRenderer).scrollToBottom_();
                 } else {
                   nextBrowserTick(() => {
@@ -4440,7 +4460,7 @@
                   //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                   if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
 
-                    if (typeof window.nextBrowserTick !== 'function') {
+                    if (typeof nextBrowserTick !== 'function') {
                       cnt.scrollToBottom_();
                       Promise.resolve().then(() => {
                         if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
@@ -4476,7 +4496,7 @@
                       itemScroller.scrollTop = itemScroller.scrollHeight;
                     }
                   };
-                  if (typeof window.nextBrowserTick !== 'function') {
+                  if (typeof nextBrowserTick !== 'function') {
                     scrollChatFn = () => Promise.resolve().then(f).then(f);
                   } else {
                     scrollChatFn = () => nextBrowserTick(f);
@@ -6835,7 +6855,7 @@
             }
 
 
-            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
+            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
 
 
 
