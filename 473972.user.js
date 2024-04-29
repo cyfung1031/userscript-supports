@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.1
+// @version     0.15.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -5978,16 +5978,19 @@
       class LimitedSizeSet extends Set {
         constructor(n) {
           super();
-
           this.limit = n;
         }
 
         add(key) {
           if (!super.has(key)) {
-            super.add(key); // Set the key with a dummy value (true)
-            while (super.size > this.limit) {
-              const firstKey = super.values().next().value; // Get the first (oldest) key
-              super.delete(firstKey); // Delete the oldest key
+            super.add(key);
+            let n = super.size - this.limit;
+            if (n > 0) {
+              const iterator = super.values();
+              do {
+                const firstKey = iterator.next().value; // Get the first (oldest) key
+                super.delete(firstKey); // Delete the oldest key
+              } while (--n > 0)
             }
           }
         }
