@@ -1,28 +1,39 @@
 /* ==UserStyle==
 @name           YouTube: fadeInChatMessage
 @namespace      github.com/openstyles/stylus
-@version        0.1.0
+@version        0.1.1
 @description    To fade in Chat Messages
 @author         CY Fung
+@preprocessor   stylus
+@var number     from-opacity              "From Opacity"                  [0.3, 0, 1, 0.05]
+@var number     to-opacity                "To Opacity"                    [1, 0, 1, 0.05]
+@var number     fade-duration             "Fade Duration"                 [350, 10, 900, 10, 'ms']
+@var select     timing-fx                 "Timing Fx"                     {
+"cubic-bezier(.4,.9,.5,1)": "cubic-bezier(.4,.9,.5,1)",
+"linear": "linear"
+}
 ==/UserStyle== */
 
 @-moz-document url-prefix("https://www.youtube.com/live_chat") {
     
     
+    if 1 {
+        $animation = fadeInChatMessage fade-duration timing-fx 0s 1 normal forwards
+    }
+    
     @keyframes fadeInChatMessage {
         from{
-            opacity:0.6;
+            opacity:from-opacity;
         }
         to{
-            opacity:1;
+            opacity:to-opacity;
         }
     }
 
 
     [wsr93] {
 
-        animation: fadeInChatMessage 80ms linear 0s 1 normal forwards;
-
+        animation: $animation;
     }
     
     /* Insert code here... */
