@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer (VF2)
 // @name:zh-TW          YouTube CPU Tamer (VF2)
 // @namespace           http://tampermonkey.net/
-// @version             2024.04.29.4
+// @version             2024.04.29.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -434,7 +434,7 @@ SOFTWARE.
         if (mInterupter !== null) {
           if (pnSelection === true) {
             const videoElement = kRef(videoElementWR);
-            if (videoElement && videoElement.isConnected && videoElement.paused === false) {
+            if (!videoElement || !videoElement.isConnected || videoElement.paused === true) {
               pnSelection = false;
               promiseFn = rafPN;
             }
