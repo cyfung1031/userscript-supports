@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.18
+// @version             0.61.19
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1145,16 +1145,19 @@
   class LimitedSizeSet extends Set {
     constructor(n) {
       super();
-
       this.limit = n;
     }
 
     add(key) {
       if (!super.has(key)) {
-        super.add(key); // Set the key with a dummy value (true)
-        while (super.size > this.limit) {
-          const firstKey = super.values().next().value; // Get the first (oldest) key
-          super.delete(firstKey); // Delete the oldest key
+        super.add(key);
+        let n = super.size - this.limit;
+        if (n > 0) {
+          const iterator = super.values();
+          do {
+            const firstKey = iterator.next().value; // Get the first (oldest) key
+            super.delete(firstKey); // Delete the oldest key
+          } while (--n > 0)
         }
       }
     }
@@ -1807,8 +1810,8 @@
 
 
   let kptPF = null;
-  const emojiPrefetched = new Set();
-  const authorPhotoPrefetched = new Set();
+  const emojiPrefetched = new LimitedSizeSet(PREFETCH_LIMITED_SIZE_EMOJI);
+  const authorPhotoPrefetched = new LimitedSizeSet(PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO);
 
   function linker(link, rel, href, _as) {
     return new Promise(resolve => {
@@ -4378,8 +4381,6 @@
                 }
               }
               if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4)) && imageLinks.size > 0) {
-                if (emojiPrefetched.size > PREFETCH_LIMITED_SIZE_EMOJI) emojiPrefetched.clear();
-                if (authorPhotoPrefetched.size > PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO) authorPhotoPrefetched.clear();
 
                 // reference: https://github.com/Yuanfang-fe/Blog-X/issues/34
                 const rel = kptPF & 8 ? 'subresource' : kptPF & 16 ? 'preload' : kptPF & 4 ? 'prefetch' : '';
