@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.04.08.0
+// @version             2024.04.29.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -220,10 +220,7 @@ SOFTWARE.
       asc.id = 'a-f';
       let qr = null;
       asc.onanimationiteration = function () {
-        if (qr !== null) {
-          qr();
-          qr = null;
-        }
+        if (qr !== null) qr = (qr(), null);
       }
       if (!document.getElementById('afscript')) {
         const style = document.createElement('style');
@@ -295,14 +292,17 @@ SOFTWARE.
       const inExec = new Set();
       const wFunc = async (handler, wStore) => {
         try {
-          const cid = wStore.cid;
-          inExec.add(cid);
-          const t = await eFunc();
-          const didNotRemove = inExec.delete(cid); // true for valid key
-          if (didNotRemove && t !== wStore.lastExecution) {
+          const ct = Date.now();
+          if (ct - wStore.dt < 800) {
+            const cid = wStore.cid;
+            inExec.add(cid);
+            const t = await eFunc();
+            const didNotRemove = inExec.delete(cid); // true for valid key
+            if (!didNotRemove || t === wStore.lastExecution) return;
             wStore.lastExecution = t;
-            handler();
           }
+          wStore.dt = ct;
+          handler();
         } catch (e) {
           console.error(e);
           throw e;
@@ -311,7 +311,7 @@ SOFTWARE.
       const sFunc = (propFunc) => {
         return (func, ms = 0, ...args) => {
           if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
-            const wStore = {};
+            const wStore = { dt: Date.now() };
             return (wStore.cid = propFunc(wFunc, ms, (args.length > 0 ? func.bind(null, ...args) : func), wStore));
           } else {
             return propFunc(func, ms, ...args);
