@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.17
+// @version             0.61.18
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -100,6 +100,7 @@
   // << if DO_LINK_PREFETCH >>
   const ENABLE_BASE_PREFETCHING = true;               // (SUB-)DOMAIN | dns-prefetch & preconnect
   const ENABLE_PRELOAD_THUMBNAIL = true;              // subresource (prefetch) [LINK for Images]
+  const SKIP_PRELOAD_EMOJI = true;
   const PREFETCH_LIMITED_SIZE_EMOJI = 512;            // DO NOT CHANGE THIS
   const PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO = 68;      // DO NOT CHANGE THIS
   // << end >>
@@ -4389,6 +4390,7 @@
 
                   imageLinks.forEach(imageLink => {
                     let d = false;
+                    if (SKIP_PRELOAD_EMOJI && imageLink.includes('.ggpht.com/')) return;
                     const isEmoji = imageLink.includes('/emoji/');
                     const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
                     if (!pretechedSet.has(imageLink)) {
