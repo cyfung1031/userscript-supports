@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer (VF2)
 // @name:zh-TW          YouTube CPU Tamer (VF2)
 // @namespace           http://tampermonkey.net/
-// @version             2024.04.29.1
+// @version             2024.04.29.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -126,118 +126,118 @@ SOFTWARE.
 /* jshint esversion:8 */
 
 ((__CONTEXT__) => {
-    'use strict';
-  
-    const win = this instanceof Window ? this : window;
-  
-    // Create a unique key for the script and check if it is already running
-    const hkey_script = 'nzsxclvflluv';
-    if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
-    win[hkey_script] = true;
-  
-    /** @type {globalThis.PromiseConstructor} */
-    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
-    const PromiseExternal = ((resolve_, reject_) => {
-      const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
-      return class PromiseExternal extends Promise {
-        constructor(cb = h) {
-          super(cb);
-          if (cb === h) {
-            /** @type {(value: any) => void} */
-            this.resolve = resolve_;
-            /** @type {(reason?: any) => void} */
-            this.reject = reject_;
-          }
+  'use strict';
+
+  const win = this instanceof Window ? this : window;
+
+  // Create a unique key for the script and check if it is already running
+  const hkey_script = 'nzsxclvflluv';
+  if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
+  win[hkey_script] = true;
+
+  /** @type {globalThis.PromiseConstructor} */
+  const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const PromiseExternal = ((resolve_, reject_) => {
+    const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+    return class PromiseExternal extends Promise {
+      constructor(cb = h) {
+        super(cb);
+        if (cb === h) {
+          /** @type {(value: any) => void} */
+          this.resolve = resolve_;
+          /** @type {(reason?: any) => void} */
+          this.reject = reject_;
         }
-      };
-    })();
-  
-  
-    /* globals WeakRef:false */
-  
-    /** @type {(o: Object | null) => WeakRef | null} */
-    const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null); // typeof InvalidVar == 'undefined'
-  
-    /** @type {(wr: Object | null) => Object | null} */
-    const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
-  
-    const cleanContext = async (win) => {
-      const waitFn = requestAnimationFrame; // shall have been binded to window
-      try {
-        let mx = 16; // MAX TRIAL
-        const frameId = 'vanillajs-iframe-v1'
-        let frame = document.getElementById(frameId);
-        let removeIframeFn = null;
-        if (!frame) {
-          frame = document.createElement('iframe');
-          frame.id = frameId;
-          const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
-          frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
-          let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
-          n.appendChild(frame);
-          while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
-          const root = document.documentElement;
-          root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
-          if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
-  
-          removeIframeFn = (setTimeout) => {
-            const removeIframeOnDocumentReady = (e) => {
-              e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-              e = n;
-              n = win = removeIframeFn = 0;
-              setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
-            }
-            if (!setTimeout || document.readyState !== 'loading') {
-              removeIframeOnDocumentReady();
-            } else {
-              win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
-            }
-          }
-        }
-        while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
-        const fc = frame.contentWindow;
-        if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
-        try {
-          const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
-          const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
-          for (let k in res) res[k] = res[k].bind(win); // necessary
-          if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
-          return res;
-        } catch (e) {
-          if (removeIframeFn) removeIframeFn();
-          return null;
-        }
-      } catch (e) {
-        console.warn(e);
-        return null;
       }
     };
-  
-    cleanContext(win).then(__CONTEXT__ => {
-  
-      if (!__CONTEXT__) return null;
-  
-      const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__;
-  
-      /** @type {Function|null} */
-      let afInterupter = null;
-  
-  
-      const getRAFHelper = () => {
-        const asc = document.createElement('a-f');
-        if (!('onanimationiteration' in asc)) {
-          return (resolve) => requestAnimationFrame(afInterupter = resolve);
+  })();
+
+
+  /* globals WeakRef:false */
+
+  /** @type {(o: Object | null) => WeakRef | null} */
+  const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null); // typeof InvalidVar == 'undefined'
+
+  /** @type {(wr: Object | null) => Object | null} */
+  const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+  const cleanContext = async (win) => {
+    const waitFn = requestAnimationFrame; // shall have been binded to window
+    try {
+      let mx = 16; // MAX TRIAL
+      const frameId = 'vanillajs-iframe-v1'
+      let frame = document.getElementById(frameId);
+      let removeIframeFn = null;
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = frameId;
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
+        frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
+        let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
+        n.appendChild(frame);
+        while (!document.documentElement && mx-- > 0) await new Promise(waitFn); // requestAnimationFrame here could get modified by YouTube engine
+        const root = document.documentElement;
+        root.appendChild(n); // throw error if root is null due to exceeding MAX TRIAL
+        if (blobURL) Promise.resolve().then(() => URL.revokeObjectURL(blobURL));
+
+        removeIframeFn = (setTimeout) => {
+          const removeIframeOnDocumentReady = (e) => {
+            e && win.removeEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+            e = n;
+            n = win = removeIframeFn = 0;
+            setTimeout ? setTimeout(() => e.remove(), 200) : e.remove();
+          }
+          if (!setTimeout || document.readyState !== 'loading') {
+            removeIframeOnDocumentReady();
+          } else {
+            win.addEventListener("DOMContentLoaded", removeIframeOnDocumentReady, false);
+          }
         }
-        asc.id = 'a-f';
-        let qr = null;
-  
-        asc.onanimationiteration = function () {
-          if (qr !== null) qr = (qr(), null);
-        }
-        if (!document.getElementById('afscript')) {
-          const style = document.createElement('style');
-          style.id = 'afscript';
-          style.textContent = `
+      }
+      while (!frame.contentWindow && mx-- > 0) await new Promise(waitFn);
+      const fc = frame.contentWindow;
+      if (!fc) throw "window is not found."; // throw error if root is null due to exceeding MAX TRIAL
+      try {
+        const { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout } = fc;
+        const res = { requestAnimationFrame, setInterval, setTimeout, clearInterval, clearTimeout };
+        for (let k in res) res[k] = res[k].bind(win); // necessary
+        if (removeIframeFn) Promise.resolve(res.setTimeout).then(removeIframeFn);
+        return res;
+      } catch (e) {
+        if (removeIframeFn) removeIframeFn();
+        return null;
+      }
+    } catch (e) {
+      console.warn(e);
+      return null;
+    }
+  };
+
+  cleanContext(win).then(__CONTEXT__ => {
+
+    if (!__CONTEXT__) return null;
+
+    const { requestAnimationFrame, setTimeout, setInterval, clearTimeout, clearInterval } = __CONTEXT__;
+
+    /** @type {Function|null} */
+    let afInterupter = null;
+
+
+    const getRAFHelper = () => {
+      const asc = document.createElement('a-f');
+      if (!('onanimationiteration' in asc)) {
+        return (resolve) => requestAnimationFrame(afInterupter = resolve);
+      }
+      asc.id = 'a-f';
+      let qr = null;
+
+      asc.onanimationiteration = function () {
+        if (qr !== null) qr = (qr(), null);
+      }
+      if (!document.getElementById('afscript')) {
+        const style = document.createElement('style');
+        style.id = 'afscript';
+        style.textContent = `
               @keyFrames aF1 {
                 0% {
                   order: 0;
@@ -264,163 +264,176 @@ SOFTWARE.
                 animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
               }
             `;
-          (document.head || document.documentElement).appendChild(style);
-        }
-        document.documentElement.insertBefore(asc, document.documentElement.firstChild);
-        return (resolve) => (qr = afInterupter = resolve);
-      };
-  
-      /** @type {(resolve: () => void)}  */
-  
-      let videoElementWR = null;
-      let videoFC = null;
-      let pnSelection = false;
-      let promiseFn = null;
-  
-      const {  videoPN } = (() => {
-        // let qr;
-        // const tuListener = function () {
-        //   if (qr !== null) qr = (qr(), null);
-        // }
-        const videoPN = (resolve) => {
-          afInterupter = resolve;
-          videoFC(resolve);
-        }
-        return { videoPN };
-      })();
-  
-      document.addEventListener('durationchange', (evt) => {
-        const videoElement = document.querySelector('#movie_player .html5-main-video[src]') || evt.target;
-        if (videoElement === kRef(videoElementWR) && pnSelection === true) return;
-        if (typeof videoElement.requestVideoFrameCallback !== 'function') return;
+        (document.head || document.documentElement).appendChild(style);
+      }
+      document.documentElement.insertBefore(asc, document.documentElement.firstChild);
+      return (resolve) => (qr = afInterupter = resolve);
+    };
+
+    /** @type {(resolve: () => void)}  */
+
+    let videoElementWR = null;
+    let videoFC = null;
+    let pnSelection = false;
+    let promiseFn = null;
+
+    const { videoPN } = (() => {
+      // let qr;
+      // const tuListener = function () {
+      //   if (qr !== null) qr = (qr(), null);
+      // }
+      const videoPN = (resolve) => {
+        afInterupter = resolve;
+        videoFC(resolve);
+      }
+      return { videoPN };
+    })();
+
+    const pyListener = ()=>{
+      pnSelection = true;
+      promiseFn = videoPN;
+    }
+
+    document.addEventListener('durationchange', (evt) => {
+      const videoElement = document.querySelector('#movie_player .html5-main-video[src]') || evt.target;
+      if (videoElement === kRef(videoElementWR) && pnSelection === true) return;
+      if (typeof videoElement.requestVideoFrameCallback !== 'function') return;
+      pnSelection = false;
+      promiseFn = rafPN;
+      videoElementWR = mWeakRef(videoElement);
+      videoFC = videoElement.requestVideoFrameCallback.bind(videoElement);
+
+
+      videoElement.removeEventListener('playing', pyListener, { capture: false, passive: true });
+      videoElement.addEventListener('playing', pyListener, { capture: false, passive: true });
+
+      // videoElement.removeEventListener('timeupdate', tuListener, { capture: false, passive: true });
+      // videoElement.addEventListener('timeupdate', tuListener, { capture: false, passive: true });
+      pnSelection = true;
+      promiseFn = videoPN;
+    }, { capture: true, passive: true });
+
+    document.addEventListener('yt-navigate-start', () => {
+      if (pnSelection === true) {
+
         pnSelection = false;
         promiseFn = rafPN;
-        videoElementWR = mWeakRef(videoElement);
-        videoFC = videoElement.requestVideoFrameCallback.bind(videoElement);
-        
-        // videoElement.removeEventListener('timeupdate', tuListener, { capture: false, passive: true });
-        // videoElement.addEventListener('timeupdate', tuListener, { capture: false, passive: true });
-        pnSelection = true;
-        promiseFn = videoPN;
-      }, { capture: true, passive: true });
-  
-      document.addEventListener('yt-navigate-start', () => {
-        if (pnSelection === true) {
-  
-          pnSelection = false;
-          promiseFn = rafPN;
-        }
-      });
-  
-      document.addEventListener('yt-navigate-cache', () => {
-        if (pnSelection === true) {
-  
-          pnSelection = false;
-          promiseFn = rafPN;
-        }
-      });
-  
-      document.addEventListener('yt-navigate-finish', () => {
-        if (pnSelection === false) {
-  
-          const videoElement = kRef(videoElementWR);
-          if (videoElement && videoElement.isConnected) {
-            pnSelection = true;
-            promiseFn = videoPN;
-          }
-        }
-      });
-  
-      const rafPN = getRAFHelper(); // rAF will not execute if document is hidden
-  
-      promiseFn = rafPN;
-  
-      (() => {
-        let afPromiseP, afPromiseQ; // non-null
-        afPromiseP = afPromiseQ = { resolved: true }; // initial state for !uP && !uQ
-        let afix = 0;
-        const afResolve = async (rX) => {
-          await new Promise(promiseFn);
-          rX.resolved = true;
-          const t = ++afix;
-          if (t > 9e9) afix = 9;
-          return rX.resolve(t), t;
-        };
-        const eFunc = async () => {
-          const uP = !afPromiseP.resolved ? afPromiseP : null;
-          const uQ = !afPromiseQ.resolved ? afPromiseQ : null;
-          let t = 0;
-          if (uP && uQ) {
-            const t1 = await uP;
-            const t2 = await uQ;
-            t = t1 > t2 && t1 - t2 < 8e9 ? t1 : t2;
-          } else {
-            const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
-            const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;
-            if (uQ) await uQ; else if (uP) await uP;
-            if (vP) t = await afResolve(vP);
-            if (vQ) t = await afResolve(vQ);
-          }
-          return t;
-        }
-        const inExec = new Set();
-        const wFunc = async (handler, wStore) => {
-          try {
-            const ct = Date.now();
-            if (ct - wStore.dt < 800) {
-              const cid = wStore.cid;
-              inExec.add(cid);
-              const t = await eFunc();
-              const didNotRemove = inExec.delete(cid); // true for valid key
-              if (!didNotRemove || t === wStore.lastExecution) return;
-              wStore.lastExecution = t;
-            }
-            wStore.dt = ct;
-            handler();
-          } catch (e) {
-            console.error(e);
-            throw e;
-          }
-        };
-        const sFunc = (propFunc) => {
-          return (func, ms = 0, ...args) => {
-            if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
-              const wStore = { dt: Date.now() };
-              return (wStore.cid = propFunc(wFunc, ms, (args.length > 0 ? func.bind(null, ...args) : func), wStore));
-            } else {
-              return propFunc(func, ms, ...args);
-            }
-          };
-        };
-        win.setTimeout = sFunc(setTimeout);
-        win.setInterval = sFunc(setInterval);
-  
-        const dFunc = (propFunc) => {
-          return (cid) => {
-            if (cid) inExec.delete(cid) || propFunc(cid);
-          };
-        };
-  
-        win.clearTimeout = dFunc(clearTimeout);
-        win.clearInterval = dFunc(clearInterval);
-  
-        try {
-          win.setTimeout.toString = setTimeout.toString.bind(setTimeout);
-          win.setInterval.toString = setInterval.toString.bind(setInterval);
-          win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout);
-          win.clearInterval.toString = clearInterval.toString.bind(clearInterval);
-        } catch (e) { console.warn(e) }
-  
-      })();
-  
-      let mInterupter = null;
-      setInterval(() => {
-        if (mInterupter === afInterupter) {
-          if (mInterupter !== null) afInterupter = mInterupter = (mInterupter(), null);
-        } else {
-          mInterupter = afInterupter;
-        }
-      }, 125);
+      }
     });
-  
-  })(null);
+
+    document.addEventListener('yt-navigate-cache', () => {
+      if (pnSelection === true) {
+
+        pnSelection = false;
+        promiseFn = rafPN;
+      }
+    });
+
+    document.addEventListener('yt-navigate-finish', () => {
+      if (pnSelection === false) {
+
+        const videoElement = kRef(videoElementWR);
+        if (videoElement && videoElement.isConnected) {
+          pnSelection = true;
+          promiseFn = videoPN;
+        }
+      }
+    });
+
+    const rafPN = getRAFHelper(); // rAF will not execute if document is hidden
+
+    promiseFn = rafPN;
+
+    (() => {
+      let afPromiseP, afPromiseQ; // non-null
+      afPromiseP = afPromiseQ = { resolved: true }; // initial state for !uP && !uQ
+      let afix = 0;
+      const afResolve = async (rX) => {
+        await new Promise(promiseFn);
+        rX.resolved = true;
+        const t = ++afix;
+        if (t > 9e9) afix = 9;
+        return rX.resolve(t), t;
+      };
+      const eFunc = async () => {
+        const uP = !afPromiseP.resolved ? afPromiseP : null;
+        const uQ = !afPromiseQ.resolved ? afPromiseQ : null;
+        let t = 0;
+        if (uP && uQ) {
+          const t1 = await uP;
+          const t2 = await uQ;
+          t = t1 > t2 && t1 - t2 < 8e9 ? t1 : t2;
+        } else {
+          const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
+          const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;
+          if (uQ) await uQ; else if (uP) await uP;
+          if (vP) t = await afResolve(vP);
+          if (vQ) t = await afResolve(vQ);
+        }
+        return t;
+      }
+      const inExec = new Set();
+      const wFunc = async (handler, wStore) => {
+        try {
+          const ct = Date.now();
+          if (ct - wStore.dt < 800) {
+            const cid = wStore.cid;
+            inExec.add(cid);
+            const t = await eFunc();
+            const didNotRemove = inExec.delete(cid); // true for valid key
+            if (!didNotRemove || t === wStore.lastExecution) return;
+            wStore.lastExecution = t;
+          }
+          wStore.dt = ct;
+          handler();
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
+      };
+      const sFunc = (propFunc) => {
+        return (func, ms = 0, ...args) => {
+          if (typeof func === 'function') { // ignore all non-function parameter (e.g. string)
+            const wStore = { dt: Date.now() };
+            return (wStore.cid = propFunc(wFunc, ms, (args.length > 0 ? func.bind(null, ...args) : func), wStore));
+          } else {
+            return propFunc(func, ms, ...args);
+          }
+        };
+      };
+      win.setTimeout = sFunc(setTimeout);
+      win.setInterval = sFunc(setInterval);
+
+      const dFunc = (propFunc) => {
+        return (cid) => {
+          if (cid) inExec.delete(cid) || propFunc(cid);
+        };
+      };
+
+      win.clearTimeout = dFunc(clearTimeout);
+      win.clearInterval = dFunc(clearInterval);
+
+      try {
+        win.setTimeout.toString = setTimeout.toString.bind(setTimeout);
+        win.setInterval.toString = setInterval.toString.bind(setInterval);
+        win.clearTimeout.toString = clearTimeout.toString.bind(clearTimeout);
+        win.clearInterval.toString = clearInterval.toString.bind(clearInterval);
+      } catch (e) { console.warn(e) }
+
+    })();
+
+    let mInterupter = null;
+    setInterval(() => {
+      if (mInterupter === afInterupter) {
+        if (mInterupter !== null) {
+          pnSelection = false;
+          promiseFn = rafPN;
+          afInterupter = mInterupter = (mInterupter(), null);
+        }
+      } else {
+        mInterupter = afInterupter;
+      }
+    }, 125);
+  });
+
+})(null);
