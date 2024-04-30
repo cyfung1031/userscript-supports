@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.2
+// @version     0.15.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -6705,7 +6705,7 @@
 
             if (cProto.doIdomRender13 === cProto.templatingFn) cProto.templatingFn = doIdomRender;
 
-            console.debug('FIX_doIdomRender', ytTag)
+            console.debug('[yt-js-engine-tamer] FIX_doIdomRender', ytTag)
 
 
 
