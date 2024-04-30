@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.3
+// @version     0.15.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -91,6 +91,8 @@
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
+
+  const FIX_removeChild = true;
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -395,6 +397,20 @@
       loggerMsg = performance.now !== performance.now16 ? msg1 : msg2; // might not able to set in Firefox
     }
     loggerMsg && console.warn(loggerMsg);
+  })();
+
+  FIX_removeChild && (() => {
+    if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
+      Node.prototype.removeChild062 = Node.prototype.removeChild;
+      Node.prototype.removeChild = function (child) {
+        if (typeof this.__shady_native_removeChild === 'function') {
+          if (child.parentNode === this) this.removeChild062(child);
+          return child;
+        } else {
+          return this.removeChild062(child);
+        }
+      }
+    }
   })();
 
   // WEAKREF_ShadyDOM
