@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.4
+// @version     0.15.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -92,7 +92,7 @@
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
-  const FIX_removeChild = true;
+  const FIX_removeChild = false;
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -2459,6 +2459,8 @@
 
     }
 
+    /*
+    // affect chat message icon tooltips
     if (typeof h.addTooltips === 'function' && !(h.addTooltips.km34)) {
 
       const f = h.addTooltips;
@@ -2470,6 +2472,7 @@
       h.addTooltips = g;
 
     }
+    */
 
     if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
 
