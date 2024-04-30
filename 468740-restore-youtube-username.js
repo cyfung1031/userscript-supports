@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.018
+// @version             0.11.019
 // @license             MIT License
 
 // @author              CY Fung
@@ -1721,11 +1721,12 @@ SOFTWARE.
         try {
             if (!hrefAttribute || !mt) return;
             let parentNode = nodeParent(anchor);
-            let isCommentViewModel = false;
+            let isCommentViewModel = 0;
             while (parentNode instanceof Node) {
                 const cnt = insp(parentNode);
                 if (typeof cnt.is === 'string') {
-                    if (cnt.commentEntity && cnt._propertiesChanged) { isCommentViewModel = true; break; } // Feb 2024: ytd-comment-view-model
+                    if (cnt.commentEntity && !cnt._propertiesChanged) { isCommentViewModel = 2; break; } // 2024.04.30: ytd-comment-view-model (v3)
+                    if (cnt.commentEntity && typeof cnt._propertiesChanged === 'function') { isCommentViewModel = 1; break; } // Feb 2024: ytd-comment-view-model (v1 & v2)
                     else if (typeof cnt.dataChanged === 'function') break;
                 }
                 parentNode = nodeParent(parentNode);
@@ -1733,7 +1734,7 @@ SOFTWARE.
             if (parentNode instanceof Node) { } else return;
             const parentNodeController = insp(parentNode);
 
-            if (isCommentViewModel) {
+            if (isCommentViewModel > 0) {
 
                 const commentEntity = parentNodeController.commentEntity || 0;
                 const commentEntityAuthor = commentEntity.author || 0;
@@ -1747,6 +1748,7 @@ SOFTWARE.
                     });
                 }
 
+                // not working for CommentViewModel v3
                 if (typeof parentNodeController._propertiesChanged === 'function' && !parentNodeController._propertiesChanged159) {
                     const cntp = parentNodeController.constructor.prototype;
                     const c = cntp._propertiesChanged === parentNodeController._propertiesChanged ? cntp : parentNodeController;
@@ -2423,10 +2425,16 @@ SOFTWARE.
             if (__data) {
                 haveData = true;
                 if (d = __data.authorTextCommand) return d.browseEndpoint || null; // ytd-comment-renderer
-                if (d = (__data.authorNameEndpoint || __data.authorEndpoint)) return d.browseEndpoint || null; // ytd-comment-view-model
+                if (d = (__data.authorNameEndpoint || __data.authorEndpoint)) return d.browseEndpoint || null; // ytd-comment-view-model (v1 & v2)
                 if ((d = (__data.data || 0)) && (d = (d.authorNameEndpoint || d.authorEndpoint))) return d.browseEndpoint || null; // ytd-author-comment-badge-renderer
                 // note: authorNameEndpoint instead of authorEndpoint for ytd-comment-view-model since 2024.04
+
+            } else {
+
+                if (d = (cnt.authorTextCommand || cnt.authorNameEndpoint || cnt.authorEndpoint)) return d.browseEndpoint || null; // ytd-comment-view-model (2024.04.30) (v3)
+
             }
+
         }
         if (haveData) {
             const tag = cnt.is;
