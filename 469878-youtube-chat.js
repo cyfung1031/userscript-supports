@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.20
+// @version             0.61.22
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6982,6 +6982,7 @@
         }
 
         const tooltipUIWM = new WeakMap();
+        const tooltipInitProps = {};
         const createTooltipIfRequired_ = function () {
           let r;
           if (tooltipUIWM.get(this) === void 0) {
@@ -6997,6 +6998,12 @@
             document.createElement = w;
             if (EU instanceof HTMLElement && EU.is) {
               tooltipUIWM.set(this, EU);
+
+              if (typeof EU.offset === 'number') tooltipInitProps['offset'] = EU.offset;
+              if (typeof EU.fitToVisibleBounds === 'boolean') tooltipInitProps['fitToVisibleBounds'] = EU.fitToVisibleBounds;
+              if (typeof EU.position === 'string') tooltipInitProps['position'] = EU.position;
+              if (typeof EU.for === 'string') tooltipInitProps['for'] = EU.for;
+
               // this.__mcT__ = EU.outerHTML;
               // EU.__dataX = JSON.stringify(EU.__data);
               // EU.__dataY = Object.entries(EU);
@@ -7077,16 +7084,20 @@
             // EU.removeAttribute('role');
             // EU.removeAttribute('tabindex');
             // EU.removeAttribute('style');
-            // EU.offset = 8;
-            // EU.fitToVisibleBounds = !0;
 
+
+            if (typeof tooltipInitProps.offset === 'number') EU['offset'] = tooltipInitProps.offset;
+            if (typeof tooltipInitProps.fitToVisibleBounds === 'boolean') EU['fitToVisibleBounds'] = tooltipInitProps.fitToVisibleBounds;
+            try {
+              if (typeof tooltipInitProps.position === 'string') EU['position'] = tooltipInitProps.position;
+              if (typeof tooltipInitProps.for === 'string') EU['for'] = tooltipInitProps.for; else delete EU.for;
+            } catch (e) { }
 
             // EU.__data = JSON.parse(EU.__dataX);
 
             // EU.__dataEnabled = false;
             // EU.__dataReady = false;
             // EU.__dataClientsReady = false;
-            // EU.position = 'bottom';
             // delete EU.__templateInfo;
             // delete EU.$;
             // delete EU.__shady;
