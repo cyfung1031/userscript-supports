@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.15.5
+// @version     0.16.0
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -71,6 +71,7 @@
   const ENABLE_ASYNC_DISPATCHEVENT = false; // problematic
 
   const UNLOAD_DETACHED_POLYMER = false; // unstable
+  const FIX_Polymer_dom = true;
 
   const WEAK_REF_BINDING = true; // false if your browser is slow
   // << if WEAK_REF_BINDING >>
@@ -139,10 +140,10 @@
     'respectLangDir', 'noEndpoints',
 
 
-    'objectURL', 
+    'objectURL',
     'buttonOverrides', 'queuedMessages',
     'STEP', 'BLOCK_ON', 'MIN_PROGESS', 'MAX_PROGESS',
-    'DISMISSED_CONTENT_KEYSPACE', 'followUpDialogPromise', 'followUpDialogPromiseResolve', 'followUpDialogPromiseReject', 
+    'DISMISSED_CONTENT_KEYSPACE', 'followUpDialogPromise', 'followUpDialogPromiseResolve', 'followUpDialogPromiseReject',
     'hoverJobId', 'JSC$14573_touched',
 
 
@@ -156,11 +157,11 @@
     'shouldUseStickyPreferences', 'longPressTimeoutId',
 
     // others
-    'observeVisibleOption', 'observeHiddenOption', 'observePrescanOption', 'visibilityMonitorKeys', 
+    'observeVisibleOption', 'observeHiddenOption', 'observePrescanOption', 'visibilityMonitorKeys',
     // 'filledButtonOverrides', 'openPopupConfig', 'supportsInlineActionButtons',
     'observeVisibleOption', 'observeHiddenOption', 'observePrescanOption', 'visibilityMonitorKeys',
     //  'dimension', 'loadTime', 'pendingPaint',
-  //  'disabled', 'allowedProps',
+    //  'disabled', 'allowedProps',
 
 
     // 'enableMssLazyLoad', 'popupContainerConfig', 'actionRouterNode', 'actionRouterIsRoot', 'actionMap', 'dynamicActionMap',
@@ -169,8 +170,8 @@
     // 'sharedTooltipPosition', 'sharedTooltipAnimationDelay', 'disableEmojiPickerIncrementalLoading', 'useResolveCommand', 'activeRequest', 'popoutWindowCheckIntervalId', 'supportedTooltipTargets', 'closeActionPanelTimerId', 'delayCloseActionPanelTimerId', 'tooltipTimerIds', 'queuedTooltips', 'isPopupConfigReady', 'popoutWindow', 'actionMap',
 
     'clearTimeout',
-    'switchTemplateAtRegistration','hasUnmounted',
-    'switchTemplateAtRegistration','stopKeyboardEventPropagation',
+    'switchTemplateAtRegistration', 'hasUnmounted',
+    'switchTemplateAtRegistration', 'stopKeyboardEventPropagation',
     'tangoConfiguration',
     'itemIdToDockDurationMap',
     'actionMap',
@@ -469,7 +470,7 @@
 
     console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
 
-    const weakWrapperNodeHandlerFn = ()=>({
+    const weakWrapperNodeHandlerFn = () => ({
       get() {
         let w = shadyDOMNodeWRM.get(this);
         if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
@@ -1936,8 +1937,8 @@
 
 
   const handlerWFs = {};
-  
-  const createHandlerWF = (z, usePlaceholder) =>{
+
+  const createHandlerWF = (z, usePlaceholder) => {
 
     return {
       get() {
@@ -1964,8 +1965,8 @@
 
   const setupWF = typeof WeakRef !== 'undefined' ? (elm, s, usePlaceholder) => {
     const z = `${s}72`;
-    if(z in elm) return;
-    const pd = Object.getOwnPropertyDescriptor(elm,s);
+    if (z in elm) return;
+    const pd = Object.getOwnPropertyDescriptor(elm, s);
     if (pd && pd.configurable && !pd.get && !pd.set) {
       const p = pd.value;
       delete elm[s];
@@ -2073,7 +2074,7 @@
 
   const setupDataHost = WEAK_REF_BINDING && setupWF && setupWD ? function (dh, opt) {
 
-    if (typeof (dh||0) === 'object') {
+    if (typeof (dh || 0) === 'object') {
 
       if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
         dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
@@ -2115,21 +2116,21 @@
 
   } : null;
 
-  PROP_OverReInclusion_AVOID && (()=>{
+  PROP_OverReInclusion_AVOID && (() => {
 
-    
-    if(typeof HTMLElement.prototype.hasOwnProperty72 === 'function' || typeof HTMLElement.prototype.hasOwnProperty !== 'function') return;
+
+    if (typeof HTMLElement.prototype.hasOwnProperty72 === 'function' || typeof HTMLElement.prototype.hasOwnProperty !== 'function') return;
     const f = HTMLElement.prototype.hasOwnProperty72 = HTMLElement.prototype.hasOwnProperty;
     let byPassVal = null;
     let byPassCount = 0;
     let mmw = new Set()
     HTMLElement.prototype.hasOwnProperty = function (prop) {
       if (arguments.length !== 1) return f.apply(this, arguments);
-      if (byPassVal !== null && typeof prop === 'string'){
+      if (byPassVal !== null && typeof prop === 'string') {
 
- 
-        if(PROP_OverReInclusion_LIST.has(prop)){
-          
+
+        if (PROP_OverReInclusion_LIST.has(prop)) {
+
           byPassCount++;
           return byPassVal;
         }
@@ -2146,24 +2147,24 @@
       }
       return this.hasOwnProperty72(prop);
     }
+
+
+    /*
     
-
-/*
-
-
-        z.prototype.forwardDynamicProps = function() {
-            var B = m(this.inst);
-            B = h(B);
-            for (var F = B.next(); !F.done; F = B.next()) {
-                var H = h(F.value);
-                F = H.next().value;
-                H = H.next().value;
-                my(this, F, H);
-                r(b) && !ly(F) && Wua(this.inst, F)
+    
+            z.prototype.forwardDynamicProps = function() {
+                var B = m(this.inst);
+                B = h(B);
+                for (var F = B.next(); !F.done; F = B.next()) {
+                    var H = h(F.value);
+                    F = H.next().value;
+                    H = H.next().value;
+                    my(this, F, H);
+                    r(b) && !ly(F) && Wua(this.inst, F)
+                }
             }
-        }
-
-        */
+    
+            */
 
 
 
@@ -2179,20 +2180,20 @@
         console.log('[yt-js-engine-tamer] byPassCount = 0 in forwardDynamicProps')
       }
       byPassCount = 0;
-      if(PROP_OverReInclusion_DEBUGLOG && mmw.size>0) console.log(399,'[yt-js-engine-tamer]',[...mmw])
+      if (PROP_OverReInclusion_DEBUGLOG && mmw.size > 0) console.log(399, '[yt-js-engine-tamer]', [...mmw])
       PROP_OverReInclusion_DEBUGLOG && mmw.clear();
       return ret;
     };
 
-    const propCheck = (proto)=>{
-      if( typeof (proto ||0 ) == 'object' && typeof proto.forwardDynamicProps ==='function' && typeof proto.forwardDynamicProps72 !=='function'){
+    const propCheck = (proto) => {
+      if (typeof (proto || 0) == 'object' && typeof proto.forwardDynamicProps === 'function' && typeof proto.forwardDynamicProps72 !== 'function') {
         proto.forwardDynamicProps72 = proto.forwardDynamicProps;
-        if(proto.forwardDynamicProps.length === 0){
+        if (proto.forwardDynamicProps.length === 0) {
           proto.forwardDynamicProps = forwardDynamicPropsGeneral;
         }
       }
     };
-    
+
     const valMap = new WeakMap();
     Object.defineProperty(HTMLElement.prototype, 'didForwardDynamicProps', {
       get() {
@@ -2473,6 +2474,56 @@
 
     }
     */
+    /*
+        if (typeof h.onMouseOver_ === 'function' && !(h.onMouseOver_.km34) && typeof h.createTooltipIfRequired_ === 'function') {
+            console.log(212, h.is);
+            const f = h.onMouseOver_;
+          const g = ump3.get(f) || function () {
+    
+              if (!this.__mEZ__) {
+    
+    
+                  const w = document.createElement;
+                  let EU = null;
+                  document.createElement = function () {
+                      let r = w.apply(this, arguments);
+                      EU = r;
+                      return r;
+                  };
+                  let done = false;
+                  try {
+                      this.polymerController.createTooltipIfRequired_();
+                      done = true;
+                  } catch (e) {
+    
+                  }
+                  if (!done) {
+                      try {
+                          this.createTooltipIfRequired_();
+                          done = true;
+                      } catch (e) {
+    
+                      }
+    
+                  }
+                  this.__mEZ__ = EU;
+                  document.createElement = w;
+              }
+              if(this.__mEZ__){
+                this.__mEZ__.remove();
+                // this.__mEZ__.for = null;
+                [...this.__mEZ__.querySelectorAll('.hidden')].forEach(e=>e.classList.remove('hidden'))
+              }
+            console.log(212,this, this.is, this.__mEZ__)
+            return f.apply(this, arguments)
+          }
+          ump3.set(f, g);
+          g.km34 = 1;
+          h.onMouseOver_ = g;
+    
+        }
+        */
+
 
     if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
 
@@ -3165,10 +3216,10 @@
     //     ww = holder.getAttribute('sww')
     //   }
     //   console.log(2929,  `a.${'hostElement' in h};b.${'hostElement72' in h}`, h.mk2145,  h.is ,ww, h, `kz62=${h.kz62}` , !!(setupWD && setupWF && setupDataHost && (h.is || h.__dataHost)) )
-      
-    // } 
 
-    if ( setupDataHost!==null  && ('hostElement' in h) && !('hostElement72' in h)) {
+    // }
+
+    if (setupDataHost !== null && ('hostElement' in h) && !('hostElement72' in h)) {
 
       let skip = false;
       // if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
@@ -3178,7 +3229,7 @@
       //   }
       // }
 
-      h.kz62 = (h.kz62||0)+1;
+      h.kz62 = (h.kz62 || 0) + 1;
 
       //
 
@@ -3195,9 +3246,9 @@
 
       hostElement && aDelay().then(() => {
         setupWF(hostElement, '__CE_shadowRoot');
-      }); 
+      });
 
-       if(!h.m822) setupDataHost(h)
+      if (!h.m822) setupDataHost(h)
 
     }
 
@@ -3221,8 +3272,8 @@
       if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
 
       if (WEAK_REF_BINDING && (this instanceof Node) && (this.is || this.__dataHost)) {
-        
-        setupWeakRef( insp(this))
+
+        setupWeakRef(insp(this))
         // setupWeakRef(this.__dataHost)
       }
       return r;
@@ -4519,11 +4570,138 @@
     // onVideoProgress
 
 
-    (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER) && (async () => {
+    (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER || FIX_Polymer_dom) && (async () => {
 
       const Polymer = await polymerObservable.obtain();
       if (!Polymer) return;
 
+      if (FIX_Polymer_dom) {
+
+        const checkPDFuncValue = (pd) => {
+          return pd && pd.writable && pd.enumerable && pd.configurable && typeof pd.value == 'function'
+        }
+        const checkPDFuncValue2 = (pd) => {
+          return pd && typeof pd.value == 'function'
+        }
+
+        const checkPDFuncGet = (pd) => {
+          return pd && typeof pd.get == 'function'
+        }
+
+        const domX = Polymer.dom(document.createElement('null'));
+        const domXP = (((domX || 0).constructor || 0).prototype || 0);
+        const pd1 = Object.getOwnPropertyDescriptor(domXP, 'getOwnerRoot');
+        const pd2 = Object.getOwnPropertyDescriptor(Node.prototype, 'parentElement');
+        const pd3 = Object.getOwnPropertyDescriptor(domXP, 'querySelector'); // undefined
+        const pd4 = Object.getOwnPropertyDescriptor(Element.prototype, 'querySelector');
+        const pd4b = Object.getOwnPropertyDescriptor(Document.prototype, 'querySelector');
+        const pd5 = Object.getOwnPropertyDescriptor(domXP, 'querySelectorAll'); // undefined
+        const pd6 = Object.getOwnPropertyDescriptor(Element.prototype, 'querySelectorAll');
+        const pd6b = Object.getOwnPropertyDescriptor(Document.prototype, 'querySelectorAll');
+
+
+        if (checkPDFuncValue(pd1) && checkPDFuncGet(pd2) && !domXP.getOwnerRoot15 && typeof domXP.getOwnerRoot === 'function') {
+
+          domXP.getOwnerRoot15 = domXP.getOwnerRoot;
+          domXP.getOwnerRoot = function () {
+            try {
+              const p = this.node;
+
+              if (p instanceof HTMLElement) {
+                const pp = pd2.get.call(p);
+                if (pp instanceof HTMLElement && pp.isConnected === true) {
+                  return pp.getRootNode();
+                }
+
+              }
+            } catch (e) { }
+            return this.getOwnerRoot15();
+          }
+
+          Polymer.__fixedGetOwnerRoot__ = 1;
+        }
+
+
+
+
+        if ((!pd3 || checkPDFuncValue(pd3)) && checkPDFuncValue2(pd4) && checkPDFuncValue2(pd4b) && !('querySelector15' in domXP)) {
+
+          domXP.querySelector15 = domXP.querySelector;
+
+          const querySelectorFn = function (query) {
+            try {
+              const p = this.node;
+
+              // if (p instanceof HTMLElement && p.isConnected === true) {
+              //     return pd4.value.call(p, query);
+              // }
+
+              if (p instanceof Document && p.isConnected === true) {
+                return pd4b.value.call(p, query);
+              }
+
+            } catch (e) { }
+            return this.querySelector15(query);
+          }
+
+          Object.defineProperty(domXP, 'querySelector', {
+            get() {
+              return querySelectorFn;
+            },
+            set(nv) {
+              if (nv === querySelectorFn) return true;
+              this.querySelector15 = nv;
+              return true;
+            },
+
+            enumerable: false,
+            configurable: true
+          });
+
+          Polymer.__fixedQuerySelector__ = 1;
+        }
+
+        if ((!pd5 || checkPDFuncValue(pd5)) && checkPDFuncValue2(pd6) && checkPDFuncValue2(pd6b) && !('querySelectorAll15' in domXP)) {
+
+          domXP.querySelectorAll15 = domXP.querySelectorAll;
+
+          const querySelectorAllFn = function (query) {
+
+            try {
+
+              const p = this.node;
+
+              // if (p instanceof HTMLElement && p.isConnected === true) {
+              //     return pd6.value.call(p, query);
+              // }
+
+              if (p instanceof Document && p.isConnected === true) {
+                return pd6b.value.call(p, query);
+              }
+
+            } catch (e) {
+
+            }
+            return this.querySelectorAll15(query);
+          }
+
+          Object.defineProperty(domXP, 'querySelectorAll', {
+            get() {
+              return querySelectorAllFn;
+            },
+            set(nv) {
+              if (nv === querySelectorAllFn) return true;
+              this.querySelectorAll15 = nv;
+              return true;
+            },
+
+            enumerable: false,
+            configurable: true
+          });
+
+          Polymer.__fixedQuerySelectorAll__ = 1;
+        }
+      }
 
       if (UNLOAD_DETACHED_POLYMER && typeof Polymer.Base.detached === 'function' && !Polymer.Base.detached92 && Polymer.Base.detached.length === 0) {
         Polymer.Base.detached92 = Polymer.Base.detached;
