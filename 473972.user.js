@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.2
+// @version     0.16.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -405,9 +405,8 @@
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
         if (typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
-          return this.removeChild062(child);
-        }
-        if (this.is === 'tp-yt-paper-tooltip') {
+          this.removeChild062(child);
+        } else if ((child instanceof Element) && child.is === 'tp-yt-paper-tooltip') {
           // tooltip bug
         } else {
           console.warn('[yt-js-engine-tamer] Node is not removed from parent', { parent: this, child: child })
