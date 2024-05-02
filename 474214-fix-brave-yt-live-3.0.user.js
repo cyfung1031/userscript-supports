@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.1
+// @version      3.2
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -34,36 +34,34 @@
 
         if(typeof cProto.urlChanged !== 'function' || cProto.urlChanged66) return;
 
-        const pIfr = document.createElement('iframe');
-        
-        // p.style.display='fixed';
-        // p.style.opacity = '0';
-        // p.style.width='1px'
-        // p.style.height='1px'
-        // p.style.left='-9px';
-        // p.style.top='-9px';
-        
-        pIfr.style.display = 'none';
-        document.body.appendChild(pIfr);
-
-        let url1 = null;
-        let url2 = null;
-
-        const pfn = resolve => {
-            pIfr.onload = resolve;
-            if (!url1) url1 = URL.createObjectURL(new Blob([], { type: 'text/html' }));
-            const c = url1;
-            url1 = url2;
-            url2 = c;
-            pIfr.contentDocument.location.replace(c);
-        };
-
+        const _ytIframeReloadDelay_ = window._ytIframeReloadDelay_ = window._ytIframeReloadDelay_ || (function () {
+            let pIfr = 0;
+            let url1 = null;
+            let url2 = null;
+            const pfn = resolve => {
+                if (!pIfr) {
+                    pIfr = document.getElementById('d8y9c');
+                    if (!pIfr) {
+                        pIfr = document.createElement('iframe');
+                        pIfr.id = 'd8y9c';
+                        pIfr.style.display = 'none';
+                        document.body.appendChild(pIfr);
+                    }
+                }
+                pIfr.onload = resolve;
+                if (!url1) url1 = URL.createObjectURL(new Blob([], { type: 'text/html' }));
+                const c = url1;
+                url1 = url2;
+                url2 = c;
+                pIfr.contentDocument.location.replace(c);
+            };
+            return () => (new Promise(pfn)).catch(console.warn).then(() => { pIfr.onload = null; });
+        })();
+ 
         cProto.urlChanged66 = cProto.urlChanged;
         cProto.urlChanged = function () {
 
-            const pr = (new Promise(pfn)).catch(() => { });
-            pr.then(() => {
-                pIfr.onload = null;
+            _ytIframeReloadDelay_().then(() => {
                 arguments.length === 0 ? this.urlChanged66() : this.urlChanged66(...arguments);
             });
 
