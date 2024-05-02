@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.0
+// @version     0.16.1
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -93,7 +93,7 @@
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
-  const FIX_removeChild = false;
+  const FIX_removeChild = true;
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -404,12 +404,15 @@
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
-        if (typeof this.__shady_native_removeChild === 'function') {
-          if (child.parentNode === this) this.removeChild062(child);
-          return child;
-        } else {
+        if (typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
           return this.removeChild062(child);
         }
+        if (this.is === 'tp-yt-paper-tooltip') {
+          // tooltip bug
+        } else {
+          console.warn('[yt-js-engine-tamer] Node is not removed from parent', { parent: this, child: child })
+        }
+        return child;
       }
     }
   })();
