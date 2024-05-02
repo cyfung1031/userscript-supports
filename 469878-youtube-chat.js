@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.19
+// @version             0.61.20
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -125,7 +125,7 @@
   const ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX = true;    // for video playback's ticker issue. [ Playback Replay - Pause at Middle - Backwards Seeking ]
   // << end >>
 
-  const FIX_TOOLTIP_DISPLAY = true;
+  const FIX_TOOLTIP_DISPLAY = true;                       // changed in 2024.05.02
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
 
@@ -1334,6 +1334,8 @@
         EXPERIMENT_FLAGS.enable_shadydom_free_last_child = false;
       }
 
+      //   EXPERIMENT_FLAGS.enable_button_behavior_reuse = false;
+
     };
 
     const uf = (config_) => {
@@ -2131,15 +2133,15 @@
 
       class IndexSpliceEntry {
         /**
-         * 
-         * @param {number} _index 
-         * @param {number} _addedCount 
-         * @param {any[]} _removed 
+         *
+         * @param {number} _index
+         * @param {number} _addedCount
+         * @param {any[]} _removed
          */
-        constructor(_index, _addedCount, _removed){
+        constructor(_index, _addedCount, _removed) {
           this.index = _index;
           this.addedCount = _addedCount;
-          this.removed= _removed;
+          this.removed = _removed;
         }
         get __proxy312__() {
           return 1
@@ -2413,7 +2415,7 @@
               } else {
                 await new Promise(resolve => nextBrowserTick(resolve)).then();
               }
-              
+
               countOfElements = cnt.__getAllParticipantsDOMRenderedLength__();
 
               const wrongSize = participants.length !== countOfElements
@@ -6973,6 +6975,169 @@
 
       if (FIX_TOOLTIP_DISPLAY) {
 
+        // ----------------------------------------------------------------------------------------------------
+
+        const checkPDGet = (pd) => {
+          return pd && pd.get && !pd.set && pd.enumerable && pd.configurable;
+        }
+
+        const tooltipUIWM = new WeakMap();
+        const createTooltipIfRequired_ = function () {
+          let r;
+          if (tooltipUIWM.get(this) === void 0) {
+            const w = document.createElement;
+            let EU = null;
+            tooltipUIWM.set(this, null);
+            document.createElement = function () {
+              let r = w.apply(this, arguments);
+              EU = r;
+              return r;
+            };
+            r = this.createTooltipIfRequired14_();
+            document.createElement = w;
+            if (EU instanceof HTMLElement && EU.is) {
+              tooltipUIWM.set(this, EU);
+              // this.__mcT__ = EU.outerHTML;
+              // EU.__dataX = JSON.stringify(EU.__data);
+              // EU.__dataY = Object.entries(EU);
+
+              // <<< FOR DEBUG >>>
+              // let kx;
+              // Object.defineProperty(EU, '_target', {
+              //   get(){
+              //     return kx;
+              //   },
+              //   set(nv){
+              //     kx= nv;
+              //     debugger;
+              //     return true;
+              //   }
+              // });
+              // <<< FOR DEBUG >>>
+
+              if (typeof Polymer !== 'undefined' && Polymer.__fixedGetOwnerRoot__ && Polymer.__fixedQuerySelector__) {
+
+              } else {
+                let eProto = null;
+                const euCnt = insp(EU);
+                if (checkPDGet(Object.getOwnPropertyDescriptor(euCnt.constructor.prototype || {}, 'target'))) {
+
+                  eProto = euCnt.constructor.prototype;
+                } else if (checkPDGet(Object.getOwnPropertyDescriptor(EU.constructor.prototype || {}, 'target'))) {
+
+                  eProto = EU.constructor.prototype;
+                }
+                if (eProto) {
+                  delete eProto.target;
+                  /*
+    
+                      get target() {
+                          var a = Pv(this).parentNode, b = Pv(this).getOwnerRoot(), c;
+                          this.for ? c = Pv(b).querySelector("#" + this.for) : c = a.nodeType == Node.DOCUMENT_FRAGMENT_NODE ? b.host : a;
+                          return c
+                      },
+                  */
+                  Object.defineProperty(eProto, 'target', {
+                    get() {
+                      let a = this.parentNode, b = this.getRootNode();
+                      return (this.for ? b.querySelector("#" + this.for) : a)
+                    }
+                  })
+                }
+              }
+              // setInterval(()=>EU.updatePosition(), 100)
+
+            } else {
+              tooltipUIWM.set(this, null);
+            }
+          } else {
+            r = this.createTooltipIfRequired14_();
+          }
+
+
+          const EU = tooltipUIWM.get(this);
+          if (EU) {
+
+            // EU.innerHTML='';
+            // let t;
+            // if(EU.parentElement instanceof HTMLElement) {
+
+            //     for(const s of EU.querySelectorAll('*')){
+            //      if(s.firstChild instanceof Text) s.firstChild.nodeValue = '';
+            //    }
+
+            //     for(const s of EU.querySelectorAll('.hidden')){
+            //      s.classList.remove('hidden');
+            //   //    if(s.firstChild instanceof Text) s.firstChild.nodeValue = '';
+            //    }
+            // }
+
+            EU.remove();
+            // EU.removeAttribute('class');
+            // EU.removeAttribute('role');
+            // EU.removeAttribute('tabindex');
+            // EU.removeAttribute('style');
+            // EU.offset = 8;
+            // EU.fitToVisibleBounds = !0;
+
+
+            // EU.__data = JSON.parse(EU.__dataX);
+
+            // EU.__dataEnabled = false;
+            // EU.__dataReady = false;
+            // EU.__dataClientsReady = false;
+            // EU.position = 'bottom';
+            // delete EU.__templateInfo;
+            // delete EU.$;
+            // delete EU.__shady;
+            // delete EU.__CE_shadowRoot;
+            // delete EU.__boundListeners;
+            // delete EU.__boundListeners;
+
+            // EU.for = undefined;
+
+            //  EU.animationDelay = 500;
+            //  EU.position = 'bottom';
+            //  Promise.resolve(()=>EU.updatePosition())
+          }
+
+          // console.log(192, EU, EU.for);
+          // EU.innerHTML = '';
+          return r;
+
+
+        };
+
+
+        // added in 2024.05.02
+        getLCRDummy().then(async (lcrDummy) => {
+
+          // console.log(8171, 99);
+          const tag = "yt-live-chat-renderer"
+          const dummy = lcrDummy;
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+
+          /*
+          <tp-yt-paper-tooltip class="style-scope yt-live-chat-author-badge-renderer" role="tooltip" tabindex="-1" style="--paper-tooltip-delay-in: 0ms; inset: -63.3984px auto auto 0px;
+          */
+
+          if (cProto && typeof cProto.createTooltipIfRequired_ === 'function' && cProto.createTooltipIfRequired_.length === 0 && !cProto.createTooltipIfRequired14_) {
+            // console.log(8172);
+            cProto.createTooltipIfRequired14_ = cProto.createTooltipIfRequired_;
+            cProto.createTooltipIfRequired_ = createTooltipIfRequired_;
+
+
+          }
+
+        });
+
+        // ----------------------------------------------------------------------------------------------------
 
         customElements.whenDefined("tp-yt-paper-tooltip").then(() => {
 
@@ -6994,6 +7159,8 @@
 
               cProto._readyClients43 = cProto._readyClients;
               cProto._readyClients = function () {
+                // console.log(1238)
+
                 let r = cProto._readyClients43.apply(this, arguments);
                 if (this.$ && this.$$ && this.$.tooltip) this.root = null; // fix this.root = null != (b = a.root) ? b : this.host
                 return r;
