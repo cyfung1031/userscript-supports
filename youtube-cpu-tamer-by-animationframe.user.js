@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.04.29.0
+// @version             2024.05.03.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -151,6 +151,22 @@ SOFTWARE.
       }
     };
   })();
+
+  window.__j6YiAc__ = 1;
+
+  document.addEventListener('timeupdate', () => {
+    window.__j6YiAc__ = Date.now();
+  }, true);
+
+  let kz = -1;
+  try {
+    kz = top.__j6YiAc__;
+  } catch (e) {
+
+  }
+
+  const timeupdateDT = kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
+
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
     try {
@@ -293,7 +309,7 @@ SOFTWARE.
       const wFunc = async (handler, wStore) => {
         try {
           const ct = Date.now();
-          if (ct - wStore.dt < 800) {
+          if (ct - timeupdateDT() < 800 && ct - wStore.dt < 800) {
             const cid = wStore.cid;
             inExec.add(cid);
             const t = await eFunc();
