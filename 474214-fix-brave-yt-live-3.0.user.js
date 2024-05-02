@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.3
+// @version      3.4
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -41,7 +41,23 @@
             url2 = c;
             pIfr.contentDocument.location.replace(c);
         };
-        return () => (new Promise(pfn)).catch(console.warn).then(() => { pIfr.onload = null; });
+        return (async (chatframe) => {
+            if (chatframe instanceof HTMLIFrameElement && typeof IntersectionObserver !== 'undefined') {
+                await new Promise(resolve => {
+                    let io = new IntersectionObserver(function () {
+                        if (io) {
+                            io.disconnect();
+                            io.takeRecords();
+                            io = null;
+                            resolve();
+                        }
+                    });
+                    io.observe(chatframe);
+                });
+            }
+            await new Promise(pfn).catch(console.warn);
+            pIfr.onload = null;
+        });
     })();
 
     (async () => {
@@ -61,7 +77,7 @@
         cProto.urlChanged66 = cProto.urlChanged;
         cProto.urlChanged = function () {
 
-            _ytIframeReloadDelay_().then(() => {
+            _ytIframeReloadDelay_(this.chatframe || this.$.chatframe).then(() => {
                 arguments.length === 0 ? this.urlChanged66() : this.urlChanged66(...arguments);
             });
 
