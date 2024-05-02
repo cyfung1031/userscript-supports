@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.1
+// @version     0.16.2
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -4603,7 +4603,8 @@
         const pd6b = Object.getOwnPropertyDescriptor(Document.prototype, 'querySelectorAll');
 
 
-        if (checkPDFuncValue(pd1) && checkPDFuncGet(pd2) && !domXP.getOwnerRoot15 && typeof domXP.getOwnerRoot === 'function') {
+        // getOwnerRoot - to be reviewed
+        if (0 && checkPDFuncValue(pd1) && checkPDFuncGet(pd2) && !domXP.getOwnerRoot15 && typeof domXP.getOwnerRoot === 'function') {
 
           domXP.getOwnerRoot15 = domXP.getOwnerRoot;
           domXP.getOwnerRoot = function () {
