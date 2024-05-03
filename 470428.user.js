@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.2
+// @version     1.6.3
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -46,9 +46,13 @@
 
   const FLAG_STRATEGY_20240413 = true; // ignore adblock related flags
 
+  const FLAG_STRATEGY_20240503 = true; // AD FLAG
+
   const FLAG_SKIP_CHAT_BUTTON = true;
 
   const ALLOW_FLAGS_202404 = true;
+
+  const DISABLE_FLAGS_SHADYDOM_FREE = true;
 
   const ENABLE_EXPERIMENT_FLAGS_MAINTAIN_STABLE_LIST = {
     defaultValue: true, // performance boost
@@ -1062,6 +1066,25 @@
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
       // return;
+
+      if (FLAG_STRATEGY_20240503) {
+        EXPERIMENT_FLAGS.disable_enf_isd = true;
+        EXPERIMENT_FLAGS.ab_det_el_h = false;
+        EXPERIMENT_FLAGS.ks_det_gpbl = true;
+        EXPERIMENT_FLAGS.ks_get_o_pp = true;
+        EXPERIMENT_FLAGS.ab_deg_unex_thr = true;
+        EXPERIMENT_FLAGS.ab_det_sc_inj_enf = false;
+        EXPERIMENT_FLAGS.debug_sk_em_precheck = false;
+      }
+
+      if (DISABLE_FLAGS_SHADYDOM_FREE) {
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_node_methods = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_query_methods = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_scoped_readonly_properties_batch_one = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_parent_node = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_children = false;
+        EXPERIMENT_FLAGS.enable_shadydom_free_last_child = false;
+      }
 
       if (SPACEBAR_CONTROL === 0) {
         EXPERIMENT_FLAGS.disable_space_scroll_fix = false;
