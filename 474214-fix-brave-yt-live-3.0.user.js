@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.6
+// @version      3.7
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -42,22 +42,12 @@
             url2 = c;
             pIfr.contentDocument.location.replace(c);
         };
-        return (async (chatframe) => {
-            if (chatframe instanceof HTMLIFrameElement && typeof IntersectionObserver !== 'undefined') {
-                await new Promise(resolve => {
-                    let io = new IntersectionObserver(function () {
-                        if (io) {
-                            io.disconnect();
-                            io.takeRecords();
-                            io = null;
-                            resolve();
-                        }
-                    });
-                    io.observe(chatframe);
-                });
-            }
-            await new Promise(pfn).catch(console.warn);
-            pIfr.onload = null;
+        let aLock = Promise.resolve();
+        return (() => {
+            const p = aLock = aLock.then(() => new Promise(pfn).catch(console.warn)).then(() => {
+                pIfr.onload = null;
+            });
+            return p.then();
         });
     })();
 
@@ -73,14 +63,14 @@
         const cnt = insp(chat);
         const cProto = cnt.constructor.prototype || 0;
 
-        if(typeof cProto.urlChanged !== 'function' || cProto.urlChanged66) return;
- 
+        if (typeof cProto.urlChanged !== 'function' || cProto.urlChanged66) return;
+
         cProto.urlChanged66 = cProto.urlChanged;
         let rz = 0;
         cProto.urlChanged = function () {
             if (rz > 1e9) rz = 9;
             const tz = ++rz;
-            _ytIframeReloadDelay_(this.chatframe || (this.$ || 0).chatframe).then(() => {
+            _ytIframeReloadDelay_().then(() => {
                 if (tz !== rz) return;
                 arguments.length === 0 ? this.urlChanged66() : this.urlChanged66(...arguments);
             });
