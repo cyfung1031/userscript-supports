@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.2.002
+// @version      1.4.2.003
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -16,6 +16,8 @@
 // @match        https://m.youtube.com/*
 // @match        https://music.youtube.com/*
 // @match        https://www.youtubekids.com/watch*
+// @exclude      /^https?://\w+\.youtube\.com\/live_chat.*$/
+// @exclude      /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @connect      https://update.greasyfork.org/
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
