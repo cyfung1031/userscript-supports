@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.4
+// @version     1.6.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -84,7 +84,8 @@
 
   const COMMENTS_NO_DELAY = true;
 
-  const SPACEBAR_CONTROL = 1; // 0 - only scroll down; 1 - global pause; 2 - speed control pause
+  const SPACEBAR_CONTROL = -1; // 0 - only scroll down; 1 - global pause; 2 - speed control pause;
+  // -1 = by pass
 
 
 
@@ -331,6 +332,14 @@
 
     if (fOperAcceptList.has(key)) return fOperAccept;
     if (key.length === 22 || key.length === 27 || key.length === 32) {
+
+      if (SPACEBAR_CONTROL < 0) {
+
+        if (key === 'disable_space_scroll_fix' || key === 'global_spacebar_pause' || key === 'web_speedmaster_spacebar_control') {
+          return fOperAccept;
+        }
+        if (key.includes('speedmaster')) return fOperAccept;
+      }
 
       if (SPACEBAR_CONTROL === 2 && key.includes('speedmaster')) {
         return fOperAccept;
@@ -1024,6 +1033,13 @@
 
           if (cachedSet.has(key)) continue;
 
+          if (SPACEBAR_CONTROL < 0) {
+
+            if (key === 'disable_space_scroll_fix' || key === 'global_spacebar_pause' || key === 'web_speedmaster_spacebar_control') {
+              continue;
+            }
+            if (key.includes('speedmaster')) continue;
+          }
 
 
 
