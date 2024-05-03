@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.3
+// @version     1.6.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -47,6 +47,8 @@
   const FLAG_STRATEGY_20240413 = true; // ignore adblock related flags
 
   const FLAG_STRATEGY_20240503 = true; // AD FLAG
+
+  const NO_DEBUG_FLAG = true;
 
   const FLAG_SKIP_CHAT_BUTTON = true;
 
@@ -1076,6 +1078,13 @@
         EXPERIMENT_FLAGS.ab_det_sc_inj_enf = false;
         EXPERIMENT_FLAGS.debug_sk_em_precheck = false;
       }
+
+      if (NO_DEBUG_FLAG) {
+        EXPERIMENT_FLAGS.debug_forward_web_query_parameters = false;
+        EXPERIMENT_FLAGS.debug_handle_relative_url_for_query_forward_killswitch = false;
+        EXPERIMENT_FLAGS.debug_web_ve_data = false;
+      }
+
 
       if (DISABLE_FLAGS_SHADYDOM_FREE) {
         EXPERIMENT_FLAGS.enable_shadydom_free_scoped_node_methods = false;
