@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.8
+// @version      3.9
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -73,7 +73,7 @@
             if (!chatframe || !this.url) return;
             let loc = '';
             try {
-                loc = chatframe.contentDocument.location
+                loc = chatframe.contentDocument.location.href
             } catch (e) { }
             if (loc === this.url) return;
             const t = `${loc}->${this.url}`;
