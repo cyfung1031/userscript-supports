@@ -2,7 +2,7 @@
 // @name        YouTube: Make AutoPlay Next More Than 3 seconds
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.4
+// @version     0.2.5
 // @author      CY Fung
 // @license     MIT
 // @description To make AutoPlay Next Duration longer
@@ -14,7 +14,13 @@
 
 (() => {
 
-  const second_to_play_next = +localStorage.second_to_play_next || 8;
+  const second_to_play_next_def = 8;
+
+  const valuer = {
+    get second_to_play_next() {
+      return +localStorage.second_to_play_next || second_to_play_next_def;
+    }
+  }
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
@@ -393,7 +399,7 @@
 
       const objProceed = (toResolveInstSetPromise) => {
         const resAssigned = obtainOAR();
-        if (resAssigned) bSetupDone ? assignDurationToOAR(pm.playerOAR, null) : autoplayRendererP.resolve();
+        if (resAssigned) bSetupDone ? assignDurationToOAR(pm.playerOAR) : autoplayRendererP.resolve();
         if (toResolveInstSetPromise) instReadyP.resolve();
       }
 
@@ -402,6 +408,7 @@
         const t4 = playerOAR.countDownSecsForFullscreen;
         const t5 = playerOAR.countDownSecs;
         let b = t4 === t5
+        const second_to_play_next = valuer.second_to_play_next;
         playerOAR.countDownSecsForFullscreen = second_to_play_next;
         if (b) playerOAR.countDownSecs = second_to_play_next;
         return b;
@@ -418,6 +425,8 @@
         for (const entry of entriesA) {
           m.set(entry[0], entry[1]);
         }
+
+        const second_to_play_next = valuer.second_to_play_next;
 
         let b = assignDurationToOAR(playerOAR);
 
