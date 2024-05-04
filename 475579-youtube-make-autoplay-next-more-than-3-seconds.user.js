@@ -2,7 +2,7 @@
 // @name        YouTube: Make AutoPlay Next More Than 3 seconds
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.3
+// @version     0.2.4
 // @author      CY Fung
 // @license     MIT
 // @description To make AutoPlay Next Duration longer
@@ -25,7 +25,7 @@
  
  
  
-        , $mb = function(a, b) {
+      , $mb = function(a, b) {
           b = void 0 === b ? -1 : b;
           a = a.j.Ha("ytp-autonav-endscreen-upnext-header");
           g.of(a);
@@ -50,7 +50,7 @@
  
  
  
-      */
+  */
 
 
 
@@ -72,14 +72,14 @@
           }
  
  
-      */
+  */
 
   /*
    *
    *
  
  
-        , anb = function(a) {
+      , anb = function(a) {
           if (a.J.isFullscreen()) {
               var b;
               a = null == (b = a.J.getVideoData()) ? void 0 : b.CB;
@@ -88,23 +88,23 @@
           return 0 <= a.J.Ss() ? a.J.Ss() : g.WJ(a.J.W().experiments, "autoplay_time") || 1E4
       }
  
-      */
+  */
 
   // a.J instanceof g.AU
   /*
    *
    *
  
-  g.AU {Dp: false, xk: undefined, app: g.b1, state: WQa, playerType: undefined, …}
- 
-  Dp: false
-  UK: pYa {Dp: false, xk: Array(6), Ub: {…}, Td: {…}, element: div#ytp-id-18.ytp-popup.ytp-settings-menu, …}
-  app: g.b1 {Dp: false, xk: Array(21), logger: g.pY, di: false, bA: false, …}
-  element: null
-  j: false
-  playerType: undefined
-  state: WQa {Dp: false, xk: undefined, D: Set(89), G: {…}, S: {…}, …}
-  xk: undefined
+    g.AU {Dp: false, xk: undefined, app: g.b1, state: WQa, playerType: undefined, …}
+  
+    Dp: false
+    UK: pYa {Dp: false, xk: Array(6), Ub: {…}, Td: {…}, element: div#ytp-id-18.ytp-popup.ytp-settings-menu, …}
+    app: g.b1 {Dp: false, xk: Array(21), logger: g.pY, di: false, bA: false, …}
+    element: null
+    j: false
+    playerType: undefined
+    state: WQa {Dp: false, xk: undefined, D: Set(89), G: {…}, S: {…}, …}
+    xk: undefined
   */
 
   // a.J.Ss = ƒ (){return this.app.Ss()}
@@ -115,19 +115,19 @@
 
   /*
    *
-  getAudioTrack
-  getAvailableAudioTracks
-  getHeartbeatResponse
-  getPlayerResponse
-  getPlaylistSequenceForTime
-  getStoryboardFormat
-  hasProgressBarBoundaries
-  hasSupportedAudio51Tracks
-  isAd
-  isDaiEnabled
-  isLoaded
-  isOtf
-  useInnertubeDrmService
+    getAudioTrack
+    getAvailableAudioTracks
+    getHeartbeatResponse
+    getPlayerResponse
+    getPlaylistSequenceForTime
+    getStoryboardFormat
+    hasProgressBarBoundaries
+    hasSupportedAudio51Tracks
+    isAd
+    isDaiEnabled
+    isLoaded
+    isOtf
+    useInnertubeDrmService
  
   */
 
@@ -185,66 +185,66 @@
   }
 
 
-  const addProtoToArr = (parent, key, arr) => {
+  // const addProtoToArr = (parent, key, arr) => {
 
 
-    let isChildProto = false;
-    for (const sr of arr) {
-      if (parent[key].prototype instanceof parent[sr]) {
-        isChildProto = true;
-        break;
-      }
-    }
+  //   let isChildProto = false;
+  //   for (const sr of arr) {
+  //     if (parent[key].prototype instanceof parent[sr]) {
+  //       isChildProto = true;
+  //       break;
+  //     }
+  //   }
 
-    if (isChildProto) return;
+  //   if (isChildProto) return;
 
-    arr = arr.filter(sr => {
-      if (parent[sr].prototype instanceof parent[key]) {
-        return false;
-      }
-      return true;
-    });
+  //   arr = arr.filter(sr => {
+  //     if (parent[sr].prototype instanceof parent[key]) {
+  //       return false;
+  //     }
+  //     return true;
+  //   });
 
-    arr.push(key);
+  //   arr.push(key);
 
-    return arr;
-
-
-  }
+  //   return arr;
 
 
-  const getAU = (_yt_player) => {
-    const w = 'VG';
-
-    let arr = [];
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      const p = typeof v === 'function' ? v.prototype : 0;
-      if (p
-        && typeof p.show === 'function' && p.show.length === 1
-        && typeof p.hide === 'function' && p.hide.length === 0
-        && typeof p.stop === 'function' && p.stop.length === 0) {
-
-        arr = addProtoToArr(_yt_player, k, arr) || arr;
-
-      }
-
-    }
+  // }
 
 
-    if (arr.length === 0) {
+  // const getAU = (_yt_player) => {
+  //   const w = 'VG';
 
-      console.warn(`Key does not exist. [${w}]`);
-    } else {
+  //   let arr = [];
 
-      console.log(`[${w}]`, arr);
-      return arr[0];
-    }
+  //   for (const [k, v] of Object.entries(_yt_player)) {
+
+  //     const p = typeof v === 'function' ? v.prototype : 0;
+  //     if (p
+  //       && typeof p.show === 'function' && p.show.length === 1
+  //       && typeof p.hide === 'function' && p.hide.length === 0
+  //       && typeof p.stop === 'function' && p.stop.length === 0) {
+
+  //       arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+  //     }
+
+  //   }
+
+
+  //   if (arr.length === 0) {
+
+  //     console.warn(`Key does not exist. [${w}]`);
+  //   } else {
+
+  //     console.log(`[${w}]`, arr);
+  //     return arr[0];
+  //   }
 
 
 
-  }
+  // }
 
 
 
@@ -336,8 +336,10 @@
 
     (async () => {
 
-      const dataSetPromise = new PromiseExternal();
-      const instSetPromise = new PromiseExternal();
+      const autoplayRendererP = new PromiseExternal();
+      const instReadyP = new PromiseExternal();
+
+      let bSetupDone = false;
 
       const observablePromise = (proc, timeoutPromise) => {
         let promise = null;
@@ -378,47 +380,38 @@
 
       if (!_yt_player || typeof _yt_player !== 'object') return;
 
-      function baseSet() {
-        let r = setDataHolder();
-        if (r) qrz ? assignDurationToData(pm.playerOverlayAutoplayRenderer, null) : dataSetPromise.resolve();
-        // if (pm.targetKeys && pm.instsT) {
-        //   qtd = true;
-        // }
-      }
-
-      function onSetsT(inst) {
-        if (!inst) return;
-        baseSet();
-        instSetPromise.resolve();
-      }
-
+      // store and control variables
       const pm = new Proxy({}, {
         set(target, prop, value, receiver) {
           let old = target[prop];
           if (old !== value) {
             target[prop] = old = value;
-            if (prop === 'instsT') onSetsT(value);
+            if (prop === 'instsT') value && objProceed(true);
           }
         }
       });
 
-      const assignDurationToData = (playerOverlayAutoplayRenderer) => {
-        if (!playerOverlayAutoplayRenderer) return;
-        const t4 = playerOverlayAutoplayRenderer.countDownSecsForFullscreen;
-        const t5 = playerOverlayAutoplayRenderer.countDownSecs;
+      const objProceed = (toResolveInstSetPromise) => {
+        const resAssigned = obtainOAR();
+        if (resAssigned) bSetupDone ? assignDurationToOAR(pm.playerOAR, null) : autoplayRendererP.resolve();
+        if (toResolveInstSetPromise) instReadyP.resolve();
+      }
+
+      const assignDurationToOAR = (playerOAR) => {
+        if (!playerOAR) return;
+        const t4 = playerOAR.countDownSecsForFullscreen;
+        const t5 = playerOAR.countDownSecs;
         let b = t4 === t5
-        playerOverlayAutoplayRenderer.countDownSecsForFullscreen = second_to_play_next;
-        if (b) playerOverlayAutoplayRenderer.countDownSecs = second_to_play_next;
+        playerOAR.countDownSecsForFullscreen = second_to_play_next;
+        if (b) playerOAR.countDownSecs = second_to_play_next;
         return b;
       }
 
-      let qrz = false;
-      // let qtd = false;
-      Promise.all([dataSetPromise, instSetPromise]).then(() => {
+      Promise.all([autoplayRendererP, instReadyP]).then(() => {
 
         const inst = pm.instsT;
-        const playerOverlayAutoplayRenderer = pm.playerOverlayAutoplayRenderer;
-        if (!inst || !playerOverlayAutoplayRenderer) return;
+        const playerOAR = pm.playerOAR;
+        if (!inst || !playerOAR) return;
 
         let entriesA = Object.entries(inst).filter(e => typeof e[1] === 'number');
         let m = new Map();
@@ -426,12 +419,14 @@
           m.set(entry[0], entry[1]);
         }
 
-        let b = assignDurationToData(playerOverlayAutoplayRenderer);
+        let b = assignDurationToOAR(playerOAR);
+
+        bSetupDone = true;
 
         setTimeout(() => {
           const entriesB = Object.entries(inst).filter(e => typeof e[1] === 'number' && m.get(e[0]) !== e[1]);
           m = null;
-          let filtered = entriesB.filter(e => Math.abs(e[1] - second_to_play_next * 1E3) < 1e-8);
+          const filtered = entriesB.filter(e => Math.abs(e[1] - second_to_play_next * 1E3) < 1e-8);
           if (filtered.length >= 1) {
             pm.targetKeys = filtered.map(e => e[0]);
           } else {
@@ -440,32 +435,27 @@
           console.log(`sT(${b ? 'T' : 'F'}):`, filtered, filtered.length)
         }, 80);
 
-        qrz = true;
-
       });
 
-      const setDataHolder = () => {
+      const obtainOAR = () => {
 
-        let playerOverlayAutoplayRenderer = null;
+        let playerOAR = null;
         let pageDataMgr = document.querySelector('ytd-page-manager#page-manager');
         let pageData = pageDataMgr ? insp(pageDataMgr).data : null;
         if (pageData) {
-
           try {
-            playerOverlayAutoplayRenderer = pageData.response.playerOverlays.playerOverlayRenderer.autoplay.playerOverlayAutoplayRenderer;
+            playerOAR = pageData.response.playerOverlays.playerOverlayRenderer.autoplay.playerOverlayAutoplayRenderer;
           } catch (e) { }
         }
-        if (playerOverlayAutoplayRenderer && typeof playerOverlayAutoplayRenderer.countDownSecsForFullscreen === 'number' && playerOverlayAutoplayRenderer.countDownSecsForFullscreen < 15) {
-
-          pm.playerOverlayAutoplayRenderer = playerOverlayAutoplayRenderer;
+        if (playerOAR && typeof playerOAR.countDownSecsForFullscreen === 'number' && playerOAR.countDownSecsForFullscreen < 15) {
+          pm.playerOAR = playerOAR;
           return true;
         }
 
       };
 
       document.addEventListener('yt-navigate-finish', function () {
-        // onSetsT(pm.instsT)
-        baseSet();
+        objProceed(false);
       }, false);
 
       const g = _yt_player;
@@ -479,23 +469,23 @@
 
         /*
          *
-        if (typeof p.hasSupportedAudio51Tracks === 'function' && p.hasSupportedAudio51Tracks.length === 0) q += 2;
-        if (typeof p.getStoryboardFormat === 'function' && p.getStoryboardFormat.length === 0) q += 4;
-        if (typeof p.getPlaylistSequenceForTime === 'function' && p.getPlaylistSequenceForTime.length === 1) q += 4;
-        if (typeof p.isLoaded === 'function' && p.isLoaded.length === 0) q += 2;
- 
-        if (typeof p.isOtf === 'function' && p.isOtf.length === 0) q += 2;
-        if (typeof p.getAvailableAudioTracks === 'function' && p.getAvailableAudioTracks.length === 0) q += 4;
-        if (typeof p.getAudioTrack === 'function' && p.getAudioTrack.length === 0) q += 4;
-        if (typeof p.getPlayerResponse === 'function' && p.getPlayerResponse.length === 0) q += 2;
-        if (typeof p.getHeartbeatResponse === 'function' && p.getHeartbeatResponse.length === 0) q += 2;
- 
-        if (typeof p.isAd === 'function' && p.isAd.length === 0) q += 2;
-        if (typeof p.isDaiEnabled === 'function' && p.isDaiEnabled.length === 1) q += 2;
-        if (typeof p.useInnertubeDrmService === 'function' && p.useInnertubeDrmService.length === 0) q++;
-        if (typeof p.hasProgressBarBoundaries === 'function' && p.hasProgressBarBoundaries.length === 0) q += 2;
- 
-  */
+          if (typeof p.hasSupportedAudio51Tracks === 'function' && p.hasSupportedAudio51Tracks.length === 0) q += 2;
+          if (typeof p.getStoryboardFormat === 'function' && p.getStoryboardFormat.length === 0) q += 4;
+          if (typeof p.getPlaylistSequenceForTime === 'function' && p.getPlaylistSequenceForTime.length === 1) q += 4;
+          if (typeof p.isLoaded === 'function' && p.isLoaded.length === 0) q += 2;
+  
+          if (typeof p.isOtf === 'function' && p.isOtf.length === 0) q += 2;
+          if (typeof p.getAvailableAudioTracks === 'function' && p.getAvailableAudioTracks.length === 0) q += 4;
+          if (typeof p.getAudioTrack === 'function' && p.getAudioTrack.length === 0) q += 4;
+          if (typeof p.getPlayerResponse === 'function' && p.getPlayerResponse.length === 0) q += 2;
+          if (typeof p.getHeartbeatResponse === 'function' && p.getHeartbeatResponse.length === 0) q += 2;
+  
+          if (typeof p.isAd === 'function' && p.isAd.length === 0) q += 2;
+          if (typeof p.isDaiEnabled === 'function' && p.isDaiEnabled.length === 1) q += 2;
+          if (typeof p.useInnertubeDrmService === 'function' && p.useInnertubeDrmService.length === 0) q++;
+          if (typeof p.hasProgressBarBoundaries === 'function' && p.hasProgressBarBoundaries.length === 0) q += 2;
+  
+        */
 
         //       for(const pk of ['hasSupportedAudio51Tracks','getStoryboardFormat','getPlaylistSequenceForTime','isLoaded',
         //                      'isOtf',//'getAvailableAudioTracks','getAudioTrack',
@@ -505,55 +495,18 @@
         //                        //'hasProgressBarBoundaries'
         //                     ]){
 
-
-
-        //       if(gkp[pk]){
-        //         gkp[pk+'75'] = gkp[pk];
-        //         gkp[pk]=function(){
-        //           console.log(pk)
-        //           return this[pk+'75'].apply(this, arguments);
-        //         }
         //       }
-
-        //       }
-
-
-
 
 
         if (!gkp.isLoaded75 && typeof gkp.isLoaded === 'function') {
-
-
           gkp.isLoaded75 = gkp.isLoaded;
           gkp.isLoaded = function () {
             pm.instsT = this;
-            // if (qtd) {
-            //   qtd = false;
-
-            //   setTimeout(() => {
-            //     const inst = pm.instsT;
-            //     if (pm.targetKeys && inst) {
-            //       const entries = pm.targetKeys.map(k => [k, inst[k]]);
-            //       console.log(`sT:`, entries, entries.length);
-            //     }
-            //   }, 80);
-            // }
-
-            return this.isLoaded75.apply(this, arguments);
+            return arguments.length === 0 ? this.isLoaded75() : this.isLoaded75(...arguments);
           }
-
-
         }
 
-
-
-
-
       }
-
-      // console.log(keysT);
-
-      // const sT = [_yt_player]
 
 
 
