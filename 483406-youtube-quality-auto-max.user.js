@@ -2,7 +2,7 @@
 // @name        YouTube: Quality Auto Max
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.3.0
+// @version     0.3.1
 // @author      CY Fung
 // @license     MIT
 // @description To make Quality Auto Max
@@ -359,7 +359,31 @@
                     }
                     if (resultantQuality) {
                         byPass = true;
+                        const setItemN = function (a, b) {
+                            // console.log('setItem', ...arguments)
+                            // yt-player-quality
+                            // yt-player-performance-cap
+                            // yt-player-performance-cap-active-set
+                        };
+                        const pd = Object.getOwnPropertyDescriptor(localStorage.constructor.prototype, 'setItem');
+                        if (pd && pd.configurable) {
+                            delete localStorage.constructor.prototype.setItem;
+                            Object.defineProperty(localStorage.constructor.prototype, 'setItem', {
+                                get() {
+                                    return setItemN
+                                },
+                                set(nv) {
+                                    return true;
+                                },
+                                enumerable: false,
+                                configurable: true,
+                            });
+                        }
                         player_.setPlaybackQualityRange(resultantQuality, resultantQuality);
+                        if (pd && pd.configurable && setItemN === localStorage.setItem) {
+                            delete localStorage.constructor.prototype.setItem;
+                            Object.defineProperty(localStorage.constructor.prototype, 'setItem', pd);
+                        }
                         byPass = false;
                         console.log('YouTube Quality Auto Max sets Quality to ', resultantQuality);
                     }
