@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.2.003
+// @version      1.4.3.001
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -35,9 +35,9 @@ const display_error_keyword = '2444';
 
 let channel_id = GM_getValue('last_channel_id', 'default');
 
-let user_data_api = get_user_data_api();
+const user_data_api = get_user_data_api();
 
-let user_data = user_data_api.get();
+const user_data = user_data_api.get();
 
 let open_recommend_tv_goodselect = 'on';
 
@@ -51,7 +51,7 @@ let local_this = this;
 
 let is_account_init;
 
-let inject_info = {
+const inject_info = {
     "ytInitialPlayerResponse": false,
     "ytInitialData": false,
     "ytInitialReelWatchSequenceResponse": false,
@@ -59,7 +59,7 @@ let inject_info = {
     "fetch": false
 };
 
-let orgin_log = console.log;
+let orgin_console = console;
 const script_url = 'https://update.greasyfork.org/scripts/480192/youtube%E5%B9%BF%E5%91%8A%E6%8B%A6%E6%88%AA.user.js';
 let href = location.href;
 let ytInitialPlayerResponse_rule;
@@ -77,19 +77,22 @@ let flag_info;
 let debugger_ytInitialPlayerResponse;
 let debugger_ytInitialData;
 let debugger_ytInitialReelWatchSequenceResponse;
-let page_type;
+let page_type = '';
 let error_messages = [];
 let data_process;
 let shorts_fun;
 let yt_api;
+const shorts_parse_delay = 500;
+let user_data_listener;
+
 const SPLIT_TAG = '###';
 
 class DATA_PROCESS {
     constructor() {
         try {
-            let tmp;
-            eval('1===1');
-            this.limit_eval = false;
+            let test_eval;
+            const test_val = 1;
+            this.limit_eval = eval('test_eval = test_val') && (test_eval !== test_val);
         } catch (error) {
             this.limit_eval = true;
         }
@@ -131,15 +134,15 @@ class DATA_PROCESS {
         return data;
     }
 
-    value_parase(parase_value) {
-        parase_value = parase_value.trim();
-        const json_math = parase_value.match(/^json\((.*)\)$/);
+    value_parse(parse_value) {
+        parse_value = parse_value.trim();
+        const json_math = parse_value.match(/^json\((.*)\)$/);
         if (json_math) return JSON.parse(json_math[1]);
-        const obj_match = parase_value.match(/^obj\((.*)\)$/);
+        const obj_match = parse_value.match(/^obj\((.*)\)$/);
         if (obj_match) return this.string_to_value(unsafeWindow, obj_match[1]);
-        const number_match = parase_value.match(/^num\((.*)\)$/);
+        const number_match = parse_value.match(/^num\((.*)\)$/);
         if (number_match) return Number(number_match[1]);
-        const method_match = parase_value.match(/^method\((.*)\)$/);
+        const method_match = parse_value.match(/^method\((.*)\)$/);
         if (method_match) {
             // eval 限制的时候可以使用num() obj()这些添加数字对象 方法也要放到unsafeWindow里 例：method(b("123",num(23)))
             // 不限制的时候 不能使用num和obj 方法不需要放到unsafeWindow里 例：method(b("123",23))
@@ -150,17 +153,17 @@ class DATA_PROCESS {
                 method_args = method_args_string.split(',');
                 const args = [];
                 for (let arg of method_args) {
-                    args.push(value_parase(arg));
+                    args.push(value_parse(arg));
                 }
                 return unsafeWindow[method_name](...args);
             }
             return eval(method_match[1]);
         }
-        const string_match = parase_value.match(/^["'](.*)["']$/);
+        const string_match = parse_value.match(/^["'](.*)["']$/);
         if (string_match) return string_match[1];
-        if (parase_value === 'undefined') return undefined;
-        if (parase_value === 'null') return null;
-        return parase_value;
+        if (parse_value === 'undefined') return undefined;
+        if (parse_value === 'null') return null;
+        return parse_value;
     }
     string_to_value(obj, path) {
         try {
@@ -312,7 +315,7 @@ class DATA_PROCESS {
             }
             let dec_obj = last_obj[last_key];
             if (operator === '=+') {
-                value = data_this.value_parase(value);
+                value = data_this.value_parse(value);
                 if (dec_obj === null || dec_obj === undefined) throw new Error('dec_obj is null');
                 let type_ = typeof dec_obj;
                 if (Array.isArray(dec_obj)) type_ = 'array';
@@ -340,7 +343,7 @@ class DATA_PROCESS {
                 log('修改属性-->' + path, 'obj_process');
             }
             if (operator === '=') {
-                value = data_this.value_parase(value);
+                value = data_this.value_parse(value);
                 last_obj[last_key] = value;
                 log('依据：' + path_info.express, 'obj_process');
                 log('修改属性-->' + path, 'obj_process');
@@ -351,18 +354,18 @@ class DATA_PROCESS {
             if (!express) return;
             let reg;
             let express_type = typeof (express);
-            let matchs;
+            let matches;
             let conditions;
             let value;
             reg = /^(abs:)?([a-zA-Z_0-9\.\*\[\]]*)((=\-|~=|=\+|=))(.*)?/;
             if (express_type === 'string') {
-                matchs = express.match(reg);
+                matches = express.match(reg);
             } else {
-                matchs = express.value.match(reg);
+                matches = express.value.match(reg);
                 conditions = express.conditions;
             }
-            let abs = matchs[1];
-            let path = matchs[2];
+            let abs = matches[1];
+            let path = matches[2];
             let path_extral_match = path.match(/\/?\.+$/);
             let path_extral;
             if (path_extral_match) {
@@ -377,10 +380,10 @@ class DATA_PROCESS {
                 }
                 path = path.slice(0, path.length - len);
             }
-            let operator = matchs[3];
+            let operator = matches[3];
             let value_mode;
             if (express_type === 'string') {
-                let tmp_value = matchs[5] || '';
+                let tmp_value = matches[5] || '';
                 let split_index = tmp_value.indexOf(' ');
                 if (split_index > -1) {
                     value = tmp_value.substring(0, split_index);
@@ -404,11 +407,11 @@ class DATA_PROCESS {
                     value = tmp_value;
                 }
             }
-            matchs = path.match(/\[(\*?\d*)\]$/);
+            matches = path.match(/\[(\*?\d*)\]$/);
             let array_index;
-            if (matchs) {
+            if (matches) {
                 path = path.replace(/\[(\*?\d*)\]$/, '');
-                array_index = matchs[1];
+                array_index = matches[1];
             }
             if (abs) {
                 add_data_to_abs_path(`json_obj${is_array_obj ? '' : '.'}` + path, express, path, operator, value, conditions, array_index, path_extral, value_mode);
@@ -537,16 +540,16 @@ class DATA_PROCESS {
                 }
                 if (mod === 'parent') {
                     let reg = /^\.+/;
-                    let matchs = condition_path.match(reg);
+                    let matches = condition_path.match(reg);
                     let positions = [];
                     let regex = /\]/g;
                     while ((match = regex.exec(express_info.path)) !== null) {
                         positions.push(match.index);
                     }
                     if (positions.length > 0) {
-                        let split_index = positions[positions.length - matchs[0].length - 1] + 1;
+                        let split_index = positions[positions.length - matches[0].length - 1] + 1;
                         let short_condition_path = condition_path.replace(reg, '');
-                        if (!/^\[/.test(short_condition_path)) {
+                        if (!short_condition_path.startsWith('[')) {
                             short_condition_path = '.' + short_condition_path;
                         }
                         condition_path = express_info.path.slice(0, split_index) + short_condition_path.replace(/\.[\d\w\-\_\$@]+/g, function (match) {
@@ -586,6 +589,7 @@ init();
 
 function init() {
     log('初始化开始！', 0);
+    set_debugger();
     is_account_init = false;
     shorts_fun = get_shorts_fun();
     yt_api = get_yt_api();
@@ -593,12 +597,7 @@ function init() {
     if (page_type === 'yt_shorts') shorts_fun.check_shorts_exist();
     data_process = new DATA_PROCESS();
     data_process.set_obj_filter(obj_process_filter);
-    try {
-        eval('1===1');
-        limit_eval = false;
-    } catch (error) {
-        limit_eval = true;
-    }
+    limit_eval = data_process.limit_eval;
     config_init(user_data.language);
     let ytInitialPlayerResponse_value = unsafeWindow['ytInitialPlayerResponse'];
     define_property_hook(unsafeWindow, 'ytInitialPlayerResponse', {
@@ -623,7 +622,7 @@ function init() {
         },
         set: function (value) {
             inject_info.ytInitialReelWatchSequenceResponse = true;
-            if (/yt_shorts$/.test(page_type)) {
+            if (page_type.endsWith('_shorts')) {
                 if (value && open_debugger) debugger_ytInitialReelWatchSequenceResponse = (typeof (value) === 'string') ? JSON.parse(value) : JSON.parse(JSON.stringify(value));
                 let start_time = Date.now();
                 value && data_process.obj_process(value, ytInitialReelWatchSequenceResponse_rule, true);
@@ -691,42 +690,47 @@ function init() {
     };
     document.createElement.toString = origin_createElement.toString.bind(origin_createElement);
 
-    async function deal_resposn(name, response, rule) {
-        if (!rule) return response;
-        let is_deal = false;
-        const responseClone = response.clone();
-        let result = await responseClone.text();
-        let orgin_result = result;
-        if (name === 'subscribe' || name === 'unsubscribe') {
-            let match_list = result.match(/channelId":\"(.*?)"/);
-            const match_channel_id = match_list && match_list.length > 1 ? match_list[1] : '';
-            let channel_infos = user_data.channel_infos;
-            if (match_channel_id) {
-                if (name === 'unsubscribe') {
-                    let index = channel_infos.ids.indexOf(match_channel_id);
-                    if (index > -1) {
-                        channel_infos.ids.splice(index, 1);
-                        channel_infos.names.splice(index, 1);
+    async function deal_response(name, response, rule) {
+        if (!rule) return null;
+        try {
+            let is_deal = false;
+            const responseClone = response.clone();
+            let result = await responseClone.text();
+            let orgin_result = result;
+            if (name === 'subscribe' || name === 'unsubscribe') {
+                let match_list = result.match(/channelId":\"(.*?)"/);
+                const match_channel_id = match_list && match_list.length > 1 ? match_list[1] : '';
+                let channel_infos = user_data.channel_infos;
+                if (match_channel_id) {
+                    if (name === 'unsubscribe') {
+                        let index = channel_infos.ids.indexOf(match_channel_id);
+                        if (index > -1) {
+                            channel_infos.ids.splice(index, 1);
+                            channel_infos.names.splice(index, 1);
+                        }
+                    } else {
+                        channel_infos.ids.push(match_channel_id);
+                        channel_infos.names.push('');
                     }
-                } else {
-                    channel_infos.ids.push(match_channel_id);
-                    channel_infos.names.push('');
+                    user_data.channel_infos = channel_infos;
+                    store_user_data();
                 }
-                user_data.channel_infos = channel_infos;
-                store_user_data();
+                is_deal = true;
             }
-            is_deal = true;
+            if (!is_deal) {
+                let start_time = Date.now();
+                result = data_process.text_process(result, rule, 'insert', true);
+                log(name + ' 时间：', Date.now() - start_time, 'spend_time');
+            }
+            if (!result) {
+                result = orgin_result;
+                debugger;
+            }
+            return new Response(result, response);
+        } catch (e) {
+            console.warn(e);
         }
-        if (!is_deal) {
-            let start_time = Date.now();
-            result = data_process.text_process(result, rule, 'insert', true);
-            log(name + ' 时间：', Date.now() - start_time, 'spend_time');
-        }
-        if (!result) {
-            result = orgin_result;
-            debugger;
-        }
-        return new Response(result, response);
+        return null;
     }
     const origin_fetch = unsafeWindow.fetch;
     if (origin_fetch.toString() !== 'function fetch() { [native code] }') {
@@ -735,21 +739,29 @@ function init() {
     unsafeWindow.fetch = function () {
         const fetch_ = async function (uri, options) {
             async function fetch_request(response) {
-                let url = response.url;
+                const url = response.url;
                 inject_info.fetch = true;
-                return_response = response;
+                // return_response = response;
                 if (url.includes('youtubei/v1/next')) {
-                    return await deal_resposn('next', response, ytInitialData_rule);
+                    if (!page_type.endsWith('_watch')) return response;
+                    return (await deal_response('next', response, ytInitialData_rule)) || response;
                 }
                 if (url.includes('youtubei/v1/player')) {
-                    return await deal_resposn('player', response, ytInitialPlayerResponse_rule);
+                    if (!page_type.endsWith('_home') && !page_type.endsWith('_watch')) return response;
+                    return (await deal_response('player', response, ytInitialPlayerResponse_rule)) || response;
                 }
                 if (url.includes('youtubei/v1/reel/reel_watch_sequence')) {
-                    return await deal_resposn('reel_watch_sequence', response, ytInitialReelWatchSequenceResponse_rule);
+                    // shorts 内容列表
+                    return (await deal_response('reel_watch_sequence', response, ytInitialReelWatchSequenceResponse_rule)) || response;
+                }
+                if (url.includes('youtubei/v1/reel/reel_item_watch')) {
+                    // shorts 内容
+                    if (!['yt_shorts', 'mobile_yt_shorts'].includes(page_type)) return response;
+                    return (await deal_response('reel_item_watch', response, ytInitialData_rule)) || response;
                 }
                 if (url.includes('youtubei/v1/browse')) {
                     let rule = ytInitialData_rule;
-                    if (['yt_home', 'mobile_yt_home'].includes(page_type) && ['off', 'subscribed'].includes(user_data.open_recommend_liveroom)) {
+                    if (page_type.endsWith('_home') && ['off', 'subscribed'].includes(user_data.open_recommend_liveroom)) {
                         let node, category_text;
                         if (mobile_web) {
                             node = document.querySelector('#filter-chip-bar > div > ytm-chip-cloud-chip-renderer.selected');
@@ -772,21 +784,21 @@ function init() {
                             }
                         }
                     }
-                    return await deal_resposn('browse', response, rule);
+                    return (await deal_response('browse', response, rule)) || response;
                 }
                 if (url.includes('https://m.youtube.com/youtubei/v1/guide')) {
-                    return await deal_resposn('guide', response, ytInitialData_rule);
+                    return (await deal_response('guide', response, ytInitialData_rule)) || response;
                 }
                 if (url.includes('/youtubei/v1/search')) {
-                    return await deal_resposn('search', response, ytInitialData_rule);
+                    return (await deal_response('search', response, ytInitialData_rule)) || response;
                 }
                 if (url.includes('/unsubscribe?prettyPrint=false')) {
-                    return await deal_resposn('unsubscribe', response);
+                    return (await deal_response('unsubscribe', response)) || response;
                 }
                 if (url.includes('/subscribe?prettyPrint=false')) {
-                    return await deal_resposn('subscribe', response);
+                    return (await deal_response('subscribe', response)) || response;
                 }
-                return return_response;
+                return response;
             }
 
             return origin_fetch(uri, options).then(fetch_request);
@@ -834,37 +846,39 @@ function init() {
             return super.open(method, url, ...opts);
         }
         processResult(result) {
-            const xhr = this;
-            const resURL = xhr.responseURL || '';
-            if (resURL.includes('youtubei/v1/player')) {
-                // music_watch
-                if (typeof result === 'string') {
-                    result = data_process.text_process(result, ytInitialPlayerResponse_rule, 'insert', true);
+            try {
+                const xhr = this;
+                const resURL = xhr.responseURL || '';
+                if (resURL.includes('youtubei/v1/player')) {
+                    // music_watch
+                    if (typeof result === 'string') {
+                        result = data_process.text_process(result, ytInitialPlayerResponse_rule, 'insert', true);
+                    }
+                } else if (resURL.includes('youtube.com/playlist')) {
+                    const obj = textToObject(result);
+                    if (obj && obj.length >= 4) {
+                        data_process.obj_process(obj[2].playerResponse, ytInitialPlayerResponse_rule, true);
+                        data_process.obj_process(obj[3].response, ytInitialData_rule, true);
+                        tmp_debugger_value = obj;
+                        if (typeof result === 'string') result = JSON.stringify(obj);
+                        else if (typeof result === 'object') result = obj;
+                    }
                 }
-            } else if (resURL.includes('youtube.com/playlist')) {
-                const obj = textToObject(result);
-                if (obj && obj.length >= 4) {
-                    data_process.obj_process(obj[2].playerResponse, ytInitialPlayerResponse_rule, true);
-                    data_process.obj_process(obj[3].response, ytInitialData_rule, true);
-                    tmp_debugger_value = obj;
-                    if (typeof result === 'string') result = JSON.stringify(obj);
-                    else if (typeof result === 'object') result = obj;
-                }
+            } catch (e) {
+                console.warn(e);
             }
             return result;
         }
         get responseText() {
-            const xhr = this;
             let result = super.responseText;
-            if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (super.readyState === XMLHttpRequest.DONE) {
                 result = this.processResult(result);
             }
             return result;
         }
         get response() {
-            const xhr = this;
             let result = super.response;
-            if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (super.readyState === XMLHttpRequest.DONE) {
                 result = this.processResult(result);
             }
             return result;
@@ -940,9 +954,9 @@ function init() {
 
 async function account_data_init() {
     if (is_account_init) return;
+    is_account_init = true;
     yt_api.get_channel_id();
     yt_api.get_subscribe_data();
-    is_account_init = true;
 }
 
 function native_method_hook(method_path, handler) {
@@ -1035,6 +1049,8 @@ function config_init(tmp_language = null) {
             "btn_lable_close": "关闭",
             "btn_lable_subscribed": "仅订阅",
             "recommend_subscribed_lable_tips": "只显示已订阅的推荐",
+            "title_add_shorts_upload_date": "Shorts添加更新时间",
+            "title_shorts_change_author_name": "Shorts用户名改频道名",
         },
         "zh-TW": {
             "sponsored": "贊助商廣告",
@@ -1072,6 +1088,8 @@ function config_init(tmp_language = null) {
             "btn_lable_close": "關閉",
             "btn_lable_subscribed": "僅訂閱",
             "recommend_subscribed_lable_tips": "只顯示已訂閱的推薦",
+            "title_add_shorts_upload_date": "Shorts添加更新時間",
+            "title_shorts_change_author_name": "Shorts用戶名稱改頻道名",
         },
         "zh-HK": {
             "sponsored": "赞助",
@@ -1079,7 +1097,7 @@ function config_init(tmp_language = null) {
             "live": "直播",
             "movie_channel": "電影與電視節目",
             "Playables": "Playables",
-            "free_primetime_movie": "免費黃金時段電影",
+            "free_primetime_movie": "黃金時段電影",
             "think_video": "你對此影片有何意見？|此推荐内容怎么样？",
             "try": "試用",
             "recommend_popular": "熱爆影片",
@@ -1109,6 +1127,8 @@ function config_init(tmp_language = null) {
             "btn_lable_close": "關閉",
             "btn_lable_subscribed": "僅訂閱",
             "recommend_subscribed_lable_tips": "只顯示已訂閱的推薦",
+            "title_add_shorts_upload_date": "Shorts添加更新時間",
+            "title_shorts_change_author_name": "Shorts用戶名稱改頻道名",
         },
         "en": {
             "sponsored": "Sponsored",
@@ -1146,6 +1166,8 @@ function config_init(tmp_language = null) {
             "btn_lable_close": "off",
             "btn_lable_subscribed": "onlySubscribed",
             "recommend_subscribed_lable_tips": "only show subscribed recommend",
+            "title_add_shorts_upload_date": "ShortsAddUploadTime",
+            "title_shorts_change_author_name": "ShortsChangeToChannelName",
         }
     };
     if (tmp_language !== user_data.language) {
@@ -1251,10 +1273,11 @@ function config_init(tmp_language = null) {
         "abs:adPlacements=-",
         "abs:adBreakHeartbeatParams=-",
         "abs:adSlots=-",
+        "abs:streamingData.serverAbrStreamingUrl=-"
     ];
     if (page_type === 'yt_search') {
-        ytInitialData_rule = common_ytInitialData_rule;
         ytInitialPlayerResponse_rule = common_ytInitialPlayerResponse_rule;
+        ytInitialData_rule = common_ytInitialData_rule;
         return;
     }
     if (page_type === 'mobile_yt_search') {
@@ -1268,6 +1291,7 @@ function config_init(tmp_language = null) {
 
     if (page_type === 'yt_music_watch') {
         ytInitialPlayerResponse_rule = common_ytInitialPlayerResponse_rule;
+        ytInitialData_rule = common_ytInitialData_rule;
         return;
     }
 
@@ -1277,7 +1301,7 @@ function config_init(tmp_language = null) {
     }
 
     if (page_type.includes('yt_watch')) {
-        let watch_page_ytInitialData_rule = common_ytInitialData_rule;
+        const watch_page_ytInitialData_rule = common_ytInitialData_rule;
 
         let lower_left_corner_tags;
         let lower_left_corner_rule = mobile_web ? 'metadataBadgeRenderer.label.....=- ~=' : 'metadataBadgeRenderer.label.....=- ~=';
@@ -1313,6 +1337,9 @@ function config_init(tmp_language = null) {
             subscribed_shorts_rule = 'secondaryResults.results[1].itemSectionRenderer.contents=+(arr_insert,method(shorts_fun.get_shorts_section()),0) @user_data.shorts_list.length$value>0';
         }
         subscribed_shorts_rule && watch_page_ytInitialData_rule.push(subscribed_shorts_rule);
+
+        // 视频下方可能会出现的推荐栏目
+        !mobile_web && watch_page_ytInitialData_rule.push("metadataRowContainer=-");
 
         ytInitialData_rule = watch_page_ytInitialData_rule;
 
@@ -1443,12 +1470,12 @@ function search_listener() {
 }
 
 function getCookie(cookieName) {
-    var name = cookieName + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var cookieArray = decodedCookie.split(';');
+    const name = cookieName + "=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const cookieArray = decodedCookie.split(';');
 
-    for (var i = 0; i < cookieArray.length; i++) {
-        var cookie = cookieArray[i].trim();
+    for (let i = 0; i < cookieArray.length; i++) {
+        const cookie = cookieArray[i].trim();
 
         if (cookie.startsWith(name)) {
             return cookie.substring(name.length, cookie.length);
@@ -1459,7 +1486,7 @@ function getCookie(cookieName) {
 
 function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
-    var textarea = document.createElement("textarea");
+    const textarea = document.createElement("textarea");
     textarea.value = text;
     document.body.appendChild(textarea);
     textarea.select();
@@ -1471,7 +1498,7 @@ function url_observer() {
     if (unsafeWindow.navigation) {
         unsafeWindow.navigation.addEventListener('navigate', (event) => {
             url_change(event);
-        });
+        }, true);
         return;
     }
     const _historyWrap = function (type) {
@@ -1479,8 +1506,10 @@ function url_observer() {
         const e = new Event(type);
         return function () {
             const rv = orig.apply(this, arguments);
-            e.arguments = arguments;
-            unsafeWindow.dispatchEvent(e);
+            try {
+                e.arguments = arguments;
+                unsafeWindow.dispatchEvent(e);
+            } catch (err) { }
             return rv;
         };
     };
@@ -1488,108 +1517,118 @@ function url_observer() {
     unsafeWindow.history.replaceState = _historyWrap('replaceState');
     unsafeWindow.addEventListener('replaceState', function (event) {
         url_change(event);
-    });
+    }, true);
     unsafeWindow.addEventListener('pushState', function (event) {
         url_change(event);
-    });
+    }, true);
     unsafeWindow.addEventListener('popstate', function (event) {
         url_change(event);
-    });
+    }, true);
     unsafeWindow.addEventListener('hashchange', function (event) {
         url_change(event);
-    });
+    }, true);
 }
 
 function url_change(event = null) {
-    const destination_url = event?.destination?.url || '';
-    if (destination_url.startsWith('about:blank')) return;
-    href = destination_url || location.href;
-    log('网页url改变 href -> ' + href, 0);
-    let tmp_page_type = get_page_type();
-    if (tmp_page_type === 'yt_shorts') {
-        shorts_fun.check_shorts_exist();
-    }
-    if (tmp_page_type !== page_type) {
-        page_type = tmp_page_type;
-        config_init();
+    try {
+        const destination_url = event?.destination?.url || '';
+        if (destination_url.startsWith('about:blank')) return;
+        href = destination_url || location.href;
+        log('网页url改变 href -> ' + href, 0);
+        let tmp_page_type = get_page_type();
+        if (tmp_page_type === 'yt_shorts') {
+            shorts_fun.check_shorts_exist();
+        }
+        if (tmp_page_type !== page_type) {
+            page_type = tmp_page_type;
+            config_init();
+        }
+    } catch (e) {
+        console.warn(e);
     }
 }
 
 function get_page_type() {
-    let base_url = href.split('?')[0];
     let tmp_page_type;
-    if (base_url.match('https://www.youtube.com/?$')) tmp_page_type = 'yt_home';
-    else if (base_url.match('https://m.youtube.com/?$')) tmp_page_type = 'mobile_yt_home';
-    else if (base_url.match('https://www.youtube.com/watch$')) tmp_page_type = 'yt_watch';
-    else if (base_url.match('https://m.youtube.com/watch$')) tmp_page_type = 'mobile_yt_watch';
-    else if (base_url.match('https://www.youtube.com/results$')) tmp_page_type = 'yt_search';
-    else if (base_url.match('https://m.youtube.com/results$')) tmp_page_type = 'mobile_yt_search';
-    else if (base_url.startsWith('https://www.youtube.com/shorts')) tmp_page_type = 'yt_shorts';
-    else if (base_url.startsWith('https://m.youtube.com/shorts')) tmp_page_type = 'mobile_yt_shorts';
-    else if (base_url.match('https://www.youtubekids.com/watch$')) tmp_page_type = 'yt_kids_watch';
-    else if (base_url.match('https://music.youtube.com/?$')) tmp_page_type = 'yt_music_home';
-    else if (base_url.match('https://music.youtube.com/watch$')) tmp_page_type = 'yt_music_watch';
+    const uo = new URL(href);
+    const isDesktop = (uo.hostname === 'www.youtube.com');
+    const isMobile = (uo.hostname === 'm.youtube.com');
+    const isKids = (uo.hostname === 'www.youtubekids.com');
+    const isMusic = (uo.hostname === 'music.youtube.com');
+    if (isDesktop && uo.pathname === '/') tmp_page_type = 'yt_home';
+    else if (isMobile && uo.pathname === '/') tmp_page_type = 'mobile_yt_home';
+    else if (isDesktop && uo.pathname === '/watch') tmp_page_type = 'yt_watch';
+    else if (isMobile && uo.pathname === '/watch') tmp_page_type = 'mobile_yt_watch';
+    else if (isDesktop && uo.pathname === '/results') tmp_page_type = 'yt_search';
+    else if (isMobile && uo.pathname === '/results') tmp_page_type = 'mobile_yt_search';
+    else if (isDesktop && uo.pathname === '/shorts') tmp_page_type = 'yt_shorts';
+    else if (isMobile && uo.pathname === '/shorts') tmp_page_type = 'mobile_yt_shorts';
+    else if (isKids && uo.pathname === '/watch') tmp_page_type = 'yt_kids_watch';
+    else if (isMusic && uo.pathname === '/') tmp_page_type = 'yt_music_home';
+    else if (isMusic && uo.pathname === '/watch') tmp_page_type = 'yt_music_watch';
     else tmp_page_type = 'other';
     return tmp_page_type;
 }
+function set_debugger() {
+    const debugger_config_info = {
+        'ytInitialPlayerResponse': debugger_ytInitialPlayerResponse,
+        'ytInitialData': debugger_ytInitialData,
+        'ytInitialReelWatchSequenceResponse': debugger_ytInitialReelWatchSequenceResponse,
+        'inject_info': inject_info,
+        'info': [
+            'ytInitialData_rule',
+            'ytInitialPlayerResponse_rule',
+            'is_account_init',
+            'user_data',
+            'mobile_web',
+            'page_type',
+            'tmp_debugger_value',
+        ],
+    };
 
-let debugger_config_info = {
-    'ytInitialPlayerResponse': debugger_ytInitialPlayerResponse,
-    'ytInitialData': debugger_ytInitialData,
-    'ytInitialReelWatchSequenceResponse': debugger_ytInitialReelWatchSequenceResponse,
-    'inject_info': inject_info,
-    'info': [
-        'ytInitialData_rule',
-        'ytInitialPlayerResponse_rule',
-        'is_account_init',
-        'user_data',
-        'mobile_web',
-        'page_type',
-        'tmp_debugger_value',
-    ],
-};
-
-unsafeWindow.debugger_ = function (action = null) {
-    let keys = Object.keys(debugger_config_info);
-    if (!action && action !== 0) { debugger; return; }
-    if (action === 'ytInitialPlayerResponse') log('ytInitialPlayerResponse', debugger_ytInitialPlayerResponse, 0);
-    if (action === 'ytInitialData') log('ytInitialData', debugger_ytInitialData, 0);
-    if (action === 'inject_info') log('inject_info', inject_info, 0);
-    if (action === 'info') {
-        if (limit_eval) {
-            log('eval限制使用了', 0);
-        } else {
-            for (let key of debugger_config_info['info']) {
-                log(key, eval(key), 0);
+    unsafeWindow.debugger_ = function (action = null) {
+        let keys = Object.keys(debugger_config_info);
+        if (!action && action !== 0) { debugger; return; }
+        if (action === 'ytInitialPlayerResponse') log('ytInitialPlayerResponse', debugger_ytInitialPlayerResponse, 0);
+        if (action === 'ytInitialData') log('ytInitialData', debugger_ytInitialData, 0);
+        if (action === 'inject_info') log('inject_info', inject_info, 0);
+        if (action === 'info') {
+            if (limit_eval) {
+                log('eval限制使用了', 0);
+            } else {
+                for (let key of debugger_config_info['info']) {
+                    log(key, eval(key), 0);
+                }
             }
+            return;
         }
-        return;
-    }
-    if (action === 'list') {
-        keys.forEach(function (key, index) {
-            log(index, key, 0);
-        });
-    }
-    if (typeof (action) === 'number') {
-        if (action < keys.length) {
-            unsafeWindow.debugger_(keys[action]);
-        } else if (action >= keys.length) {
-            keys.forEach(function (key) {
-                unsafeWindow.debugger_(key);
+        if (action === 'list') {
+            keys.forEach(function (key, index) {
+                log(index, key, 0);
             });
         }
+        if (typeof (action) === 'number') {
+            if (action < keys.length) {
+                unsafeWindow.debugger_(keys[action]);
+            } else if (action >= keys.length) {
+                keys.forEach(function (key) {
+                    unsafeWindow.debugger_(key);
+                });
+            }
 
-    }
-};
+        }
+    };
+}
 
 function log() {
-    let arguments_arr = [...arguments];
-    let flag = arguments_arr.pop();
+    const arguments_arr = [...arguments];
+    const flag = arguments_arr.pop();
     if (flag === -1) {
         error_messages.push(arguments_arr.join(' '));
     }
-    if (flag !== 0) arguments_arr.push(getCodeLocation());
-    if (flag === 0 || open_debugger) orgin_log(...arguments_arr);
+    if (flag === 999) arguments_arr.unshift('-----test---test-----');
+    if (flag !== 0 && flag !== 999) arguments_arr.push(getCodeLocation());
+    if (flag === 0 || open_debugger) flag === -1 ? orgin_console.error(...arguments_arr) : orgin_console.log(...arguments_arr);
 }
 
 function getCodeLocation() {
@@ -1605,11 +1644,12 @@ function getCodeLocation() {
 }
 
 function display_config_win() {
-    const css_str = '.popup{ z-index:9999999999; position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background-color:#ffffff;border:1px solid #3498db;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);z-index:1000;width:200px;}.btn{cursor:pointer;background-color:#3498db;color:#ffffff;border:none;padding:5px 10px;margin:0 auto;border-radius:5px;display:block;margin-top:10px;}.recommend-title{user-select: none;font-weight:bold;font-size: large;background-color:#3498db;color:#ffffff;border:none;padding:5px;padding-left:10px;border-radius:5px;width:180px;text-align:start;}.select-group{cursor:pointer;padding:5px;list-style-type:none;margin:0;padding-left:0;user-select: none;}.item-group{list-style-type:none;margin:0;padding-left:0;} .close-btn{position:absolute;top:5px;right:5px;cursor:pointer;border:none;background-color:floralwhite;} label{font-size: large;}';
+    const css_str = '.popup{ z-index:999999999; position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background-color:#ffffff;border:1px solid #3498db;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);width:200px;max-height:80vh;overflow-y:auto;}.btn{cursor:pointer;background-color:#3498db;color:#ffffff;border:none;padding:5px 10px;margin:0 auto;border-radius:5px;display:block;margin-top:10px;}.recommend-title{user-select: none;font-weight:bold;font-size: large;background-color:#3498db;color:#ffffff;border:none;padding:5px;padding-left:10px;border-radius:5px;width:180px;text-align:start;}.select-group{cursor:pointer;padding:5px;list-style-type:none;margin:0;padding-left:0;user-select: none;}.item-group{list-style-type:none;margin:0;padding-left:0;} .close-btn{position:absolute;top:5px;right:5px;cursor:pointer;border:none;background-color:floralwhite;} label{font-size: large;}';
     const style = document.createElement("style");
     style.textContent = css_str;
-    document.querySelector('body').appendChild(style);
-    const win_config = {
+    document.body.appendChild(style);
+    let win_config;
+    const home_watch_config = {
         "recommend_btn": [
             {
                 "id": "open_recommend_shorts",
@@ -1694,14 +1734,53 @@ function display_config_win() {
 
         ]
     };
+    const shorts_config = {
+        "recommend_btn": [
+            {
+                "id": "add_shorts_upload_date",
+                "title": "title_add_shorts_upload_date",
+                "items": [
+                    {
+                        "tag": "btn_lable_open",
+                        "value": "on",
+                    },
+                    {
+                        "tag": "btn_lable_close",
+                        "value": "off",
+                    },
+                ]
+            },
+            {
+                "id": "shorts_change_author_name",
+                "title": "title_shorts_change_author_name",
+                "items": [
+                    {
+                        "tag": "btn_lable_open",
+                        "value": "on",
+                    },
+                    {
+                        "tag": "btn_lable_close",
+                        "value": "off",
+                    },
+                ]
+            },
+        ]
+    };
+    ['mobile_yt_home', 'mobile_yt_watch'].includes(page_type)  && home_watch_config.recommend_btn.push(...shorts_config.recommend_btn);
+    ['yt_home', 'mobile_yt_home', 'yt_watch', 'mobile_yt_watch'].includes(page_type) && (win_config = home_watch_config);
+    ['yt_shorts'].includes(page_type) && (win_config = shorts_config);
+    if (!win_config) return;
+    let popup_node = document.getElementById('xxx_popup');
+    if (popup_node) {
+        popup_node.remove();
+    }
     const popup = document.createElement('div');
-    popup.id = 'popup';
+    popup.id = 'xxx_popup';
     popup.className = 'popup';
     const close_btn = document.createElement('button');
     close_btn.className = 'close-btn';
     close_btn.innerHTML = 'x';
-    close_btn.addEventListener('click', remove_popup_hander
-    );
+    close_btn.addEventListener('click', remove_popup_hander);
     popup.append(close_btn);
     const item_groups = [];
     const item_group = document.createElement('ul');
@@ -1733,14 +1812,14 @@ function display_config_win() {
             });
             const label = document.createElement('label');
             label.htmlFor = input.id;
-            label.innerText = tag;
+            label.textContent = tag;
             tips && (label.title = tips);
             select_item.append(input, label);
             select_items.push(select_item);
         });
         const recommend_title_div = document.createElement('div');
         recommend_title_div.className = 'recommend-title';
-        recommend_title_div.innerText = recommend_title;
+        recommend_title_div.textContent = recommend_title;
         select_group.append(...select_items);
         item.append(recommend_title_div, select_group);
         item_groups.push(item);
@@ -1754,13 +1833,14 @@ function display_config_win() {
             document.removeEventListener('click', remove_popup_hander);
         }
     }
+    document.removeEventListener('click', remove_popup_hander);
     document.addEventListener('click', remove_popup_hander);
+}
 
-    function handle_recommend_radio(input_obj) {
-        user_data[input_obj.parentNode.parentNode.id] = input_obj.value;
-        user_data_api.set();
-        config_init(user_data.language);
-    }
+function handle_recommend_radio(input_obj) {
+    user_data[input_obj.parentNode.parentNode.id] = input_obj.value;
+    user_data_api.set();
+    config_init(user_data.language);
 }
 
 function display_update_win() {
@@ -1771,10 +1851,10 @@ function display_update_win() {
         }
         container.remove();
     }
-    const css_str = "#update_tips_win { z-index:9999999999; display: flex; position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px; } .btn { margin: 0 10px; display: inline-block; padding: 5px 10px; background-color: #3498db; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; } .btn:hover { background-color: #2980b9; }";
+    const css_str = "#update_tips_win { z-index:999999999; display: flex; position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px; } .btn { margin: 0 10px; display: inline-block; padding: 5px 10px; background-color: #3498db; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; } .btn:hover { background-color: #2980b9; }";
     const style = document.createElement("style");
-    style.innerText = css_str;
-    document.querySelector('body').appendChild(style);
+    style.textContent = css_str;
+    document.body.appendChild(style);
     const container = document.createElement("div");
     container.id = "update_tips_win";
     const span = document.createElement("span");
@@ -1792,7 +1872,7 @@ function display_update_win() {
     no_btn.id = 'no_btn';
     no_btn.onclick = btn_click;
     container.appendChild(no_btn);
-    document.querySelector('body').appendChild(container);
+    document.body.appendChild(container);
 }
 
 function checke_update() {
@@ -1829,7 +1909,7 @@ function obj_process_filter(path_info, json_obj) {
                 video_list_path = path_info.path.split('["title"]')[0] + '["contents"]';
             }
             const video_list = data_process.string_to_value(json_obj, video_list_path) || [];
-            shorts_fun.parase_shorts_infos(video_list);
+            shorts_fun.node_parse(video_list);
         }
     }
 
@@ -1885,8 +1965,17 @@ function obj_process_filter(path_info, json_obj) {
 }
 
 function get_shorts_fun() {
-    return {
-        parase_shorts_infos: function (video_list) {
+    class ShortsFun {
+        constructor(){
+
+            this.parsing = false;
+            this.shorts_list = [];
+            // this.author_info_list = [];
+            // this.author_info_dict = {};
+        }
+        node_parse(video_list){
+
+
             !user_data.shorts_list && (user_data.shorts_list = []);
             let video_id, title, views_lable, thumbnail_url;
             let count = 0;
@@ -1898,48 +1987,33 @@ function get_shorts_fun() {
                     views_lable = video_info.richItemRenderer.content.reelItemRenderer.viewCountText.simpleText;
                     thumbnail_url = video_info.richItemRenderer.content.reelItemRenderer.thumbnail.thumbnails[0].url;
                 }
-                if (page_type === "yt_watch") {
+                else if (page_type === "yt_watch") {
                     video_id = video_info.reelItemRenderer.videoId;
                     title = video_info.reelItemRenderer.headline.simpleText;
                     views_lable = video_info.reelItemRenderer.viewCountText.simpleText;
                     thumbnail_url = video_info.reelItemRenderer.thumbnail.thumbnails[0].url;
                 }
-                if (page_type === "mobile_yt_home") {
+                else if (page_type === "mobile_yt_home") {
                     video_id = video_info.shortsLockupViewModel.entityId.replace('shorts-shelf-item-', '');
                     title = video_info.shortsLockupViewModel.overlayMetadata.primaryText.content;
                     views_lable = video_info.shortsLockupViewModel.overlayMetadata.secondaryText.content;
                     thumbnail_url = video_info.shortsLockupViewModel.thumbnail.sources[0].url;
                 }
-                setTimeout((video_id, title, views_lable, thumbnail_url) => {
-                    yt_api.get_shorts_author(video_id).then((author_info) => {
-                        let [author_id, author_name] = author_info;
-                        if (author_id && user_data.channel_infos.ids.includes(author_id)) {
-                            if (user_data.shorts_list.some((value) => { return value.id === video_id; })) {
-                                log('已存在' + author_name + '的短视频：' + title, 0);
-                                return;
-                            }
-                            log('不过滤' + author_name + '的短视频：' + title, 0);
-                            const shorts_info = {
-                                id: video_id,
-                                title: title,
-                                author_id: author_id,
-                                author_name: author_name,
-                                views_lable: views_lable,
-                                from: page_type,
-                                // orgin_item: video_info,
-                                thumbnail_url: thumbnail_url
-                            };
-                            user_data.shorts_list.push(shorts_info);
-                            user_data_api.set();
-                        } else {
-                            log('过滤' + author_name + '的短视频：' + title, 0);
-                        }
-                    });
-                }, count * user_data.shorts_parase_delay, video_id, title, views_lable, thumbnail_url);
+                this.shorts_list.push({
+                    id: video_id,
+                    title: title,
+                    views_lable: views_lable,
+                    thumbnail_url: thumbnail_url
+                });
+                if (!this.parsing) {
+                    this.parsing = true;
+                    setTimeout(() => {
+                        this.parse_shorts_list();
+                    }, shorts_parse_delay);
+                }
             }
-
-        },
-        get_shorts_section: function () {
+        }
+        get_shorts_section(){
             if (!user_data.shorts_list || !user_data.shorts_list.length) return;
             let root, item_path;
             const items = [];
@@ -2106,7 +2180,7 @@ function get_shorts_fun() {
                 };
                 item_path = 'root.richSectionRenderer.content.richShelfRenderer.contents';
             }
-            if (page_type == 'yt_watch') {
+            else if (page_type == 'yt_watch') {
                 root = {
                     "reelShelfRenderer": {
                         "title": {
@@ -2125,7 +2199,7 @@ function get_shorts_fun() {
                 };
                 item_path = 'root.reelShelfRenderer.items';
             }
-            if (page_type == 'mobile_yt_home') {
+            else if (page_type == 'mobile_yt_home') {
                 root = {
                     "richSectionRenderer": {
                         "content": {
@@ -2525,7 +2599,7 @@ function get_shorts_fun() {
                         }
                     };
                 }
-                if (page_type == "mobile_yt_home") {
+                else if (page_type == "mobile_yt_home") {
                     tmp_item = {
                         "shortsLockupViewModel": {
                             "entityId": "shorts-shelf-item-" + id,
@@ -2791,25 +2865,145 @@ function get_shorts_fun() {
                         }
                     };
                 }
-                items.push(tmp_item);
+                if (tmp_item) items.push(tmp_item);
             }
             eval(item_path + ' = items');
             user_data_api.set();
 
             return root;
-        },
-        check_shorts_exist: function () {
+        }
+
+        get_shorts_info (video_id) {
+            return new Promise((resolve, reject) => {
+                let basic_url, author_id_reg, author_name_reg, upload_date_reg;
+                if (page_type.startsWith('mobile')) {
+                    basic_url = 'https://m.youtube.com/watch?&v=';
+                    author_id_reg = /"channelId":"(.*)"/;
+                    author_name_reg = /"ownerChannelName":"(.*)"/;
+                    upload_date_reg = /"uploadDate":"(.*)"/;
+                } else {
+                    basic_url = 'https://www.youtube.com/shorts/';
+                    author_id_reg = /"browseId":"([a-zA-Z0-9\-_]+)","canonicalBaseUrl"/;
+                    author_name_reg = /"channel":\{"simpleText":"(.*)"/;
+                    upload_date_reg = /"uploadDate":"(.*)"/;
+                }
+                const url = basic_url + video_id;
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', url);
+                xhr.setRequestHeader('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7');
+                let author_id = '';
+                let author_name = '';
+                let upload_date_str = '';
+                let upload_date;
+                xhr.onload = function () {
+                    if (xhr.status === 200 && xhr.readyState === XMLHttpRequest.DONE) {
+                        match = xhr.responseText.match(author_id_reg);
+                        if (match) author_id = match[1] || '';
+                        match = xhr.responseText.match(author_name_reg);
+                        if (match) author_name = match[1] || '';
+                        const upload_date_math = xhr.responseText.match(upload_date_reg);
+                        if (upload_date_math) upload_date_str = upload_date_math[1] || '';
+                        upload_date_str && !isNaN(new Date(upload_date_str)) && (upload_date = new Date(upload_date_str));
+                        resolve({
+                            id: video_id,
+                            author_id: author_id,
+                            author_name: author_name,
+                            upload_date: upload_date
+                        });
+                    } else {
+                        reject(xhr.responseText);
+                    }
+                };
+                xhr.onerror = function () {
+                    reject(new Error('XHR request failed'));
+                };
+                xhr.send();
+            });
+        }
+
+        parse_shorts_list() {
+            if (!this.shorts_list || this.shorts_list.length === 0) return;
+            const { id, title, views_lable, thumbnail_url } = this.shorts_list.pop();
+
+            this.get_shorts_info(id).then((author_info) => {
+                const { author_id, author_name, upload_date } = author_info;
+                if (author_id && user_data.channel_infos.ids.includes(author_id)) {
+                    if (user_data.shorts_list.some((value) => { return value.id === id; })) {
+                        log('已存在' + author_name + '的短视频：' + title, 0);
+                    } else {
+                        log('不过滤' + author_name + '的短视频：' + title, 0);
+                        const shorts_info = {
+                            id: id,
+                            title: title,
+                            author_id: author_id,
+                            author_name: author_name,
+                            views_lable: views_lable,
+                            from: page_type,
+                            // orgin_item: video_info,
+                            thumbnail_url: thumbnail_url,
+                            upload_date: upload_date
+                        };
+                        user_data.shorts_list.push(shorts_info);
+                        user_data_api.set();
+                    }
+                } else {
+                    log('过滤' + author_name + '的短视频：' + title, 0);
+                }
+            }).finally(() => {
+                if (this.shorts_list.length > 0)
+                    setTimeout(() => { this.parse_shorts_list(); }, shorts_parse_delay);
+                else
+                    this.parsing = false;
+            });
+
+        }
+        check_shorts_exist(){
+            /*
             const short_id = href.split('/').pop();
-            for (let shorts of user_data.shorts_list) {
+            for (const shorts of user_data.shorts_list) {
                 if (shorts.id === short_id) {
                     user_data.shorts_list.pop(shorts);
                     user_data_api.set();
-
-                    return;
+                    break;
                 }
             }
+            */
         }
-    };
+
+        get_interval_tag(upload_date_str) {
+            let uploadDate;
+            try{
+                uploadDate = new Date(upload_date_str);
+            }catch(e){}
+            if (!uploadDate || +uploadDate < 1706713200000) return "";
+            const currentDate = new Date();
+            const timeDifference = Math.abs(currentDate - uploadDate); // Difference in milliseconds
+            const secondsDifference = timeDifference / 1000;
+            const minutesDifference = secondsDifference / 60;
+            const hoursDifference = minutesDifference / 60;
+            const daysDifference = hoursDifference / 24;
+            const weeksDifference = daysDifference / 7;
+            const monthsDifference = weeksDifference / 4.345; // Average number of weeks in a month
+            const yearsDifference = monthsDifference / 12;
+            if (secondsDifference < 60) {
+                return `${Math.floor(secondsDifference)} seconds ago`;
+            } else if (minutesDifference < 60) {
+                return `${Math.floor(minutesDifference)} minutes ago`;
+            } else if (hoursDifference < 24) {
+                return `${Math.floor(hoursDifference)} hours ago`;
+            } else if (daysDifference < 7) {
+                return `${Math.floor(daysDifference)} days ago`;
+            } else if (weeksDifference < 4.345) {
+                return `${Math.floor(weeksDifference)} weeks ago`;
+            } else if (monthsDifference < 12) {
+                return `${Math.floor(monthsDifference)} months ago`;
+            } else {
+                return `${Math.floor(yearsDifference)} years ago`;
+            }
+        }
+
+    }
+    return new ShortsFun;
 }
 
 function get_yt_api() {
@@ -3009,17 +3203,16 @@ function get_yt_api() {
                         let tmp_id = match[1];
                         if (tmp_id && tmp_id != channel_id) {
                             channel_id = tmp_id;
-                            user_data = user_data_api.get();
+                            const tmp_data = user_data_api.get();
+                            Object.assign(user_data, tmp_data);
                             GM_setValue('last_channel_id', channel_id);
                         }
                         log('获取channel_id成功' + channel_id, 0);
                     } else {
                         if (retry < 3) {
                             setTimeout(() => { yt_api.get_channel_id(retry + 1); }, 1000);
-
                         } else {
-                            debugger;
-                            log('获取channel_id失败', response, response.responseText, 0);
+                            log('获取channel_id失败', response, response.responseText, -1);
                         }
                     }
                 },
@@ -3032,41 +3225,7 @@ function get_yt_api() {
                     }
                 },
             });
-        },
-        get_shorts_author: function (video_id) {
-            return new Promise((resolve, reject) => {
-                let basic_url, author_id_reg, author_name_reg;
-                if (page_type.startsWith('mobile')) {
-                    basic_url = 'https://m.youtube.com/watch?&v=';
-                    author_id_reg = /"channelId":"(.*?)"/;
-                    author_name_reg = /"ownerChannelName":"(.*?)"/;
-                } else {
-                    basic_url = 'https://www.youtube.com/shorts/';
-                    author_id_reg = /"browseId":"([a-zA-Z0-9\-_]+)","canonicalBaseUrl"/;
-                    author_name_reg = /"channel":\{"simpleText":"(.*?)"/;
-                }
-                const url = basic_url + video_id;
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url);
-                xhr.setRequestHeader('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7');
-                let author_id, author_name = '';
-                xhr.onload = function () {
-                    if (xhr.status === 200) {
-                        match = xhr.responseText.match(author_id_reg);
-                        if (match && match.length > 1) author_id = match[1];
-                        match = xhr.responseText.match(author_name_reg);
-                        if (match && match.length > 1) author_name = match[1];
-                        resolve([author_id, author_name]);
-                    } else {
-                        reject(xhr.responseText);
-                    }
-                };
-                xhr.onerror = function () {
-                    reject(new Error('XHR request failed'));
-                };
-                xhr.send();
-            });
-        },
+        }
     };
 }
 
@@ -3079,14 +3238,15 @@ function get_user_data_api() {
                 "open_recommend_popular": 'off',
                 "open_recommend_liveroom": 'off',
                 "open_recommend_playables": "off",
+                "add_shorts_upload_date": 'on',
+                "shorts_change_author_name": 'off',
                 "language": 'zh-CN',
                 "channel_infos": {
                     "ids": [],
                     "names": []
                 },
                 "shorts_list": [],
-                "login": false,
-                "shorts_parase_delay": 2000
+                "login": false
             };
             let diff = false;
             let tmp_user_data = GM_getValue(channel_id);
@@ -3132,7 +3292,7 @@ function get_user_data_api() {
             return diff;
         },
         getLatestValues(tmp_user_data){
-            let latest_user_data = GM_getValue(channel_id);
+            const latest_user_data = GM_getValue(channel_id);
             if (latest_user_data) {
                 Object.assign(tmp_user_data, latest_user_data);
             }
