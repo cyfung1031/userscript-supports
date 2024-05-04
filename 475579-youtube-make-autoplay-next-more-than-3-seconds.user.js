@@ -2,7 +2,7 @@
 // @name        YouTube: Make AutoPlay Next More Than 3 seconds
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.7
+// @version     0.2.8
 // @author      CY Fung
 // @license     MIT
 // @description To make AutoPlay Next Duration longer
@@ -149,10 +149,13 @@
       const p = typeof v === 'function' ? v.prototype : 0;
       if (p) {
         let q = 0;
+
+        if (typeof p.isLoaded === 'function' && p.isLoaded.length === 0) q += 200;
+        if (q < 200) continue; // p.isLoaded is required
+
         if (typeof p.hasSupportedAudio51Tracks === 'function' && p.hasSupportedAudio51Tracks.length === 0) q += 2;
         if (typeof p.getStoryboardFormat === 'function' && p.getStoryboardFormat.length === 0) q += 4;
         if (typeof p.getPlaylistSequenceForTime === 'function' && p.getPlaylistSequenceForTime.length === 1) q += 4;
-        if (typeof p.isLoaded === 'function' && p.isLoaded.length === 0) q += 200;
 
         if (typeof p.isOtf === 'function' && p.isOtf.length === 0) q += 2;
         if (typeof p.getAvailableAudioTracks === 'function' && p.getAvailableAudioTracks.length === 0) q += 4;
@@ -164,8 +167,6 @@
         if (typeof p.isDaiEnabled === 'function' && p.isDaiEnabled.length === 1) q += 2;
         if (typeof p.useInnertubeDrmService === 'function' && p.useInnertubeDrmService.length === 0) q++;
         if (typeof p.hasProgressBarBoundaries === 'function' && p.hasProgressBarBoundaries.length === 0) q += 2;
-
-        if (q < 200) continue; // p.isLoaded is required
 
         if (q > 0) arr.push([k, q]);
 
