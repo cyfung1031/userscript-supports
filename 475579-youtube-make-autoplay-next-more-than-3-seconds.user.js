@@ -2,7 +2,7 @@
 // @name        YouTube: Make AutoPlay Next More Than 3 seconds
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.2.5
+// @version     0.2.6
 // @author      CY Fung
 // @license     MIT
 // @description To make AutoPlay Next Duration longer
@@ -396,6 +396,11 @@
           }
         }
       });
+
+      window.set_second_to_play_next = (sec) => {
+        localStorage.second_to_play_next = sec;
+        assignDurationToOAR(pm.playerOAR);
+      }
 
       const objProceed = (toResolveInstSetPromise) => {
         const resAssigned = obtainOAR();
