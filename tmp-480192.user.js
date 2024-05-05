@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.002
+// @version      1.4.3.003
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -597,7 +597,7 @@ function init() {
     data_process = new DATA_PROCESS();
     data_process.set_obj_filter(obj_process_filter);
     limit_eval = data_process.limit_eval;
-    config_init(user_data.language);
+    config_init(user_data.language, true);
     let ytInitialPlayerResponse_value = unsafeWindow['ytInitialPlayerResponse'];
     define_property_hook(unsafeWindow, 'ytInitialPlayerResponse', {
         get: function () {
@@ -997,7 +997,7 @@ function define_property_hook(obj, property, descriptor) {
     }
 }
 
-function config_init(tmp_language = null) {
+function config_init(tmp_language = null, isFirstInit = false) {
     if (isinint) {
         setTimeout(search_listener, 500);
     }
@@ -1010,7 +1010,7 @@ function config_init(tmp_language = null) {
         }
     }
     if (!['zh-CN', 'zh-TW', 'zh-HK', 'en'].includes(tmp_language)) {
-        log(`Does not support language ${tmp_language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.`, -1);
+        isFirstInit && log(`Does not support language ${tmp_language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.`, -1);
         tmp_language = tmp_language.startsWith('en-') ? 'en' : 'zh-CN';
     }
     let flag_infos = {
