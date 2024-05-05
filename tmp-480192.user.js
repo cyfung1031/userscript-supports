@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.001
+// @version      1.4.3.002
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -47,8 +47,6 @@ let tmp_debugger_value;
 
 let limit_eval = false;
 
-let local_this = this;
-
 let is_account_init;
 
 const inject_info = {
@@ -59,7 +57,7 @@ const inject_info = {
     "fetch": false
 };
 
-let orgin_console = console;
+const origin_console = console;
 const script_url = 'https://update.greasyfork.org/scripts/480192/youtube%E5%B9%BF%E5%91%8A%E6%8B%A6%E6%88%AA.user.js';
 let href = location.href;
 let ytInitialPlayerResponse_rule;
@@ -78,7 +76,7 @@ let debugger_ytInitialPlayerResponse;
 let debugger_ytInitialData;
 let debugger_ytInitialReelWatchSequenceResponse;
 let page_type = '';
-let error_messages = [];
+const error_messages = [];
 let data_process;
 let shorts_fun;
 let yt_api;
@@ -96,15 +94,15 @@ class DATA_PROCESS {
         } catch (error) {
             this.limit_eval = true;
         }
-        this.obj_filter;
+        this.obj_filter = undefined;
         this.obj_storage = {};
     }
     storage_obj(key, obj) {
         this.obj_storage[key] = obj;
     }
-    set_obj_filter = function (obj_filter) {
+    set_obj_filter (obj_filter) {
         this.obj_filter = typeof obj_filter === 'function' ? obj_filter : undefined;
-    };
+    }
     text_process(data, values, mode, traverse_all) {
         if (!values) return data;
         mode = mode || 'cover';
@@ -135,6 +133,7 @@ class DATA_PROCESS {
     }
 
     value_parse(parse_value) {
+        const data_this = this;
         parse_value = parse_value.trim();
         const json_math = parse_value.match(/^json\((.*)\)$/);
         if (json_math) return JSON.parse(json_math[1]);
@@ -147,13 +146,13 @@ class DATA_PROCESS {
             // eval 限制的时候可以使用num() obj()这些添加数字对象 方法也要放到unsafeWindow里 例：method(b("123",num(23)))
             // 不限制的时候 不能使用num和obj 方法不需要放到unsafeWindow里 例：method(b("123",23))
             if (limit_eval) {
-                method_info = method_match[1].match(/(.*?)\((.*)\)$/);
-                method_name = method_info[1];
-                method_args_string = method_info[2];
-                method_args = method_args_string.split(',');
+                const method_info = method_match[1].match(/(.*?)\((.*)\)$/);
+                const method_name = method_info[1];
+                const method_args_string = method_info[2];
+                const method_args = method_args_string.split(',');
                 const args = [];
-                for (let arg of method_args) {
-                    args.push(value_parse(arg));
+                for (const arg of method_args) {
+                    args.push(data_this.value_parse(arg));
                 }
                 return unsafeWindow[method_name](...args);
             }
@@ -217,8 +216,15 @@ class DATA_PROCESS {
 
     }
 
+    convertPathToBracketNotation (path){
+        if (!path) return '';
+        return path.replace(/\.[\d\w\-\_\$@]+/g, function (match) {
+            return '["' + match.slice(1) + '"]';
+        });
+    }
+
     obj_process(json_obj, express_list, traverse_all = false) {
-        let data_this = this;
+        const data_this = this;
         let abs_path_info_list = [];
         let relative_path_info_list = [];
         let relative_path_list = [];
@@ -227,9 +233,7 @@ class DATA_PROCESS {
         const is_array_obj = Array.isArray(json_obj);
         function add_data_to_abs_path(path, express, relative_path, operator, value, condition, array_index, path_extral, value_mode) {
             let tmp;
-            path = path.replace(/\.[\d\w\-\_\$@]+/g, function (match) {
-                return '["' + match.slice(1) + '"]';
-            });
+            path = data_this.convertPathToBracketNotation(path);
             if (array_index !== "*") {
                 tmp = {};
                 path = path + (array_index ? '[' + array_index + ']' : '');
@@ -508,6 +512,7 @@ class DATA_PROCESS {
     }
 
     obj_conditional(express_info, json_obj) {
+        const data_this = this;
         //json_obj 在eval里直接调用
         if (!express_info['condition']) return true;
         let condition_infos = express_info['condition'];
@@ -534,9 +539,7 @@ class DATA_PROCESS {
                 }
                 let conditional_express = match[2];
                 if (mod === 'child') {
-                    condition_path = express_info.path + condition_path.slice(1).replace(/\.[\d\w\-\_\$@]+/g, function (match) {
-                        return '["' + match.slice(1) + '"]';
-                    });
+                    condition_path = express_info.path + data_this.convertPathToBracketNotation(condition_path.slice(1));
                 }
                 if (mod === 'parent') {
                     let reg = /^\.+/;
@@ -552,15 +555,11 @@ class DATA_PROCESS {
                         if (!short_condition_path.startsWith('[')) {
                             short_condition_path = '.' + short_condition_path;
                         }
-                        condition_path = express_info.path.slice(0, split_index) + short_condition_path.replace(/\.[\d\w\-\_\$@]+/g, function (match) {
-                            return '["' + match.slice(1) + '"]';
-                        });
+                        condition_path = express_info.path.slice(0, split_index) + data_this.convertPathToBracketNotation(short_condition_path);
                     }
                 }
                 if (mod === 'other') {
-                    condition_path = (`json_obj${is_array_obj ? '' : '.'}` + condition_path).replace(/\.[\d\w\-\_\$@]+/g, function (match) {
-                        return '["' + match.slice(1) + '"]';
-                    });
+                    condition_path = data_this.convertPathToBracketNotation(`json_obj${Array.isArray(json_obj) ? '' : '.'}` + condition_path);
                 }
                 if (mod === 'global') {
                     condition_path = condition_path.replace('@', limit_eval ? 'unsafeWindow.' : '');
@@ -678,10 +677,12 @@ function init() {
                     //         log(value);
                     //         log('弹窗去掉------->ytd-continuation-item-renderer');
                     // }
-                    if (value.toString().includes('yt-mealbar-promo-renderer')) {
-                        log('弹窗去掉------->yt-mealbar-promo-renderer', 'node_process');
-                        value = '';
-                    }
+                    try {
+                        if (value.toString().includes('yt-mealbar-promo-renderer')) {
+                            log('弹窗去掉------->yt-mealbar-promo-renderer', 'node_process');
+                            value = '';
+                        }
+                    } catch (e) { }
                     innerhtml_setter.call(node, value);
                 }
             });
@@ -696,7 +697,7 @@ function init() {
             let is_deal = false;
             const responseClone = response.clone();
             let result = await responseClone.text();
-            let orgin_result = result;
+            let origin_result = result;
             if (name === 'subscribe' || name === 'unsubscribe') {
                 let match_list = result.match(/channelId":\"(.*?)"/);
                 const match_channel_id = match_list && match_list.length > 1 ? match_list[1] : '';
@@ -713,7 +714,7 @@ function init() {
                         channel_infos.names.push('');
                     }
                     user_data.channel_infos = channel_infos;
-                    store_user_data();
+                    user_data_api.set(); // store_user_data();
                 }
                 is_deal = true;
             }
@@ -723,7 +724,7 @@ function init() {
                 log(name + ' 时间：', Date.now() - start_time, 'spend_time');
             }
             if (!result) {
-                result = orgin_result;
+                result = origin_result;
                 debugger;
             }
             return new Response(result, response);
@@ -933,9 +934,9 @@ function init() {
             },
             set: function (newValue) {
                 if (newValue.set) {
-                    const orgin_set = newValue.set;
+                    const origin_set = newValue.set;
                     newValue.set = function () {
-                        orgin_set.apply(this, arguments);
+                        origin_set.apply(this, arguments);
                         if (arguments[0] && typeof arguments[0].LOGGED_IN === 'boolean') {
                             arguments[0].LOGGED_IN === true && account_data_init();
                         }
@@ -1470,17 +1471,19 @@ function search_listener() {
 }
 
 function getCookie(cookieName) {
-    const name = cookieName + "=";
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
+    try {
+        const name = cookieName + "=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
 
-    for (let i = 0; i < cookieArray.length; i++) {
-        const cookie = cookieArray[i].trim();
+        for (let i = 0; i < cookieArray.length; i++) {
+            const cookie = cookieArray[i].trim();
 
-        if (cookie.startsWith(name)) {
-            return cookie.substring(name.length, cookie.length);
+            if (cookie.startsWith(name)) {
+                return cookie.substring(name.length, cookie.length);
+            }
         }
-    }
+    } catch (e) { }
     return null;
 }
 
@@ -1628,7 +1631,7 @@ function log() {
     }
     if (flag === 999) arguments_arr.unshift('-----test---test-----');
     if (flag !== 0 && flag !== 999) arguments_arr.push(getCodeLocation());
-    if (flag === 0 || open_debugger) flag === -1 ? orgin_console.error(...arguments_arr) : orgin_console.log(...arguments_arr);
+    if (flag === 0 || open_debugger) flag === -1 ? origin_console.error(...arguments_arr) : origin_console.log(...arguments_arr);
 }
 
 function getCodeLocation() {
@@ -1844,13 +1847,6 @@ function handle_recommend_radio(input_obj) {
 }
 
 function display_update_win() {
-    function btn_click() {
-        btn = this;
-        if (btn.id === 'go_btn') {
-            location.href = script_url;
-        }
-        container.remove();
-    }
     const css_str = "#update_tips_win { z-index:999999999; display: flex; position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px; } .btn { margin: 0 10px; display: inline-block; padding: 5px 10px; background-color: #3498db; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; } .btn:hover { background-color: #2980b9; }";
     const style = document.createElement("style");
     style.textContent = css_str;
@@ -1860,6 +1856,15 @@ function display_update_win() {
     const span = document.createElement("span");
     span.textContent = GM_info.script.name + '有更新了！！';
     container.appendChild(span);
+
+    function btn_click() {
+        const btn = this;
+        if (btn.id === 'go_btn') {
+            location.href = script_url;
+        }
+        container.remove();
+    }
+
     const go_btn = document.createElement("button");
     go_btn.textContent = 'GO';
     go_btn.id = 'go_btn';
@@ -2897,7 +2902,7 @@ function get_shorts_fun() {
                 let upload_date;
                 xhr.onload = function () {
                     if (xhr.status === 200 && xhr.readyState === XMLHttpRequest.DONE) {
-                        match = xhr.responseText.match(author_id_reg);
+                        let match = xhr.responseText.match(author_id_reg);
                         if (match) author_id = match[1] || '';
                         match = xhr.responseText.match(author_name_reg);
                         if (match) author_name = match[1] || '';
@@ -2939,7 +2944,7 @@ function get_shorts_fun() {
                             author_name: author_name,
                             views_lable: views_lable,
                             from: page_type,
-                            // orgin_item: video_info,
+                            // origin_item: video_info,
                             thumbnail_url: thumbnail_url,
                             upload_date: upload_date
                         };
@@ -3042,14 +3047,14 @@ function get_yt_api() {
                         log('获取关注列表成功' + user_data.channel_infos.ids.length + '个', 0);
                     } catch (error) {
                         if (retry < 3) {
-                            setTimeout(() => { get_subscribe_data(retry + 1); }, 1000);
+                            setTimeout(() => { yt_api.get_subscribe_data(retry + 1); }, 1000);
                         }
                         log('获取关注列表失败\n', error, -1);
                     }
                 },
                 onerror: function (error) {
                     if (retry < 3) {
-                        setTimeout(() => { get_subscribe_data(retry + 1); }, 1000);
+                        setTimeout(() => { yt_api.get_subscribe_data(retry + 1); }, 1000);
                     }
                     log('获取关注列表失败\n', error, -1);
                 },
@@ -3156,7 +3161,7 @@ function get_yt_api() {
             const sapisid_cookie = getCookie('SAPISID') || getCookie('APISID') || getCookie('__Secure-3PAPISID');
             if (sapisid_cookie) {
                 const timestamp = Math.floor(Date.now() / 1000);
-                b = Vja();
+                const b = Vja();
                 b.update(timestamp + ' ' + sapisid_cookie + ' https://www.youtube.com');
                 const hash_value = b.digestString().toLowerCase();
                 return 'SAPISIDHASH ' + timestamp + '_' + hash_value;
@@ -3273,7 +3278,7 @@ function get_user_data_api() {
         },
         update(tmp_user_data) {
             let diff = false;
-            last_version = GM_getValue('last_version', -1);
+            const last_version = GM_getValue('last_version', -1);
             if (last_version === -1) {
                 tmp_user_data.open_recommend_shorts = GM_getValue("open_recommend_shorts", "off");
                 tmp_user_data.open_recommend_movie = GM_getValue("open_recommend_movie", "off");
