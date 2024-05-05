@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.004
+// @version      1.4.3.005
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -302,6 +302,7 @@ class DATA_PROCESS {
         }
 
         function obj_modify(json_obj, path_info) {
+            // ****** TO BE REVIEWED *******
             let path = path_info['deal_path'];
             let operator = path_info['operator'];
             let value = path_info['value'];
@@ -605,11 +606,13 @@ function init() {
             return ytInitialPlayerResponse_value;
         },
         set: function (value) {
-            inject_info.ytInitialPlayerResponse = true;
-            if (value && open_debugger) debugger_ytInitialPlayerResponse = (typeof (value) === 'string') ? JSON.parse(value) : JSON.parse(JSON.stringify(value));
-            let start_time = Date.now();
-            value && data_process.obj_process(value, ytInitialPlayerResponse_rule, true);
-            log('ytInitialPlayerResponse 时间：', Date.now() - start_time, 'spend_time');
+            try {
+                inject_info.ytInitialPlayerResponse = true;
+                if (value && open_debugger) debugger_ytInitialPlayerResponse = (typeof (value) === 'string') ? JSON.parse(value) : JSON.parse(JSON.stringify(value));
+                let start_time = Date.now();
+                value && data_process.obj_process(value, ytInitialPlayerResponse_rule, true);
+                log('ytInitialPlayerResponse 时间：', Date.now() - start_time, 'spend_time');
+            } catch (e) { console.warn(e) }
             ytInitialPlayerResponse_value = value;
         },
         configurable: false
@@ -621,13 +624,15 @@ function init() {
             return ytInitialReelWatchSequenceResponse_value;
         },
         set: function (value) {
-            inject_info.ytInitialReelWatchSequenceResponse = true;
-            if (page_type.endsWith('_shorts')) {
-                if (value && open_debugger) debugger_ytInitialReelWatchSequenceResponse = (typeof (value) === 'string') ? JSON.parse(value) : JSON.parse(JSON.stringify(value));
-                let start_time = Date.now();
-                value && data_process.obj_process(value, ytInitialReelWatchSequenceResponse_rule, true);
-                log('ytInitialReelWatchSequenceResponse 时间：', Date.now() - start_time, 'spend_time');
-            }
+            try {
+                inject_info.ytInitialReelWatchSequenceResponse = true;
+                if (page_type.endsWith('_shorts')) {
+                    if (value && open_debugger) debugger_ytInitialReelWatchSequenceResponse = (typeof (value) === 'string') ? JSON.parse(value) : JSON.parse(JSON.stringify(value));
+                    let start_time = Date.now();
+                    value && data_process.obj_process(value, ytInitialReelWatchSequenceResponse_rule, true);
+                    log('ytInitialReelWatchSequenceResponse 时间：', Date.now() - start_time, 'spend_time');
+                }
+            } catch (e) { console.warn(e) }
             ytInitialReelWatchSequenceResponse_value = value;
         },
         configurable: false
@@ -639,17 +644,19 @@ function init() {
             return ytInitialData_value;
         },
         set: function (value) {
-            inject_info.ytInitialData = true;
-            if (typeof (value) === 'string') {
-                ytInitialData_value = value;
-                return;
-            }
-            if (open_debugger && value !== undefined && value !== null) debugger_ytInitialData = JSON.parse(JSON.stringify(value));
-            if (ytInitialData_rule) {
-                let start_time = Date.now();
-                value && data_process.obj_process(value, ytInitialData_rule, true);
-                log('ytInitialData 时间：', Date.now() - start_time, 'spend_time');
-            }
+            try {
+                inject_info.ytInitialData = true;
+                if (typeof (value) === 'string') {
+                    ytInitialData_value = value;
+                    return;
+                }
+                if (open_debugger && value !== undefined && value !== null) debugger_ytInitialData = JSON.parse(JSON.stringify(value));
+                if (ytInitialData_rule) {
+                    let start_time = Date.now();
+                    value && data_process.obj_process(value, ytInitialData_rule, true);
+                    log('ytInitialData 时间：', Date.now() - start_time, 'spend_time');
+                }
+            } catch (e) { console.warn(e) }
             ytInitialData_value = value;
         },
         configurable: false
@@ -683,7 +690,7 @@ function init() {
                             log('弹窗去掉------->yt-mealbar-promo-renderer', 'node_process');
                             value = '';
                         }
-                    } catch (e) { }
+                    } catch (e) { console.warn(e) }
                     innerhtml_setter.call(node, value);
                 }
             });
@@ -900,11 +907,13 @@ function init() {
             if (unsafeWindow.ytcfg.data_ && typeof unsafeWindow.ytcfg.data_ === 'object') {
                 define_property_hook(unsafeWindow.ytcfg.data_, 'LOGGED_IN', {
                     get: function () {
-                        return unsafeWindow.ytcfg.data_.LOGGED_IN_;
+                        return this.LOGGED_IN_;
                     },
                     set: function (value) {
-                        unsafeWindow.ytcfg.data_.LOGGED_IN_ = value;
-                        value === true && account_data_init();
+                        try {
+                            this.LOGGED_IN_ = value;
+                            value === true && account_data_init();
+                        } catch (e) { console.warn(e); }
                     }
                 });
             }
@@ -924,7 +933,9 @@ function init() {
                 return this._msgs;
             },
             set: function (newValue) {
-                if (newValue.__lang__) config_init(newValue.__lang__);
+                try {
+                    if (newValue.__lang__) config_init(newValue.__lang__);
+                } catch (e) { console.warn(e); }
                 this._msgs = newValue;
             }
         });
@@ -934,18 +945,20 @@ function init() {
                 return this._ytcfg;
             },
             set: function (newValue) {
-                if (newValue.set) {
-                    const origin_set = newValue.set;
-                    newValue.set = function () {
-                        origin_set.apply(this, arguments);
-                        if (arguments[0] && typeof arguments[0].LOGGED_IN === 'boolean') {
-                            arguments[0].LOGGED_IN === true && account_data_init();
-                        }
-                        if (arguments[0].HL) {
-                            config_init(arguments[0].HL);
-                        }
-                    };
-                }
+                try {
+                    if (newValue.set) {
+                        const origin_set = newValue.set;
+                        newValue.set = function () {
+                            origin_set.apply(this, arguments);
+                            if (arguments[0] && typeof arguments[0].LOGGED_IN === 'boolean') {
+                                arguments[0].LOGGED_IN === true && account_data_init();
+                            }
+                            if (arguments[0].HL) {
+                                config_init(arguments[0].HL);
+                            }
+                        };
+                    }
+                } catch (e) { console.warn(e); }
                 this._ytcfg = newValue;
             }
         });
