@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.005
+// @version      1.4.3.006
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -147,7 +147,7 @@ class DATA_PROCESS {
             // eval 限制的时候可以使用num() obj()这些添加数字对象 方法也要放到unsafeWindow里 例：method(b("123",num(23)))
             // 不限制的时候 不能使用num和obj 方法不需要放到unsafeWindow里 例：method(b("123",23))
             if (limit_eval) {
-                const method_info = method_match[1].match(/(.*?)\((.*)\)$/);
+                const method_info = method_match[1].match(/(.*)\((.*)\)$/);
                 const method_name = method_info[1];
                 const method_args_string = method_info[2];
                 const method_args = method_args_string.split(',');
@@ -171,7 +171,7 @@ class DATA_PROCESS {
                 return eval(path.replace('json_obj', 'obj'));
             }
             let tmp_obj = obj;
-            let matches = path.match(/\[(.*?)\]/g);
+            let matches = path.match(/\[([^\(\)]*)\]/g); // /\[(.*)\]/g is incorrect
             if (matches) {
                 matches.map((match) => {
                     if (match.includes('["')) {
@@ -196,7 +196,8 @@ class DATA_PROCESS {
     }
     get_lastPath_and_key(path) {
         let last_path, last_key;
-        let matches = path.match(/\[(.*?)\]/g);
+        let matches = path.match(/\[([^\(\)]*)\]/g); // /\[(.*)\]/g is incorrect
+        console.log(12399,matches)
         if (matches && matches.length > 0) {
             const tmp = matches[matches.length - 1];
             if (tmp.includes('["')) {
@@ -219,177 +220,175 @@ class DATA_PROCESS {
 
     convertPathToBracketNotation (path){
         if (!path) return '';
-        return path.replace(/\.[\d\w\-\_\$@]+/g, function (match) {
+        return path.replace(/\.[\d\w\-_$@]+/g, function (match) { // corrected regexp
             return '["' + match.slice(1) + '"]';
         });
     }
 
-    obj_process(json_obj, express_list, traverse_all = false) {
+    // moved to DATA_PROCESS
+    _obj_modify(json_obj, path_info) {
         const data_this = this;
-        let abs_path_info_list = [];
-        let relative_path_info_list = [];
-        let relative_path_list = [];
-        let relative_short_path_list = [];
-        if (!json_obj || !express_list) return;
-        const is_array_obj = Array.isArray(json_obj);
-        function add_data_to_abs_path(path, express, relative_path, operator, value, condition, array_index, path_extral, value_mode) {
-            let tmp;
-            path = data_this.convertPathToBracketNotation(path);
-            if (array_index !== "*") {
-                tmp = {};
-                path = path + (array_index ? '[' + array_index + ']' : '');
-                tmp.path = path;
-                tmp.relative_path = relative_path;
-                tmp.operator = operator;
-                tmp.value = value;
-                tmp.value_mode = value_mode;
-                tmp.condition = condition;
-                tmp.path_extral = path_extral;
-                tmp.express = express;
-                abs_path_info_list.push(tmp);
-                return;
-            }
-            let array_length;
-            try {
-                array_length = data_this.string_to_value(json_obj, path).length;
-                if (!array_length) return;
-            } catch (error) {
-                return;
-            }
-            for (let tmp_index = array_length - 1; tmp_index >= 0; tmp_index--) {
-                tmp = {};
-                tmp.path = path + "[" + tmp_index + "]";
-                tmp.operator = operator;
-                tmp.value = value;
-                tmp.value_mode = value_mode;
-                tmp.condition = condition;
-                tmp.path_extral = path_extral;
-                tmp.relative_path = relative_path;
-                tmp.express = express;
-                abs_path_info_list.push(tmp);
-            }
-        }
-
-        function obj_property_traverse(obj, cur_path, dec_infos, dec_list, dec_index_list, traverse_all = false) {
-            if (Array.isArray(obj)) {
-                obj.forEach((tmp_obj, index) => {
-                    let tmp_path = cur_path + '[' + index + ']';
-                    if (!tmp_obj || typeof (tmp_obj) !== 'object') return;
-                    obj_property_traverse(tmp_obj, tmp_path, dec_infos, dec_list, dec_index_list, traverse_all);
-                });
-                return;
-            }
-            Object.keys(obj).forEach((key) => {
-                let tmp_path = cur_path + '.' + key;
-                let deal = false;
-                for (let i = 0; i < dec_infos["short_keys"].length; i++) {
-                    if (dec_infos["short_keys"][i] === key) {
-                        let len = dec_infos["real_keys"][i].length;
-                        if (tmp_path.slice(tmp_path.length - len) === dec_infos["real_keys"][i]) {
-                            dec_list.push(tmp_path);
-                            dec_index_list.push(i);
-                            if (!deal && traverse_all && typeof (obj[key]) === 'object') {
-                                obj_property_traverse(obj[key], tmp_path, dec_infos, dec_list, dec_index_list, traverse_all);
-                            }
-                            deal = true;
-                        }
-                    }
-                }
-                let value = obj[key];
-                if (deal || !value || typeof (value) !== 'object') return;
-                obj_property_traverse(value, tmp_path, dec_infos, dec_list, dec_index_list, traverse_all);
-            });
-        }
-
-        function obj_modify(json_obj, path_info) {
-            // ****** TO BE REVIEWED *******
-            let path = path_info['deal_path'];
-            let operator = path_info['operator'];
-            let value = path_info['value'];
-            let [last_path, last_key] = data_this.get_lastPath_and_key(path);
-            let last_obj = data_this.string_to_value(json_obj, last_path);
-            if (operator === '=-') {
-                let is_array = typeof last_key === 'number';
-                if (!last_obj) throw new Error('last_obj is null');
-                if (is_array)
+        let path = path_info['deal_path'];
+        let operator = path_info['operator'];
+        let value = path_info['value'];
+        let [last_path, last_key] = data_this.get_lastPath_and_key(path);
+        let last_obj = data_this.string_to_value(json_obj, last_path);
+        if (operator === '=-') {
+            if (last_obj && typeof last_obj === 'object' && last_key) {
+                if (typeof last_key === 'number' && Array.isArray(last_obj))
                     last_obj.splice(last_key, 1);
                 else
                     delete last_obj[last_key];
                 log('依据：' + path_info.express, 'obj_process');
                 log('删除属性-->' + path, 'obj_process');
-                return;
             }
-            let dec_obj = last_obj[last_key];
-            if (operator === '=+') {
-                value = data_this.value_parse(value);
-                if (dec_obj === null || dec_obj === undefined) throw new Error('dec_obj is null');
-                let type_ = typeof dec_obj;
-                if (Array.isArray(dec_obj)) type_ = 'array';
-                if (type_ === 'array') {
-                    let mode_info = path_info.value_mode;
-                    if (mode_info) {
-                        try {
-                            mode_info.mode === 'arr_insert' && last_obj[last_key].splice(Number(mode_info.params[0]), 0, value);
-                        } catch (error) {
-                            log(error, -1);
+            return;
+        }
+        // operator === '=' => dont need to access last_obj[last_key]
+        if (operator === '=') {
+            value = data_this.value_parse(value);
+            last_obj[last_key] = value;
+            log('依据：' + path_info.express, 'obj_process');
+            log('修改属性-->' + path, 'obj_process');
+            return;
+        }
+        const dec_obj = last_obj[last_key];
+        if (operator === '=+') {
+            value = data_this.value_parse(value);
+            if (dec_obj === null || dec_obj === undefined) throw new Error('dec_obj is null');
+            let type_ = typeof dec_obj;
+            if (dec_obj && type_ === 'object' && Array.isArray(dec_obj)) {
+                let mode_info = path_info.value_mode;
+                if (mode_info) {
+                    try {
+                        mode_info.mode === 'arr_insert' && dec_obj.splice(Number(mode_info.params[0]), 0, value);
+                    } catch (error) {
+                        log(error, -1);
+                    }
+                } else {
+                    last_obj[last_key].push(value);
+                }
+            } else if (type_ === 'string' || type_ === 'number') last_obj[last_key] = dec_obj + value;
+            log('依据：' + path_info.express, 'obj_process');
+            log('修改属性-->' + path, 'obj_process');
+            return;
+        }
+        if (operator === '~=') {
+            let search_value = value.split(SPLIT_TAG)[0];
+            let replace_value = value.split(SPLIT_TAG)[1];
+            if (typeof dec_obj !== 'string') throw new Error('dec_obj is not string');
+            last_obj[last_key] = dec_obj.replace(new RegExp(search_value, 'g'), replace_value);
+            log('依据：' + path_info.express, 'obj_process');
+            log('修改属性-->' + path, 'obj_process');
+            return;
+        }
+    }
+
+
+    // moved to DATA_PROCESS
+    _obj_property_traverse (obj, cur_path, traverseData) {
+
+        // "short_keys": relative_short_path_list,
+        //  "real_keys": relative_path_list
+
+        const { relative_path_map, dec_list, traverse_all } = traverseData;
+        if (Array.isArray(obj)) {
+            obj.forEach((tmp_obj, index) => {
+                if (!tmp_obj || typeof (tmp_obj) !== 'object') return;
+                let tmp_path = `${cur_path}[${index}]`;
+                this._obj_property_traverse(tmp_obj, tmp_path, traverseData);
+            });
+        } else {
+
+
+            Object.keys(obj).forEach((key) => {
+
+                let value = obj[key];
+                if (!value || typeof (value) !== 'object' || typeof key !== 'string') return;
+
+                let tmp_path = `${cur_path}.${key}`;
+                let deal = false;
+                const rpEntry = relative_path_map.get('~' + key);
+                if (rpEntry) {
+                    const len = rpEntry.relative_path.length;
+                    if (tmp_path.slice(tmp_path.length - len) === rpEntry.relative_path) {
+                        dec_list.push([key, tmp_path]);
+                        if (!deal && traverse_all && typeof (obj[key]) === 'object') {
+                            this._obj_property_traverse(obj[key], tmp_path, traverseData);
                         }
-                    } else {
-                        last_obj[last_key].push(value);
+                        deal = true;
                     }
                 }
-                if (type_ === 'string' || type_ === 'number') last_obj[last_key] = last_obj[last_key] + value;
-                log('依据：' + path_info.express, 'obj_process');
-                log('修改属性-->' + path, 'obj_process');
-            }
-            if (operator === '~=') {
-                let search_value = value.split(SPLIT_TAG)[0];
-                let replace_value = value.split(SPLIT_TAG)[1];
-                last_obj[last_key] = dec_obj.replace(new RegExp(search_value, 'g'), replace_value);
-                log('依据：' + path_info.express, 'obj_process');
-                log('修改属性-->' + path, 'obj_process');
-            }
-            if (operator === '=') {
-                value = data_this.value_parse(value);
-                last_obj[last_key] = value;
-                log('依据：' + path_info.express, 'obj_process');
-                log('修改属性-->' + path, 'obj_process');
-            }
+                if (!deal) this._obj_property_traverse(value, tmp_path, traverseData);
+            });
         }
+    }
 
-        express_list.forEach(express => {
-            if (!express) return;
+    // pass sourceObj instead of every property
+    // moved to DATA_PROCESS
+    add_data_to_abs_path(json_obj, abs_path_info_list, path, array_index, sourceObj) {
+        const data_this = this;
+        path = data_this.convertPathToBracketNotation(path);
+        if (array_index !== "*") {
+            const tmp = {};
+            tmp.path = `${path}${(array_index ? `[${array_index}]` : '')}`;
+            Object.assign(tmp, sourceObj);
+            abs_path_info_list.push(tmp);
+            return;
+        }
+        let array_length;
+        try {
+            array_length = data_this.string_to_value(json_obj, path).length;
+            if (!array_length) return;
+        } catch (error) {
+            return;
+        }
+        for (let tmp_index = array_length - 1; tmp_index >= 0; tmp_index--) {
+            const tmp = {};
+            tmp.path = `${path}[${tmp_index}]`;
+            Object.assign(tmp, sourceObj);  
+            abs_path_info_list.push(tmp);
+        }
+    }
+
+    obj_process(json_obj, express_list, traverse_all = false) {
+        if (!json_obj || !express_list) return;
+        const data_this = this;
+        let abs_path_info_list = [];
+        const relative_path_map = new Map(); // relative_path_map = relative_path_list + relative_short_path_list + relative_path_info_list
+        const is_array_obj = Array.isArray(json_obj);
+
+        for (const express of express_list) {
+            if (!express) continue;
             let reg;
-            let express_type = typeof (express);
+            let express_type_is_string = typeof (express) === 'string'; // only check whether it is string or not
             let matches;
             let conditions;
             let value;
-            reg = /^(abs:)?([a-zA-Z_0-9\.\*\[\]]*)((=\-|~=|=\+|=))(.*)?/;
-            if (express_type === 'string') {
+            reg = /^(abs:)?([a-zA-Z_0-9\.\*\[\]]*)(=\-|~=|=\+|=)(.*)$/; // corrected regexp
+            if (express_type_is_string) {
                 matches = express.match(reg);
             } else {
                 matches = express.value.match(reg);
                 conditions = express.conditions;
             }
-            let abs = matches[1];
-            let path = matches[2];
-            let path_extral_match = path.match(/\/?\.+$/);
-            let path_extral;
-            if (path_extral_match) {
-                path_extral = {};
-                let len;
-                if (path_extral_match[0].startsWith('/')) {
-                    len = path_extral_match[0].length - 1;
-                    path_extral['child'] = len;
-                } else {
-                    len = path_extral_match[0].length;
-                    path_extral['parent'] = len;
-                }
-                path = path.slice(0, path.length - len);
+            // added error handling
+            if (!matches) {
+                log('no matches')
+                continue;
             }
-            let operator = matches[3];
+            let [_, abs, path, operator, tmp_value] = matches;
+            // ([a-zA-Z_0-9\.\*\[\]]*) => matches[2] 
+            // no / can be matched
+            // path.match(/\/?\.+$/);
+            let path_extral = undefined; // don't forget it can be undefined
+            path = path.replace(/\.+$/, (dots)=>{
+                path_extral = {};
+                path_extral['parent'] = dots.length;
+                return '';
+            });
             let value_mode;
-            if (express_type === 'string') {
-                let tmp_value = matches[5] || '';
+            if (express_type_is_string) {
                 let split_index = tmp_value.indexOf(' ');
                 if (split_index > -1) {
                     value = tmp_value.substring(0, split_index);
@@ -414,18 +413,30 @@ class DATA_PROCESS {
                 }
             }
             matches = path.match(/\[(\*?\d*)\]$/);
-            let array_index;
+            let array_index = undefined; // don't forget it can be undefined
             if (matches) {
-                path = path.replace(/\[(\*?\d*)\]$/, '');
+                path = path.replace(matches[0], '');
                 array_index = matches[1];
             }
             if (abs) {
-                add_data_to_abs_path(`json_obj${is_array_obj ? '' : '.'}` + path, express, path, operator, value, conditions, array_index, path_extral, value_mode);
+                data_this.add_data_to_abs_path(json_obj, abs_path_info_list, `json_obj${is_array_obj ? '' : '.'}${path}`, array_index, {
+
+                    relative_path: path,
+                    operator,
+                    value,
+                    value_mode,
+                    condition: conditions,
+                    path_extral,
+                    express
+
+                });
             } else {
-                relative_path_list.push(path);
-                let tmp_short_path = path.split('.').pop();
-                relative_short_path_list.push(tmp_short_path);
-                relative_path_info_list.push({
+                const tmp_short_path = path.split('.').pop();
+                if (relative_path_map.has('~' + tmp_short_path)) {
+                    log('relative_short_path_list - repeated')
+                    continue;
+                }
+                const rpEntry = {
                     "express": express,
                     "path": path,
                     "operator": operator,
@@ -433,48 +444,62 @@ class DATA_PROCESS {
                     "value_mode": value_mode,
                     "conditions": conditions,
                     "array_index": array_index,
-                    "path_extral": path_extral
-                });
-            }
-        });
-        if (relative_path_list.length > 0) {
-            let dec_list = [];
-            let dec_index_list = [];
-            obj_property_traverse(json_obj, '', {
-                "short_keys": relative_short_path_list,
-                "real_keys": relative_path_list
-            }, dec_list, dec_index_list, traverse_all);
-            for (let i = 0; i < dec_index_list.length; i++) {
-                let real_index = dec_index_list[i];
-                let real_path_info = relative_path_info_list[real_index];
-                let tmp_path = 'json_obj' + dec_list[i];
-                add_data_to_abs_path(tmp_path, real_path_info.express, real_path_info.path, real_path_info.operator, real_path_info.value, real_path_info.conditions, real_path_info.array_index, real_path_info.path_extral, real_path_info.value_mode);
+                    "path_extral": path_extral,
+                    "relative_path": path,
+                    "relative_short_path": tmp_short_path
+                };
+                // after modified, there is no "relative_path_map.get('~' + key)", so "relative_path_map.set('^' + path, rpEntry);" can be removed
+                // relative_path_map.set('^' + path, rpEntry); // relative_path_list.push(path);
+                relative_path_map.set('~' + tmp_short_path, rpEntry); // relative_short_path_list.push(tmp_short_path);
             }
         }
-        abs_path_info_list.sort((a, b) => a < b ? 1 : -1);
-        for (let path_info of abs_path_info_list) {
+        if (relative_path_map.size > 0) { // min size = 2
+            const dec_list = [];
+
+            data_this._obj_property_traverse(json_obj, '', {
+                relative_path_map,
+                dec_list,
+                traverse_all
+            });
+
+            for (let [key, tmp_path] of dec_list) {
+
+                let real_path_info = relative_path_map.get('~' + key);
+                tmp_path = 'json_obj' + tmp_path;
+                data_this.add_data_to_abs_path(json_obj, abs_path_info_list, tmp_path, real_path_info.array_index,{
+                    
+                    relative_path: real_path_info.path,
+                    operator: real_path_info.operator,
+                    value: real_path_info.value,
+                    value_mode: real_path_info.value_mode,
+                    condition: real_path_info.conditions,
+                    path_extral: real_path_info.path_extral,
+                    express: real_path_info.express
+
+                });
+            }
+        }
+        // abs_path_info_list's entries are object-type. a < b is always false. No Sorting
+        // abs_path_info_list.sort((a, b) => a < b ? 1 : -1);
+        for (const path_info of abs_path_info_list) {
             if (!this.obj_conditional(path_info, json_obj)) continue;
-            let operator = path_info.operator;
-            let path = path_info.path;
-            let value = path_info.value;
-            let path_extral = path_info.path_extral;
+            const { path_extral, path } = path_info;
+            let deal_path = path;
             if (path_extral) {
-                let positions = [];
-                let regex = /\]/g;
-                let match;
-                while ((match = regex.exec(path)) !== null) {
-                    positions.push(match.index);
+                const positions = [];
+                for (let j = 0; (j = path.indexOf(']', j)) >= 0; j++) {
+                    positions.push(j);
                 }
                 if (positions.length === 0) continue;
                 if ('parent' in path_extral) {
                     if (positions.length - path_extral['parent'] - 1 < 0) continue;
-                    let split_index = positions[positions.length - path_extral['parent'] - 1] + 1;
-                    path = path.slice(0, split_index);
+                    const split_index = positions[positions.length - path_extral['parent'] - 1] + 1;
+                    deal_path = path.slice(0, split_index);
                 }
             }
-            path_info.deal_path = path;
+            path_info.deal_path = deal_path;
             if (this.obj_filter && this.obj_filter(path_info, json_obj)) continue;
-            obj_modify(json_obj, path_info);
+            data_this._obj_modify(json_obj, path_info);
         }
     }
 
@@ -522,7 +547,8 @@ class DATA_PROCESS {
         for (let condition_list of Object.values(condition_infos)) {
             let result = false;
             for (let condition of condition_list) {
-                let reg = /^([a-zA-Z_0-9\/\.@\[\]]*)?(.*)/;
+                // corrected regexp
+                let reg = /^([a-zA-Z_0-9\/.@\[\]]*)?(.*)$/;
                 let match = condition.match(reg);
                 let condition_path = match[1];
                 let mod;
@@ -707,7 +733,7 @@ function init() {
             let result = await responseClone.text();
             let origin_result = result;
             if (name === 'subscribe' || name === 'unsubscribe') {
-                let match_list = result.match(/channelId":\"(.*?)"/);
+                let match_list = result.match(/channelId":\"([^"]*)"/);
                 const match_channel_id = match_list && match_list.length > 1 ? match_list[1] : '';
                 let channel_infos = user_data.channel_infos;
                 if (match_channel_id) {
@@ -1941,7 +1967,7 @@ function obj_process_filter(path_info, json_obj) {
         let upcoming_express = ['thumbnailOverlayTimeStatusRenderer.text.runs[0].text.........=- =' + flag_info.upcoming, 'thumbnailOverlayTimeStatusRenderer.text.simpleText.......=- =' + flag_info.upcoming];
         if (live_express.includes(path_info.express)) {
             try {
-                let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"(.*?)"/);
+                let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"([^"]*)"/);
                 let id;
                 if (match && match.length > 1) id = match[1];
                 if (!id) {
@@ -1961,7 +1987,7 @@ function obj_process_filter(path_info, json_obj) {
         }
         if (upcoming_express.includes(path_info.express)) {
             try {
-                let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"(.*?)"/);
+                let match = JSON.stringify(data_process.string_to_value(json_obj, path_info.deal_path)).match(/"browseId"\:"([^"]*)"/);
                 let id;
                 if (match && match.length > 1) id = match[1];
                 if (!id) {
@@ -2898,14 +2924,14 @@ function get_shorts_fun() {
                 let basic_url, author_id_reg, author_name_reg, upload_date_reg;
                 if (page_type.startsWith('mobile')) {
                     basic_url = 'https://m.youtube.com/watch?&v=';
-                    author_id_reg = /"channelId":"(.*)"/;
-                    author_name_reg = /"ownerChannelName":"(.*)"/;
-                    upload_date_reg = /"uploadDate":"(.*)"/;
+                    author_id_reg = /"channelId":"([^"]*)"/;
+                    author_name_reg = /"ownerChannelName":"([^"]*)"/;
+                    upload_date_reg = /"uploadDate":"([^"]*)"/;
                 } else {
                     basic_url = 'https://www.youtube.com/shorts/';
                     author_id_reg = /"browseId":"([a-zA-Z0-9\-_]+)","canonicalBaseUrl"/;
-                    author_name_reg = /"channel":\{"simpleText":"(.*)"/;
-                    upload_date_reg = /"uploadDate":"(.*)"/;
+                    author_name_reg = /"channel":\{"simpleText":"([^"]*)"/;
+                    upload_date_reg = /"uploadDate":"([^"]*)"/;
                 }
                 const url = basic_url + video_id;
                 const xhr = new XMLHttpRequest();
@@ -3043,7 +3069,7 @@ function get_yt_api() {
                 ...requestConfig,
                 onload: function (response) {
                     let tmp_channel_names = [], tmp_channel_ids = [];
-                    let regex = /var ytInitialData \= (.*?);\<\/script\>/;
+                    let regex = /var ytInitialData \= (.*);\<\/script\>/;
                     try {
                         let match = response.responseText.match(regex);
                         let ytInitialData_obj = JSON.parse(match[1]);
@@ -3218,7 +3244,7 @@ function get_yt_api() {
             GM_xmlhttpRequest({
                 ...requestConfig,
                 onload: function (response) {
-                    const match = response.responseText.match(/"browseId"\:"(.*?)"/);
+                    const match = response.responseText.match(/"browseId"\:"([^"]*)"/);  // "(.*)" is incorrect
                     if (match && match.length > 1) {
                         let tmp_id = match[1];
                         if (tmp_id && tmp_id != channel_id) {
