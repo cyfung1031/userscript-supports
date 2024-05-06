@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.03.0
+// @version             2024.05.06.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -152,20 +152,38 @@ SOFTWARE.
     };
   })();
 
-  window.__j6YiAc__ = 1;
+  const isGPUAccelerationAvailable = (() => {
+    // https://gist.github.com/cvan/042b2448fcecefafbb6a91469484cdf8
+    try {
+      const canvas = document.createElement('canvas');
+      return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+    } catch (e) {
+      return false;
+    }
+  })();
 
-  document.addEventListener('timeupdate', () => {
-    window.__j6YiAc__ = Date.now();
-  }, true);
-
-  let kz = -1;
-  try {
-    kz = top.__j6YiAc__;
-  } catch (e) {
-
+  if (!isGPUAccelerationAvailable) {
+    throw new Error('Your browser does not support GPU Acceleration. YouTube CPU Tamer by AnimationFrame is skipped.');
   }
 
-  const timeupdateDT = kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
+  const timeupdateDT = (() => {
+
+    window.__j6YiAc__ = 1;
+
+    document.addEventListener('timeupdate', () => {
+      window.__j6YiAc__ = Date.now();
+    }, true);
+
+    let kz = -1;
+    try {
+      kz = top.__j6YiAc__;
+    } catch (e) {
+
+    }
+
+    return kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
+
+  })();
 
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
