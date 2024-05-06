@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.3
+// @version     0.16.4
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -61,6 +61,7 @@
   // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
+  const SCRIPTLET_NOFIX_setTimeout = true;
   const ENABLE_discreteTasking = true;
   // << if ENABLE_discreteTasking >>
   const FIX_stampDomArray_stableList = true;
@@ -78,7 +79,7 @@
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
 
-  const TO_REMOVE_PRUNE_propNeedles = true; // brave scriptlet related
+  const SCRIPTLET_REMOVE_PRUNE_propNeedles = true; // brave scriptlet related
   const DEBUG_removePrune = false; // true for DEBUG
 
   const FIX_XHR_REQUESTING = true;
@@ -722,7 +723,7 @@
   }
 
   // avoid REGEXP testPattern execution in Brave's scriptlet for performance boost
-  const removePrune_propNeedles = () => {
+  SCRIPTLET_REMOVE_PRUNE_propNeedles && (() => {
     // const xhr = new XMLHttpRequest;
     const pdOri = Object.getOwnPropertyDescriptor(Map.prototype, 'size');
     if (!pdOri || pdOri.configurable !== true) return;
@@ -746,11 +747,7 @@
     const entries = [...propNeedles.entries()];
     propNeedles.clear();
     console.log('[yt-js-engine-tamer] propNeedles is cleared from scriptlet', entries, propNeedles);
-  }
-
-  if (TO_REMOVE_PRUNE_propNeedles) {
-    removePrune_propNeedles();
-  }
+  })();
 
   if (FIX_XHR_REQUESTING) {
 
@@ -3282,6 +3279,25 @@
     }
   }
 
+  SCRIPTLET_NOFIX_setTimeout && FIX_VIDEO_BLOCKING && typeof AbortSignal !== 'undefined' && (() => {
+    // resolve(1) is already done by JS Tamer (FIX_VIDEO_BLOCKING)
+
+    const delay = 5000;
+    let reNeedle = null;
+    let test;
+    try {
+      test = RegExp.prototype.test;
+      RegExp.prototype.test = function () { reNeedle = this; throw '' }
+      setTimeout(Symbol(), delay);
+    } catch (e) { }
+    if (test) RegExp.prototype.test = test;
+    if (reNeedle) {
+      reNeedle.test = () => false;
+      console.log('[yt-js-engine-tamer] Disabled Scriptlet setTimeout', reNeedle);
+    }
+
+  })();
+
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       const f = this[keyStConnectedCallback];
@@ -4842,9 +4858,9 @@
       if (f) Node.prototype.appendChild = function (a) {
         if (this instanceof Element) { // exclude DocumentFragment
           try {
-            if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING) {
+            if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING && typeof AbortSignal !== 'undefined') {
               const src = `${a.src}`;
-              const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false && typeof nextBrowserTick === 'function' && typeof AbortSignal !== 'undefined';
+              const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false;
               if (b) {
                 __src__ = src;
                 a.addEventListener('canplay', handlerCanplay, { once: true, passive: true, capture: false });
