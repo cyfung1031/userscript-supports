@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.006
+// @version      1.4.3.007
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -197,7 +197,6 @@ class DATA_PROCESS {
     get_lastPath_and_key(path) {
         let last_path, last_key;
         let matches = path.match(/\[([^\(\)]*)\]/g); // /\[(.*)\]/g is incorrect
-        console.log(12399,matches)
         if (matches && matches.length > 0) {
             const tmp = matches[matches.length - 1];
             if (tmp.includes('["')) {
