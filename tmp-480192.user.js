@@ -5,7 +5,7 @@
 // @name:zh-HK   YouTube視頻&音樂&兒童廣告攔截
 // @name:en      YouTubeVideo&music&kidsAdBlocking
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3.007
+// @version      1.4.3.008
 // @description  拦截所有youtube视频广告，音乐播放广告，儿童视频广告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-CN  拦截所有youtube视频广告，音乐播放广告，儿童視頻廣告，不留白，不闪屏，无感，体验第一。已适配移动端，支持自定义拦截,添加影视频道
 // @description:zh-TW  攔截所有YouTube視頻廣告，音樂播放廣告，兒童視頻廣告，不留白，不閃屏，無感，體驗第一。已適配移動端，支持自定義攔截，添加影視頻道
@@ -1048,9 +1048,9 @@ function config_init(tmp_language = null) {
             tmp_language = 'zh-CN';
         }
     }
-    if (!langProblemLogged && !['zh-CN', 'zh-TW', 'zh-HK', 'en'].includes(tmp_language)) {
+    if (!['zh-CN', 'zh-TW', 'zh-HK', 'en'].includes(tmp_language)) {
+        !langProblemLogged && log(`Does not support language ${tmp_language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.`, -1);
         langProblemLogged = true;
-        log(`Does not support language ${tmp_language}, only supports zh-CN, zh-TW, zh-HK, en, and is compatible with English locations; there may be some errors.`, -1);
         tmp_language = tmp_language.startsWith('en-') ? 'en' : 'zh-CN';
     }
     let flag_infos = {
