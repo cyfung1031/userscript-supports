@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.5
+// @version     1.6.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -587,6 +587,14 @@
 
     const BY_PASS = [
 
+      'enable_profile_cards_on_comments',
+
+      ... (SPACEBAR_CONTROL < 0 ? [
+        'disable_space_scroll_fix',
+        'global_spacebar_pause',
+        'web_speedmaster_spacebar_control'
+      ]: []),
+
       ...(ALLOW_FLAGS_202404 ? [
 
         'suppress_error_204_logging',
@@ -1031,17 +1039,9 @@
           if (mzFlagDetected.has(key)) continue;
           mzFlagDetected.add(key);
 
-          if (cachedSet.has(key)) continue;
+          if (cachedSet.has(key)) continue; // const BY_PASS = [
 
-          if (SPACEBAR_CONTROL < 0) {
-
-            if (key === 'disable_space_scroll_fix' || key === 'global_spacebar_pause' || key === 'web_speedmaster_spacebar_control') {
-              continue;
-            }
-            if (key.includes('speedmaster')) continue;
-          }
-
-
+          if (SPACEBAR_CONTROL < 0 && key.includes('speedmaster')) continue;
 
           if (FLAG_STRATEGY_20240413 && key.includes('network')) continue;
           if (FLAG_STRATEGY_20240413 && key.includes('less')) continue;
