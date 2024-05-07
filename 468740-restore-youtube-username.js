@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.019
+// @version             0.11.020
 // @license             MIT License
 
 // @author              CY Fung
@@ -341,6 +341,14 @@ SOFTWARE.
 */
 
     const isMobile = location.hostname === 'm.youtube.com';
+
+    if (!isMobile && typeof AbortSignal !== 'undefined') {
+        document.addEventListener('yt-action', () => {
+            try {
+                yt.config_.EXPERIMENT_FLAGS.enable_profile_cards_on_comments = true;
+            } catch (e) { }
+        }, { capture: true, passive: true, once: true })
+    }
 
     const cfg = {};
     class Mutex {
@@ -1221,7 +1229,8 @@ SOFTWARE.
      * @param {number} idx
      * @returns
      */
-    const contentTextProcess = (contentTexts, idx) => {
+    const contentTextProcess = (_md, contentTexts, idx) => {
+        const md = _md;
         const contentText = contentTexts[idx];
         const text = (contentText || 0).text;
         const browseId = ((contentText.navigationEndpoint || 0).browseEndpoint || 0).browseId || '';
@@ -1239,13 +1248,13 @@ SOFTWARE.
 
                     const textTrimmed = verifyAndConvertHandle(text, fetchResult);
                     if (textTrimmed) {
-                        resolveResult = (md) => {
+                        resolveResult = (() => {
                             let runs = ((md || 0).contentText || 0).runs;
                             if (!runs || !runs[idx]) return;
                             if (runs[idx].text !== text) return;
                             runs[idx].text = text.replace(textTrimmed, `@${fetchResult.title}`); // HyperLink always @SomeOne
                             md.contentText = Object.assign({}, md.contentText);
-                        };
+                        })();
                     }
                 }
                 return resolveResult; // function as a Promise
@@ -1255,7 +1264,8 @@ SOFTWARE.
         return null;
     };
 
-    const editableTextProcess = (editableTexts, idx) => {
+    const editableTextProcess = (_commentReplyDialogRenderer, editableTexts, idx) => {
+        const commentReplyDialogRenderer = _commentReplyDialogRenderer;
         const editableText = editableTexts[idx];
         const text = (editableText || 0).text;
 
@@ -1274,20 +1284,15 @@ SOFTWARE.
 
                     const textTrimmed = verifyAndConvertHandle(text, fetchResult);
                     if (textTrimmed) {
-                        resolveResult = (md) => {
-                            let commentReplyDialogRenderer = null;
-                            try {
-                                commentReplyDialogRenderer = md.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
-                            } catch (e) { }
+                        resolveResult = (() => {
                             if (!commentReplyDialogRenderer) return;
                             const editableText = commentReplyDialogRenderer.editableText || 0;
-
                             let runs = (editableText || 0).runs;
                             if (!runs || !runs[idx]) return;
                             if (runs[idx].text !== text) return;
                             runs[idx].text = text.replace(textTrimmed, `@${fetchResult.title}`); // HyperLink always @SomeOne
                             commentReplyDialogRenderer.editableText = Object.assign({}, commentReplyDialogRenderer.editableText);
-                        };
+                        })();
                     }
                 }
                 return resolveResult; // function as a Promise
@@ -1608,6 +1613,21 @@ SOFTWARE.
         return null;
     }
 
+    const fixCommentReplyDialogRenderer = (commentReplyDialogRenderer, funcPromises) => {
+        if (!commentReplyDialogRenderer) return;
+        const editableText = commentReplyDialogRenderer.editableText;
+        if (!editableText) return;
+        console.log(1828, editableText)
+        const editableTexts = editableText.runs;
+        if (editableTexts && editableTexts.length >= 1) {
+            for (let aidx = 0; aidx < editableTexts.length; aidx++) {
+                const r = editableTextProcess(commentReplyDialogRenderer, editableTexts, aidx);
+                if (r instanceof Promise) funcPromises.push(r);
+            }
+        }
+        // $0.polymerController.$['action-buttons'].polymerController.__data.replyButtonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer.editableText
+    }
+
     const domCheckAsync = isMobile ? async (anchor, hrefAttribute, mt) => {
 
         let sHandleName = null;
@@ -1804,6 +1824,22 @@ SOFTWARE.
                         addCSSRulesIfRequired();
                     }
 
+                    let commentReplyDialogRenderer;
+                    const actionButtonsCnt = insp((parentNodeController.$ || 0)['action-buttons'] || 0);
+                    if (actionButtonsCnt) {
+
+                        try {
+                            commentReplyDialogRenderer = actionButtonsCnt.__data.replyButtonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                        } catch (e) { }
+                    }
+                    const funcPromises = [];
+                    commentReplyDialogRenderer && fixCommentReplyDialogRenderer(commentReplyDialogRenderer, funcPromises);
+
+
+                    if (funcPromises.length >= 1) {
+                        await Promise.all(funcPromises);
+                    }
+
                     parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity);
 
                 }
@@ -1857,7 +1893,7 @@ SOFTWARE.
                         const contentTexts = (parentNodeData.contentText || 0).runs;
                         if (contentTexts && contentTexts.length >= 1) {
                             for (let aidx = 0; aidx < contentTexts.length; aidx++) {
-                                const r = contentTextProcess(contentTexts, aidx);
+                                const r = contentTextProcess(md, contentTexts, aidx);
                                 if (r instanceof Promise) funcPromises.push(r);
                             }
                         }
@@ -1888,14 +1924,8 @@ SOFTWARE.
                         }
                         if (setReplyEditableText) {
                             const commentReplyDialogRenderer = parentNodeData.actionButtons.commentActionButtonsRenderer.replyButton.buttonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
-                            const editableText = commentReplyDialogRenderer.editableText;
-                            const editableTexts = editableText.runs;
-                            if (editableTexts && editableTexts.length >= 1) {
-                                for (let aidx = 0; aidx < editableTexts.length; aidx++) {
-                                    const r = editableTextProcess(editableTexts, aidx);
-                                    if (r instanceof Promise) funcPromises.push(r);
-                                }
-                            }
+                            fixCommentReplyDialogRenderer(commentReplyDialogRenderer, funcPromises);
+
                         }
 
                         if (UPDATE_PIN_NAME) {
@@ -1903,13 +1933,7 @@ SOFTWARE.
                         }
 
                         if (funcPromises.length >= 1) {
-                            let funcs = await Promise.all(funcPromises);
-
-                            for (const func of funcs) {
-                                if (typeof func === 'function') {
-                                    func(md);
-                                }
-                            }
+                            await Promise.all(funcPromises);
                         }
 
                         if (parentNodeController.isAttached === true && parentNode.isConnected === true) {
