@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.10
+// @version      3.11
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -80,7 +80,7 @@
             const kurl = url.replace(/^https?:\/\/[\w\.\-]+\//, '/');
             if (kloc === kurl) return;
             const t = `${kloc}\t${kurl}`;
-            if (t === mz) return;
+            // if (t === mz) return;
             mz = t;
             if (rz > 1e9) rz = 9;
             const tz = ++rz;
