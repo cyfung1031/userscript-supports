@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.22
+// @version             0.61.23
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1930,6 +1930,45 @@
         resolve();
       });
     })));
+
+    const iAFP = typeof IntersectionObserver === 'undefined' ? foregroundPromiseFn : (() => {
+
+      const ioMap = new WeakMap();
+      const ioxCallback = (entries, observer) => {
+        if (!entries || !entries[0]) return;
+        const target = entries[0].target;
+        if (!(target instanceof Element)) return;
+        const resolve = observer.resolveKI;
+        if (resolve) {
+          observer.resolveKI = null;
+          observer.unobserve(target);
+          resolve();
+        }
+      };
+      /**
+       * 
+       * @param {Element} elm 
+       * @returns {Promise<void>}
+       */
+      const iAFP = (elm) => {
+        let io = ioMap.get(elm);
+        if (io && io.resolveKI && io.promiseKI) return io.promiseKI;
+        if (!io) {
+          io = new IntersectionObserver(ioxCallback);
+          ioMap.set(elm, io);
+        } else if (io.resolveKI && io.promiseKI) {
+          return io.promiseKI;
+        }
+        io.promiseKI = new Promise((resolve) => {
+          io.resolveKI = resolve;
+        });
+        io.observe(elm);
+        return io.promiseKI;
+      }
+
+      return iAFP;
+
+    })();
 
     let playerState = null;
     let _playerState = null;
@@ -4068,7 +4107,8 @@
           let maxTrial = 16;
           while (!this.$ || !this.$['item-scroller'] || !this.$['item-offset'] || !this.$['items']) {
             if (--maxTrial < 0 || !this.isAttached) return;
-            await new Promise(requestAnimationFrame);
+            await iAFP(this.hostElement).then();
+            // await new Promise(requestAnimationFrame);
           }
 
           if (this.isAttached !== true) return;
@@ -4207,7 +4247,8 @@
             if (myk > 1e9) myk = 9;
             let tid = ++myk;
 
-            await new Promise(requestAnimationFrame);
+            await iAFP(this.hostElement).then();
+            // await new Promise(requestAnimationFrame);
 
             if (tid !== myk) {
               return;
@@ -4309,7 +4350,8 @@
               let logger = false;
               const cnt = this;
               let immd = cnt.__intermediate_delay__;
-              await new Promise(requestAnimationFrame);
+              await iAFP(this.hostElement).then();
+              // await new Promise(requestAnimationFrame);
 
               if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
               if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
@@ -4635,7 +4677,8 @@
             await new Promise(r => setTimeout(r, 80));
             if (!keepTrialCond()) return;
             if (runCond()) return this.flushActiveItems_() | 1;
-            await new Promise(requestAnimationFrame);
+            await iAFP(this.hostElement).then();
+            // await new Promise(requestAnimationFrame);
             if (runCond()) return this.flushActiveItems_() | 1;
           } catch (e) {
             console.warn(e);
@@ -4684,7 +4727,8 @@
             if (myw > 1e9) myw = 9;
             let tid = ++myw;
 
-            await new Promise(requestAnimationFrame);
+            await iAFP(this.hostElement).then();
+            // await new Promise(requestAnimationFrame);
 
             if (tid !== myw) {
               return;
@@ -4775,7 +4819,8 @@
             else Array.prototype.push.apply(zarr, arr);
             arr = null;
 
-            await new Promise(requestAnimationFrame);
+            await iAFP(this.hostElement).then();
+            // await new Promise(requestAnimationFrame);
 
             if (tid !== mzt || zarr === null) {
               return;
