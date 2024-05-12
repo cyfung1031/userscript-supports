@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.23
+// @version             0.61.24
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -299,6 +299,12 @@
   // }
 
   const { IntersectionObserver } = __CONTEXT__;
+  let _x69;
+  try {
+    _x69 = document.createAttributeNS("http://www.w3.org/2000/svg", "nil").addEventListener;
+  } catch (e) { }
+  const pureAddEventListener = _x69;
+  if (!pureAddEventListener) return console.warn("pureAddEventListener cannot be obtained.");
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -1923,24 +1929,80 @@
       return cs;
     }
 
-    let foregroundPromise = null;
-    const foregroundPromiseFn = () => (foregroundPromise = (foregroundPromise || new Promise(resolve => {
-      requestAnimationFrame(() => {
-        foregroundPromise = null;
-        resolve();
+
+    const isGPUAccelerationAvailable = (() => {
+      // https://gist.github.com/cvan/042b2448fcecefafbb6a91469484cdf8
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+      } catch (e) {
+        return false;
+      }
+    })();
+
+    const foregroundPromiseFn_noGPU = (() => {
+
+      if (isGPUAccelerationAvailable) return null;
+
+      const pd = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+      if (!pd || typeof pd.get !== 'function') return null;
+      const pdGet = pd.get;
+
+      let pr = null;
+
+      let hState = pdGet.call(document) === 'hidden';
+      // let cid = 0;
+      pureAddEventListener.call(document, 'visibilitychange', (evt) => {
+        const newHState = pdGet.call(document) === 'hidden';
+        if (hState !== newHState) {
+          // if (cid > 0) cid = clearInterval(cid);
+          hState = newHState;
+          if (!hState && pr) pr = pr.resolve();
+        }
       });
-    })));
 
-    const iAFP = typeof IntersectionObserver === 'undefined' ? foregroundPromiseFn : (() => {
+      // cid = setInterval(() => {
+      //   const newHState = document.visibilityState === 'hidden';
+      //   if (hState !== newHState) {
+      //     hState = newHState;
+      //     if (!hState && pr) pr = pr.resolve();
+      //   }
+      // }, 100);
 
-      const ioMap = new WeakMap();
-      const ioxCallback = (entries, observer) => {
-        if (!entries || !entries[0]) return;
-        const target = entries[0].target;
-        if (!(target instanceof Element)) return;
-        const resolve = observer.resolveKI;
-        if (resolve) {
-          observer.resolveKI = null;
+
+      return (() => {
+        if (pr) return pr;
+        const w = ((!hState && setTimeout(() => {
+          if (!hState && pr === w) pr = pr.resolve();
+        })), (pr = new PromiseExternal()));
+        return w;
+      });
+
+    })();
+
+    // window.foregroundPromiseFn_noGPU = foregroundPromiseFn_noGPU;
+
+    let rafPromise = null;
+    const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
+      requestAnimationFrame(hRes => {
+        rafPromise = null;
+        resolve(hRes);
+      });
+    }));
+    const foregroundPromiseFn = foregroundPromiseFn_noGPU || getRafPromise;
+
+    const iAFP = foregroundPromiseFn_noGPU ? foregroundPromiseFn_noGPU : typeof IntersectionObserver === 'undefined' ? getRafPromise : (() => {
+
+      const ioWM = new WeakMap();
+      const ek = Symbol();
+      /** @type {IntersectionObserverCallback} */
+      const ioCb = (entries, observer) => {
+        /** @type {PromiseExternal} */
+        const pr = observer[ek];
+        const resolve = pr.resolve;
+        let target;
+        if (resolve && (target = ((entries ? entries[0] : 0) || 0).target) instanceof Element) {
+          pr.resolve = null;
           observer.unobserve(target);
           resolve();
         }
@@ -1951,19 +2013,17 @@
        * @returns {Promise<void>}
        */
       const iAFP = (elm) => {
-        let io = ioMap.get(elm);
-        if (io && io.resolveKI && io.promiseKI) return io.promiseKI;
+        let io = ioWM.get(elm);
         if (!io) {
-          io = new IntersectionObserver(ioxCallback);
-          ioMap.set(elm, io);
-        } else if (io.resolveKI && io.promiseKI) {
-          return io.promiseKI;
+          io = new IntersectionObserver(ioCb);
+          ioWM.set(elm, io); // strong reference
         }
-        io.promiseKI = new Promise((resolve) => {
-          io.resolveKI = resolve;
-        });
-        io.observe(elm);
-        return io.promiseKI;
+        let pr = io[ek];
+        if (!pr) {
+          pr = io[ek] = new PromiseExternal();
+          io.observe(elm);
+        }
+        return pr;
       }
 
       return iAFP;
@@ -2894,7 +2954,7 @@
             elm.setAttribute('wSr93', '');
             // custom CSS property --wsr94 not working when attribute wSr93 removed
           }
-          requestAnimationFrame(() => {
+          foregroundPromiseFn().then(() => {
             const btnShowMore = getElemFromWR(btnShowMoreWR); btnShowMoreWR = null;
             if (btnShowMore) btnShowMore.click();
             else {
@@ -2971,7 +3031,7 @@
 
       afterOper() {
         const c = this.counter;
-        requestAnimationFrame(() => {
+        foregroundPromiseFn().then(() => {
           if (c === this.counter) {
             this.active = false;
             this.element.style.willChange = '';
@@ -3145,7 +3205,7 @@
           } else if (!hasFirstShowMore) { // should more than one item being visible
             // implement inside visObserver to ensure there is sufficient delay
             hasFirstShowMore = true;
-            requestAnimationFrame(() => {
+            foregroundPromiseFn().then(() => {
               // foreground page
               // page visibly ready -> load the latest comments at initial loading
               const lcRenderer = lcRendererElm();
@@ -3313,7 +3373,7 @@
           }
           await new Promise(r => setTimeout(r, 1));
           if (!fn()) return;
-          await new Promise(r => requestAnimationFrame(r));
+          await foregroundPromiseFn().then();
           if (!fn()) return;
           skzElem.remove();
           await Promise.resolve().then();
