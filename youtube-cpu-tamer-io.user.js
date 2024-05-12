@@ -295,15 +295,15 @@ SOFTWARE.
         return t;
       }
       const inExec = new Set();
-      const mww = [];
+      // const mww = [];
       const wFunc = async (handler, wStore) => {
         try {
           const cid = wStore.cid;
           inExec.add(cid);
-          const t1 = performance.now();
+          // const t1 = performance.now();
           const t = await eFunc();
-          const t2 = performance.now();
-          mww.push(Math.round(t2 - t1));
+          // const t2 = performance.now();
+          // mww.push(Math.round(t2 - t1));
           const didNotRemove = inExec.delete(cid); // true for valid key
           if (!didNotRemove || t === wStore.lastExecution) return;
           wStore.lastExecution = t;
@@ -314,7 +314,7 @@ SOFTWARE.
         }
       };
 
-      window.mww = () => mww
+      // window.mww = () => mww
 
       const sFunc = (propFunc) => {
         return (func, ms = 0, ...args) => {
