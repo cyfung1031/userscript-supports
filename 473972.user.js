@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.4
+// @version     0.16.5
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -3281,6 +3281,7 @@
 
   SCRIPTLET_NOFIX_setTimeout && FIX_VIDEO_BLOCKING && typeof AbortSignal !== 'undefined' && (() => {
     // resolve(1) is already done by JS Tamer (FIX_VIDEO_BLOCKING)
+    // `setTimeout(resolve(1), 5000)` is removed in 2024.05.12 YT Code
 
     const delay = 5000;
     let reNeedle = null;
@@ -3293,6 +3294,12 @@
     if (test) RegExp.prototype.test = test;
     if (reNeedle) {
       reNeedle.test = () => false;
+      // reNeedle.test848= reNeedle.test;
+      // reNeedle.test = function(){
+      //   const r = this.test848(...arguments);
+      //   console.log('tested', r)
+      //   return r;
+      // }
       console.log('[yt-js-engine-tamer] Disabled Scriptlet setTimeout', reNeedle);
     }
 
@@ -4249,14 +4256,67 @@
 
     __requestAnimationFrame__ = requestAnimationFrame;
 
-    let rafPromise = null;
+    
+    const isGPUAccelerationAvailable = (() => {
+      // https://gist.github.com/cvan/042b2448fcecefafbb6a91469484cdf8
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+      } catch (e) {
+        return false;
+      }
+    })();
 
+    const foregroundPromiseFn_noGPU = (() => {
+
+      if (isGPUAccelerationAvailable) return null;
+
+      const pd = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+      if (!pd || typeof pd.get !== 'function') return null;
+      const pdGet = pd.get;
+
+      let pr = null;
+
+      let hState = pdGet.call(document) === 'hidden';
+      // let cid = 0;
+      pureAddEventListener.call(document, 'visibilitychange', (evt) => {
+        const newHState = pdGet.call(document) === 'hidden';
+        if (hState !== newHState) {
+          // if (cid > 0) cid = clearInterval(cid);
+          hState = newHState;
+          if (!hState && pr) pr = pr.resolve();
+        }
+      });
+
+      // cid = setInterval(() => {
+      //   const newHState = document.visibilityState === 'hidden';
+      //   if (hState !== newHState) {
+      //     hState = newHState;
+      //     if (!hState && pr) pr = pr.resolve();
+      //   }
+      // }, 100);
+
+
+      return (() => {
+        if (pr) return pr;
+        const w = ((!hState && setTimeout(() => {
+          if (!hState && pr === w) pr = pr.resolve();
+        })), (pr = new PromiseExternal()));
+        return w;
+      });
+
+    })();
+
+
+    let rafPromise = null;
     const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
       requestAnimationFrame(hRes => {
         rafPromise = null;
         resolve(hRes);
       });
     }));
+
+    const foregroundPromiseFn = foregroundPromiseFn_noGPU || getRafPromise;
 
 
     const wmComputedStyle = new WeakMap();
@@ -5154,7 +5214,7 @@
         // p59 || console.log(12100)
         if (!this._activation) {
           this._activation = true;
-          getRafPromise().then(() => {
+          foregroundPromiseFn().then(() => {
             this._activation = false;
             if (this[keyCidj]) {
               Promise.resolve().then(this[keyFuncC]);
@@ -6813,7 +6873,7 @@
               this.canToggle = this.alwaysToggleable;
             } else if (!this.canToggleJobId) {
               this.canToggleJobId = 1;
-              getRafPromise().then(() => {
+              foregroundPromiseFn().then(() => {
                 this.canToggleJobId = 0;
                 this.calculateCanCollapse()
               })
@@ -6851,9 +6911,9 @@
               }
               if ((this.shouldKeepAnimating || 0) !== ripples.length) {
                 if (!this._boundAnimate38) this._boundAnimate38 = this.animate.bind(this);
-                getRafPromise().then(this._boundAnimate38);
+                foregroundPromiseFn().then(this._boundAnimate38);
               } else {
-                this.onAnimationComplete()
+                this.onAnimationComplete();
               }
             }
           }
@@ -6871,21 +6931,46 @@
         const xsetTimeout = function (f, d) {
           if (xsetTimeout.m511 === 1 && !d) {
             xsetTimeout.m511 = 2;
-            getRafPromise().then(f);
+            xsetTimeout.m568 = f;
           } else {
             return setTimeout.apply(window, arguments)
           }
 
         }
 
+        /**
+         * 
+            IGb = function(a) {
+                    var b, c = null == (b = a.requestAninmationFrameResolver) ? void 0 : b.promise;
+                    c || (a.requestAninmationFrameResolver = new Vi,
+                    c = a.requestAninmationFrameResolver.promise,
+                    Da.requestAnimationFrame(function() {
+                        var d;
+                        null == (d = a.requestAninmationFrameResolver) || d.resolve();
+                        a.requestAninmationFrameResolver = null
+                    }));
+                    return c
+                }
+
+                
+         */
+
         const xrequestAnimationFrame = function (f) {
           const h = f + "";
-          if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}")) {
+          if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}") ) {
+            let t = null;
             xsetTimeout.m511 = 1;
             f();
+            if (xsetTimeout.m511 === 2) {
+              t = xsetTimeout.m568;
+              xsetTimeout.m568 = null;
+            }
             xsetTimeout.m511 = 0;
+            if (typeof t === 'function') {
+              foregroundPromiseFn().then(t);
+            }
           } else if (h.includes("requestAninmationFrameResolver")) {
-            getRafPromise().then(f);
+            foregroundPromiseFn().then(f);
           } else {
             return requestAnimationFrame.apply(window, arguments);
           }
