@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.020
+// @version             0.11.021
 // @license             MIT License
 
 // @author              CY Fung
@@ -1617,7 +1617,6 @@ SOFTWARE.
         if (!commentReplyDialogRenderer) return;
         const editableText = commentReplyDialogRenderer.editableText;
         if (!editableText) return;
-        console.log(1828, editableText)
         const editableTexts = editableText.runs;
         if (editableTexts && editableTexts.length >= 1) {
             for (let aidx = 0; aidx < editableTexts.length; aidx++) {
