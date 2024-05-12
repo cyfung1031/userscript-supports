@@ -7,7 +7,7 @@
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.1.3
+// @version     1.1.4
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -103,7 +103,7 @@ __errorCode21167__ || (() => {
       if (!frame) {
         frame = document.createElement('iframe');
         frame.id = frameId;
-        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' && typeof kagi === 'undefined' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
         frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
         let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
         n.appendChild(frame);

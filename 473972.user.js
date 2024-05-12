@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.5
+// @version     0.16.6
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -4179,7 +4179,7 @@
       if (!frame) {
         frame = document.createElement('iframe');
         frame.id = frameId;
-        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' && typeof kagi === 'undefined' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
         frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
         let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
         n.appendChild(frame);

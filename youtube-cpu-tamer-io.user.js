@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by PageIntersection
 // @name:zh-TW          YouTube CPU Tamer by PageIntersection
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.12.0
+// @version             2024.05.13.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -168,7 +168,7 @@ SOFTWARE.
       if (!frame) {
         frame = document.createElement('iframe');
         frame.id = frameId;
-        const blobURL = typeof webkitCancelAnimationFrame === 'function' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
+        const blobURL = typeof webkitCancelAnimationFrame === 'function' && typeof kagi === 'undefined' ? (frame.src = URL.createObjectURL(new Blob([], { type: 'text/html' }))) : null; // avoid Brave Crash
         frame.sandbox = 'allow-same-origin'; // script cannot be run inside iframe but API can be obtained from iframe
         let n = document.createElement('noscript'); // wrap into NOSCRPIT to avoid reflow (layouting)
         n.appendChild(frame);
