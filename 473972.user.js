@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.6
+// @version     0.16.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -30,7 +30,7 @@
   // const FIX_error_many_stack_keepAliveDuration = 200; // ms
   // const FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than = 8;
 
-  const FIX_Iframe_NULL_SRC = true;
+  const FIX_Iframe_NULL_SRC = false;
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
@@ -3377,7 +3377,7 @@
 
   if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
 
-  ; FIX_Iframe_NULL_SRC && (() => {
+  ; FIX_Iframe_NULL_SRC && typeof kagi === 'undefined' && (() => {
 
     const emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
     const lcOpt = { sensitivity: 'base' };
