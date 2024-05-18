@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.0
+// @version             0.1.1
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2627,6 +2627,7 @@ SOFTWARE.
             if (rearranged[b][0] === t) {
               visibleItems[j + b] = t;
               b++;
+              if (b >= rearranged.length) break;
             }
           } else {
             break;
