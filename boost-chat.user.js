@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.1
+// @version             0.1.2
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2422,6 +2422,7 @@ SOFTWARE.
         const crCount = this.clearCount;
         // const pEmpty = this.isEmpty;
 
+        const mapA2B = new Set();
 
         const rearranged = items.map(flushItem => {
 
@@ -2471,7 +2472,7 @@ SOFTWARE.
               const bObjChange = (val) => {
                 // mutable.tooltips.clear();
                 if (typeof (val || 0) === 'object') {
-                  for (const s of ['authorBadges', 'messages']) {
+                  for (const s of ['authorBadges', 'message']) {
                     Reflect.has(val, s) || (val[s] = undefined);
                     Reflect.has(val, s) || (val[s] = undefined);
                   }
@@ -2541,6 +2542,9 @@ SOFTWARE.
             }
           }
           mutableWM.set(bObj, mutable);
+
+          
+          mapA2B.add(flushItem);
 
           return [flushItem, bObj];
 
@@ -2614,29 +2618,31 @@ SOFTWARE.
 
         removeCount > 0 && visibleItems.splice(0, removeCount);
         let j = visibleItems.length;
-        let b = 0;
         visibleItems.length = j + rearranged.length;
         const n = items.length;
+        
 
-        let i = 0;
-        for (; i < n;) {
-          const t = items[i];
-          if (t === activeItems_[i]) {
-            activeItems_[i] = null;
-            i++;
-            if (rearranged[b][0] === t) {
-              visibleItems[j + b] = t;
-              b++;
-              if (b >= rearranged.length) break;
+        if (mapA2B.size > 0) {
+          let i = 0;
+          let b = 0;
+          for (const item of activeItems_) {
+            // console.log(activeItems_[i])
+            activeItems_[i++] = null;
+            if (mapA2B.has(item)) {
+              visibleItems[j + b] = item;
+              b++
+              if (b === mapA2B.size) break;
             }
-          } else {
-            break;
           }
+          for (; i < items.length; i++) {
+            if (activeItems_[i] !== items[i]) break;
+          }
+          b !== rearranged.length && (visibleItems.length = j + b);
+          i > 0 && activeItems_.splice(0, i);
+          // console.log(mapA2B.size, i ,b)
+          mapA2B.clear();
         }
-        b !== rearranged.length && (visibleItems.length = j + b);
 
-        // console.log(188, j+b, j+rearranged.length)
-        i > 0 && activeItems_.splice(0, i);
 
 
         // const tn2 = performance.now();
