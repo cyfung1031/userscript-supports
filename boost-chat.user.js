@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.2
+// @version             0.1.3
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -44,8 +44,9 @@ SOFTWARE.
 (() => {
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
+  const RENDER_MESSAGES_ONE_BY_ONE = true;
 
-  const { replaceWith, replaceChildren } = ((h0) => h0)(document.createElement('h0'));
+  const { replaceWith } = ((h0) => h0)(document.createElement('h0'));
 
   /* globals WeakRef:false */
 
@@ -1112,6 +1113,150 @@ SOFTWARE.
     dataMutable && dataMutable.removeEntry();
   }
 
+  function colorFromDecimal(a) {
+    a = Number(a);
+    return "rgba(" + [a >> 16 & 255, a >> 8 & 255, a & 255, ((a >> 24 & 255) / 255).toFixed(5)].join() + ")"
+  }
+
+  const formatters = {
+    authorBadges(badge, data) {
+
+
+        try {
+          const fk = firstKey(badge) || '';
+          const ek = badge[fk];
+
+          /**
+           * 
+          
+                    if (a.icon) {
+                        var c = document.createElement("yt-icon");
+                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
+                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                        b.appendChild(c)
+                    } else if (a.customThumbnail) {
+                        c = document.createElement("img");
+                        var d;
+                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
+                        b.appendChild(c),
+                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
+                    }
+          * 
+          */
+
+          if (ek.icon) {
+
+            const icon = ek.icon;
+            const type = icon.iconType.toLowerCase();
+            if (type === 'owner' && data.bst('shouldHighlight')) {
+
+            } else {
+
+              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+
+              const dataMutable = mutableWM.get(data);
+              if (dataMutable) {
+                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
+                dataMutable.tooltips.set(badgeElementId, createStore({
+                  displayedTooltipText: ''
+                }));
+
+                const displayedTooltipText = () => {
+                  const dataMutable = mutableWM.get(data);
+                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
+                  return emojiDataStore.displayedTooltipText
+                }
+
+                const onYtIconCreated = (el) => {
+                  const cnt = insp(el);
+                  cnt.icon = "live-chat-badges:" + type;
+                  el.setAttribute('icon-type', type);
+                  el.setAttribute('shared-tooltip-text', tooltipText());
+                }
+                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+
+              } else {
+                return '';
+              }
+
+
+            }
+
+
+          } else if (ek.customThumbnail) {
+
+            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
+            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
+            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
+            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+            const dataMutable = mutableWM.get(data);
+            if (dataMutable) {
+              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
+              dataMutable.tooltips.set(badgeElementId, createStore({
+                displayedTooltipText: ''
+              }));
+
+              const displayedTooltipText = () => {
+                const dataMutable = mutableWM.get(data);
+                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
+                return emojiDataStore.displayedTooltipText
+              }
+
+              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+            } else {
+              return '';
+            }
+
+
+          }
+
+
+        } catch (e) {
+          console.warn(e);
+        }
+
+    },
+    messageBody(message, data){
+      if (typeof message === 'string') return html`<span>${() => message}</span>`
+      if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
+
+      if (typeof message.emoji !== 'undefined') {
+
+        try {
+          const emoji = message.emoji;
+
+          const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+          const src = () => `${emoji.image.thumbnails[0].url}`
+          const alt = () => emoji.image?.accessibility?.accessibiltyData?.label || '';
+          const tooltipText = () => emoji.shortcuts?.[0] || '';
+          const emojiId = () => emoji.emojiId || '';
+          const isCustomEmoji = () => emoji.isCustomEmoji || false;
+          const dataMutable = mutableWM.get(data);
+          if (dataMutable) {
+            const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
+            dataMutable.tooltips.set(emojiElementId, createStore({
+              displayedTooltipText: ''
+            }));
+
+            const displayedTooltipText = () => {
+              const dataMutable = mutableWM.get(data);
+              const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
+              return emojiDataStore.displayedTooltipText
+            }
+
+            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+          } else {
+            return '';
+          }
+
+        } catch (e) {
+          console.warn(e);
+        }
+
+      }
+    }
+  }
+
   const SolidMessageList = (sb) => {
 
     return html`
@@ -1159,13 +1304,7 @@ SOFTWARE.
       const onYtIconCreated = (el) => {
         const cnt = insp(el);
         cnt.icon = type;
-        // cnt.hostElement.id = badgeElementId;
-        cnt.hostElement.setAttribute('icon-type', type);
-        /*
-        "MODERATOR" === icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-        b.appendChild(c)
-        */
+        el.setAttribute('icon-type', type);
       }
       p = () => html`<div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>`
 
@@ -1177,28 +1316,17 @@ SOFTWARE.
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
         return p();
-      }
-      }<//>
+    }}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-        if (typeof message === 'string') return html`<span>${() => message}</span>`
-        if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
-
-        if (typeof message.emoji !== 'undefined') {
-
-        }
-      }
-      }<//>
+        return formatters.messageBody(message, data)
+    }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
   </div>
   </div>`
 
-  }
-  function colorFromDecimal(a) {
-    a = Number(a);
-    return "rgba(" + [a >> 16 & 255, a >> 8 & 255, a & 255, ((a >> 24 & 255) / 255).toFixed(5)].join() + ")"
   }
 
 
@@ -1216,154 +1344,19 @@ SOFTWARE.
     <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
       <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color"><${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
+        return formatters.authorBadges(badge, data);
 
-        try {
-          const fk = firstKey(badge) || '';
-          const ek = badge[fk];
-
-          /**
-           * 
-          
-                    if (a.icon) {
-                        var c = document.createElement("yt-icon");
-                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                        b.appendChild(c)
-                    } else if (a.customThumbnail) {
-                        c = document.createElement("img");
-                        var d;
-                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
-                        b.appendChild(c),
-                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
-                    }
-           * 
-           */
-
-          if (ek.icon) {
-
-            const icon = ek.icon;
-            const type = icon.iconType.toLowerCase();
-            if (type === 'owner' && data.bst('shouldHighlight')) {
-
-            } else {
-
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const dataMutable = mutableWM.get(data);
-              if (dataMutable) {
-                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-                dataMutable.tooltips.set(badgeElementId, createStore({
-                  displayedTooltipText: ''
-                }));
-
-                const displayedTooltipText = () => {
-                  const dataMutable = mutableWM.get(data);
-                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                  return emojiDataStore.displayedTooltipText
-                }
-
-                const onYtIconCreated = (el) => {
-                  const cnt = insp(el);
-                  cnt.icon = "live-chat-badges:" + type;
-                  // cnt.hostElement.id = badgeElementId;
-                  cnt.hostElement.setAttribute('icon-type', type);
-                  cnt.hostElement.setAttribute('shared-tooltip-text', tooltipText());
-                  /*
-                  "MODERATOR" === icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                  c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                  b.appendChild(c)
-                  */
-                }
-                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-              } else {
-                return '';
-              }
-
-
-            }
-
-
-          } else if (ek.customThumbnail) {
-
-            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
-            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(badgeElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-
-          }
-
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-
-      }
-      }<//></div>
+      }}<//>
+      </div>
       <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-        if (typeof message === 'string') return html`<span>${() => message}</span>`
-        if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
-
-        if (typeof message.emoji !== 'undefined') {
-
-          try {
-            const emoji = message.emoji;
-
-            const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-            const src = () => `${emoji.image.thumbnails[0].url}`
-            const alt = () => emoji.image?.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => emoji.shortcuts?.[0] || '';
-            const emojiId = () => emoji.emojiId || '';
-            const isCustomEmoji = () => emoji.isCustomEmoji || false;
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(emojiElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-          } catch (e) {
-            console.warn(e);
-          }
-
-        }
-      }
-      }<//>
+      return formatters.messageBody(message, data);
+    }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -1382,116 +1375,17 @@ SOFTWARE.
     <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
       <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color"><${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
+        return formatters.authorBadges(badge, data);
 
-        try {
-          const fk = firstKey(badge) || '';
-          const ek = badge[fk];
-
-          /**
-           * 
-          
-                    if (a.icon) {
-                        var c = document.createElement("yt-icon");
-                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                        b.appendChild(c)
-                    } else if (a.customThumbnail) {
-                        c = document.createElement("img");
-                        var d;
-                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
-                        b.appendChild(c),
-                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
-                    }
-           * 
-           */
-
-          if (ek.icon) {
-
-            const icon = ek.icon;
-            const type = icon.iconType.toLowerCase();
-            if (type === 'owner' && data.bst('shouldHighlight')) {
-
-            } else {
-
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const dataMutable = mutableWM.get(data);
-              if (dataMutable) {
-                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-                dataMutable.tooltips.set(badgeElementId, createStore({
-                  displayedTooltipText: ''
-                }));
-
-                const displayedTooltipText = () => {
-                  const dataMutable = mutableWM.get(data);
-                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                  return emojiDataStore.displayedTooltipText
-                }
-
-                const onYtIconCreated = (el) => {
-                  const cnt = insp(el);
-                  cnt.icon = "live-chat-badges:" + type;
-                  // cnt.hostElement.id = badgeElementId;
-                  cnt.hostElement.setAttribute('icon-type', type);
-                  cnt.hostElement.setAttribute('shared-tooltip-text', tooltipText());
-                  /*
-                  "MODERATOR" === icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                  c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                  b.appendChild(c)
-                  */
-                }
-                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-              } else {
-                return '';
-              }
-
-
-            }
-
-
-          } else if (ek.customThumbnail) {
-
-            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
-            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(badgeElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-
-          }
-
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-
-      }
-      }<//></div>
+      }}<//>
+      </div>
     </div>
     <div class="bst-message-body">${() => {
         return convertYTtext(data.headerSubtext)
-      }
-      }</div>
+    }}</div>
   </div>
   <div class="bst-message-menu-container">
   </div>
@@ -1511,153 +1405,18 @@ SOFTWARE.
     <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
       <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color"><${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
+        return formatters.authorBadges(badge, data);
 
-        try {
-          const fk = firstKey(badge) || '';
-          const ek = badge[fk];
-
-          /**
-           * 
-          
-                    if (a.icon) {
-                        var c = document.createElement("yt-icon");
-                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                        b.appendChild(c)
-                    } else if (a.customThumbnail) {
-                        c = document.createElement("img");
-                        var d;
-                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
-                        b.appendChild(c),
-                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
-                    }
-           * 
-           */
-
-          if (ek.icon) {
-
-            const icon = ek.icon;
-            const type = icon.iconType.toLowerCase();
-            if (type === 'owner' && data.bst('shouldHighlight')) {
-
-            } else {
-
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const dataMutable = mutableWM.get(data);
-              if (dataMutable) {
-                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-                dataMutable.tooltips.set(badgeElementId, createStore({
-                  displayedTooltipText: ''
-                }));
-
-                const displayedTooltipText = () => {
-                  const dataMutable = mutableWM.get(data);
-                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                  return emojiDataStore.displayedTooltipText
-                }
-
-                const onYtIconCreated = (el) => {
-                  const cnt = insp(el);
-                  cnt.icon = "live-chat-badges:" + type;
-                  // cnt.hostElement.id = badgeElementId;
-                  cnt.hostElement.setAttribute('icon-type', type);
-                  cnt.hostElement.setAttribute('shared-tooltip-text', tooltipText());
-                  /*
-                  "MODERATOR" === icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                  c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                  b.appendChild(c)
-                  */
-                }
-                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-              } else {
-                return '';
-              }
-
-
-            }
-
-
-          } else if (ek.customThumbnail) {
-
-            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
-            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(badgeElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-
-          }
-
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-
-      }
-      }<//></div>
+      }}<//>
+      </div>
     </div>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-        if (typeof message === 'string') return html`<span>${() => message}</span>`
-        if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
-
-        if (typeof message.emoji !== 'undefined') {
-
-          try {
-            const emoji = message.emoji;
-
-            const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-            const src = () => `${emoji.image.thumbnails[0].url}`
-            const alt = () => emoji.image?.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => emoji.shortcuts?.[0] || '';
-            const emojiId = () => emoji.emojiId || '';
-            const isCustomEmoji = () => emoji.isCustomEmoji || false;
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(emojiElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-          } catch (e) {
-            console.warn(e);
-          }
-
-        }
-      }
-      }<//>
+      return formatters.messageBody(message, data);
+    }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -1677,154 +1436,19 @@ SOFTWARE.
     <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
       <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color"><${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
+        return formatters.authorBadges(badge, data);
 
-        try {
-          const fk = firstKey(badge) || '';
-          const ek = badge[fk];
-
-          /**
-           * 
-          
-                    if (a.icon) {
-                        var c = document.createElement("yt-icon");
-                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                        b.appendChild(c)
-                    } else if (a.customThumbnail) {
-                        c = document.createElement("img");
-                        var d;
-                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
-                        b.appendChild(c),
-                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
-                    }
-           * 
-           */
-
-          if (ek.icon) {
-
-            const icon = ek.icon;
-            const type = icon.iconType.toLowerCase();
-            if (type === 'owner' && data.bst('shouldHighlight')) {
-
-            } else {
-
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const dataMutable = mutableWM.get(data);
-              if (dataMutable) {
-                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-                dataMutable.tooltips.set(badgeElementId, createStore({
-                  displayedTooltipText: ''
-                }));
-
-                const displayedTooltipText = () => {
-                  const dataMutable = mutableWM.get(data);
-                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                  return emojiDataStore.displayedTooltipText
-                }
-
-                const onYtIconCreated = (el) => {
-                  const cnt = insp(el);
-                  cnt.icon = "live-chat-badges:" + type;
-                  // cnt.hostElement.id = badgeElementId;
-                  cnt.hostElement.setAttribute('icon-type', type);
-                  cnt.hostElement.setAttribute('shared-tooltip-text', tooltipText());
-                  /*
-                  "MODERATOR" === icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                  c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                  b.appendChild(c)
-                  */
-                }
-                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-              } else {
-                return '';
-              }
-
-
-            }
-
-
-          } else if (ek.customThumbnail) {
-
-            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
-            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(badgeElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-
-          }
-
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-
-      }
-      }<//></div>
+      }}<//>
+      </div>
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-        if (typeof message === 'string') return html`<span>${() => message}</span>`
-        if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
-
-        if (typeof message.emoji !== 'undefined') {
-
-          try {
-            const emoji = message.emoji;
-
-            const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-            const src = () => `${emoji.image.thumbnails[0].url}`
-            const alt = () => emoji.image?.accessibility?.accessibiltyData?.label || '';
-            const tooltipText = () => emoji.shortcuts?.[0] || '';
-            const emojiId = () => emoji.emojiId || '';
-            const isCustomEmoji = () => emoji.isCustomEmoji || false;
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-              const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(emojiElementId, createStore({
-                displayedTooltipText: ''
-              }));
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
-                return emojiDataStore.displayedTooltipText
-              }
-
-              return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-            } else {
-              return '';
-            }
-
-          } catch (e) {
-            console.warn(e);
-          }
-
-        }
-      }
-      }<//>
+      return formatters.messageBody(message, data);
+    }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2233,19 +1857,6 @@ SOFTWARE.
       }
     }
 
-    // const removeAllChildren = typeof replaceChildren === 'function' ? (elm) => {
-    //   for (let t = elm.firstElementChild; t instanceof Element; t = t.nextElementSibling) {
-    //     if (typeof t.removeEntry === 'function') t.removeEntry();
-    //   }
-    //   elm.replaceChildren()
-    // } : (elm) => {
-    //   for (let t = elm.firstElementChild; t instanceof Element; t = t.nextElementSibling) {
-    //     if (typeof t.removeEntry === 'function') t.removeEntry();
-    //   }
-    //   const p = new DocumentFragment();
-    //   p.append.apply(p, elm.childNodes);
-    // }
-
     cProto.clearList = function () {
       if (!this.clearCount) this.clearCount = 1;
       this.clearCount++;
@@ -2407,8 +2018,8 @@ SOFTWARE.
 
         const addLen = activeItems_.length;
 
-
-        let removeCount = this.visibleItems.length + addLen - maxItemsToDisplay;
+        const lastVisibleItemCount = this.visibleItems.length
+        let removeCount = lastVisibleItemCount + addLen - maxItemsToDisplay;
         if (removeCount < 0) removeCount = 0;
 
         _flushed = 1;
@@ -2422,7 +2033,9 @@ SOFTWARE.
         const crCount = this.clearCount;
         // const pEmpty = this.isEmpty;
 
-        const mapA2B = new Set();
+        const appendStates = new Map();
+
+        let [mountedCounter, mountedCounterSet]= createSignal(0);
 
         const rearranged = items.map(flushItem => {
 
@@ -2432,7 +2045,10 @@ SOFTWARE.
           // console.log(9192, aKey,aObj);
 
           const uid = `${aObj.authorExternalChannelId}:${aObj.timestampUsec}`;
-          if (flushKeys.has(uid)) return [];
+          if (flushKeys.has(uid)) {
+            appendStates.set(flushItem, 1);
+            return null;
+          }
           flushKeys.add(uid);
           aObj.uid = uid;
           aObj.aKey = aKey;
@@ -2442,11 +2058,13 @@ SOFTWARE.
 
 
           const [bObj, bObjSet] = createStore(aObj);
-          const p = new PromiseExternal();
+          const createdPromise = new PromiseExternal();
+          const renderedPromise = new PromiseExternal();
           const mutable = {
             removeEntryFuncs: new Map(),
             tooltips: new Map(),
-            renderedPromise: p,
+            createdPromise: createdPromise,
+            renderedPromise: renderedPromise,
             removeEntry() {
 
               this.removeEntryFuncs.forEach((f) => {
@@ -2455,6 +2073,7 @@ SOFTWARE.
               this.removeEntryFuncs.clear();
               this.tooltips.clear();
 
+              this.createdPromise = null;
               this.renderedPromise = null;
               this.removeEntryFuncs = null;
               this.tooltips = null;
@@ -2537,110 +2156,117 @@ SOFTWARE.
               });
 
 
-              p.resolve(messageEntry);
+              createdPromise.resolve(messageEntry);
+              mountedCounterSet(a=>a+1);
+
 
             }
           }
           mutableWM.set(bObj, mutable);
 
           
-          mapA2B.add(flushItem);
+          appendStates.set(flushItem, 2);
 
-          return [flushItem, bObj];
+          return bObj;
 
-        }).filter(e => e && !!e[1]);
+        }).filter(e => !!e);
 
         if (crCount !== this.clearCount) return;
         if (this.isAttached !== true) return;
 
-
-        /*
-
-        for(const [flushItem,bObj] of rearranged){
-          if(!bObj) continue;
-          await Promise.resolve();
-          if(crCount !== this.clearCount) break;
-          if(this.isAttached !== true) break;
-          const dataMutable = mutableWM.get(bObj);
-          const p = dataMutable?.renderedPromise;
-          if(!p) continue;
-          const visibleItems = this.visibleItems;
-          if (removeCount > 0) {
-            removeCount--;
-            messageList.solidBuildSet(list=>(removeEntry(list.shift()),list.push(bObj),list));
-            await p.then();
-            visibleItems.shift();
-            visibleItems.push(flushItem);
-          } else {
-            messageList.solidBuildSet(list=>(list.push(bObj),list));
-            await p.then();
-            visibleItems.push(flushItem);
-          }
-        }
-
-        */
-
-        // const tn1 = performance.now();
-
-        /*
-
-        for(const [flushItem,bObj] of rearranged){
-          if(!bObj) continue;
-          await Promise.resolve();
-          if(crCount !== this.clearCount) break;
-          if(this.isAttached !== true) break;
-          const dataMutable = mutableWM.get(bObj);
-          const p = dataMutable?.renderedPromise;
-          if(!p) continue;
-          const visibleItems = this.visibleItems;
-          if (removeCount > 0) {
-            removeCount--;
-            messageList.solidBuildSet(list=>(removeEntry(list.shift()),list.push(bObj),list));
-            await p.then();
-            visibleItems.shift();
-            visibleItems.push(flushItem);
-          } else {
-            messageList.solidBuildSet(list=>(list.push(bObj),list));
-            await p.then();
-            visibleItems.push(flushItem);
-          }
-        }
-        */
-
-
-        messageList.solidBuildSet(list => ((removeCount > 0 && list.splice(0, removeCount)), list.push.apply(list, rearranged.map(e => e[1])), list));
-        // const visibleItems = this.visibleItems;
-        // ((removeCount>0 && visibleItems.splice(0, removeCount)), visibleItems.push.apply(list, rearranged.map(e=>e[0])), visibleItems);
-
-        await Promise.all(rearranged.map(e => (mutableWM.get(e[1])?.renderedPromise || 0)));
-
         const visibleItems = this.visibleItems;
 
-        removeCount > 0 && visibleItems.splice(0, removeCount);
-        let j = visibleItems.length;
-        visibleItems.length = j + rearranged.length;
-        const n = items.length;
-        
 
-        if (mapA2B.size > 0) {
-          let i = 0;
-          let b = 0;
+        if(!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1){
+
+          let t1 = performance.now();
+
+          let isCreated = false;
+          const renderedPromise=new PromiseExternal();
+          createEffect(() => {
+            const count = mountedCounter()
+            // console.log('count', count, isCreated);
+            if (count === rearranged.length) renderedPromise.resolve();
+          });
+  
+          messageList.solidBuildSet(list => {
+            const shouldRemove = removeCount > 0 && lastVisibleItemCount === visibleItems.length && lastVisibleItemCount === list.length
+            shouldRemove && visibleItems.splice(0, removeCount);
+            shouldRemove && list.splice(0, removeCount);
+            list.push.apply(list, rearranged);
+            return list;
+          });
+   
+          await Promise.all(rearranged.map(e => (mutableWM.get(e)?.createdPromise || 0)));
+          isCreated = true;
+  
+          await renderedPromise.then();
+          mountedCounter = null;
+          mountedCounterSet = null;
+
+
+          let t2 = performance.now();
+          if(rearranged.length > 1) console.log(`one-by-one = false <${rearranged.length}>`, t2-t1);
+
+
+        } else {
+
+          let t1 = performance.now();
+          let _lastVisibleItemCount = lastVisibleItemCount;
+
+          for(let j = 0; j< rearranged.length; j++){
+
+            const renderedPromise=new PromiseExternal();
+            const targetCount = j+1;
+            createEffect(() => {
+              const count = mountedCounter()
+              // console.log('count', count, isCreated);
+              if (count === targetCount) renderedPromise.resolve();
+            });
+
+            messageList.solidBuildSet(list => {
+              const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
+              if (shouldRemove) {
+                visibleItems.shift();
+                list.shift();
+                removeCount--;
+                _lastVisibleItemCount--;
+              }
+              list.push(rearranged[j])
+              return list;
+            });
+  
+            await renderedPromise.then();
+          }
+
+          mountedCounter = null;
+          mountedCounterSet = null;
+
+          let t2 = performance.now();
+          if(rearranged.length > 1) console.log(`one-by-one = true <${rearranged.length}>`, t2-t1);
+
+        }
+
+
+
+        let jx = visibleItems.length;
+        visibleItems.length = jx + rearranged.length;
+
+        if (appendStates.size > 0) {
+          let c1 = 0;
+          let c2 = 0;
           for (const item of activeItems_) {
-            // console.log(activeItems_[i])
-            activeItems_[i++] = null;
-            if (mapA2B.has(item)) {
-              visibleItems[j + b] = item;
-              b++
-              if (b === mapA2B.size) break;
+            const status = appendStates.get(item) || 0;
+            if (!status) break;
+            activeItems_[c1++] = null;
+            if (status === 2) {
+              visibleItems[jx + c2] = item;
+              c2++
             }
           }
-          for (; i < items.length; i++) {
-            if (activeItems_[i] !== items[i]) break;
-          }
-          b !== rearranged.length && (visibleItems.length = j + b);
-          i > 0 && activeItems_.splice(0, i);
-          // console.log(mapA2B.size, i ,b)
-          mapA2B.clear();
+          c2 !== rearranged.length && (visibleItems.length = jx + c2);
+          c1 > 0 && activeItems_.splice(0, c1);
+          appendStates.clear();
         }
 
 
