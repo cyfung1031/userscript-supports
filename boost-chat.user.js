@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.4
+// @version             0.1.5
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2125,7 +2125,7 @@ SOFTWARE.
                 mutableWM.delete(messageEntry);
               });
 
-              !!(messageEntry.classList.contains('bst-paid-message')) && createEffect(() => {
+              !!(messageEntry.classList.contains('bst-paid-message')) && (() => {
                 const a = bObj;
                 const entries = Object.entries({
 
@@ -2141,7 +2141,7 @@ SOFTWARE.
                   messageEntry.style.setProperty(key, value);
                 }
 
-              });
+              })();
 
 
               createdPromise.resolve(messageEntry);
@@ -2194,23 +2194,26 @@ SOFTWARE.
 
 
           let t2 = performance.now();
-          if(rearranged.length > 1) console.log(`one-by-one = false <${rearranged.length}>`, t2-t1);
+          if(rearranged.length > 20) console.log(`one-by-one = false <${rearranged.length}>`, t2-t1);
 
 
         } else {
 
           let t1 = performance.now();
           let _lastVisibleItemCount = lastVisibleItemCount;
+          let targetCount = -1;
+          let renderedPromise = null;
+
+          createEffect(() => {
+            const count = mountedCounter()
+            // console.log('count', count, isCreated);
+            if (count === targetCount) renderedPromise.resolve();
+          });
 
           for(let j = 0; j< rearranged.length; j++){
 
-            const renderedPromise=new PromiseExternal();
-            const targetCount = j+1;
-            createEffect(() => {
-              const count = mountedCounter()
-              // console.log('count', count, isCreated);
-              if (count === targetCount) renderedPromise.resolve();
-            });
+            renderedPromise=new PromiseExternal();
+            targetCount = j+1;
 
             messageList.solidBuildSet(list => {
               const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
@@ -2226,12 +2229,14 @@ SOFTWARE.
   
             await renderedPromise.then();
           }
+          targetCount = -1;
+          renderedPromise = null;
 
           mountedCounter = null;
           mountedCounterSet = null;
 
           let t2 = performance.now();
-          if(rearranged.length > 1) console.log(`one-by-one = true <${rearranged.length}>`, t2-t1);
+          if(rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, t2-t1);
 
         }
 
