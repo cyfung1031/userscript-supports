@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.8
+// @version             0.1.9
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -149,6 +149,7 @@ SOFTWARE.
 
   const flushPE = createPipeline();
 
+  let scrollEveryRound = null;
   
 
   class LimitedSizeSet extends Set {
@@ -743,7 +744,6 @@ SOFTWARE.
 
 
 
-
       .bst-overflow-anchor{
         contain: strict;
         display:block;
@@ -755,6 +755,7 @@ SOFTWARE.
         z-index: -1;
         visibility: collapse;
       }
+      
 
       .bst-message-list {
         overflow-anchor: none;
@@ -2187,6 +2188,8 @@ SOFTWARE.
 
         const visibleItems = this.visibleItems;
 
+        const isAtBottom = this.atBottom === true;
+
         if(!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1){
 
           let t1 = performance.now();
@@ -2212,7 +2215,7 @@ SOFTWARE.
   
           await renderedPromise.then();
 
-          if (this.atBottom === true) {
+          if (isAtBottom) {
             scrollToEnd();
           }
 
@@ -2242,6 +2245,12 @@ SOFTWARE.
             renderedPromise=new PromiseExternal();
             targetCount = j+1;
 
+            let lastScrollTop = -1;
+            if (scrollEveryRound===null && isAtBottom && messageList) {
+              lastScrollTop = messageList.scrollTop;
+            }
+            
+
             messageList.solidBuildSet(list => {
               const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
               if (shouldRemove) {
@@ -2253,13 +2262,27 @@ SOFTWARE.
               list.push(rearranged[j])
               return list;
             });
-  
+
             await renderedPromise.then();
 
-
-            if (this.atBottom === true) {
+            if (scrollEveryRound === null && isAtBottom && messageList && messageList.scrollTop === lastScrollTop) {
               scrollToEnd();
+              if (messageList.scrollTop !== lastScrollTop) {
+                console.log('scrollEveryRound = true')
+                scrollEveryRound = true;
+              }
+            } else {
+
+              if (isAtBottom && scrollEveryRound) {
+                scrollToEnd();
+              }
             }
+
+            if (isAtBottom && scrollEveryRound === null) scrollEveryRound = false;
+
+          }
+          if (isAtBottom && !scrollEveryRound) {
+            scrollToEnd();
           }
           targetCount = -1;
           renderedPromise = null;
