@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.9
+// @version             0.1.10
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2264,6 +2264,8 @@ SOFTWARE.
             });
 
             await renderedPromise.then();
+
+            if (isAtBottom && this.atBottom === false) scrollEveryRound = true;
 
             if (scrollEveryRound === null && isAtBottom && messageList && messageList.scrollTop === lastScrollTop) {
               scrollToEnd();
