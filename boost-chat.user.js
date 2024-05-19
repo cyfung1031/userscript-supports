@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.6
+// @version             0.1.7
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1809,15 +1809,29 @@ SOFTWARE.
         if (aObj) {
           if (aObj.id !== a.clientId && aObj.id !== e.id) {
           } else if ("visibleItems" === tag) {
-            
-            const objItem = p[fk];
-            if (objItem && objItem.uid && messageList && messageList.solidBuild()[idx].uid === objItem.uid) {
-              const item = messageList.querySelector(`[message-uid="${objItem.uid}"]`);
-              if (item && item.polymerController){
-                b.visibleItems[idx] = c;
-                item.polymerController.set("data", e);
+            const uid = aObj.uid;
+            uid && flushPE(async () => {
+              if (!messageList) return;
+              let idx = -1;
+              const list = messageList.solidBuild();
+              const filtered = list.filter((bObj, j) => {
+                if (bObj.uid === uid) {
+                  idx = j;
+                  return true;
+                }
+                return false;
+              });
+
+              if (filtered && filtered.length === 1 && idx >= 0 && list[idx]?.uid === b.visibleItems[idx]?.[idx]?.uid) {
+                const bObj = list[idx];
+                const dataMutable = mutableWM.get(bObj);
+                if (dataMutable && typeof dataMutable.bObjChange === 'function') {
+                  b.visibleItems[idx] = c;
+                  dataMutable.bObjChange(e);
+                }
               }
-            }
+              await Promise.resolve();
+            });
           } else { // activeItems_
             b.activeItems_[idx] = c;
             toAddNewItem = true;
@@ -1851,11 +1865,11 @@ SOFTWARE.
       if (this.clearCount > 1e9) this.clearCount = 9;
       if (this.activeItems_) this.activeItems_.length = 0;
       flushKeys.clear();
-      if (this.visibleItems) {
+      if (this.visibleItems && (this.visibleItems.length >0)) {
+        this.visibleItems.length = 0;
         if (messageList) {
           messageList.solidBuildSet(a => ( (a.length = 0), a));
         }
-        this.visibleItems.length = 0;
       }
       this.dockableMessages = [];
       this.isSmoothed_ = !0;
@@ -1978,13 +1992,11 @@ SOFTWARE.
       if (!(items instanceof Element)) return;
       if (!qq.has(hostElement)) {
         this.setupBoostChat();
+        const thisData = this.data;
+        if (thisData.maxItemsToDisplay > 0) thisData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
       }
 
-
       if (!messageList) return;
-      // console.log(1292)
-      this.data.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
-
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
@@ -2001,7 +2013,16 @@ SOFTWARE.
           _addLen > maxItemsToDisplay * 2 && activeItems_.splice(0, _addLen - maxItemsToDisplay)
           return;
         } else {
-          _addLen > maxItemsToDisplay && activeItems_.splice(0, _addLen - maxItemsToDisplay);
+          if(_addLen > maxItemsToDisplay){
+            if (this.visibleItems && (this.visibleItems.length >0) ) {
+              this.visibleItems.length = 0;
+              if (messageList) {
+                messageList.solidBuildSet(a => ((a.length = 0), a));
+              }
+            }
+            activeItems_.splice(0, _addLen - maxItemsToDisplay);
+          }
+          
         }
 
         const addLen = activeItems_.length;
@@ -2067,7 +2088,17 @@ SOFTWARE.
               this.tooltips = null;
               this.removeEntry = null;
               this.setupFn = null;
+              this.bObjChange = null;
 
+            },
+            bObjChange(val) {
+              if (typeof (val || 0) === 'object') {
+                for (const s of ['authorBadges', 'message']) {
+                  Reflect.has(val, s) || (val[s] = undefined);
+                  Reflect.has(val, s) || (val[s] = undefined);
+                }
+              }
+              bObjSet(val);
             },
             setupFn(_messageEntry) {
 
@@ -2076,16 +2107,7 @@ SOFTWARE.
               /** @type {HTMLElement} */
               const messageEntry = _messageEntry;
               mutableWM.set(messageEntry, mutable);
-              const bObjChange = (val) => {
-                // mutable.tooltips.clear();
-                if (typeof (val || 0) === 'object') {
-                  for (const s of ['authorBadges', 'message']) {
-                    Reflect.has(val, s) || (val[s] = undefined);
-                    Reflect.has(val, s) || (val[s] = undefined);
-                  }
-                }
-                bObjSet(val);
-              }
+              const bObjChange = this.bObjChange;
               messageEntry.polymerController = {
                 set(prop, val) {
                   if (prop === 'data') {
