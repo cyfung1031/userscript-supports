@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.5
+// @version             0.1.6
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2164,7 +2164,6 @@ SOFTWARE.
 
         const visibleItems = this.visibleItems;
 
-
         if(!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1){
 
           let t1 = performance.now();
@@ -2189,6 +2188,11 @@ SOFTWARE.
           isCreated = true;
   
           await renderedPromise.then();
+
+          if (this.atBottom === true) {
+            scrollToEnd();
+          }
+
           mountedCounter = null;
           mountedCounterSet = null;
 
@@ -2228,6 +2232,11 @@ SOFTWARE.
             });
   
             await renderedPromise.then();
+
+
+            if (this.atBottom === true) {
+              scrollToEnd();
+            }
           }
           targetCount = -1;
           renderedPromise = null;
@@ -2269,10 +2278,6 @@ SOFTWARE.
         // console.log('tn', tn2-tn1);
 
 
-
-        if (this.atBottom === true) {
-          scrollToEnd();
-        }
 
       });
 
