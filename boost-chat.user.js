@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.10
+// @version             0.1.11
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2265,12 +2265,15 @@ SOFTWARE.
 
             await renderedPromise.then();
 
-            if (isAtBottom && this.atBottom === false) scrollEveryRound = true;
+            if (!scrollEveryRound && isAtBottom && this.atBottom === false) {
+              console.log('scrollEveryRound = true [01]')
+              scrollEveryRound = true;
+            }
 
             if (scrollEveryRound === null && isAtBottom && messageList && messageList.scrollTop === lastScrollTop) {
               scrollToEnd();
               if (messageList.scrollTop !== lastScrollTop) {
-                console.log('scrollEveryRound = true')
+                console.log('scrollEveryRound = true [02]')
                 scrollEveryRound = true;
               }
             } else {
