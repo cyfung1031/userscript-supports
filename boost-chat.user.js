@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.3
+// @version             0.1.4
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -149,22 +149,7 @@ SOFTWARE.
 
   const flushPE = createPipeline();
 
-
-  const connectedSet = new WeakSet();
-  const attachedSet = new WeakSet();
-
-  class WeakWeakMap extends WeakMap {
-
-    get(o) {
-      return kRef(super.get(o))
-    }
-
-    set(o, v) {
-      return super.set(o, mWeakRef(v))
-    }
-
-  }
-
+  
 
   class LimitedSizeSet extends Set {
     constructor(n) {
@@ -1824,11 +1809,14 @@ SOFTWARE.
         if (aObj) {
           if (aObj.id !== a.clientId && aObj.id !== e.id) {
           } else if ("visibleItems" === tag) {
-            const objItem = b.visibleItems[idx][fk];
-            if (objItem) {
-              b.visibleItems[idx] = c;
+            
+            const objItem = p[fk];
+            if (objItem && objItem.uid && messageList && messageList.solidBuild()[idx].uid === objItem.uid) {
               const item = messageList.querySelector(`[message-uid="${objItem.uid}"]`);
-              item.polymerController.set("data", e);
+              if (item && item.polymerController){
+                b.visibleItems[idx] = c;
+                item.polymerController.set("data", e);
+              }
             }
           } else { // activeItems_
             b.activeItems_[idx] = c;
