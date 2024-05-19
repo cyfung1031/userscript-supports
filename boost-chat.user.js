@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.7
+// @version             0.1.8
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -798,6 +798,7 @@ SOFTWARE.
         max-width: var(--yt-live-chat-tooltip-max-width);
         text-overflow: ellipsis;
         overflow: hidden;
+        z-index: 2;
       }
       bst-tooltip:empty{
         display: none;
