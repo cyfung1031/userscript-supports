@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name        ChatGPT: Message Records
 // @namespace   UserScripts
+// @match       https://chatgpt.com/*
 // @match       https://chat.openai.com/*
 // @grant       GM.getValue
 // @grant       GM.setValue
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.1.4
+// @version     1.2.0
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -143,10 +144,39 @@ __errorCode21167__ || (() => {
     }
   };
 
+  const observablePromise = (proc, timeoutPromise) => {
+    let promise = null;
+    return {
+      obtain() {
+        if (!promise) {
+          promise = new Promise(resolve => {
+            let mo = null;
+            const f = () => {
+              let t = proc();
+              if (t) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+                resolve(t);
+              }
+            }
+            mo = new MutationObserver(f);
+            mo.observe(document, { subtree: true, childList: true })
+            f();
+            timeoutPromise && timeoutPromise.then(() => {
+              resolve(null)
+            });
+          });
+        }
+        return promise
+      }
+    }
+  }
+
   cleanContext(uWin, window).then((__CONTEXT__) => {
 
     const { setTimeout, clearTimeout, setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = __CONTEXT__;
-
+    
     const console = Object.assign({}, window.console);
     /** @type {JSON.parse} */
     const jParse = window.JSON.parse.bind(window.JSON);
@@ -201,6 +231,32 @@ __errorCode21167__ || (() => {
     const messageRecords = [];
     let messageRecordsOnCurrentAccount = null;
 
+
+
+    let rafPromise = null;
+    const getRafPromise = () => rafPromise || (rafPromise = new Promise(resolve => {
+      requestAnimationFrame(hRes => {
+        rafPromise = null;
+        resolve(hRes);
+      });
+    }));
+  
+
+    const foregroundWrap = (cb) => {
+
+      let wait = false;
+
+      return () => {
+        if (wait) return;
+        wait = true;
+        requestAnimationFrame(function () {
+          wait = false;
+          cb();
+        });
+      }
+
+    }
+
     const findRecordIndexByRId = (rid) => {
 
       if (!rid) return null;
@@ -216,296 +272,290 @@ __errorCode21167__ || (() => {
 
     const cssStyleText = () => `
 
-          :root {
-              --mr-background-color: #2a5c47;
-              --mr-font-stack: "Ubuntu-Italic", "Lucida Sans", helvetica, sans;
+      :root {
+        --mr-background-color: #2a5c47;
+        --mr-font-stack: "Ubuntu-Italic", "Lucida Sans", helvetica, sans;
 
-              --mr-target-width: 30px;
-              --mr-target-height: 30px;
-              --mr-target-bottom: 90px;
-              --mr-target-right: 50px;
+        --mr-target-width: 30px;
+        --mr-target-height: 30px;
+        --mr-target-bottom: 90px;
+        --mr-target-right: 50px;
 
-              /* 8-0.5*x+0.25*x*x */
-              --mr-tb-radius: calc(2.42 * var(--mr-border-width));
-              /* 20 -> 8px.  14 -> 6px   4px. 10px */
-              --mr-message-bubble-width: 200px;
-              --mr-message-bubble-margin: 0;
-              --mr-border-width: 2px;
-              --mr-triangle-border-width: var(--mr-tb-radius);
+        /* 8-0.5*x+0.25*x*x */
+        --mr-tb-radius: calc(2.42 * var(--mr-border-width));
+        /* 20 -> 8px.  14 -> 6px   4px. 10px */
+        --mr-message-bubble-width: 200px;
+        --mr-message-bubble-margin: 0;
+        --mr-border-width: 2px;
+        --mr-triangle-border-width: var(--mr-tb-radius);
 
-              --mr-message-bubble-opacity: 0;
-              --mr-message-bubble-scale: 0.5;
-              --mr-message-bubble-transform-origin: bottom right;
-              --mr-message-bubble-transition: opacity 0.3s, transform 0.3s, visibility 0s 0.3s;
-              --mr-border-color: #666;
+        --mr-message-bubble-opacity: 0;
+        --mr-message-bubble-scale: 0.5;
+        --mr-message-bubble-transform-origin: bottom right;
+        --mr-message-bubble-transition: opacity 0.3s, transform 0.3s, visibility 0s 0.3s;
+        --mr-border-color: #666;
 
-              --mr-tb-btm: calc(var(--mr-tb-radius) * 1.72);
-            }
+        --mr-tb-btm: calc(var(--mr-tb-radius) * 1.72);
+      }
 
-            html {
-                --mr-message-bubble-bg-color: #ecf3e7;
-                --mr-message-bubble-text-color: #414351;
-                --progress-color: #807e1e;
-            }
+      html {
+          --mr-message-bubble-bg-color: #ecf3e7;
+          --mr-message-bubble-text-color: #414351;
+          --progress-color: #807e1e;
+      }
 
-            html.dark{
-                --mr-message-bubble-bg-color: #40414f;
-                --mr-message-bubble-text-color: #ececf1;
-            }
+      html.dark{
+          --mr-message-bubble-bg-color: #40414f;
+          --mr-message-bubble-text-color: #ececf1;
+      }
 
-            html[mr-request-model="gpt-4"]{
-                --progress-color: #ac68ff;
-            }
+      html[mr-request-model="gpt-4"]{
+          --progress-color: #ac68ff;
+      }
 
-            html[mr-request-model="gpt-3"] {
-            --progress-color: #19c37d;
-            }
+      html[mr-request-model="gpt-3"] {
+      --progress-color: #19c37d;
+      }
 
-            html[mr-request-state="request"] {
-              --progress-percent: 25%;
-              --progress-rr: 9px;
-            }
+      html[mr-request-state="request"] {
+        --progress-percent: 25%;
+        --progress-rr: 9px;
+      }
 
-            html[mr-request-state="response"] {
-              --progress-percent: 75%;
-              --progress-rr: 9px;
-            }
-
-
-            html[mr-request-state=""] {
-              --progress-percent: 100%;
-              --progress-rr: 20px;
-            }
+      html[mr-request-state="response"] {
+        --progress-percent: 75%;
+        --progress-rr: 9px;
+      }
 
 
-    html[mr-request-state=""] .mr-progress-bar::before {
-    --mr-animate-background-image: none;
-    }
+      html[mr-request-state=""] {
+        --progress-percent: 100%;
+        --progress-rr: 20px;
+      }
 
 
-
-            .mr-progress-bar.mr-progress-bar-show {
-
-              visibility:visible;
-
-            }
-
-             .mr-progress-bar {
-     display: inline-block;
-     width: 200px;
-     --progress-height: 16px;
-     --progress-padding: 4px;
-     /* --progress-percent: 50%; */
-     /* --progress-color: #2bc253; */
-     --progress-stripe-color: rgba(255, 255, 255, 0.2);
-     --progress-shadow1: rgba(255, 255, 255, 0.3);
-     --progress-shadow2: rgba(0, 0, 0, 0.4);
-     --progress-rl: 20px;
-     /* --progress-rr: 9px; */
-
-     width: 100%;
-     /* --progress-percent: 100%;
-     --progress-rr: 20px;*/
-     visibility: collapse;
-   }
-
-
-   @keyframes mr-progress-bar-move {
-     0% {
-       background-position: 0 0;
-     }
-
-     100% {
-       background-position: 50px 50px;
-     }
-   }
-
-   .mr-progress-bar {
-     box-sizing: border-box;
-     height: var(--progress-height);
-     position: relative;
-     background: #555;
-     border-radius: 25px;
-     box-shadow: inset 0 -1px 1px var(--progress-shadow1);
-     display: inline-block;
-   }
-
-   .mr-progress-bar::before {
-     box-sizing: border-box;
-     content: "";
-     display: block;
-     margin: var(--progress-padding);
-     border-top-right-radius: var(--progress-rr);
-     border-bottom-right-radius: var(--progress-rr);
-     border-top-left-radius: var(--progress-rl);
-     border-bottom-left-radius: var(--progress-rl);
-     background-color: var(--progress-color);
-     box-shadow: inset 0 2px 9px var(--progress-shadow1), inset 0 -2px 6px var(--progress-shadow2);
-     position: absolute;
-     top: 0;
-     left: 0;
-     right: calc(100% - var(--progress-percent));
-     transition: right 300ms, background-color 300ms;
-     bottom: 0;
+      html[mr-request-state=""] .mr-progress-bar::before {
+        --mr-animate-background-image: none;
+      }
 
 
 
-     --mr-animate-background-image: linear-gradient(-45deg, var(--progress-stripe-color) 25%, transparent 25%, transparent 50%, var(--progress-stripe-color) 50%, var(--progress-stripe-color) 75%, transparent 75%, transparent);
+      .mr-progress-bar.mr-progress-bar-show {
 
-    background-image: var(--mr-animate-background-image);
+        visibility:visible;
 
-     background-size: 50px 50px;
-     animation: mr-progress-bar-move 2s linear infinite;
+      }
 
-   }
+      .mr-progress-bar {
+        display: inline-block;
+        width: 200px;
+        --progress-height: 16px;
+        --progress-padding: 4px;
+        /* --progress-percent: 50%; */
+        /* --progress-color: #2bc253; */
+        --progress-stripe-color: rgba(255, 255, 255, 0.2);
+        --progress-shadow1: rgba(255, 255, 255, 0.3);
+        --progress-shadow2: rgba(0, 0, 0, 0.4);
+        --progress-rl: 20px;
+        /* --progress-rr: 9px; */
 
-   .mr-nostripes::before {
-   --mr-animate-background-image: none;
-   }
-
-
-   #mr-msg-l {
-
-      text-align: center;
-      font-size: .875rem;
-      color: var(--tw-prose-code);
-      font-size: .875em;
-      font-weight: 600;
-   }
-   #mr-msg-p {
-      text-align: center;
-      font-size: 1rem;
-   }
-
-   #mr-msg-p1{
-      display: block;
-   }
-   #mr-msg-p2{
-      display: block;
-      font-size: .75rem;
-   }
+        width: 100%;
+        /* --progress-percent: 100%;
+        --progress-rr: 20px;*/
+        visibility: collapse;
+      }
 
 
+      @keyframes mr-progress-bar-move {
+        0% {
+          background-position: 0 0;
+        }
 
-            body {
-              background-color: var(--mr-background-color);
-              font-family: var(--mr-font-stack);
-              position: relative;
-              height: 100vh;
-              margin: 0;
-              padding: 0;
-              overflow: hidden;
-            }
+        100% {
+          background-position: 50px 50px;
+        }
+      }
 
+      .mr-progress-bar {
+        box-sizing: border-box;
+        height: var(--progress-height);
+        position: relative;
+        background: #555;
+        border-radius: 25px;
+        box-shadow: inset 0 -1px 1px var(--progress-shadow1);
+        display: inline-block;
+      }
 
-            .mr-message-bubble {
-              margin: 0;
-              display: inline-block;
-              position: absolute;
-              width: var(--mr-message-bubble-width);
-              height: auto;
-              background-color: var(--mr-message-bubble-bg-color);
-              opacity: var(--mr-message-bubble-opacity);
-              transform: scale(var(--mr-message-bubble-scale));
-              transform-origin: var(--mr-message-bubble-transform-origin);
-              transition: var(--mr-message-bubble-transition);
-              visibility: hidden;
-              margin-bottom: var(--mr-tb-btm);
-              bottom:0;
-              right:0;
-              color: var(--mr-message-bubble-text-color);
-              --mr-user-select: auto-user-select;
-            }
-
-            .mr-border {
-              border: var(--mr-border-width) solid var(--mr-border-color);
-            }
-
-            .mr-round {
-              border-radius: var(--mr-tb-radius);
-            }
-
-            .mr-tri-right.mr-border.mr-btm-right:before {
-              content: ' ';
-              position: absolute;
-              width: 0;
-              height: 0;
-              left: auto;
-              right: calc(var(--mr-border-width) * -1);
-              bottom: calc(var(--mr-tb-radius) * -2);
-              border: calc(var(--mr-border-width) * 4) solid;
-              border-color: transparent var(--mr-border-color) transparent transparent;
-            }
-
-            .mr-tri-right.mr-btm-right:after {
-              content: ' ';
-              position: absolute;
-              width: 0;
-              height: 0;
-              left: auto;
-              right: 0px;
-              bottom: calc(var(--mr-tb-radius) * -1);
-              border: var(--mr-triangle-border-width) solid;
-              border-color: var(--mr-message-bubble-bg-color) var(--mr-message-bubble-bg-color) transparent transparent;
-            }
-
-            .mr-msg-text {
-              padding: 1em;
-              text-align: left;
-              line-height: 1.5em;
-            }
-
-            .mr-message-bubble.mr-open {
-              opacity: 1;
-              transform: scale(1);
-              visibility: visible;
-              transition-delay: 0s;
-            }
-
-            .mr-msg-text p {
-              margin: 0;
-            }
-
-            .mr-a33 {
-              position: absolute;
-              top: auto;
-              left: auto;
-              bottom: 0px;
-              right: 0px;
-            }
-
-            .mr-k33 {
-              position: absolute;
-              contain: size layout style;
-              width: 100%;
-              height: 100%;
-              transform: translate(-50%, -100%);
-            }
+      .mr-progress-bar::before {
+        box-sizing: border-box;
+        content: "";
+        display: block;
+        margin: var(--progress-padding);
+        border-top-right-radius: var(--progress-rr);
+        border-bottom-right-radius: var(--progress-rr);
+        border-top-left-radius: var(--progress-rl);
+        border-bottom-left-radius: var(--progress-rl);
+        background-color: var(--progress-color);
+        box-shadow: inset 0 2px 9px var(--progress-shadow1), inset 0 -2px 6px var(--progress-shadow2);
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: calc(100% - var(--progress-percent));
+        transition: right 300ms, background-color 300ms;
+        bottom: 0;
 
 
-            .mr-button-container[class] button[class] {
-              opacity: 0.8;
 
-            }
-            .mr-button-container[class] button[class]:hover {
-              opacity: 1;
-            }
+        --mr-animate-background-image: linear-gradient(-45deg, var(--progress-stripe-color) 25%, transparent 25%, transparent 50%, var(--progress-stripe-color) 50%, var(--progress-stripe-color) 75%, transparent 75%, transparent);
 
-            .mr-button-container.mr-clicked[class] button[class],
-            .mr-button-container.mr-clicked[class] button[class]:hover {
-              background-color: #616a8a;
-              opacity:1;
-            }
+        background-image: var(--mr-animate-background-image);
 
-            .mr-button-container[class], .mr-button-container[class] button[class] {
+        background-size: 50px 50px;
+        animation: mr-progress-bar-move 2s linear infinite;
 
-              --mr-user-select: none;
-              user-select: var(--mr-user-select);
+      }
 
-            }
+      .mr-nostripes::before {
+      --mr-animate-background-image: none;
+      }
 
 
-          `;
+      #mr-msg-l {
+
+          text-align: center;
+          font-size: .875rem;
+          color: var(--tw-prose-code);
+          font-size: .875em;
+          font-weight: 600;
+      }
+      #mr-msg-p {
+          text-align: center;
+          font-size: 1rem;
+      }
+
+      #mr-msg-p1{
+          display: block;
+      }
+      #mr-msg-p2{
+          display: block;
+          font-size: .75rem;
+      }
+
+
+
+
+      .mr-message-bubble {
+        margin: 0;
+        display: inline-block;
+        position: absolute;
+        width: var(--mr-message-bubble-width);
+        height: auto;
+        background-color: var(--mr-message-bubble-bg-color);
+        opacity: var(--mr-message-bubble-opacity);
+        transform: scale(var(--mr-message-bubble-scale));
+        transform-origin: var(--mr-message-bubble-transform-origin);
+        transition: var(--mr-message-bubble-transition);
+        visibility: hidden;
+        margin-bottom: var(--mr-tb-btm);
+        bottom:0;
+        right:0;
+        color: var(--mr-message-bubble-text-color);
+        --mr-user-select: auto-user-select;
+      }
+
+      .mr-border {
+        border: var(--mr-border-width) solid var(--mr-border-color);
+      }
+
+      .mr-round {
+        border-radius: var(--mr-tb-radius);
+      }
+
+      .mr-tri-right.mr-border.mr-btm-right:before {
+        content: ' ';
+        position: absolute;
+        width: 0;
+        height: 0;
+        left: auto;
+        right: calc(var(--mr-border-width) * -1);
+        bottom: calc(var(--mr-tb-radius) * -2);
+        border: calc(var(--mr-border-width) * 4) solid;
+        border-color: transparent var(--mr-border-color) transparent transparent;
+      }
+
+      .mr-tri-right.mr-btm-right:after {
+        content: ' ';
+        position: absolute;
+        width: 0;
+        height: 0;
+        left: auto;
+        right: 0px;
+        bottom: calc(var(--mr-tb-radius) * -1);
+        border: var(--mr-triangle-border-width) solid;
+        border-color: var(--mr-message-bubble-bg-color) var(--mr-message-bubble-bg-color) transparent transparent;
+      }
+
+      .mr-msg-text {
+        padding: 1em;
+        text-align: left;
+        line-height: 1.5em;
+      }
+
+      .mr-message-bubble.mr-open {
+        opacity: 1;
+        transform: scale(1);
+        visibility: visible;
+        transition-delay: 0s;
+      }
+
+      .mr-msg-text p {
+        margin: 0;
+      }
+
+      .mr-a33 {
+        position: absolute;
+        top: auto;
+        left: auto;
+        bottom: 0px;
+        right: 0px;
+      }
+
+      .mr-k33 {
+        position: absolute;
+        contain: size layout style;
+        width: 100%;
+        height: 100%;
+        transform: translate(-50%, -100%);
+      }
+
+
+      .mr-button-container[class] button[class] {
+        opacity: 0.8;
+
+      }
+      .mr-button-container[class] button[class]:hover {
+        opacity: 1;
+      }
+
+      .mr-button-container.mr-clicked[class] button[class],
+      .mr-button-container.mr-clicked[class] button[class]:hover {
+        background-color: #616a8a;
+        opacity:1;
+      }
+
+      .mr-button-container[class], .mr-button-container[class] button[class] {
+
+        --mr-user-select: none;
+        user-select: var(--mr-user-select);
+
+      }
+
+      .mr-offset-book-btn {
+        margin-right: 28px;
+      }
+
+
+    `;
 
     const addCssText = () => {
       if (document.querySelector('#mr-style811')) return;
@@ -636,16 +686,17 @@ __errorCode21167__ || (() => {
 
     }
 
+    let last_GM_RECORD_KEY_newValue = null;
 
-    let rzt = 0;
+    const setRecordsByJSONStringX = () => {
+      setRecordsByJSONString(last_GM_RECORD_KEY_newValue);
+    }
+    const setRecordsByJSONStringForegroundWrapped = foregroundWrap(setRecordsByJSONStringX);
+
+
     let gmValueListenerId = GM_addValueChangeListener(GM_RECORD_KEY, (key, oldValue, newValue, remote) => {
-      let tid = ++rzt;
-
-      requestAnimationFrame(() => {
-        if (tid !== rzt) return;
-        setRecordsByJSONString(newValue)
-
-      });
+      last_GM_RECORD_KEY_newValue = newValue;
+      setRecordsByJSONStringForegroundWrapped();
     });
 
     Promise.resolve().then(() => GM.getValue(GM_RECORD_KEY)).then(result => {
@@ -1306,7 +1357,24 @@ __errorCode21167__ || (() => {
       });
     }
 
-    const xpathExpression = '//div[normalize-space(text())="?"][contains(@class, "h-") and contains(@class, "w-")]';
+    const findButtonByExpression = (()=>{
+
+      const xpathExpressionV1 = '//button[normalize-space(text())="?"][contains(@class, "h-") and contains(@class, "w-")]';
+      const xpathExpressionV0 = '//div[normalize-space(text())="?"][contains(@class, "h-") and contains(@class, "w-")]';
+
+      return (contextNode) => {
+        let w = document.evaluate(xpathExpressionV1, contextNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        if (!w || !w.singleNodeValue) {
+          w = document.evaluate(xpathExpressionV0, contextNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+          if (!w || !w.singleNodeValue) {
+            w = null;
+          }
+        }
+        return w;
+      }
+
+    })(); 
+
     let observer = null;
     let mct = 0;
     let wType = 0;
@@ -1365,7 +1433,7 @@ __errorCode21167__ || (() => {
 
       addCssText();
 
-      const buttonText = document.evaluate(xpathExpression, myGroup, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      const buttonText = findButtonByExpression(myGroup).singleNodeValue;
       buttonText.textContent = '\u{1F4D9}';
 
 
@@ -1374,22 +1442,17 @@ __errorCode21167__ || (() => {
 
       placeholder.classList.add('mr-k33');
       placeholder.innerHTML = `
-              <div class="mr-message-bubble mr-tri-right mr-round mr-border mr-btm-right">
-              <div class="mr-msg-text">
-                  <p id="mr-msg-l">count(messages)</p>
-                  <p id="mr-msg-p"><span id="mr-msg-p1"></span><span id="mr-msg-p2"></span></p>
-                <p class="mr-progress-bar"></p>
-              </div>
-            </div>
-
-              `
+        <div class="mr-message-bubble mr-tri-right mr-round mr-border mr-btm-right">
+          <div class="mr-msg-text">
+              <p id="mr-msg-l">count(messages)</p>
+              <p id="mr-msg-p"><span id="mr-msg-p1"></span><span id="mr-msg-p2"></span></p>
+            <p class="mr-progress-bar"></p>
+          </div>
+        </div>
+      `;
       myGroup.classList.add('mr-button-container');
 
-
       myGroup.insertBefore(placeholder, myGroup.firstChild);
-
-
-
 
 
 
@@ -1431,6 +1494,8 @@ __errorCode21167__ || (() => {
 
     const onElementFound = (matchedElement) => {
 
+      console.log('onElementFound', matchedElement)
+
 
 
       let group = matchedElement.closest('.group');
@@ -1462,6 +1527,10 @@ __errorCode21167__ || (() => {
 
 
         let myGroup = group.cloneNode(true);
+
+        if (/\bright-\d+\b/.test(myGroup.className)) {
+          myGroup.classList.add('mr-offset-book-btn');
+        }
         group.parentNode.insertBefore(myGroup, group);
         setupMyGroup(myGroup);
 
@@ -1476,35 +1545,32 @@ __errorCode21167__ || (() => {
     const setupMRAM = () => {
 
       const mram = document.createElement('mr-activity-measure');
-      mram.setAttribute('m', '')
+      mram.setAttribute('m', '');
       document.head.appendChild(document.createElement('style')).textContent = `
-              mr-activity-measure[m] {
-                visibility: collapse !important;
-                width: 1px !important;
-                height: 1px !important;
+        mr-activity-measure[m] {
+          visibility: collapse !important;
+          width: 1px !important;
+          height: 1px !important;
 
-                display: block !important;
-                z-index: -1 !important;
-                contain: strict !important;
-                box-sizing: border-box !important;
+          display: block !important;
+          z-index: -1 !important;
+          contain: strict !important;
+          box-sizing: border-box !important;
 
-                position: fixed !important;
-                top: -1000px !important;
-                left: -1000px !important;
-                animation: ${foregroundActivityMeasureInterval}ms ease-in 500ms infinite alternate forwards running mrActivityMeasure !important;
-              }
-              @keyframes mrActivityMeasure{
-                0%{
-                  order: 0;
-                }
-                100%{
-                  order: 1;
-                }
-              }
-
-
-
-              `
+          position: fixed !important;
+          top: -1000px !important;
+          left: -1000px !important;
+          animation: ${foregroundActivityMeasureInterval}ms ease-in 500ms infinite alternate forwards running mrActivityMeasure !important;
+        }
+        @keyframes mrActivityMeasure{
+          0%{
+            order: 0;
+          }
+          100%{
+            order: 1;
+          }
+        }
+      `;
       let lastEt = 0;
       mram.onanimationiteration = function (evt) {
         const et = evt.elapsedTime * 1000;
@@ -1525,88 +1591,64 @@ __errorCode21167__ || (() => {
 
     const findAndHandleElement = () => {
       if (!observer) return;
-      if (wType === 0) {
 
-
-        const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-        const matchedElement = result.singleNodeValue;
-
-        if (matchedElement && !wType) {
-          wType = 1;
-
-          // observer.disconnect();
-          // observer.takeRecords();
-          // observer = null;
-          Promise.resolve(matchedElement).then(onElementFound).then(setupMRAM).catch(console.warn);
-
-
-        }
-
-
-      } else {
+      if (wType !== 0) {
 
         if (!attachedGroup) return;
         if (attachedGroup.isConnected) return;
-
-
-
-
-        const result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-        const matchedElement = result.singleNodeValue;
-
-        if (matchedElement) {
-
-
-          Promise.resolve(matchedElement).then(onElementFound).catch(console.warn);
-
-        }
-
-
       }
+
+
+      const result = findButtonByExpression( document);
+      if(!result) return;
+      const matchedElement = result.singleNodeValue;
+
+      if (!matchedElement) return;
+      console.log('findAndHandleElement OK');
+      const cb = wType === 0 ? setupMRAM : () => { };
+      if (wType === 0) {
+        wType = 1;
+      }
+      Promise.resolve(matchedElement).then(onElementFound).then(cb).catch(console.warn);
     }
 
-    observer = new MutationObserver(function (mutationsList, observer) {
+
+    const findAndHandleElementForegroundWrapped = foregroundWrap(findAndHandleElement);
+
+    observer = new MutationObserver(function (mutationsList) {
       if (!observer) return;
-      let tid = ++mct;
-      requestAnimationFrame(function () {
-        if (tid !== mct) return;
-        findAndHandleElement();
-      });
+      findAndHandleElementForegroundWrapped();
     });
 
     observer.observe(document, { childList: true, subtree: true });
 
-    function onReady() {
-      if (!onReady) return;
-      onReady = null;
+    (async function (){
+
+      if (document.readyState === 'loading') {
+        await new Promise(resolve=>window.addEventListener('load', resolve, false));
+      }
+
       if (!observer) return;
       if (wType > 0) return;
-      let tf = () => {
 
-        if (!document.querySelector('main')) return tf();
+      const main = await observablePromise(() => document.querySelector('main')).obtain();
+      if (!main) return;
+      await getRafPromise();
 
-        requestAnimationFrame(() => {
+      setTimeout(function () {
+        if (!observer) return;
+        if (wType > 0) return;
+        console.log('The Question Mark Button cannot be found.')
+        observer.disconnect();
+        observer.takeRecords();
+        observer = null;
+      }, 1200);
 
-          setTimeout(function () {
-            if (!observer) return;
-            if (wType > 0) return;
-            console.log('The Question Mark Button cannot be found.')
-            observer.disconnect();
-            observer.takeRecords();
-            observer = null;
-          }, 1200);
+    })();
 
-        })
 
-      };
-      requestAnimationFrame(tf)
-    }
 
-    if (document.readyState !== 'loading') {
-      onReady();
-    }
-
-    window.addEventListener('load', onReady, false);
+    
 
 
 
