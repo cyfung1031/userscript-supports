@@ -8,7 +8,7 @@
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.2.0
+// @version     1.2.1
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -552,6 +552,10 @@ __errorCode21167__ || (() => {
 
       .mr-offset-book-btn {
         margin-right: 28px;
+      }
+
+      .flex.w-full.flex-col[class*="rounded-"][class*="bg-"]:hover {
+        z-index: 999;
       }
 
 
