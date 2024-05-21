@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.11
+// @version             0.1.13
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -38,7 +38,7 @@ SOFTWARE.
 // @allFrames           true
 // @inject-into         page
 // @description         5/13/2024, 9:58:33 PM
-// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/4a50e12e8211789058cb784433f2156a34783ba9/library/html.min.js
+// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/26ef1fda343c85285a388fcbf08290192e6e201d/library/html.min.js
 // ==/UserScript==
 
 (() => {
@@ -534,7 +534,7 @@ SOFTWARE.
 
         --yt-live-chat-first-line-height: calc( var(--yt-live-chat-emoji-size) + 2px );
         --yt-live-chat-profile-icon-size: 20px;
-        --bst-message-entry-ml: calc( var(--yt-live-chat-profile-icon-size) + 6px );
+        --bst-message-entry-pl: calc( var(--yt-live-chat-profile-icon-size) + 6px );
         --yt-live-chat-tooltip-max-width: 60vw;
 
         --bst-list-pl: 20px;
@@ -616,6 +616,8 @@ SOFTWARE.
       .bst-message-head-colon::after{
         content: ': ';
       }
+
+      /*
       .bst-liveChatSponsorshipsGiftRedemptionAnnouncementRenderer[class] {
         flex-direction: row;
         flex-wrap: nowrap;
@@ -627,11 +629,14 @@ SOFTWARE.
       .bst-liveChatSponsorshipsGiftRedemptionAnnouncementRenderer .bst-message-body {
         flex-shrink: initial;
       }
+      */
 
       .bst-message-entry {
         display:block;
         position: relative;
-        margin-left: var(--bst-message-entry-ml);
+        padding-left: var(--bst-message-entry-pl);
+        box-sizing: border-box;
+        min-height: 2.7rem;
       }
       .bst-message-profile-anchor {
         margin-left: calc( -1 * var(--yt-live-chat-profile-icon-size) );
@@ -694,7 +699,6 @@ SOFTWARE.
         top: -0.36rem;
         border-radius: var(--border-radius-medium);
         position: absolute;
-        margin-left: calc(-1 * var(--bst-message-entry-ml) - 2px);
         --color-background-interactable-alpha-hover: var(--color-opac-w-4);
         --bst-highlight-color: var(--color-background-interactable-alpha-hover);
       }
@@ -791,7 +795,6 @@ SOFTWARE.
         user-select: none;
         cursor: default;
         border-radius: 4px;
-        transform:translate(-50%, -100%);
         margin-left: calc(-0.5 * var(--yt-live-chat-emoji-size));
         margin-top: -4px;
 
@@ -804,6 +807,21 @@ SOFTWARE.
       bst-tooltip:empty{
         display: none;
       }
+
+      bst-tooltip{
+        transform:translate(-50%, 100%);
+      }
+
+      /*
+      [view-pos] ~ .bst-message-entry bst-tooltip {
+        transform:translate(-50%, -100%);
+      }
+      */
+
+      .bst-message-entry[view-pos="down"] bst-tooltip{
+        transform:translate(-50%, -100%);
+      }
+      
 
 
       .bst-message-entry[author-type="member"] .bst-message-name-color{
@@ -1022,10 +1040,14 @@ SOFTWARE.
         color: var(--yt-live-chat-paid-message-color,#fff);
       }
 
-      .bst-membership-message[class]{
-
+      .bst-message-list[class] .bst-membership-message[class],
+      .bst-message-list[class] .bst-sponsorship-purchase[class] {
         --yt-live-chat-sponsor-header-color: #0a8043;
         --yt-live-chat-sponsor-color: #0f9d58;
+      }
+
+      .bst-membership-message[class]{
+
         --yt-live-chat-sponsor-text-color: #fff;
         --yt-live-chat-item-timestamp-display: var( --yt-live-chat-paid-message-timestamp-display,none );
         --yt-live-chat-moderator-color: var(--yt-spec-static-overlay-text-secondary);
@@ -1035,25 +1057,6 @@ SOFTWARE.
 
 
 
-      .bst-membership-message .bst-message-entry-highlight[class]{
-
-        /*
-
-        background-color: var(--yt-live-chat-sponsor-header-color);
-        */
-        --bst-highlight-color: var(--yt-live-chat-sponsor-color);
-        background-color: var(--bst-highlight-color);
-      }
-
-      .bst-membership-message .bst-message-body{
-
-        margin-left: 8px;
-        color: rgba(255,255,255,.7);
-        /*
-        font-weight: 500;
-        font-size: 15px;
-        */
-      }
 
 
       .bst-membership-message .bst-message-username[class]{
@@ -1069,13 +1072,148 @@ SOFTWARE.
 
 
 
+      /*
+      .bst-message-menu-container {
+        display: none;
+      }
+
+      .bst-liveChatTextMessageRenderer .bst-message-menu-container {
+        display: flex;
+      }
+
+
+      .bst-message-entry .bst-message-menu-container yt-icon {
+        background-color: var(--yt-emoji-picker-search-background-color);
+        opacity: 0.68;
+      }
+
+      
+
+      .bst-message-entry .bst-message-menu-container yt-icon:hover {
+        opacity: 0.88;
+      }
+
+      
+
+      .bst-message-entry:hover .bst-message-menu-container {
+        visibility: visible;
+      }
+
+      .bst-message-menu-container {
+        visibility: collapse;
+
+
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 26px;
+        flex-direction: row;
+        box-sizing: border-box;
+        align-items: start;
+        margin-top: -20px;
+      }
+
+      .bst-message-menu-container yt-icon {
+
+        width: 26px;
+        height: 26px;
+        max-height: 100%;
+
+        box-sizing: border-box;
+        border-radius: 0px;
+      }
+      */
+
+
+
+
+      .bst-sponsorship-purchase .bst-message-body{
+        display:block;
+      }
+      .bst-sponsorship-purchase .bst-message-body:empty{
+        display: none;
+      }
+
+
+      .bst-sponsorship-purchase{
+        padding-right: 6rem;
+        min-height: 6.6rem;
+      }
+
+      .bst-sponsorship-purchase .bst-message-entry-highlight {   
+        --bst-highlight-color: var(--yt-live-chat-sponsor-color);   
+        background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png);
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: 100% 50%;
+        background-color: var(--bst-highlight-color);
+        background-size: 6rem;
+      }
+
+      .bst-message-entry.bst-message-entry-ll {
+        --bst-message-entry-pl:0;
+      }
+      .bst-message-entry-header {
+        --bst-message-entry-pl: calc( var(--yt-live-chat-profile-icon-size) + 6px );
+        padding-left: var(--bst-message-entry-pl);
+        
+      }
+
+      .bst-membership-message .bst-message-entry-header .bst-message-entry-highlight[class]{
+        --bst-highlight-color: var(--yt-live-chat-sponsor-header-color);
+        background-color: var(--bst-highlight-color);
+      }
+      .bst-membership-message .bst-message-entry-body .bst-message-entry-highlight[class]{
+        --bst-highlight-color: var(--yt-live-chat-sponsor-color);
+        background-color: var(--bst-highlight-color);
+      }
+
+ 
+      .bst-membership-message .bst-message-entry-header .bst-message-entry-highlight.bst-message-entry-followed-by-body {
+        bottom:0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      .bst-membership-message .bst-message-entry-body .bst-message-entry-highlight {
+        top:0;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+      }
+
+
+      .bst-message-entry-header, .bst-message-entry-body {
+        position: relative;
+      }
+
+       .bst-membership-message .bst-message-entry-body .bst-message-body::before {
+        content: '';
+        contain: strict;
+        display: inline;
+        user-select: none !important;
+        pointer-events: none !important;
+        line-height: var(--yt-live-chat-first-line-height);
+        vertical-align: baseline;
+    }
+
+
+    .bst-membership-message .bst-message-entry-header .bst-message-body{
+
+      margin-left: 8px;
+      display: inline-block;
+    }
+
+    .bst-membership-message .bst-message-entry-body .bst-message-body{
+
+      margin-left: 8px;
+      color: var(--yt-live-chat-sponsor-text-color)
+    }
     
     `
   }
 
-  /** @type {import('../src/html.js').SolidJS}.SolidJS */
-  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup } = SolidJS;
-
+  /** @type {import('./library/html').SolidJS}.SolidJS */
+  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect } = SolidJS;
 
 
   function getThumbnail(thumbnails, min, max) {
@@ -1255,16 +1393,15 @@ SOFTWARE.
           
           switch (item.aKey) {
             case 'liveChatViewerEngagementMessageRenderer':
-              return SolidSystemMessage(item)
+              return SolidSystemMessage(item);
             case 'liveChatPaidMessageRenderer':
-              return SolidPaidMessage(item)
-
+              return SolidPaidMessage(item);
             case 'liveChatMembershipItemRenderer':
-              return SolidMembershipMessage(item)
-
+              return SolidMembershipMessage(item);
             case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
-
-              return SolidGiftText(item)
+              return SolidGiftText(item);
+            case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
+              return SolidSponsorshipPurchase(item);
             default:
               return SolidMessageText(item)
           }
@@ -1354,28 +1491,46 @@ SOFTWARE.
 
   const SolidMembershipMessage = (data) => {
     return html`
-  <div class="${() => `bst-message-entry bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
-  <div class="bst-message-entry-highlight"></div>
-  <div class="bst-message-entry-line">
-    <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
-    <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
-      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+  <div class="${() => `bst-message-entry bst-message-entry-ll bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList=${{"bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody')}}>
+    <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
+    <div class="bst-message-entry-highlight"></div>
+    <div class="bst-message-entry-line">
+      <div class="bst-message-head">
+      <div class="bst-message-head-highlight"></div>  
+      <div class="bst-message-time"></div>
+        <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
+        <div class="bst-message-badges bst-message-name-color">
+        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+          return formatters.authorBadges(badge, data);
 
-      }}<//>
+        }}<//>
+        </div>
+      </div>
+      <div class="bst-message-body">${() => {
+        return convertYTtext(data.headerPrimaryText || data.headerSubtext);
+        // new member - only data.headerSubtext
+          // return convertYTtext(data.headerSubtext)
+      }}</div>
+    </div>
+    <div class="bst-message-menu-container">
+    </div>
+  </div>
+  <${Show} when=(${() => data.bst('hasMessageBody')})>${() => {
+    return html`
+    <div class="bst-message-entry-body">
+      <div class="bst-message-entry-highlight"></div>
+      <div class="bst-message-entry-line">
+        <div class="bst-message-body">
+        <${For} each=(${() => data.bst('messages')})>${(message) => {
+          return formatters.messageBody(message, data);
+        }}<//>
+        </div>
       </div>
     </div>
-    <div class="bst-message-body">${() => {
-        return convertYTtext(data.headerSubtext)
-    }}</div>
-  </div>
-  <div class="bst-message-menu-container">
-  </div>
+    `
+  }}<//>
   </div>
 `;
   };
@@ -1412,6 +1567,42 @@ SOFTWARE.
 `;
   };
 
+
+
+
+  const SolidSponsorshipPurchase = (data) => {
+
+    // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
+
+
+    return html`
+  <div class="${() => `bst-message-entry bst-sponsorship-purchase`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
+  <div class="bst-message-entry-highlight"></div>
+  <div class="bst-message-entry-line">
+    <div class="bst-message-head">
+    <div class="bst-message-head-highlight"></div>  
+    <div class="bst-message-time"></div>
+      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername2')}</div>
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+
+        return formatters.authorBadges(badge, data);
+
+      }}<//>
+      </div>
+    </div>
+    <div class="bst-message-body">
+    <${For} each=(${() => data.bst('messages')})>${(message) => {
+      return formatters.messageBody(message, data);
+    }}<//>
+    </div>
+  </div>
+  <div class="bst-message-menu-container">
+  </div>
+  </div>
+`;
+  };
 
   const SolidMessageText = (data) => {
     return html`
@@ -1482,6 +1673,10 @@ SOFTWARE.
 
     /** @type {HTMLElement} */
     let messageList;
+    /** @type {IntersectionObserver} */
+    let ioMessageList;
+    /** @type {HTMLElement} */
+    let _bstMain;
     /** @type {HTMLElement} */
     let messageOverflowAnchor;
     let setAtBottomFn;
@@ -1512,7 +1707,8 @@ SOFTWARE.
       bstMain.classList.add('bst-yt-main');
       bstMain.addEventListener('scroll', (a) => {
         this.onScrollItems_(a);
-      }, false)
+      }, false);
+      _bstMain = bstMain;
 
 
       // const pp = bstMain.parentNode.insertBefore(document.createElement('div'), bstMain.nextSibling);
@@ -1529,6 +1725,13 @@ SOFTWARE.
       messageList.className = 'bst-message-list';
       shadow.appendChild(messageList)
 
+
+      const [visibleCount, visibleCountChange ] = createSignal();
+
+
+      messageList.visibleCount = visibleCount;
+      
+
       //  const mm = shadow.appendChild(document.createElement('div'))
 
       //  const [solidBuild, solidBuildSet] = createStore({
@@ -1540,7 +1743,7 @@ SOFTWARE.
       messageList.solidBuildSet = solidBuildSet;
 
       const isListEmpty = createMemo(() => solidBuild().length < 1);
-      createEffect(() => {
+      createRenderEffect(() => {
         const cEmpty = isListEmpty();
         const change = (cEmpty) ^ (!!this.isEmpty);
         if (change) {
@@ -1628,6 +1831,14 @@ SOFTWARE.
 
       }, true)
 
+      // messageList.addEventListener('click', function (evt) {
+      //   const target = evt?.target;
+      //   if (!target) return;
+      //   const messageEntry = target.closest('.bst-message-entry');
+      //   if (!messageEntry) return;
+      //   console.log('click', target);
+      // })
+
 
       const attributeFn = () => {
         if (!messageList) return;
@@ -1639,6 +1850,38 @@ SOFTWARE.
       attributeFn();
 
 
+      if(ioMessageList){
+        ioMessageList.disconnect();
+        ioMessageList.takeRecords();
+        ioMessageList = null;
+      }
+      const io = ioMessageList = new IntersectionObserver((entries)=>{
+        for(const entry of entries){
+          const target = entry?.target;
+          if(target && typeof target.interceptionRatioChange === 'function'){
+            if(entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)){
+
+              target.interceptionRatioChange(entry.intersectionRatio);
+            }
+          }
+        }
+      }, {root: _bstMain, threshold:[0.05, 0.95] });
+
+      createEffect(()=>{
+        const list = solidBuild();
+        let j =0;
+        for(let i=0;i<list.length;i++){
+          const mutable = mutableWM.get( list[i]);
+          if(mutable?.viewVisible()){
+            j++;
+            mutable?.viewVisibleIdxChange(j);
+          }else{
+            mutable?.viewVisibleIdxChange(null);
+          }
+        }
+        visibleCountChange(j);
+      });
+
 
     }
 
@@ -1649,11 +1892,16 @@ SOFTWARE.
 
 
 
-
+    function getAuthor(o){
+      if (o?.rendererFlag === 1){
+        return o?.header?.liveChatSponsorshipsHeaderRenderer;
+      }
+      return o;
+    }
 
 
     function getProfilePic(min, max) {
-      let authorPhoto = this.authorPhoto || 0;
+      let authorPhoto = getAuthor(this)?.authorPhoto || 0;
       authorPhoto = authorPhoto.thumbnails || authorPhoto;
       if (authorPhoto) {
 
@@ -1668,6 +1916,9 @@ SOFTWARE.
     }
 
 
+
+
+
     function bst(prop) {
 
       if (prop === 'getUsername') {
@@ -1675,10 +1926,24 @@ SOFTWARE.
         const authorName = this.authorName;
         return convertYTtext(authorName);
 
+      } else if (prop === 'getUsername2') {
+
+        const authorName = this.header?.liveChatSponsorshipsHeaderRenderer?.authorName;
+        return convertYTtext(authorName);
+      } else if (prop === 'hasMessageBody') {
+
+
+        const message = this.rendererFlag === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
+        if (typeof (message || 0) !== 'object') return false;
+        if (message.simpleText) return true;
+
+        const runs = message.runs;
+        return runs && runs.length && runs[0];
+  
       } else if (prop === 'messages') {
 
 
-        const message = this.message;
+        const message = this.rendererFlag === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
         if (typeof (message || 0) !== 'object') return [];
         if (message.simpleText) return [message.simpleText]
 
@@ -1688,10 +1953,9 @@ SOFTWARE.
       } else if (prop === 'authorBadges') {
 
 
-        const badges = this.authorBadges;
+        const badges = getAuthor(this)?.authorBadges;
         if (typeof (badges || 0) !== 'object') return null;
         return badges;
-
 
       } else if (prop === 'authorType') {
 
@@ -1733,6 +1997,7 @@ SOFTWARE.
 
     }
 
+    cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 256;
     cProto.setAtBottom = (...args) => {
 
       console.log('setAtBottom', 583, ...args)
@@ -1923,6 +2188,7 @@ SOFTWARE.
       // this.setAtBottom();
       // this.flushActiveItems_();
     }
+    cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 512;
 
     cProto.scrollToBottom_ = function () {
       // console.log(1882)
@@ -2063,6 +2329,12 @@ SOFTWARE.
           flushKeys.add(uid);
           aObj.uid = uid;
           aObj.aKey = aKey;
+          if(aObj.aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"){
+            aObj.rendererFlag = 1;
+          }else{
+            aObj.rendererFlag = 0;
+
+          }
           aObj.getProfilePic = getProfilePic;
           aObj.bst = bst;
 
@@ -2109,6 +2381,19 @@ SOFTWARE.
               /** @type {HTMLElement} */
               const messageEntry = _messageEntry;
               mutableWM.set(messageEntry, mutable);
+
+              const [interceptionRatio, interceptionRatioChange] = createSignal(null);
+              const [viewVisible, viewVisibleChange] = createSignal(null);
+              const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
+
+              messageEntry.interceptionRatio = interceptionRatio;
+              messageEntry.interceptionRatioChange = interceptionRatioChange;
+              mutable.viewVisible = viewVisible;
+              mutable.viewVisibleChange = viewVisibleChange;
+              mutable.viewVisibleIdx = viewVisibleIdx;
+              mutable.viewVisibleIdxChange = viewVisibleIdxChange;
+
+
               const bObjChange = this.bObjChange;
               messageEntry.polymerController = {
                 set(prop, val) {
@@ -2167,6 +2452,64 @@ SOFTWARE.
 
               })();
 
+              /*
+              const menuContainer = messageEntry.querySelector('.bst-message-menu-container');
+              if(menuContainer){
+                menuContainer.appendChild(document.createElement('yt-icon')).icon= 'yt-icons:more' // 'more_vert';
+              }
+              */
+
+              // messageEntry.onInterception = function(){
+              //   this.
+              // }
+              
+              // change on state
+              createEffect(()=>{
+
+                const visible = interceptionRatio();
+                if (visible > 0.9) {
+                  viewVisibleChange(1);
+                } else if (visible < 0.1) {
+                  viewVisibleChange(0);
+                }
+                
+              });
+
+              // change on state -> change on DOM
+              // createRenderEffect(() => {
+              //   const v = viewVisible();
+              //   if (v === 1) {
+              //     messageEntry.setAttribute('view-visible', '1');
+              //   } else if (v === 0) {
+              //     messageEntry.removeAttribute('view-visible');
+              //   }
+              // });
+
+              // change on state
+              const viewVisiblePos = createMemo(() => {
+                if (!messageList) return;
+                const viewCount = messageList.visibleCount();
+                const num = viewVisibleIdx();
+                if (num >= 1 && viewCount >= 1) {
+                  return (num > (viewCount / 2)) ? 'down' : 'up';
+                  // messageEntry.setAttribute('view-pos', (num > (viewCount / 2)) ? 'down' : 'up');
+                } else {
+                  return null;
+                  // messageEntry.removeAttribute('view-pos');
+                }
+              });
+
+              // change on state -> change on DOM
+              createRenderEffect(() => {
+                const v = viewVisiblePos();
+                if (v === null) {
+                  messageEntry.removeAttribute('view-pos');
+                } else {
+                  messageEntry.setAttribute('view-pos', v);
+                }
+              });
+
+              ioMessageList && ioMessageList.observe(messageEntry);
 
               createdPromise.resolve(messageEntry);
               mountedCounterSet(a=>a+1);
