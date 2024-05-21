@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.25
+// @version             0.61.26
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4555,7 +4555,7 @@
 
               if (noVisibleItem1 && !noVisibleItem2) {
                 // fix possible no auto scroll issue.
-                setTimeout(() => cnt.setAtBottom(), 1);
+                !((cnt.__notRequired__ || 0) & 256) && setTimeout(() => cnt.setAtBottom(), 1);
               }
 
               if (!ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -4798,23 +4798,26 @@
 
             await Promise.resolve();
             if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
+              const onScrollItemsBasicOnly_ = !!((cnt.__notRequired__ || 0) & 512);
               await Promise.resolve().then(() => {
                 this.ytRendererBehavior.onScroll(evt);
               }).then(() => {
+                if(onScrollItemsBasicOnly_) return;
                 if (this.canScrollToBottom_()) {
                   const hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
                   if (hasUserJustInteracted) {
                     // only when there is an user action
-                    this.setAtBottom();
+                    !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
                     return 1;
                   }
                 } else {
                   // no message inserting
-                  this.setAtBottom();
+                  !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
                   return 1;
                 }
               }).then((r) => {
 
+                if(onScrollItemsBasicOnly_) return;
                 if (this.activeItems_.length) {
 
                   if (this.canScrollToBottom_()) {
@@ -4827,9 +4830,10 @@
                   }
                 }
               }).then((r) => {
+                if(onScrollItemsBasicOnly_) return;
                 if (r) {
                   // ensure setAtBottom is correctly set
-                  this.setAtBottom();
+                  !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
                 }
               });
             } else {
