@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.26
+// @version             0.61.27
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4763,15 +4763,49 @@
           });
 
           let qid = 0;
+          mclp.__updateButtonVisibility371__ = function (button) {
+            Promise.resolve().then(() => {
+              button.style.visibility = this.__buttonVisibility371__;
+            });
+          }
           mclp.atBottomChanged_ = function (a) {
-            let tid = ++qid;
-            let b = this;
-            a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-              if (tid !== qid) return;
-              U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-            }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-              this.hideShowMoreAsync_ = null,
-              U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+            const button = (this.$ || 0)['show-more'];
+            if (button) {
+              // primary execution
+              if (a) {
+                if (this.__buttonVisibility371__ !== "hidden") {
+                  this.__buttonVisibility371__ = "hidden";
+                  if (!this.hideShowMoreAsync_) {
+                    const tid = ++qid;
+                    this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
+                      if (tid !== qid) {
+                        return;
+                      }
+                      this.__updateButtonVisibility371__(button);
+                    });
+                  }
+                }
+              } else {
+                if (this.__buttonVisibility371__ !== "visible") {
+                  this.__buttonVisibility371__ = "visible";
+                  if (this.hideShowMoreAsync_) {
+                    qid++;
+                  }
+                  this.hideShowMoreAsync_ = null;
+                  this.__updateButtonVisibility371__(button);
+                }
+              }
+            } else {
+              // fallback
+              let tid = ++qid;
+              let b = this;
+              a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
+                if (tid !== qid) return;
+                U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+              }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
+                this.hideShowMoreAsync_ = null,
+                U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+            }
           }
 
           console.log("atBottomChanged_", "OK");
