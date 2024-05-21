@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.28
+// @version             0.61.29
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -168,7 +168,8 @@
 
   const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
 
-  const AMEND_TICKER_handleLiveChatAction = true; // to fix ticker duplication and unresponsively fast ticker generation
+  const AMEND_TICKER_handleLiveChatAction = false; // to fix ticker duplication and unresponsively fast ticker generation
+  // AMEND_TICKER_handleLiveChatAction to be fixed (2024.05.21)
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
   const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
