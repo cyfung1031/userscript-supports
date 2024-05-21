@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.27
+// @version             0.61.28
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4768,6 +4768,24 @@
               button.style.visibility = this.__buttonVisibility371__;
             });
           }
+          const fixButtonOnClick = function(cnt, button){
+            button.addEventListener('click', (evt)=>{
+              evt.stopImmediatePropagation();
+              evt.stopPropagation();
+              evt.preventDefault();
+              Promise.resolve().then(()=>{
+                cnt.scrollToBottom_();
+              });
+            }, true);
+            // button.addEventListener('pointerup', (evt)=>{
+            //   evt.stopImmediatePropagation();
+            //   evt.stopPropagation();
+            // }, true);
+            // button.addEventListener('mouseup', (evt)=>{
+            //   evt.stopImmediatePropagation();
+            //   evt.stopPropagation();
+            // }, true);
+          }
           mclp.atBottomChanged_ = function (a) {
             const button = (this.$ || 0)['show-more'];
             if (button) {
@@ -4792,6 +4810,10 @@
                     qid++;
                   }
                   this.hideShowMoreAsync_ = null;
+                  if (!button.__fix_onclick__) {
+                    button.__fix_onclick__ = true;
+                    fixButtonOnClick(this, button);
+                  }
                   this.__updateButtonVisibility371__(button);
                 }
               }
