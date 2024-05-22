@@ -2,7 +2,7 @@
 // @name                YtDLS: YouTube Dual Language Subtitle (Modified)
 // @name:zh-CN          YtDLS: Youtube 双语字幕（改）
 // @name:zh-TW          YtDLS: Youtube 雙語字幕（改）
-// @version             2.1.2
+// @version             2.1.3
 // @description         Enhances YouTube with dual language subtitles.
 // @description:zh-CN   为YouTube添加双语字幕增强功能。
 // @description:zh-TW   增強YouTube的雙語字幕功能。
@@ -62,7 +62,31 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
       if (!enableFullWidthSpaceSeparation) return text
       return text.replace(/\n©\n/g, '\u3000').replace(/\n®\n/g, '\n')
     }
-    let requestDeferred = Promise.resolve()
+    let requestDeferred = Promise.resolve();
+
+    const inPlaceArrayPush = (() => {
+
+      // for details, see userscript-supports/library/misc.js
+
+      return function (dest, source) {
+        const LIMIT_N = 50000;
+        let index = 0;
+        const len = source.length;
+        while (index < len) {
+          let chunkSize = len - index; // chunkSize > 0
+          if (chunkSize > LIMIT_N) {
+            chunkSize = LIMIT_N;
+            dest.push(...source.slice(index, index + chunkSize));
+          } else if (index > 0) { // to the end
+            dest.push(...source.slice(index));
+          } else { // normal push.apply
+            dest.push(...source);
+          }
+          index += chunkSize;
+        }
+      }
+
+    })();
   
     xhProxy.hook({
       onConfig(xhr, config) {
@@ -122,7 +146,7 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
           for (const event of defaultJson.events) {
             for (const seg of event.segs) {
               if (seg && typeof seg.utf8 === 'string') {
-                lines.push(...seg.utf8.split('\n'))
+                inPlaceArrayPush(lines, seg.utf8.split('\n'));
               }
             }
           }
