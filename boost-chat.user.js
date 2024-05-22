@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.13
+// @version             0.1.14
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -46,7 +46,8 @@ SOFTWARE.
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   const RENDER_MESSAGES_ONE_BY_ONE = true;
 
-  const { replaceWith } = ((h0) => h0)(document.createElement('h0'));
+  const { replaceWith, appendChild, getAttribute } = ((h0) => h0)(document.createElement('h0'));
+  const { appendChild: fragmentAppendChild } = ((h0) => h0)(new DocumentFragment());
 
   /* globals WeakRef:false */
 
@@ -117,6 +118,30 @@ SOFTWARE.
     ? (nodeName) => customElements.whenDefined(nodeName)
     : (nodeName) => promiseForCustomYtElementsReady.then(() => customElements.whenDefined(nodeName));
 
+
+  const inPlaceArrayPush = (() => {
+
+    // for details, see userscript-supports/library/misc.js
+
+    return function (dest, source) {
+      const LIMIT_N = 50000;
+      let index = 0;
+      const len = source.length;
+      while (index < len) {
+        let chunkSize = len - index; // chunkSize > 0
+        if (chunkSize > LIMIT_N) {
+          chunkSize = LIMIT_N;
+          dest.push(...source.slice(index, index + chunkSize));
+        } else if (index > 0) { // to the end
+          dest.push(...source.slice(index));
+        } else { // normal push.apply
+          dest.push(...source);
+        }
+        index += chunkSize;
+      }
+    }
+
+  })();
 
   const createPipeline = () => {
     let pipelineMutex = Promise.resolve();
@@ -638,6 +663,11 @@ SOFTWARE.
         box-sizing: border-box;
         min-height: 2.7rem;
       }
+
+      .bst-message-entry.bst-viewer-engagement-message {
+        --bst-message-entry-pl: 0;
+      }
+
       .bst-message-profile-anchor {
         margin-left: calc( -1 * var(--yt-live-chat-profile-icon-size) );
         position:absolute;
@@ -668,6 +698,7 @@ SOFTWARE.
         right: -0.4rem;
         top: -0.4rem;
         border-radius: var(--border-radius-medium);
+        pointer-events: none !important;
       }
       .bst-message-entry[author-type="owner"] .bst-message-head-highlight{
         display: block;
@@ -701,6 +732,7 @@ SOFTWARE.
         position: absolute;
         --color-background-interactable-alpha-hover: var(--color-opac-w-4);
         --bst-highlight-color: var(--color-background-interactable-alpha-hover);
+        pointer-events: none !important;
       }
 
       .bst-message-entry-line {
@@ -796,13 +828,13 @@ SOFTWARE.
         cursor: default;
         border-radius: 4px;
         margin-left: calc(-0.5 * var(--yt-live-chat-emoji-size));
-        margin-top: -4px;
 
         white-space: nowrap;
         max-width: var(--yt-live-chat-tooltip-max-width);
         text-overflow: ellipsis;
         overflow: hidden;
         z-index: 2;
+        pointer-events: none !important;
       }
       bst-tooltip:empty{
         display: none;
@@ -810,6 +842,8 @@ SOFTWARE.
 
       bst-tooltip{
         transform:translate(-50%, 100%);
+        margin-top: 0;
+        margin-bottom: -4px;
       }
 
       /*
@@ -820,6 +854,8 @@ SOFTWARE.
 
       .bst-message-entry[view-pos="down"] bst-tooltip{
         transform:translate(-50%, -100%);
+        margin-top: -4px;
+        margin-bottom: 0;
       }
       
 
@@ -976,9 +1012,6 @@ SOFTWARE.
         flex-shrink: initial;
       }
 
-      .bst-message-entry.bst-viewer-engagement-message {
-        margin-left: 0;
-      }
       .bst-system-message-yt-icon{
         display:inline-block;
       }
@@ -1243,6 +1276,8 @@ SOFTWARE.
     return "rgba(" + [a >> 16 & 255, a >> 8 & 255, a & 255, ((a >> 24 & 255) / 255).toFixed(5)].join() + ")"
   }
 
+  let formatMessage;
+
   const formatters = {
     authorBadges(badge, data) {
 
@@ -1312,7 +1347,7 @@ SOFTWARE.
 
             const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
             const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibiltyData?.label || '';
+            const alt = () => ek.accessibility?.accessibilityData?.label || '';
             const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
             const dataMutable = mutableWM.get(data);
             if (dataMutable) {
@@ -1342,17 +1377,19 @@ SOFTWARE.
 
     },
     messageBody(message, data){
+
       if (typeof message === 'string') return html`<span>${() => message}</span>`
       if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
 
       if (typeof message.emoji !== 'undefined') {
+
 
         try {
           const emoji = message.emoji;
 
           const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
           const src = () => `${emoji.image.thumbnails[0].url}`
-          const alt = () => emoji.image?.accessibility?.accessibiltyData?.label || '';
+          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
           const tooltipText = () => emoji.shortcuts?.[0] || '';
           const emojiId = () => emoji.emojiId || '';
           const isCustomEmoji = () => emoji.isCustomEmoji || false;
@@ -1663,6 +1700,161 @@ SOFTWARE.
     return null;
   }
 
+  const fixMessagesForEmoji = (()=>{
+
+    let Vkb = 0
+      , Wkb = /tone[1-5]/
+      , Xkb = " \uD83C\uDFFB \uD83C\uDFFC \uD83C\uDFFD \uD83C\uDFFE \uD83C\uDFFF".split(" ")
+      , Ykb = "UCzC5CNksIBaiT-NdMJjJNOQ/COLRg9qOwdQCFce-qgodrbsLaA UCzC5CNksIBaiT-NdMJjJNOQ/CMKC7uKOwdQCFce-qgodqbsLaA UCzC5CNksIBaiT-NdMJjJNOQ/CJiQ8uiOwdQCFcx9qgodysAOHg UCzC5CNksIBaiT-NdMJjJNOQ/CI3h3uDJitgCFdARTgodejsFWg UCzC5CNksIBaiT-NdMJjJNOQ/CI69oYTKitgCFdaPTgodsHsP5g UCzC5CNksIBaiT-NdMJjJNOQ/CKzQr47KitgCFdCITgodq6EJZg UCzC5CNksIBaiT-NdMJjJNOQ/CPGD8Iu8kN4CFREChAod9OkLmg".split(" ")
+      , Zkb = Number.MAX_SAFE_INTEGER
+      , $kb = RegExp("\uFE0F", "g")
+
+    let dQ = function (a, b, c) {
+      return (a = a.emojiMap[b]) && (!a.isLocked || void 0 !== c && c) ? a : void 0
+    }
+
+    let gQ = function (a, b) {
+      a = a.emojiShortcutMap[b.toLocaleLowerCase()];
+      return !a || a.isLocked ? null : a
+    }
+
+    function resultAddText(r, text){
+      if(typeof text === 'string' && text.length >= 1){
+        r.push({text: text});
+      }
+    }
+    function resultAddEmoji(r, emoji){
+      if(emoji && typeof emoji === 'object'){
+        r.push({emoji: emoji});
+      }
+    }
+
+/*
+
+    cQ.prototype.createDocumentFragment = function(a, b, c, d) {
+        b = void 0 === b ? !1 : b;
+        c = void 0 === c ? !0 : c;
+        d = void 0 === d ? !1 : d;
+        a = a.replace($kb, "");
+        for (var e = document.createDocumentFragment(), g = 0, k, m = 0; null != (k = this.emojiRegex.exec(a)); ) {
+            var p = dQ(this, k[0]) || gQ(this, k[0]);
+            !p || p.isCustomEmoji && !b || (p = this.createEmoji(p, c),
+            g !== k.index && e.appendChild(document.createTextNode(a.substring(g, k.index))),
+            e.appendChild(p),
+            g = k.index + k[0].length,
+            m++)
+        }
+        if (!d || m)
+            return e.appendChild(document.createTextNode(a.substr(g))),
+            e
+    }
+
+    */
+
+/*
+
+    cQ.prototype.createEmoji = function(a, b) {
+        b = void 0 === b ? !0 : b;
+        var c = document.createElement("img");
+        a.isCustomEmoji && !x("render_custom_emojis_as_small_images") || c.classList.add("small-emoji");
+        c.classList.add("emoji");
+        c.classList.add("yt-formatted-string");
+        c.src = a.image ? $C(a.image.thumbnails, this.emojiSize) || "" : "";
+        var d = void 0;
+        a.image && a.image.accessibility && a.image.accessibility.accessibilityData && (d = a.image.accessibility.accessibilityData.label);
+        c.alt = d ? d : (a.isCustomEmoji && a.shortcuts ? a.shortcuts[0] : a.emojiId) || "";
+        a.isCustomEmoji && (c.dataset.emojiId = a.emojiId);
+        ce && (c.setAttribute("contenteditable", "false"),
+        c.setAttribute("unselectable", "on"));
+        b && (a.shortcuts && a.shortcuts.length && c.setAttribute("shared-tooltip-text", a.shortcuts[0]),
+        c.id = "emoji-" + Vkb++);
+        return c
+    }
+    */
+
+    function createEmojiMX(a, b){
+
+      /*
+        b = void 0 === b ? !0 : b;
+        var c = document.createElement("img");
+        a.isCustomEmoji && !x("render_custom_emojis_as_small_images") || c.classList.add("small-emoji");
+        c.classList.add("emoji");
+        c.classList.add("yt-formatted-string");
+        c.src = a.image ? $C(a.image.thumbnails, this.emojiSize) || "" : "";
+        var d = void 0;
+        a.image && a.image.accessibility && a.image.accessibility.accessibilityData && (d = a.image.accessibility.accessibilityData.label);
+        c.alt = d ? d : (a.isCustomEmoji && a.shortcuts ? a.shortcuts[0] : a.emojiId) || "";
+        a.isCustomEmoji && (c.dataset.emojiId = a.emojiId);
+        ce && (c.setAttribute("contenteditable", "false"),
+        c.setAttribute("unselectable", "on"));
+        b && (a.shortcuts && a.shortcuts.length && c.setAttribute("shared-tooltip-text", a.shortcuts[0]),
+        c.id = "emoji-" + Vkb++);
+        return c
+*/
+
+/*
+
+
+        try {
+          const emoji = message.emoji;
+
+          const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+          const src = () => `${emoji.image.thumbnails[0].url}`
+          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
+          const tooltipText = () => emoji.shortcuts?.[0] || '';
+          const emojiId = () => emoji.emojiId || '';
+          const isCustomEmoji = () => emoji.isCustomEmoji || false;
+          const dataMutable = mutableWM.get(data);
+          if (dataMutable) {
+            const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
+            dataMutable.tooltips.set(emojiElementId, createStore({
+              displayedTooltipText: ''
+            }));
+
+            const displayedTooltipText = () => {
+              const dataMutable = mutableWM.get(data);
+              const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
+              return emojiDataStore.displayedTooltipText
+            }
+
+            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+          } else {
+            return '';
+          }
+
+        } catch (e) {
+          console.warn(e);
+        }
+        */
+
+
+        return a;
+    }
+    function fixMessagesForEmoji(a, b, c, d){
+      b = void 0 === b ? !1 : b; // false
+      c = void 0 === c ? !0 : c; // true
+      d = void 0 === d ? !1 : d; // false
+      a = a.replace($kb, "");
+      let e = document.createDocumentFragment();
+      const r = [];
+      let g = 0;
+      let k;
+      let m = 0;
+      for (; null != (k = this.emojiRegex.exec(a)); ) {
+          var p = dQ(this, k[0]) || gQ(this, k[0]);
+          !p || p.isCustomEmoji && !b || (p = createEmojiMX.call(this, p, c),
+          g !== k.index && resultAddText(r, a.substring(g, k.index)),
+          resultAddEmoji(r, p),
+          g = k.index + k[0].length,
+          m++)
+      }
+      // if (!d || m) return e.appendChild(document.createTextNode(a.substr(g))), e;
+      return resultAddText(r, a.substr(g)), r;
+    }
+    return fixMessagesForEmoji;
+
+  })();
+
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
     let cProto;
@@ -1673,6 +1865,10 @@ SOFTWARE.
 
     /** @type {HTMLElement} */
     let messageList;
+    /** @type {HTMLElement} */
+    let wliveChatTextMessageRenderer = null;
+    /** @type {HTMLElement} */
+    let wliveChatTextInputRenderer = null;
     /** @type {IntersectionObserver} */
     let ioMessageList;
     /** @type {HTMLElement} */
@@ -1688,6 +1884,21 @@ SOFTWARE.
       $: '$'
     };
 
+    formatMessage = (a) => {
+      if (!wliveChatTextMessageRenderer) return null;
+      const cnt = insp(wliveChatTextMessageRenderer);
+      if (!cnt) return null;
+      let bh = (cnt.ytLiveChatItemBehavior || 0);
+      if (typeof bh.createDocumentFragment !== 'function') {
+        bh = cnt;
+        if (typeof bh.createDocumentFragment !== 'function') {
+          return null;
+        }
+      }
+      if (bh.createDocumentFragment?.length !== 1) return null;
+      return bh.createDocumentFragment(a);
+    }
+
     cProto.computeIsEmpty_ = function () {
       return !(this.visibleItems?.length || 0);
     }
@@ -1700,7 +1911,17 @@ SOFTWARE.
       targetElement = targetElement.closest('#item-offset.yt-live-chat-item-list-renderer') || targetElement;
       const bstMain = document.createElement('div');
       const hostElement = this.hostElement;
-      replaceWith.call(targetElement, bstMain);
+
+      const fragment = new DocumentFragment();
+      const noscript = document.createElement('noscript');
+      appendChild.call(noscript, (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer')));
+      appendChild.call(noscript, (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer')));
+      
+      fragmentAppendChild.call(fragment, noscript);
+      fragmentAppendChild.call(fragment, bstMain);
+
+      replaceWith.call(targetElement, fragment);
+
 
       qq.set(hostElement, bstMain.attachShadow({ mode: "open" }));
       const shadow = qq.get(hostElement);
@@ -1725,6 +1946,23 @@ SOFTWARE.
       messageList.className = 'bst-message-list';
       shadow.appendChild(messageList)
 
+      messageList.getListRendererCnt = ()=>{
+
+        let cnt = wliveChatTextMessageRenderer ? insp(wliveChatTextMessageRenderer) : null;
+        while (cnt && cnt.is) {
+          if (cnt.emojiManager) break;
+          cnt = cnt.parentComponent;
+          if (!cnt) break;
+          cnt = insp(cnt);
+        }
+        return cnt;
+      }
+
+      messageList.getInputRendererCnt = ()=>{
+        let cnt = wliveChatTextInputRenderer ? insp(wliveChatTextInputRenderer) : null;
+        return cnt;
+      }
+      
 
       const [visibleCount, visibleCountChange ] = createSignal();
 
@@ -1829,15 +2067,15 @@ SOFTWARE.
           return;
         }
 
-      }, true)
+      }, true);
 
-      // messageList.addEventListener('click', function (evt) {
-      //   const target = evt?.target;
-      //   if (!target) return;
-      //   const messageEntry = target.closest('.bst-message-entry');
-      //   if (!messageEntry) return;
-      //   console.log('click', target);
-      // })
+      messageList.addEventListener('click', function (evt) {
+        const target = evt?.target;
+        if (!target) return;
+        const messageEntry = target.closest('.bst-message-entry');
+        if (!messageEntry) return;
+        // console.log('click', target); // TODO
+      });
 
 
       const attributeFn = () => {
@@ -1915,9 +2153,124 @@ SOFTWARE.
       return null;
     }
 
+    const fixMessages = (messages)=>{
+
+      // const fragment = formatMessage ? formatMessage({runs: messages}) : null;
+      // if(!fragment) return messages;
+      // if(!(fragment instanceof DocumentFragment)) return messages;
+
+      // const map = new Map();
+      // const arr = [];
+      // for(const emojiElement of fragment.querySelectorAll('.emoji')){
+      //   const alt = getAttribute.call(emojiElement, 'alt')
+      //   map.set(alt, {
+      //     alt,
+      //     src: getAttribute.call(emojiElement, 'src'),
+      //     'shared-tooltip-text': getAttribute.call(emojiElement, 'shared-tooltip-text')
+      //   });
+      //   arr.push(alt);
+      // }
+      // // for(const message of messages){
+      // //   if(message.emoji && message.emoji.)
+      // // }
+      const cnt = messageList?.getInputRendererCnt() || null;
+      if(!cnt) return messages;
+
+      let res = [];
+
+      for(const message of messages){
+        if(typeof message.text === 'string'){
+          let r;
+          try{
+            r= fixMessagesForEmoji.call(cnt.emojiManager, message.text)
+          }catch(e){
+            console.warn(e)
+          }
+          if(r && r.length >= 1){
+            // res.push(...r);
+            inPlaceArrayPush(res, r);
+          }else{
+            res.push(message);
+          }
+
+          // console.log(199, r)
+
+          /*
+          ((a,b,c,d)=>{
+            let Wkb = /tone[1-5]/
+            , Xkb = " \uD83C\uDFFB \uD83C\uDFFC \uD83C\uDFFD \uD83C\uDFFE \uD83C\uDFFF".split(" ")
+            , Ykb = "UCzC5CNksIBaiT-NdMJjJNOQ/COLRg9qOwdQCFce-qgodrbsLaA UCzC5CNksIBaiT-NdMJjJNOQ/CMKC7uKOwdQCFce-qgodqbsLaA UCzC5CNksIBaiT-NdMJjJNOQ/CJiQ8uiOwdQCFcx9qgodysAOHg UCzC5CNksIBaiT-NdMJjJNOQ/CI3h3uDJitgCFdARTgodejsFWg UCzC5CNksIBaiT-NdMJjJNOQ/CI69oYTKitgCFdaPTgodsHsP5g UCzC5CNksIBaiT-NdMJjJNOQ/CKzQr47KitgCFdCITgodq6EJZg UCzC5CNksIBaiT-NdMJjJNOQ/CPGD8Iu8kN4CFREChAod9OkLmg".split(" ")
+            , Zkb = Number.MAX_SAFE_INTEGER
+            , $kb = RegExp("\uFE0F", "g")
+
+            let b = false;
+            let c= true;
+            let d = false;
+            a = a.replace($kb, "");
+            for (var e = document.createDocumentFragment(), g = 0, k, m = 0; null != (k = this.emojiRegex.exec(a)); ) {
+                var p = dQ(this, k[0]) || gQ(this, k[0]);
+                !p || p.isCustomEmoji && !b || (p = this.createEmoji(p, c),
+                g !== k.index && e.appendChild(document.createTextNode(a.substring(g, k.index))),
+                e.appendChild(p),
+                g = k.index + k[0].length,
+                m++)
+            }
+            if (!d || m)
+                return e.appendChild(document.createTextNode(a.substr(g))),
+                e
 
 
+          })(message.text)
+          */
+        }else{
+          res.push(message);
+        }
+      }
 
+      /*
+
+
+    cQ.prototype.createDocumentFragment = function(a, b, c, d) {
+        b = void 0 === b ? !1 : b;
+        c = void 0 === c ? !0 : c;
+        d = void 0 === d ? !1 : d;
+        a = a.replace($kb, "");
+        for (var e = document.createDocumentFragment(), g = 0, k, m = 0; null != (k = this.emojiRegex.exec(a)); ) {
+            var p = dQ(this, k[0]) || gQ(this, k[0]);
+            !p || p.isCustomEmoji && !b || (p = this.createEmoji(p, c),
+            g !== k.index && e.appendChild(document.createTextNode(a.substring(g, k.index))),
+            e.appendChild(p),
+            g = k.index + k[0].length,
+            m++)
+        }
+        if (!d || m)
+            return e.appendChild(document.createTextNode(a.substr(g))),
+            e
+    }
+
+    */
+
+      return res;
+      
+
+    }
+
+
+    const convertMessage = function () {
+
+      let message = this.rendererFlag === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
+      if (typeof (message || 0) !== 'object') return [];
+      let t;
+      if ((t = message.simpleText) && typeof t === 'string') {
+        message = [{ text: t }];
+      } else if ((t = message.runs) && t.length >= 0) {
+        message = t;
+      } else {
+        message = [];
+      }
+      return fixMessages(message);
+
+    }
 
     function bst(prop) {
 
@@ -1942,13 +2295,7 @@ SOFTWARE.
   
       } else if (prop === 'messages') {
 
-
-        const message = this.rendererFlag === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
-        if (typeof (message || 0) !== 'object') return [];
-        if (message.simpleText) return [message.simpleText]
-
-        const runs = message.runs;
-        return runs || [];
+        return this.messageFixed;
 
       } else if (prop === 'authorBadges') {
 
@@ -2069,51 +2416,73 @@ SOFTWARE.
         , c = a.item
         , fk = (firstKey(c) || '');
       let e = c[fk]
-        , toAddNewItem = false;
+        , replaceExistingItem = false;
 
+        if (a && e && a.clientId && !e.__clientId__) e.__clientId__ = a.clientId;
+        if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
+
+        // to be reviewed for performance issue // TODO
       this.forEachItem_(function (tag, p, idx) {
         const aObj = p[fk];
-        if (aObj) {
-          if (aObj.id !== a.clientId && aObj.id !== e.id) {
-          } else if ("visibleItems" === tag) {
+        if (aObj && (aObj.id === a.clientId || aObj.id === e.id)) {
+          if ("visibleItems" === tag) {
             const uid = aObj.uid;
-            uid && flushPE(async () => {
-              if (!messageList) return;
-              let idx = -1;
+            let directReplaced = false;
+            if (uid) {
               const list = messageList.solidBuild();
-              const filtered = list.filter((bObj, j) => {
-                if (bObj.uid === uid) {
-                  idx = j;
-                  return true;
-                }
-                return false;
-              });
-
-              if (filtered && filtered.length === 1 && idx >= 0 && list[idx]?.uid === b.visibleItems[idx]?.[idx]?.uid) {
-                const bObj = list[idx];
+              const bObj = list[idx];
+              if (bObj && bObj.uid === aObj.uid) {
                 const dataMutable = mutableWM.get(bObj);
                 if (dataMutable && typeof dataMutable.bObjChange === 'function') {
                   b.visibleItems[idx] = c;
                   dataMutable.bObjChange(e);
+                  directReplaced = true;
+                  // console.log('bObjChange 01')
                 }
               }
-              await Promise.resolve();
-            });
+              !directReplaced && flushPE(async () => {
+                if (!messageList) return;
+                const list = messageList.solidBuild();
+                let ok = false;
+                for (let j = list.length; j-- >= 0;) {
+                  const bObj = list[j];
+                  if (bObj && (bObj.id === a.clientId || bObj.id === e.id)) {
+                    const dataMutable = mutableWM.get(bObj);
+                    if (dataMutable && typeof dataMutable.bObjChange === 'function') {
+                      b.visibleItems[j] = c;
+                      dataMutable.bObjChange(e);
+                      ok = true;
+                      // console.log('bObjChange 02')
+                      break;
+                    }
+                  }
+                }
+                if (!ok) {
+                  console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
+                  this.activeItems_.push(c);
+                }
+                await Promise.resolve();
+              });
+            }
+            replaceExistingItem = true; // to be added if not matched
           } else { // activeItems_
             b.activeItems_[idx] = c;
-            toAddNewItem = true;
+            replaceExistingItem = true;
           }
+
         }
+
       });
       const d = this.get("stickinessParams.dockAtTopDurationMs", a) || 0;
       if (d) {
         const k = messageList ? messageList.querySelector(`[message-id="${e.id}"]`) : null;
         k ? this.maybeAddDockableMessage_(k) : this.itemIdToDockDurationMap[e.id] = d
       }
-      toAddNewItem || this.activeItems_.push(c);
+      replaceExistingItem || this.activeItems_.push(c);
     }
 
     cProto.handleLiveChatActions_ = function (a) {
+      // console.log(883,a) // TODO
       if (a.length) {
         for (const t of a) {
           this.handleLiveChatAction_(t);
@@ -2252,6 +2621,27 @@ SOFTWARE.
     
     */
 
+    function getUID(aObj){
+      return `${aObj.authorExternalChannelId}:${aObj.timestampUsec}`
+    }
+    function convertAObj(aObj, aKey){
+
+      aObj.uid = getUID(aObj);
+      if(aKey && typeof aKey === 'string') aObj.aKey = aKey;
+
+      if(aObj.aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"){
+        aObj.rendererFlag = 1;
+      }else{
+        aObj.rendererFlag = 0;
+      }
+      aObj.getProfilePic = getProfilePic;
+      aObj.bst = bst;
+
+      aObj.messageFixed = convertMessage.call(aObj);
+
+      return convertAObj;
+    }
+
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
     cProto.flushActiveItems_ = function () {
@@ -2321,23 +2711,14 @@ SOFTWARE.
           const aObj = flushItem[aKey];
           // console.log(9192, aKey,aObj);
 
-          const uid = `${aObj.authorExternalChannelId}:${aObj.timestampUsec}`;
+          const uid = getUID(aObj);
           if (flushKeys.has(uid)) {
             appendStates.set(flushItem, 1);
             return null;
           }
           flushKeys.add(uid);
-          aObj.uid = uid;
-          aObj.aKey = aKey;
-          if(aObj.aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"){
-            aObj.rendererFlag = 1;
-          }else{
-            aObj.rendererFlag = 0;
 
-          }
-          aObj.getProfilePic = getProfilePic;
-          aObj.bst = bst;
-
+          convertAObj(aObj, aKey);
 
 
           const [bObj, bObjSet] = createStore(aObj);
@@ -2372,6 +2753,7 @@ SOFTWARE.
                   Reflect.has(val, s) || (val[s] = undefined);
                 }
               }
+              convertAObj(val, val.aKey || undefined);
               bObjSet(val);
             },
             setupFn(_messageEntry) {
@@ -2393,8 +2775,7 @@ SOFTWARE.
               mutable.viewVisibleIdx = viewVisibleIdx;
               mutable.viewVisibleIdxChange = viewVisibleIdxChange;
 
-
-              const bObjChange = this.bObjChange;
+              const bObjChange = mutable.bObjChange;
               messageEntry.polymerController = {
                 set(prop, val) {
                   if (prop === 'data') {
@@ -2549,7 +2930,8 @@ SOFTWARE.
             const shouldRemove = removeCount > 0 && lastVisibleItemCount === visibleItems.length && lastVisibleItemCount === list.length
             shouldRemove && visibleItems.splice(0, removeCount);
             shouldRemove && list.splice(0, removeCount);
-            list.push.apply(list, rearranged);
+            // list.push.apply(list, rearranged);
+            inPlaceArrayPush(list, rearranged);
             return list;
           });
    

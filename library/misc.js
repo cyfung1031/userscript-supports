@@ -26,6 +26,7 @@ const inPlaceArrayPush = (() => {
     // For a more conservative and safer approach, it's recommended to use a lower limit, around 50,000 elements. 
 
 
+    // ----------------------------------------------------------------------------------------------------------------
 
     /*
 
@@ -79,9 +80,31 @@ const inPlaceArrayPush = (() => {
     // MAX(n) = 150000 in Macbook M1 Pro Firefox
     // MAX(n) = 110221 in Macbook M1 Pro min
     // MAX(n) = 110057 in Macbook M1 Pro Edge
-    // MAX(n) = 150000 in Macbook M1 Pro Waterfox Classic
+    // MAX(n) = 500000 in Macbook M1 Pro Waterfox Classic (n2=950000)
+    // MAX(n) = 110013 in Macbook M1 Pro Opera
 
     // 50000 / 65536 = 76.3% > 20% buffer OK
+
+    // ----------------------------------------------------------------------------------------------
+
+    // Mobile (Android)
+
+    // Brave
+    // 119289
+
+    // Firefox Focus
+    // 150000
+
+    // Via
+    // 110285
+
+    // Kiwi
+    // 110259
+
+    // ----------------------------------------------------------------------------------------------
+
+    
+
 
     /*
     return function (dest, source) {
