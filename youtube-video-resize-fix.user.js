@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube Video Resize Fix
 // @name:zh-TW          YouTube Video Resize Fix
 // @name:zh-CN          YouTube Video Resize Fix
-// @version             0.4.9
+// @version             0.4.10
 // @description         This Userscript can fix the video sizing issue. Please use it with other Userstyles / Userscripts.
 // @description:ja      この Userscript は、動画のサイズ変更の問題を修正できます。 他のユーザースタイル・ユーザースクリプトと合わせてご利用ください。
 // @description:zh-TW   此 Userscript 可以解決影片大小變形問題。 請將它與其他Userstyles / Userscripts一起使用。
@@ -115,6 +115,11 @@ SOFTWARE.
       return null;
     }
   };
+  
+  const isWatchPageURL = (url) => {
+    url = url || location;
+    return location.pathname === '/watch' || location.pathname.startsWith('/live/')
+  };
 
   cleanContext(win).then(__CONTEXT02__ => {
     if (!__CONTEXT02__) return null;
@@ -144,7 +149,8 @@ SOFTWARE.
         })
       },
       async runner() {
-        if (!location.href.startsWith('https://www.youtube.com/watch')) return;
+        if (!location.href.startsWith('https://www.youtube.com/')) return;
+        if (!isWatchPageURL()) return;
 
         elements.ytdFlexy = document.querySelector('ytd-watch-flexy');
         elements.video = document.querySelector('ytd-watch-flexy #movie_player video, ytd-watch-flexy #movie_player audio.video-stream.html5-main-video');
@@ -297,7 +303,7 @@ SOFTWARE.
         let s = '';
 
         // Check if the current page is the video watch page.
-        if (location.pathname === '/watch') {
+        if (isWatchPageURL()) {
           let watch = document.querySelector("ytd-watch-flexy");
           let chat = document.querySelector("ytd-live-chat-frame#chat");
 

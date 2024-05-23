@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.7.4
+// @version             1.7.5
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -185,6 +185,10 @@
 
         const delayPn = delay => new Promise((fn => setTimeout_(fn, delay)));
 
+        const isWatchPageURL = (url) => {
+            url = url || location;
+            return location.pathname === '/watch' || location.pathname.startsWith('/live/')
+        };
 
         const mockEvent = (o, elem) => {
             o = o || {};
@@ -945,7 +949,7 @@
 
                     const stopAndReloadFn = async () => {
                         let isLive = false;
-                        if (location.pathname === '/watch') {
+                        if (isWatchPageURL()) {
                             const liveBtn = document.querySelector('.ytp-live-badge.ytp-button');
                             try {
                                 if (liveBtn && !liveBtn.closest('[hidden]') && (liveBtn.textContent || '').trim().length > 0) {
@@ -1174,7 +1178,7 @@
                     }
                 })
 
-                let useStopAndReload = location.pathname !== '/watch';
+                let useStopAndReload = !isWatchPageURL();
                 document.addEventListener('yt-navigate-start', () => {
                     prr = new PromiseExternal();
                     if (useStopAndReload) stopAndReload = true;

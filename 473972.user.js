@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.7
+// @version     0.16.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -308,6 +308,10 @@
   }
 
 
+  const isWatchPageURL = (url) => {
+    url = url || location;
+    return location.pathname === '/watch' || location.pathname.startsWith('/live/')
+  };
 
   const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
 
@@ -1718,7 +1722,7 @@
           const stateControllable = isStateControllable(api);
           // console.log(2122, appState, playerState, adState)
 
-          if (stateControllable && location.pathname === '/watch' && mediaPlayerElement.duration > 0.01 && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2) {
+          if (stateControllable && isWatchPageURL() && mediaPlayerElement.duration > 0.01 && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2) {
 
             useImprovedPauseResume = true;
 
@@ -4117,7 +4121,7 @@
       pageSetupState = 1;
       try {
         const url = new URL(location.href);
-        if (!url || url.pathname !== '/watch') {
+        if (!url || !isWatchPageURL(url)) {
           pageSetupVideoId = '';
         } else {
           pageSetupVideoId = url.searchParams.get('v') || '';
