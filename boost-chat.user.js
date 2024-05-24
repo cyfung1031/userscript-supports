@@ -120,11 +120,9 @@ SOFTWARE.
 
 
   const inPlaceArrayPush = (() => {
-
     // for details, see userscript-supports/library/misc.js
-
+    const LIMIT_N = typeof AbortSignal !== 'undefined' && typeof (AbortSignal||0).timeout === 'function' ? 50000 : 10000;
     return function (dest, source) {
-      const LIMIT_N = 50000;
       let index = 0;
       const len = source.length;
       while (index < len) {
@@ -1074,7 +1072,8 @@ SOFTWARE.
       }
 
       .bst-message-list[class] .bst-membership-message[class],
-      .bst-message-list[class] .bst-sponsorship-purchase[class] {
+      .bst-message-list[class] .bst-sponsorship-purchase[class],
+      .bst-message-list[class] .bst-paid-sticker[class] {
         --yt-live-chat-sponsor-header-color: #0a8043;
         --yt-live-chat-sponsor-color: #0f9d58;
       }
@@ -1176,13 +1175,40 @@ SOFTWARE.
 
       .bst-sponsorship-purchase .bst-message-entry-highlight {   
         --bst-highlight-color: var(--yt-live-chat-sponsor-color);   
-        background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png);
+        background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png); /* to be reviewed? */
         background-repeat: no-repeat;
         background-size: contain;
         background-position: 100% 50%;
         background-color: var(--bst-highlight-color);
         background-size: 6rem;
       }
+
+
+
+
+      .bst-paid-sticker .bst-message-body{
+        display:block;
+      }
+      .bst-paid-sticker .bst-message-body:empty{
+        display: none;
+      }
+
+
+      .bst-paid-sticker{
+        padding-right: 6rem;
+        min-height: 6.6rem;
+      }
+
+      .bst-paid-sticker .bst-message-entry-highlight {   
+        --bst-highlight-color: var(--yt-live-chat-sponsor-color);   
+        /* background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png);*/
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: 100% 50%;
+        background-color: var(--bst-highlight-color);
+        background-size: 6rem;
+      }
+
 
       .bst-message-entry.bst-message-entry-ll {
         --bst-message-entry-pl:0;
@@ -1272,8 +1298,16 @@ SOFTWARE.
   }
 
   function colorFromDecimal(a) {
+    if (a === void 0 || a === null) return null;
     a = Number(a);
-    return "rgba(" + [a >> 16 & 255, a >> 8 & 255, a & 255, ((a >> 24 & 255) / 255).toFixed(5)].join() + ")"
+    const k = (a >> 24 & 255) / 255;
+    let t = `${k}`;
+    if (t.length > 9) t = k.toFixed(5);
+    if (t === '1') {
+      return "rgb(" + [a >> 16 & 255, a >> 8 & 255, a & 255].join() + ")"
+    } else {
+      return "rgba(" + [a >> 16 & 255, a >> 8 & 255, a & 255, t].join() + ")"
+    }
   }
 
   let formatMessage;
@@ -1439,8 +1473,12 @@ SOFTWARE.
               return SolidGiftText(item);
             case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
               return SolidSponsorshipPurchase(item);
+            case 'liveChatPaidStickerRenderer':
+              /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
+              /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
+              return SolidPaidSticker(item);
             default:
-              return SolidMessageText(item)
+              return SolidMessageText(item); // liveChatTextMessageRenderer
           }
 
         }
@@ -1620,7 +1658,7 @@ SOFTWARE.
     <div class="bst-message-head">
     <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername2')}</div>
+      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
       <div class="bst-message-badges bst-message-name-color">
       <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
@@ -1640,6 +1678,38 @@ SOFTWARE.
   </div>
 `;
   };
+
+  const SolidPaidSticker = (data) => {
+
+    return html`
+  <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
+  <div class="bst-message-entry-highlight"></div>
+  <div class="bst-message-entry-line">
+    <div class="bst-message-head">
+    <div class="bst-message-head-highlight"></div>  
+    <div class="bst-message-time"></div>
+      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
+      <div class="bst-message-badges bst-message-name-color">
+      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+
+        return formatters.authorBadges(badge, data);
+
+      }}<//>
+      </div>
+      <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
+    </div>
+    <div class="bst-message-body">
+    <${For} each=(${() => data.bst('messages')})>${(message) => {
+      return formatters.messageBody(message, data);
+    }}<//>
+    </div>
+  </div>
+  <div class="bst-message-menu-container">
+  </div>
+  </div>
+`;
+  }
 
   const SolidMessageText = (data) => {
     return html`
@@ -1685,12 +1755,12 @@ SOFTWARE.
    */
 
 
-  function convertYTtext(authorName) {
+  function convertYTtext(val) {
 
-    if (typeof (authorName || 0) !== 'object') return null;
-    if (authorName.simpleText) return authorName.simpleText
+    if (typeof (val || 0) !== 'object') return null;
+    if (val.simpleText) return val.simpleText
 
-    const runs = authorName.runs;
+    const runs = val.runs;
     if (runs && runs.length === 1) {
       let r = runs[0];
       return typeof r === 'string' ? r : typeof (r || 0).text === 'string' ? r.text : null;
@@ -2275,13 +2345,7 @@ SOFTWARE.
     function bst(prop) {
 
       if (prop === 'getUsername') {
-
-        const authorName = this.authorName;
-        return convertYTtext(authorName);
-
-      } else if (prop === 'getUsername2') {
-
-        const authorName = this.header?.liveChatSponsorshipsHeaderRenderer?.authorName;
+        const authorName = this.rendererFlag === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.authorName : this.authorName;
         return convertYTtext(authorName);
       } else if (prop === 'hasMessageBody') {
 
@@ -2815,20 +2879,40 @@ SOFTWARE.
                 mutableWM.delete(messageEntry);
               });
 
-              !!(messageEntry.classList.contains('bst-paid-message')) && (() => {
+              !!(bObj.aKey && bObj.aKey !== 'liveChatTextMessageRenderer') && (() => {
                 const a = bObj;
                 const entries = Object.entries({
 
-                  "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
-                  "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
-                  "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
-                  "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
-                  "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
+
                   "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
-                  "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor)
+                  "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
+
+                  ...(a.aKey === "liveChatPaidMessageRenderer" ? {
+
+                    "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
+                    "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
+                    "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
+                    "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
+                    "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
+                  } : {
+
+                  }),
+
+                  ...(a.aKey === "liveChatPaidStickerRenderer" ? {
+                    "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
+                    "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
+                    "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
+                  } : {
+
+                  })
+
+
                 });
-                for (const [key, value] of entries) {
-                  messageEntry.style.setProperty(key, value);
+
+                if (entries.length >= 1) {
+                  for (const [key, value] of entries) {
+                    if (value) messageEntry.style.setProperty(key, value);
+                  }
                 }
 
               })();
@@ -3030,6 +3114,7 @@ SOFTWARE.
         let jx = visibleItems.length;
         visibleItems.length = jx + rearranged.length;
 
+        // to be reviewed - sync with list
         if (appendStates.size > 0) {
           let c1 = 0;
           let c2 = 0;
@@ -3064,3 +3149,92 @@ SOFTWARE.
   });
 
 })();
+
+
+/**
+ * 
+ * 
+
+liveChatPaidStickerRenderer
+
+{
+    "id": "ChwKGkNKZXg0WmFyb1lZREZlWV9yUVlkREg4SXB3",
+    "contextMenuEndpoint": {
+        "clickTrackingParams": "CCUQ77sEIhMIg6v85rChhgMVq8fCBB2wWgiV",
+        "commandMetadata": {
+            "webCommandMetadata": {
+                "ignoreNavigation": true
+            }
+        },
+        "liveChatItemContextMenuEndpoint": {
+            "params": "Q2g0S0hBb2FRMHBsZURSYVlYSnZXVmxFUm1WWlgzSlJXV1JFU0RoSmNIY2FLU29uQ2hoVlEwdzJUVzlmYkY5bFlrTnBaR3BPY0hOWGRYbEpkbWNTQ3prM1gwdE1iR0ZWU1VOUklBRW9CRElhQ2hoVlF6QlpNM1ZKTkhVMGJ6azJRMk5MWTFWNmQxVmtYMEU0QWtnQVVCUSUzRA=="
+        }
+    },
+    "contextMenuAccessibility": {
+        "accessibilityData": {
+            "label": "チャットの操作"
+        }
+    },
+    "timestampUsec": "1716383620997246",
+    "authorPhoto": {
+        "thumbnails": [
+            {
+                "url": "https://yt4.ggpht.com/KXO9eWJpABwpGozWz0JSrs8Rm2V4XRD-cypQvYZbY7wo8QAin42vuhTWIjshGtrMEaw3TlpRIA=s32-c-k-c0x00ffffff-no-rj",
+                "width": 32,
+                "height": 32
+            },
+            {
+                "url": "https://yt4.ggpht.com/KXO9eWJpABwpGozWz0JSrs8Rm2V4XRD-cypQvYZbY7wo8QAin42vuhTWIjshGtrMEaw3TlpRIA=s64-c-k-c0x00ffffff-no-rj",
+                "width": 64,
+                "height": 64
+            }
+        ],
+        "webThumbnailDetailsExtensionData": {
+            "isPreloaded": true
+        }
+    },
+    "authorName": {
+        "simpleText": "( - ᴗ - )黑崎一聾(Ryū)​"
+    },
+    "authorExternalChannelId": "UC0Y3uI4u4o96CcKcUzwUd_A",
+    "sticker": {
+        "thumbnails": [
+            {
+                "url": "//lh3.googleusercontent.com/agY5_IS-HWYMQiU6TrnmjVS74Lq241PS45M6-TqnnE0JxPiM9I4Qx5HEWDpF3bjLrywcrV3e2le-KYkGo3E=s72-rwa",
+                "width": 72,
+                "height": 72
+            },
+            {
+                "url": "//lh3.googleusercontent.com/agY5_IS-HWYMQiU6TrnmjVS74Lq241PS45M6-TqnnE0JxPiM9I4Qx5HEWDpF3bjLrywcrV3e2le-KYkGo3E=s144-rwa",
+                "width": 144,
+                "height": 144
+            }
+        ],
+        "accessibility": {
+            "accessibilityData": {
+                "label": "腕を大きく前に伸ばしてコーヒーを差し出す洋ナシのキャラクター"
+            }
+        }
+    },
+    "moneyChipBackgroundColor": 4278248959,
+    "moneyChipTextColor": 4278190080,
+    "purchaseAmountText": {
+        "simpleText": "NT$60.00"
+    },
+    "stickerDisplayWidth": 72,
+    "stickerDisplayHeight": 72,
+    "backgroundColor": 4278248959,
+    "authorNameTextColor": 3003121664,
+    "trackingParams": "CCUQ77sEIhMIg6v85rChhgMVq8fCBB2wWgiV",
+    "isV2Style": true,
+    "__clientId__": "CJex4ZaroYYDFeY_rQYdDH8Ipw",
+    "uid": "UC0Y3uI4u4o96CcKcUzwUd_A:1716383620997246",
+    "aKey": "liveChatPaidStickerRenderer",
+    "rendererFlag": 0,
+    "messageFixed": []
+}
+
+
+ * 
+ * 
+ */

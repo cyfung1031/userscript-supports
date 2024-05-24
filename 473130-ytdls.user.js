@@ -2,7 +2,7 @@
 // @name                YtDLS: YouTube Dual Language Subtitle (Modified)
 // @name:zh-CN          YtDLS: Youtube 双语字幕（改）
 // @name:zh-TW          YtDLS: Youtube 雙語字幕（改）
-// @version             2.1.3
+// @version             2.1.4
 // @description         Enhances YouTube with dual language subtitles.
 // @description:zh-CN   为YouTube添加双语字幕增强功能。
 // @description:zh-TW   增強YouTube的雙語字幕功能。
@@ -65,11 +65,9 @@ added m.youtube.com support based on two scripts (https://greasyfork.org/scripts
     let requestDeferred = Promise.resolve();
 
     const inPlaceArrayPush = (() => {
-
       // for details, see userscript-supports/library/misc.js
-
+      const LIMIT_N = typeof AbortSignal !== 'undefined' && typeof (AbortSignal||0).timeout === 'function' ? 50000 : 10000;
       return function (dest, source) {
-        const LIMIT_N = 50000;
         let index = 0;
         const len = source.length;
         while (index < len) {

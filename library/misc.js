@@ -138,8 +138,8 @@ const inPlaceArrayPush = (() => {
 
 */
 
-    return function (dest, source) {
-      const LIMIT_N = 50000;
+  const LIMIT_N = typeof AbortSignal !== 'undefined' && typeof (AbortSignal || 0).timeout === 'function' ? 50000 : 10000;
+  return function (dest, source) {
       let index = 0;
       const len = source.length;
       while (index < len) {

@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.8
+// @version     0.16.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -4932,7 +4932,7 @@
               }
               console.log('[yt-js-engine-tamer]', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
             } else {
-              let checkFragmentA = true;
+              let checkFragmentA = (a instanceof DocumentFragment);
               if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
                 if (headLinkCollection === null) headLinkCollection = document.head.getElementsByTagName('LINK');
                 for (const node of headLinkCollection) {
@@ -4940,10 +4940,10 @@
                     node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
                   }
                 }
-              } else if (this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
+              } else if (checkFragmentA && this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
                 checkFragmentA = false;
               }
-              if ((a instanceof DocumentFragment) && checkFragmentA && a.firstElementChild === null) {
+              if (checkFragmentA && a.firstElementChild === null) {
                 // no element in fragmentA
                 let doNormal = false;
                 for (let child = a.firstChild; child instanceof Node; child = child.nextSibling) {
@@ -4956,7 +4956,7 @@
             console.log(e);
           }
         }
-        return arguments.length === 1 && this.appendChild73 ? this.appendChild73(a) : (this.appendChild73 || Node.prototype.appendChild73 || f).apply(this, arguments);
+        return arguments.length === 1 ? f.call(this, a) : f.apply(this, arguments);
       }
 
 
