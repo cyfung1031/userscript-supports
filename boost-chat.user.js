@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.14
+// @version             0.1.15
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -77,6 +77,10 @@ SOFTWARE.
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
+
+  if (typeof IntersectionObserver === 'undefined') {
+    throw 'Your browser is too old. It does not support YouTube Boost Chat.';
+  }
 
   const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
 
@@ -205,10 +209,6 @@ SOFTWARE.
   const flushKeys = new LimitedSizeSet(64);
   const mutableWM = new WeakMap();
 
-
-  let anchorVisible = false;
-
-  const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
 
 
   const canScrollIntoViewWithOptions = (() => {
@@ -531,12 +531,14 @@ SOFTWARE.
 
 
       .bst-message-list {
+        --bst-default-text-color: #000;
         --yt-live-chat-sponsor-color-ori: var(--yt-live-chat-sponsor-color);
         --yt-live-chat-moderator-color-ori: var(--yt-live-chat-moderator-color);
         --yt-live-chat-author-chip-owner-background-color-ori: var(--yt-live-chat-author-chip-owner-background-color);
       }
 
       .bst-message-list[dark] .bst-message-entry:not(.bst-membership-message) {
+        --bst-default-text-color: #fff;
         --yt-live-chat-sponsor-color: #71ff8c;
         --yt-live-chat-moderator-color: #70a7ff;
         --yt-live-chat-author-chip-owner-background-color: #ffff3c;
@@ -698,6 +700,9 @@ SOFTWARE.
         border-radius: var(--border-radius-medium);
         pointer-events: none !important;
       }
+      .bst-message-entry[author-type="owner"] .bst-message-username.bst-message-name-color {
+        background-color: var(--yt-live-chat-author-chip-owner-background-color); /* to be reviewed ... */
+      }
       .bst-message-entry[author-type="owner"] .bst-message-head-highlight{
         display: block;
       }
@@ -749,6 +754,9 @@ SOFTWARE.
         flex-direction:column;
         max-width:100%;
         vertical-align: baseline;
+      }
+      .bst-message-body a{
+        color: inherit;
       }
 
 
@@ -1048,6 +1056,10 @@ SOFTWARE.
         color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
         font-size: 14px;
       }
+      .bst-paid-sticker .bst-message-name-color.bst-message-username[class]{
+        color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
+        font-size: 14px;
+      }
 
       .bst-paid-amount{
         display: inline;
@@ -1063,12 +1075,12 @@ SOFTWARE.
       }
       .bst-paid-message .bst-message-head{
 
-        color: var(--yt-live-chat-paid-message-header-color,#fff);
+        color: var(--yt-live-chat-paid-message-header-color,var(--bst-default-text-color));
       }
 
       .bst-paid-message .bst-message-body{
         background-color: var(--yt-live-chat-paid-message-background-color,#1565c0);
-        color: var(--yt-live-chat-paid-message-color,#fff);
+        color: var(--yt-live-chat-paid-message-color,var(--bst-default-text-color));
       }
 
       .bst-message-list[class] .bst-membership-message[class],
@@ -1080,11 +1092,11 @@ SOFTWARE.
 
       .bst-membership-message[class]{
 
-        --yt-live-chat-sponsor-text-color: #fff;
+        --yt-live-chat-sponsor-text-color: var(--bst-default-text-color);
         --yt-live-chat-item-timestamp-display: var( --yt-live-chat-paid-message-timestamp-display,none );
         --yt-live-chat-moderator-color: var(--yt-spec-static-overlay-text-secondary);
         --yt-live-chat-footer-button-text-color: #030303;
-        --yt-live-chat-footer-button-text-background-color: #fff;
+        --yt-live-chat-footer-button-text-background-color: var(--bst-default-text-color);
       }
 
 
@@ -1092,7 +1104,7 @@ SOFTWARE.
 
 
       .bst-membership-message .bst-message-username[class]{
-        color: #fff;
+        color: var(--bst-default-text-color);
       }
 
 
@@ -1199,8 +1211,9 @@ SOFTWARE.
         min-height: 6.6rem;
       }
 
-      .bst-paid-sticker .bst-message-entry-highlight {   
-        --bst-highlight-color: var(--yt-live-chat-sponsor-color);   
+      .bst-paid-sticker .bst-message-entry-highlight {
+        --bst-highlight-color: var(--yt-live-chat-paid-sticker-background-color);
+        background: var(--bst-paid-sticker-bg, initial);
         /* background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png);*/
         background-repeat: no-repeat;
         background-size: contain;
@@ -1209,6 +1222,9 @@ SOFTWARE.
         background-size: 6rem;
       }
 
+      .bst-paid-sticker .bst-message-head /*.bst-paid-sticker .bst-paid-amount*/ {
+        color: var(--yt-live-chat-paid-sticker-chip-text-color, var(--bst-default-text-color));
+      }
 
       .bst-message-entry.bst-message-entry-ll {
         --bst-message-entry-pl:0;
@@ -1300,6 +1316,7 @@ SOFTWARE.
   function colorFromDecimal(a) {
     if (a === void 0 || a === null) return null;
     a = Number(a);
+    if (!(a >= 0)) return null;
     const k = (a >> 24 & 255) / 255;
     let t = `${k}`;
     if (t.length > 9) t = k.toFixed(5);
@@ -1413,7 +1430,13 @@ SOFTWARE.
     messageBody(message, data){
 
       if (typeof message === 'string') return html`<span>${() => message}</span>`
-      if (typeof message.text === 'string') return html`<span>${() => message.text}</span>`
+      if (typeof message.text === 'string') {
+        if (message.navigationEndpoint?.urlEndpoint?.url) {
+          const urlEndpoint = message.navigationEndpoint.urlEndpoint;
+          return html`<a href="${() => urlEndpoint.url}" rel="${() => urlEndpoint.nofollow === true ? 'nofollow' : null}" target="${() => urlEndpoint.target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => message.text}</span>`
+        }
+        return html`<span>${() => message.text}</span>`
+      } 
 
       if (typeof message.emoji !== 'undefined') {
 
@@ -1680,11 +1703,12 @@ SOFTWARE.
   };
 
   const SolidPaidSticker = (data) => {
+    /* https://www.youtube.com/live/BDjEOkw_iOA?si=CGG7boBJvfT2KLFT&t=6636 */
 
     return html`
   <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
-  <div class="bst-message-entry-highlight"></div>
+  <div class="bst-message-entry-highlight" style="${ ()=>({'--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` }) }"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
     <div class="bst-message-head-highlight"></div>  
@@ -1751,6 +1775,10 @@ SOFTWARE.
    * 
    * moderator
    * https://www.youtube.com/watch?v=1-D4z79ZUV4
+   * 
+   * 
+   * owner (long text)
+   * https://www.youtube.com/watch?v=A930eAQYQog&t=1h32m50s
    * 
    */
 
@@ -1933,26 +1961,66 @@ SOFTWARE.
     cProto = insp(dummy).constructor.prototype;
     cProto.connectedCallback882 = cProto.connectedCallback;
 
-    /** @type {HTMLElement} */
-    let messageList;
+    // share same objects
+
     /** @type {HTMLElement} */
     let wliveChatTextMessageRenderer = null;
     /** @type {HTMLElement} */
     let wliveChatTextInputRenderer = null;
+
+    // .... 
+
+    /** @type {HTMLElement} */
+    let messageList;
     /** @type {IntersectionObserver} */
-    let ioMessageList;
-    /** @type {HTMLElement} */
-    let _bstMain;
-    /** @type {HTMLElement} */
-    let messageOverflowAnchor;
-    let setAtBottomFn;
-    let lockAtBottom = 0;
+    let ioMessageList = null;
     const qq = new WeakMap();
     let _flushed = 0;
 
-    const $ = {
-      $: '$'
+    const ioMessageListCallback = (entries) => {
+      for (const entry of entries) {
+        const target = entry?.target;
+        if (target && typeof target.interceptionRatioChange === 'function') {
+          if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) {
+
+            target.interceptionRatioChange(entry.intersectionRatio);
+          }
+        }
+      }
     };
+
+    const ioMessageListCleanup = ()=>{
+      if (ioMessageList) {
+        ioMessageList.disconnect();
+        ioMessageList.takeRecords();
+        ioMessageList = null;
+      }
+    }
+
+    const addMessageOverflowAnchorToShadow = function (shadow) {
+
+      const messageOverflowAnchor = document.createElement('div');
+      messageOverflowAnchor.className = 'bst-overflow-anchor'
+      shadow.appendChild(messageOverflowAnchor)
+
+      let anchorVisible = false;
+
+      const iooa = new IntersectionObserver((entries) => {
+        if (_flushed) { // avoid initial check (not yet flushed)
+          anchorVisible = entries[entries.length - 1].isIntersecting === true;
+        }
+        Promise.resolve().then(() => {
+          if (!anchorVisible) {
+            this.setAtBottomFalse();
+          } else {
+            this.setAtBottomTrue();
+          }
+        });
+      }, {root: null, threshold: [0.05, 0.95], rootMargin: '0px'});
+      iooa.observe(messageOverflowAnchor);
+
+    }
+    
 
     formatMessage = (a) => {
       if (!wliveChatTextMessageRenderer) return null;
@@ -1977,6 +2045,9 @@ SOFTWARE.
       if (!targetElement) return;
       // if(!this.visibleItems__) this.visibleItems__ = [];
 
+
+      ioMessageListCleanup();
+
       // this.visibleItemsCount = 0;
       targetElement = targetElement.closest('#item-offset.yt-live-chat-item-list-renderer') || targetElement;
       const bstMain = document.createElement('div');
@@ -1984,22 +2055,24 @@ SOFTWARE.
 
       const fragment = new DocumentFragment();
       const noscript = document.createElement('noscript');
-      appendChild.call(noscript, (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer')));
-      appendChild.call(noscript, (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer')));
+      appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
+      appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
       
       fragmentAppendChild.call(fragment, noscript);
       fragmentAppendChild.call(fragment, bstMain);
 
       replaceWith.call(targetElement, fragment);
 
-
-      qq.set(hostElement, bstMain.attachShadow({ mode: "open" }));
-      const shadow = qq.get(hostElement);
+      const shadow = bstMain.attachShadow({ mode: "open" });
+      qq.set(hostElement, {
+        shadow,
+        intersectionObserver: new IntersectionObserver(ioMessageListCallback, {root: bstMain, threshold:[0.05, 0.95] })
+      });
+      const { intersectionObserver } = qq.get(hostElement);
       bstMain.classList.add('bst-yt-main');
       bstMain.addEventListener('scroll', (a) => {
         this.onScrollItems_(a);
       }, false);
-      _bstMain = bstMain;
 
 
       // const pp = bstMain.parentNode.insertBefore(document.createElement('div'), bstMain.nextSibling);
@@ -2061,28 +2134,7 @@ SOFTWARE.
 
       render(SolidMessageList.bind(null, solidBuild), messageList);
 
-
-      messageOverflowAnchor = document.createElement('div');
-      messageOverflowAnchor.className = 'bst-overflow-anchor'
-      shadow.appendChild(messageOverflowAnchor)
-
-
-      const iooa = new IntersectionObserver((entries) => {
-
-        if (_flushed) {
-          anchorVisible = entries[entries.length - 1].isIntersecting === true; // avoid initial check (not yet flushed)
-        }
-
-        Promise.resolve().then(() => {
-          if (!anchorVisible) {
-            this.setAtBottomFalse();
-          } else {
-            this.setAtBottomTrue();
-          }
-        });
-
-      });
-      iooa.observe(messageOverflowAnchor);
+      addMessageOverflowAnchorToShadow.call(this, shadow)
 
 
       let mouseEntered = null;
@@ -2157,23 +2209,7 @@ SOFTWARE.
       (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
       attributeFn();
 
-
-      if(ioMessageList){
-        ioMessageList.disconnect();
-        ioMessageList.takeRecords();
-        ioMessageList = null;
-      }
-      const io = ioMessageList = new IntersectionObserver((entries)=>{
-        for(const entry of entries){
-          const target = entry?.target;
-          if(target && typeof target.interceptionRatioChange === 'function'){
-            if(entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)){
-
-              target.interceptionRatioChange(entry.intersectionRatio);
-            }
-          }
-        }
-      }, {root: _bstMain, threshold:[0.05, 0.95] });
+      ioMessageList = intersectionObserver;
 
       createEffect(()=>{
         const list = solidBuild();
@@ -2209,14 +2245,29 @@ SOFTWARE.
 
 
     function getProfilePic(min, max) {
-      let authorPhoto = getAuthor(this)?.authorPhoto || 0;
-      authorPhoto = authorPhoto.thumbnails || authorPhoto;
-      if (authorPhoto) {
+      let w = getAuthor(this)?.authorPhoto || 0;
+      w = w.thumbnails || w;
+      if (w) {
 
-        if (authorPhoto.url) return authorPhoto.url;
-        if (typeof authorPhoto === 'string') return authorPhoto;
-        if (authorPhoto.length >= 0) {
-          const url = getThumbnail(authorPhoto, min, max);
+        if (w.url) return w.url;
+        if (typeof w === 'string') return w;
+        if (w.length >= 0) {
+          const url = getThumbnail(w, min, max);
+          if (url) return url;
+        }
+      }
+      return null;
+    }
+
+    function getStickerURL(min, max) {
+      let w = this.sticker || 0;
+      w = w.thumbnails || w;
+      if (w) {
+
+        if (w.url) return w.url;
+        if (typeof w === 'string') return w;
+        if (w.length >= 0) {
+          const url = getThumbnail(w, min, max);
           if (url) return url;
         }
       }
@@ -2256,10 +2307,12 @@ SOFTWARE.
           }catch(e){
             console.warn(e)
           }
-          if(r && r.length >= 1){
+          if (r && r.length === 1 && r[0].text) {
+            res.push(message); // eg. hyperlink
+          } else if (r && r.length >= 1) {
             // res.push(...r);
             inPlaceArrayPush(res, r);
-          }else{
+          } else {
             res.push(message);
           }
 
@@ -2571,6 +2624,10 @@ SOFTWARE.
           messageList.solidBuildSet(a => ( (a.length = 0), a));
         }
       }
+      if (!this.activeItems_.length && !this.visibleItems.length) {
+        // condition check for just in case
+        this.setAtBottomTrue();
+      }
       this.dockableMessages = [];
       this.isSmoothed_ = !0;
       this.lastSmoothChatMessageAddMs_ = null;
@@ -2582,9 +2639,9 @@ SOFTWARE.
       this.itemIdToDockDurationMap = {};
       this.$['docked-messages'].clear();
       this.bannerManager.reset();
-      this.maybeResizeScrollContainer_([]);
-      this.items.style.transform = "";
-      this.atBottom || this.scrollToBottom_()
+      // this.maybeResizeScrollContainer_([]);
+      // this.items.style.transform = "";
+      // this.atBottom || this.scrollToBottom_()
     }
 
     /*
@@ -2627,7 +2684,7 @@ SOFTWARE.
       // console.log(1882)
       flushPE(async () => {
 
-        await scrollToEnd();
+        scrollToEnd();
 
         this.setAtBottomTrue();
       })
@@ -2699,6 +2756,7 @@ SOFTWARE.
         aObj.rendererFlag = 0;
       }
       aObj.getProfilePic = getProfilePic;
+      aObj.getStickerURL = getStickerURL;
       aObj.bst = bst;
 
       aObj.messageFixed = convertMessage.call(aObj);
