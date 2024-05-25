@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.15
+// @version             0.1.16
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -536,9 +536,10 @@ SOFTWARE.
         --yt-live-chat-moderator-color-ori: var(--yt-live-chat-moderator-color);
         --yt-live-chat-author-chip-owner-background-color-ori: var(--yt-live-chat-author-chip-owner-background-color);
       }
-
-      .bst-message-list[dark] .bst-message-entry:not(.bst-membership-message) {
+      .bst-message-list[dark] {
         --bst-default-text-color: #fff;
+      }
+      .bst-message-list[dark] .bst-message-entry:not(.bst-membership-message) {
         --yt-live-chat-sponsor-color: #71ff8c;
         --yt-live-chat-moderator-color: #70a7ff;
         --yt-live-chat-author-chip-owner-background-color: #ffff3c;
@@ -1059,6 +1060,14 @@ SOFTWARE.
       .bst-paid-sticker .bst-message-name-color.bst-message-username[class]{
         color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
         font-size: 14px;
+      }
+
+
+      .bst-paid-message .bst-paid-amount{
+        font-size: 15px;
+      }
+      .bst-paid-sticker .bst-paid-amount{
+        font-size: 15px;
       }
 
       .bst-paid-amount{
