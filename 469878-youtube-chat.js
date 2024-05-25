@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.30
+// @version             0.62.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -46,8 +46,6 @@
 
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
-  const USE_WILL_CHANGE_CONTROLLER = false;               // FALSE for the majority
-  const ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED = false;  // In Chrome, the rendering of new chat messages could be too fast for no smooth transform. 80ms delay of displaying new messages should be sufficient for element rendering.
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
@@ -726,7 +724,7 @@
     }
   `;
 
-  
+
   const cssText18_REACTION_ANIMATION_PANEL_CSS_FIX = REACTION_ANIMATION_PANEL_CSS_FIX ? `
     #reaction-control-panel-overlay[class] {
       contain: strict;
@@ -1407,26 +1405,17 @@
 
   console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
-  let ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE = false;
   const isContainSupport = CSS.supports('contain', 'layout paint style');
   if (!isContainSupport) {
     console.warn("Your browser does not support css property 'contain'.\nPlease upgrade to the latest version.".trim());
-  } else {
-    ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE = true;
   }
 
-  let ENABLE_OVERFLOW_ANCHOR_CAPABLE = false;
   const isOverflowAnchorSupport = CSS.supports('overflow-anchor', 'auto');
   if (!isOverflowAnchorSupport) {
     console.warn("Your browser does not support css property 'overflow-anchor'.\nPlease upgrade to the latest version.".trim());
-  } else {
-    ENABLE_OVERFLOW_ANCHOR_CAPABLE = true;
   }
 
-  const NOT_FIREFOX = !CSS.supports('-moz-appearance', 'none'); // 1. Firefox does not have the flicking issue; 2. Firefox's OVERFLOW_ANCHOR is less effective than Chromium's.
-
-  const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && ENABLE_OVERFLOW_ANCHOR_CAPABLE && ENABLE_NO_SMOOTH_TRANSFORM;
-  const ENABLE_DELAYED_CHAT_OCCURRENCE = ENABLE_DELAYED_CHAT_OCCURRENCE_PREFERRED && ENABLE_DELAYED_CHAT_OCCURRENCE_CAPABLE && ENABLE_OVERFLOW_ANCHOR && ENABLE_NO_SMOOTH_TRANSFORM && NOT_FIREFOX;
+  const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && isOverflowAnchorSupport && ENABLE_NO_SMOOTH_TRANSFORM;
 
   let hasTimerModified = null;
   const DO_CHECK_TICKER_BACKGROUND_OVERRIDED = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND || ENABLE_RAF_HACK_TICKERS;
@@ -3442,7 +3431,6 @@
         mutObserver.disconnect();
         mutObserver.takeRecords();
         if (m2) {
-          ENABLE_DELAYED_CHAT_OCCURRENCE && bnForDelayChatOccurrence();
           if (typeof m2.__appendChild932__ === 'function') {
             if (typeof m2.appendChild === 'function') m2.appendChild = m2.__appendChild932__;
             if (typeof m2.__shady_native_appendChild === 'function') m2.__shady_native_appendChild = m2.__appendChild932__;
@@ -3476,21 +3464,6 @@
 
           }
 
-          // let div = document.createElement('div');
-          // div.id = 'qwcc';
-          // HTMLElement.prototype.appendChild.call(document.querySelector('yt-live-chat-item-list-renderer'), div )
-          // bufferRegion =div;
-
-          // buffObserver.takeRecords();
-          // buffObserver.disconnect();
-          // buffObserver.observe(div,  {
-          //     childList: true,
-          //     subtree: false
-          // })
-
-          if (ENABLE_DELAYED_CHAT_OCCURRENCE && isFirstList) {
-            asyncDelayChatOccurrence(m2);
-          }
 
 
           if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
@@ -3565,26 +3538,15 @@
                         }
                       }
 
-
-
                     }
 
-
-
-
-
-
                     return this.handlePostMessage66_(a);
-
-
 
                   }).catch(console.warn);
 
                 }
 
-
                 cProto.handlePostMessage_ = function (a) {
-
 
                   const da = (a || 0).data || 0;
 
@@ -3610,25 +3572,18 @@
                         "yt-iframed-parent-ready": true
                       }));
 
-
-
                       playEventsStack = playEventsStack.then(() => {
-
-
 
                         const lcr = document.querySelector('yt-live-chat-renderer');
                         const psc = document.querySelector("yt-player-seek-continuation");
                         if (lcr && psc && lcr.replayBuffer_) {
 
-
                           const rbProgress = lcr.replayBuffer_.lastVideoOffsetTimeMsec;
                           const daProgress = da['yt-player-video-progress'] * 1000
                           // document.querySelector('yt-live-chat-renderer').playerProgressChanged_(1e-5);
 
-
                           const front_ = (lcr.replayBuffer_.replayQueue || 0).front_;
                           const back_ = (lcr.replayBuffer_.replayQueue || 0).back_;
-
 
                           // console.log(deepCopy( front_))
                           // console.log(deepCopy( back_))
@@ -3641,11 +3596,6 @@
                             // console.log('ss2')
                           } else {
 
-                            // console.log('ss3')
-                            // lcr.replayBuffer_.replayQueue.back_.length= 0;
-                            // lcr.replayBuffer_.replayQueue.front_.length= 0;
-
-                            // lcr
                             lcr.previousProgressSec = 1E-5;
                             // lcr._setIsSeeking(!0),
                             lcr.replayBuffer_.clear()
@@ -3654,15 +3604,11 @@
 
                         }
 
-
                         waitForInitialDataCompletion = 2;
 
                         this.handlePostMessage_(a);
 
-
                       }).catch(console.warn);
-
-
 
                       return;
 
@@ -3963,130 +3909,6 @@
 
           }
 
-          // if (typeof cProto.immediatelyApplyLiveChatActions === 'function' && !cProto.immediatelyApplyLiveChatActions32) {
-
-          //   cProto.immediatelyApplyLiveChatActions32 = cProto.immediatelyApplyLiveChatActions;
-
-          //   cProto.immediatelyApplyLiveChatActions = function (a) {
-          //     // if (a.length > 8) {
-          //     //   console.log(a)
-          //     // }
-          //     // console.log(a)
-          //     /*
-          //     let arr=a.slice();
-
-          //     if(arr.length >= 2){
-          //       arr.sort((a, b)=>{
-          //         let ak = firstObjectKey(a);
-          //         let bk = firstObjectKey(b);
-          //         if(!ak||!bk) return 0;
-          //         const ax = +a[ak]._timestampUsec57;
-          //         const bx = +b[bk]._timestampUsec57;
-          //         if(ax >0 && bx >0){
-          //           const c =  bx - ax ;
-
-          //           return c > 0.1 ? -1 : c< -0.1 ? 1 : 0;
-          //         }
-          //         return 0;
-
-          //       });
-          //       console.log('sort', JSON.parse(JSON.stringify(arr)));
-          //     }
-          //     a=arr;
-          //     */
-
-          //     if (a && typeof a === 'object' && a.length >= 1) {
-          //       const d = Date.now();
-          //       const m = [];
-          //       for (let i = 0, l = a.length; i < l; i++) {
-          //         const action = a[i];
-          //         const key = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
-          //         if (key === 'addChatItemAction' || key === 'addLiveChatTickerItemAction') {
-          //           const itemAction = action[key] || 0;
-          //           const item = itemAction.item || 0;
-          //           if (item && typeof item === 'object') {
-          //             let rendererKey = firstObjectKey(item);
-          //             const renderer = item[rendererKey];
-          //             let timestampUsec = getTimestampUsec(renderer);
-          //             if (timestampUsec !== null) {
-          //               renderer._timestampUsec57 = timestampUsec;
-          //             }
-          //             m.push(renderer);
-          //             // if(timestampUsec!==null){
-          //             //   if(key==='addLiveChatTickerItemAction')console.log(renderer, rendererKey, key)
-          //             //   m.push(renderer);
-
-          //             // }
-          //           }
-          //         }
-          //       }
-          //       if (m.length >= 1) {
-
-          //         let lastUsec = null;
-          //         for (let i = 0, l = m.length; i < l; i++) {
-          //           const renderer = m[i];
-          //           if ('_timestampUsec57' in renderer) {
-          //             lastUsec = +renderer._timestampUsec57 / 1E3;
-          //             renderer.__lcrTime__ = d;
-          //             renderer.__actionAt__ = d;
-          //           }
-          //         }
-
-
-          //         if (lastUsec !== null) {
-
-          //           const refUsec = lastUsec
-
-          //           let prevUsec = null;
-          //           for (let i = 0, l = m.length; i < l; i++) {
-          //             const renderer = m[i];
-          //             if ('_timestampUsec57' in renderer) {
-
-          //               let actualTime = +renderer._timestampUsec57 / 1E3; // ms
-          //               let lcrTime = d - Math.round(refUsec - actualTime); // ms
-
-          //               renderer.__lcrTime__ = lcrTime; // ms
-          //               renderer.__actionAt__ = d;
-
-          //               prevUsec = lcrTime
-          //             } else {
-
-          //               renderer._prevUsec57 = prevUsec;
-          //             }
-          //           }
-
-
-          //           let nextUsec = null;
-          //           for (let i = m.length - 1; i >= 0; i--) {
-          //             const renderer = m[i];
-          //             if ('_timestampUsec57' in renderer) {
-
-          //               nextUsec = renderer.__lcrTime__
-          //             } else {
-
-          //               renderer._nextUsec57 = nextUsec;
-
-          //               if (renderer._nextUsec57 > 0 && renderer._prevUsec57 > 0 && renderer._nextUsec57 > renderer._prevUsec57) {
-          //                 renderer.__lcrTime__ = (renderer._nextUsec57 + renderer._prevUsec57) / 2;
-          //                 renderer.__actionAt__ = d;
-          //               }
-          //             }
-          //           }
-
-
-          //         }
-
-
-          //       }
-          //     }
-          //     return this.immediatelyApplyLiveChatActions32.apply(this, arguments)
-          //   }
-
-
-          // }
-
-
-
           console.log("[End]");
           console.groupEnd();
 
@@ -4134,7 +3956,6 @@
 
         mclp.__intermediate_delay__ = null;
 
-        let mzk = 0;
         let myk = 0;
         let mlf = 0;
         let myw = 0;
@@ -4142,24 +3963,28 @@
         let zarr = null;
         let mlg = 0;
 
-        if ((mclp.clearList || 0).length === 0) {
-          assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
-          mclp.clearList66 = mclp.clearList;
-          mclp.clearList = function () {
-            mzk++;
-            myk++;
-            mlf++;
-            myw++;
-            mzt++;
-            mlg++;
-            zarr = null;
-            this.__intermediate_delay__ = null;
-            this.clearList66();
-          };
-          console.log("clearList", "OK");
-        } else {
-          console.log("clearList", "NG");
+        if ((mclp._flag0281_ & 0x2000) == 0) {
+
+          if ((mclp.clearList || 0).length === 0) {
+            (mclp._flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
+            mclp.clearList66 = mclp.clearList;
+            mclp.clearList = function () {
+              myk++;
+              mlf++;
+              myw++;
+              mzt++;
+              mlg++;
+              zarr = null;
+              this.__intermediate_delay__ = null;
+              this.clearList66();
+            };
+            console.log("clearList", "OK");
+          } else {
+            console.log("clearList", "NG");
+          }
+
         }
+
 
 
         let onListRendererAttachedDone = false;
@@ -4318,184 +4143,118 @@
         }
 
 
-        if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
+        if ((mclp._flag0281_ & 0x2) == 0) {
+          if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
 
-          assertor(() => fnIntegrity(mclp.showNewItems_, '0.170.79'));
-          mclp.showNewItems66_ = mclp.showNewItems_;
+            assertor(() => fnIntegrity(mclp.showNewItems_, '0.170.79'));
+            mclp.showNewItems66_ = mclp.showNewItems_;
 
-          mclp.showNewItems77_ = async function () {
-            if (myk > 1e9) myk = 9;
-            let tid = ++myk;
+            mclp.showNewItems77_ = async function () {
+              if (myk > 1e9) myk = 9;
+              let tid = ++myk;
 
-            await iAFP(this.hostElement).then();
-            // await new Promise(requestAnimationFrame);
-
-            if (tid !== myk) {
-              return;
-            }
-
-            const cnt = this;
-
-            await Promise.resolve();
-            cnt.showNewItems66_();
-
-            await Promise.resolve();
-
-          }
-
-          mclp.showNewItems_ = function () {
-
-            const cnt = this;
-            cnt.__intermediate_delay__ = new Promise(resolve => {
-              cnt.showNewItems77_().then(() => {
-                resolve();
-              });
-            });
-          }
-
-          console.log("showNewItems_", "OK");
-        } else {
-          console.log("showNewItems_", "NG");
-        }
-
-
-        if ((mclp.flushActiveItems_ || 0).length === 0) {
-
-          const sfi = fnIntegrity(mclp.flushActiveItems_);
-          if (sfi === '0.156.86') {
-            // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-            // added "refreshOffsetContainerHeight_"
-
-            //   f.flushActiveItems_ = function() {
-            //     var a = this;
-            //     if (0 < this.activeItems_.length)
-            //         if (this.canScrollToBottom_()) {
-            //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
-            //             b && this.splice("visibleItems", 0, b);
-            //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
-            //                 this.preinsertHeight_ = this.items.clientHeight;
-            //             this.activeItems_.unshift("visibleItems");
-            //             try {
-            //                 this.push.apply(this, this.activeItems_)
-            //             } catch (c) {
-            //                 fm(c)
-            //             }
-            //             this.activeItems_ = [];
-            //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Mw(function() {
-            //                 a.showNewItems_()
-            //             }) : Mw(function() {
-            //                 a.refreshOffsetContainerHeight_();
-            //                 a.maybeScrollToBottom_()
-            //             })
-            //         } else
-            //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
-            // }
-            // ;
-
-          } else if (sfi === '0.150.84') {
-            // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-            // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
-            //     b && this.splice("visibleItems", 0, b);
-            //     if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
-            //         this.preinsertHeight_ = this.items.clientHeight;
-            //     this.activeItems_.unshift("visibleItems");
-            //     try {
-            //         this.push.apply(this, this.activeItems_)
-            //     } catch (c) {
-            //         nm(c)
-            //     }
-            //     this.activeItems_ = [];
-            //     this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && zQ(function() {
-            //         a.showNewItems_()
-            //     }) : zQ(function() {
-            //         a.maybeScrollToBottom_()
-            //     })
-          } else if (sfi === '0.137.81' || sfi === '0.138.81') {
-            // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
-          } else {
-            assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.150.84'));
-          }
-
-          let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
-
-          let contensWillChangeController = null;
-
-          mclp.flushActiveItems66_ = mclp.flushActiveItems_;
-
-          mclp.flushActiveItems78_ = async function (tid) {
-            try {
-              if (tid !== mlf) return;
-              const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
-              let logger = false;
-              const cnt = this;
-              let immd = cnt.__intermediate_delay__;
               await iAFP(this.hostElement).then();
               // await new Promise(requestAnimationFrame);
 
-              if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-              if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
-
-              mlf++;
-              if (mlg > 1e9) mlg = 9;
-              ++mlg;
-
-              const tmpMaxItemsCount = this.data.maxItemsToDisplay;
-              const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
-              let changeMaxItemsToDisplay = false;
-              const activeItemsLen = this.activeItems_.length;
-              if (activeItemsLen > tmpMaxItemsCount && tmpMaxItemsCount > 0) {
-                logger = true;
-
-                groupCollapsed("YouTube Super Fast Chat", " | flushActiveItems78_");
-
-                logger && console.log('[Begin]')
-
-                console.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
-                if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && lockedMaxItemsToDisplay === tmpMaxItemsCount && lockedMaxItemsToDisplay !== reducedMaxItemsToDisplay) {
-                  console.log('reduce maxitems');
-                  if (tmpMaxItemsCount > reducedMaxItemsToDisplay) {
-                    // as all the rendered chats are already "outdated"
-                    // all old chats shall remove and reduced number of few chats will be rendered
-                    // then restore to the original number
-                    changeMaxItemsToDisplay = true;
-                    this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
-                    console.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
-                  }
-                  this.activeItems_.splice(0, activeItemsLen - this.data.maxItemsToDisplay);
-                  //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
-
-                  console.log('new this.activeItems_.length > N', this.activeItems_.length);
-                } else {
-                  this.activeItems_.splice(0, activeItemsLen - (tmpMaxItemsCount < 900 ? tmpMaxItemsCount : 900));
-
-                  console.log('new this.activeItems_.length > N', this.activeItems_.length);
-                }
+              if (tid !== myk) {
+                return;
               }
-              // it is found that it will render all stacked chats after switching back from background
-              // to avoid lagging in popular livestream with massive chats, trim first before rendering.
-              // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
 
+              const cnt = this;
 
-              const items = (cnt.$ || 0).items;
-
-              if (USE_WILL_CHANGE_CONTROLLER) {
-                if (contensWillChangeController && contensWillChangeController.element !== items) {
-                  contensWillChangeController.release();
-                  contensWillChangeController = null;
-                }
-                if (!contensWillChangeController) contensWillChangeController = new WillChangeController(items, 'contents');
-              }
-              const wcController = contensWillChangeController;
-              cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
-              wcController && wcController.beforeOper();
               await Promise.resolve();
-              const acItems = cnt.activeItems_;
-              const len1 = acItems.length;
-              if (!len1) console.warn('cnt.activeItems_.length = 0');
+              cnt.showNewItems66_();
+
+              await Promise.resolve();
+
+            }
+
+            mclp.showNewItems_ = function () {
+
+              const cnt = this;
+              cnt.__intermediate_delay__ = new Promise(resolve => {
+                cnt.showNewItems77_().then(() => {
+                  resolve();
+                });
+              });
+            }
+
+            console.log("showNewItems_", "OK");
+          } else {
+            console.log("showNewItems_", "NG");
+          }
+
+        }
+
+        if ((mclp._flag0281_ & 0x2000) == 0) {
+          if ((mclp.flushActiveItems_ || 0).length === 0) {
+
+            if ((mclp._flag0281_ & 0x2) == 0) {
+
+              const sfi = fnIntegrity(mclp.flushActiveItems_);
+              if (sfi === '0.156.86') {
+                // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+                // added "refreshOffsetContainerHeight_"
+
+                //   f.flushActiveItems_ = function() {
+                //     var a = this;
+                //     if (0 < this.activeItems_.length)
+                //         if (this.canScrollToBottom_()) {
+                //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                //             b && this.splice("visibleItems", 0, b);
+                //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+                //                 this.preinsertHeight_ = this.items.clientHeight;
+                //             this.activeItems_.unshift("visibleItems");
+                //             try {
+                //                 this.push.apply(this, this.activeItems_)
+                //             } catch (c) {
+                //                 fm(c)
+                //             }
+                //             this.activeItems_ = [];
+                //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Mw(function() {
+                //                 a.showNewItems_()
+                //             }) : Mw(function() {
+                //                 a.refreshOffsetContainerHeight_();
+                //                 a.maybeScrollToBottom_()
+                //             })
+                //         } else
+                //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
+                // }
+                // ;
+
+              } else if (sfi === '0.150.84') {
+                // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+                // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                //     b && this.splice("visibleItems", 0, b);
+                //     if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+                //         this.preinsertHeight_ = this.items.clientHeight;
+                //     this.activeItems_.unshift("visibleItems");
+                //     try {
+                //         this.push.apply(this, this.activeItems_)
+                //     } catch (c) {
+                //         nm(c)
+                //     }
+                //     this.activeItems_ = [];
+                //     this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && zQ(function() {
+                //         a.showNewItems_()
+                //     }) : zQ(function() {
+                //         a.maybeScrollToBottom_()
+                //     })
+              } else if (sfi === '0.137.81' || sfi === '0.138.81') {
+                // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
+              } else {
+                assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.150.84'));
+              }
+            }
+
+            let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
+
+            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+
+
+            const preloadFn = (acItems) => {
               let waitFor = [];
-
-
               /** @type {Set<string>} */
               const imageLinks = new Set();
 
@@ -4532,461 +4291,549 @@
 
               }
 
-              const noVisibleItem1 = ((cnt.visibleItems || 0).length || 0) === 0;
-              skipDontRender = noVisibleItem1;
-              // console.log('ss1', Date.now())
-              if (waitFor.length > 0) {
-                await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
-              }
-              waitFor.length = 0;
-              waitFor = null;
-              // console.log('ss2', Date.now())
-              cnt.flushActiveItems66_();
-              const noVisibleItem2 = ((cnt.visibleItems || 0).length || 0) === 0;
-              skipDontRender = noVisibleItem2;
-              const len2 = cnt.activeItems_.length;
-              const bAsync = len1 !== len2;
-              await Promise.resolve();
-              if (wcController) {
-                if (bAsync) {
-                  cnt.async(() => {
-                    wcController.afterOper();
-                  });
-                } else {
-                  wcController.afterOper();
+              return async () => {
+                if (waitFor.length > 0) {
+                  await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
                 }
-              }
-              if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
-                this.data.maxItemsToDisplay = tmpMaxItemsCount;
+                waitFor.length = 0;
+                waitFor = null;
+              };
 
-                logger && console.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
-                //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
-              } else if (changeMaxItemsToDisplay) {
+            };
 
-                logger && console.log(`'maxItemsToDisplay' cannot be restored`, {
-                  maxItemsToDisplay: this.data.maxItemsToDisplay,
-                  reducedMaxItemsToDisplay,
-                  originalMaxItemsToDisplay: tmpMaxItemsCount
-                });
-              }
-              logger && console.log('[End]');
+            mclp.flushActiveItems78_ = async function (tid) {
+              try {
 
-              logger && console.groupEnd();
+                if (tid !== mlf) return;
+                if ((this._flag0281_ & 0x4) == 0) {
 
-              if (noVisibleItem1 && !noVisibleItem2) {
-                // fix possible no auto scroll issue.
-                !((cnt.__notRequired__ || 0) & 256) && setTimeout(() => cnt.setAtBottom(), 1);
-              }
+                  if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                  if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
-              if (!ENABLE_NO_SMOOTH_TRANSFORM) {
-
-
-                const ff = () => {
-
-                  if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                  //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                  if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
-
-                    if (typeof nextBrowserTick !== 'function') {
-                      cnt.scrollToBottom_();
-                      Promise.resolve().then(() => {
-                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                        if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                      });
-                    } else {
-                      nextBrowserTick(() => {
-                        if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                        cnt.scrollToBottom_();
-                      });
-                    }
-
+                  mlf++;
+                  if (mlg > 1e9) mlg = 9;
+                  ++mlg;
+                  const acItems = cnt.activeItems_;
+                  if (acItems.length < MAX_ITEMS_FOR_FULL_FLUSH) {
+                    const pn = preloadFn(acItems);
+                    await pn();
                   }
+                  cnt.flushActiveItems66_();
+
+                  return 1;
+
                 }
+                const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
+                let logger = false;
+                const cnt = this;
+                let immd = cnt.__intermediate_delay__;
+                await iAFP(this.hostElement).then();
+                // await new Promise(requestAnimationFrame);
 
-                ff();
+                if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
+                mlf++;
+                if (mlg > 1e9) mlg = 9;
+                ++mlg;
 
-                Promise.resolve().then(ff);
+                const tmpMaxItemsCount = this.data.maxItemsToDisplay;
+                const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
+                let changeMaxItemsToDisplay = false;
+                const activeItemsLen = this.activeItems_.length;
+                if (activeItemsLen > tmpMaxItemsCount && tmpMaxItemsCount > 0) {
+                  logger = true;
 
-                // requestAnimationFrame(ff);
-              } else if (true) { // it might not be sticky to bottom when there is a full refresh.
+                  groupCollapsed("YouTube Super Fast Chat", " | flushActiveItems78_");
 
-                const knt = cnt;
-                if (!scrollChatFn) {
-                  const cnt = knt;
-                  const f = () => {
-                    const itemScroller = cnt.itemScroller;
-                    if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
-                    if (!cnt.atBottom) {
-                      cnt.scrollToBottom_();
-                    } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
-                      itemScroller.scrollTop = itemScroller.scrollHeight;
+                  logger && console.log('[Begin]')
+
+                  console.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
+                  if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && lockedMaxItemsToDisplay === tmpMaxItemsCount && lockedMaxItemsToDisplay !== reducedMaxItemsToDisplay) {
+                    console.log('reduce maxitems');
+                    if (tmpMaxItemsCount > reducedMaxItemsToDisplay) {
+                      // as all the rendered chats are already "outdated"
+                      // all old chats shall remove and reduced number of few chats will be rendered
+                      // then restore to the original number
+                      changeMaxItemsToDisplay = true;
+                      this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
+                      console.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
                     }
-                  };
-                  if (typeof nextBrowserTick !== 'function') {
-                    scrollChatFn = () => Promise.resolve().then(f).then(f);
+                    this.activeItems_.splice(0, activeItemsLen - this.data.maxItemsToDisplay);
+                    //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+
+                    console.log('new this.activeItems_.length > N', this.activeItems_.length);
                   } else {
-                    scrollChatFn = () => nextBrowserTick(f);
+                    this.activeItems_.splice(0, activeItemsLen - (tmpMaxItemsCount < 900 ? tmpMaxItemsCount : 900));
+
+                    console.log('new this.activeItems_.length > N', this.activeItems_.length);
                   }
                 }
+                // it is found that it will render all stacked chats after switching back from background
+                // to avoid lagging in popular livestream with massive chats, trim first before rendering.
+                // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
 
-                if (!ENABLE_DELAYED_CHAT_OCCURRENCE) scrollChatFn();
+                cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
+                await Promise.resolve();
+                const acItems = cnt.activeItems_;
+                const len1 = acItems.length;
+                if (!len1) console.warn('cnt.activeItems_.length = 0');
+
+                const pn = preloadFn(acItems);
+                const noVisibleItem1 = ((cnt.visibleItems || 0).length || 0) === 0;
+                skipDontRender = noVisibleItem1;
+                await pn();
+                // console.log('ss2', Date.now())
+                cnt.flushActiveItems66_();
+                const noVisibleItem2 = ((cnt.visibleItems || 0).length || 0) === 0;
+                skipDontRender = noVisibleItem2;
+                await Promise.resolve();
+                if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
+                  this.data.maxItemsToDisplay = tmpMaxItemsCount;
+
+                  logger && console.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
+                  //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
+                } else if (changeMaxItemsToDisplay) {
+
+                  logger && console.log(`'maxItemsToDisplay' cannot be restored`, {
+                    maxItemsToDisplay: this.data.maxItemsToDisplay,
+                    reducedMaxItemsToDisplay,
+                    originalMaxItemsToDisplay: tmpMaxItemsCount
+                  });
+                }
+                logger && console.log('[End]');
+
+                logger && console.groupEnd();
+
+                if (noVisibleItem1 && !noVisibleItem2) {
+                  // fix possible no auto scroll issue.
+                  !((cnt.__notRequired__ || 0) & 256) && setTimeout(() => cnt.setAtBottom(), 1);
+                }
+
+                if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+
+
+                  const ff = () => {
+
+                    if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                    //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                    if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
+
+                      if (typeof nextBrowserTick !== 'function') {
+                        cnt.scrollToBottom_();
+                        Promise.resolve().then(() => {
+                          if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                          if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
+                        });
+                      } else {
+                        nextBrowserTick(() => {
+                          if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                          cnt.scrollToBottom_();
+                        });
+                      }
+
+                    }
+                  }
+
+                  ff();
+
+
+                  Promise.resolve().then(ff);
+
+                  // requestAnimationFrame(ff);
+                } else if (true) { // it might not be sticky to bottom when there is a full refresh.
+
+                  const knt = cnt;
+                  if (!scrollChatFn) {
+                    const cnt = knt;
+                    const f = () => {
+                      const itemScroller = cnt.itemScroller;
+                      if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
+                      if (!cnt.atBottom) {
+                        cnt.scrollToBottom_();
+                      } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
+                        itemScroller.scrollTop = itemScroller.scrollHeight;
+                      }
+                    };
+                    if (typeof nextBrowserTick !== 'function') {
+                      scrollChatFn = () => Promise.resolve().then(f).then(f);
+                    } else {
+                      scrollChatFn = () => nextBrowserTick(f);
+                    }
+                  }
+
+                  scrollChatFn();
+                }
+
+                return 1;
+
+
+              } catch (e) {
+                console.warn(e);
+              }
+            }
+
+            mclp.flushActiveItems77_ = function () {
+
+              return new Promise(resResolve => {
+                try {
+                  const cnt = this;
+                  if (mlf > 1e9) mlf = 9;
+                  let tid = ++mlf;
+                  const hostElement = cnt.hostElement || cnt;
+                  if (tid !== mlf || cnt.isAttached === false || hostElement.isConnected === false) return resResolve();
+                  if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return resResolve();
+
+                  // 4 times to maxItems to avoid frequent trimming.
+                  // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
+
+                  const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
+                  this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
+                  if (cnt.canScrollToBottom_()) {
+                    cnt.mutexPromiseFA78 = (cnt.mutexPromiseFA78 || Promise.resolve())
+                      .then(() => cnt.flushActiveItems78_(tid)) // async function
+                      .then((asyncResult) => {
+                        resResolve(asyncResult); // either undefined or 1
+                        resResolve = null;
+                      }).catch((e) => {
+                        console.warn(e);
+                        if (resResolve) resResolve();
+                      });
+                  } else {
+                    resResolve(2);
+                    resResolve = null;
+                  }
+                } catch (e) {
+                  console.warn(e);
+                  if (resResolve) resResolve();
+                }
+
+
+              });
+
+            }
+
+            mclp.flushActiveItems_ = function () {
+              const cnt = this;
+
+              if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
+
+              if (cnt.activeItems_.length === 0) {
+                cnt.__intermediate_delay__ = null;
+                return;
               }
 
-              return 1;
+              const cntData = ((cnt || 0).data || 0);
+              if (cntData.maxItemsToDisplay944 === undefined) {
+                cntData.maxItemsToDisplay944 = null;
+                if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
+                cntData.maxItemsToDisplay944 = cntData.maxItemsToDisplay || null;
+              }
 
+              // ignore previous __intermediate_delay__ and create a new one
+              cnt.__intermediate_delay__ = new Promise(resolve => {
+                cnt.flushActiveItems77_().then(rt => {  // either undefined or 1 or 2
+                  if (rt === 1) {
+                    resolve(1); // success, scroll to bottom
+                    if (hasMoreMessageState === 1) {
+                      hasMoreMessageState = 0;
+                      const showMore = (cnt.$ || 0)['show-more'];
+                      if (showMore) {
+                        showMore.classList.remove('has-new-messages-miuzp');
+                      }
+                    }
+                  }
+                  else if (rt === 2) {
+                    resolve(2); // success, trim
+                    if (hasMoreMessageState === 0) {
+                      hasMoreMessageState = 1;
+                      const showMore = cnt.$['show-more'];
+                      if (showMore) {
+                        showMore.classList.add('has-new-messages-miuzp');
+                      }
+                    }
+                  }
+                  else resolve(-1); // skip
+                }).catch(e => {
+                  console.warn(e);
+                });
+              });
 
+            }
+            console.log("flushActiveItems_", "OK");
+          } else {
+            console.log("flushActiveItems_", "NG");
+          }
+        }
+
+        if ((mclp._flag0281_ & 0x40) == 0) {
+
+          if (SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
+            assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
+            mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
+            mclp.refreshOffsetContainerHeight_ = function () {
+              // var a = this.itemScroller.clientHeight;
+              // this.itemOffset.style.height = this.items.clientHeight + "px";
+              // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
+            }
+            console.log("refreshOffsetContainerHeight_", "OK");
+          } else {
+            console.log("refreshOffsetContainerHeight_", "NG");
+          }
+
+        }
+
+        if ((mclp._flag0281_ & 0x80) == 0) {
+          mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
+            try {
+              if (mlg > 1e9) mlg = 9;
+              const tid = ++mlg;
+              const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
+              const runCond = () => this.canScrollToBottom_();
+              if (!keepTrialCond()) return;
+              if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
+              await new Promise(r => setTimeout(r, 80));
+              if (!keepTrialCond()) return;
+              if (runCond()) return this.flushActiveItems_() | 1;
+              await iAFP(this.hostElement).then();
+              // await new Promise(requestAnimationFrame);
+              if (runCond()) return this.flushActiveItems_() | 1;
             } catch (e) {
               console.warn(e);
             }
           }
+        }
 
-          mclp.flushActiveItems77_ = function () {
+        if ((mclp._flag0281_ & 0x40) == 0) {
 
-            return new Promise(resResolve => {
-              try {
-                const cnt = this;
-                if (mlf > 1e9) mlf = 9;
-                let tid = ++mlf;
-                const hostElement = cnt.hostElement || cnt;
-                if (tid !== mlf || cnt.isAttached === false || hostElement.isConnected === false) return resResolve();
-                if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return resResolve();
+          if ((mclp.atBottomChanged_ || 0).length === 1) {
+            // note: if the scrolling is too frequent, the show more visibility might get wrong.
 
-                // 4 times to maxItems to avoid frequent trimming.
-                // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
+            const sfi = fnIntegrity(mclp.atBottomChanged_);
+            if (sfi === '1.73.37') {
+              // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+            } else if (sfi === '1.75.39') {
+              // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
+            } else {
+              assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
+            }
 
-                const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
-                this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
-                if (cnt.canScrollToBottom_()) {
-                  cnt.mutexPromiseFA78 = (cnt.mutexPromiseFA78 || Promise.resolve())
-                    .then(() => cnt.flushActiveItems78_(tid)) // async function
-                    .then((asyncResult) => {
-                      resResolve(asyncResult); // either undefined or 1
-                      resResolve = null;
-                    }).catch((e) => {
-                      console.warn(e);
-                      if (resResolve) resResolve();
-                    });
+            const querySelector = HTMLElement.prototype.querySelector;
+            const U = (element) => ({
+              querySelector: (selector) => querySelector.call(element, selector)
+            });
+
+            let qid = 0;
+            mclp.__updateButtonVisibility371__ = function (button) {
+              Promise.resolve().then(() => {
+                button.style.visibility = this.__buttonVisibility371__;
+              });
+            }
+            const fixButtonOnClick = function (cnt, button) {
+              button.addEventListener('click', (evt) => {
+                evt.stopImmediatePropagation();
+                evt.stopPropagation();
+                evt.preventDefault();
+                Promise.resolve().then(() => {
+                  cnt.scrollToBottom_();
+                });
+              }, true);
+              // button.addEventListener('pointerup', (evt)=>{
+              //   evt.stopImmediatePropagation();
+              //   evt.stopPropagation();
+              // }, true);
+              // button.addEventListener('mouseup', (evt)=>{
+              //   evt.stopImmediatePropagation();
+              //   evt.stopPropagation();
+              // }, true);
+            }
+            mclp.atBottomChanged_ = function (a) {
+              const button = (this.$ || 0)['show-more'];
+              if (button) {
+                // primary execution
+                if (a) {
+                  if (this.__buttonVisibility371__ !== "hidden") {
+                    this.__buttonVisibility371__ = "hidden";
+                    if (!this.hideShowMoreAsync_) {
+                      const tid = ++qid;
+                      this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
+                        if (tid !== qid) {
+                          return;
+                        }
+                        this.__updateButtonVisibility371__(button);
+                      });
+                    }
+                  }
                 } else {
-                  resResolve(2);
-                  resResolve = null;
-                }
-              } catch (e) {
-                console.warn(e);
-                if (resResolve) resResolve();
-              }
-
-
-            });
-
-          }
-
-          mclp.flushActiveItems_ = function () {
-            const cnt = this;
-
-            if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
-
-            if (cnt.activeItems_.length === 0) {
-              cnt.__intermediate_delay__ = null;
-              return;
-            }
-
-            const cntData = ((cnt || 0).data || 0);
-            if (cntData.maxItemsToDisplay944 === undefined) {
-              cntData.maxItemsToDisplay944 = null;
-              if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
-              cntData.maxItemsToDisplay944 = cntData.maxItemsToDisplay || null;
-            }
-
-            // ignore previous __intermediate_delay__ and create a new one
-            cnt.__intermediate_delay__ = new Promise(resolve => {
-              cnt.flushActiveItems77_().then(rt => {  // either undefined or 1 or 2
-                if (rt === 1) {
-                  resolve(1); // success, scroll to bottom
-                  if (hasMoreMessageState === 1) {
-                    hasMoreMessageState = 0;
-                    const showMore = (cnt.$ || 0)['show-more'];
-                    if (showMore) {
-                      showMore.classList.remove('has-new-messages-miuzp');
+                  if (this.__buttonVisibility371__ !== "visible") {
+                    this.__buttonVisibility371__ = "visible";
+                    if (this.hideShowMoreAsync_) {
+                      qid++;
                     }
-                  }
-                }
-                else if (rt === 2) {
-                  resolve(2); // success, trim
-                  if (hasMoreMessageState === 0) {
-                    hasMoreMessageState = 1;
-                    const showMore = cnt.$['show-more'];
-                    if (showMore) {
-                      showMore.classList.add('has-new-messages-miuzp');
+                    this.hideShowMoreAsync_ = null;
+                    if (!button.__fix_onclick__) {
+                      button.__fix_onclick__ = true;
+                      fixButtonOnClick(this, button);
                     }
-                  }
-                }
-                else resolve(-1); // skip
-              }).catch(e => {
-                console.warn(e);
-              });
-            });
-
-          }
-          console.log("flushActiveItems_", "OK");
-        } else {
-          console.log("flushActiveItems_", "NG");
-        }
-
-        if (SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
-          assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
-          mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
-          mclp.refreshOffsetContainerHeight_ = function () {
-            // var a = this.itemScroller.clientHeight;
-            // this.itemOffset.style.height = this.items.clientHeight + "px";
-            // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
-          }
-          console.log("refreshOffsetContainerHeight_", "OK");
-        } else {
-          console.log("refreshOffsetContainerHeight_", "NG");
-        }
-
-        mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
-          try {
-            if (mlg > 1e9) mlg = 9;
-            const tid = ++mlg;
-            const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
-            const runCond = () => this.canScrollToBottom_();
-            if (!keepTrialCond()) return;
-            if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
-            await new Promise(r => setTimeout(r, 80));
-            if (!keepTrialCond()) return;
-            if (runCond()) return this.flushActiveItems_() | 1;
-            await iAFP(this.hostElement).then();
-            // await new Promise(requestAnimationFrame);
-            if (runCond()) return this.flushActiveItems_() | 1;
-          } catch (e) {
-            console.warn(e);
-          }
-        }
-
-        if ((mclp.atBottomChanged_ || 0).length === 1) {
-          // note: if the scrolling is too frequent, the show more visibility might get wrong.
-
-          const sfi = fnIntegrity(mclp.atBottomChanged_);
-          if (sfi === '1.73.37') {
-            // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-          } else if (sfi === '1.75.39') {
-            // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
-          } else {
-            assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
-          }
-
-          const querySelector = HTMLElement.prototype.querySelector;
-          const U = (element) => ({
-            querySelector: (selector) => querySelector.call(element, selector)
-          });
-
-          let qid = 0;
-          mclp.__updateButtonVisibility371__ = function (button) {
-            Promise.resolve().then(() => {
-              button.style.visibility = this.__buttonVisibility371__;
-            });
-          }
-          const fixButtonOnClick = function(cnt, button){
-            button.addEventListener('click', (evt)=>{
-              evt.stopImmediatePropagation();
-              evt.stopPropagation();
-              evt.preventDefault();
-              Promise.resolve().then(()=>{
-                cnt.scrollToBottom_();
-              });
-            }, true);
-            // button.addEventListener('pointerup', (evt)=>{
-            //   evt.stopImmediatePropagation();
-            //   evt.stopPropagation();
-            // }, true);
-            // button.addEventListener('mouseup', (evt)=>{
-            //   evt.stopImmediatePropagation();
-            //   evt.stopPropagation();
-            // }, true);
-          }
-          mclp.atBottomChanged_ = function (a) {
-            const button = (this.$ || 0)['show-more'];
-            if (button) {
-              // primary execution
-              if (a) {
-                if (this.__buttonVisibility371__ !== "hidden") {
-                  this.__buttonVisibility371__ = "hidden";
-                  if (!this.hideShowMoreAsync_) {
-                    const tid = ++qid;
-                    this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
-                      if (tid !== qid) {
-                        return;
-                      }
-                      this.__updateButtonVisibility371__(button);
-                    });
+                    this.__updateButtonVisibility371__(button);
                   }
                 }
               } else {
-                if (this.__buttonVisibility371__ !== "visible") {
-                  this.__buttonVisibility371__ = "visible";
-                  if (this.hideShowMoreAsync_) {
-                    qid++;
-                  }
-                  this.hideShowMoreAsync_ = null;
-                  if (!button.__fix_onclick__) {
-                    button.__fix_onclick__ = true;
-                    fixButtonOnClick(this, button);
-                  }
-                  this.__updateButtonVisibility371__(button);
-                }
+                // fallback
+                let tid = ++qid;
+                let b = this;
+                a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
+                  if (tid !== qid) return;
+                  U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
+                  this.hideShowMoreAsync_ = null,
+                  U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
               }
-            } else {
-              // fallback
-              let tid = ++qid;
-              let b = this;
-              a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-                if (tid !== qid) return;
-                U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-              }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-                this.hideShowMoreAsync_ = null,
-                U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
             }
-          }
 
-          console.log("atBottomChanged_", "OK");
-        } else {
-          console.log("atBottomChanged_", "NG");
+            console.log("atBottomChanged_", "OK");
+          } else {
+            console.log("atBottomChanged_", "NG");
+          }
         }
 
-        if ((mclp.onScrollItems_ || 0).length === 1) {
 
-          assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
-          mclp.onScrollItems66_ = mclp.onScrollItems_;
-          mclp.onScrollItems77_ = async function (evt) {
-            if (myw > 1e9) myw = 9;
-            let tid = ++myw;
+        if ((mclp._flag0281_ & 0x2) == 0) {
+          if ((mclp.onScrollItems_ || 0).length === 1) {
 
-            await iAFP(this.hostElement).then();
-            // await new Promise(requestAnimationFrame);
+            assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
+            mclp.onScrollItems66_ = mclp.onScrollItems_;
+            mclp.onScrollItems77_ = async function (evt) {
+              if (myw > 1e9) myw = 9;
+              let tid = ++myw;
 
-            if (tid !== myw) {
-              return;
-            }
+              await iAFP(this.hostElement).then();
+              // await new Promise(requestAnimationFrame);
 
-            const cnt = this;
+              if (tid !== myw) {
+                return;
+              }
 
-            await Promise.resolve();
-            if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
-              const onScrollItemsBasicOnly_ = !!((cnt.__notRequired__ || 0) & 512);
-              await Promise.resolve().then(() => {
-                this.ytRendererBehavior.onScroll(evt);
-              }).then(() => {
-                if(onScrollItemsBasicOnly_) return;
-                if (this.canScrollToBottom_()) {
-                  const hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
-                  if (hasUserJustInteracted) {
-                    // only when there is an user action
+              const cnt = this;
+
+              await Promise.resolve();
+              if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
+                const onScrollItemsBasicOnly_ = !!((cnt.__notRequired__ || 0) & 512);
+                await Promise.resolve().then(() => {
+                  this.ytRendererBehavior.onScroll(evt);
+                }).then(() => {
+                  if (onScrollItemsBasicOnly_) return;
+                  if (this.canScrollToBottom_()) {
+                    const hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
+                    if (hasUserJustInteracted) {
+                      // only when there is an user action
+                      !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
+                      return 1;
+                    }
+                  } else {
+                    // no message inserting
                     !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
                     return 1;
                   }
-                } else {
-                  // no message inserting
-                  !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
-                  return 1;
-                }
-              }).then((r) => {
+                }).then((r) => {
 
-                if(onScrollItemsBasicOnly_) return;
-                if (this.activeItems_.length) {
+                  if (onScrollItemsBasicOnly_) return;
+                  if (this.activeItems_.length) {
 
-                  if (this.canScrollToBottom_()) {
-                    this.flushActiveItems_();
-                    return 1 && r;
-                  } else if (this.atBottom && this.allowScroll && (this.hasUserJustInteracted11_ && this.hasUserJustInteracted11_())) {
-                    // delayed due to user action
-                    this.delayFlushActiveItemsAfterUserAction11_ && this.delayFlushActiveItemsAfterUserAction11_();
-                    return 0;
+                    if (this.canScrollToBottom_()) {
+                      this.flushActiveItems_();
+                      return 1 && r;
+                    } else if (this.atBottom && this.allowScroll && (this.hasUserJustInteracted11_ && this.hasUserJustInteracted11_())) {
+                      // delayed due to user action
+                      this.delayFlushActiveItemsAfterUserAction11_ && this.delayFlushActiveItemsAfterUserAction11_();
+                      return 0;
+                    }
                   }
-                }
-              }).then((r) => {
-                if(onScrollItemsBasicOnly_) return;
-                if (r) {
-                  // ensure setAtBottom is correctly set
-                  !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
-                }
-              });
-            } else {
-              cnt.onScrollItems66_(evt);
+                }).then((r) => {
+                  if (onScrollItemsBasicOnly_) return;
+                  if (r) {
+                    // ensure setAtBottom is correctly set
+                    !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
+                  }
+                });
+              } else {
+                cnt.onScrollItems66_(evt);
+              }
+
+              await Promise.resolve();
+
             }
 
-            await Promise.resolve();
+            mclp.onScrollItems_ = function (evt) {
 
-          }
-
-          mclp.onScrollItems_ = function (evt) {
-
-            const cnt = this;
-            cnt.__intermediate_delay__ = new Promise(resolve => {
-              cnt.onScrollItems77_(evt).then(() => {
-                resolve();
+              const cnt = this;
+              cnt.__intermediate_delay__ = new Promise(resolve => {
+                cnt.onScrollItems77_(evt).then(() => {
+                  resolve();
+                });
               });
-            });
+            }
+            console.log("onScrollItems_", "OK");
+          } else {
+            console.log("onScrollItems_", "NG");
           }
-          console.log("onScrollItems_", "OK");
-        } else {
-          console.log("onScrollItems_", "NG");
         }
 
-        if ((mclp.handleLiveChatActions_ || 0).length === 1) {
+        if ((mclp._flag0281_ & 0x2) == 0) {
+          if ((mclp.handleLiveChatActions_ || 0).length === 1) {
 
-          const sfi = fnIntegrity(mclp.handleLiveChatActions_);
-          if (sfi === '1.39.20') {
-            // TBC
-          } else if (sfi === '1.31.17') {
-            // original
-          } else {
-            assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.31.17'));
-          }
-
-          mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
-
-          mclp.handleLiveChatActions77_ = async function (arr) {
-            if (typeof (arr || 0).length !== 'number') {
-              this.handleLiveChatActions66_(arr);
-              return;
-            }
-            if (mzt > 1e9) mzt = 9;
-            let tid = ++mzt;
-
-            if (zarr === null) zarr = arr;
-            else Array.prototype.push.apply(zarr, arr);
-            arr = null;
-
-            await iAFP(this.hostElement).then();
-            // await new Promise(requestAnimationFrame);
-
-            if (tid !== mzt || zarr === null) {
-              return;
+            const sfi = fnIntegrity(mclp.handleLiveChatActions_);
+            if (sfi === '1.39.20') {
+              // TBC
+            } else if (sfi === '1.31.17') {
+              // original
+            } else {
+              assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.31.17'));
             }
 
-            const carr = zarr;
-            zarr = null;
+            mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
 
-            await Promise.resolve();
-            this.handleLiveChatActions66_(carr);
-            await Promise.resolve();
+            mclp.handleLiveChatActions77_ = async function (arr) {
+              if (typeof (arr || 0).length !== 'number') {
+                this.handleLiveChatActions66_(arr);
+                return;
+              }
+              if (mzt > 1e9) mzt = 9;
+              let tid = ++mzt;
 
-          }
+              if (zarr === null) zarr = arr;
+              else Array.prototype.push.apply(zarr, arr);
+              arr = null;
 
-          mclp.handleLiveChatActions_ = function (arr) {
+              await iAFP(this.hostElement).then();
+              // await new Promise(requestAnimationFrame);
 
-            const cnt = this;
-            cnt.__intermediate_delay__ = new Promise(resolve => {
-              cnt.handleLiveChatActions77_(arr).then(() => {
-                resolve();
+              if (tid !== mzt || zarr === null) {
+                return;
+              }
+
+              const carr = zarr;
+              zarr = null;
+
+              await Promise.resolve();
+              this.handleLiveChatActions66_(carr);
+              await Promise.resolve();
+
+            }
+
+            mclp.handleLiveChatActions_ = function (arr) {
+
+              const cnt = this;
+              cnt.__intermediate_delay__ = new Promise(resolve => {
+                cnt.handleLiveChatActions77_(arr).then(() => {
+                  resolve();
+                });
               });
-            });
+            }
+            console.log("handleLiveChatActions_", "OK");
+          } else {
+            console.log("handleLiveChatActions_", "NG");
           }
-          console.log("handleLiveChatActions_", "OK");
-        } else {
-          console.log("handleLiveChatActions_", "NG");
         }
 
         mclp.hasUserJustInteracted11_ = () => {
@@ -5033,50 +4880,57 @@
           console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
         }
 
-        if (typeof mclp.forEachItem_ === 'function' && !mclp.forEachItem66_ && skipErrorForhandleAddChatItemAction_ && mclp.forEachItem_.length === 1) {
+        if ((this._flag0281_ & 0x8) == 0) {
 
-          mclp.forEachItem66_ = mclp.forEachItem_;
-          mclp.forEachItem_ = function (a) {
 
-            // ƒ (a){this.visibleItems.forEach(a.bind(this,"visibleItems"));this.activeItems_.forEach(a.bind(this,"activeItems_"))}
+          if (typeof mclp.forEachItem_ === 'function' && !mclp.forEachItem66_ && skipErrorForhandleAddChatItemAction_ && mclp.forEachItem_.length === 1) {
 
-            try {
+            mclp.forEachItem66_ = mclp.forEachItem_;
+            mclp.forEachItem_ = function (a) {
 
-              let items801 = false;
-              if (typeof a === 'function') {
-                const items = this.items;
-                if (items instanceof HTMLDivElement) {
-                  const ev = this.visibleItems;
-                  const ea = this.activeItems_;
-                  if (ev && ea && ev.length >= 0 && ea.length >= 0) {
-                    items801 = items;
+              if ((this._flag0281_ & 0x8) == 0x8) return this.forEachItem66_(a);
+
+              // ƒ (a){this.visibleItems.forEach(a.bind(this,"visibleItems"));this.activeItems_.forEach(a.bind(this,"activeItems_"))}
+
+              try {
+
+                let items801 = false;
+                if (typeof a === 'function') {
+                  const items = this.items;
+                  if (items instanceof HTMLDivElement) {
+                    const ev = this.visibleItems;
+                    const ea = this.activeItems_;
+                    if (ev && ea && ev.length >= 0 && ea.length >= 0) {
+                      items801 = items;
+                    }
                   }
                 }
-              }
 
-              if (items801) {
-                items801.__children801__ = 1;
-                const res = this.forEachItem66_(a);
-                items801.__children801__ = 0;
-                return res;
-              }
+                if (items801) {
+                  items801.__children801__ = 1;
+                  const res = this.forEachItem66_(a);
+                  items801.__children801__ = 0;
+                  return res;
+                }
 
-            } catch (e) { }
-            return this.forEachItem66_(a);
+              } catch (e) { }
+              return this.forEachItem66_(a);
 
 
-            // this.visibleItems.forEach((val, idx, arr)=>{
-            //   a.call(this, 'visibleItems', val, idx, arr);
-            // });
+              // this.visibleItems.forEach((val, idx, arr)=>{
+              //   a.call(this, 'visibleItems', val, idx, arr);
+              // });
 
-            // this.activeItems_.forEach((val, idx, arr)=>{
-            //   a.call(this, 'activeItems_', val, idx, arr);
-            // });
+              // this.activeItems_.forEach((val, idx, arr)=>{
+              //   a.call(this, 'activeItems_', val, idx, arr);
+              // });
 
+
+
+            }
 
 
           }
-
 
         }
 
@@ -6033,8 +5887,17 @@
           if (doAnimator) {
 
             const s = fnIntegrity(cProto.computeContainerStyle);
-            // 2.44.29 or 2.81.31
-            if (s === '2.44.29' || s === '2.81.31') {
+
+            if (s === '2.46.29') {
+              // f.computeContainerStyle = function(a, b) {
+              //     if (!a)
+              //         return $h(kmb);
+              //     var c = this.colorFromDecimal(a.startBackgroundColor);
+              //     a = this.colorFromDecimal(a.endBackgroundColor);
+              //     b = 100 * b + "%";
+              //     return $h(lmb, c, c, b, a, b, a)
+              // }
+            } else if (s === '2.44.29' || s === '2.81.31') {
 
               //     var ofb = da([""])
               //         pfb = da("background:linear-gradient(90deg, {,{ {,{ {,{);".split("{"))
@@ -6049,7 +5912,7 @@
               // }
 
             } else {
-              assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.44.29'));
+              assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.46.29'));
             }
 
             cProto.computeContainerStyle66 = cProto.computeContainerStyle;
@@ -6211,28 +6074,18 @@
                   const itemVal = valItem[itemKey];
                   itemId = itemVal ? itemVal.id : '';
                   if (itemId) {
-
                     const cacheKey = `${key}.${itemKey}::${itemId}`;
-
                     if (key === 'addChatItemAction' && itemId) return; // no need
-
                     if (cacheChatActions.has(cacheKey)) {
-
                       console.log('handleLiveChatAction Repeated Item', cacheKey);
                       return;
-
                     } else {
                       cacheChatActions.add(cacheKey);
-
                     }
-
-
                   }
                 }
               }
-
               return this.handleLiveChatAction45(a);
-
             };
 
             console.log("AMEND_TICKER_handleLiveChatAction - OK (v2)");
@@ -6302,14 +6155,11 @@
 
             cProto.handleLiveChatAction45 = cProto.handleLiveChatAction;
 
-
-
             cProto._nszlv_ = 0;
             cProto._stackedLCAs_ = null;
             cProto._lastAddItem_ = null;
             cProto._lastAddItemInStack_ = false;
             cProto.handleLiveChatAction = function (a) {
-
 
               /**
                *
@@ -6330,12 +6180,7 @@
                 removeChatItemAction, markChatItemsByAuthorAsDeletedAction, removeChatItemByAuthorAction, __batchId45__ } = a
 
               if (addChatItemAction) return;
-
-
               const d = Date.now();
-
-
-              // console.log(Object.keys(a));
 
               if (this._stackedLCAs_ === null) this._stackedLCAs_ = [];
               const stackArr = this._stackedLCAs_;
@@ -6379,7 +6224,6 @@
                       itemRenderer.__actionAt__ = d;
                     }
                   }
-
 
                   newStackEntry = { action: 'addItem', data: newItem };
 
@@ -6488,17 +6332,9 @@
                   lastDateTime = dateTime;
                   prevBatchId = __batchId45__;
 
-                  // if (dateNow - dateTime >= 1000 && this.shouldAnimateIn) this.shouldAnimateIn = false;
-
-
                   if (addPrevItems) {
                     addItemsFx();
                   }
-                  // if (finishLastAction) {
-                  //   this.updateHighlightedItem();
-                  //   if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
-                  // }
-
 
                   if (action === 'addItem') addItems.unshift(data);
                   else if (action === 'mcItemD') this.handleMarkChatItemAsDeletedAction(data);
@@ -6508,16 +6344,7 @@
 
                 }
 
-
-                // if (previousShouldAnimateIn && !this.shouldAnimateIn) this.shouldAnimateIn = true;
-
                 addItemsFx();
-
-                // if (prevBatchId || dateNow - lastDateTime >= 1000) {
-                //   this.updateHighlightedItem();
-                //   if (!this.shouldAnimateIn) this.shouldAnimateIn = true;
-                // }
-
               })
 
             }
@@ -6807,7 +6634,6 @@
 
       if (ENABLE_RAF_HACK_EMOJI_PICKER && rafHub !== null) {
 
-
         customElements.whenDefined("yt-emoji-picker-renderer").then(() => {
 
           mightFirstCheckOnYtInit();
@@ -6868,7 +6694,6 @@
       }
 
       if (ENABLE_RAF_HACK_DOCKED_MESSAGE && rafHub !== null) {
-
 
         customElements.whenDefined("yt-live-chat-docked-message").then(() => {
 
@@ -6966,7 +6791,6 @@
 
       if (FIX_SETSRC_AND_THUMBNAILCHANGE_) {
 
-
         customElements.whenDefined("yt-img-shadow").then(() => {
 
           mightFirstCheckOnYtInit();
@@ -7025,8 +6849,6 @@
       }
 
       if (FIX_THUMBNAIL_DATACHANGED) {
-
-
 
         customElements.whenDefined("yt-live-chat-author-badge-renderer").then(() => {
 
@@ -7097,7 +6919,6 @@
                   const exisiting = image.firstElementChild;
                   if (exisiting === image.lastElementChild) {
 
-
                     if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
 
                       const c = exisiting;
@@ -7124,14 +6945,12 @@
                       }
                       /*
 
-                      var d;
-                      (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
-
+                        var d;
+                        (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
 
                         c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail", a.customThumbnail))
                         */
                     }
-
 
                   }
                 }
@@ -7246,62 +7065,17 @@
             r = this.createTooltipIfRequired14_();
           }
 
-
           const EU = tooltipUIWM.get(this);
           if (EU) {
-
-            // EU.innerHTML='';
-            // let t;
-            // if(EU.parentElement instanceof HTMLElement) {
-
-            //     for(const s of EU.querySelectorAll('*')){
-            //      if(s.firstChild instanceof Text) s.firstChild.nodeValue = '';
-            //    }
-
-            //     for(const s of EU.querySelectorAll('.hidden')){
-            //      s.classList.remove('hidden');
-            //   //    if(s.firstChild instanceof Text) s.firstChild.nodeValue = '';
-            //    }
-            // }
-
             EU.remove();
-            // EU.removeAttribute('class');
-            // EU.removeAttribute('role');
-            // EU.removeAttribute('tabindex');
-            // EU.removeAttribute('style');
-
-
             if (typeof tooltipInitProps.offset === 'number') EU['offset'] = tooltipInitProps.offset;
             if (typeof tooltipInitProps.fitToVisibleBounds === 'boolean') EU['fitToVisibleBounds'] = tooltipInitProps.fitToVisibleBounds;
             try {
               if (typeof tooltipInitProps.position === 'string') EU['position'] = tooltipInitProps.position;
               if (typeof tooltipInitProps.for === 'string') EU['for'] = tooltipInitProps.for; else delete EU.for;
             } catch (e) { }
-
-            // EU.__data = JSON.parse(EU.__dataX);
-
-            // EU.__dataEnabled = false;
-            // EU.__dataReady = false;
-            // EU.__dataClientsReady = false;
-            // delete EU.__templateInfo;
-            // delete EU.$;
-            // delete EU.__shady;
-            // delete EU.__CE_shadowRoot;
-            // delete EU.__boundListeners;
-            // delete EU.__boundListeners;
-
-            // EU.for = undefined;
-
-            //  EU.animationDelay = 500;
-            //  EU.position = 'bottom';
-            //  Promise.resolve(()=>EU.updatePosition())
           }
-
-          // console.log(192, EU, EU.for);
-          // EU.innerHTML = '';
           return r;
-
-
         };
 
 
@@ -7318,17 +7092,13 @@
             return;
           }
 
-
           /*
           <tp-yt-paper-tooltip class="style-scope yt-live-chat-author-badge-renderer" role="tooltip" tabindex="-1" style="--paper-tooltip-delay-in: 0ms; inset: -63.3984px auto auto 0px;
           */
 
           if (cProto && typeof cProto.createTooltipIfRequired_ === 'function' && cProto.createTooltipIfRequired_.length === 0 && !cProto.createTooltipIfRequired14_) {
-            // console.log(8172);
             cProto.createTooltipIfRequired14_ = cProto.createTooltipIfRequired_;
             cProto.createTooltipIfRequired_ = createTooltipIfRequired_;
-
-
           }
 
         });
@@ -7394,61 +7164,6 @@
 
             }
 
-            /*
-            cProto.updatePosition61 = cProto.updatePosition;
-
-
-            cProto.updatePosition = function () {
-
-
-              if (this._target && this.offsetParent) {
-                var a = this.offset;
-                14 != this.marginTop && 14 == this.offset && (a = this.marginTop);
-                var b = this.offsetParent.getBoundingClientRect()
-                  , c = this._target.getBoundingClientRect()
-                  , d = this.getBoundingClientRect()
-                  , e = (c.width - d.width) / 2
-                  , h = (c.height - d.height) / 2
-                  , l = c.left - b.left
-                  , m = c.top - b.top;
-                switch (this.position) {
-                  case "top":
-                    var p = l + e;
-                    var q = m - d.height - a;
-                    break;
-                  case "bottom":
-                    p = l + e;
-                    q = m + c.height + a;
-                    break;
-                  case "left":
-                    p = l - d.width - a;
-                    q = m + h;
-                    break;
-                  case "right":
-                    p = l + c.width + a,
-                      q = m + h;
-                }
-
-              if(this.ascee) {
-                this.fitToVisibleBounds = false;
-              }
-                this.fitToVisibleBounds ? (b.left + p + d.width > window.innerWidth ? (this.style.right = "0px",
-                  this.style.left = "auto") : (this.style.left = Math.max(0, p) + "px",
-                    this.style.right = "auto"),
-                  b.top + q + d.height > window.innerHeight ? (this.style.bottom = b.height + "px",
-                    this.style.top = "auto") : (this.style.top = Math.max(-b.top, q) + "px",
-                      this.style.bottom = "auto")) : (this.style.left = p + "px",
-                        this.style.top = q + "px")
-              }
-            }
-
-            cProto.updateStyles61 = cProto.updateStyles;
-            cProto.updateStyles= function(){
-              if(this.ascee) return;
-              return this.updateStyles61.apply(this,arguments);
-            }
-            */
-
 
           })();
 
@@ -7458,49 +7173,17 @@
 
         }).catch(console.warn);
 
-
-
       }
-
 
 
       if (FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK) {
 
-
         const hookDocumentMouseDownSetupFn = () => {
-
-
 
           let muzTimestamp = 0;
           let nszDropdown = null;
 
-
-
           const handlerObject = {
-
-            // mdHandler282 : function (evt) {
-            //   // console.log(evt, 1, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
-            //   if (!evt || !evt.isTrusted) return;
-            //   muzTimestamp = 0;
-            //   nszDropdown = null;
-
-            //   const hostElement = this.hostElement || this;
-            //   if (!evt || !evt.isTrusted || !hostElement.hasAttribute('menu-visible')) return;
-            //   if (!hostElement.contains(evt.target)) return;
-            //   let targetDropDown = null;
-            //   for(const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')){
-            //     if(dropdown && dropdown.positionTarget && hostElement.contains( dropdown.positionTarget)){
-            //       targetDropDown = dropdown;
-            //     }
-            //   }
-            //   if ((nszDropdown = targetDropDown)) {
-            //     muzTimestamp = Date.now();
-            //     evt.stopImmediatePropagation();
-            //     evt.stopPropagation();
-            //   }
-
-            // },
-
 
             muHandler282: function (evt) {
               // console.log(evt, 7, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
@@ -7517,19 +7200,12 @@
               if (chatBanner) return;
 
               if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
-
-                /*
-                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
-                if(parentButton) return;
-                */
-
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
                 Promise.resolve(dropdown).then((dropdown) => {
                   dropdown.cancel();
                 });
-                // document.body.click();
               }
 
             },
@@ -7540,53 +7216,30 @@
             },
 
             ckHandler282: function (evt) {
-              // console.log(evt, 3, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
-
               if (!evt || !evt.isTrusted || !muzTimestamp) return;
               if (Date.now() - muzTimestamp < 40) {
-
-                /*
-                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
-                if(parentButton) return;
-                */
-
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
               }
-
             },
 
             tapHandler282: function (evt) {
-              // console.log(evt, 2, document.querySelector('tp-yt-iron-dropdown[focused].style-scope.yt-live-chat-app'))
-
               if (!evt || !evt.isTrusted || !muzTimestamp) return;
               if (Date.now() - muzTimestamp < 40) {
-
-                /*
-                const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
-                if(parentButton) return;
-                */
-
                 muzTimestamp = Date.now();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
               }
-
             },
 
-
             handleEvent(evt) {
-
-
               if (evt) {
                 const kurMPCe = kRef(currentMenuPivotWR) || 0;
                 const kurMPCc = insp(kurMPCe);
                 const hostElement = kurMPCc.hostElement || kurMPCc;
                 if (!kurMPCc || kurMPCc.isAttached !== true || hostElement.isConnected !== true) return;
                 switch (evt.type) {
-                  // case 'mousedown':
-                  // return this.mdHandler282.call(kurMPCe, evt);
                   case 'mouseup':
                     return this.muHandler282(evt);
                   case 'mouseleave':
@@ -7597,10 +7250,7 @@
                     return this.ckHandler282(evt);
                 }
               }
-
             }
-
-
 
           }
 
@@ -7608,23 +7258,8 @@
 
             if (!evt || !evt.isTrusted || !evt.target) return;
 
-
-
             muzTimestamp = 0;
             nszDropdown = null;
-
-            /*
-            const parentButton = HTMLElement.prototype.closest.call(evt.target, 'button, yt-icon, yt-icon-shape, icon-shape');
-            if(parentButton){
-              const kurMPCe = HTMLElement.prototype.closest.call(parentButton, '[whole-message-clickable]') || 0;
-              if(kurMPCe){
-                evt.preventDefault();
-                evt.stopImmediatePropagation();
-                evt.stopPropagation();
-              }
-              return;
-            }
-            */
 
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
@@ -7640,7 +7275,6 @@
             const chatBanner = HTMLElement.prototype.closest.call(kurMPCe, 'yt-live-chat-banner-renderer') || 0;
             if (chatBanner) return;
 
-
             let targetDropDown = null;
             for (const dropdown of document.querySelectorAll('tp-yt-iron-dropdown.style-scope.yt-live-chat-app')) {
               if (dropdown && dropdown.positionTarget === kurMP) {
@@ -7649,17 +7283,6 @@
             }
 
             if (!targetDropDown) return;
-
-
-            /*
-            if (parentButton) {
-              evt.preventDefault();
-              evt.stopImmediatePropagation();
-              evt.stopPropagation();
-              currentMenuPivotWR = mWeakRef(kurMPCe);
-              return;
-            }
-            */
 
             if ((nszDropdown = targetDropDown)) {
               muzTimestamp = Date.now();
@@ -7802,7 +7425,6 @@
           if (doMouseHook) {
 
             hookDocumentMouseDownSetupFn();
-
 
             console.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent OK");
           }
@@ -8289,8 +7911,6 @@
 
         for (const tag of sTags) { // ##tag##
 
-
-
           (() => {
 
             const dummy = document.createElement(tag);
@@ -8301,88 +7921,43 @@
               return;
             }
 
-
-
-
             if (CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
-
               cProto.showContextMenu37_ = cProto.showContextMenu_;
               cProto.showContextMenu37 = cProto.showContextMenu;
-
               cProto.__showContextMenu_forceNativeRequest__ = 0;
               cProto.__cacheResolvedEndpointData__ = dProto.__cacheResolvedEndpointData__
               cProto.__getCachedEndpointData__ = dProto.__getCachedEndpointData__
               cProto.__showCachedContextMenu__ = dProto.__showCachedContextMenu__
-
               cProto.showContextMenu = dProto.showContextMenuForCacheReopen;
-
               cProto.showContextMenu_ = dProto.showContextMenuForCacheReopen_;
-
-
               console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
-
-
-
             } else {
-
               console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - NG", tag);
-
             }
-
-
 
             if (ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu48 && !cProto.showContextMenu48_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
-
-
               cProto.showContextMenu48 = cProto.showContextMenu;
-
-
               cProto.showContextMenu = dProto.showContextMenuWithDisableScroll;
-
-
-
               console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - OK", tag);
-
-
-
             } else {
-
               console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - NG", tag);
-
             }
 
-
-
-
-
             if (ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu47 && !cProto.showContextMenu47_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
-
               cProto.showContextMenu47_ = cProto.showContextMenu_;
               cProto.showContextMenu47 = cProto.showContextMenu;
-
               cProto.__showContextMenu_mutex_unlock_isEmpty__ = dProto.__showContextMenu_mutex_unlock_isEmpty__;
               cProto.__showContextMenu_assign_lock__ = dProto.__showContextMenu_assign_lock__;
               cProto.showContextMenu = dProto.showContextMenuWithMutex;
               cProto.showContextMenu_ = dProto.showContextMenuWithMutex_;
-
               console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - OK", tag);
-
-
-
             } else {
-
               console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - NG", tag);
-
             }
-
-
-
 
           })();
 
         }
-
-
 
         console.log("[End]");
 
@@ -8407,7 +7982,6 @@
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
-
 
           if (USE_VANILLA_DEREF && typeof cProto.__deraf === 'function' && cProto.__deraf.length === 2 && !cProto.__deraf34 && fnIntegrity(cProto.__deraf) === '2.42.24') {
             cProto.__deraf_hn__ = function (sId, fn) {
@@ -8592,34 +8166,10 @@
                     m34 = 0;
                     return;
                   }
-
-                  /*
-                  let useVisibilityCollapse = true;
-                  if (HTMLElement.prototype.querySelector.call(sizingTarget, 'yt-icon:empty')) {
-                    useVisibilityCollapse = false;
-                  }
-
-                  if (useVisibilityCollapse) {
-                    hostElement.style.visibility = 'collapse';
-                    sizingTarget.style.visibility = 'collapse';
-                  } else {
-                    hostElement.setAttribute('rNgzQ', '');
-                    sizingTarget.setAttribute('rNgzQ', '');
-                  }
-                  */
                   hostElement.setAttribute('rNgzQ', '');
                   sizingTarget.setAttribute('rNgzQ', '');
 
                   const gn = () => {
-                    /*
-                    if (useVisibilityCollapse) {
-                      hostElement.style.visibility = '';
-                      sizingTarget.style.visibility = '';
-                    } else {
-                      hostElement.removeAttribute('rNgzQ');
-                      sizingTarget.removeAttribute('rNgzQ');
-                    }
-                    */
                     hostElement.removeAttribute('rNgzQ');
                     sizingTarget.removeAttribute('rNgzQ');
                   }
@@ -8769,67 +8319,11 @@
 
 
             cProto.__openedChanged = function () {
-
-              // currentMenuPivotWR = null;
-              // console.log(1480, '__openedChanged.A', this.positionTarget)
-
-
-
-              // if (this.opened && this.positionTarget) {
-
-              //   const positionTarget = this.positionTarget;
-              //   console.log(1480, '__openedChanged.B', positionTarget)
-              //   currentMenuPivotWR = mWeakRef(positionTarget);
-
-              // }
-
               const positionTarget = this.positionTarget;
               currentMenuPivotWR = positionTarget ? mWeakRef(positionTarget) : null;
               return this.__openedChanged82.apply(this, arguments);
             }
           }
-
-
-          // if(FIX_MENU_CAPTURE_SCROLL && typeof cProto.__onCaptureScroll === 'function' && !cProto.__onCaptureScroll66){
-
-          //   cProto.__onCaptureScroll66 = cProto.__onCaptureScroll;
-
-          //   cProto.__onCaptureScroll = function(a){
-
-          //     const q = true;
-          //     if(this.scrollAction === 'lock'  && q && this.opened){
-
-          //       // console.log(9107, this.scrollAction, this.__isAnimating, this.opened, a); // lock; __isAnimating = false
-          //       async function af() {
-          //         this.__isAnimating && this._finishRenderOpened();
-          //         if (!this.opened) return;
-          //         this.__restoreScrollPosition();
-          //         await new Promise(r => requestAnimationFrame(r));
-          //         if (!this.opened) return;
-          //         this.opened && this.__isAnimating && this._finishRenderOpened();
-          //         if (!this.opened) return;
-          //         this.__restoreScrollPosition();
-          //         await new Promise(r => requestAnimationFrame(r));
-          //         if (!this.opened) return;
-          //         this.opened && this.__isAnimating && this._finishRenderOpened();
-          //         if (!this.opened) return;
-          //         this.opened && !this.__isAnimating && this.refit();
-          //       }
-          //       Promise.resolve().then(af);
-
-          //        return cProto.__onCaptureScroll66.apply(this, arguments);
-          //     }else{
-
-          //       // console.log(9102, this.scrollAction, this.__isAnimating, this.opened, a); // lock
-
-          //       return cProto.__onCaptureScroll66.apply(this, arguments);
-          //     }
-          //   }
-          //   console.log("FIX_MENU_CAPTURE_SCROLL - OK");
-          // }else{
-          //   console.log("FIX_MENU_CAPTURE_SCROLL - NG");
-
-          // }
 
 
         })();
@@ -8857,40 +8351,6 @@
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
-
-          // cProto.attached718 = cProto.attached;
-
-
-          // cProto.attached = function () {
-          //   const dataDP = Object.getOwnPropertyDescriptor(this, 'data');
-          //   if (dataDP) return cProto.attached718();
-          //   let f = {};
-          //   let e = f;
-          //   Object.defineProperty(this, 'data', {
-          //     get() {
-          //       return e;
-          //     },
-          //     set(nv) {
-          //       e = nv;
-          //       return true;
-          //     },
-          //     enumerable: false,
-          //     configurable: true
-          //   });
-          //   let err = null;
-          //   let r;
-          //   try {
-          //     r = cProto.attached718();
-          //   } catch (e2) {
-          //     err = e2;
-          //   }
-          //   delete this.data;
-          //   if (e !== f) this.data = e;
-          //   if (err) throw err;
-          //   return r;
-          // }
-
-          // console.log(2989, cProto.attached);
 
         })();
 
@@ -8971,8 +8431,6 @@
       */
 
 
-
-
       const onManagerFound = (dummyManager) => {
         if (!dummyManager || typeof dummyManager !== 'object') return;
 
@@ -8992,8 +8450,6 @@
         groupCollapsed("YouTube Super Fast Chat", " | *live-chat-manager* hacks");
         console.log("[Begin]");
 
-
-        // const isEmptyObject = (a) => Object.keys(a).length === 0;
         const isEmptyObject = ((obj) => (firstKey(obj) === null));
 
         const idMapper = new Map();
@@ -9290,8 +8746,6 @@
             }
 
 
-
-
             cProto.async = function (e, h) {
 
               if (!(0 < h)) return this.async71(e, h); // unknown timing Fn
@@ -9379,13 +8833,9 @@
       }).catch(console.warn);
 
 
-
-
       if (INTERACTIVITY_BACKGROUND_ANIMATION >= 1) {
 
-
         customElements.whenDefined("yt-live-interactivity-component-background").then(() => {
-
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-interactivity-component-background hacks");
@@ -9400,7 +8850,6 @@
               console.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
-
 
             cProto.__toStopAfterRun__ = function (hostElement) {
               let mo = new MutationObserver(() => {
