@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.9
+// @version     0.16.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -2075,24 +2075,29 @@
     }
   };
 
+  const setupDataHost_ = (eh) => {
+    if (typeof eh.configureVisibilityObserver_ === 'function' && !eh.configureVisibilityObserver27_) {
+      eh.configureVisibilityObserver27_ = eh.configureVisibilityObserver_;
+      eh.configureVisibilityObserver_ = configureVisibilityObserverT_;
+    }
+    if (typeof eh.getParentRenderer === 'function' && !eh.getParentRenderer27) {
+      eh.getParentRenderer27 = eh.getParentRenderer;
+      eh.getParentRenderer = getParentRendererT;
+    }
+    if (typeof eh.attached === 'function' && !eh.attached27) {
+      eh.attached27 = eh.attached;
+      eh.attached = attachedT;
+    }
+  }
+
   const setupDataHost = WEAK_REF_BINDING && setupWF && setupWD ? function (dh, opt) {
 
     if (typeof (dh || 0) === 'object') {
 
-      if (typeof dh.configureVisibilityObserver_ === 'function' && !dh.configureVisibilityObserver27_) {
-        dh.configureVisibilityObserver27_ = dh.configureVisibilityObserver_;
-        dh.configureVisibilityObserver_ = configureVisibilityObserverT_;
-      }
+      const eh = (dh.constructor || 0).prototype || dh;
 
-      if (typeof dh.getParentRenderer === 'function' && !dh.getParentRenderer27) {
-        dh.getParentRenderer27 = dh.getParentRenderer;
-        dh.getParentRenderer = getParentRendererT;
-      }
-
-      if (typeof dh.attached === 'function' && !dh.attached27) {
-        dh.attached27 = dh.attached;
-        dh.attached = attachedT;
-      }
+      setupDataHost_(eh);
+      setupDataHost_(dh);
 
       dh.m822 = (dh.m822 || 0) + 1;
 
@@ -4260,7 +4265,7 @@
 
     __requestAnimationFrame__ = requestAnimationFrame;
 
-    
+
     const isGPUAccelerationAvailable = (() => {
       // https://gist.github.com/cvan/042b2448fcecefafbb6a91469484cdf8
       try {
@@ -6961,7 +6966,7 @@
 
         const xrequestAnimationFrame = function (f) {
           const h = f + "";
-          if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}") ) {
+          if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}")) {
             let t = null;
             xsetTimeout.m511 = 1;
             f();
