@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.16
+// @version             0.1.17
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2049,6 +2049,8 @@ SOFTWARE.
     cProto.computeIsEmpty_ = function () {
       return !(this.visibleItems?.length || 0);
     }
+    cProto._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80;
+    
     cProto.setupBoostChat = function () {
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
@@ -2700,12 +2702,6 @@ SOFTWARE.
 
       // this.itemScroller.scrollTop = Math.pow(2, 24);
       // this.atBottom = !0
-    }
-
-    cProto.refreshOffsetContainerHeight_ = function (...args) {
-
-      console.log('refreshOffsetContainerHeight_', 583, ...args)
-
     }
 
     cProto.showNewItems_ = function (...args) {
