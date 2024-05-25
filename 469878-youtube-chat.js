@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.62.0
+// @version             0.62.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4305,7 +4305,8 @@
               try {
 
                 if (tid !== mlf) return;
-                if ((this._flag0281_ & 0x4) == 0) {
+                if ((this._flag0281_ & 0x4) == 0x4) {
+                  const cnt = this;
 
                   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                   if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
