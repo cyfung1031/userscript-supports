@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.021
+// @version             0.11.022
 // @license             MIT License
 
 // @author              CY Fung
@@ -2454,7 +2454,9 @@ SOFTWARE.
 
             } else {
 
-                if (d = (cnt.authorTextCommand || cnt.authorNameEndpoint || cnt.authorEndpoint)) return d.browseEndpoint || null; // ytd-comment-view-model (2024.04.30) (v3)
+                if ((d = ((cnt || 0).data || 0)) && (d = (d.authorTextCommand || d.authorNameEndpoint || d.authorEndpoint))) return d.browseEndpoint || null; // ytd-comment-view-model (2024.05.25 ?)
+
+                if (d = (cnt.authorTextCommand || cnt.authorNameEndpoint || cnt.authorEndpoint)) return d.browseEndpoint || null; // ytd-comment-view-model (2024.04.30) (v3) (?)
 
             }
 
