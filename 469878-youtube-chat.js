@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.61.29
+// @version             0.61.30
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -192,6 +192,8 @@
   const FIX_AUTHOR_CHIP_BADGE_POSITION = true;
 
   const FIX_ToggleRenderPolymerControllerExtractionBug = false; // to be reviewed
+
+  const REACTION_ANIMATION_PANEL_CSS_FIX = true;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -724,6 +726,21 @@
     }
   `;
 
+  
+  const cssText18_REACTION_ANIMATION_PANEL_CSS_FIX = REACTION_ANIMATION_PANEL_CSS_FIX ? `
+    #reaction-control-panel-overlay[class] {
+      contain: strict;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      box-sizing: border-box;
+      will-change: initial;
+    }
+    #reaction-control-panel-overlay[class] *[class] {
+      will-change: initial;
+    }
+  `: ''
+
   const addCss = () => `
 
     @property --ticker-rtime {
@@ -975,6 +992,8 @@
     ${cssText16_FIX_AUTHOR_CHIP_BADGE_POSITION}
 
     ${cssText17_FIX_overwidth_banner_message}
+
+    ${cssText18_REACTION_ANIMATION_PANEL_CSS_FIX}
 
   `;
 
