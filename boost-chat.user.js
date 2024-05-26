@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.17
+// @version             0.1.18
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -545,14 +545,20 @@ SOFTWARE.
         --yt-live-chat-author-chip-owner-background-color: #ffff3c;
       }
 
-      .bst-message-list[dark] .bst-message-entry .bst-message-username {
-        --yt-live-chat-secondary-text-color: #a3e3e3;
+      .bst-message-list {
+        --bst-username-color: var(--yt-live-chat-secondary-text-color);
+        --bst-name-field-background-default: rgba(127, 127, 127, 0.15);
+      }
+      
+      .bst-message-list[dark] {
+        --bst-username-color: #a3e3e3;
+        --bst-name-field-background-default: rgba(255, 255, 255, 0.15);
       }
 
       .bst-message-username {
         box-sizing: border-box;
         border-radius: 2px;
-        color: var(--yt-live-chat-secondary-text-color);
+        color: var(--bst-username-color);
         font-weight: 500;
       }
 
@@ -571,7 +577,8 @@ SOFTWARE.
         --bst-list-gap: 10px;
 
         --bst-author-badge-mb: .2rem;
-        --bst-author-badge-va: text-bottom;
+        /* --bst-author-badge-va: text-bottom; */
+        --bst-author-badge-va: middle;
         --bst-author-badge-size: 16px;
 
         padding-left: var(--bst-list-pl);
@@ -623,6 +630,8 @@ SOFTWARE.
         max-width: 2rem;
         contain: strict;
         margin: 0;
+        margin-top: -4px;
+        margin-top: -0.5rem;
       }
       .bst-message-badge-yt-icon{
         display: inline-flex;
@@ -643,26 +652,44 @@ SOFTWARE.
         content: ': ';
       }
 
-      /*
-      .bst-liveChatSponsorshipsGiftRedemptionAnnouncementRenderer[class] {
-        flex-direction: row;
-        flex-wrap: nowrap;
+      .bst-name-field {
+        display: inline;
+        --bst-name-field-background: transparent;
+        position: relative;
+      }
+      
+      .bst-name-field:hover {
+        --bst-name-field-background: var(--bst-name-field-background-default);
+        background-color: var(--bst-name-field-background);
+        border-radius: 0.3rem;
+        box-shadow: 0 0 0 0.3rem var(--bst-name-field-background);
+        cursor: pointer;
+      }
+      .bst-message-body::before {
+        content: '\u200b';
+        opacity: 0;
+        user-select: none;
       }
 
-      .bst-liveChatSponsorshipsGiftRedemptionAnnouncementRenderer .bst-message-head-colon {
-        display: none;
+      .bst-message-profile-holder::before{
+        content: '\u200b';
+        opacity: 0;
+        user-select: none;
       }
-      .bst-liveChatSponsorshipsGiftRedemptionAnnouncementRenderer .bst-message-body {
-        flex-shrink: initial;
+      
+      [author-type="owner"] .bst-name-field {
+        --bst-name-field-background: var(--yt-live-chat-author-chip-owner-background-color);
+        background-color: var(--bst-name-field-background);
+        border-radius: 0.3rem;
+        box-shadow: 0 0 0 0.3rem var(--bst-name-field-background);
       }
-      */
-
       .bst-message-entry {
         display:block;
         position: relative;
         padding-left: var(--bst-message-entry-pl);
         box-sizing: border-box;
         min-height: 2.7rem;
+        overflow-wrap: anywhere;
       }
 
       .bst-message-entry.bst-viewer-engagement-message {
@@ -688,24 +715,6 @@ SOFTWARE.
         flex-direction:row;
         vertical-align: baseline;
         position: relative;
-      }
-      .bst-message-head-highlight{
-        display: none;
-        position: absolute;
-        z-index: -1;
-        background-color: var(--yt-live-chat-author-chip-owner-background-color);
-        bottom: -0.4rem;
-        left: -0.4rem;
-        right: -0.4rem;
-        top: -0.4rem;
-        border-radius: var(--border-radius-medium);
-        pointer-events: none !important;
-      }
-      .bst-message-entry[author-type="owner"] .bst-message-username.bst-message-name-color {
-        background-color: var(--yt-live-chat-author-chip-owner-background-color); /* to be reviewed ... */
-      }
-      .bst-message-entry[author-type="owner"] .bst-message-head-highlight{
-        display: block;
       }
 
       .bst-message-entry[author-type="owner"] .bst-message-head-colon {
@@ -868,18 +877,21 @@ SOFTWARE.
 
 
       .bst-message-entry[author-type="member"] .bst-message-name-color{
-        color: var(--yt-live-chat-sponsor-color);
+        --bst-username-color: var(--yt-live-chat-sponsor-color);
+        color: var(--bst-username-color);
       }
       .bst-message-entry[author-type="moderator"] .bst-message-name-color{
-        color: var(--yt-live-chat-moderator-color)
+        --bst-username-color: var(--yt-live-chat-moderator-color);
+        color: var(--bst-username-color);
       }
       .bst-message-entry[author-type="owner"] .bst-message-name-color{
-        color: var(--yt-live-chat-author-chip-owner-text-color);
+        --bst-username-color: var(--yt-live-chat-author-chip-owner-text-color);
+        color: var(--bst-username-color);
       }
 
 
       .bst-message-entry .bst-message-name-color .bst-message-badge-yt-icon[icon-type="verified"] {
-        color: var(--yt-live-chat-verified-color,#999);
+        color: var(--yt-live-chat-verified-color, inherit);
       }
       
 
@@ -926,7 +938,7 @@ SOFTWARE.
       
       yt-live-chat-author-chip[disable-highlighting] #author-name.yt-live-chat-author-chip {
           color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
-          font-size: 14px
+          font-size: 110%;
       }
       
       yt-live-chat-author-chip[dashboard-money-feed] #author-name.yt-live-chat-author-chip {
@@ -1053,21 +1065,21 @@ SOFTWARE.
         display: none;
       }
 
-      .bst-paid-message .bst-message-name-color.bst-message-username[class]{
+      .bst-paid-message .bst-message-name-color .bst-message-username[class]{
         color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
-        font-size: 14px;
+        font-size: 110%;
       }
-      .bst-paid-sticker .bst-message-name-color.bst-message-username[class]{
+      .bst-paid-sticker .bst-message-name-color .bst-message-username[class]{
         color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
-        font-size: 14px;
+        font-size: 110%;
       }
 
 
       .bst-paid-message .bst-paid-amount{
-        font-size: 15px;
+        font-size: 115%;
       }
       .bst-paid-sticker .bst-paid-amount{
-        font-size: 15px;
+        font-size: 115%;
       }
 
       .bst-paid-amount{
@@ -1270,29 +1282,47 @@ SOFTWARE.
         position: relative;
       }
 
-       .bst-membership-message .bst-message-entry-body .bst-message-body::before {
-        content: '';
-        contain: strict;
-        display: inline;
-        user-select: none !important;
-        pointer-events: none !important;
-        line-height: var(--yt-live-chat-first-line-height);
-        vertical-align: baseline;
-    }
+      .bst-membership-message .bst-message-entry-body .bst-message-body::before {
+          content: '';
+          contain: strict;
+          display: inline;
+          user-select: none !important;
+          pointer-events: none !important;
+          line-height: var(--yt-live-chat-first-line-height);
+          vertical-align: baseline;
+      }
 
+      .bst-membership-message .bst-message-entry-header .bst-message-head{
+        margin-right: 8px;
+      }
+      .bst-membership-message .bst-message-entry-header .bst-message-body{
+        margin-left: 0px;
+        display: inline-block;
+      }
 
-    .bst-membership-message .bst-message-entry-header .bst-message-body{
+      .bst-membership-message .bst-message-entry-body .bst-message-body{
+        margin-left: 8px;
+        color: var(--yt-live-chat-sponsor-text-color)
+      }
+      
 
-      margin-left: 8px;
-      display: inline-block;
-    }
+      .bst-name-field-box {
+        pointer-events: none;
+        display: none;
+        position: absolute;
+        left: 0;
+        top: calc(100% + 4px);
+        background: white;
+        color: black;
+        z-index: 1;
+        contain: content;
+      }
+      .bst-name-field:hover .bst-name-field-box {
+        pointer-events: none;
+        /* display: block;*/
+        
+      }
 
-    .bst-membership-message .bst-message-entry-body .bst-message-body{
-
-      margin-left: 8px;
-      color: var(--yt-live-chat-sponsor-text-color)
-    }
-    
     `
   }
 
@@ -1572,17 +1602,18 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
     <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
+    <div class="bst-name-field bst-message-name-color">
+      <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+      <div class="bst-message-badges">
       <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
         return formatters.authorBadges(badge, data);
 
       }}<//>
       </div>
-      <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
+    </div>
+    <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
@@ -1604,15 +1635,16 @@ SOFTWARE.
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
       <div class="bst-message-head">
-      <div class="bst-message-head-highlight"></div>  
-      <div class="bst-message-time"></div>
-        <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-        <div class="bst-message-badges bst-message-name-color">
-        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+        <div class="bst-message-time"></div>
+        <div class="bst-name-field bst-message-name-color">
+          <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+          <div class="bst-message-badges">
+          <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-          return formatters.authorBadges(badge, data);
+            return formatters.authorBadges(badge, data);
 
-        }}<//>
+          }}<//>
+          </div>
         </div>
       </div>
       <div class="bst-message-body">${() => {
@@ -1651,15 +1683,16 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
-    <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
-      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-time"></div>
+      <div class="bst-name-field bst-message-name-color">
+        <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+        <div class="bst-message-badges">
+        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+          return formatters.authorBadges(badge, data);
 
-      }}<//>
+        }}<//>
+        </div>
       </div>
     </div>
     <div class="bst-message-body">
@@ -1688,15 +1721,16 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
-    <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
-      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-time"></div>
+      <div class="bst-name-field bst-message-name-color">
+        <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+        <div class="bst-message-badges">
+        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+          return formatters.authorBadges(badge, data);
 
-      }}<//>
+        }}<//>
+        </div>
       </div>
     </div>
     <div class="bst-message-body">
@@ -1720,15 +1754,16 @@ SOFTWARE.
   <div class="bst-message-entry-highlight" style="${ ()=>({'--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` }) }"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
-    <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
-      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-time"></div>
+      <div class="bst-name-field bst-message-name-color">
+        <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+        <div class="bst-message-badges">
+        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+          return formatters.authorBadges(badge, data);
 
-      }}<//>
+        }}<//>
+        </div>
       </div>
       <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
@@ -1747,19 +1782,25 @@ SOFTWARE.
   const SolidMessageText = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-${data.aKey}`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-head-highlight"></div>  
-    <div class="bst-message-time"></div>
-      <div class="bst-message-username bst-message-name-color">${() => data.bst('getUsername')}</div>
-      <div class="bst-message-badges bst-message-name-color">
-      <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
+      <div class="bst-message-time"></div>
+      <div class="bst-name-field bst-message-name-color">
+        <div class="bst-name-field-box">
+        <div>Icon</div>
+        <div>Name</div>
+        </div>
+        <div class="bst-message-username">${() => data.bst('getUsername')}</div>
+        <div class="bst-message-badges">
+        <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+          return formatters.authorBadges(badge, data);
 
-      }}<//>
+        }}<//>
+        </div>
       </div>
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
@@ -1770,6 +1811,7 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  </div>
   </div>
   </div>
 `;
