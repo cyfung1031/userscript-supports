@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by DOMMutation
 // @name:zh-TW          YouTube CPU Tamer by DOMMutation
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.26.0
+// @version             2024.05.26.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -226,7 +226,18 @@ SOFTWARE.
     }
   };
 
-  const _setAttribute = Element.prototype.setAttribute;
+
+  const { _setAttribute, _insertBefore } = (() => {
+    let _setAttribute = Element.prototype.setAttribute;
+    try {
+      _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
+    } catch (e) { }
+    let _insertBefore = Node.prototype.insertBefore;
+    try {
+      _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
+    } catch (e) { }
+    return { _setAttribute, _insertBefore};
+  })();
 
   cleanContext(win).then(__CONTEXT__ => {
 
@@ -244,7 +255,7 @@ SOFTWARE.
       if (!_dm) {
         _dm = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         _dm.id = 'd-m';
-        document.documentElement.insertBefore(_dm, document.documentElement.firstChild);
+        _insertBefore.call(document.documentElement, _dm, document.documentElement.firstChild);
       }
       const dm = _dm;
       dm._setAttribute = _setAttribute;
