@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.22
+// @version      3.23
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -90,7 +90,8 @@
             cProto.urlChangedAsync12 = async function () {
                 if (ath > 1e9) ath = 9;
                 const t = ++ath;
-                if (this.chatframe.contentDocument === null) await Promise.resolve();
+                const chatframe = this.chatframe || (this.$ || 0).chatframe || 0;
+                if (chatframe.contentDocument === null) await Promise.resolve();
                 if (t !== ath) return;
                 await getDMPromise();
                 if (t !== ath) return;
