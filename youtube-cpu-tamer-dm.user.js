@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by DOMMutation
 // @name:zh-TW          YouTube CPU Tamer by DOMMutation
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.13.0
+// @version             2024.05.26.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -249,7 +249,11 @@ SOFTWARE.
       const dm = _dm;
       dm._setAttribute = _setAttribute;
       let j = 0;
-      const attributeName = `dm-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      let attributeName_;
+      while (dm.hasAttribute(attributeName_ = `dm-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`)) {
+        // none
+      }
+      const attributeName = attributeName_;
       let qr = null;
       const mo = new MutationObserver(() => {
         if (qr !== null) {
