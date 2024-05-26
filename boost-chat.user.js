@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.21
+// @version             0.1.22
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -90,23 +90,23 @@ SOFTWARE.
   const { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild } = (() => {
     let _setAttribute = Element.prototype.setAttribute;
     try {
-        _setAttribute = ShadyDOM.nativeMethods.setAttribute;
+        _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
     } catch (e) { }
     let _insertBefore = Node.prototype.insertBefore;
     try {
-        _insertBefore = ShadyDOM.nativeMethods.insertBefore;
+        _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
     } catch (e) { }
     let _removeAttribute = Element.prototype.removeAttribute;
     try {
-      _removeAttribute = ShadyDOM.nativeMethods.removeAttribute;
+      _removeAttribute = ShadyDOM.nativeMethods.removeAttribute || _removeAttribute;
     } catch (e) { }
     let replaceWith = Element.prototype.replaceWith;
     try {
-      replaceWith = ShadyDOM.nativeMethods.replaceWith;
+      replaceWith = ShadyDOM.nativeMethods.replaceWith || replaceWith;
     } catch (e) { }
     let appendChild = Node.prototype.appendChild;
     try {
-      appendChild = ShadyDOM.nativeMethods.appendChild;
+      appendChild = ShadyDOM.nativeMethods.appendChild || appendChild;
     } catch (e) { }
     return { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild };
 })();
