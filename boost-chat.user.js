@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.19
+// @version             0.1.20
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -51,7 +51,6 @@ SOFTWARE.
     return;
   }
 
-  const { replaceWith, appendChild, getAttribute } = ((h0) => h0)(document.createElement('h0'));
   const { appendChild: fragmentAppendChild } = ((h0) => h0)(new DocumentFragment());
 
   /* globals WeakRef:false */
@@ -86,6 +85,31 @@ SOFTWARE.
   if (typeof IntersectionObserver === 'undefined') {
     throw 'Your browser is too old. It does not support YouTube Boost Chat.';
   }
+
+
+  const { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild } = (() => {
+    let _setAttribute = Element.prototype.setAttribute;
+    try {
+        _setAttribute = ShadyDOM.nativeMethods.setAttribute;
+    } catch (e) { }
+    let _insertBefore = Node.prototype.insertBefore;
+    try {
+        _insertBefore = ShadyDOM.nativeMethods.insertBefore;
+    } catch (e) { }
+    _removeAttribute = Element.prototype.removeAttribute;
+    try {
+      _removeAttribute = ShadyDOM.nativeMethods.removeAttribute;
+    } catch (e) { }
+    replaceWith = Element.prototype.replaceWith;
+    try {
+      replaceWith = ShadyDOM.nativeMethods.replaceWith;
+    } catch (e) { }
+    appendChild = Node.prototype.appendChild;
+    try {
+      appendChild = ShadyDOM.nativeMethods.appendChild;
+    } catch (e) { }
+    return { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild };
+})();
 
   const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
 
@@ -1425,8 +1449,8 @@ SOFTWARE.
                 const onYtIconCreated = (el) => {
                   const cnt = insp(el);
                   cnt.icon = "live-chat-badges:" + type;
-                  el.setAttribute('icon-type', type);
-                  el.setAttribute('shared-tooltip-text', tooltipText());
+                  _setAttribute.call(el, 'icon-type', type);
+                  _setAttribute.call(el, 'shared-tooltip-text', tooltipText());
                 }
                 return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
 
@@ -1570,7 +1594,7 @@ SOFTWARE.
       const onYtIconCreated = (el) => {
         const cnt = insp(el);
         cnt.icon = type;
-        el.setAttribute('icon-type', type);
+        _setAttribute.call(el, 'icon-type', type);
       }
       p = () => html`<div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>`
 
@@ -2030,6 +2054,8 @@ SOFTWARE.
     let messageList;
     /** @type {IntersectionObserver} */
     let ioMessageList = null;
+    /** @type {HTMLElement} */
+    let _messageOverflowAnchor = null;
     const qq = new WeakMap();
     let _flushed = 0;
 
@@ -2075,6 +2101,7 @@ SOFTWARE.
       }, {root: null, threshold: [0.05, 0.95], rootMargin: '0px'});
       iooa.observe(messageOverflowAnchor);
 
+      _messageOverflowAnchor = messageOverflowAnchor;
     }
     
 
@@ -2261,8 +2288,8 @@ SOFTWARE.
       const attributeFn = () => {
         if (!messageList) return;
         let isDark = document.documentElement.hasAttribute('dark')
-        if (isDark) messageList.setAttribute('dark', '');
-        else messageList.removeAttribute('dark');
+        if (isDark) _setAttribute.call(messageList, 'dark', '');
+        else _removeAttribute.call(messageList, 'dark');
       };
       (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
       attributeFn();
@@ -2526,7 +2553,11 @@ SOFTWARE.
 
     }
 
-    const scrollToEnd = () => messageList && messageList.scrollIntoView({ block: "end", behavior: "instant" });
+    const scrollToEnd = () => {
+      if(messageList && _messageOverflowAnchor){
+        messageList.scrollTop = _messageOverflowAnchor.offsetTop + 5;
+      }
+    }
 
     cProto.atBottomChanged_ = function (a) {
 
@@ -3078,9 +3109,9 @@ SOFTWARE.
               createRenderEffect(() => {
                 const v = viewVisiblePos();
                 if (v === null) {
-                  messageEntry.removeAttribute('view-pos');
+                  _removeAttribute.call(messageEntry, 'view-pos');
                 } else {
-                  messageEntry.setAttribute('view-pos', v);
+                  _setAttribute.call(messageEntry, 'view-pos', v);
                 }
               });
 
