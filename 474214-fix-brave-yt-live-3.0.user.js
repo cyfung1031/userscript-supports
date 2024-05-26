@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.23
+// @version      3.24
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -23,11 +23,11 @@
     const { _setAttribute, _insertBefore } = (() => {
         let _setAttribute = Element.prototype.setAttribute;
         try {
-            _setAttribute = ShadyDOM.nativeMethods.setAttribute;
+            _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
         } catch (e) { }
         let _insertBefore = Node.prototype.insertBefore;
         try {
-            _insertBefore = ShadyDOM.nativeMethods.insertBefore;
+            _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
         } catch (e) { }
         return { _setAttribute, _insertBefore };
     })();
