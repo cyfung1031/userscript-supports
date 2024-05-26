@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.20
+// @version             0.1.21
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -96,15 +96,15 @@ SOFTWARE.
     try {
         _insertBefore = ShadyDOM.nativeMethods.insertBefore;
     } catch (e) { }
-    _removeAttribute = Element.prototype.removeAttribute;
+    let _removeAttribute = Element.prototype.removeAttribute;
     try {
       _removeAttribute = ShadyDOM.nativeMethods.removeAttribute;
     } catch (e) { }
-    replaceWith = Element.prototype.replaceWith;
+    let replaceWith = Element.prototype.replaceWith;
     try {
       replaceWith = ShadyDOM.nativeMethods.replaceWith;
     } catch (e) { }
-    appendChild = Node.prototype.appendChild;
+    let appendChild = Node.prototype.appendChild;
     try {
       appendChild = ShadyDOM.nativeMethods.appendChild;
     } catch (e) { }
