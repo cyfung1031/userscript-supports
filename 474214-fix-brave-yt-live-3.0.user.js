@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.11
+// @version      3.20
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -20,37 +20,6 @@
 
     const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
-    const _ytIframeReloadDelay_ = window._ytIframeReloadDelay_ = window._ytIframeReloadDelay_ || (function () {
-        let pIfr = 0;
-        let url1 = null;
-        let url2 = null;
-        const pfn = resolve => {
-            if (!pIfr) {
-                pIfr = document.getElementById('d8y9c');
-                if (!pIfr) {
-                    let tp = document.createElement('template');
-                    tp.innerHTML = '<iframe id="d8y9c" style="display:none" sandbox="allow-same-origin"></iframe>';
-                    pIfr = tp.content.firstElementChild;
-                    tp = null;
-                    (document.body || document.documentElement).appendChild(pIfr);
-                }
-            }
-            pIfr.onload = resolve;
-            if (!url1) url1 = URL.createObjectURL(new Blob([], { type: 'text/html' }));
-            const c = url1;
-            url1 = url2;
-            url2 = c;
-            pIfr.contentDocument.location.replace(c);
-        };
-        let aLock = Promise.resolve();
-        return (() => {
-            const p = aLock = aLock.then(() => new Promise(pfn).catch(console.warn)).then(() => {
-                pIfr.onload = null;
-            });
-            return p.then();
-        });
-    })();
-
     (async () => {
         'use strict';
 
@@ -63,32 +32,26 @@
         const cnt = insp(chat);
         const cProto = cnt.constructor.prototype || 0;
 
-        if (typeof cProto.urlChanged !== 'function' || cProto.urlChanged66) return;
+        if (typeof cProto.urlChanged === 'function' && !cProto.urlChanged66 && !cProto.urlChangedAsync12) {
+            cProto.urlChanged66 = cProto.urlChanged;
+            let ath = 0;
+            cProto.urlChangedAsync12 = async function () {
+                if (ath > 1e9) ath = 9;
+                const t = ++ath;
+                try {
+                    const chatframe = this.chatframe || this.$.chatframe;
+                    if (chatframe && chatframe.contentDocument === null) await Promise.resolve();
+                } catch (e) {
 
-        cProto.urlChanged66 = cProto.urlChanged;
-        let rz = 0;
-        let mz = '';
-        cProto.urlChanged = function () {
-            const chatframe = this.chatframe || (this.$ || 0).chatframe;
-            const url = `${this.url}`;
-            if (!chatframe || !url) return;
-            let loc = '';
-            try {
-                loc = chatframe.contentDocument.location.href
-            } catch (e) { }
-            const kloc = loc.replace(/^https?:\/\/[\w\.\-]+\//, '/');
-            const kurl = url.replace(/^https?:\/\/[\w\.\-]+\//, '/');
-            if (kloc === kurl) return;
-            const t = `${kloc}\t${kurl}`;
-            // if (t === mz) return;
-            mz = t;
-            if (rz > 1e9) rz = 9;
-            const tz = ++rz;
-            _ytIframeReloadDelay_().then(() => {
-                if (tz !== rz) return;
-                arguments.length === 0 ? this.urlChanged66() : this.urlChanged66(...arguments);
-            });
+                }
+                if (t !== ath) return;
+                this.urlChanged66();
+            }
+            cProto.urlChanged = function () {
+                this.urlChangedAsync12();
+            }
         }
+
 
     })();
 })();
