@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.18
+// @version             0.1.19
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -45,6 +45,11 @@ SOFTWARE.
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   const RENDER_MESSAGES_ONE_BY_ONE = true;
+
+  if (typeof Element.prototype.attachShadow !== 'function') {
+    console.warn('Your browser does not support YouTube Boost Chat');
+    return;
+  }
 
   const { replaceWith, appendChild, getAttribute } = ((h0) => h0)(document.createElement('h0'));
   const { appendChild: fragmentAppendChild } = ((h0) => h0)(new DocumentFragment());
