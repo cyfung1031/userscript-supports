@@ -8,7 +8,7 @@
 // @grant       GM.deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       unsafeWindow
-// @version     1.2.1
+// @version     1.2.2
 // @author      CY Fung
 // @license     MIT
 // @description Remind you how many quota you left
@@ -1532,9 +1532,9 @@ __errorCode21167__ || (() => {
 
         let myGroup = group.cloneNode(true);
 
-        if (/\bright-\d+\b/.test(myGroup.className)) {
+        // if (/\bright-\d+\b/.test(myGroup.className)) {
           myGroup.classList.add('mr-offset-book-btn');
-        }
+        // }
         group.parentNode.insertBefore(myGroup, group);
         setupMyGroup(myGroup);
 
