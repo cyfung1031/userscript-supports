@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.23
+// @version             0.1.24
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1352,6 +1352,10 @@ SOFTWARE.
         
       }
 
+      bst-live-chat-placeholder {
+        display: none;
+      }
+
     `
   }
 
@@ -1568,6 +1572,8 @@ SOFTWARE.
               /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
               /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
               return SolidPaidSticker(item);
+            case 'liveChatPlaceholderItemRenderer':
+              return SolidMessagePlaceHolder(data);
             default:
               return SolidMessageText(item); // liveChatTextMessageRenderer
           }
@@ -1846,6 +1852,12 @@ SOFTWARE.
 `;
   };
 
+  const SolidMessagePlaceHolder = (data) => {
+
+    // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
+
+    return html`<bst-live-chat-placeholder></bst-live-chat-placeholder>`;
+  };
 
 
   /**
