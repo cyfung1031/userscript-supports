@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.27
+// @version             0.1.28
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -46,7 +46,7 @@ SOFTWARE.
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   const RENDER_MESSAGES_ONE_BY_ONE = true;
 
-  if (typeof Element.prototype.attachShadow !== 'function') {
+  if (typeof Element.prototype.attachShadow !== 'function' || typeof IntersectionObserver === 'undefined') {
     console.warn('Your browser does not support YouTube Boost Chat');
     return;
   }
@@ -82,19 +82,14 @@ SOFTWARE.
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
 
-  if (typeof IntersectionObserver === 'undefined') {
-    throw 'Your browser is too old. It does not support YouTube Boost Chat.';
-  }
-
-
   const { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild } = (() => {
     let _setAttribute = Element.prototype.setAttribute;
     try {
-        _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
+      _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
     } catch (e) { }
     let _insertBefore = Node.prototype.insertBefore;
     try {
-        _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
+      _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
     } catch (e) { }
     let _removeAttribute = Element.prototype.removeAttribute;
     try {
@@ -109,7 +104,7 @@ SOFTWARE.
       appendChild = ShadyDOM.nativeMethods.appendChild || appendChild;
     } catch (e) { }
     return { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild };
-})();
+  })();
 
   const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
 
@@ -154,7 +149,7 @@ SOFTWARE.
 
   const inPlaceArrayPush = (() => {
     // for details, see userscript-supports/library/misc.js
-    const LIMIT_N = typeof AbortSignal !== 'undefined' && typeof (AbortSignal||0).timeout === 'function' ? 50000 : 10000;
+    const LIMIT_N = typeof AbortSignal !== 'undefined' && typeof (AbortSignal || 0).timeout === 'function' ? 50000 : 10000;
     return function (dest, source) {
       let index = 0;
       const len = source.length;
@@ -206,7 +201,7 @@ SOFTWARE.
   const flushPE = createPipeline();
 
   let scrollEveryRound = null;
-  
+
 
   class LimitedSizeSet extends Set {
     constructor(n) {
@@ -262,8 +257,8 @@ SOFTWARE.
   }
 
 
-  const cssTexts =  {
-    "outer":`
+  const cssTexts = {
+    "outer": `
     
 
       .bst-yt-main ~ #items[id][class] {
@@ -289,7 +284,7 @@ SOFTWARE.
         /*position: static;*/
       }
     `,
-    "inner":`
+    "inner": `
 
 
 
@@ -1399,79 +1394,43 @@ SOFTWARE.
     }
   }
 
-  let formatMessage;
 
   const formatters = {
     authorBadges(badge, data) {
 
 
-        try {
-          const fk = firstKey(badge) || '';
-          const ek = badge[fk];
+      try {
+        const fk = firstKey(badge) || '';
+        const ek = badge[fk];
 
-          /**
-           * 
-          
-                    if (a.icon) {
-                        var c = document.createElement("yt-icon");
-                        "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
-                        c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
-                        b.appendChild(c)
-                    } else if (a.customThumbnail) {
-                        c = document.createElement("img");
-                        var d;
-                        (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
-                        b.appendChild(c),
-                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
-                    }
-          * 
-          */
+        /**
+         * 
+        
+                  if (a.icon) {
+                      var c = document.createElement("yt-icon");
+                      "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
+                      c.polymerController.defaultToFilled = !0) : c.polymerController.icon = "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                      b.appendChild(c)
+                  } else if (a.customThumbnail) {
+                      c = document.createElement("img");
+                      var d;
+                      (d = (d = eD(a.customThumbnail.thumbnails, 16)) ? Vb(ic(d)) : null) ? (c.src = d,
+                      b.appendChild(c),
+                      c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
+                  }
+        * 
+        */
 
-          if (ek.icon) {
+        if (ek.icon) {
 
-            const icon = ek.icon;
-            const type = icon.iconType.toLowerCase();
-            if (type === 'owner' && data.bst('shouldHighlight')) {
+          const icon = ek.icon;
+          const type = icon.iconType.toLowerCase();
+          if (type === 'owner' && data.bst('shouldHighlight')) {
 
-            } else {
+          } else {
 
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const dataMutable = mutableWM.get(data);
-              if (dataMutable) {
-                const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-                dataMutable.tooltips.set(badgeElementId, createStore({
-                  displayedTooltipText: ''
-                }));
-
-                const displayedTooltipText = () => {
-                  const dataMutable = mutableWM.get(data);
-                  const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
-                  return emojiDataStore.displayedTooltipText
-                }
-
-                const onYtIconCreated = (el) => {
-                  const cnt = insp(el);
-                  cnt.icon = "live-chat-badges:" + type;
-                  _setAttribute.call(el, 'icon-type', type);
-                  _setAttribute.call(el, 'shared-tooltip-text', tooltipText());
-                }
-                return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-              } else {
-                return '';
-              }
-
-
-            }
-
-
-          } else if (ek.customThumbnail) {
-
-            const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
-            const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
-            const alt = () => ek.accessibility?.accessibilityData?.label || '';
             const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+
             const dataMutable = mutableWM.get(data);
             if (dataMutable) {
               const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
@@ -1485,7 +1444,14 @@ SOFTWARE.
                 return emojiDataStore.displayedTooltipText
               }
 
-              return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+              const onYtIconCreated = (el) => {
+                const cnt = insp(el);
+                cnt.icon = "live-chat-badges:" + type;
+                _setAttribute.call(el, 'icon-type', type);
+                _setAttribute.call(el, 'shared-tooltip-text', tooltipText());
+              }
+              return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+
             } else {
               return '';
             }
@@ -1494,12 +1460,40 @@ SOFTWARE.
           }
 
 
-        } catch (e) {
-          console.warn(e);
+        } else if (ek.customThumbnail) {
+
+          const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
+          const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
+          const alt = () => ek.accessibility?.accessibilityData?.label || '';
+          const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+          const dataMutable = mutableWM.get(data);
+          if (dataMutable) {
+            const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
+            dataMutable.tooltips.set(badgeElementId, createStore({
+              displayedTooltipText: ''
+            }));
+
+            const displayedTooltipText = () => {
+              const dataMutable = mutableWM.get(data);
+              const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(badgeElementId);
+              return emojiDataStore.displayedTooltipText
+            }
+
+            return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+          } else {
+            return '';
+          }
+
+
         }
 
+
+      } catch (e) {
+        console.warn(e);
+      }
+
     },
-    messageBody(message, data){
+    messageBody(message, data) {
 
       if (typeof message === 'string') return html`<span>${() => message}</span>`
       if (typeof message.text === 'string') {
@@ -1508,7 +1502,7 @@ SOFTWARE.
           return html`<a href="${() => urlEndpoint.url}" rel="${() => urlEndpoint.nofollow === true ? 'nofollow' : null}" target="${() => urlEndpoint.target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => message.text}</span>`
         }
         return html`<span>${() => message.text}</span>`
-      } 
+      }
 
       if (typeof message.emoji !== 'undefined') {
 
@@ -1551,35 +1545,33 @@ SOFTWARE.
   const SolidMessageList = (sb) => {
 
     return html`
-      <${For} each=(${sb})>${
-        (item) => {
-          onCleanup(()=>{
-            removeEntry(item)
-          });
-          
-          switch (item.aKey) {
-            case 'liveChatViewerEngagementMessageRenderer':
-              return SolidSystemMessage(item);
-            case 'liveChatPaidMessageRenderer':
-              return SolidPaidMessage(item);
-            case 'liveChatMembershipItemRenderer':
-              return SolidMembershipMessage(item);
-            case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
-              return SolidGiftText(item);
-            case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
-              return SolidSponsorshipPurchase(item);
-            case 'liveChatPaidStickerRenderer':
-              /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
-              /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
-              return SolidPaidSticker(item);
-            case 'liveChatPlaceholderItemRenderer':
-              return SolidMessagePlaceHolder(item);
-            default:
-              return SolidMessageText(item); // liveChatTextMessageRenderer
-          }
+      <${For} each=(${sb})>${(item) => {
+        onCleanup(() => {
+          removeEntry(item)
+        });
 
+        switch (item.aKey) {
+          case 'liveChatViewerEngagementMessageRenderer':
+            return SolidSystemMessage(item);
+          case 'liveChatPaidMessageRenderer':
+            return SolidPaidMessage(item);
+          case 'liveChatMembershipItemRenderer':
+            return SolidMembershipMessage(item);
+          case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
+            return SolidGiftText(item);
+          case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
+            return SolidSponsorshipPurchase(item);
+          case 'liveChatPaidStickerRenderer':
+            /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
+            /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
+            return SolidPaidSticker(item);
+          case 'liveChatPlaceholderItemRenderer':
+            return SolidMessagePlaceHolder(item);
+          default:
+            return SolidMessageText(item); // liveChatTextMessageRenderer
         }
-      }<//>
+
+      }}<//>
   `
 
   }
@@ -1665,7 +1657,7 @@ SOFTWARE.
   const SolidMembershipMessage = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-message-entry-ll bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList=${{"bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody')}}>
+  <div classList=${{ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody') }}>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
@@ -1685,7 +1677,7 @@ SOFTWARE.
       <div class="bst-message-body">${() => {
         return convertYTtext(data.headerPrimaryText || data.headerSubtext);
         // new member - only data.headerSubtext
-          // return convertYTtext(data.headerSubtext)
+        // return convertYTtext(data.headerSubtext)
       }}</div>
     </div>
     <div class="bst-message-menu-container">
@@ -1786,7 +1778,7 @@ SOFTWARE.
     return html`
   <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
-  <div class="bst-message-entry-highlight" style="${ ()=>({'--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` }) }"></div>
+  <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
       <div class="bst-message-time"></div>
@@ -1853,7 +1845,7 @@ SOFTWARE.
   };
 
   const SolidMessagePlaceHolder = (data) => {
- 
+
     return html`<bst-live-chat-placeholder ref="${mutableWM.get(data).setupFn}"></bst-live-chat-placeholder>`;
 
   };
@@ -1889,7 +1881,7 @@ SOFTWARE.
     return null;
   }
 
-  const fixMessagesForEmoji = (()=>{
+  const fixMessagesForEmoji = (() => {
 
     let Vkb = 0
       , Wkb = /tone[1-5]/
@@ -1907,61 +1899,61 @@ SOFTWARE.
       return !a || a.isLocked ? null : a
     }
 
-    function resultAddText(r, text){
-      if(typeof text === 'string' && text.length >= 1){
-        r.push({text: text});
+    function resultAddText(r, text) {
+      if (typeof text === 'string' && text.length >= 1) {
+        r.push({ text: text });
       }
     }
-    function resultAddEmoji(r, emoji){
-      if(emoji && typeof emoji === 'object'){
-        r.push({emoji: emoji});
+    function resultAddEmoji(r, emoji) {
+      if (emoji && typeof emoji === 'object') {
+        r.push({ emoji: emoji });
       }
     }
 
-/*
-
-    cQ.prototype.createDocumentFragment = function(a, b, c, d) {
-        b = void 0 === b ? !1 : b;
-        c = void 0 === c ? !0 : c;
-        d = void 0 === d ? !1 : d;
-        a = a.replace($kb, "");
-        for (var e = document.createDocumentFragment(), g = 0, k, m = 0; null != (k = this.emojiRegex.exec(a)); ) {
-            var p = dQ(this, k[0]) || gQ(this, k[0]);
-            !p || p.isCustomEmoji && !b || (p = this.createEmoji(p, c),
-            g !== k.index && e.appendChild(document.createTextNode(a.substring(g, k.index))),
-            e.appendChild(p),
-            g = k.index + k[0].length,
-            m++)
+    /*
+    
+        cQ.prototype.createDocumentFragment = function(a, b, c, d) {
+            b = void 0 === b ? !1 : b;
+            c = void 0 === c ? !0 : c;
+            d = void 0 === d ? !1 : d;
+            a = a.replace($kb, "");
+            for (var e = document.createDocumentFragment(), g = 0, k, m = 0; null != (k = this.emojiRegex.exec(a)); ) {
+                var p = dQ(this, k[0]) || gQ(this, k[0]);
+                !p || p.isCustomEmoji && !b || (p = this.createEmoji(p, c),
+                g !== k.index && e.appendChild(document.createTextNode(a.substring(g, k.index))),
+                e.appendChild(p),
+                g = k.index + k[0].length,
+                m++)
+            }
+            if (!d || m)
+                return e.appendChild(document.createTextNode(a.substr(g))),
+                e
         }
-        if (!d || m)
-            return e.appendChild(document.createTextNode(a.substr(g))),
-            e
-    }
+    
+        */
 
-    */
+    /*
+    
+        cQ.prototype.createEmoji = function(a, b) {
+            b = void 0 === b ? !0 : b;
+            var c = document.createElement("img");
+            a.isCustomEmoji && !x("render_custom_emojis_as_small_images") || c.classList.add("small-emoji");
+            c.classList.add("emoji");
+            c.classList.add("yt-formatted-string");
+            c.src = a.image ? $C(a.image.thumbnails, this.emojiSize) || "" : "";
+            var d = void 0;
+            a.image && a.image.accessibility && a.image.accessibility.accessibilityData && (d = a.image.accessibility.accessibilityData.label);
+            c.alt = d ? d : (a.isCustomEmoji && a.shortcuts ? a.shortcuts[0] : a.emojiId) || "";
+            a.isCustomEmoji && (c.dataset.emojiId = a.emojiId);
+            ce && (c.setAttribute("contenteditable", "false"),
+            c.setAttribute("unselectable", "on"));
+            b && (a.shortcuts && a.shortcuts.length && c.setAttribute("shared-tooltip-text", a.shortcuts[0]),
+            c.id = "emoji-" + Vkb++);
+            return c
+        }
+        */
 
-/*
-
-    cQ.prototype.createEmoji = function(a, b) {
-        b = void 0 === b ? !0 : b;
-        var c = document.createElement("img");
-        a.isCustomEmoji && !x("render_custom_emojis_as_small_images") || c.classList.add("small-emoji");
-        c.classList.add("emoji");
-        c.classList.add("yt-formatted-string");
-        c.src = a.image ? $C(a.image.thumbnails, this.emojiSize) || "" : "";
-        var d = void 0;
-        a.image && a.image.accessibility && a.image.accessibility.accessibilityData && (d = a.image.accessibility.accessibilityData.label);
-        c.alt = d ? d : (a.isCustomEmoji && a.shortcuts ? a.shortcuts[0] : a.emojiId) || "";
-        a.isCustomEmoji && (c.dataset.emojiId = a.emojiId);
-        ce && (c.setAttribute("contenteditable", "false"),
-        c.setAttribute("unselectable", "on"));
-        b && (a.shortcuts && a.shortcuts.length && c.setAttribute("shared-tooltip-text", a.shortcuts[0]),
-        c.id = "emoji-" + Vkb++);
-        return c
-    }
-    */
-
-    function createEmojiMX(a, b){
+    function createEmojiMX(a, b) {
 
       /*
         b = void 0 === b ? !0 : b;
@@ -1981,45 +1973,45 @@ SOFTWARE.
         return c
 */
 
-/*
+      /*
+      
+      
+              try {
+                const emoji = message.emoji;
+      
+                const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+                const src = () => `${emoji.image.thumbnails[0].url}`
+                const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
+                const tooltipText = () => emoji.shortcuts?.[0] || '';
+                const emojiId = () => emoji.emojiId || '';
+                const isCustomEmoji = () => emoji.isCustomEmoji || false;
+                const dataMutable = mutableWM.get(data);
+                if (dataMutable) {
+                  const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
+                  dataMutable.tooltips.set(emojiElementId, createStore({
+                    displayedTooltipText: ''
+                  }));
+      
+                  const displayedTooltipText = () => {
+                    const dataMutable = mutableWM.get(data);
+                    const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
+                    return emojiDataStore.displayedTooltipText
+                  }
+      
+                  return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+                } else {
+                  return '';
+                }
+      
+              } catch (e) {
+                console.warn(e);
+              }
+              */
 
 
-        try {
-          const emoji = message.emoji;
-
-          const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-          const src = () => `${emoji.image.thumbnails[0].url}`
-          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
-          const tooltipText = () => emoji.shortcuts?.[0] || '';
-          const emojiId = () => emoji.emojiId || '';
-          const isCustomEmoji = () => emoji.isCustomEmoji || false;
-          const dataMutable = mutableWM.get(data);
-          if (dataMutable) {
-            const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
-            dataMutable.tooltips.set(emojiElementId, createStore({
-              displayedTooltipText: ''
-            }));
-
-            const displayedTooltipText = () => {
-              const dataMutable = mutableWM.get(data);
-              const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
-              return emojiDataStore.displayedTooltipText
-            }
-
-            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-          } else {
-            return '';
-          }
-
-        } catch (e) {
-          console.warn(e);
-        }
-        */
-
-
-        return a;
+      return a;
     }
-    function fixMessagesForEmoji(a, b, c, d){
+    function fixMessagesForEmoji(a, b, c, d) {
       b = void 0 === b ? !1 : b; // false
       c = void 0 === c ? !0 : c; // true
       d = void 0 === d ? !1 : d; // false
@@ -2029,9 +2021,9 @@ SOFTWARE.
       let g = 0;
       let k;
       let m = 0;
-      for (; null != (k = this.emojiRegex.exec(a)); ) {
-          var p = dQ(this, k[0]) || gQ(this, k[0]);
-          !p || p.isCustomEmoji && !b || (p = createEmojiMX.call(this, p, c),
+      for (; null != (k = this.emojiRegex.exec(a));) {
+        var p = dQ(this, k[0]) || gQ(this, k[0]);
+        !p || p.isCustomEmoji && !b || (p = createEmojiMX.call(this, p, c),
           g !== k.index && resultAddText(r, a.substring(g, k.index)),
           resultAddEmoji(r, p),
           g = k.index + k[0].length,
@@ -2084,7 +2076,7 @@ SOFTWARE.
       }
     };
 
-    const ioMessageListCleanup = ()=>{
+    const ioMessageListCleanup = () => {
       if (ioMessageList) {
         ioMessageList.disconnect();
         ioMessageList.takeRecords();
@@ -2111,33 +2103,17 @@ SOFTWARE.
             this.setAtBottomTrue();
           }
         });
-      }, {root: null, threshold: [0.05, 0.95], rootMargin: '0px'});
+      }, { root: null, threshold: [0.05, 0.95], rootMargin: '0px' });
       iooa.observe(messageOverflowAnchor);
 
       _messageOverflowAnchor = messageOverflowAnchor;
-    }
-    
-
-    formatMessage = (a) => {
-      if (!wliveChatTextMessageRenderer) return null;
-      const cnt = insp(wliveChatTextMessageRenderer);
-      if (!cnt) return null;
-      let bh = (cnt.ytLiveChatItemBehavior || 0);
-      if (typeof bh.createDocumentFragment !== 'function') {
-        bh = cnt;
-        if (typeof bh.createDocumentFragment !== 'function') {
-          return null;
-        }
-      }
-      if (bh.createDocumentFragment?.length !== 1) return null;
-      return bh.createDocumentFragment(a);
     }
 
     cProto.computeIsEmpty_ = function () {
       return !(this.visibleItems?.length || 0);
     }
     cProto._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80;
-    
+
     cProto.setupBoostChat = function () {
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
@@ -2155,7 +2131,7 @@ SOFTWARE.
       const noscript = document.createElement('noscript');
       appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
       appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
-      
+
       fragmentAppendChild.call(fragment, noscript);
       fragmentAppendChild.call(fragment, bstMain);
 
@@ -2164,7 +2140,7 @@ SOFTWARE.
       const shadow = bstMain.attachShadow({ mode: "open" });
       qq.set(hostElement, {
         shadow,
-        intersectionObserver: new IntersectionObserver(ioMessageListCallback, {root: bstMain, threshold:[0.05, 0.95] })
+        intersectionObserver: new IntersectionObserver(ioMessageListCallback, { root: bstMain, threshold: [0.05, 0.95] })
       });
       const { intersectionObserver } = qq.get(hostElement);
       bstMain.classList.add('bst-yt-main');
@@ -2188,7 +2164,7 @@ SOFTWARE.
       messageList.className = 'bst-message-list';
       shadow.appendChild(messageList)
 
-      messageList.getListRendererCnt = ()=>{
+      messageList.getListRendererCnt = () => {
 
         let cnt = wliveChatTextMessageRenderer ? insp(wliveChatTextMessageRenderer) : null;
         while (cnt && cnt.is) {
@@ -2200,17 +2176,17 @@ SOFTWARE.
         return cnt;
       }
 
-      messageList.getInputRendererCnt = ()=>{
+      messageList.getInputRendererCnt = () => {
         let cnt = wliveChatTextInputRenderer ? insp(wliveChatTextInputRenderer) : null;
         return cnt;
       }
-      
 
-      const [visibleCount, visibleCountChange ] = createSignal();
+
+      const [visibleCount, visibleCountChange] = createSignal();
 
 
       messageList.visibleCount = visibleCount;
-      
+
 
       //  const mm = shadow.appendChild(document.createElement('div'))
 
@@ -2310,11 +2286,11 @@ SOFTWARE.
 
       ioMessageList = intersectionObserver;
 
-      createEffect(()=>{
+      createEffect(() => {
         const list = solidBuild();
-        let j =0;
-        for(let i=0;i<list.length;i++){
-          const mutable = mutableWM.get( list[i]);
+        let j = 0;
+        for (let i = 0; i < list.length; i++) {
+          const mutable = mutableWM.get(list[i]);
           if (typeof mutable?.viewVisible === 'function' && typeof mutable?.viewVisibleIdxChange === 'function') {
             if (mutable?.viewVisible()) {
               j++;
@@ -2337,8 +2313,8 @@ SOFTWARE.
 
 
 
-    function getAuthor(o){
-      if (o?.rendererFlag === 1){
+    function getAuthor(o) {
+      if (o?.rendererFlag === 1) {
         return o?.header?.liveChatSponsorshipsHeaderRenderer;
       }
       return o;
@@ -2375,37 +2351,19 @@ SOFTWARE.
       return null;
     }
 
-    const fixMessages = (messages)=>{
+    const fixMessages = (messages) => {
 
-      // const fragment = formatMessage ? formatMessage({runs: messages}) : null;
-      // if(!fragment) return messages;
-      // if(!(fragment instanceof DocumentFragment)) return messages;
-
-      // const map = new Map();
-      // const arr = [];
-      // for(const emojiElement of fragment.querySelectorAll('.emoji')){
-      //   const alt = getAttribute.call(emojiElement, 'alt')
-      //   map.set(alt, {
-      //     alt,
-      //     src: getAttribute.call(emojiElement, 'src'),
-      //     'shared-tooltip-text': getAttribute.call(emojiElement, 'shared-tooltip-text')
-      //   });
-      //   arr.push(alt);
-      // }
-      // // for(const message of messages){
-      // //   if(message.emoji && message.emoji.)
-      // // }
       const cnt = messageList?.getInputRendererCnt() || null;
-      if(!cnt) return messages;
+      if (!cnt) return messages;
 
       let res = [];
 
-      for(const message of messages){
-        if(typeof message.text === 'string'){
+      for (const message of messages) {
+        if (typeof message.text === 'string') {
           let r;
-          try{
-            r= fixMessagesForEmoji.call(cnt.emojiManager, message.text)
-          }catch(e){
+          try {
+            r = fixMessagesForEmoji.call(cnt.emojiManager, message.text)
+          } catch (e) {
             console.warn(e)
           }
           if (r && r.length === 1 && r[0].text) {
@@ -2446,7 +2404,7 @@ SOFTWARE.
 
           })(message.text)
           */
-        }else{
+        } else {
           res.push(message);
         }
       }
@@ -2475,7 +2433,7 @@ SOFTWARE.
     */
 
       return res;
-      
+
 
     }
 
@@ -2510,7 +2468,7 @@ SOFTWARE.
 
         const runs = message.runs;
         return runs && runs.length && runs[0];
-  
+
       } else if (prop === 'messages') {
 
         return this.messageFixed;
@@ -2570,7 +2528,7 @@ SOFTWARE.
     }
 
     const scrollToEnd = () => {
-      if(messageList && _messageOverflowAnchor && _bstMain){
+      if (messageList && _messageOverflowAnchor && _bstMain) {
         _bstMain.scrollTop = _messageOverflowAnchor.offsetTop + 5;
       }
     }
@@ -2640,10 +2598,10 @@ SOFTWARE.
       let e = c[fk]
         , replaceExistingItem = false;
 
-        if (a && e && a.clientId && !e.__clientId__) e.__clientId__ = a.clientId;
-        if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
+      if (a && e && a.clientId && !e.__clientId__) e.__clientId__ = a.clientId;
+      if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
 
-        // to be reviewed for performance issue // TODO
+      // to be reviewed for performance issue // TODO
       this.forEachItem_(function (tag, p, idx) {
         const aObj = p[fk];
         if (aObj && (aObj.id === a.clientId || aObj.id === e.id)) {
@@ -2723,10 +2681,10 @@ SOFTWARE.
       if (this.clearCount > 1e9) this.clearCount = 9;
       if (this.activeItems_) this.activeItems_.length = 0;
       flushKeys.clear();
-      if (this.visibleItems && (this.visibleItems.length >0)) {
+      if (this.visibleItems && (this.visibleItems.length > 0)) {
         this.visibleItems.length = 0;
         if (messageList) {
-          messageList.solidBuildSet(a => ( (a.length = 0), a));
+          messageList.solidBuildSet(a => ((a.length = 0), a));
         }
       }
       if (!this.activeItems_.length && !this.visibleItems.length) {
@@ -2841,17 +2799,17 @@ SOFTWARE.
     
     */
 
-    function getUID(aObj){
+    function getUID(aObj) {
       return `${aObj.authorExternalChannelId}:${aObj.timestampUsec}`
     }
-    function convertAObj(aObj, aKey){
+    function convertAObj(aObj, aKey) {
 
       aObj.uid = getUID(aObj);
-      if(aKey && typeof aKey === 'string') aObj.aKey = aKey;
+      if (aKey && typeof aKey === 'string') aObj.aKey = aKey;
 
-      if(aObj.aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"){
+      if (aObj.aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") {
         aObj.rendererFlag = 1;
-      }else{
+      } else {
         aObj.rendererFlag = 0;
       }
       aObj.getProfilePic = getProfilePic;
@@ -2892,8 +2850,8 @@ SOFTWARE.
           _addLen > maxItemsToDisplay * 2 && activeItems_.splice(0, _addLen - maxItemsToDisplay)
           return;
         } else {
-          if(_addLen > maxItemsToDisplay){
-            if (this.visibleItems && (this.visibleItems.length >0) ) {
+          if (_addLen > maxItemsToDisplay) {
+            if (this.visibleItems && (this.visibleItems.length > 0)) {
               this.visibleItems.length = 0;
               if (messageList) {
                 messageList.solidBuildSet(a => ((a.length = 0), a));
@@ -2901,7 +2859,7 @@ SOFTWARE.
             }
             activeItems_.splice(0, _addLen - maxItemsToDisplay);
           }
-          
+
         }
 
         const addLen = activeItems_.length;
@@ -2923,7 +2881,7 @@ SOFTWARE.
 
         const appendStates = new Map();
 
-        let [mountedCounter, mountedCounterSet]= createSignal(0);
+        let [mountedCounter, mountedCounterSet] = createSignal(0);
 
         const rearranged = items.map(flushItem => {
 
@@ -3084,9 +3042,9 @@ SOFTWARE.
               // messageEntry.onInterception = function(){
               //   this.
               // }
-              
+
               // change on state
-              createEffect(()=>{
+              createEffect(() => {
 
                 const visible = interceptionRatio();
                 if (visible > 0.9) {
@@ -3094,7 +3052,7 @@ SOFTWARE.
                 } else if (visible < 0.1) {
                   viewVisibleChange(0);
                 }
-                
+
               });
 
               // change on state -> change on DOM
@@ -3134,14 +3092,14 @@ SOFTWARE.
               ioMessageList && ioMessageList.observe(messageEntry);
 
               createdPromise.resolve(messageEntry);
-              mountedCounterSet(a=>a+1);
+              mountedCounterSet(a => a + 1);
 
 
             }
           }
           mutableWM.set(bObj, mutable);
 
-          
+
           appendStates.set(flushItem, 2);
 
           return bObj;
@@ -3155,18 +3113,18 @@ SOFTWARE.
 
         const isAtBottom = this.atBottom === true;
 
-        if(!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1){
+        if (!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1) {
 
           let t1 = performance.now();
 
           let isCreated = false;
-          const renderedPromise=new PromiseExternal();
+          const renderedPromise = new PromiseExternal();
           createEffect(() => {
             const count = mountedCounter()
             // console.log('count', count, isCreated);
             if (count === rearranged.length) renderedPromise.resolve();
           });
-  
+
           messageList.solidBuildSet(list => {
             const shouldRemove = removeCount > 0 && lastVisibleItemCount === visibleItems.length && lastVisibleItemCount === list.length
             shouldRemove && visibleItems.splice(0, removeCount);
@@ -3175,10 +3133,10 @@ SOFTWARE.
             inPlaceArrayPush(list, rearranged);
             return list;
           });
-   
+
           await Promise.all(rearranged.map(e => (mutableWM.get(e)?.createdPromise || 0)));
           isCreated = true;
-  
+
           await renderedPromise.then();
 
           if (isAtBottom) {
@@ -3190,7 +3148,7 @@ SOFTWARE.
 
 
           let t2 = performance.now();
-          if(rearranged.length > 20) console.log(`one-by-one = false <${rearranged.length}>`, t2-t1);
+          if (rearranged.length > 20) console.log(`one-by-one = false <${rearranged.length}>`, t2 - t1);
 
 
         } else {
@@ -3206,16 +3164,16 @@ SOFTWARE.
             if (count === targetCount) renderedPromise.resolve();
           });
 
-          for(let j = 0; j< rearranged.length; j++){
+          for (let j = 0; j < rearranged.length; j++) {
 
-            renderedPromise=new PromiseExternal();
-            targetCount = j+1;
+            renderedPromise = new PromiseExternal();
+            targetCount = j + 1;
 
             let lastScrollTop = -1;
-            if (scrollEveryRound===null && isAtBottom && messageList) {
+            if (scrollEveryRound === null && isAtBottom && messageList) {
               lastScrollTop = messageList.scrollTop;
             }
-            
+
 
             messageList.solidBuildSet(list => {
               const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
@@ -3262,7 +3220,7 @@ SOFTWARE.
           mountedCounterSet = null;
 
           let t2 = performance.now();
-          if(rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, t2-t1);
+          if (rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, t2 - t1);
 
         }
 
@@ -3306,92 +3264,3 @@ SOFTWARE.
   });
 
 })();
-
-
-/**
- * 
- * 
-
-liveChatPaidStickerRenderer
-
-{
-    "id": "ChwKGkNKZXg0WmFyb1lZREZlWV9yUVlkREg4SXB3",
-    "contextMenuEndpoint": {
-        "clickTrackingParams": "CCUQ77sEIhMIg6v85rChhgMVq8fCBB2wWgiV",
-        "commandMetadata": {
-            "webCommandMetadata": {
-                "ignoreNavigation": true
-            }
-        },
-        "liveChatItemContextMenuEndpoint": {
-            "params": "Q2g0S0hBb2FRMHBsZURSYVlYSnZXVmxFUm1WWlgzSlJXV1JFU0RoSmNIY2FLU29uQ2hoVlEwdzJUVzlmYkY5bFlrTnBaR3BPY0hOWGRYbEpkbWNTQ3prM1gwdE1iR0ZWU1VOUklBRW9CRElhQ2hoVlF6QlpNM1ZKTkhVMGJ6azJRMk5MWTFWNmQxVmtYMEU0QWtnQVVCUSUzRA=="
-        }
-    },
-    "contextMenuAccessibility": {
-        "accessibilityData": {
-            "label": "チャットの操作"
-        }
-    },
-    "timestampUsec": "1716383620997246",
-    "authorPhoto": {
-        "thumbnails": [
-            {
-                "url": "https://yt4.ggpht.com/KXO9eWJpABwpGozWz0JSrs8Rm2V4XRD-cypQvYZbY7wo8QAin42vuhTWIjshGtrMEaw3TlpRIA=s32-c-k-c0x00ffffff-no-rj",
-                "width": 32,
-                "height": 32
-            },
-            {
-                "url": "https://yt4.ggpht.com/KXO9eWJpABwpGozWz0JSrs8Rm2V4XRD-cypQvYZbY7wo8QAin42vuhTWIjshGtrMEaw3TlpRIA=s64-c-k-c0x00ffffff-no-rj",
-                "width": 64,
-                "height": 64
-            }
-        ],
-        "webThumbnailDetailsExtensionData": {
-            "isPreloaded": true
-        }
-    },
-    "authorName": {
-        "simpleText": "( - ᴗ - )黑崎一聾(Ryū)​"
-    },
-    "authorExternalChannelId": "UC0Y3uI4u4o96CcKcUzwUd_A",
-    "sticker": {
-        "thumbnails": [
-            {
-                "url": "//lh3.googleusercontent.com/agY5_IS-HWYMQiU6TrnmjVS74Lq241PS45M6-TqnnE0JxPiM9I4Qx5HEWDpF3bjLrywcrV3e2le-KYkGo3E=s72-rwa",
-                "width": 72,
-                "height": 72
-            },
-            {
-                "url": "//lh3.googleusercontent.com/agY5_IS-HWYMQiU6TrnmjVS74Lq241PS45M6-TqnnE0JxPiM9I4Qx5HEWDpF3bjLrywcrV3e2le-KYkGo3E=s144-rwa",
-                "width": 144,
-                "height": 144
-            }
-        ],
-        "accessibility": {
-            "accessibilityData": {
-                "label": "腕を大きく前に伸ばしてコーヒーを差し出す洋ナシのキャラクター"
-            }
-        }
-    },
-    "moneyChipBackgroundColor": 4278248959,
-    "moneyChipTextColor": 4278190080,
-    "purchaseAmountText": {
-        "simpleText": "NT$60.00"
-    },
-    "stickerDisplayWidth": 72,
-    "stickerDisplayHeight": 72,
-    "backgroundColor": 4278248959,
-    "authorNameTextColor": 3003121664,
-    "trackingParams": "CCUQ77sEIhMIg6v85rChhgMVq8fCBB2wWgiV",
-    "isV2Style": true,
-    "__clientId__": "CJex4ZaroYYDFeY_rQYdDH8Ipw",
-    "uid": "UC0Y3uI4u4o96CcKcUzwUd_A:1716383620997246",
-    "aKey": "liveChatPaidStickerRenderer",
-    "rendererFlag": 0,
-    "messageFixed": []
-}
-
-
- * 
- * 
- */
