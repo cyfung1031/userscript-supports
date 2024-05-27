@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.26
+// @version             0.1.27
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1853,10 +1853,9 @@ SOFTWARE.
   };
 
   const SolidMessagePlaceHolder = (data) => {
+ 
+    return html`<bst-live-chat-placeholder ref="${mutableWM.get(data).setupFn}"></bst-live-chat-placeholder>`;
 
-    // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
-
-    return html`<bst-live-chat-placeholder></bst-live-chat-placeholder>`;
   };
 
 
