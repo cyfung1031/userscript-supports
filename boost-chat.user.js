@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.24
+// @version             0.1.25
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1573,7 +1573,7 @@ SOFTWARE.
               /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
               return SolidPaidSticker(item);
             case 'liveChatPlaceholderItemRenderer':
-              return SolidMessagePlaceHolder(data);
+              return SolidMessagePlaceHolder(item);
             default:
               return SolidMessageText(item); // liveChatTextMessageRenderer
           }
