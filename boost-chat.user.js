@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.22
+// @version             0.1.23
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2056,6 +2056,8 @@ SOFTWARE.
     let ioMessageList = null;
     /** @type {HTMLElement} */
     let _messageOverflowAnchor = null;
+    /** @type {HTMLElement} */
+    let _bstMain = null;
     const qq = new WeakMap();
     let _flushed = 0;
 
@@ -2158,6 +2160,7 @@ SOFTWARE.
       bstMain.addEventListener('scroll', (a) => {
         this.onScrollItems_(a);
       }, false);
+      _bstMain = bstMain;
 
 
       // const pp = bstMain.parentNode.insertBefore(document.createElement('div'), bstMain.nextSibling);
@@ -2554,8 +2557,8 @@ SOFTWARE.
     }
 
     const scrollToEnd = () => {
-      if(messageList && _messageOverflowAnchor){
-        messageList.scrollTop = _messageOverflowAnchor.offsetTop + 5;
+      if(messageList && _messageOverflowAnchor && _bstMain){
+        _bstMain.scrollTop = _messageOverflowAnchor.offsetTop + 5;
       }
     }
 
