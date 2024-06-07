@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.022
+// @version             0.11.023
 // @license             MIT License
 
 // @author              CY Fung
@@ -1888,16 +1888,17 @@ SOFTWARE.
                     const cSimpleText = (getYTextContent(parentNodeData.authorText || 0) || '');
                     if (currentDisplayTrimmed && currentDisplayed !== titleForDisplay && cSimpleText === currentDisplayed) {
 
+                        const md = Object.assign({}, parentNodeData);
+
                         // the inside hyperlinks will be only converted if its parent author name is handle
-                        const contentTexts = (parentNodeData.contentText || 0).runs;
+                        const contentTexts = (md.contentText || 0).runs;
                         if (contentTexts && contentTexts.length >= 1) {
                             for (let aidx = 0; aidx < contentTexts.length; aidx++) {
                                 const r = contentTextProcess(md, contentTexts, aidx);
                                 if (r instanceof Promise) funcPromises.push(r);
                             }
                         }
-
-                        const md = Object.assign({}, parentNodeData);
+                        
                         const authorCommentBadgeAuthorText = (((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0);
 
                         const authorCommentBadgeAuthorTextNew = authorCommentBadgeAuthorText ? setYTextContent(authorCommentBadgeAuthorText, (currentText) => {
