@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.6.2
+// @version      0.7.0
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -45,6 +45,8 @@ SOFTWARE.
 
 (function (__CONTEXT__) {
     "use strict";
+
+    const showNativeControls = true;
 
     const { Promise } = __CONTEXT__;
 
@@ -334,6 +336,95 @@ SOFTWARE.
         }
     });
 
+    if (showNativeControls) {
+        // ==UserScript==
+        // @name Show Native Controls
+        // @match https://m.youtube.com/*
+        // @run-at document-start
+        // ==/UserScript==
+
+
+        let addedCSS = false;
+        function setupVideo(video) {
+
+            if (!addedCSS) {
+
+                document.documentElement.appendChild(document.createElement('style')).textContent = `
+
+                    #player-control-overlay:not(.fadein){
+                        height: calc(100% - 64px);
+                    }
+
+                    #player-control-overlay .player-controls-background{
+                        pointer-events: none;
+                    }
+
+                    #player-control-overlay:not(.fadein) .player-controls-background{
+                        bottom: -64px;
+                    }
+
+                `
+            }
+            const v = video;
+            /*
+            try {
+              v.controls = true;
+              v.nextSibling.childNodes[0].style['pointer-events'] = 'none'
+              v.nextSibling.childNodes[0].childNodes[1].style['pointer-events'] = 'auto'
+            } catch (e) { }
+            */
+
+            v.controls = true;
+
+            const observer = new MutationObserver((list, observer) => {
+                let q = !!document.querySelector('#player-control-overlay:not(.fadein)');
+                if (v.controls !== q) {
+
+                    v.controls = q;
+                }
+
+            })
+
+            observer.observe(v, { attributes: true, attributeFilter: ['controls'] });
+            v.setAttribute('w68u4', '1')
+
+        }
+
+        const parentMO = new MutationObserver(() => {
+
+            let q = !!document.querySelector('#player-control-overlay:not(.fadein)');
+
+            if (q) {
+
+                for (const v of document.querySelectorAll('.html5-main-video[w68u4="1"]')) {
+
+                    if (v.controls !== q) {
+                        v.controls = q;
+                    }
+                }
+
+            }
+
+        });
+
+
+        new MutationObserver(() => {
+
+            const video = document.querySelector('.html5-main-video:not([w68u4])');
+            if (!video) return;
+            video.setAttribute('w68u4', '');
+            if (!(video instanceof HTMLMediaElement)) return;
+
+            setupVideo(video);
+
+            for (const elm of document.querySelectorAll('#player-control-overlay, ytm-custom-control, ytm-custom-control .new-controls, ytm-custom-control .player-controls-content, ytm-custom-control .player-controls-content, ytm-custom-control .player-controls-background-container, #player')) {
+                parentMO.observe(elm, { childList: true, attributes: true });
+            }
+
+
+        }).observe(document, { subtree: true, childList: true });
+
+    }
 
 
 })({ Promise });
