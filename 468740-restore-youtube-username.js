@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.11.023
+// @version             0.11.024
 // @license             MIT License
 
 // @author              CY Fung
@@ -349,6 +349,70 @@ SOFTWARE.
             } catch (e) { }
         }, { capture: true, passive: true, once: true })
     }
+
+
+    const delayPn = delay => new Promise((fn => setTimeout(fn, delay)));
+
+    const { retrieveCE } = isMobile ? (() => {
+
+        const retrieveCE = () => {
+            console.warn('retrieveCE is not supported');
+        }
+        return { retrieveCE };
+
+    })() : (() => {
+
+        const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
+
+        const promiseForCustomYtElementsReady = isCustomElementsProvided ? Promise.resolve(0) : new Promise((callback) => {
+            const EVENT_KEY_ON_REGISTRY_READY = "ytI-ce-registry-created";
+            if (typeof customElements === 'undefined') {
+                if (!('__CE_registry' in document)) {
+                    // https://github.com/webcomponents/polyfills/
+                    Object.defineProperty(document, '__CE_registry', {
+                        get() {
+                            // return undefined
+                        },
+                        set(nv) {
+                            if (typeof nv == 'object') {
+                                delete this.__CE_registry;
+                                this.__CE_registry = nv;
+                                this.dispatchEvent(new CustomEvent(EVENT_KEY_ON_REGISTRY_READY));
+                            }
+                            return true;
+                        },
+                        enumerable: false,
+                        configurable: true
+                    })
+                }
+                let eventHandler = (evt) => {
+                    document.removeEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+                    const f = callback;
+                    callback = null;
+                    eventHandler = null;
+                    f();
+                };
+                document.addEventListener(EVENT_KEY_ON_REGISTRY_READY, eventHandler, false);
+            } else {
+                callback();
+            }
+        });
+
+        const retrieveCE = async (nodeName) => {
+            try {
+                isCustomElementsProvided || (await promiseForCustomYtElementsReady);
+                await customElements.whenDefined(nodeName);
+                const dummy = document.querySelector(nodeName) || document.createElement(nodeName);
+                const cProto = insp(dummy).constructor.prototype;
+                return cProto;
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        return {retrieveCE};
+
+    })();
 
     const cfg = {};
     class Mutex {
@@ -1109,6 +1173,15 @@ SOFTWARE.
         return typeof browseId === 'string' && browseId.length === 24 && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId);
     }
 
+    const browseEndpointBaseUrlType = (browseEndpoint, displayText) => {
+        if (isDisplayAsHandle(displayText) && isUCBrowserId(browseEndpoint.browseId) && typeof browseEndpoint.canonicalBaseUrl === 'string') {
+            if (`/${displayText}` === browseEndpoint.canonicalBaseUrl) return 1 | 2;
+            if (`/channel/${browseEndpoint.browseId}` === browseEndpoint.canonicalBaseUrl) return 1 | 4;
+            if (browseEndpoint.canonicalBaseUrl.includes(`/${browseEndpoint.browseId}`)) return 1 | 8;
+            return 1;
+        }
+        return 0;
+    }
 
     /**
      *
@@ -1264,6 +1337,101 @@ SOFTWARE.
         return null;
     };
 
+    const dynamicEditableTextByControllerResolve = isMobile ? 0 : (() => {
+        /**
+         * 
+         * 
+            f.showReplyDialog = function(a) {
+                if (a) {
+                    var b = this.replyBox;
+                    b || (b = document.createElement("ytd-comment-reply-dialog-renderer"),
+                    b.id = "replybox",
+                    qF(this.replyDialogDiv).appendChild(b));
+                    b.data = a;
+                    this.replyDialogDiv.hidden = !1;
+                    b.openDialog()
+                }
+            }
+
+            // a = <ytd-comment-engagement-bar>...</ytd-comment-engagement-bar>
+            // b = "showReplyDialog"
+            // c = undefined
+            function Lpb(a, b, c) {
+                var d = a.polymerController;
+                a[b] = function() {
+                    var e = va.apply(0, arguments);
+                    a.loggingStatus.currentExternalCall = b;
+                    a.loggingStatus.bypassProxyController = !0;
+                    var g, k = ((g = a.is) != null ? g : a.tagName).toLowerCase();
+                    ZE(k, b, "PROPERTY_ACCESS_CALL_EXTERNAL");
+                    var m;
+                    g = (m = c != null ? c : d[b]) == null ? void 0 : m.call.apply(m, [d].concat(ha(e)));
+                    a.loggingStatus.currentExternalCall = void 0;
+                    a.loggingStatus.bypassProxyController = !1;
+                    return g
+                }
+            }
+
+            // a = {..., commandMetadata, createCommentReplyDialogEndpoint}
+            // b = {commandController: {onSuccess: ƒ, onServerError: ƒ} ,  forceClickLogging : true, form: {element, event}  }
+            kQb.prototype.resolveCommand = function(a, b) {
+                var c, d, e, g, k, m, p, q;
+                return t(function(r) {
+                    e = (c = G(a, n6a)) == null ? void 0 : (d = c.dialog) == null ? void 0 : d.commentReplyDialogRenderer;
+                    if (!e)
+                        throw new Em("No dialog in createCommentReplyDialogEndpoint");
+                    k = (g = b.form) == null ? void 0 : g.event;
+                    if (!k)
+                        throw new Em("Event not passed in when resolving command");
+                    m = h(k.composedPath());
+                    for (p = m.next(); !p.done; p = m.next())
+                        if (q = p.value,
+                        q.tagName === "YTD-COMMENT-ACTION-BUTTONS-RENDERER" || q.tagName === "YTD-COMMENT-ENGAGEMENT-BAR")
+                            return q.showReplyDialog(e),
+                            r.return();
+                    ma(r)
+                })
+            }
+
+
+        * 
+        */
+
+
+        const setupForCommentReplyDialogRenderer = (cProto) => {
+            if (cProto && typeof cProto.showReplyDialog === 'function' && cProto.showReplyDialog.length === 1 && !cProto.showReplyDialog392) {
+                cProto.showReplyDialog392 = cProto.showReplyDialog;
+                cProto.showReplyDialog = function (a) {
+                    let goDefault = true;
+                    try {
+                        if (a && a.editableText) {
+                            const arr = [];
+                            fixCommentReplyDialogRenderer(a, arr);
+                            const pAll = Promise.all(arr).catch(e => console.warn);
+                            Promise.race([pAll, delayPn(300)]).then(() => { // network request should be already done before
+                                this.showReplyDialog392(a);
+                            });
+                            goDefault = false;
+                        }
+                    } catch (e) { }
+                    if (goDefault) {
+                        return this.showReplyDialog392(a);
+                    }
+                };
+            }
+        };
+
+        retrieveCE('ytd-comment-action-buttons-renderer').then(cProto => {
+            setupForCommentReplyDialogRenderer(cProto);
+        });
+        retrieveCE('ytd-comment-engagement-bar').then(cProto => {
+            setupForCommentReplyDialogRenderer(cProto);
+        });
+
+        return 1;
+
+    })();
+
     const editableTextProcess = (_commentReplyDialogRenderer, editableTexts, idx) => {
         const commentReplyDialogRenderer = _commentReplyDialogRenderer;
         const editableText = editableTexts[idx];
@@ -1325,7 +1493,8 @@ SOFTWARE.
             if (commandRun.length >= 1 && commandRun.startIndex >= 0 && (browseEndpoint = ((commandRun.onTap || 0).innertubeCommand || 0).browseEndpoint)) {
                 let substr = text.substring(commandRun.startIndex, commandRun.startIndex + commandRun.length);
                 const substrTrimmed = substr.trim();
-                if (isDisplayAsHandle(substrTrimmed) && `/${substrTrimmed}` === browseEndpoint.canonicalBaseUrl && isUCBrowserId(browseEndpoint.browseId)) {
+                const valBrowseEndpointBaseUrlType = browseEndpointBaseUrlType(browseEndpoint, substrTrimmed);
+                if (valBrowseEndpointBaseUrlType > 1) {
                     const o = {
                         startIndex: commandRun.startIndex,
                         endIndex: commandRun.startIndex + commandRun.length,
@@ -1824,6 +1993,7 @@ SOFTWARE.
                     }
 
                     let commentReplyDialogRenderer;
+
                     const actionButtonsCnt = insp((parentNodeController.$ || 0)['action-buttons'] || 0);
                     if (actionButtonsCnt) {
 
@@ -1842,7 +2012,6 @@ SOFTWARE.
                     parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity);
 
                 }
-
             } else {
 
                 const authorText = (parentNodeController.data || 0).authorText;
@@ -1898,7 +2067,7 @@ SOFTWARE.
                                 if (r instanceof Promise) funcPromises.push(r);
                             }
                         }
-                        
+
                         const authorCommentBadgeAuthorText = (((md.authorCommentBadge || 0).authorCommentBadgeRenderer || 0).authorText || 0);
 
                         const authorCommentBadgeAuthorTextNew = authorCommentBadgeAuthorText ? setYTextContent(authorCommentBadgeAuthorText, (currentText) => {
