@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.28
+// @version             0.1.30
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -287,8 +287,121 @@ SOFTWARE.
     "inner": `
 
 
+      .bst-message-list {
+
+          --bst-hyperlink-color: #3ea6ff;
+
+          --color-transparent: rgba(0, 0, 0, 0);
+          --color-opac-b-1: rgba(0, 0, 0, 0.05);
+          --color-opac-b-2: rgba(0, 0, 0, 0.08);
+          --color-opac-b-3: rgba(0, 0, 0, 0.13);
+          --color-opac-b-4: rgba(0, 0, 0, 0.16);
+          --color-opac-b-5: rgba(0, 0, 0, 0.22);
+          --color-opac-b-6: rgba(0, 0, 0, 0.28);
+          --color-opac-b-7: rgba(0, 0, 0, 0.4);
+          --color-opac-b-8: rgba(0, 0, 0, 0.5);
+          --color-opac-b-9: rgba(0, 0, 0, 0.6);
+          --color-opac-b-10: rgba(0, 0, 0, 0.7);
+          --color-opac-b-11: rgba(0, 0, 0, 0.75);
+          --color-opac-b-12: rgba(0, 0, 0, 0.8);
+          --color-opac-b-13: rgba(0, 0, 0, 0.85);
+          --color-opac-b-14: rgba(0, 0, 0, 0.9);
+          --color-opac-b-15: rgba(0, 0, 0, 0.95);
+          --color-opac-gd-1: rgba(83, 83, 95, 0.38);
+          --color-opac-gd-2: rgba(83, 83, 95, 0.48);
+          --color-opac-gd-3: rgba(83, 83, 95, 0.55);
+          --color-opac-gd-4: rgba(50, 50, 57, 0.62);
+          --color-opac-gd-5: rgba(50, 50, 57, 0.95);
+          
+          --shadow-elevation-umbra: 0.34;
+          --shadow-elevation-penumbra: 0.26;
+          --shadow-elevation-ambient: 0.28;
+          --shadow-elevation-1: 0 1px 2px var(--color-opac-b-14), 0 0px 2px var(--color-opac-b-14);
+          --shadow-elevation-2: 0 4px 8px var(--color-opac-b-7), 0 0px 4px var(--color-opac-b-7);
+          --shadow-elevation-3: 0 6px 16px var(--color-opac-b-8), 0 0px 4px var(--color-opac-b-7);
+          --shadow-elevation-4: 0 12px 32px var(--color-opac-b-8), 0 0px 8px var(--color-opac-b-7);
+          --shadow-elevation-5: 0 32px 64px var(--color-opac-b-9), 0 0px 16px var(--color-opac-b-7);
+          --shadow-button-focus: 0 0 6px 0 var(--color-twitch-purple-8);
+          --shadow-button-active: 0 0 6px 0 var(--color-twitch-purple-8);
+          --shadow-button-disabled: none;
+          --shadow-button-overlay-focus: 0 0 6px 0 var(--color-opac-w-6);
+          --shadow-button-overlay-active: 0 0 6px 0 var(--color-opac-w-6);
+          --shadow-tab-focus: 0 4px 6px -4px var(--color-twitch-purple-11);
+          --shadow-balloon: 0 1px 1px var(--color-opac-b-5);
+          --shadow-scrollbar: 0 0 1px 1px var(--color-opac-w-5);
+
+
+        --color-opac-w-1: rgba(255, 255, 255, 0.05);
+        --color-opac-w-2: rgba(255, 255, 255, 0.08);
+        --color-opac-w-3: rgba(255, 255, 255, 0.13);
+        --color-opac-w-4: rgba(255, 255, 255, 0.16);
+        --color-opac-w-5: rgba(255, 255, 255, 0.22);
+        --color-opac-w-6: rgba(255, 255, 255, 0.28);
+        --color-opac-w-7: rgba(255, 255, 255, 0.4);
+        --color-opac-w-8: rgba(255, 255, 255, 0.5);
+        --color-opac-w-9: rgba(255, 255, 255, 0.6);
+        --color-opac-w-10: rgba(255, 255, 255, 0.7);
+        --color-opac-w-11: rgba(255, 255, 255, 0.75);
+        --color-opac-w-12: rgba(255, 255, 255, 0.8);
+        --color-opac-w-13: rgba(255, 255, 255, 0.85);
+        --color-opac-w-14: rgba(255, 255, 255, 0.9);
+        --color-opac-w-15: rgba(255, 255, 255, 0.95);
+
+        --color-background-interactable-overlay-hover: var(--color-opac-w-3);
+
+        --color-white: #ffffff;
+        --color-black: #000000;
+        --color-text-button-overlay-hover: var(--color-white);
+        --color-background-button-icon-overlay-default: var(--color-transparent);
+        --color-background-button-icon-overlay-hover: var(--color-background-interactable-overlay-hover);
+        --color-background-button-icon-overlay-active: var(--color-background-interactable-overlay-active);
+        --color-background-image-selector-overlay: var(--color-transparent);
+
+
+        --opacity-pulse-animation: 0.7;
+        --button-size-small: 2.4rem;
+        --button-size-default: 3rem;
+        --button-size-large: 3.6rem;
+      
+        --loading-spinner-size-small: 1.6rem;
+        --loading-spinner-size-default: 2.2rem;
+        --loading-spinner-size-large: 2.8rem;
+        --progress-bar-size-extra-small: 0.3rem;
+        --progress-bar-size-small: 0.5rem;
+        --progress-bar-size-default: 1rem;
+        --range-size: 0.2rem;
+        --range-thumb-size: 1.6rem;
+        --toggle-height: 2rem;
+        --toggle-width: 3.5rem;
+        --toggle-handle-size: 1.2rem;
+        --toggle-handle-shadow: none;
+        --toggle-handle-offset: 0.2rem;
+        --border-width-default: 1px;
+        --border-width-button: 2px;
+        --border-width-checkbox: 2px;
+        --border-width-drop-zone: 2px;
+        --border-width-marked: 3px;
+        --border-width-selectable: 2px;
+        --border-width-spinner: 2px;
+        --border-width-tag: 2px;
+        --border-radius-none: 0;
+        --border-radius-small: 0.2rem;
+        --border-radius-medium: 0.4rem;
+        --border-radius-large: 0.6rem;
+        --border-radius-extra-large: 1rem;
+        --border-radius-extra-extra-large: 1.6rem;
+        --border-radius-rounded: 9000px;
+        
+      }
 
       .bst-message-list {
+
+        --yt-spec-base-background: #fff;
+        --yt-spec-raised-background: #fff;
+        --yt-spec-menu-background: #fff;
+        --yt-spec-inverted-background: #0f0f0f;
+        --yt-spec-additive-background: rgba(0,0,0,0.05);
+        
         --yt-deprecated-blue-light: hsl(205.9,80%,43.1%);
         --yt-deprecated-opalescence-grey-opacity-lighten-3: hsla(0,0%,53.3%,0.4);
         --yt-deprecated-opalescence-soft-grey-opacity-lighten-3: hsla(0,0%,93.3%,0.4);
@@ -437,6 +550,13 @@ SOFTWARE.
       }
 
       .bst-message-list[dark] {
+
+        --yt-spec-base-background: #0f0f0f;
+        --yt-spec-raised-background: #212121;
+        --yt-spec-menu-background: #282828;
+        --yt-spec-inverted-background: #f1f1f1;
+        --yt-spec-additive-background: rgba(255,255,255,0.1);
+
         --yt-live-chat-background-color: var(--yt-spec-base-background);
         --yt-live-chat-action-panel-background-color: var(--yt-spec-base-background);
         --yt-live-chat-action-panel-background-color-transparent: rgba(40,40,40,0.8);
@@ -612,12 +732,26 @@ SOFTWARE.
         display: flex;
         gap: var(--bst-list-gap);
         flex-direction: column;
+        background: var(--yt-live-chat-background-color);
 
       }
+
+      yt-live-chat-renderer[hide-timestamps] {
+          --yt-live-chat-item-timestamp-display: none;
+      }
+
       .bst-message-time {
         display:inline;
         white-space: nowrap;
         vertical-align: baseline;
+        display: var(--yt-live-chat-item-timestamp-display, inline);
+        /* margin: var(--yt-live-chat-item-timestamp-margin, 0 8px 0 0); */
+        color: var(--yt-live-chat-tertiary-text-color);
+        font-size: 11px;
+        display: var(--yt-live-chat-item-timestamp-display, inline-block);
+        min-width: 3em;
+        box-sizing: border-box;
+        padding-right: 8px;
       }
 
       .bst-message-username {
@@ -781,6 +915,13 @@ SOFTWARE.
         background-color: var(--bst-highlight-color);
       }
 
+      .bst-message-before-content-button-container{
+        flex-shrink: 0;
+        display:inline;
+        flex-direction:column;
+        max-width:100%;
+        vertical-align: baseline;
+      }
 
       .bst-message-body{
         flex-shrink: 0;
@@ -1289,46 +1430,45 @@ SOFTWARE.
         background-color: var(--bst-highlight-color);
       }
 
- 
       .bst-membership-message .bst-message-entry-header .bst-message-entry-highlight.bst-message-entry-followed-by-body {
-        bottom:0;
+        bottom: 0;
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
       }
+
       .bst-membership-message .bst-message-entry-body .bst-message-entry-highlight {
-        top:0;
+        top: 0;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
       }
-
 
       .bst-message-entry-header, .bst-message-entry-body {
         position: relative;
       }
 
       .bst-membership-message .bst-message-entry-body .bst-message-body::before {
-          content: '';
-          contain: strict;
-          display: inline;
-          user-select: none !important;
-          pointer-events: none !important;
-          line-height: var(--yt-live-chat-first-line-height);
-          vertical-align: baseline;
+        content: '';
+        contain: strict;
+        display: inline;
+        user-select: none !important;
+        pointer-events: none !important;
+        line-height: var(--yt-live-chat-first-line-height);
+        vertical-align: baseline;
       }
 
-      .bst-membership-message .bst-message-entry-header .bst-message-head{
+      .bst-membership-message .bst-message-entry-header .bst-message-head {
         margin-right: 8px;
       }
-      .bst-membership-message .bst-message-entry-header .bst-message-body{
+
+      .bst-membership-message .bst-message-entry-header .bst-message-body {
         margin-left: 0px;
         display: inline-block;
       }
 
-      .bst-membership-message .bst-message-entry-body .bst-message-body{
+      .bst-membership-message .bst-message-entry-body .bst-message-body {
         margin-left: 8px;
         color: var(--yt-live-chat-sponsor-text-color)
       }
-      
 
       .bst-name-field-box {
         pointer-events: none;
@@ -1341,15 +1481,149 @@ SOFTWARE.
         z-index: 1;
         contain: content;
       }
+
       .bst-name-field:hover .bst-name-field-box {
-        pointer-events: none;
-        /* display: block;*/
-        
+        pointer-events: none;     /* display: block;*/
       }
 
       bst-live-chat-placeholder {
         display: none;
       }
+
+      .bst-profile-card {
+        position: absolute;
+        display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 100px;     /* border: 3px solid white; */
+        box-sizing: border-box;
+        z-index: 2;
+        display: flex;
+        flex-direction: row;
+        border-top-left-radius: var(--border-radius-medium);
+        border-top-right-radius: var(--border-radius-medium);
+        box-shadow: var(--shadow-elevation-2);
+        margin-left: 1.5rem;
+        margin-right: 1.5rem;
+        background: var(--yt-live-chat-background-color);
+        top: calc(var(--fBottom) + 4px);
+        transform: initial;
+        margin-top: 0;
+        margin-bottom: 0;
+        max-height: 38vh;
+      }
+
+      .bst-profile-card-on-top {
+        top: calc(var(--fTop) - 4px);
+        transform: translateY(-100%);
+        margin-top: 0;
+        margin-bottom: 0;
+      }
+
+      .bst-profile-card-overlay {
+        position: absolute;
+        z-index: -1;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: var(--yt-spec-menu-background);
+        pointer-events: none;
+        opacity: 0.45;
+      }
+
+      .bst-profile-card-icon {
+        margin: 1rem;
+        margin-right: 0;
+      }
+
+      .bst-profile-card-icon-img {
+        max-height: 50px;
+        max-width: 50px;
+      }
+
+      .bst-profile-card-main {
+        flex-grow: 1;
+        margin: 1rem;
+      }
+
+      .bst-profile-card-main a[href] {
+        --bst-hyperlink-color: var(--bst-default-text-color);
+        color: var(--bst-hyperlink-color);
+        text-decoration: none;
+        display: inline;
+      }
+
+      .bst-profile-card-main a[href]:link, 
+      .bst-profile-card-main a[href]:visited, 
+      .bst-profile-card-main a[href]:hover, 
+      .bst-profile-card-main a[href]:active, 
+      .bst-profile-card-main a[href]:focus {
+        color: var(--bst-hyperlink-color);
+      }
+
+      .bst-profile-card-cross {
+        display: inline-flex;
+        -webkit-box-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        justify-content: center;
+        user-select: none;
+        border-radius: var(--border-radius-medium);
+        height: var(--button-size-default);
+        width: var(--button-size-default);
+        border: var(--border-width-default) solid transparent;
+        cursor: pointer;
+        margin: 0.5rem;
+        font-family: system-ui;
+        font-size: large;
+      }
+
+      .bst-profile-card-cross:hover {
+        background-color: var(--color-background-button-icon-overlay-hover);
+        color: var(--color-text-button-overlay-hover);
+      }
+
+      .bst-message-before-content-button-container button {
+        border-radius: 12px;
+        position: relative;
+        margin: 0;
+        white-space: nowrap;
+        min-width: 0;
+        text-transform: none;
+        border: none;
+        cursor: pointer;
+        outline-width: 0;
+        box-sizing: border-box;
+        background: none;
+        text-decoration: none;
+        margin: 0;
+        padding: 0;
+        padding: 2px 6px;
+        vertical-align: middle;
+        margin-bottom: .1rem;
+        margin-right: 2px;
+      }
+
+      .bst-message-before-content-button-container button div {
+        pointer-events: none !important;
+      }
+
+      .bst-message-before-content-button-container button .yt-spec-button-shape-next__icon {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        width: 16px;
+        height: 16px;
+        line-height: 0;
+        fill: currentColor;
+      }
+
+      .bst-message-before-content-button-container yt-touch-feedback-shape {
+        display: none !important;
+      }
+
 
     `
   }
@@ -1542,9 +1816,78 @@ SOFTWARE.
     }
   }
 
-  const SolidMessageList = (sb) => {
+  let sharedButtonViewModel = null;
+  let sharedNoscript = null;
+
+  const extras = new WeakMap();
+  const getExtra = (elm) => {
+    if (!elm) return;
+    const s = extras.get(elm);
+    if (!s) return;
+    return s;
+  }
+  const setExtra = (elm, extra) =>{
+    extras.set(elm, extra);
+  }
+
+  const SolidBeforeContentButton0 = (data)=>{
+    
+    const onButtonContainerCreated = (div)=>{
+
+      if(!sharedNoscript) return;
+      const beforeContentButtons = data.beforeContentButtons;
+      if(!beforeContentButtons || beforeContentButtons.length !==1) return;
+      const buttonViewModel = beforeContentButtons[0].buttonViewModel;
+      if(!buttonViewModel) return;
+
+      const bvData = Object.assign({}, buttonViewModel, {title: "", trackingParams: "", title_: buttonViewModel.title});
+
+      if(!sharedButtonViewModel){
+        sharedButtonViewModel = document.createElement('yt-button-view-model');
+        sharedNoscript.appendChild(sharedButtonViewModel);
+        let cloneNode = sharedButtonViewModel.cloneNode(false, false);
+        sharedButtonViewModel.replaceWith(cloneNode);
+        sharedButtonViewModel = cloneNode;
+      }
+
+      const modelNode = sharedButtonViewModel.cloneNode(false, false);
+      insp(modelNode).data = bvData;
+
+      div.appendChild(modelNode);
+
+    };
+    return html`
+      <div ref=${onButtonContainerCreated} class="bst-message-before-content-button-container">
+      </div>
+    `
+  }
+
+
+  const SolidMessageList = (sb, profileCard) => {
 
     return html`
+    <${Show}
+      when=(${()=> typeof profileCard.username ==='string' })
+      >
+      ${()=>{
+
+        return html`
+      <div classList=(${{ "bst-profile-card": true, "bst-profile-card-on-top": profileCard.showOnTop }}) style=(${ ()=>({"--fTop": profileCard.fTop + "px", "--fBottom": profileCard.fBottom +"px"}) })>
+        <div class="bst-profile-card-overlay"></div>
+        <div class="bst-profile-card-icon">
+        <img class="bst-profile-card-icon-img" src="${()=>profileCard.iconUrl}">
+        </div>
+        <div class="bst-profile-card-main">
+        <a target="_blank" href="${()=>profileCard.profileUrl}">${()=>profileCard.username}</a>
+        </div>
+        <div class="bst-profile-card-cross" onClick="${profileCard.onCrossClick}">
+        X
+        </div>
+      </div>
+      `
+
+      }}
+    <//>
       <${For} each=(${sb})>${(item) => {
         onCleanup(() => {
           removeEntry(item)
@@ -1603,11 +1946,12 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
-        return p();
+      return p();
     }}<//>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-        return formatters.messageBody(message, data)
+      return formatters.messageBody(message, data)
     }}<//>
     </div>
   </div>
@@ -1629,7 +1973,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-time"></div>
+    <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
     <div class="bst-name-field bst-message-name-color">
       <div class="bst-message-username">${() => data.bst('getUsername')}</div>
       <div class="bst-message-badges">
@@ -1642,6 +1986,7 @@ SOFTWARE.
     </div>
     <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
       return formatters.messageBody(message, data);
@@ -1662,7 +2007,7 @@ SOFTWARE.
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
       <div class="bst-message-head">
-        <div class="bst-message-time"></div>
+        <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
         <div class="bst-name-field bst-message-name-color">
           <div class="bst-message-username">${() => data.bst('getUsername')}</div>
           <div class="bst-message-badges">
@@ -1710,7 +2055,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time"></div>
+      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
@@ -1722,6 +2067,7 @@ SOFTWARE.
         </div>
       </div>
     </div>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
       return formatters.messageBody(message, data);
@@ -1748,7 +2094,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time"></div>
+      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
@@ -1760,6 +2106,7 @@ SOFTWARE.
         </div>
       </div>
     </div>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
       return formatters.messageBody(message, data);
@@ -1781,7 +2128,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time"></div>
+      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
@@ -1794,6 +2141,7 @@ SOFTWARE.
       </div>
       <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
       return formatters.messageBody(message, data);
@@ -1814,7 +2162,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time"></div>
+      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-name-field-box">
         <div>Icon</div>
@@ -1831,6 +2179,7 @@ SOFTWARE.
       </div>
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
+    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
       return formatters.messageBody(message, data);
@@ -2067,10 +2416,11 @@ SOFTWARE.
     const ioMessageListCallback = (entries) => {
       for (const entry of entries) {
         const target = entry?.target;
-        if (target && typeof target.interceptionRatioChange === 'function') {
+        const extra = getExtra(target);
+        if (extra && typeof extra.interceptionRatioChange === 'function') {
           if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) {
 
-            target.interceptionRatioChange(entry.intersectionRatio);
+            extra.interceptionRatioChange(entry.intersectionRatio);
           }
         }
       }
@@ -2119,7 +2469,6 @@ SOFTWARE.
       if (!targetElement) return;
       // if(!this.visibleItems__) this.visibleItems__ = [];
 
-
       ioMessageListCleanup();
 
       // this.visibleItemsCount = 0;
@@ -2136,6 +2485,7 @@ SOFTWARE.
       fragmentAppendChild.call(fragment, bstMain);
 
       replaceWith.call(targetElement, fragment);
+      sharedNoscript = noscript;
 
       const shadow = bstMain.attachShadow({ mode: "open" });
       qq.set(hostElement, {
@@ -2207,9 +2557,29 @@ SOFTWARE.
         }
       });
 
-      render(SolidMessageList.bind(null, solidBuild), messageList);
+      const [profileCard, profileCardSet] = createStore({
+        top: -1,
+        showOnTop: null,
+        iconUrl: null,
+        username: null,
+        profileUrl: null,
+        onCrossClick: () => {
+          profileCardSet({
+            top: -1,
+            showOnTop: null,
+            iconUrl: null,
+            username: null,
+            profileUrl: null,
+          });
+          if (this.atBottom === true && this.allowScroll === false && this.contextMenuOpen === true) this.contextMenuOpen = false;
+        }
+      });
 
-      addMessageOverflowAnchorToShadow.call(this, shadow)
+      messageList.profileCard = profileCard;
+      messageList.profileCardSet = profileCardSet;
+      render(SolidMessageList.bind(null, solidBuild, profileCard), messageList);
+
+      addMessageOverflowAnchorToShadow.call(this, shadow);
 
 
       let mouseEntered = null;
@@ -2266,11 +2636,38 @@ SOFTWARE.
 
       }, true);
 
+      const onNameFieldClick = (target, messageEntry, nameField) => {
+        const extra = getExtra(messageEntry);
+        if(!extra) return;
+        const data = extra.getReactiveData();
+        if (!data) return;
+
+        if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
+
+        let r1 = nameField.getBoundingClientRect();
+        let fTop = r1.top - messageList.getBoundingClientRect().top;
+        let fBottom = fTop + r1.height;
+        profileCardSet({
+          fTop,
+          fBottom,
+          showOnTop: messageEntry.getAttribute('view-pos') === 'down',
+          iconUrl: data.getProfilePic(64, -1),
+          username: data.bst('getUsername'),
+          profileUrl: data.bst('authorAboutPage')
+        });
+
+
+      }
+
       messageList.addEventListener('click', function (evt) {
         const target = evt?.target;
         if (!target) return;
         const messageEntry = target.closest('.bst-message-entry');
         if (!messageEntry) return;
+        const nameField = target.closest('.bst-name-field');
+        if (nameField) {
+          onNameFieldClick(target, messageEntry, nameField);
+        }
         // console.log('click', target); // TODO
       });
 
@@ -2283,6 +2680,17 @@ SOFTWARE.
       };
       (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
       attributeFn();
+
+
+      // yt-live-chat-item-list-renderer
+      // const lcrAttributeFn = () => {
+      //   // if (!messageList) return;
+      //   // let isDark = document.documentElement.hasAttribute('dark')
+      //   // if (isDark) _setAttribute.call(messageList, 'dark', '');
+      //   // else _removeAttribute.call(messageList, 'dark');
+      // };
+      // (new MutationObserver(lcrAttributeFn)).observe(this.hostElement, { attributes: true });
+      // lcrAttributeFn();
 
       ioMessageList = intersectionObserver;
 
@@ -2496,6 +2904,12 @@ SOFTWARE.
       } else if (prop === 'shouldHighlight') {
         const authorType = this.bst('authorType');
         return authorType === 'owner';
+      } else if (prop === 'timestampText') {
+        return convertYTtext(this.timestampText) || null;
+      } else if (prop === 'authorExternalChannelId') {
+        return this.authorExternalChannelId;
+      } else if (prop === 'authorAboutPage') {
+        return `https://www.youtube.com/channel/${this.authorExternalChannelId}/about`;
       }
 
 
@@ -2947,12 +3361,17 @@ SOFTWARE.
               const [viewVisible, viewVisibleChange] = createSignal(null);
               const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
 
-              messageEntry.interceptionRatio = interceptionRatio;
-              messageEntry.interceptionRatioChange = interceptionRatioChange;
+              // messageEntry.interceptionRatio = interceptionRatio;
+              // messageEntry.interceptionRatioChange = interceptionRatioChange;
               mutable.viewVisible = viewVisible;
               mutable.viewVisibleChange = viewVisibleChange;
               mutable.viewVisibleIdx = viewVisibleIdx;
               mutable.viewVisibleIdxChange = viewVisibleIdxChange;
+              
+              setExtra(messageEntry, {
+                getReactiveData: ()=>bObj,
+                interceptionRatioChange: interceptionRatioChange
+              });
 
               const bObjChange = mutable.bObjChange;
               messageEntry.polymerController = {
