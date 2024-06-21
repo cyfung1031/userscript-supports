@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.30
+// @version             0.1.31
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -669,6 +669,7 @@ SOFTWARE.
         margin-bottom: var(--iron-icon-margin-bottom);
         margin-left: var(--iron-icon-margin-left);
         padding: var(--iron-icon-padding);
+        contain: strict;
       }
 
       */
@@ -790,6 +791,7 @@ SOFTWARE.
         margin: 0;
         margin-top: -4px;
         margin-top: -0.5rem;
+        contain: strict;
       }
       .bst-message-badge-yt-icon{
         display: inline-flex;
@@ -798,6 +800,7 @@ SOFTWARE.
         margin-bottom: var(--bst-author-badge-mb);
         vertical-align: var(--bst-author-badge-va);
         margin:0;
+        contain: strict;
       }
       .bst-message-badge-yt-icon *{
         pointer-events: none;
@@ -1203,6 +1206,7 @@ SOFTWARE.
       .bst-viewer-engagement-message yt-icon {
         width: var(--iron-icon-width,24px);
         height: var(--iron-icon-height,24px);
+        contain: strict;
       }
       .bst-system-message-icon-column {
         flex: none;
@@ -1352,6 +1356,7 @@ SOFTWARE.
 
         box-sizing: border-box;
         border-radius: 0px;
+        contain: strict;
       }
       */
 
@@ -1578,6 +1583,7 @@ SOFTWARE.
         margin: 0.5rem;
         font-family: system-ui;
         font-size: large;
+        contain: strict;
       }
 
       .bst-profile-card-cross:hover {
@@ -1604,6 +1610,7 @@ SOFTWARE.
         vertical-align: middle;
         margin-bottom: .1rem;
         margin-right: 2px;
+        contain: content;
       }
 
       .bst-message-before-content-button-container button div {
@@ -1618,6 +1625,7 @@ SOFTWARE.
         height: 16px;
         line-height: 0;
         fill: currentColor;
+        contain: strict;
       }
 
       .bst-message-before-content-button-container yt-touch-feedback-shape {
