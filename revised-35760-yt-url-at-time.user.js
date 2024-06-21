@@ -5,7 +5,7 @@
 // @grant       none
 // @description On youtube, use alt+` to set the url to the current timestamp, for easy bookmarking
 // @include     https://www.youtube.com/*
-// @version     0.2.7
+// @version     0.2.7.001
 // @copyright   2017, MechaLynx (https://github.com/MechaLynx)
 // @run-at document-idle
 // @author      MechaLynx
@@ -112,9 +112,9 @@ var wait_for_page = window.setInterval(function () {
 
 // Add the timestamp to the URL
 var hashmodifier = function (precise = false) {
-  if (location.href.match(/.*watch.*/) && document.querySelector('.videoAdUi') === null) {
+  if (/^(\/live\/|\/watch)/.test(location.pathname) && document.querySelector('.videoAdUi') === null) {
     const hash = video.getURL(precise);
-    history.replaceState(false, false, hash);
+    history.replaceState(history.state, '', hash);
   }
 };
 
