@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.31
+// @version             0.1.32
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -738,6 +738,9 @@ SOFTWARE.
       }
 
       yt-live-chat-renderer[hide-timestamps] {
+          --yt-live-chat-item-timestamp-display: none;
+      }
+      .bst-message-time:empty {
           --yt-live-chat-item-timestamp-display: none;
       }
 
