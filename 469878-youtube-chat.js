@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.62.1
+// @version             0.62.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -129,7 +129,7 @@
 
 
   const CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN = true;                // cache the menu data and used for the next reopen
-  const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = true;   // pause auto scroll faster when the context menu is about to show
+  const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = false;   // pause auto scroll faster when the context menu is about to show
   const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;                // avoid multiple requests on the same time
 
   const BOOST_MENU_OPENCHANGED_RENDERING = true;
@@ -7842,7 +7842,7 @@
 
               const parentComponent = this.parentComponent;
               if (parentComponent && parentComponent.is === 'yt-live-chat-item-list-renderer' && parentComponent.contextMenuOpen === false && parentComponent.allowScroll === true) {
-                parentComponent.allowScroll = false;
+                parentComponent.contextMenuOpen = true; // computeAllowScroll_(contextMenuOpen, moderationModeEnabled): allowScroll = !(contextMenuOpen || moderationModeEnabled)
               }
             }
 
