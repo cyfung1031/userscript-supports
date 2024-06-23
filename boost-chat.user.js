@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.33
+// @version             0.1.34
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2975,7 +2975,15 @@ SOFTWARE.
         const authorType = this.bst('authorType');
         return authorType === 'owner';
       } else if (prop === 'timestampText') {
-        return convertYTtext(this.timestampText) || null;
+        if (this.timestampText) return convertYTtext(this.timestampText);
+        const ts = +this.timestampUsec / 1000;
+        if (ts > 1107183600000) {
+          const now = Date.now();
+          if (ts < (now + 120000)) {
+            return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+          }
+        }
+        return null;
       } else if (prop === 'authorExternalChannelId') {
         return this.authorExternalChannelId;
       } else if (prop === 'authorAboutPage') {
