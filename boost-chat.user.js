@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.32
+// @version             0.1.33
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -44,9 +44,20 @@ SOFTWARE.
 (() => {
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
-  const RENDER_MESSAGES_ONE_BY_ONE = true;
+  // const RENDER_MESSAGES_ONE_BY_ONE = true;
 
-  if (typeof Element.prototype.attachShadow !== 'function' || typeof IntersectionObserver === 'undefined') {
+  let isThisBrowserSupported = true;
+
+  if (isThisBrowserSupported && (typeof Element.prototype.attachShadow !== 'function' || typeof IntersectionObserver === 'undefined' || typeof CSS === 'undefined' || typeof CSS.supports === 'undefined')) {
+    isThisBrowserSupported = false;
+  } else {
+    const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
+    if (isThisBrowserSupported && !isOverflowAnchorSupported) {
+      isThisBrowserSupported = false;
+    }
+  }
+
+  if (!isThisBrowserSupported) {
     console.warn('Your browser does not support YouTube Boost Chat');
     return;
   }
@@ -190,6 +201,53 @@ SOFTWARE.
 
 
 
+  let mloUz = -1;
+
+  const { mloPrSetup } = (() => {
+
+    let mloUz0 = -2;
+
+    let messageListMOMap = new WeakMap();
+    let mloPr = null;
+    const mloF = () => {
+      if (mloUz == mloUz0 && mloPr) mloPr.resolve();
+    };
+    const mloSetup = (messageList, mloUz0_) => {
+
+      if (mloPr !== null) mloPr.resolve();
+
+      let mo = messageListMOMap.get(messageList);
+      if (!mo) {
+        messageListMOMap.set(messageList, mo = new MutationObserver(mloF));
+      }
+
+      mo.disconnect();
+      mo.takeRecords();
+      mloUz = -1;
+      mloUz0 = mloUz0_;
+      mloPr = new PromiseExternal();
+      mo.observe(messageList, {
+        subtree: false, childList: true
+      });
+
+      return mo;
+
+    }
+
+    const mloPrSetup = (messageList, mloUz0_) => {
+
+      const mo = mloSetup(messageList, mloUz0_);
+      return async () => {
+        await mloPr.then();
+        mo.disconnect();
+        mo.takeRecords();
+        mloPr = null;
+      }
+
+    }
+    return { mloPrSetup }
+  })();
+
   const firstKey = (obj) => {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) return key;
@@ -199,8 +257,6 @@ SOFTWARE.
 
 
   const flushPE = createPipeline();
-
-  let scrollEveryRound = null;
 
 
   class LimitedSizeSet extends Set {
@@ -804,6 +860,7 @@ SOFTWARE.
         vertical-align: var(--bst-author-badge-va);
         margin:0;
         contain: strict;
+        fill: currentColor;
       }
       .bst-message-badge-yt-icon *{
         pointer-events: none;
@@ -2423,6 +2480,7 @@ SOFTWARE.
     let _bstMain = null;
     const qq = new WeakMap();
     let _flushed = 0;
+    // let bstMainScrollCount = 0;
 
     const ioMessageListCallback = (entries) => {
       for (const entry of entries) {
@@ -2506,6 +2564,7 @@ SOFTWARE.
       const { intersectionObserver } = qq.get(hostElement);
       bstMain.classList.add('bst-yt-main');
       bstMain.addEventListener('scroll', (a) => {
+        // bstMainScrollCount++;
         this.onScrollItems_(a);
       }, false);
       _bstMain = bstMain;
@@ -3306,8 +3365,6 @@ SOFTWARE.
 
         const appendStates = new Map();
 
-        let [mountedCounter, mountedCounterSet] = createSignal(0);
-
         const rearranged = items.map(flushItem => {
 
 
@@ -3522,7 +3579,6 @@ SOFTWARE.
               ioMessageList && ioMessageList.observe(messageEntry);
 
               createdPromise.resolve(messageEntry);
-              mountedCounterSet(a => a + 1);
 
 
             }
@@ -3539,122 +3595,51 @@ SOFTWARE.
         if (crCount !== this.clearCount) return;
         if (this.isAttached !== true) return;
 
+        const nd = rearranged.length;
+        if (nd === 0) return;
+
         const visibleItems = this.visibleItems;
+        const wasEmpty = visibleItems.length === 0;
 
-        const isAtBottom = this.atBottom === true;
+        let _lastVisibleItemCount = lastVisibleItemCount;
 
-        if (!RENDER_MESSAGES_ONE_BY_ONE && rearranged.length > 1) {
+        const promiseFn = mloPrSetup(messageList, nd - 1);
 
-          let t1 = performance.now();
+        let rJ = 0;
 
-          let isCreated = false;
-          const renderedPromise = new PromiseExternal();
-          createEffect(() => {
-            const count = mountedCounter()
-            // console.log('count', count, isCreated);
-            if (count === rearranged.length) renderedPromise.resolve();
-          });
-
-          messageList.solidBuildSet(list => {
-            const shouldRemove = removeCount > 0 && lastVisibleItemCount === visibleItems.length && lastVisibleItemCount === list.length
-            shouldRemove && visibleItems.splice(0, removeCount);
-            shouldRemove && list.splice(0, removeCount);
-            // list.push.apply(list, rearranged);
-            inPlaceArrayPush(list, rearranged);
-            return list;
-          });
-
-          await Promise.all(rearranged.map(e => (mutableWM.get(e)?.createdPromise || 0)));
-          isCreated = true;
-
-          await renderedPromise.then();
-
-          if (isAtBottom) {
-            scrollToEnd();
+        const loopFunc = (list) => {
+          const j = rJ;
+          const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
+          if (shouldRemove) {
+            visibleItems.shift();
+            list.shift();
+            removeCount--;
+            _lastVisibleItemCount--;
           }
-
-          mountedCounter = null;
-          mountedCounterSet = null;
-
-
-          let t2 = performance.now();
-          if (rearranged.length > 20) console.log(`one-by-one = false <${rearranged.length}>`, t2 - t1);
-
-
-        } else {
-
-          let t1 = performance.now();
-          let _lastVisibleItemCount = lastVisibleItemCount;
-          let targetCount = -1;
-          let renderedPromise = null;
-
-          createEffect(() => {
-            const count = mountedCounter()
-            // console.log('count', count, isCreated);
-            if (count === targetCount) renderedPromise.resolve();
-          });
-
-          for (let j = 0; j < rearranged.length; j++) {
-
-            renderedPromise = new PromiseExternal();
-            targetCount = j + 1;
-
-            let lastScrollTop = -1;
-            if (scrollEveryRound === null && isAtBottom && messageList) {
-              lastScrollTop = messageList.scrollTop;
-            }
-
-
-            messageList.solidBuildSet(list => {
-              const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
-              if (shouldRemove) {
-                visibleItems.shift();
-                list.shift();
-                removeCount--;
-                _lastVisibleItemCount--;
-              }
-              list.push(rearranged[j])
-              return list;
-            });
-
-            await renderedPromise.then();
-
-            if (!scrollEveryRound && isAtBottom && this.atBottom === false) {
-              console.log('scrollEveryRound = true [01]')
-              scrollEveryRound = true;
-            }
-
-            if (scrollEveryRound === null && isAtBottom && messageList && messageList.scrollTop === lastScrollTop) {
-              scrollToEnd();
-              if (messageList.scrollTop !== lastScrollTop) {
-                console.log('scrollEveryRound = true [02]')
-                scrollEveryRound = true;
-              }
-            } else {
-
-              if (isAtBottom && scrollEveryRound) {
-                scrollToEnd();
-              }
-            }
-
-            if (isAtBottom && scrollEveryRound === null) scrollEveryRound = false;
-
-          }
-          if (isAtBottom && !scrollEveryRound) {
-            scrollToEnd();
-          }
-          targetCount = -1;
-          renderedPromise = null;
-
-          mountedCounter = null;
-          mountedCounterSet = null;
-
-          let t2 = performance.now();
-          if (rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, t2 - t1);
-
+          list.push(rearranged[j]);
+          return list;
         }
 
+        await Promise.resolve();
+        
+        const t1 = performance.now();
+        let tq = t1;
+        let mg = 0;
+        for (; rJ < nd; rJ++) {
+          mloUz = rJ;
+          messageList.solidBuildSet(loopFunc);
+          if (performance.now() - tq >= 6) {
+            await Promise.resolve();
+            tq = performance.now();
+            mg++;
+          }
+        }
+        await promiseFn();
+        if (wasEmpty) scrollToEnd();
+        const t2 = performance.now();
 
+        if (mg > 0) console.log(`flushItems; n=${rearranged.length}; t=${Math.round(t2 - t1)}; mg=${mg}`);
+        if (rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, Math.round(t2 - t1));
 
         let jx = visibleItems.length;
         visibleItems.length = jx + rearranged.length;
