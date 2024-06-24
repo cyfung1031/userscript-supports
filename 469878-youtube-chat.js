@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.62.2
+// @version             0.63.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -168,6 +168,8 @@
 
   const AMEND_TICKER_handleLiveChatAction = false; // to fix ticker duplication and unresponsively fast ticker generation
   // AMEND_TICKER_handleLiveChatAction to be fixed (2024.05.21)
+
+  const AMEND_TICKER_handleLiveChatAction_v3 = true; // responsiveness fix (Major Feature)
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
   const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
@@ -1253,6 +1255,28 @@
     };
   })();
 
+
+  const createPipeline = () => {
+    let pipelineMutex = Promise.resolve();
+    const pipelineExecution = fn => {
+      return new Promise((resolve, reject) => {
+        pipelineMutex = pipelineMutex.then(async () => {
+          let res;
+          try {
+            res = await fn();
+          } catch (e) {
+            console.log('error_F1', e);
+            reject(e);
+          }
+          resolve(res);
+        }).catch(console.warn);
+      });
+    };
+    return pipelineExecution;
+  };
+
+  const tickerPE = createPipeline();
+
   /** @type {typeof PromiseExternal.prototype | null} */
   let relayPromise = null;
 
@@ -1922,6 +1946,22 @@
       return null;
     }
   };
+
+
+  let xoIcjPr = null;
+  window.addEventListener('message', (evt) => {
+    if ((evt || 0).data === 'xoIcj' && xoIcjPr !== null) xoIcjPr.resolve();
+  });
+  const timelineResolve = async () => {
+    if (xoIcjPr !== null) {
+      await xoIcjPr.then();
+      return;
+    }
+    xoIcjPr = new PromiseExternal();
+    window.postMessage('xoIcj');
+    await xoIcjPr.then();
+    xoIcjPr = null;
+  }
 
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
@@ -5982,7 +6022,7 @@
             return;
           }
 
-          const do_amend_ticker_handleLiveChatAction = AMEND_TICKER_handleLiveChatAction
+          const do_amend_ticker_handleLiveChatAction = AMEND_TICKER_handleLiveChatAction && !AMEND_TICKER_handleLiveChatAction_v3
             && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && cProto.handleLiveChatAction.length === 1
             && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && cProto.handleLiveChatActions.length === 1
             && typeof cProto.unshift === 'function' && cProto.unshift.length === 1
@@ -6353,6 +6393,175 @@
             console.log("AMEND_TICKER_handleLiveChatAction - OK (v1)");
           } else {
             console.log("AMEND_TICKER_handleLiveChatAction - NG");
+          }
+
+
+
+          const do_amend_ticker_handleLiveChatAction_v3 = AMEND_TICKER_handleLiveChatAction_v3 && !AMEND_TICKER_handleLiveChatAction
+            && typeof cProto.handleLiveChatAction === 'function' && !cProto.handleLiveChatAction45 && cProto.handleLiveChatAction.length === 1
+            && typeof cProto.handleLiveChatActions === 'function' && !cProto.handleLiveChatActions45 && cProto.handleLiveChatActions.length === 1
+            && typeof cProto.unshift === 'function' && cProto.unshift.length === 1
+            && typeof cProto.handleMarkChatItemAsDeletedAction === 'function' && cProto.handleMarkChatItemAsDeletedAction.length === 1
+            && typeof cProto.removeTickerItemById === 'function' && cProto.removeTickerItemById.length === 1
+            && typeof cProto.handleMarkChatItemsByAuthorAsDeletedAction === 'function' && cProto.handleMarkChatItemsByAuthorAsDeletedAction.length === 1
+            && typeof cProto.handleRemoveChatItemByAuthorAction === 'function' && cProto.handleRemoveChatItemByAuthorAction.length === 1
+            ;
+
+          if (do_amend_ticker_handleLiveChatAction_v3) {
+
+            /*
+                f.handleLiveChatActions = function(a) {
+                    a.length && (a.forEach(this.handleLiveChatAction, this),
+                    this.updateHighlightedItem(),
+                    this.shouldAnimateIn = !0)
+                }
+                */
+
+            /*
+
+                f.handleLiveChatAction = function(a) {
+                var b = y(a, PM)
+                  , c = y(a, QM)
+                  , d = y(a, OM)
+                  , e = y(a, Yab);
+                a = y(a, ibb);
+                b && this.enableCreatorGoalRevamp ? this.unshift("tickerItems", b.item) : b ? this.unshift("items", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : a && this.handleRemoveChatItemByAuthorAction(a)
+            }
+            */
+
+            const arr00 = new Array(1);
+            arr00.forEach = () => { };
+            arr00.push = (...args) => { return 1 + args.length };
+            arr00.pop = () => { };
+            arr00.shift = () => { };
+            arr00.unshift = () => { };
+            arr00.splice = () => [];
+            cProto.handleLiveChatActionsArr0 = arr00;
+
+            cProto.handleLiveChatActions58 = cProto.handleLiveChatActions;
+            cProto.xGqq4mo = null;
+            cProto.xGqq4Flg = 0;
+            cProto.xGqq4moPreparePromise = null;
+            cProto.xGqq4f = function () {
+              if (this.xGqq4Flg === 2) {
+                this.xGqq4Flg = 0;
+                tickerPE(async ()=>{ // avoid confliction with ticker generation
+                  await this.xGqq4moPreparePromise; // just in case
+                  const s = this.handleLiveChatActionsArr0;
+                  try {
+                    this.handleLiveChatActions58(s);
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                  // console.log('xGqq4f done')
+                });
+                
+              }
+            }
+            const liveActionQM = new WeakSet();
+            let liveActionsLastTickerAction = null;
+            const lastTickerActionM = new WeakSet();
+            cProto.handleLiveChatActions = function (a) {
+              // let promise = null;
+              if (a && a.length) {
+                /** @type {MutationObserver | null} */
+                let mo = this.xGqq4mo;
+                // console.log('xGqq4f aaaa')
+                const hostElement = this.hostElement;
+                if (hostElement instanceof HTMLElement) {
+                  if (mo === null || (mo instanceof MutationObserver && this.xGqq4p !== hostElement.xGqq4q)) {
+                    if (mo instanceof MutationObserver) {
+                      mo.disconnect();
+                      mo.takeRecords();
+                    }
+                    this.xGqq4mo = mo = new MutationObserver(() => {
+                      this.xGqq4f();
+                    })
+                    const moid = `dm-${Date.now()}-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;;
+                    this.xGqq4p = moid;
+                    hostElement.xGqq4q = moid;
+                    mo.observe(hostElement, { subtree: true, childList: true });
+                  }
+                }
+                for (const u of a) {
+                  liveActionQM.add(u)
+                }
+                this.xGqq4moPreparePromise = new Promise(resolve=>{
+                  liveActionsLastTickerAction = null;
+                  a.forEach(this.handleLiveChatAction, this);
+                  if (liveActionsLastTickerAction) lastTickerActionM.add(liveActionsLastTickerAction)
+                  resolve(); // now tickerPE can execute
+                });
+
+
+                // console.log('xGqq4f bbbb')
+                // promise = this.handleLiveChatAction_LastPromise;
+                // const f = () => {
+                //   const s = this.handleLiveChatActionsArr0;
+                //   try {
+                //     return this.handleLiveChatActions58(s);
+                //   } catch (e) {
+                //     console.warn(e);
+                //   }
+                // }
+                // if (!promise) {
+                //   f();
+                // } else {
+                //   promise.then(f);
+                // }
+              } else {
+                return this.handleLiveChatActions58(a);
+              }
+            }
+
+            // 12:17:05.748 PM
+            // 12:17:05.785 v {name: 'addLiveChatTickerItemAction'}
+            // 12:17:08.059 QM
+            // 12:17:08.068 v {name: 'markChatItemAsDeletedAction'}
+            // 12:17:09.123 OM
+            // 12:17:09.133 v {name: 'removeChatItemAction'}
+            // 12:17:11.566 Yab
+            // 12:17:11.574 v {name: 'markChatItemsByAuthorAsDeletedAction'}
+            // 12:17:14.272 ibb
+            // 12:17:14.282 v {name: 'removeChatItemByAuthorAction'}
+
+            const keyFilter = (a) => {
+              let ok = false;
+              if (typeof (a || 0) === 'object') {
+                for (const k of Object.keys(a)) {
+                  switch (k) {
+                    case 'addLiveChatTickerItemAction':
+                    case 'markChatItemAsDeletedAction':
+                    case 'removeChatItemAction':
+                    case 'markChatItemsByAuthorAsDeletedAction':
+                    case 'removeChatItemByAuthorAction':
+                      ok = true;
+                      break;
+                  }
+                }
+              }
+              return ok;
+            }
+
+            cProto.handleLiveChatAction58 = cProto.handleLiveChatAction;
+            cProto.handleLiveChatAction = function (a) {
+              const inQM = liveActionQM.delete(a);
+              if (!keyFilter(a)) {
+                return this.handleLiveChatAction58(a);
+              }
+
+              if (inQM) {
+                liveActionsLastTickerAction = a;
+              }
+              this.handleLiveChatAction_LastPromise = tickerPE(async () => {
+                await this.xGqq4moPreparePromise; // avoid tickerPE is called before actions under looping in handleLiveChatActions
+                const inLQM = lastTickerActionM.delete(a);
+                if (inLQM) this.xGqq4Flg = 2;
+                this.handleLiveChatAction58(a);
+                await timelineResolve();
+              });
+            }
+
           }
 
           if (RAF_FIX_keepScrollClamped) {
