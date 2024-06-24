@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.34
+// @version             0.1.35
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -45,6 +45,7 @@ SOFTWARE.
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
+  const LOGTIME_FLUSHITEMS = false;
 
   let isThisBrowserSupported = true;
 
@@ -203,14 +204,15 @@ SOFTWARE.
 
   let mloUz = -1;
 
-  const { mloPrSetup } = (() => {
+  const { mloPrSetup, mloCond } = (() => {
 
     let mloUz0 = -2;
 
     let messageListMOMap = new WeakMap();
     let mloPr = null;
+    const mloCond = () => mloUz === mloUz0 && mloPr !== null;
     const mloF = () => {
-      if (mloUz == mloUz0 && mloPr) mloPr.resolve();
+      if (mloUz === mloUz0 && mloPr !== null) mloPr.resolve();
     };
     const mloSetup = (messageList, mloUz0_) => {
 
@@ -245,7 +247,7 @@ SOFTWARE.
       }
 
     }
-    return { mloPrSetup }
+    return { mloPrSetup, mloCond }
   })();
 
   const firstKey = (obj) => {
@@ -315,7 +317,7 @@ SOFTWARE.
 
   const cssTexts = {
     "outer": `
-    
+
 
       .bst-yt-main ~ #items[id][class] {
         display: none !important;
@@ -368,7 +370,7 @@ SOFTWARE.
           --color-opac-gd-3: rgba(83, 83, 95, 0.55);
           --color-opac-gd-4: rgba(50, 50, 57, 0.62);
           --color-opac-gd-5: rgba(50, 50, 57, 0.95);
-          
+
           --shadow-elevation-umbra: 0.34;
           --shadow-elevation-penumbra: 0.26;
           --shadow-elevation-ambient: 0.28;
@@ -418,7 +420,7 @@ SOFTWARE.
         --button-size-small: 2.4rem;
         --button-size-default: 3rem;
         --button-size-large: 3.6rem;
-      
+
         --loading-spinner-size-small: 1.6rem;
         --loading-spinner-size-default: 2.2rem;
         --loading-spinner-size-large: 2.8rem;
@@ -447,7 +449,7 @@ SOFTWARE.
         --border-radius-extra-large: 1rem;
         --border-radius-extra-extra-large: 1.6rem;
         --border-radius-rounded: 9000px;
-        
+
       }
 
       .bst-message-list {
@@ -457,7 +459,7 @@ SOFTWARE.
         --yt-spec-menu-background: #fff;
         --yt-spec-inverted-background: #0f0f0f;
         --yt-spec-additive-background: rgba(0,0,0,0.05);
-        
+
         --yt-deprecated-blue-light: hsl(205.9,80%,43.1%);
         --yt-deprecated-opalescence-grey-opacity-lighten-3: hsla(0,0%,53.3%,0.4);
         --yt-deprecated-opalescence-soft-grey-opacity-lighten-3: hsla(0,0%,93.3%,0.4);
@@ -750,7 +752,7 @@ SOFTWARE.
         --bst-username-color: var(--yt-live-chat-secondary-text-color);
         --bst-name-field-background-default: rgba(127, 127, 127, 0.15);
       }
-      
+
       .bst-message-list[dark] {
         --bst-username-color: #a3e3e3;
         --bst-name-field-background-default: rgba(255, 255, 255, 0.15);
@@ -878,7 +880,7 @@ SOFTWARE.
         --bst-name-field-background: transparent;
         position: relative;
       }
-      
+
       .bst-name-field:hover {
         --bst-name-field-background: var(--bst-name-field-background-default);
         background-color: var(--bst-name-field-background);
@@ -897,7 +899,7 @@ SOFTWARE.
         opacity: 0;
         user-select: none;
       }
-      
+
       [author-type="owner"] .bst-name-field {
         --bst-name-field-background: var(--yt-live-chat-author-chip-owner-background-color);
         background-color: var(--bst-name-field-background);
@@ -1035,7 +1037,7 @@ SOFTWARE.
         z-index: -1;
         visibility: collapse;
       }
-      
+
 
       .bst-message-list {
         overflow-anchor: none;
@@ -1044,8 +1046,8 @@ SOFTWARE.
       .bst-overflow-anchor{
           overflow-anchor: auto;
       }
-      
-      
+
+
 
 
 
@@ -1101,7 +1103,7 @@ SOFTWARE.
         margin-top: -4px;
         margin-bottom: 0;
       }
-      
+
 
 
       .bst-message-entry[author-type="member"] .bst-message-name-color{
@@ -1121,28 +1123,28 @@ SOFTWARE.
       .bst-message-entry .bst-message-name-color .bst-message-badge-yt-icon[icon-type="verified"] {
         color: var(--yt-live-chat-verified-color, inherit);
       }
-      
+
 
       /**
-       * 
-       * 
-    
+       *
+       *
+
       yt-live-chat-author-chip {
           display: inline-flex;
           align-items: baseline
       }
-      
+
       yt-live-chat-author-chip[bold-color-usernames] #author-name.yt-live-chat-author-chip {
           color: var(--yt-live-chat-primary-text-color)
       }
-      
+
       #author-name.yt-live-chat-author-chip {
           box-sizing: border-box;
           border-radius: 2px;
           color: var(--yt-live-chat-secondary-text-color);
           font-weight: 500
       }
-      
+
       #author-name.single-line.yt-live-chat-author-chip {
           -webkit-box-orient: vertical;
           text-overflow: ellipsis;
@@ -1152,43 +1154,43 @@ SOFTWARE.
           overflow: hidden;
           word-break: break-all
       }
-      
+
       yt-live-chat-author-chip[is-highlighted] #author-name.yt-live-chat-author-chip {
           padding: 2px 4px;
           color: var(--yt-live-chat-author-chip-verified-text-color);
           background-color: var(--yt-live-chat-author-chip-verified-background-color)
       }
-      
+
       yt-live-chat-author-chip[is-highlighted] #author-name.owner.yt-live-chat-author-chip,#author-name.owner.yt-live-chat-author-chip {
           background-color: var(--yt-live-chat-author-chip-owner-background-color);
           color: var(--yt-live-chat-author-chip-owner-text-color)
       }
-      
+
       yt-live-chat-author-chip[disable-highlighting] #author-name.yt-live-chat-author-chip {
           color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
           font-size: 110%;
       }
-      
+
       yt-live-chat-author-chip[dashboard-money-feed] #author-name.yt-live-chat-author-chip {
           display: block;
           color: var(--yt-live-chat-secondary-text-color)
       }
-      
+
       #author-name.moderator.yt-live-chat-author-chip {
           color: var(--yt-live-chat-moderator-color)
       }
-      
+
       #author-name.member.yt-live-chat-author-chip {
           color: var(--yt-live-chat-sponsor-color)
       }
 
-      
+
       **/
 
       /**
-      * 
-      * 
-      * 
+      *
+      *
+      *
       #chip-badges.yt-live-chat-author-chip:empty {
         display: none
       }
@@ -1381,13 +1383,13 @@ SOFTWARE.
         opacity: 0.68;
       }
 
-      
+
 
       .bst-message-entry .bst-message-menu-container yt-icon:hover {
         opacity: 0.88;
       }
 
-      
+
 
       .bst-message-entry:hover .bst-message-menu-container {
         visibility: visible;
@@ -1436,8 +1438,8 @@ SOFTWARE.
         min-height: 6.6rem;
       }
 
-      .bst-sponsorship-purchase .bst-message-entry-highlight {   
-        --bst-highlight-color: var(--yt-live-chat-sponsor-color);   
+      .bst-sponsorship-purchase .bst-message-entry-highlight {
+        --bst-highlight-color: var(--yt-live-chat-sponsor-color);
         background: url(https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png); /* to be reviewed? */
         background-repeat: no-repeat;
         background-size: contain;
@@ -1483,7 +1485,7 @@ SOFTWARE.
       .bst-message-entry-header {
         --bst-message-entry-pl: calc( var(--yt-live-chat-profile-icon-size) + 6px );
         padding-left: var(--bst-message-entry-pl);
-        
+
       }
 
       .bst-membership-message .bst-message-entry-header .bst-message-entry-highlight[class]{
@@ -1620,10 +1622,10 @@ SOFTWARE.
         display: inline;
       }
 
-      .bst-profile-card-main a[href]:link, 
-      .bst-profile-card-main a[href]:visited, 
-      .bst-profile-card-main a[href]:hover, 
-      .bst-profile-card-main a[href]:active, 
+      .bst-profile-card-main a[href]:link,
+      .bst-profile-card-main a[href]:visited,
+      .bst-profile-card-main a[href]:hover,
+      .bst-profile-card-main a[href]:active,
       .bst-profile-card-main a[href]:focus {
         color: var(--bst-hyperlink-color);
       }
@@ -1746,8 +1748,8 @@ SOFTWARE.
         const ek = badge[fk];
 
         /**
-         * 
-        
+         *
+
                   if (a.icon) {
                       var c = document.createElement("yt-icon");
                       "MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge ? (c.polymerController.icon = "yt-sys-icons:shield-filled",
@@ -1760,7 +1762,7 @@ SOFTWARE.
                       b.appendChild(c),
                       c.setAttribute("alt", this.hostElement.ariaLabel || "")) : qr(new sn("Could not compute URL for thumbnail",a.customThumbnail))
                   }
-        * 
+        *
         */
 
         if (ek.icon) {
@@ -1899,7 +1901,7 @@ SOFTWARE.
   }
 
   const SolidBeforeContentButton0 = (data)=>{
-    
+
     const onButtonContainerCreated = (div)=>{
 
       if(!sharedNoscript) return;
@@ -2269,17 +2271,17 @@ SOFTWARE.
 
 
   /**
-   * 
+   *
    * test links
-   * 
-   * 
+   *
+   *
    * moderator
    * https://www.youtube.com/watch?v=1-D4z79ZUV4
-   * 
-   * 
+   *
+   *
    * owner (long text)
    * https://www.youtube.com/watch?v=A930eAQYQog&t=1h32m50s
-   * 
+   *
    */
 
 
@@ -2328,7 +2330,7 @@ SOFTWARE.
     }
 
     /*
-    
+
         cQ.prototype.createDocumentFragment = function(a, b, c, d) {
             b = void 0 === b ? !1 : b;
             c = void 0 === c ? !0 : c;
@@ -2346,11 +2348,11 @@ SOFTWARE.
                 return e.appendChild(document.createTextNode(a.substr(g))),
                 e
         }
-    
+
         */
 
     /*
-    
+
         cQ.prototype.createEmoji = function(a, b) {
             b = void 0 === b ? !0 : b;
             var c = document.createElement("img");
@@ -2391,11 +2393,11 @@ SOFTWARE.
 */
 
       /*
-      
-      
+
+
               try {
                 const emoji = message.emoji;
-      
+
                 const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
                 const src = () => `${emoji.image.thumbnails[0].url}`
                 const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
@@ -2408,18 +2410,18 @@ SOFTWARE.
                   dataMutable.tooltips.set(emojiElementId, createStore({
                     displayedTooltipText: ''
                   }));
-      
+
                   const displayedTooltipText = () => {
                     const dataMutable = mutableWM.get(data);
                     const [emojiDataStore, emojiDataStoreSet] = dataMutable.tooltips.get(emojiElementId);
                     return emojiDataStore.displayedTooltipText
                   }
-      
+
                   return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
                 } else {
                   return '';
                 }
-      
+
               } catch (e) {
                 console.warn(e);
               }
@@ -2468,7 +2470,7 @@ SOFTWARE.
     /** @type {HTMLElement} */
     let wliveChatTextInputRenderer = null;
 
-    // .... 
+    // ....
 
     /** @type {HTMLElement} */
     let messageList;
@@ -3267,16 +3269,16 @@ SOFTWARE.
 
 
     /*
-    
+
     this.push.apply(this, this.activeItems_)
-    
+
     // c = visibleItems
-    
+
     a=Array of ... [pending visibleItems]
-    
+
     // g = this.visibleItems
-    
-    
+
+
             a.prototype.push = function(c) {
                 var d = Ta.apply(1, arguments)
                   , e = {
@@ -3288,7 +3290,7 @@ SOFTWARE.
                 d.length && pu(this, g, e.path, k, d.length, []);
                 return m
             }
-    
+
     */
 
     function getUID(aObj) {
@@ -3312,10 +3314,25 @@ SOFTWARE.
 
       return convertAObj;
     }
+    let nyhaDPr = null;
+    window.addEventListener('message', (evt)=>{
+      if((evt||0).data === 'nyhaD' && nyhaDPr!==null) nyhaDPr.resolve();
+    });
+    const timelineResolve = async () => {
+      if (nyhaDPr !== null) {
+        await nyhaDPr.then();
+        return;
+      }
+      nyhaDPr = new PromiseExternal();
+      window.postMessage('nyhaD');
+      await nyhaDPr.then();
+      nyhaDPr = null;
+    }
 
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
     cProto.flushActiveItems_ = function () {
+      const clearCount0 = this.clearCount;
       const items = (this.$ || 0).items;
       const hostElement = this.hostElement;
       if (!(items instanceof Element)) return;
@@ -3368,12 +3385,16 @@ SOFTWARE.
 
         //  console.log(9192, 299, items);
         // activeItems_.length = 0;
-        const crCount = this.clearCount;
+        // const crCount = this.clearCount;
         // const pEmpty = this.isEmpty;
 
         const appendStates = new Map();
 
-        const rearranged = items.map(flushItem => {
+        if (clearCount0 !== this.clearCount) return;
+        if (this.isAttached !== true) return;
+        if (items.length === 0) return;
+
+        let rearrangedW = items.map(flushItem => {
 
 
           const aKey = firstKey(flushItem);
@@ -3386,6 +3407,31 @@ SOFTWARE.
             return null;
           }
           flushKeys.add(uid);
+
+          appendStates.set(flushItem, 2);
+
+          return {
+            flushItem,
+            aKey, aObj, uid
+          };
+
+        }).filter(e => !!e);
+
+        const nd = rearrangedW.length;
+        if (nd === 0) return;
+
+        await timelineResolve();
+
+        if (clearCount0 !== this.clearCount) return;
+        if (this.isAttached !== true) return;
+
+        // no filtering
+        const rearrangedFn = entry=>{
+
+          const {
+            flushItem,
+            aKey, aObj, uid
+          } = entry;
 
           convertAObj(aObj, aKey);
 
@@ -3443,7 +3489,7 @@ SOFTWARE.
               mutable.viewVisibleChange = viewVisibleChange;
               mutable.viewVisibleIdx = viewVisibleIdx;
               mutable.viewVisibleIdxChange = viewVisibleIdxChange;
-              
+
               setExtra(messageEntry, {
                 getReactiveData: ()=>bObj,
                 interceptionRatioChange: interceptionRatioChange
@@ -3594,17 +3640,8 @@ SOFTWARE.
           mutableWM.set(bObj, mutable);
 
 
-          appendStates.set(flushItem, 2);
-
           return bObj;
-
-        }).filter(e => !!e);
-
-        if (crCount !== this.clearCount) return;
-        if (this.isAttached !== true) return;
-
-        const nd = rearranged.length;
-        if (nd === 0) return;
+        };
 
         const visibleItems = this.visibleItems;
         const wasEmpty = visibleItems.length === 0;
@@ -3614,9 +3651,10 @@ SOFTWARE.
         const promiseFn = mloPrSetup(messageList, nd - 1);
 
         let rJ = 0;
+        let bObjX = null;
 
         const loopFunc = (list) => {
-          const j = rJ;
+          const bObj = bObjX;
           const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
           if (shouldRemove) {
             visibleItems.shift();
@@ -3624,33 +3662,61 @@ SOFTWARE.
             removeCount--;
             _lastVisibleItemCount--;
           }
-          list.push(rearranged[j]);
+          list.push(bObj);
           return list;
         }
 
-        await Promise.resolve();
-        
+        let awaitTime = 0;
+        const timeline = new DocumentTimeline;
+        const timelines = new Set();
         const t1 = performance.now();
         let tq = t1;
         let mg = 0;
         for (; rJ < nd; rJ++) {
+          if (clearCount0 !== this.clearCount || this.isAttached !== true) break;
+          const j = rJ;
+          bObjX = rearrangedFn(rearrangedW[j]);
+          timelines.add(`${timeline.currentTime}|${tq}`);
           mloUz = rJ;
           messageList.solidBuildSet(loopFunc);
-          if (performance.now() - tq >= 6) {
-            await Promise.resolve();
-            tq = performance.now();
+          const tu = performance.now();
+          if (tu - tq >= 6) {
+            // if (wasEmpty) scrollToEnd(); // before the last timelineResolve
+            await timelineResolve();
+            const tv = performance.now();
+            awaitTime += Math.round(tv - tu);
+            tq = tv;
             mg++;
           }
         }
+        rearrangedW.length = 0;
+        rearrangedW = null;
+        if (!mloCond()) { // just in case
+          await timelineResolve();
+          console.log(`flushItems: interupted; rJ=${rJ}; nd=${nd}`);
+          return;
+        }
         await promiseFn();
-        if (wasEmpty) scrollToEnd();
+        if (wasEmpty) scrollToEnd(); // before the last timelineResolve
+        await timelineResolve();
         const t2 = performance.now();
+        // let at1 =  timeline.currentTime
+        // console.log(5913,[...timelines], timeline.currentTime)
 
-        if (mg > 0) console.log(`flushItems; n=${rearranged.length}; t=${Math.round(t2 - t1)}; mg=${mg}`);
-        if (rearranged.length > 20) console.log(`one-by-one = true <${rearranged.length}>`, Math.round(t2 - t1));
+        // while(timeline.currentTime - at1 < 0.008){
+        //   await timelineResolve();
+        // }
+        // console.log(5914,[...timelines], timeline.currentTime)
+
+        if (LOGTIME_FLUSHITEMS) {
+          const T = Math.round(t2 - t1);
+          const t = T - awaitTime;
+          if (mg > 0) console.log(`flushItems; n=${nd}; t=${t}(T=${T}); mg=${mg}`);
+          if (nd > 20) console.log(`one-by-one = true <${nd}>; t=${t}(T=${T})`);
+        }
 
         let jx = visibleItems.length;
-        visibleItems.length = jx + rearranged.length;
+        visibleItems.length = jx + nd;
 
         // to be reviewed - sync with list
         if (appendStates.size > 0) {
@@ -3665,12 +3731,13 @@ SOFTWARE.
               c2++
             }
           }
-          c2 !== rearranged.length && (visibleItems.length = jx + c2);
+          c2 !== nd && (visibleItems.length = jx + c2);
           c1 > 0 && activeItems_.splice(0, c1);
           appendStates.clear();
         }
 
 
+        // await timelineResolve();
 
         // const tn2 = performance.now();
 
