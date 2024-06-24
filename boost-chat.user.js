@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.35
+// @version             0.1.36
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3630,6 +3630,8 @@ SOFTWARE.
                 }
               });
 
+              mutable.viewVisiblePos = viewVisiblePos;
+
               ioMessageList && ioMessageList.observe(messageEntry);
 
               createdPromise.resolve(messageEntry);
@@ -3644,7 +3646,20 @@ SOFTWARE.
         };
 
         const visibleItems = this.visibleItems;
-        const wasEmpty = visibleItems.length === 0;
+        let needScrollToEnd = false;
+        if (visibleItems.length === 0) {
+          needScrollToEnd = true;
+        } else if (this.canScrollToBottom_() === true) {
+          // try to avoid call offsetHeight or offsetTop directly
+          const list = messageList.solidBuild();
+          const bObj = list && list.length ? list[0] : null;
+          if (bObj) {
+            const dataMutable = mutableWM.get(bObj);
+            if (dataMutable && typeof dataMutable.viewVisiblePos === 'function' && typeof dataMutable.viewVisiblePos() === 'string') { // down or up
+              needScrollToEnd = true;
+            }
+          }
+        }
 
         let _lastVisibleItemCount = lastVisibleItemCount;
 
@@ -3697,7 +3712,7 @@ SOFTWARE.
           return;
         }
         await promiseFn();
-        if (wasEmpty) scrollToEnd(); // before the last timelineResolve
+        if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
         await timelineResolve();
         const t2 = performance.now();
         // let at1 =  timeline.currentTime
