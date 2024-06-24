@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.63.0
+// @version             0.63.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1094,6 +1094,8 @@
   const hkey_script = 'mchbwnoasqph';
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
+
+  let unexpectedErr = "";
 
   if (!!ATTEMPT_ANIMATED_TICKER_BACKGROUND) {
 
@@ -6445,7 +6447,7 @@
             cProto.xGqq4f = function () {
               if (this.xGqq4Flg === 2) {
                 this.xGqq4Flg = 0;
-                tickerPE(async ()=>{ // avoid confliction with ticker generation
+                tickerPE(async () => { // avoid confliction with ticker generation
                   await this.xGqq4moPreparePromise; // just in case
                   const s = this.handleLiveChatActionsArr0;
                   try {
@@ -6455,7 +6457,7 @@
                   }
                   // console.log('xGqq4f done')
                 });
-                
+
               }
             }
             const liveActionQM = new WeakSet();
@@ -6484,14 +6486,20 @@
                   }
                 }
                 for (const u of a) {
-                  liveActionQM.add(u)
+                  u && liveActionQM.add(u)
                 }
-                this.xGqq4moPreparePromise = new Promise(resolve=>{
-                  liveActionsLastTickerAction = null;
-                  a.forEach(this.handleLiveChatAction, this);
-                  if (liveActionsLastTickerAction) lastTickerActionM.add(liveActionsLastTickerAction)
-                  resolve(); // now tickerPE can execute
-                });
+
+                /** @type {Promise} */
+                const pastPromise = this.xGqq4moPreparePromise || null;
+                this.xGqq4moPreparePromise = (async () => {
+                  try {
+                    await pastPromise; // just in case
+                    liveActionsLastTickerAction = null;
+                    a.forEach(this.handleLiveChatAction, this);
+                    if (liveActionsLastTickerAction) lastTickerActionM.add(liveActionsLastTickerAction)
+                  } catch (e) { console.warn(e); } // Promise catch can make the promise always resolved
+                  // now tickerPE can execute
+                })();
 
 
                 // console.log('xGqq4f bbbb')
@@ -6525,29 +6533,53 @@
             // 12:17:14.272 ibb
             // 12:17:14.282 v {name: 'removeChatItemByAuthorAction'}
 
-            const keyFilter = (a) => {
-              let ok = false;
+            const keyFilter = (a, keySet) => {
               if (typeof (a || 0) === 'object') {
                 for (const k of Object.keys(a)) {
-                  switch (k) {
-                    case 'addLiveChatTickerItemAction':
-                    case 'markChatItemAsDeletedAction':
-                    case 'removeChatItemAction':
-                    case 'markChatItemsByAuthorAsDeletedAction':
-                    case 'removeChatItemByAuthorAction':
-                      ok = true;
-                      break;
+                  if (keySet.has(k)) {
+                    return k;
                   }
                 }
               }
-              return ok;
+              return null;
             }
 
+            cProto.lcuJB = function () {
+              this.ddnB8 = 1;
+              let res = new Set();
+              const pxy = new Proxy({}, {
+                get(target, prop) {
+                  res.add(prop);
+                },
+                set(target, prop, value) {
+                  return true;
+                }
+              });
+              this.handleLiveChatAction(pxy);
+              this.ddnB8 = 0;
+              return res.size > 0 ? res : null;
+            }
+
+            cProto.ddnB8 = 0;
             cProto.handleLiveChatAction58 = cProto.handleLiveChatAction;
+            cProto.liveChatActionFilterKeys = null;
             cProto.handleLiveChatAction = function (a) {
-              const inQM = liveActionQM.delete(a);
-              if (!keyFilter(a)) {
+              if (this.ddnB8) return this.handleLiveChatAction58(a);
+              const inQM = a && liveActionQM.delete(a); // true if added from handleLiveChatActions
+              let keySet = this.liveChatActionFilterKeys;
+              if (keySet === null) {
+                const keys = this.lcuJB();
+                this.liveChatActionFilterKeys = keySet = (keys || false);
+              }
+              if (!keySet) {
+                if (!unexpectedErr) {
+                  console.error(unexpectedErr = "************************ [YouTube Super Fast Chat] TickerRenderer:handleLiveChatAction keySet not found; ERR 0xF3D0 ************************");
+                }
                 return this.handleLiveChatAction58(a);
+              }
+              const key = keyFilter(a, keySet);
+              if (!key) {
+                return this.handleLiveChatAction58(a); // just by default
               }
 
               if (inQM) {
@@ -6555,10 +6587,10 @@
               }
               this.handleLiveChatAction_LastPromise = tickerPE(async () => {
                 await this.xGqq4moPreparePromise; // avoid tickerPE is called before actions under looping in handleLiveChatActions
-                const inLQM = lastTickerActionM.delete(a);
-                if (inLQM) this.xGqq4Flg = 2;
+                const inLQM = lastTickerActionM.delete(a); // multiple candidates
+                if (inLQM) this.xGqq4Flg = 2; // 2 to 2 in case two batches are added "in the same time"
                 this.handleLiveChatAction58(a);
-                await timelineResolve();
+                await timelineResolve(); // timing split by marco event to make tickers generation in different 16ms frame
               });
             }
 
