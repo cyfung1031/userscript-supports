@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.63.1
+// @version             0.63.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5727,7 +5727,8 @@
               const tid = ++this.rtu;
 
               onPlayStateChangePromise.then(() => {
-                if (tid === this.rtu && !onPlayStateChangePromise) this.handlePauseReplay.apply(this, arguments);
+                if (tid === this.rtu && !onPlayStateChangePromise && typeof this.handlePauseReplay === 'function') this.handlePauseReplay.apply(this, arguments);
+                // this.handlePauseReplay can be undefined if it is memory cleaned
               });
 
               return;
@@ -5758,7 +5759,8 @@
               const tid = ++this.rtv;
 
               onPlayStateChangePromise.then(() => {
-                if (tid === this.rtv && !onPlayStateChangePromise) this.handleResumeReplay.apply(this, arguments);
+                if (tid === this.rtv && !onPlayStateChangePromise && typeof this.handleResumeReplay === 'function') this.handleResumeReplay.apply(this, arguments);
+                // this.handleResumeReplay can be undefined if it is memory cleaned
               });
 
               return;
@@ -6590,6 +6592,9 @@
                 const inLQM = lastTickerActionM.delete(a); // multiple candidates
                 if (inLQM) this.xGqq4Flg = 2; // 2 to 2 in case two batches are added "in the same time"
                 this.handleLiveChatAction58(a);
+                // if (inLQM) await timelineResolve(); // timing split by marco event to make tickers generation in different 16ms frame
+                // else await Promise.resolve();
+                // await Promise.resolve();
                 await timelineResolve(); // timing split by marco event to make tickers generation in different 16ms frame
               });
             }
