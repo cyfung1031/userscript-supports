@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.63.2
+// @version             0.64.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -39,6 +39,8 @@
 
 ((__CONTEXT__) => {
   'use strict';
+
+  const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
 
   const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient.
@@ -5211,6 +5213,22 @@
 
         const dProto = {
 
+          detachedForTickerInit: function () {
+
+            try {
+
+              this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
+
+              // this.behaviorActionMap = 0;
+              // this.isVisibilityRoot = 0;
+
+
+            } catch (e) { }
+
+
+            return this.detached582MemoryLeak();
+          },
+
           attachedForTickerInit: function () {
 
             fpTicker(this.hostElement || this);
@@ -5803,6 +5821,11 @@
           if (!cProto || !cProto.attached) {
             console.warn(`proto.attached for ${tag} is unavailable.`);
             continue;
+          }
+
+          if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
+            cProto.detached582MemoryLeak = cProto.detached;
+            cProto.detached = cProto.detachedForTickerInit;
           }
 
           cProto.attached77 = cProto.attached;
@@ -7249,6 +7272,7 @@
             document.createElement = w;
             if (EU instanceof HTMLElement && EU.is) {
               tooltipUIWM.set(this, EU);
+              EU.setAttribute('__nogc__', ''); // avoid gc process script
 
               if (typeof EU.offset === 'number') tooltipInitProps['offset'] = EU.offset;
               if (typeof EU.fitToVisibleBounds === 'boolean') tooltipInitProps['fitToVisibleBounds'] = EU.fitToVisibleBounds;
