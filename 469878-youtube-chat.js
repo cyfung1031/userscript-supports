@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.0
+// @version             0.64.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -196,6 +196,8 @@
   const FIX_ToggleRenderPolymerControllerExtractionBug = false; // to be reviewed
 
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
+
+  const DEBUG_wmList = false;
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -1318,11 +1320,15 @@
   const assertor = (f) => f() || console.assert(false, f + "");
 
   const fnIntegrity = (f, d) => {
+
+
     if (!f || typeof f !== 'function') {
       console.warn('f is not a function', f);
       return;
     }
-    let p = f + "", s = 0, j = -1, w = 0;
+    // return; // M44
+    let p = `${f}`, s = 0, j = -1, w = 0;
+    // return; // M44
     for (let i = 0, l = p.length; i < l; i++) {
       const t = p[i];
       if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
@@ -1332,6 +1338,27 @@
         s++;
       }
     }
+    // if(p.length > 44 && p.length < 50){
+
+    //   (window.skam|| (window.skam=[])).push(p);
+    //   return false;
+    // }
+
+//     if(p.length >  405 && p.length < 415 ){ //350 450
+
+
+//  //  [353, 411, 411, 411]
+      
+//       // if(p.length >= 350 && p.length<=450){
+
+//       //   (window.skam|| (window.skam=[])).push(p.length);
+//       // }
+//       (window.skam|| (window.skam=[])).push(p);
+//       return false;
+//     }
+
+    // if(p.length < 50) return true; else return false;
+    // return; // M44
     let itz = `${f.length}.${s}.${w}`;
     if (!d) {
       return itz;
@@ -2061,8 +2088,8 @@
         }
       };
       /**
-       * 
-       * @param {Element} elm 
+       *
+       * @param {Element} elm
        * @returns {Promise<void>}
        */
       const iAFP = (elm) => {
@@ -2735,7 +2762,7 @@
         assertor(() => fnIntegrity(cProto.attached, '0.32.22')) // just warning
         if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
           const fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
-          const s = fiRSCB.split('.');
+          // const s = fiRSCB.split('.');
           // Feb 2024: 0.403.247 => NG
           // if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
           //   console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
@@ -5144,9 +5171,74 @@
         "yt-live-chat-ticker-sponsor-item-renderer"
       ];
 
+      const wmList = new Set;
+      if(DEBUG_wmList){
 
+        setInterval(()=>{
+          console.log(48833, new Set([...wmList].filter(e=>e?.deref()?.isConnected === false).map(e=>e?.deref())).size)
+        }, 4000);
+      }
+
+
+/*
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
+
+        const dProto = {
+
+          detachedForTickerInit: function () {
+
+            try {
+
+              this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
+
+              // this.behaviorActionMap = 0;
+              // this.isVisibilityRoot = 0;
+
+
+            } catch (e) { }
+
+
+            return this.detached582MemoryLeak();
+          },
+
+          attachedForTickerInit: function () {
+            wmList.add(new WeakRef(this))
+
+            // fpTicker(this.hostElement || this);
+            return this.attached77();
+
+          },
+
+
+        }
+
+
+        for (const tag of tagsItemRenderer) { // ##tag##
+          const dummy = document.createElement(tag);
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            continue;
+          }
+
+          if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
+            cProto.detached582MemoryLeak = cProto.detached;
+            cProto.detached = cProto.detachedForTickerInit;
+          }
+
+          cProto.attached77 = cProto.attached;
+
+          cProto.attached = dProto.attachedForTickerInit;
+
+
+        }
+
+      });
+      */
+
+      Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
@@ -5230,6 +5322,7 @@
           },
 
           attachedForTickerInit: function () {
+            DEBUG_wmList && wmList.add(new WeakRef(this))
 
             fpTicker(this.hostElement || this);
             return this.attached77();
@@ -5815,6 +5908,8 @@
 
 
         for (const tag of tagsItemRenderer) { // ##tag##
+
+
           const dummy = document.createElement(tag);
 
           const cProto = getProto(dummy);
@@ -5844,14 +5939,15 @@
             // console.log('updateTimeout', typeof cProto.updateTimeout)
             // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
 
-            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
+            // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
+            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && 9===fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
 
           } else {
             console.log("ATTEMPT_ANIMATED_TICKER_BACKGROUND", ` ${tag}`, "Skip Timing Function Modification");
             continue;
           }
 
-
+          // continue;
           if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
 
             // cancelable - this.rafId < isAnimationPausedChanged >
@@ -5865,6 +5961,7 @@
             }
 
           }
+          // continue;
 
           const doAnimator = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
 
@@ -5927,6 +6024,7 @@
           }
 
           const doTimerFnModification = (doRAFHack || doAnimator);
+          // doTimerFnModification = false; // M55
 
           if (doAnimator && windowShownAt < 0) {
             windowShownAt = 0;
@@ -6846,10 +6944,12 @@
 
                 // not cancellable
 
+                // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
 
-                doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && fnIntegrity(cProto.updateTimeout, '1.50.33');
+                doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && 9===fnIntegrity(cProto.updateTimeout, '1.50.33');
 
               }
+              // doHack = false; // M55
 
               if (doHack) {
 
@@ -7312,7 +7412,7 @@
                 if (eProto) {
                   delete eProto.target;
                   /*
-    
+
                       get target() {
                           var a = Pv(this).parentNode, b = Pv(this).getOwnerRoot(), c;
                           this.for ? c = Pv(b).querySelector("#" + this.for) : c = a.nodeType == Node.DOCUMENT_FRAGMENT_NODE ? b.host : a;
@@ -7639,6 +7739,7 @@
 
 
         ]).then(sTags => {
+          // return; // M33
 
 
           mightFirstCheckOnYtInit();
@@ -8029,6 +8130,7 @@
 
       ]).then(sTags => {
 
+
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
         console.log("[Begin]");
@@ -8191,6 +8293,7 @@
               console.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
+
 
             if (CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu37 && !cProto.showContextMenu37_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
               cProto.showContextMenu37_ = cProto.showContextMenu_;
