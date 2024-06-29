@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.001
+// @version             0.0.002
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -95,6 +95,7 @@
     skipObjects.add(Object);
 
     const c66 = {};
+    const f66 = function(){};
 
     const Promise = (async () => { })().constructor;
 
@@ -628,8 +629,190 @@
         const cnt = insp(r);
         const pds = Object.getOwnPropertyDescriptors(cnt);
 
-        if (cnt && typeof cnt.unobserve_ === 'function') {
+        if(cnt && typeof cnt.unregisterActionRouterEventListeners_ === 'function'){
+          try{
+          cnt.unregisterActionRouterEventListeners_();
+          }catch(e){}
+        }
 
+        if(cnt && typeof cnt.removeMouseEventHandlers_ === 'function'){
+          try{
+            cnt.removeMouseEventHandlers_();
+          }catch(e){}
+        }
+
+
+        if(cnt && typeof cnt._removeEventListenerFromNode === 'function'){
+          try{
+            cnt._removeEventListenerFromNode();
+          }catch(e){}
+        }
+
+        if(cnt && typeof cnt._unlistenKeyEventListeners === 'function'){
+          try{
+            cnt._unlistenKeyEventListeners();
+          }catch(e){}
+        }
+
+        if(cnt && typeof cnt._unsubscribeIronResize === 'function'){
+          try{
+            cnt._unsubscribeIronResize();
+          }catch(e){}
+        }
+
+        if (cnt && typeof cnt.boundOnStamperFinished === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("yt-rendererstamper-finished", cnt.boundOnStamperFinished);
+          } catch (e) { }
+          try {
+
+            cnt.hostElement.removeEventListener("yt-renderidom-finished", cnt.boundOnStamperFinished);
+          } catch (e) { }
+
+        }
+
+
+        if (cnt && typeof cnt.boundOnTouchStart === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("touchstart", cnt.boundOnTouchStart);
+          } catch (e) { } 
+
+        }
+
+
+
+        if (cnt && typeof cnt._boundOnFocus === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("focus", cnt._boundOnFocus);
+          } catch (e) { } 
+
+        }
+
+        if (cnt && typeof cnt._boundOnBlur === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("blur", cnt._boundOnBlur);
+          } catch (e) { } 
+
+        }
+        if (cnt && typeof cnt._boundOnDescendantIronResize === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("iron-resize", cnt._boundOnDescendantIronResize);
+          } catch (e) { } 
+
+        }
+
+
+
+
+        if (cnt && typeof cnt._boundFocusBlurHandler === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("focus", cnt._boundFocusBlurHandler);
+          } catch (e) { } 
+
+        }
+
+
+
+        if (cnt && typeof cnt._boundFocusBlurHandler === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("blur", cnt._boundFocusBlurHandler);
+          } catch (e) { } 
+
+        }
+
+
+        if (cnt && typeof cnt._boundScrollHandler === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("scroll", cnt._boundScrollHandler);
+          } catch (e) { } 
+
+        }
+
+
+
+
+
+        if (cnt && typeof cnt._boundSchedule === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("slotchange", cnt._boundSchedule);
+          } catch (e) { } 
+
+        }
+
+
+        if (cnt && typeof cnt._boundNotifyResize === 'function') {
+
+          try {
+
+            cnt.hostElement.removeEventListener("resize", cnt._boundNotifyResize);
+          } catch (e) { } 
+
+        }
+
+
+        if (cnt && typeof cnt._boundEscKeydownHandler === 'function') {
+
+          try {
+
+            document.removeEventListener("keydown", cnt._boundEscKeydownHandler);
+          } catch (e) { } 
+
+        }
+
+
+
+
+
+
+        if (pds?._holdJob?.writable === true && cnt._holdJob > 0) {
+          clearInterval(cnt._holdJob);
+        }
+
+
+        if (pds?.refreshIntervalTimerId?.writable === true && cnt.refreshIntervalTimerId > 0 && typeof cnt.updateTime ==='function') {
+          clearInterval(cnt.refreshIntervalTimerId);
+        }
+        if (pds?.scrollInterval_?.writable === true && cnt.scrollInterval_ > 0 && typeof cnt.endWindowScroll_ === 'function') {
+          clearInterval(cnt.scrollInterval_);
+        }
+        if (pds?.watchEndpointStartTimeUpdaterInterval?.writable === true && cnt.watchEndpointStartTimeUpdaterInterval > 0 && typeof cnt.endStartTimeUpdater === 'function') {
+          clearInterval(cnt.watchEndpointStartTimeUpdaterInterval);
+        }
+        if (pds?.playbackPauseInterval?.writable === true && cnt.playbackPauseInterval > 0 && typeof cnt.pausePlayer === 'function') {
+          clearInterval(cnt.playbackPauseInterval);
+        }
+        if (pds?.timerId_?.writable === true && cnt.timerId_ > 0 && typeof cnt.disposeInternal === 'function') {
+          clearInterval(cnt.timerId_);
+        }
+
+
+        if (pds?.playPingTimerId?.writable === true && cnt.playPingTimerId > 0) {
+          clearInterval(cnt.playPingTimerId);
+        }
+
+        if(cnt && typeof cnt.unsubscribe_ ==='function'){
+          cnt.unsubscribe_();
+        }
+
+        if (cnt && typeof cnt.unobserve_ === 'function') {
           cnt.unobserve_();
           cnt.visibilityObserverForChild_ = cnt.localVisibilityObserver_ = null
         }
@@ -660,10 +843,77 @@
         }
 
 
-        if (pds?.rafId?.writable === true && typeof cnt.rafId === 'number' && cnt.rafId >= 1) {
-          window.cancelAnimationFrame(cnt.rafId);
+        if(cnt && typeof cnt.cancelTimeout_ ==='function'){
+          cnt.cancelTimeout_();
         }
 
+        if (pds?.rafId?.writable === true && typeof cnt.rafId === 'number' && cnt.rafId >= 1) {
+          window.cancelAnimationFrame(cnt.rafId);
+          // cnt.rafId = 0;
+        }
+        if (pds?.scrollClampRaf?.writable === true && typeof cnt.scrollClampRaf === 'number' && cnt.scrollClampRaf >= 1) {
+          window.cancelAnimationFrame(cnt.scrollClampRaf);
+          // cnt.scrollClampRaf = 0;
+        }
+        if (pds?.asyncHandle?.writable === true && typeof cnt.asyncHandle === 'number' && cnt.asyncHandle >= 1) {
+          window.cancelAnimationFrame(cnt.asyncHandle);
+          // cnt.asyncHandle = 0;
+        }
+        if (pds?.__openedRaf?.writable === true && typeof cnt.__openedRaf === 'number' && cnt.__openedRaf >= 1) {
+          window.cancelAnimationFrame(cnt.__openedRaf);
+          // cnt.__openedRaf = null;
+        }
+        if (pds?.scrollHandler?.writable === true && typeof cnt.scrollHandler === 'number' && cnt.scrollHandler >= 1) {
+          window.cancelAnimationFrame(cnt.scrollHandler);
+          // cnt.scrollHandler = 0;
+        }
+        if (pds?.intersectRAF?.writable === true && typeof cnt.intersectRAF === 'number' && cnt.intersectRAF >= 1) {
+          window.cancelAnimationFrame(cnt.intersectRAF);
+          // cnt.intersectRAF = 0;
+        }
+        
+        if(cnt && typeof cnt.disposeInternal === 'function'){
+          try{
+            cnt.disposeInternal();
+          }catch(e){}
+        }
+
+        if(cnt && typeof cnt.dispose === 'function'){
+          try{
+            cnt.dispose();
+          }catch(e){}
+        }
+
+
+        if (pds?._interestedResizables?.writable === true && typeof (cnt._interestedResizables||0) === 'object' && cnt._interestedResizables.length > 0) {
+          cnt._interestedResizables.length = 0;
+        }
+
+        if (pds?._boundKeyHandlers?.writable === true && typeof (cnt._boundKeyHandlers||0) === 'object' && cnt._boundKeyHandlers.length > 0) {
+          cnt._boundKeyHandlers.length = 0;
+        }
+
+        if(cnt && typeof cnt.onInputSlotChanged === 'function' && (cnt._inputElement instanceof Node) && typeof cnt._valueChangedEvent === 'string' && typeof cnt._boundValueChanged === 'function'){
+          try{
+            cnt._inputElement.removeEventListener(cnt._valueChangedEvent, cnt._boundValueChanged);
+          }catch(e){}
+        }
+
+
+        for (const name of Object.getOwnPropertyNames(cnt)) {
+          if (typeof name === 'string' && name.length > 5 && name.includes('bound')) {
+
+            if (pds[name]?.writable === true && typeof pds[name]?.value === 'function') {
+              const f = pds[name]?.value;
+              if (f && (f.name || '').includes('bound')) {
+                cnt[name] = f66;
+              }
+            }
+
+          }
+        }
+
+        
 
         if (pds?.__dataEnabled?.writable === true && cnt.__dataEnabled === true) {
           cnt.__dataEnabled = false;
