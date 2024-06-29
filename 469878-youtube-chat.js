@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.3
+// @version             0.64.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -112,7 +112,7 @@
   const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true;     // important [depends on <Group#I01>]
   const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true;  // [depends on <Group#I01>]
 
-  const ATTEMPT_ANIMATED_TICKER_BACKGROUND = ''   // false OR '' for disabled, 'linear', 'steps' for easing-function
+  const ATTEMPT_ANIMATED_TICKER_BACKGROUND = '';   // false OR '' for disabled, 'linear', 'steps' for easing-function
   // <<<< ATTEMPT_ANIMATED_TICKER_BACKGROUND to be reviewed with memory leakage issues >>>>
   // << if ATTEMPT_ANIMATED_TICKER_BACKGROUND >>
   // BROWSER SUPPORT: Chrome 75+, Edge 79+, Safari 13.1+, Firefox 63+, Opera 62+
@@ -5314,6 +5314,7 @@
 
         };
 
+        let tickerAttachmentId = 0;
 
         let windowShownAt = -1;
         const setupEventForWindowShownAt = () => {
@@ -5361,11 +5362,21 @@
               cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false && __requestRemoval__(cnt);
               cnt.rafId > 1 && rafHub.cancel(cnt.rafId);
             }).catch(console.warn);
-          
-            return this.detached77();
+
+            let r;
+            try {
+              r = this.detached77();
+            } catch (e) {
+              console.warn(e);
+            }
+            this.__ticker_attachmentId__ = 0;
+            return r;
           },
 
           attachedForTickerInit: function () {
+            if (tickerAttachmentId > 1e9) tickerAttachmentId = 9;
+            this.__ticker_attachmentId__ = ++tickerAttachmentId;
+
             DEBUG_wmList && wmList.add(new WeakRef(this))
             if (DEBUG_wmList && !DEBUG_wmList_started) {
               console.log('!!!!!!!!!!!!! DEBUG_wmList_started !!!!!!!!!')
@@ -5602,6 +5613,9 @@
               if (!cnt) return;
               if (!cnt.hostElement) return;
 
+              const attachementId = cnt.__ticker_attachmentId__;
+              if(!attachementId) return;
+
               // a.durationSec [s] => countdownMs [ms]
               // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
               // lastCountdownTimeMs => raf ongoing
@@ -5650,6 +5664,8 @@
                       const cnt = kRef(this);
                       if (!cnt) return;
                       if (!cnt.hostElement) return;
+
+                      if (attachementId !== cnt.__ticker_attachmentId__) return;
                       
                       if (cnt.isAttached === true && cnt.countdownDurationMs > 0 && cnt.isAnimationPaused === true && cnt.isReplayPaused !== true) {
                         cnt.isAnimationPaused = false;
@@ -5679,6 +5695,10 @@
               const cnt = kRef(this);
               if (!cnt) return;
               if (!cnt.hostElement) return;
+
+              const attachementId = cnt.__ticker_attachmentId__;
+              if(!attachementId) return;
+
               // a.durationSec [s] => countdownMs [ms]
               // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
               // lastCountdownTimeMs => raf ongoing
@@ -5716,6 +5736,9 @@
               const cnt = kRef(this);
               if (!cnt) return;
               if (!cnt.hostElement) return; // memory leakage. to be reviewed
+
+              const attachementId = cnt.__ticker_attachmentId__;
+              if(!attachementId) return;
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
@@ -5756,8 +5779,10 @@
             try {
               const cnt = kRef(this);
               if (!cnt) return;
-
               if (!cnt.hostElement) return; // memory leakage. to be reviewed
+
+              const attachementId = cnt.__ticker_attachmentId__;
+              if(!attachementId) return;
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
@@ -5795,6 +5820,9 @@
             if (!cnt) return;
             if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
+            const attachementId = cnt.__ticker_attachmentId__;
+            if(!attachementId) return;
+
             if (cnt._r782) return;
 
             if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
@@ -5806,6 +5834,7 @@
 
             Promise.resolve(cnt).then((cnt) => {
 
+              if(attachementId !== cnt.__ticker_attachmentId__) return;
 
               if (a) {
 
@@ -5848,6 +5877,9 @@
             if (!cnt) return;
             if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
+            const attachementId = cnt.__ticker_attachmentId__;
+            if(!attachementId) return;
+
             if (cnt._r782) return;
 
             if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
@@ -5858,6 +5890,8 @@
             cnt._forceNoDetlaSincePausedSecs783 = 0;
 
             Promise.resolve(cnt).then((cnt) => {
+
+              if(attachementId !== cnt.__ticker_attachmentId__) return;
 
               // TimerFnModT
 
@@ -5885,6 +5919,8 @@
           computeContainerStyleForAnimatorEnabled: function (a, b) {
 
             if (this._r782) return;
+            const attachementId = this.__ticker_attachmentId__;
+            if(!attachementId) return;
 
             if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
               this._throwOut();
@@ -5901,7 +5937,11 @@
           handlePauseReplayForPlaybackProgressState: function () {
             if (!playerEventsByIframeRelay) return this.handlePauseReplay66.apply(this, arguments);
 
-            const jr = mWeakRef(kRef(this));
+            const attachementId = this.__ticker_attachmentId__;
+            if(!attachementId) return;
+
+            const jr = mWeakRef(this);
+
             if (onPlayStateChangePromise) {
 
               if (this.rtu > 1e9) this.rtu = this.rtu % 1e4;
@@ -5909,6 +5949,7 @@
 
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
+                if(attachementId !== cnt.__ticker_attachmentId__) return;
                 if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
                 // this.handlePauseReplay can be undefined if it is memory cleaned
               });
@@ -5924,6 +5965,7 @@
               
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
+                if(attachementId !== cnt.__ticker_attachmentId__) return;
                 if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
                   cnt.handlePauseReplay66();
                 }
@@ -5936,8 +5978,10 @@
           handleResumeReplayForPlaybackProgressState: function () {
             if (!playerEventsByIframeRelay) return this.handleResumeReplay66.apply(this, arguments);
 
+            const attachementId = this.__ticker_attachmentId__;
+            if(!attachementId) return;
 
-            const jr = mWeakRef(kRef(this));
+            const jr = mWeakRef(this);
             if (onPlayStateChangePromise) {
 
               if (this.rtv > 1e9) this.rtv = this.rtv % 1e4;
@@ -5945,6 +5989,7 @@
 
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
+                if(attachementId !== cnt.__ticker_attachmentId__) return;
                 if (tid === cnt.rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
                 // this.handleResumeReplay can be undefined if it is memory cleaned
               });
@@ -5960,6 +6005,7 @@
               relayPromise = relayPromise || new PromiseExternal();
               relayPromise.then(() => {
                 const cnt = kRef(jr);
+                if(attachementId !== cnt.__ticker_attachmentId__) return;
                 if (relayCount > tc && playerState === 1 && _playerState === playerState && cnt.hostElement) {
                   cnt.handleResumeReplay66();
                 }
@@ -5970,10 +6016,13 @@
           /** @type {(a,)} */
           handleReplayProgressForPlaybackProgressState: function (a) {
             if (this.isAttached) {
+              const attachementId = this.__ticker_attachmentId__;
+              if(!attachementId) return;
               const tid = ++this.rtk;
               const jr = mWeakRef(kRef(this));
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
+                if(attachementId !== cnt.__ticker_attachmentId__) return;
                 if (tid === cnt.rtk && cnt.hostElement) {
                   cnt.handleReplayProgress66(a);
                 }
