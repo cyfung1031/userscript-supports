@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.10
+// @version     0.16.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -74,7 +74,7 @@
   const UNLOAD_DETACHED_POLYMER = false; // unstable
   const FIX_Polymer_dom = true;
 
-  const WEAK_REF_BINDING = true; // false if your browser is slow
+  const WEAK_REF_BINDING = false; // false if your browser is slow // disabled due to memory leakage
   // << if WEAK_REF_BINDING >>
   const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
   // << end >>
@@ -83,7 +83,7 @@
   const DEBUG_removePrune = false; // true for DEBUG
 
   const FIX_XHR_REQUESTING = true;
-  const FIX_VIDEO_BLOCKING = true; // usually it is a ads block issue
+  const FIX_VIDEO_BLOCKING = false; // usually it is a ads block issue // disabled due to memory leakage
 
   const LOG_FETCHMETA_UPDATE = false; // for DEBUG
 
