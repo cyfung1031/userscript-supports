@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.1
+// @version             0.64.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -112,7 +112,8 @@
   const FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION = true;     // important [depends on <Group#I01>]
   const FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT = true;  // [depends on <Group#I01>]
 
-  const ATTEMPT_ANIMATED_TICKER_BACKGROUND = 'steps'   // false OR '' for disabled, 'linear', 'steps' for easing-function
+  const ATTEMPT_ANIMATED_TICKER_BACKGROUND = ''   // false OR '' for disabled, 'linear', 'steps' for easing-function
+  // <<<< ATTEMPT_ANIMATED_TICKER_BACKGROUND to be reviewed with memory leakage issues >>>>
   // << if ATTEMPT_ANIMATED_TICKER_BACKGROUND >>
   // BROWSER SUPPORT: Chrome 75+, Edge 79+, Safari 13.1+, Firefox 63+, Opera 62+
   const TICKER_MAX_STEPS_LIMIT = 500;                       //  NOT LESS THAN 5 STEPS!!
@@ -197,7 +198,18 @@
 
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
 
+  // <<<<< FOR MEMORY LEAKAGE >>>>
   const DEBUG_wmList = false;
+  let DEBUG_wmList_started = false;
+  // const FLAG_001 = true;
+  const FLAG_001a = false;
+  const FLAG_001b = false;
+  const FLAG_001c = false;
+  const FLAG_001d = false;
+  const FLAG_001e = false;
+  const FLAG_001f = false;
+  // const FLAG_001g = true;
+  // <<<<< FOR MEMORY LEAKAGE >>>>
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
   /*
@@ -1344,18 +1356,18 @@
     //   return false;
     // }
 
-//     if(p.length >  405 && p.length < 415 ){ //350 450
+    //     if(p.length >  405 && p.length < 415 ){ //350 450
 
 
-//  //  [353, 411, 411, 411]
-      
-//       // if(p.length >= 350 && p.length<=450){
+    //  //  [353, 411, 411, 411]
 
-//       //   (window.skam|| (window.skam=[])).push(p.length);
-//       // }
-//       (window.skam|| (window.skam=[])).push(p);
-//       return false;
-//     }
+    //       // if(p.length >= 350 && p.length<=450){
+
+    //       //   (window.skam|| (window.skam=[])).push(p.length);
+    //       // }
+    //       (window.skam|| (window.skam=[])).push(p);
+    //       return false;
+    //     }
 
     // if(p.length < 50) return true; else return false;
     // return; // M44
@@ -5143,6 +5155,7 @@
 
 
       const fpTicker = (renderer) => {
+        if (FLAG_001a) return;
         const cnt = insp(renderer);
         assertor(() => typeof (cnt || 0).is === 'string');
         assertor(() => ((cnt || 0).hostElement || 0).nodeType === 1);
@@ -5172,73 +5185,80 @@
       ];
 
       const wmList = new Set;
-      if(DEBUG_wmList){
+      if (DEBUG_wmList) {
 
-        setInterval(()=>{
-          console.log(48833, new Set([...wmList].filter(e=>e?.deref()?.isConnected === false).map(e=>e?.deref())).size)
-        }, 4000);
+        setInterval(() => {
+          let q = document.querySelector('#label-text');
+          if(!q) return;
+          const size = new Set([...wmList].filter(e => e?.deref()?.isConnected === false).map(e => e?.deref())).size;
+          q.textContent = `${48833}, ${DEBUG_wmList_started}, ${size}`;
+
+          // console.log(48833, )
+        }, 100);
       }
 
 
-/*
+      /*
+            Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
+      
+      
+              const dProto = {
+      
+                detachedForTickerInit: function () {
+      
+                  try {
+      
+                    this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
+      
+                    // this.behaviorActionMap = 0;
+                    // this.isVisibilityRoot = 0;
+      
+      
+                  } catch (e) { }
+      
+      
+                  return this.detached582MemoryLeak();
+                },
+      
+                attachedForTickerInit: function () {
+                  wmList.add(new WeakRef(this))
+      
+                  // fpTicker(this.hostElement || this);
+                  return this.attached77();
+      
+                },
+      
+      
+              }
+      
+      
+              for (const tag of tagsItemRenderer) { // ##tag##
+                const dummy = document.createElement(tag);
+      
+                const cProto = getProto(dummy);
+                if (!cProto || !cProto.attached) {
+                  console.warn(`proto.attached for ${tag} is unavailable.`);
+                  continue;
+                }
+      
+                if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
+                  cProto.detached582MemoryLeak = cProto.detached;
+                  cProto.detached = cProto.detachedForTickerInit;
+                }
+      
+                cProto.attached77 = cProto.attached;
+      
+                cProto.attached = dProto.attachedForTickerInit;
+      
+      
+              }
+      
+            });
+            */
+
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
-
-        const dProto = {
-
-          detachedForTickerInit: function () {
-
-            try {
-
-              this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
-
-              // this.behaviorActionMap = 0;
-              // this.isVisibilityRoot = 0;
-
-
-            } catch (e) { }
-
-
-            return this.detached582MemoryLeak();
-          },
-
-          attachedForTickerInit: function () {
-            wmList.add(new WeakRef(this))
-
-            // fpTicker(this.hostElement || this);
-            return this.attached77();
-
-          },
-
-
-        }
-
-
-        for (const tag of tagsItemRenderer) { // ##tag##
-          const dummy = document.createElement(tag);
-
-          const cProto = getProto(dummy);
-          if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
-            continue;
-          }
-
-          if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
-            cProto.detached582MemoryLeak = cProto.detached;
-            cProto.detached = cProto.detachedForTickerInit;
-          }
-
-          cProto.attached77 = cProto.attached;
-
-          cProto.attached = dProto.attachedForTickerInit;
-
-
-        }
-
-      });
-      */
-
-      Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
+        if (FLAG_001b) return;
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
@@ -5323,6 +5343,10 @@
 
           attachedForTickerInit: function () {
             DEBUG_wmList && wmList.add(new WeakRef(this))
+            if (DEBUG_wmList && !DEBUG_wmList_started) {
+              console.log('!!!!!!!!!!!!! DEBUG_wmList_started !!!!!!!!!')
+              DEBUG_wmList_started = 1;
+            }
 
             fpTicker(this.hostElement || this);
             return this.attached77();
@@ -5628,29 +5652,33 @@
 
           /** @type {(a, b)} */
           startCountdownForTimerFnModT: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
+
             try {
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement) return;
               // a.durationSec [s] => countdownMs [ms]
               // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
               // lastCountdownTimeMs => raf ongoing
               // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
-              if (this._r782) return;
+              if (cnt._r782) return;
 
-              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-                this._throwOut();
+              if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                cnt._throwOut();
                 return;
               }
 
               // TimerFnModT
 
               // console.log('cProto.startCountdown', tag) // yt-live-chat-ticker-sponsor-item-renderer
-              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
+              if (!cnt.boundUpdateTimeout37_) cnt.boundUpdateTimeout37_ = cnt.updateTimeout.bind(mWeakRef(cnt));
               b = void 0 === b ? 0 : b;
-              void 0 !== a && (this.countdownMs = 1E3 * a,
-                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs,
-                this.ratio = 1,
-                this.lastCountdownTimeMs || this.isAnimationPaused || (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now(),
-                  this.rafId = rafHub.request(this.boundUpdateTimeout37_)))
+              void 0 !== a && (cnt.countdownMs = 1E3 * a,
+                cnt.countdownDurationMs = b ? 1E3 * b : cnt.countdownMs,
+                cnt.ratio = 1,
+                cnt.lastCountdownTimeMs || cnt.isAnimationPaused || (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = performance.now(),
+                  cnt.rafId = rafHub.request(cnt.boundUpdateTimeout37_)))
 
             } catch (e) {
               console.warn(e);
@@ -5663,31 +5691,34 @@
           updateTimeoutForTimerFnModA: function (a) {
 
             try {
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
-              if (this._r782) return;
+              if (cnt._r782) return;
 
-              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-                this._throwOut();
+              if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                cnt._throwOut();
                 return;
               }
 
               // TimerFnModA
 
-              if (!this._runnerAE) console.warn('Error in .updateTimeout; this._runnerAE is undefined');
-              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              if (!cnt._runnerAE) console.warn('Error in .updateTimeout; cnt._runnerAE is undefined');
+              if (cnt.lastCountdownTimeMs !== cnt._lastCountdownTimeMsX0) {
+                cnt.countdownMs = Math.max(0, cnt.countdownMs - (a - (cnt.lastCountdownTimeMs || 0)));
               }
-              if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-              if (this.isAttached && this.countdownMs) {
-                this.lastCountdownTimeMs = a
-                const ae = this._makeAnimator(); // request raf
+              if (cnt.countdownMs > cnt.countdownDurationMs) cnt.countdownMs = cnt.countdownDurationMs;
+              if (cnt.isAttached && cnt.countdownMs) {
+                cnt.lastCountdownTimeMs = a
+                const ae = cnt._makeAnimator(); // request raf
                 if (!ae) console.warn('Error in startCountdown._makeAnimator()');
               } else {
-                (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                    this.slideDown()));
+                (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null,
+                  cnt.isAttached && ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+                    cnt.slideDown()));
               }
 
             } catch (e) {
@@ -5701,29 +5732,33 @@
           updateTimeoutForTimerFnModT: function (a) {
 
             try {
+              const cnt = kRef(this);
+              if (!cnt) return;
+
+              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
-              if (this._r782) return;
+              if (cnt._r782) return;
 
-              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-                this._throwOut();
+              if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                cnt._throwOut();
                 return;
               }
 
               // TimerFnModT
 
               // console.log('cProto.updateTimeout', tag) // yt-live-chat-ticker-sponsor-item-renderer
-              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-              if (this.lastCountdownTimeMs !== this._lastCountdownTimeMsX0) {
-                this.countdownMs = Math.max(0, this.countdownMs - (a - (this.lastCountdownTimeMs || 0)));
+              if (!cnt.boundUpdateTimeout37_) cnt.boundUpdateTimeout37_ = cnt.updateTimeout.bind(mWeakRef(cnt));
+              if (cnt.lastCountdownTimeMs !== cnt._lastCountdownTimeMsX0) {
+                cnt.countdownMs = Math.max(0, cnt.countdownMs - (a - (cnt.lastCountdownTimeMs || 0)));
               }
-              // console.log(703, this.countdownMs)
-              this.ratio = this.countdownMs / this.countdownDurationMs;
-              this.isAttached && this.countdownMs ? (this.lastCountdownTimeMs = a,
-                this.rafId = rafHub.request(this.boundUpdateTimeout37_)) : (this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = null,
-                  this.isAttached && ("auto" === this.hostElement.style.width && this.setContainerWidth(),
-                    this.slideDown()))
+              // console.log(703, cnt.countdownMs)
+              cnt.ratio = cnt.countdownMs / cnt.countdownDurationMs;
+              cnt.isAttached && cnt.countdownMs ? (cnt.lastCountdownTimeMs = a,
+                cnt.rafId = rafHub.request(cnt.boundUpdateTimeout37_)) : (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null,
+                  cnt.isAttached && ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+                    cnt.slideDown()))
 
 
             } catch (e) {
@@ -5734,36 +5769,40 @@
           /** @type {(a,b)} */
           isAnimationPausedChangedForTimerFnModA: function (a, b) {
 
-            if (this._r782) return;
+            const cnt = kRef(this);
+            if (!cnt) return;
+            if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
+            if (cnt._r782) return;
+
+            if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+              cnt._throwOut();
               return;
             }
-            let forceNoDetlaSincePausedSecs783 = this._forceNoDetlaSincePausedSecs783;
-            this._forceNoDetlaSincePausedSecs783 = 0;
+            let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
+            cnt._forceNoDetlaSincePausedSecs783 = 0;
 
             Promise.resolve().then(() => {
 
               if (a) {
 
-                if (this._runnerAE && this._runnerAE.playState === 'running') {
+                if (cnt._runnerAE && cnt._runnerAE.playState === 'running') {
 
-                  this._runnerAE.pause()
+                  cnt._runnerAE.pause()
                   let lc = window.performance.now();
-                  this.countdownMs = Math.max(0, this.countdownMs - (lc - this.lastCountdownTimeMs));
-                  if (this.countdownMs > this.countdownDurationMs) this.countdownMs = this.countdownDurationMs;
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = lc;
+                  cnt.countdownMs = Math.max(0, cnt.countdownMs - (lc - cnt.lastCountdownTimeMs));
+                  if (cnt.countdownMs > cnt.countdownDurationMs) cnt.countdownMs = cnt.countdownDurationMs;
+                  cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = lc;
                 }
 
               } else if (!a && b) {
 
 
-                if (forceNoDetlaSincePausedSecs783) this.detlaSincePausedSecs = 0;
-                a = this.detlaSincePausedSecs ? (this.lastCountdownTimeMs || 0) + 1000 * this.detlaSincePausedSecs : (this.lastCountdownTimeMs || 0);
-                this.detlaSincePausedSecs = 0;
-                this.updateTimeout(a);
-                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now();
+                if (forceNoDetlaSincePausedSecs783) cnt.detlaSincePausedSecs = 0;
+                a = cnt.detlaSincePausedSecs ? (cnt.lastCountdownTimeMs || 0) + 1000 * cnt.detlaSincePausedSecs : (cnt.lastCountdownTimeMs || 0);
+                cnt.detlaSincePausedSecs = 0;
+                cnt.updateTimeout(a);
+                cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now();
 
               }
 
@@ -5780,14 +5819,18 @@
           /** @type {(a,b)} */
           isAnimationPausedChangedForTimerFnModT: function (a, b) {
 
-            if (this._r782) return;
+            const cnt = kRef(this);
+            if (!cnt) return;
+            if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
 
-            if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-              this._throwOut();
+            if (cnt._r782) return;
+
+            if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+              cnt._throwOut();
               return;
             }
-            let forceNoDetlaSincePausedSecs783 = this._forceNoDetlaSincePausedSecs783;
-            this._forceNoDetlaSincePausedSecs783 = 0;
+            let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
+            cnt._forceNoDetlaSincePausedSecs783 = 0;
 
             Promise.resolve().then(() => {
 
@@ -5795,12 +5838,12 @@
 
               // ez++;
               // if(ez> 1e9) ez=9;
-              if (!this.boundUpdateTimeout37_) this.boundUpdateTimeout37_ = this.updateTimeout.bind(this);
-              a ? rafHub.cancel(this.rafId) : !a && b && (a = this.lastCountdownTimeMs || 0,
-                this.detlaSincePausedSecs && (a = (this.lastCountdownTimeMs || 0) + 1E3 * this.detlaSincePausedSecs,
-                  this.detlaSincePausedSecs = 0),
-                this.boundUpdateTimeout37_(a),
-                this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = window.performance.now())
+              if (!cnt.boundUpdateTimeout37_) cnt.boundUpdateTimeout37_ = cnt.updateTimeout.bind(mWeakRef(cnt));
+              a ? rafHub.cancel(cnt.rafId) : !a && b && (a = cnt.lastCountdownTimeMs || 0,
+                cnt.detlaSincePausedSecs && (a = (cnt.lastCountdownTimeMs || 0) + 1E3 * cnt.detlaSincePausedSecs,
+                  cnt.detlaSincePausedSecs = 0),
+                cnt.boundUpdateTimeout37_(a),
+                cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now())
 
 
             }).catch(e => {
@@ -5927,6 +5970,8 @@
 
           cProto.attached = dProto.attachedForTickerInit;
 
+          if (FLAG_001c) continue;
+
           let rafHackState = 0;
 
           let isTimingFunctionHackable = false;
@@ -5940,8 +5985,8 @@
             // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
 
             // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
-            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && 9===fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
-
+            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
+            if (!isTimingFunctionHackable) console.log('isTimingFunctionHackable = false');
           } else {
             console.log("ATTEMPT_ANIMATED_TICKER_BACKGROUND", ` ${tag}`, "Skip Timing Function Modification");
             continue;
@@ -6116,6 +6161,8 @@
       }).catch(console.warn);
 
       customElements.whenDefined('yt-live-chat-ticker-renderer').then(() => {
+
+        if (FLAG_001d) return;
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-renderer hacks");
@@ -6730,9 +6777,14 @@
 
               cProto.keepScrollClamped72 = cProto.keepScrollClamped;
               cProto.keepScrollClamped = function () {
-                this._bound_keepScrollClamped = this._bound_keepScrollClamped || this.keepScrollClamped.bind(this);
-                this.scrollClampRaf = requestAnimationFrame(this._bound_keepScrollClamped);
-                this.maybeClampScroll()
+
+                const cnt = kRef(this);
+                if (!cnt) return;
+                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
+                cnt._bound_keepScrollClamped = cnt._bound_keepScrollClamped || cnt.keepScrollClamped.bind(mWeakRef(cnt));
+                cnt.scrollClampRaf = requestAnimationFrame(cnt._bound_keepScrollClamped);
+                cnt.maybeClampScroll()
               }
 
               console.log('RAF_FIX: keepScrollClamped', tag, "OK")
@@ -6749,12 +6801,17 @@
             // to be replaced by animator
 
             cProto.startScrolling = function (a) {
-              this.scrollStopHandle && this.cancelAsync(this.scrollStopHandle);
-              this.asyncHandle && cancelAnimationFrame(this.asyncHandle);
-              this.lastFrameTimestamp = this.scrollStartTime = performance.now();
-              this.scrollRatePixelsPerSecond = a;
-              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally)
+
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
+              cnt.scrollStopHandle && cnt.cancelAsync(cnt.scrollStopHandle);
+              cnt.asyncHandle && cancelAnimationFrame(cnt.asyncHandle);
+              cnt.lastFrameTimestamp = cnt.scrollStartTime = performance.now();
+              cnt.scrollRatePixelsPerSecond = a;
+              cnt._bound_scrollIncrementally = cnt._bound_scrollIncrementally || cnt.scrollIncrementally.bind(mWeakRef(cnt));
+              cnt.asyncHandle = requestAnimationFrame(cnt._bound_scrollIncrementally)
             };
 
             // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
@@ -6779,14 +6836,19 @@
             }
 
             cProto.scrollIncrementally = (RAF_FIX_scrollIncrementally === 2) ? function (a) {
-              const b = a - (this.lastFrameTimestamp || 0);
-              const rate = this.scrollRatePixelsPerSecond
+
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
+              const b = a - (cnt.lastFrameTimestamp || 0);
+              const rate = cnt.scrollRatePixelsPerSecond
               const q = b / 1E3 * (rate || 0);
 
-              const tickerBarQuery = this.__getTickerBarQuery__();
+              const tickerBarQuery = cnt.__getTickerBarQuery__();
               const sl = tickerBarQuery.scrollLeft;
               // console.log(rate, sl, q)
-              if (this.lastFrameTimestamp == this.scrollStartTime) {
+              if (cnt.lastFrameTimestamp == cnt.scrollStartTime) {
 
               } else if (q > -1e-5 && q < 1e-5) {
 
@@ -6796,23 +6858,28 @@
                 let cond3 = sl < 1e-5 && sl > -1e-5 && rate > 0 && q > 0;
                 if (cond1 || cond2 || cond3) {
                   tickerBarQuery.scrollLeft += q;
-                  this.maybeClampScroll();
-                  this.updateArrows();
+                  cnt.maybeClampScroll();
+                  cnt.updateArrows();
                 }
               }
 
-              this.lastFrameTimestamp = a;
-              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              0 < tickerBarQuery.scrollLeft || rate && 0 < rate ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+              cnt.lastFrameTimestamp = a;
+              cnt._bound_scrollIncrementally = cnt._bound_scrollIncrementally || cnt.scrollIncrementally.bind(mWeakRef(cnt));
+              0 < tickerBarQuery.scrollLeft || rate && 0 < rate ? cnt.asyncHandle = requestAnimationFrame(cnt._bound_scrollIncrementally) : cnt.stopScrolling()
             } : function (a) {
-              const b = a - (this.lastFrameTimestamp || 0);
-              const tickerBarQuery = this.__getTickerBarQuery__();
-              tickerBarQuery.scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
-              this.maybeClampScroll();
-              this.updateArrows();
-              this.lastFrameTimestamp = a;
-              this._bound_scrollIncrementally = this._bound_scrollIncrementally || this.scrollIncrementally.bind(this);
-              0 < tickerBarQuery.scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = requestAnimationFrame(this._bound_scrollIncrementally) : this.stopScrolling()
+
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
+              const b = a - (cnt.lastFrameTimestamp || 0);
+              const tickerBarQuery = cnt.__getTickerBarQuery__();
+              tickerBarQuery.scrollLeft += b / 1E3 * (cnt.scrollRatePixelsPerSecond || 0);
+              cnt.maybeClampScroll();
+              cnt.updateArrows();
+              cnt.lastFrameTimestamp = a;
+              cnt._bound_scrollIncrementally = cnt._bound_scrollIncrementally || cnt.scrollIncrementally.bind(mWeakRef(cnt));
+              0 < tickerBarQuery.scrollLeft || cnt.scrollRatePixelsPerSecond && 0 < cnt.scrollRatePixelsPerSecond ? cnt.asyncHandle = requestAnimationFrame(cnt._bound_scrollIncrementally) : cnt.stopScrolling()
             };
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
@@ -6946,7 +7013,9 @@
 
                 // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
 
-                doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && 9===fnIntegrity(cProto.updateTimeout, '1.50.33');
+                doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && fnIntegrity(cProto.updateTimeout, '1.50.33');
+
+                if (!doHack) console.log('doHack = false')
 
               }
               // doHack = false; // M55
@@ -6954,19 +7023,29 @@
               if (doHack) {
 
                 cProto.handleTimeout = function (a) {
+
+                  const cnt = kRef(this);
+                  if (!cnt) return;
+                  if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
                   console.log('cProto.handleTimeout', tag)
-                  if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
-                  this.timeoutDurationMs = this.timeoutMs = a;
-                  this.countdownRatio = 1;
-                  0 === this.lastTimeoutTimeMs && rafHub.request(this.boundUpdateTimeout38_)
+                  if (!cnt.boundUpdateTimeout38_) cnt.boundUpdateTimeout38_ = cnt.updateTimeout.bind(mWeakRef(cnt));
+                  cnt.timeoutDurationMs = cnt.timeoutMs = a;
+                  cnt.countdownRatio = 1;
+                  0 === cnt.lastTimeoutTimeMs && rafHub.request(cnt.boundUpdateTimeout38_)
                 };
                 cProto.updateTimeout = function (a) {
+
+                  const cnt = kRef(this);
+                  if (!cnt) return;
+                  if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
                   console.log('cProto.updateTimeout', tag)
-                  if (!this.boundUpdateTimeout38_) this.boundUpdateTimeout38_ = this.updateTimeout.bind(this);
-                  this.lastTimeoutTimeMs && (this.timeoutMs = Math.max(0, this.timeoutMs - (a - this.lastTimeoutTimeMs)),
-                    this.countdownRatio = this.timeoutMs / this.timeoutDurationMs);
-                  this.isAttached && this.timeoutMs ? (this.lastTimeoutTimeMs = a,
-                    rafHub.request(this.boundUpdateTimeout38_)) : this.lastTimeoutTimeMs = 0
+                  if (!cnt.boundUpdateTimeout38_) cnt.boundUpdateTimeout38_ = cnt.updateTimeout.bind(mWeakRef(cnt));
+                  cnt.lastTimeoutTimeMs && (cnt.timeoutMs = Math.max(0, cnt.timeoutMs - (a - cnt.lastTimeoutTimeMs)),
+                    cnt.countdownRatio = cnt.timeoutMs / cnt.timeoutDurationMs);
+                  cnt.isAttached && cnt.timeoutMs ? (cnt.lastTimeoutTimeMs = a,
+                    rafHub.request(cnt.boundUpdateTimeout38_)) : cnt.lastTimeoutTimeMs = 0
                 };
 
                 console.log('RAF_HACK_INPUT_RENDERER', tag, "OK")
@@ -7038,15 +7117,20 @@
               });
 
               cProto.animateScroll_ = function (a) {
+
+                const cnt = kRef(this);
+                if (!cnt) return;
+                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
                 // console.log('cProto.animateScroll_', tag) // yt-emoji-picker-renderer
-                if (!this.boundAnimateScroll39_) this.boundAnimateScroll39_ = this.animateScroll_.bind(this);
-                this.lastAnimationTime_ || (this.lastAnimationTime_ = a);
-                a -= this.lastAnimationTime_;
-                200 > a ? (U(this.hostElement).querySelector("#categories").scrollTop = this.animationStart_ + (this.animationEnd_ - this.animationStart_) * a / 200,
-                  rafHub.request(this.boundAnimateScroll39_)) : (null != this.animationEnd_ && (U(this.hostElement).querySelector("#categories").scrollTop = this.animationEnd_),
-                    this.animationEnd_ = this.animationStart_ = null,
-                    this.lastAnimationTime_ = 0);
-                this.updateButtons_()
+                if (!cnt.boundAnimateScroll39_) cnt.boundAnimateScroll39_ = cnt.animateScroll_.bind(mWeakRef(cnt));
+                cnt.lastAnimationTime_ || (cnt.lastAnimationTime_ = a);
+                a -= cnt.lastAnimationTime_;
+                200 > a ? (U(cnt.hostElement).querySelector("#categories").scrollTop = cnt.animationStart_ + (cnt.animationEnd_ - cnt.animationStart_) * a / 200,
+                  rafHub.request(cnt.boundAnimateScroll39_)) : (null != cnt.animationEnd_ && (U(cnt.hostElement).querySelector("#categories").scrollTop = cnt.animationEnd_),
+                    cnt.animationEnd_ = cnt.animationStart_ = null,
+                    cnt.lastAnimationTime_ = 0);
+                cnt.updateButtons_()
               }
 
               console.log('ENABLE_RAF_HACK_EMOJI_PICKER', tag, "OK")
@@ -7100,21 +7184,36 @@
 
             if (doHack) {
 
+              cProto.__boundCheckIntersectionsSubstitutionFn__ = function () {
+                const cnt = this;
+                if (!cnt.i5zmk && typeof cnt.boundCheckIntersections === 'function' && typeof cnt.checkIntersections === 'function') {
+                  cnt.i5zmk = 1
+                  cnt.boundCheckIntersections = cnt.checkIntersections.bind(mWeakRef(cnt));
+                }
+              }
+
               cProto.checkIntersections = function () {
+
+                const cnt = kRef(this);
+                if (!cnt) return;
+                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+
+                if(typeof cnt.__boundCheckIntersectionsSubstitutionFn__ === 'function') cnt.__boundCheckIntersectionsSubstitutionFn__();
+
                 // console.log('cProto.checkIntersections', tag)
-                if (this.dockableMessages.length) {
-                  this.intersectRAF = rafHub.request(this.boundCheckIntersections);
-                  let a = this.dockableMessages[0]
-                    , b = this.hostElement.getBoundingClientRect();
+                if (cnt.dockableMessages.length) {
+                  cnt.intersectRAF = rafHub.request(cnt.boundCheckIntersections);
+                  let a = cnt.dockableMessages[0]
+                    , b = cnt.hostElement.getBoundingClientRect();
                   a = a.getBoundingClientRect();
                   let c = a.top - b.top
                     , d = 8 >= c;
-                  c = 8 >= c - this.hostElement.clientHeight;
+                  c = 8 >= c - cnt.hostElement.clientHeight;
                   if (d) {
                     let e;
                     for (; d;) {
-                      e = this.dockableMessages.shift();
-                      d = this.dockableMessages[0];
+                      e = cnt.dockableMessages.shift();
+                      d = cnt.dockableMessages[0];
                       if (!d)
                         break;
                       d = d.getBoundingClientRect();
@@ -7127,16 +7226,18 @@
                           return;
                       d = f
                     }
-                    this.dock(e)
+                    cnt.dock(e)
                   } else
-                    c && this.dockedItem && this.clear()
+                    c && cnt.dockedItem && cnt.clear()
                 } else
-                  this.intersectRAF = 0
+                  cnt.intersectRAF = 0
               }
 
               cProto.onDockableMessagesChanged = function () {
+                const cnt = this;
+                if(typeof cnt.__boundCheckIntersectionsSubstitutionFn__ === 'function') cnt.__boundCheckIntersectionsSubstitutionFn__();
                 // console.log('cProto.onDockableMessagesChanged', tag) // yt-live-chat-docked-message
-                this.dockableMessages.length && !this.intersectRAF && (this.intersectRAF = rafHub.request(this.boundCheckIntersections))
+                cnt.dockableMessages.length && !cnt.intersectRAF && (cnt.intersectRAF = rafHub.request(cnt.boundCheckIntersections))
               }
 
               cProto.detached = function () {
@@ -7741,6 +7842,7 @@
         ]).then(sTags => {
           // return; // M33
 
+          if (FLAG_001e) return;
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-renderer(s)... hacks");
@@ -8130,6 +8232,7 @@
 
       ]).then(sTags => {
 
+        if (FLAG_001f) return;
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
