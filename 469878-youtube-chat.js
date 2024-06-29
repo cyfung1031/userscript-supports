@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.2
+// @version             0.64.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4709,8 +4709,8 @@
 
             let qid = 0;
             mclp.__updateButtonVisibility371__ = function (button) {
-              Promise.resolve().then(() => {
-                button.style.visibility = this.__buttonVisibility371__;
+              Promise.resolve(this).then((cnt) => {
+                button.style.visibility = cnt.__buttonVisibility371__;
               });
             }
             const fixButtonOnClick = function (cnt, button) {
@@ -4718,7 +4718,7 @@
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
                 evt.preventDefault();
-                Promise.resolve().then(() => {
+                Promise.resolve(cnt).then((cnt) => {
                   cnt.scrollToBottom_();
                 });
               }, true);
@@ -5323,22 +5323,46 @@
           }, false);
         }
 
+        const __requestRemoval__ = function (cnt) {
+          if (cnt.hostElement && typeof cnt.requestRemoval === 'function') {
+            try {
+              const id = (cnt.data || 0).id;
+              if (!id) cnt.data = { id: 1 };
+            } catch (e) { }
+            try {
+              cnt.requestRemoval();
+              return true;
+            } catch (e) { }
+          }
+          return false;
+        }
+
         const dProto = {
+
+          detachedForMemoryLeakage: function () {
+
+            try{
+  
+              this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
+              
+              // this.behaviorActionMap = 0;
+              // this.isVisibilityRoot = 0;
+  
+  
+            }catch(e){}
+          
+            return this.detached582MemoryLeak();
+          },
 
           detachedForTickerInit: function () {
 
-            try {
-
-              this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
-
-              // this.behaviorActionMap = 0;
-              // this.isVisibilityRoot = 0;
-
-
-            } catch (e) { }
-
-
-            return this.detached582MemoryLeak();
+            Promise.resolve(this).then((cnt) => {
+              if (cnt.isAttached) return;
+              cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false && __requestRemoval__(cnt);
+              cnt.rafId > 1 && rafHub.cancel(cnt.rafId);
+            }).catch(console.warn);
+          
+            return this.detached77();
           },
 
           attachedForTickerInit: function () {
@@ -5531,14 +5555,8 @@
               if (Date.now() - windowShownAt < 80 && typeof this.requestRemoval === 'function') {
                 // no animation if the video page is switched from background to foreground
                 // this.hostElement.style.display = 'none';
-                const id = (this.data || 0).id || 0;
-                if (!id) this.data = { id: 1 }
-                try {
-                  this.requestRemoval();
-                  fastRemoved = true;
-                } catch (e) {
 
-                }
+                fastRemoved = __requestRemoval__(this);
               }
 
               if (!fastRemoved) {
@@ -5555,22 +5573,16 @@
           /** @type {()} */
           _throwOut: function () {
             this._r782 = 1;
-            Promise.resolve().then(() => {
-              if (typeof this.requestRemoval === 'function') {
-                const id = (this.data || 0).id;
-                if (!id) this.data = { id: 1 };
-                try {
-                  this.requestRemoval();
-                } catch (e) { }
-              }
-              this.detached();
-              if (this.__dataClientsReady === true) this.__dataClientsReady = false;
-              if (this.__dataEnabled === true) this.__dataEnabled = false;
-              if (this.__dataReady === true) this.__dataReady = false;
-              this.data = null;
-              this.countdownMs = 0;
-              this.lastCountdownTimeMs = null;
-              const hm = this.hostElement || this;
+            Promise.resolve(this).then((cnt) => {
+              __requestRemoval__(cnt);
+              cnt.detached();
+              if (cnt.__dataClientsReady === true) cnt.__dataClientsReady = false;
+              if (cnt.__dataEnabled === true) cnt.__dataEnabled = false;
+              if (cnt.__dataReady === true) cnt.__dataReady = false;
+              cnt.data = null;
+              cnt.countdownMs = 0;
+              cnt.lastCountdownTimeMs = null;
+              const hm = cnt.hostElement || cnt;
               if (hm.parentNode) hm.remove();
               for (let t; t = hm.firstChild;) t.remove();
             }).catch(e => {
@@ -5585,15 +5597,20 @@
           /** @type {(a, b)} */
           startCountdownForTimerFnModA: function (a, b) { // .startCountdown(a.durationSec, a.fullDurationSec)
             try {
+
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement) return;
+
               // a.durationSec [s] => countdownMs [ms]
               // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
               // lastCountdownTimeMs => raf ongoing
               // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
-              if (this._r782) return;
+              if (cnt._r782) return;
 
-              if (this.isAttached === false && ((this.$ || 0).container || 0).isConnected === false) {
-                this._throwOut();
+              if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                cnt._throwOut();
                 return;
               }
 
@@ -5602,35 +5619,40 @@
               b = void 0 === b ? 0 : b;
               if (void 0 !== a) {
 
-                this.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
-                this.countdownDurationMs = b ? 1E3 * b : this.countdownMs; // constant throughout the animation
-                if (!(this.lastCountdownTimeMs || this.isAnimationPaused)) {
-                  this.lastCountdownTimeMs = this._lastCountdownTimeMsX0 = performance.now()
-                  this.rafId = 1
-                  if (this._runnerAE) console.warn('Error in .startCountdown; this._runnerAE already created.')
-                  this.detlaSincePausedSecs = 0;
-                  const ae = this._makeAnimator();
+                cnt.countdownMs = 1E3 * a; // decreasing from durationSec[s] to zero
+                cnt.countdownDurationMs = b ? 1E3 * b : cnt.countdownMs; // constant throughout the animation
+                if (!(cnt.lastCountdownTimeMs || cnt.isAnimationPaused)) {
+                  cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = performance.now()
+                  cnt.rafId = 1
+                  if (cnt._runnerAE) console.warn('Error in .startCountdown; cnt._runnerAE already created.')
+                    cnt.detlaSincePausedSecs = 0;
+                  const ae = cnt._makeAnimator();
                   if (!ae) console.warn('Error in startCountdown._makeAnimator()');
 
                   // if (playerProgressChangedArg1 === null) {
-                  //   console.log('startCountdownForTimerFnModA', this.data)
+                  //   console.log('startCountdownForTimerFnModA', cnt.data)
                   // }
 
-                  if (isPlayProgressTriggered && this.isAnimationPaused !== true && this.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
+                  if (isPlayProgressTriggered && cnt.isAnimationPaused !== true && cnt.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__) {
 
 
 
 
-                    this.playerProgressSec = lastPlayerProgress > 0 ? lastPlayerProgress : 0; // save the progress first
-                    this.isAnimationPaused = true; // trigger isAnimationPausedChanged
-                    this.detlaSincePausedSecs = 0;
-                    this._forceNoDetlaSincePausedSecs783 = 1; // reset this.detlaSincePausedSecs = 0 when resumed
+                    cnt.playerProgressSec = lastPlayerProgress > 0 ? lastPlayerProgress : 0; // save the progress first
+                    cnt.isAnimationPaused = true; // trigger isAnimationPausedChanged
+                    cnt.detlaSincePausedSecs = 0;
+                    cnt._forceNoDetlaSincePausedSecs783 = 1; // reset cnt.detlaSincePausedSecs = 0 when resumed
 
                     relayPromise = relayPromise || new PromiseExternal();
 
                     relayPromise.then(() => {
-                      if (this.isAttached === true && this.countdownDurationMs > 0 && this.isAnimationPaused === true && this.isReplayPaused !== true) {
-                        this.isAnimationPaused = false;
+
+                      const cnt = kRef(this);
+                      if (!cnt) return;
+                      if (!cnt.hostElement) return;
+                      
+                      if (cnt.isAttached === true && cnt.countdownDurationMs > 0 && cnt.isAnimationPaused === true && cnt.isReplayPaused !== true) {
+                        cnt.isAnimationPaused = false;
                       }
                     });
 
@@ -5693,7 +5715,7 @@
             try {
               const cnt = kRef(this);
               if (!cnt) return;
-              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
@@ -5735,7 +5757,7 @@
               const cnt = kRef(this);
               if (!cnt) return;
 
-              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
               // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
@@ -5771,7 +5793,7 @@
 
             const cnt = kRef(this);
             if (!cnt) return;
-            if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+            if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
             if (cnt._r782) return;
 
@@ -5782,7 +5804,8 @@
             let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
             cnt._forceNoDetlaSincePausedSecs783 = 0;
 
-            Promise.resolve().then(() => {
+            Promise.resolve(cnt).then((cnt) => {
+
 
               if (a) {
 
@@ -5806,6 +5829,8 @@
 
               }
 
+              cnt = null;
+
 
             }).catch(e => {
               console.log(e);
@@ -5821,7 +5846,7 @@
 
             const cnt = kRef(this);
             if (!cnt) return;
-            if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+            if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
             if (cnt._r782) return;
 
@@ -5832,7 +5857,7 @@
             let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
             cnt._forceNoDetlaSincePausedSecs783 = 0;
 
-            Promise.resolve().then(() => {
+            Promise.resolve(cnt).then((cnt) => {
 
               // TimerFnModT
 
@@ -5845,6 +5870,7 @@
                 cnt.boundUpdateTimeout37_(a),
                 cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now())
 
+              cnt = null;
 
             }).catch(e => {
               console.log(e);
@@ -5875,13 +5901,15 @@
           handlePauseReplayForPlaybackProgressState: function () {
             if (!playerEventsByIframeRelay) return this.handlePauseReplay66.apply(this, arguments);
 
+            const jr = mWeakRef(kRef(this));
             if (onPlayStateChangePromise) {
 
               if (this.rtu > 1e9) this.rtu = this.rtu % 1e4;
               const tid = ++this.rtu;
 
               onPlayStateChangePromise.then(() => {
-                if (tid === this.rtu && !onPlayStateChangePromise && typeof this.handlePauseReplay === 'function') this.handlePauseReplay.apply(this, arguments);
+                const cnt = kRef(jr);
+                if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
                 // this.handlePauseReplay can be undefined if it is memory cleaned
               });
 
@@ -5893,9 +5921,11 @@
               if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
               const tid = ++this.rtk;
               const tc = relayCount;
+              
               foregroundPromiseFn().then(() => {
-                if (tid === this.rtk && tc === relayCount && playerState === 2 && _playerState === playerState) {
-                  this.handlePauseReplay66();
+                const cnt = kRef(jr);
+                if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
+                  cnt.handlePauseReplay66();
                 }
 
               })
@@ -5907,13 +5937,15 @@
             if (!playerEventsByIframeRelay) return this.handleResumeReplay66.apply(this, arguments);
 
 
+            const jr = mWeakRef(kRef(this));
             if (onPlayStateChangePromise) {
 
               if (this.rtv > 1e9) this.rtv = this.rtv % 1e4;
               const tid = ++this.rtv;
 
               onPlayStateChangePromise.then(() => {
-                if (tid === this.rtv && !onPlayStateChangePromise && typeof this.handleResumeReplay === 'function') this.handleResumeReplay.apply(this, arguments);
+                const cnt = kRef(jr);
+                if (tid === cnt.rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
                 // this.handleResumeReplay can be undefined if it is memory cleaned
               });
 
@@ -5927,8 +5959,9 @@
 
               relayPromise = relayPromise || new PromiseExternal();
               relayPromise.then(() => {
-                if (relayCount > tc && playerState === 1 && _playerState === playerState) {
-                  this.handleResumeReplay66();
+                const cnt = kRef(jr);
+                if (relayCount > tc && playerState === 1 && _playerState === playerState && cnt.hostElement) {
+                  cnt.handleResumeReplay66();
                 }
               });
             }
@@ -5938,9 +5971,11 @@
           handleReplayProgressForPlaybackProgressState: function (a) {
             if (this.isAttached) {
               const tid = ++this.rtk;
+              const jr = mWeakRef(kRef(this));
               foregroundPromiseFn().then(() => {
-                if (tid === this.rtk) {
-                  this.handleReplayProgress66(a);
+                const cnt = kRef(jr);
+                if (tid === cnt.rtk && cnt.hostElement) {
+                  cnt.handleReplayProgress66(a);
                 }
               })
             }
@@ -5963,8 +5998,11 @@
 
           if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
             cProto.detached582MemoryLeak = cProto.detached;
-            cProto.detached = cProto.detachedForTickerInit;
+            cProto.detached = dProto.detachedForMemoryLeakage;
           }
+
+          cProto.detached77 = cProto.detached;
+          cProto.detached = dProto.detachedForTickerInit;
 
           cProto.attached77 = cProto.attached;
 
@@ -6780,7 +6818,7 @@
 
                 const cnt = kRef(this);
                 if (!cnt) return;
-                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+                if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
                 cnt._bound_keepScrollClamped = cnt._bound_keepScrollClamped || cnt.keepScrollClamped.bind(mWeakRef(cnt));
                 cnt.scrollClampRaf = requestAnimationFrame(cnt._bound_keepScrollClamped);
@@ -6804,7 +6842,7 @@
 
               const cnt = kRef(this);
               if (!cnt) return;
-              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
               cnt.scrollStopHandle && cnt.cancelAsync(cnt.scrollStopHandle);
               cnt.asyncHandle && cancelAnimationFrame(cnt.asyncHandle);
@@ -6839,7 +6877,7 @@
 
               const cnt = kRef(this);
               if (!cnt) return;
-              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
               const b = a - (cnt.lastFrameTimestamp || 0);
               const rate = cnt.scrollRatePixelsPerSecond
@@ -6870,7 +6908,7 @@
 
               const cnt = kRef(this);
               if (!cnt) return;
-              if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
               const b = a - (cnt.lastFrameTimestamp || 0);
               const tickerBarQuery = cnt.__getTickerBarQuery__();
@@ -6900,32 +6938,36 @@
             let naohzId = 0;
             cProto.__naohzId__ = 0;
             cProto.attached = function () {
-              Promise.resolve().then(() => {
+              Promise.resolve(this).then((cnt) => {
 
-                const hostElement = this.hostElement || this;
+                const hostElement = cnt.hostElement || cnt;
                 if (!(hostElement instanceof HTMLElement)) return;
                 if (!HTMLElement.prototype.matches.call(hostElement, '.yt-live-chat-renderer')) return;
                 const ironPage = HTMLElement.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
                 // or #chat-messages
                 if (!ironPage) return;
 
-                if (this.__naohzId__) removeEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                if (cnt.__naohzId__) removeEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
                 if (naohzId > 1e9) naohzId = naohzId % 1e4;
-                this.__naohzId__ = ++naohzId;
-                ironPage.setAttribute('naohz', `${+this.__naohzId__}`);
+                cnt.__naohzId__ = ++naohzId;
+                ironPage.setAttribute('naohz', `${+cnt.__naohzId__}`);
 
-                addEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                addEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                
+                cnt = null;
 
               });
               return this.attached37.apply(this, arguments);
             };
             cProto.detached = function () {
-              Promise.resolve().then(() => {
+              Promise.resolve(this).then((cnt) => {
 
-                const ironPage = document.querySelector(`iron-pages[naohz="${+this.__naohzId__}"]`);
+                const ironPage = document.querySelector(`iron-pages[naohz="${+cnt.__naohzId__}"]`);
                 if (!ironPage) return;
 
-                removeEventListener.call(ironPage, 'click', this.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                removeEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
+
+                cnt = null;
 
               });
               return this.detached37.apply(this, arguments);
@@ -7026,7 +7068,7 @@
 
                   const cnt = kRef(this);
                   if (!cnt) return;
-                  if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+                  if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
                   console.log('cProto.handleTimeout', tag)
                   if (!cnt.boundUpdateTimeout38_) cnt.boundUpdateTimeout38_ = cnt.updateTimeout.bind(mWeakRef(cnt));
@@ -7038,7 +7080,7 @@
 
                   const cnt = kRef(this);
                   if (!cnt) return;
-                  if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+                  if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
                   console.log('cProto.updateTimeout', tag)
                   if (!cnt.boundUpdateTimeout38_) cnt.boundUpdateTimeout38_ = cnt.updateTimeout.bind(mWeakRef(cnt));
@@ -7063,8 +7105,9 @@
             if (DELAY_FOCUSEDCHANGED && typeof cProto.onFocusedChanged === 'function' && cProto.onFocusedChanged.length === 1 && !cProto.onFocusedChanged372) {
               cProto.onFocusedChanged372 = cProto.onFocusedChanged;
               cProto.onFocusedChanged = function (a) {
-                Promise.resolve().then(() => {
-                  if (this.isAttached === true) this.onFocusedChanged372(a);
+                Promise.resolve(this).then((cnt) => {
+                  if (cnt.isAttached === true) cnt.onFocusedChanged372(a);
+                  cnt = null;
                 }).catch(console.warn);
               }
             }
@@ -7120,7 +7163,7 @@
 
                 const cnt = kRef(this);
                 if (!cnt) return;
-                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+                if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
                 // console.log('cProto.animateScroll_', tag) // yt-emoji-picker-renderer
                 if (!cnt.boundAnimateScroll39_) cnt.boundAnimateScroll39_ = cnt.animateScroll_.bind(mWeakRef(cnt));
@@ -7196,7 +7239,7 @@
 
                 const cnt = kRef(this);
                 if (!cnt) return;
-                if (!cnt.hostElement || !cnt.hostElement.isConnected) return; // memory leakage. to be reviewed
+                if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
                 if(typeof cnt.__boundCheckIntersectionsSubstitutionFn__ === 'function') cnt.__boundCheckIntersectionsSubstitutionFn__();
 
@@ -7616,8 +7659,8 @@
               cProto.show = function () {
 
                 let r = this.show17.apply(this, arguments);
-                this._showing === true && Promise.resolve().then(() => {
-                  const tooltip = (this.$ || 0).tooltip;
+                this._showing === true && Promise.resolve(this).then((cnt) => {
+                  const tooltip = (cnt.$ || 0).tooltip;
 
                   if (tooltip && tooltip.firstElementChild === null) {
                     let text = tooltip.textContent;
@@ -7625,6 +7668,7 @@
                       tooltip.textContent = text.trim();
                     }
                   }
+                  cnt = null;
                 }).catch(console.warn)
                 return r;
               }
@@ -7677,6 +7721,7 @@
                 evt.stopPropagation();
                 Promise.resolve(dropdown).then((dropdown) => {
                   dropdown.cancel();
+                  dropdown = null;
                 });
               }
 
@@ -8217,6 +8262,8 @@
 
       whenDefinedMultiple([
         "yt-live-chat-ticker-sponsor-item-renderer",
+        "yt-live-chat-ticker-paid-message-item-renderer",
+
         "yt-live-chat-banner-header-renderer",
         "yt-live-chat-text-message-renderer",
         "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
@@ -8271,10 +8318,11 @@
 
             resolvedEndpoint = deepCopy(resolvedEndpoint);
             // let b = deepCopy(resolvedEndpoint, ['trackingParams', 'clickTrackingParams'])
-            Promise.resolve(resolvedEndpoint).then(() => {
+            Promise.resolve(resolvedEndpoint).then((resolvedEndpoint) => {
               this.__showContextMenu_skip_cacheResolvedEndpointData__ = 1;
               this.showContextMenu_(resolvedEndpoint);
               this.__showContextMenu_skip_cacheResolvedEndpointData__ = 0;
+              resolvedEndpoint = null;
             });
 
 
@@ -8488,8 +8536,9 @@
             cProto.__deraf66 = cProto.__deraf;
             cProto.__deraf = function (sId, fn) {
               if (this.__byPassRAF__) {
-                Promise.resolve().then(() => {
-                  fn.call(this);
+                Promise.resolve(this).then((cnt) => {
+                  fn.call(cnt);
+                  cnt = null;
                 });
               }
               let r = this.__deraf66.apply(this, arguments);
@@ -8509,10 +8558,12 @@
 
             cProto.__mtChanged__ = function (b) {
 
-              Promise.resolve().then(() => {
-                this._applyFocus();
-              }).then(() => {
-                b ? this._renderOpened() : this._renderClosed();
+              Promise.resolve(this).then((cnt) => {
+                cnt._applyFocus();
+                return cnt;
+              }).then((cnt) => {
+                b ? cnt._renderOpened() : cnt._renderClosed();
+                cnt = null;
               }).catch(console.warn);
 
             };
@@ -9417,8 +9468,8 @@
             if (DELAY_FOCUSEDCHANGED && typeof cProto.focusedChanged === 'function' && cProto.focusedChanged.length === 0 && !cProto.focusedChanged372) {
               cProto.focusedChanged372 = cProto.focusedChanged;
               cProto.focusedChanged = function () {
-                Promise.resolve().then(() => {
-                  if (this.isAttached === true) this.focusedChanged372();
+                Promise.resolve(this).then((cnt) => {
+                  if (cnt.isAttached === true) cnt.focusedChanged372();
                 });
               }
             }
