@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.36
+// @version             0.1.37
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -204,12 +204,19 @@ SOFTWARE.
 
   let mloUz = -1;
 
+  let mloPr = null;
+  let mloPrReleaseAt = 0;
+  let ezPr = null;
+
+  setInterval(() => {
+    if (mloPr !== null && mloPrReleaseAt > 0 && Date.now() > mloPrReleaseAt) mloPr.resolve();
+  }, 100);
+
   const { mloPrSetup, mloCond } = (() => {
 
     let mloUz0 = -2;
 
     let messageListMOMap = new WeakMap();
-    let mloPr = null;
     const mloCond = () => mloUz === mloUz0 && mloPr !== null;
     const mloF = () => {
       if (mloUz === mloUz0 && mloPr !== null) mloPr.resolve();
@@ -1694,6 +1701,26 @@ SOFTWARE.
         display: none !important;
       }
 
+      
+      .bst-message-entry {
+        /*transform: scale(0.15);*/
+        transform-origin: bottom right; 
+        transition: transform 160ms ease-in-out 16ms;
+      }
+      .bst-message-entry[view-pos]{
+        transform: scale(1);
+      }
+
+
+
+      .bst-message-entry > .bst-message-container {
+        opacity: 0.3;
+        transition: opacity 80ms ease-in-out 8ms;
+      }
+      .bst-message-entry[view-pos] > .bst-message-container{
+        opacity: 1;
+      }
+
 
     `
   }
@@ -2013,6 +2040,7 @@ SOFTWARE.
     }
     return html`
   <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
@@ -2027,6 +2055,7 @@ SOFTWARE.
   </div>
   <div class="bst-message-menu-container">
   </div>
+  </div>
   </div>`
 
   }
@@ -2039,6 +2068,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-paid-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2066,12 +2096,14 @@ SOFTWARE.
   <div class="bst-message-menu-container">
   </div>
   </div>
+  </div>
 `;
   };
 
   const SolidMembershipMessage = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-message-entry-ll bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <div classList=${{ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody') }}>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
     <div class="bst-message-entry-highlight"></div>
@@ -2113,6 +2145,7 @@ SOFTWARE.
     `
   }}<//>
   </div>
+  </div>
 `;
   };
 
@@ -2121,6 +2154,7 @@ SOFTWARE.
   const SolidGiftText = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-gift-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2145,6 +2179,7 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  </div>
   </div>
   </div>
 `;
@@ -2160,6 +2195,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-sponsorship-purchase`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2186,6 +2222,7 @@ SOFTWARE.
   <div class="bst-message-menu-container">
   </div>
   </div>
+  </div>
 `;
   };
 
@@ -2194,6 +2231,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div class="bst-message-container">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
@@ -2219,6 +2257,7 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  </div>
   </div>
   </div>
 `;
@@ -2620,8 +2659,12 @@ SOFTWARE.
       messageList.solidBuild = solidBuild;
       messageList.solidBuildSet = solidBuildSet;
 
+      createEffect(()=>{
+        solidBuild() && (ezPr!==null) && Promise.resolve([ezPr]).then(h=>h[0].resolve());
+      });
+
       const isListEmpty = createMemo(() => solidBuild().length < 1);
-      createRenderEffect(() => {
+      createEffect(() => {
         const cEmpty = isListEmpty();
         const change = (cEmpty) ^ (!!this.isEmpty);
         if (change) {
@@ -2766,7 +2809,7 @@ SOFTWARE.
 
       ioMessageList = intersectionObserver;
 
-      createEffect(() => {
+      createRenderEffect(() => {
         const list = solidBuild();
         let j = 0;
         for (let i = 0; i < list.length; i++) {
@@ -3064,14 +3107,26 @@ SOFTWARE.
     }
 
     cProto.forEachItem_ = function (a) {
+      // buggy
+      let status = 0;
       let i;
-      i = 0;
-      for (const t of this.visibleItems) {
-        a.call(this, "visibleItems", t, i++)
-      }
-      i = 0;
-      for (const t of this.activeItems_) {
-        a.call(this, "activeItems_", t, i++);
+      try {
+        status = 1;
+        i = 0;
+        for (const t of this.visibleItems) {
+          a.call(this, "visibleItems", t, i++)
+        }
+        status = 2;
+        i = 0;
+        for (const t of this.activeItems_) {
+          a.call(this, "activeItems_", t, i++);
+        }
+        status = 3;
+
+      } catch (e) {
+
+        console.error('forEachItem_', status, i, this.visibleItems.length, this.activeItems_.length)
+
       }
     }
 
@@ -3085,7 +3140,35 @@ SOFTWARE.
 
     }
 
+    const handleAddChatItemActionUpdate_ = async (wThis, aClientId, e, c) => {
+        const cnt = kRef(wThis);
+        if (!messageList) return;
+        const list = messageList.solidBuild();
+        let ok = false;
+        for (let j = list.length; j-- >= 0;) {
+          const bObj = list[j];
+          if (bObj && (bObj.id === a.clientId || bObj.id === e.id)) {
+            const dataMutable = mutableWM.get(bObj);
+            if (dataMutable && typeof dataMutable.bObjChange === 'function') {
+              cnt.visibleItems[j] = c;
+              dataMutable.bObjChange(e);
+              ok = true;
+              // console.log('bObjChange 02')
+              break;
+            }
+          }
+        }
+        if (!ok) {
+          console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
+          this.activeItems_.push(c);
+        }
+        await Promise.resolve();
+
+
+    }
+
     cProto.handleAddChatItemAction_ = function (a) {
+      // buggy
       let b = this
         , c = a.item
         , fk = (firstKey(c) || '');
@@ -3114,29 +3197,11 @@ SOFTWARE.
                   // console.log('bObjChange 01')
                 }
               }
-              !directReplaced && flushPE(async () => {
-                if (!messageList) return;
-                const list = messageList.solidBuild();
-                let ok = false;
-                for (let j = list.length; j-- >= 0;) {
-                  const bObj = list[j];
-                  if (bObj && (bObj.id === a.clientId || bObj.id === e.id)) {
-                    const dataMutable = mutableWM.get(bObj);
-                    if (dataMutable && typeof dataMutable.bObjChange === 'function') {
-                      b.visibleItems[j] = c;
-                      dataMutable.bObjChange(e);
-                      ok = true;
-                      // console.log('bObjChange 02')
-                      break;
-                    }
-                  }
-                }
-                if (!ok) {
-                  console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
-                  this.activeItems_.push(c);
-                }
-                await Promise.resolve();
-              });
+              if (!directReplaced) {
+                const wThis = mWeakRef(this);
+                const aClientId = a.clientId;
+                flushPE(() => handleAddChatItemActionUpdate_(wThis, aClientId, e, c));
+              }
             }
             replaceExistingItem = true; // to be added if not matched
           } else { // activeItems_
@@ -3178,6 +3243,7 @@ SOFTWARE.
       if (this.visibleItems && (this.visibleItems.length > 0)) {
         this.visibleItems.length = 0;
         if (messageList) {
+          messageList.classList.remove('bst-listloaded');
           messageList.solidBuildSet(a => ((a.length = 0), a));
         }
       }
@@ -3329,6 +3395,17 @@ SOFTWARE.
       nyhaDPr = null;
     }
 
+    const [modiValue, modiValueSet] = createSignal();
+    const [tartValue, tartValueSet] = createSignal();
+    const [ezValue, ezValueSet] = createSignal();
+
+    createEffect(()=>{
+      if(modiValue() === tartValue() && mloPr !== null){
+        mloPr.resolve();
+      }
+    });
+
+
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
     cProto.flushActiveItems_ = function () {
@@ -3343,9 +3420,11 @@ SOFTWARE.
       }
 
       if (!messageList) return;
+      window.__bstFlush01__ = Date.now();
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
+        window.__bstFlush02__ = Date.now();
         const activeItems_ = this.activeItems_;
         let _addLen = activeItems_.length;
         // console.log(55, _addLen)
@@ -3371,11 +3450,9 @@ SOFTWARE.
 
         }
 
-        const addLen = activeItems_.length;
+        window.__bstFlush03__ = Date.now();
 
-        const lastVisibleItemCount = this.visibleItems.length
-        let removeCount = lastVisibleItemCount + addLen - maxItemsToDisplay;
-        if (removeCount < 0) removeCount = 0;
+
 
         _flushed = 1;
         const items = activeItems_.slice(0);
@@ -3420,7 +3497,8 @@ SOFTWARE.
         const nd = rearrangedW.length;
         if (nd === 0) return;
 
-        await timelineResolve();
+        // await timelineResolve();
+        await Promise.resolve();
 
         if (clearCount0 !== this.clearCount) return;
         if (this.isAttached !== true) return;
@@ -3585,7 +3663,7 @@ SOFTWARE.
               // }
 
               // change on state
-              createEffect(() => {
+              createRenderEffect(() => {
 
                 const visible = interceptionRatio();
                 if (visible > 0.9) {
@@ -3621,7 +3699,7 @@ SOFTWARE.
               });
 
               // change on state -> change on DOM
-              createRenderEffect(() => {
+              createEffect(() => {
                 const v = viewVisiblePos();
                 if (v === null) {
                   _removeAttribute.call(messageEntry, 'view-pos');
@@ -3636,6 +3714,8 @@ SOFTWARE.
 
               createdPromise.resolve(messageEntry);
 
+              modiValueSet(value=>value+1);
+
 
             }
           }
@@ -3646,9 +3726,11 @@ SOFTWARE.
         };
 
         const visibleItems = this.visibleItems;
+        let wasEmpty = false;
         let needScrollToEnd = false;
         if (visibleItems.length === 0) {
           needScrollToEnd = true;
+          wasEmpty = true;
         } else if (this.canScrollToBottom_() === true) {
           // try to avoid call offsetHeight or offsetTop directly
           const list = messageList.solidBuild();
@@ -3661,21 +3743,29 @@ SOFTWARE.
           }
         }
 
-        let _lastVisibleItemCount = lastVisibleItemCount;
+
+        if (mloPr !== null) mloPr.resolve();
+        mloPr = null;
+        mloPrReleaseAt = 0;
 
         const promiseFn = mloPrSetup(messageList, nd - 1);
+        let target0 = Date.now();
+        tartValueSet(()=>-1);
+        modiValueSet(()=>target0);
 
         let rJ = 0;
         let bObjX = null;
-
         const loopFunc = (list) => {
           const bObj = bObjX;
-          const shouldRemove = removeCount > 0 && _lastVisibleItemCount === visibleItems.length && _lastVisibleItemCount === list.length
-          if (shouldRemove) {
-            visibleItems.shift();
-            list.shift();
-            removeCount--;
-            _lastVisibleItemCount--;
+          const n = list.length - maxItemsToDisplay + 1;
+          if (n >= 1) {
+            if (n > 1) {
+              visibleItems.splice(0, n);
+              list.splice(0, n);
+            } else {
+              visibleItems.shift();
+              list.shift();
+            }
           }
           list.push(bObj);
           return list;
@@ -3685,15 +3775,24 @@ SOFTWARE.
         const timeline = new DocumentTimeline;
         const timelines = new Set();
         const t1 = performance.now();
+
+        window.__bstFlush04__ = Date.now(); 
         let tq = t1;
         let mg = 0;
+        ezPr = null;
+        let listChangeCount = 0;
         for (; rJ < nd; rJ++) {
           if (clearCount0 !== this.clearCount || this.isAttached !== true) break;
           const j = rJ;
           bObjX = rearrangedFn(rearrangedW[j]);
           timelines.add(`${timeline.currentTime}|${tq}`);
           mloUz = rJ;
+
+          ezPr = new PromiseExternal();
           messageList.solidBuildSet(loopFunc);
+          if(ezPr) await ezPr.then();
+          listChangeCount++;
+          // if(!wasEmpty && document.visibilityState==='visible') await new Promise(r=>requestAnimationFrame(r))
           const tu = performance.now();
           if (tu - tq >= 6) {
             // if (wasEmpty) scrollToEnd(); // before the last timelineResolve
@@ -3704,16 +3803,30 @@ SOFTWARE.
             mg++;
           }
         }
+        if(ezPr) await ezPr.then();
         rearrangedW.length = 0;
         rearrangedW = null;
-        if (!mloCond()) { // just in case
-          await timelineResolve();
-          console.log(`flushItems: interupted; rJ=${rJ}; nd=${nd}`);
-          return;
+        if (listChangeCount > 0) {
+          mloPrReleaseAt = Date.now() + 100;
+          const target1 = target0 + listChangeCount;
+          tartValueSet(() => target1);
+          if (!mloCond()) { // just in case
+            // await timelineResolve();
+            console.log(`flushItems: interupted; rJ=${rJ}; nd=${nd}`);
+            // await new Promise(resolve=>setTimeout(resolve, 80));
+            // return;
+          }
+          await promiseFn();
         }
-        await promiseFn();
+
+        window.__bstFlush05__ = Date.now();
+        mloPrReleaseAt = 0;
+        if (mloPr !== null) mloPr.resolve();
+        mloPr = null;
         if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
-        await timelineResolve();
+        // await timelineResolve();
+        await Promise.resolve();
+        if(wasEmpty) messageList.classList.add('bst-listloaded');
         const t2 = performance.now();
         // let at1 =  timeline.currentTime
         // console.log(5913,[...timelines], timeline.currentTime)
@@ -3751,6 +3864,7 @@ SOFTWARE.
           appendStates.clear();
         }
 
+        window.__bstFlush06__ = Date.now();
 
         // await timelineResolve();
 
