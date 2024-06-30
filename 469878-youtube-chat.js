@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.6
+// @version             0.64.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5342,13 +5342,27 @@
           return false;
         }
 
+
+        const fnProxySelf = function (...args) {
+          const cnt = kRef(this.ref);
+          if (cnt) {
+            return cnt[this.prop](...args); // might throw error
+          }
+        }
         const proxySelfHandler = {
           get(target, prop) {
-            const cnt = kRef(target.ref);
+            const ref = target.ref;
+            const cnt = kRef(ref);
             if (!cnt) return;
             if (typeof cnt[prop] === 'function') {
-              console.warn('proxy get to function');
-              if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = cnt[prop].bind(prop);
+              if (prop === 'animateShowStats') {
+                // this.animateShowStats
+              }else if(prop==='animateHideStats'){
+                // this.animateHideStats
+              } else {
+                console.warn('proxy get to function', prop);
+              }
+              if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = fnProxySelf.bind({prop, ref});
               return target[`$$${prop}$$`];
             }
             return cnt[prop];
@@ -5397,6 +5411,60 @@
 
              * 
              */
+
+
+
+        /**
+         * 
+         * 
+
+    f.animateShowStats = function() {
+        var a = this.textContent.animate({
+            transform: "translateY(-30px)"
+        }, {
+            duration: this.data.dynamicStateData.stateSlideDurationMs,
+            fill: "forwards"
+        });
+        this.username.animate({
+            opacity: 0
+        }, {
+            duration: 500,
+            fill: "forwards"
+        });
+        this.statsBar.animate({
+            opacity: 1
+        }, {
+            duration: 500,
+            fill: "forwards"
+        });
+        return a
+    }
+    ;
+    f.animateHideStats = function(a, b) {
+        this.textContent.animate({
+            transform: "translateY(0)"
+        }, {
+            duration: a,
+            fill: "forwards",
+            delay: b
+        });
+        this.username.animate({
+            opacity: 1
+        }, {
+            duration: 300,
+            fill: "forwards",
+            delay: b
+        });
+        this.statsBar.animate({
+            opacity: 0
+        }, {
+            duration: 300,
+            fill: "forwards",
+            delay: b
+        })
+    }
+         * 
+         */
         
           updateStatsBarAndMaybeShowAnimationRevised: function (a, b, c) {
             // prevent memory leakage due to d.data was asked in  a.finished.then
