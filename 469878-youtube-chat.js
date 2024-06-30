@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.4
+// @version             0.64.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -40,13 +40,17 @@
 ((__CONTEXT__) => {
   'use strict';
 
+  // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
+  // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
+
   const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
+  const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
 
   const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient.
   const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages
 
-  const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages
+  const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages <<< DON'T CHANGE >>>
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
 
@@ -5338,7 +5342,73 @@
           return false;
         }
 
+        const proxySelfHandler = {
+          get(target, prop) {
+            const cnt = kRef(target.ref);
+            if (!cnt) return;
+            if (typeof cnt[prop] === 'function') {
+              console.warn('proxy get to function');
+              if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = cnt[prop].bind(prop);
+              return target[`$$${prop}$$`];
+            }
+            return cnt[prop];
+          },
+          set(target, prop, value) {
+            const cnt = kRef(target.ref);
+            if (!cnt) return true;
+            if (typeof value === 'function') {
+              console.warn('proxy set to function');
+              cnt[prop] = value;
+              return true;
+            }
+            cnt[prop] = value;
+            return true;
+          }
+        }; 
+
         const dProto = {
+
+
+            /**
+             * 
+
+    f.updateStatsBarAndMaybeShowAnimation = function(a, b, c) {
+        var d = this;
+        a || c();
+        a && this.statsBar && this.username && this.textContent && (this.isMouseOver ? (b(),
+        c()) : (a = this.animateShowStats(),
+        this.data.animationOrigin && this.data.trackingParams && aB().stateChanged(this.data.trackingParams, {
+            animationEventData: {
+                origin: this.data.animationOrigin
+            }
+        }),
+        a.finished.then(function() {
+            var e;
+            setTimeout(function() {
+                b();
+                c();
+                if (!d.isMouseOver) {
+                    var g, k;
+                    d.animateHideStats(((g = d.data) == null ? void 0 : g.dynamicStateData.stateSlideDurationMs) || 0, ((k = d.data) == null ? void 0 : k.dynamicStateData.stateUpdateDelayAfterMs) || 0)
+                }
+            }, ((e = d.data) == null ? void 0 : e.dynamicStateData.stateUpdateDelayBeforeMs) || 0)
+        })))
+    }
+
+             * 
+             */
+        
+          updateStatsBarAndMaybeShowAnimationRevised: function (a, b, c) {
+            // prevent memory leakage due to d.data was asked in  a.finished.then
+            try{
+              // console.log('updateStatsBarAndMaybeShowAnimation called', this.is)
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this) }, proxySelfHandler);
+              return this.updateStatsBarAndMaybeShowAnimation38.call(this.__proxySelf0__, a, b, c);
+            }catch(e){
+              console.log('updateStatsBarAndMaybeShowAnimationRevised ERROR');
+              console.error(e);
+            }
+          },
 
           detachedForMemoryLeakage: function () {
 
@@ -6058,6 +6128,14 @@
           cProto.attached = dProto.attachedForTickerInit;
 
           if (FLAG_001c) continue;
+
+          if( FIX_MEMORY_LEAKAGE_TICKER_STATSBAR && typeof cProto.updateStatsBarAndMaybeShowAnimation === 'function' && !cProto.updateStatsBarAndMaybeShowAnimation38 && cProto.updateStatsBarAndMaybeShowAnimation.length ===3){
+
+            console.log('FIX_MEMORY_LEAKAGE_TICKER_STATSBAR - updateStatsBarAndMaybeShowAnimation', cProto.is);
+            cProto.updateStatsBarAndMaybeShowAnimation38 = cProto.updateStatsBarAndMaybeShowAnimation;
+            cProto.updateStatsBarAndMaybeShowAnimation = dProto.updateStatsBarAndMaybeShowAnimationRevised;
+          }
+
 
           let rafHackState = 0;
 
