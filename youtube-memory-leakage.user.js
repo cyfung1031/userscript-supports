@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.002
+// @version             0.0.003
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -90,12 +90,15 @@
     const listOfConnect = new Set();
     const listOfDisconnect = new Set();
 
+    const deadChecker = new Set();
+
+
 
     skipObjects.add(Function);
     skipObjects.add(Object);
 
     const c66 = {};
-    const f66 = function(){};
+    const f66 = function () { };
 
     const Promise = (async () => { })().constructor;
 
@@ -107,6 +110,20 @@
     class EmptyNode extends Node {
 
     }
+
+    class EmptyObject {
+
+    }
+
+    class LeakageIndicator {
+
+      get [Symbol.toStringTag]() {
+        return 'LeakageIndicator';
+      }
+
+    }
+
+    window.taggedItems = new Set();
 
     const nativeDFAppend = DocumentFragment.prototype.__shady_native_append || DocumentFragment.prototype.append;
 
@@ -197,6 +214,8 @@
 
     const detectedInfoMap = new WeakMap();
 
+    let ds03 = 0;
+
     const setupHClass = (HClass) => {
 
       const pConnectedCallback = HClass.prototype.connectedCallback || function () { };
@@ -207,6 +226,29 @@
 
 
         if (isTrueElement(elm)) {
+          if (elm.is === 'yt-attributed-string') {
+            ++ds03;
+            if (ds03 < 20) {
+
+              elm.__debug03__ = ++ds03;
+
+              let r = elm;
+
+              r.__my_parents0__ = '';
+              try {
+
+                let pn = r;
+                while (pn = pn.parentNode) {
+                  r.__my_parents0__ += '|' + (pn?.nodeName?.toLowerCase() || "NONE");
+                }
+                r.__my_parents0__ = r.__my_parents0__.substring(1);
+              } catch (e) { }
+
+
+
+            }
+
+          }
           listOfConnect.add(elm.nodeName.toLowerCase());
 
           let p = elm;
@@ -387,6 +429,11 @@
         if (!qNode || walked.has(qNode)) {
           collection.delete(wQNode);
           continue;
+        }
+
+        if (qNode.isConnected === false) {
+
+          addToDead(wQNode);
         }
 
         await Promise.resolve(qNode).then(f);
@@ -591,6 +638,17 @@
       return v;
     }
 
+    const addToDead = (o) => {
+
+
+      if (!deadChecker.has(o)) {
+
+        o.__deadCheckAdd__ = Date.now();
+        deadChecker.add(o);
+
+      }
+    }
+
 
     const setToDeadFn = (r) => {
       if (DEBUG_no_setToDeadFn) return;
@@ -605,6 +663,13 @@
         idc = isConnectedFn.call(r);
       } catch (e) { }
       if (idc !== false) return;
+
+
+      const wo = [r.polymerController, r.inst].filter(e => typeof (e || 0) === 'object').map(e => new WeakRef(e));
+
+
+      // const polymerController1To1 = r === r.polymerController?.hostElement;
+      // const inst1To1 = r === r.inst?.hostElement;
 
       r.__my_parents__ = '';
       try {
@@ -629,35 +694,35 @@
         const cnt = insp(r);
         const pds = Object.getOwnPropertyDescriptors(cnt);
 
-        if(cnt && typeof cnt.unregisterActionRouterEventListeners_ === 'function'){
-          try{
-          cnt.unregisterActionRouterEventListeners_();
-          }catch(e){}
+        if (cnt && typeof cnt.unregisterActionRouterEventListeners_ === 'function') {
+          try {
+            cnt.unregisterActionRouterEventListeners_();
+          } catch (e) { }
         }
 
-        if(cnt && typeof cnt.removeMouseEventHandlers_ === 'function'){
-          try{
+        if (cnt && typeof cnt.removeMouseEventHandlers_ === 'function') {
+          try {
             cnt.removeMouseEventHandlers_();
-          }catch(e){}
+          } catch (e) { }
         }
 
 
-        if(cnt && typeof cnt._removeEventListenerFromNode === 'function'){
-          try{
+        if (cnt && typeof cnt._removeEventListenerFromNode === 'function') {
+          try {
             cnt._removeEventListenerFromNode();
-          }catch(e){}
+          } catch (e) { }
         }
 
-        if(cnt && typeof cnt._unlistenKeyEventListeners === 'function'){
-          try{
+        if (cnt && typeof cnt._unlistenKeyEventListeners === 'function') {
+          try {
             cnt._unlistenKeyEventListeners();
-          }catch(e){}
+          } catch (e) { }
         }
 
-        if(cnt && typeof cnt._unsubscribeIronResize === 'function'){
-          try{
+        if (cnt && typeof cnt._unsubscribeIronResize === 'function') {
+          try {
             cnt._unsubscribeIronResize();
-          }catch(e){}
+          } catch (e) { }
         }
 
         if (cnt && typeof cnt.boundOnStamperFinished === 'function') {
@@ -679,7 +744,7 @@
           try {
 
             cnt.hostElement.removeEventListener("touchstart", cnt.boundOnTouchStart);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -690,7 +755,7 @@
           try {
 
             cnt.hostElement.removeEventListener("focus", cnt._boundOnFocus);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -699,7 +764,7 @@
           try {
 
             cnt.hostElement.removeEventListener("blur", cnt._boundOnBlur);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
         if (cnt && typeof cnt._boundOnDescendantIronResize === 'function') {
@@ -707,7 +772,7 @@
           try {
 
             cnt.hostElement.removeEventListener("iron-resize", cnt._boundOnDescendantIronResize);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -719,7 +784,7 @@
           try {
 
             cnt.hostElement.removeEventListener("focus", cnt._boundFocusBlurHandler);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -730,7 +795,7 @@
           try {
 
             cnt.hostElement.removeEventListener("blur", cnt._boundFocusBlurHandler);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -740,7 +805,7 @@
           try {
 
             cnt.hostElement.removeEventListener("scroll", cnt._boundScrollHandler);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -753,7 +818,7 @@
           try {
 
             cnt.hostElement.removeEventListener("slotchange", cnt._boundSchedule);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -763,7 +828,7 @@
           try {
 
             cnt.hostElement.removeEventListener("resize", cnt._boundNotifyResize);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -773,7 +838,7 @@
           try {
 
             document.removeEventListener("keydown", cnt._boundEscKeydownHandler);
-          } catch (e) { } 
+          } catch (e) { }
 
         }
 
@@ -787,7 +852,7 @@
         }
 
 
-        if (pds?.refreshIntervalTimerId?.writable === true && cnt.refreshIntervalTimerId > 0 && typeof cnt.updateTime ==='function') {
+        if (pds?.refreshIntervalTimerId?.writable === true && cnt.refreshIntervalTimerId > 0 && typeof cnt.updateTime === 'function') {
           clearInterval(cnt.refreshIntervalTimerId);
         }
         if (pds?.scrollInterval_?.writable === true && cnt.scrollInterval_ > 0 && typeof cnt.endWindowScroll_ === 'function') {
@@ -808,7 +873,7 @@
           clearInterval(cnt.playPingTimerId);
         }
 
-        if(cnt && typeof cnt.unsubscribe_ ==='function'){
+        if (cnt && typeof cnt.unsubscribe_ === 'function') {
           cnt.unsubscribe_();
         }
 
@@ -843,7 +908,7 @@
         }
 
 
-        if(cnt && typeof cnt.cancelTimeout_ ==='function'){
+        if (cnt && typeof cnt.cancelTimeout_ === 'function') {
           cnt.cancelTimeout_();
         }
 
@@ -871,32 +936,32 @@
           window.cancelAnimationFrame(cnt.intersectRAF);
           // cnt.intersectRAF = 0;
         }
-        
-        if(cnt && typeof cnt.disposeInternal === 'function'){
-          try{
+
+        if (cnt && typeof cnt.disposeInternal === 'function') {
+          try {
             cnt.disposeInternal();
-          }catch(e){}
+          } catch (e) { }
         }
 
-        if(cnt && typeof cnt.dispose === 'function'){
-          try{
+        if (cnt && typeof cnt.dispose === 'function') {
+          try {
             cnt.dispose();
-          }catch(e){}
+          } catch (e) { }
         }
 
 
-        if (pds?._interestedResizables?.writable === true && typeof (cnt._interestedResizables||0) === 'object' && cnt._interestedResizables.length > 0) {
+        if (pds?._interestedResizables?.writable === true && typeof (cnt._interestedResizables || 0) === 'object' && cnt._interestedResizables.length > 0) {
           cnt._interestedResizables.length = 0;
         }
 
-        if (pds?._boundKeyHandlers?.writable === true && typeof (cnt._boundKeyHandlers||0) === 'object' && cnt._boundKeyHandlers.length > 0) {
+        if (pds?._boundKeyHandlers?.writable === true && typeof (cnt._boundKeyHandlers || 0) === 'object' && cnt._boundKeyHandlers.length > 0) {
           cnt._boundKeyHandlers.length = 0;
         }
 
-        if(cnt && typeof cnt.onInputSlotChanged === 'function' && (cnt._inputElement instanceof Node) && typeof cnt._valueChangedEvent === 'string' && typeof cnt._boundValueChanged === 'function'){
-          try{
+        if (cnt && typeof cnt.onInputSlotChanged === 'function' && (cnt._inputElement instanceof Node) && typeof cnt._valueChangedEvent === 'string' && typeof cnt._boundValueChanged === 'function') {
+          try {
             cnt._inputElement.removeEventListener(cnt._valueChangedEvent, cnt._boundValueChanged);
-          }catch(e){}
+          } catch (e) { }
         }
 
 
@@ -913,7 +978,7 @@
           }
         }
 
-        
+
 
         if (pds?.__dataEnabled?.writable === true && cnt.__dataEnabled === true) {
           cnt.__dataEnabled = false;
@@ -954,6 +1019,9 @@
         //     }
         //   }
         // } catch (e) { }
+
+
+
       }
 
       walker(r, walked);
@@ -966,9 +1034,30 @@
 
       objClean(r);
 
-      cleanChildren(r)
+      cleanChildren(r);
 
 
+      for (const wp of wo) addToDead(wp);
+      addToDead(new WeakRef(r));
+
+
+      // console.log(747, r.polymerController)
+      // if (polymerController1To1 && r.polymerController) {
+      //   Object.setPrototypeOf(r.polymerController, EmptyObject.prototype);
+
+      // }
+      // if (inst1To1 && r.inst) {
+      //   Object.setPrototypeOf(r.inst, EmptyObject.prototype);
+      // }
+
+      // just in case
+      if (r.polymerController) r.polymerController = null;
+      if (r.inst) r.inst = null;
+
+
+      r.__leakageIndicator__ = new LeakageIndicator();
+
+      window.taggedItems.add(new WeakRef(r.__leakageIndicator__))
 
       const t2 = performance.now();
 
@@ -976,6 +1065,7 @@
         listA.log('3782 setToDeadFn', t2 - t1)
 
       }
+
 
       needCollectionCleanup = true;
 
@@ -1070,6 +1160,8 @@
 
     let leftover = null;
     let leftoverCannotGC = null;
+    let deadCheckerCount = null;
+    let deadCheckerTags = null;
 
     let executeCheckBusy = false;
 
@@ -1080,6 +1172,7 @@
 
       const tempLeftOver = {};
       const tempLeftOverCannotGC = {};
+      const tempLeftOverCnt = {};
       const res = {};
       let k = 0;
       const currentTime = Date.now();
@@ -1234,6 +1327,40 @@
       leftover = Object.assign({}, tempLeftOver);
       leftoverCannotGC = Object.assign({}, tempLeftOverCannotGC);
 
+
+      let tmpDeadCheckerCount = 0;
+      let tmpDeadCheckerTags = {};
+      for (const wp of deadChecker) {
+        const cnt = wp?.deref()
+        if (!cnt) {
+          deadChecker.delete(wp);
+          continue;
+        }
+        tmpDeadCheckerCount++;
+
+        if (!wp.__deadCheckAdd__) continue;
+        let w = Math.floor((Date.now() - wp.__deadCheckAdd__) / 4000);
+        if (w > 86400) w = 86400;
+
+        if (!tmpDeadCheckerTags[w]) {
+          tmpDeadCheckerTags[w] = {
+            _count: 0
+          };
+        }
+
+        tmpDeadCheckerTags[w]._count++;
+
+        const tag = (cnt.is || cnt.nodeName?.toLowerCase() || 0);
+        if (typeof tag === 'string') {
+
+          tmpDeadCheckerTags[w][tag] = (tmpDeadCheckerTags[w][tag] || 0) + 1;
+        }
+
+      }
+      deadCheckerTags = tmpDeadCheckerTags;
+
+      deadCheckerCount = tmpDeadCheckerCount;
+
       executeCheckBusy = false;
     }
 
@@ -1242,7 +1369,11 @@
 
     window.__displayGC__ = () => {
       const { __gcCheckerCount__, __gcFailedCount__, vdIZE, __setDeadCount__, __gcFailures__, __gcFailureList__ } = window;
-      const o = { __gcCheckerCount__, __gcFailedCount__, vdIZE, __setDeadCount__, efc, lastDeadCountMax, __gcFailures__: __gcFailures__ ? [...__gcFailures__] : null, leftover, leftoverCannotGC, detachedNodes, myObjectListSize: myObjectList.size, __gcFailureList__, collectionSize: collection.size, listOfConnect, listOfDisconnect, listOfPatchingTrue, listOfPatchingFalse }
+      const o = {
+        __gcCheckerCount__, __gcFailedCount__, vdIZE, __setDeadCount__, efc, lastDeadCountMax, __gcFailures__: __gcFailures__ ? [...__gcFailures__] : null,
+        leftover, leftoverCannotGC, deadCheckerCount, deadCheckerTags,
+        detachedNodes, myObjectListSize: myObjectList.size, __gcFailureList__, collectionSize: collection.size, listOfConnect, listOfDisconnect, listOfPatchingTrue, listOfPatchingFalse
+      }
       console.log(o)
       return o;
     }
@@ -1315,6 +1446,76 @@
       // }
 
     }
+
+
+
+
+
+
+
+
+
+
+
+    // customElements.whenDefined('yt-emoji-picker-renderer').then(() => {
+
+
+
+    //   const tag = "yt-emoji-picker-renderer";
+    //   const cProto = getProto(document.createElement(tag));
+    //   if (!cProto || typeof cProto.attached !== 'function') {
+    //     // for _registered, proto.attached shall exist when the element is defined.
+    //     // for controller extraction, attached shall exist when instance creates.
+    //     console.warn(`proto.attached for ${tag} is unavailable.`);
+    //     return;
+    //   }
+
+    //   cProto.attached=function(){
+    //     // this.data = null;
+
+    //   }
+    //   cProto.dataChanged = function(){
+
+    //     // this.data = null;
+    //   }
+
+
+    // });
+
+
+
+
+
+    // customElements.whenDefined('yt-live-chat-toast-renderer').then(() => {
+
+
+
+    //   const tag = "yt-live-chat-toast-renderer";
+    //   const cProto = getProto(document.createElement(tag));
+    //   if (!cProto || typeof cProto.attached !== 'function') {
+    //     // for _registered, proto.attached shall exist when the element is defined.
+    //     // for controller extraction, attached shall exist when instance creates.
+    //     console.warn(`proto.attached for ${tag} is unavailable.`);
+    //     return;
+    //   }
+
+    //   cProto.attached=function(){
+
+    //     this.data = null;
+    //     // this.__data = null;
+    //   }
+    //   cProto.dataChanged = function(){
+
+    //     this.data = null;
+    //     // this.__data = null;
+    //   }
+
+
+    // });
+
+
+
+
 
     customElements.whenDefined('yt-live-chat-ticker-sponsor-item-renderer').then(() => {
 
@@ -1717,6 +1918,9 @@
         if (location.pathname === '/watch') {
 
         } else if (location.pathname.startsWith('/live_chat')) {
+
+          // if(this.is == 'yt-emoji-picker-renderer') requireConversion = true;
+          // if(this.is == 'yt-live-chat-toast-renderer') requireConversion = true;
 
           // if(!(this.is && this.is.length > 5)){
 
