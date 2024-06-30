@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.5
+// @version             0.64.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -191,7 +191,7 @@
   const skipErrorForhandleAddChatItemAction_ = true; // currently depends on ENABLE_NO_SMOOTH_TRANSFORM
   const fixChildrenIssue801 = true; // if __children801__ is set [fix polymer controller method extration for `.set()`]
 
-  const SUPPRESS_refreshOffsetContainerHeight_ = true; // added in FEB 2024; true for default layout options
+  const SUPPRESS_refreshOffsetContainerHeight_ = true; // added in FEB 2024; true for default layout options; no effect if ENABLE_NO_SMOOTH_TRANSFORM is false
 
   const NO_FILTER_DROPDOWN_BORDER = true; // added in 2024.03.02
 
@@ -4656,7 +4656,7 @@
 
         if ((mclp._flag0281_ & 0x40) == 0) {
 
-          if (SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
+          if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
             assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
             mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
             mclp.refreshOffsetContainerHeight_ = function () {
@@ -4692,7 +4692,7 @@
           }
         }
 
-        if ((mclp._flag0281_ & 0x40) == 0) {
+        if ((mclp._flag0281_ & 0x40) == 0 ) {
 
           if ((mclp.atBottomChanged_ || 0).length === 1) {
             // note: if the scrolling is too frequent, the show more visibility might get wrong.
