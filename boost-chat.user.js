@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.38
+// @version             0.1.39
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2812,7 +2812,7 @@ SOFTWARE.
 
       ioMessageList = intersectionObserver;
 
-      createRenderEffect(() => {
+      createEffect(() => {
         const list = solidBuild();
         let j = 0;
         for (let i = 0; i < list.length; i++) {
@@ -3666,7 +3666,7 @@ SOFTWARE.
               // }
 
               // change on state
-              createRenderEffect(() => {
+              createEffect(() => {
 
                 const visible = interceptionRatio();
                 if (visible > 0.9) {
