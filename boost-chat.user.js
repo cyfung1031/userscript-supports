@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.39
+// @version             0.1.40
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1926,23 +1926,23 @@ SOFTWARE.
     if (!s) return;
     return s;
   }
-  const setExtra = (elm, extra) =>{
+  const setExtra = (elm, extra) => {
     extras.set(elm, extra);
   }
 
-  const SolidBeforeContentButton0 = (data)=>{
+  const SolidBeforeContentButton0 = (data) => {
 
-    const onButtonContainerCreated = (div)=>{
+    const onButtonContainerCreated = (div) => {
 
-      if(!sharedNoscript) return;
+      if (!sharedNoscript) return;
       const beforeContentButtons = data.beforeContentButtons;
-      if(!beforeContentButtons || beforeContentButtons.length !==1) return;
+      if (!beforeContentButtons || beforeContentButtons.length !== 1) return;
       const buttonViewModel = beforeContentButtons[0].buttonViewModel;
-      if(!buttonViewModel) return;
+      if (!buttonViewModel) return;
 
-      const bvData = Object.assign({}, buttonViewModel, {title: "", trackingParams: "", title_: buttonViewModel.title});
+      const bvData = Object.assign({}, buttonViewModel, { title: "", trackingParams: "", title_: buttonViewModel.title });
 
-      if(!sharedButtonViewModel){
+      if (!sharedButtonViewModel) {
         sharedButtonViewModel = document.createElement('yt-button-view-model');
         sharedNoscript.appendChild(sharedButtonViewModel);
         let cloneNode = sharedButtonViewModel.cloneNode(false, false);
@@ -1967,18 +1967,18 @@ SOFTWARE.
 
     return html`
     <${Show}
-      when=(${()=> typeof profileCard.username ==='string' })
+      when=(${() => typeof profileCard.username === 'string'})
       >
-      ${()=>{
+      ${() => {
 
         return html`
-      <div classList=(${{ "bst-profile-card": true, "bst-profile-card-on-top": profileCard.showOnTop }}) style=(${ ()=>({"--fTop": profileCard.fTop + "px", "--fBottom": profileCard.fBottom +"px"}) })>
+      <div classList=(${{ "bst-profile-card": true, "bst-profile-card-on-top": profileCard.showOnTop }}) style=(${() => ({ "--fTop": profileCard.fTop + "px", "--fBottom": profileCard.fBottom + "px" })})>
         <div class="bst-profile-card-overlay"></div>
         <div class="bst-profile-card-icon">
-        <img class="bst-profile-card-icon-img" src="${()=>profileCard.iconUrl}">
+        <img class="bst-profile-card-icon-img" src="${() => profileCard.iconUrl}">
         </div>
         <div class="bst-profile-card-main">
-        <a target="_blank" href="${()=>profileCard.profileUrl}">${()=>profileCard.username}</a>
+        <a target="_blank" href="${() => profileCard.profileUrl}">${() => profileCard.username}</a>
         </div>
         <div class="bst-profile-card-cross" onClick="${profileCard.onCrossClick}">
         X
@@ -2047,13 +2047,13 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
-      return p();
-    }}<//>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+        return p();
+      }}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data)
-    }}<//>
+        return formatters.messageBody(message, data)
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2076,7 +2076,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+    <div class="bst-message-time">${() => data.bst('timestampText')}</div>
     <div class="bst-name-field bst-message-name-color">
       <div class="bst-message-username">${() => data.bst('getUsername')}</div>
       <div class="bst-message-badges">
@@ -2089,11 +2089,11 @@ SOFTWARE.
     </div>
     <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data);
-    }}<//>
+        return formatters.messageBody(message, data);
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2112,15 +2112,15 @@ SOFTWARE.
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
       <div class="bst-message-head">
-        <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+        <div class="bst-message-time">${() => data.bst('timestampText')}</div>
         <div class="bst-name-field bst-message-name-color">
           <div class="bst-message-username">${() => data.bst('getUsername')}</div>
           <div class="bst-message-badges">
           <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-            return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, data);
 
-          }}<//>
+      }}<//>
           </div>
         </div>
       </div>
@@ -2134,19 +2134,19 @@ SOFTWARE.
     </div>
   </div>
   <${Show} when=(${() => data.bst('hasMessageBody')})>${() => {
-    return html`
+        return html`
     <div class="bst-message-entry-body">
       <div class="bst-message-entry-highlight"></div>
       <div class="bst-message-entry-line">
         <div class="bst-message-body">
         <${For} each=(${() => data.bst('messages')})>${(message) => {
-          return formatters.messageBody(message, data);
-        }}<//>
+            return formatters.messageBody(message, data);
+          }}<//>
         </div>
       </div>
     </div>
     `
-  }}<//>
+      }}<//>
   </div>
   </div>
 `;
@@ -2162,23 +2162,23 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+      <div class="bst-message-time">${() => data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
         <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-          return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, data);
 
-        }}<//>
+      }}<//>
         </div>
       </div>
     </div>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data);
-    }}<//>
+        return formatters.messageBody(message, data);
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2203,23 +2203,23 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+      <div class="bst-message-time">${() => data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
         <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-          return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, data);
 
-        }}<//>
+      }}<//>
         </div>
       </div>
     </div>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data);
-    }}<//>
+        return formatters.messageBody(message, data);
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2239,24 +2239,24 @@ SOFTWARE.
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+      <div class="bst-message-time">${() => data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-message-username">${() => data.bst('getUsername')}</div>
         <div class="bst-message-badges">
         <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-          return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, data);
 
-        }}<//>
+      }}<//>
         </div>
       </div>
       <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data);
-    }}<//>
+        return formatters.messageBody(message, data);
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2274,7 +2274,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${()=> data.bst('timestampText')}</div>
+      <div class="bst-message-time">${() => data.bst('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-name-field-box">
         <div>Icon</div>
@@ -2284,18 +2284,18 @@ SOFTWARE.
         <div class="bst-message-badges">
         <${For} each=(${() => data.bst('authorBadges')})>${(badge) => {
 
-          return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, data);
 
-        }}<//>
+      }}<//>
         </div>
       </div>
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
-    <${Show} when=(${ ()=>data.beforeContentButtons && data.beforeContentButtons.length === 1 })>${()=>SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
     <div class="bst-message-body">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
-      return formatters.messageBody(message, data);
-    }}<//>
+        return formatters.messageBody(message, data);
+      }}<//>
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -2662,8 +2662,8 @@ SOFTWARE.
       messageList.solidBuild = solidBuild;
       messageList.solidBuildSet = solidBuildSet;
 
-      createEffect(()=>{
-        solidBuild() && (ezPr!==null) && Promise.resolve([ezPr]).then(h=>h[0].resolve());
+      createEffect(() => {
+        solidBuild() && (ezPr !== null) && Promise.resolve([ezPr]).then(h => h[0].resolve());
       });
 
       const isListEmpty = createMemo(() => solidBuild().length < 1);
@@ -2676,6 +2676,7 @@ SOFTWARE.
       });
 
       const [profileCard, profileCardSet] = createStore({
+        wElement: null,
         top: -1,
         showOnTop: null,
         iconUrl: null,
@@ -2683,6 +2684,7 @@ SOFTWARE.
         profileUrl: null,
         onCrossClick: () => {
           profileCardSet({
+            wElement: null,
             top: -1,
             showOnTop: null,
             iconUrl: null,
@@ -2756,7 +2758,7 @@ SOFTWARE.
 
       const onNameFieldClick = (target, messageEntry, nameField) => {
         const extra = getExtra(messageEntry);
-        if(!extra) return;
+        if (!extra) return;
         const data = extra.getReactiveData();
         if (!data) return;
 
@@ -2766,6 +2768,7 @@ SOFTWARE.
         let fTop = r1.top - messageList.getBoundingClientRect().top;
         let fBottom = fTop + r1.height;
         profileCardSet({
+          wElement: mWeakRef(messageEntry),
           fTop,
           fBottom,
           showOnTop: messageEntry.getAttribute('view-pos') === 'down',
@@ -2778,13 +2781,25 @@ SOFTWARE.
       }
 
       messageList.addEventListener('click', function (evt) {
+
+        const currentElement = kRef(profileCard.wElement);
+
+
+        let b = false;
         const target = evt?.target;
-        if (!target) return;
-        const messageEntry = target.closest('.bst-message-entry');
-        if (!messageEntry) return;
-        const nameField = target.closest('.bst-name-field');
-        if (nameField) {
-          onNameFieldClick(target, messageEntry, nameField);
+        if (target) {
+          const messageEntry = target.closest('.bst-message-entry');
+          if (messageEntry) {
+            const nameField = target.closest('.bst-name-field');
+            if (nameField) {
+              onNameFieldClick(target, messageEntry, nameField);
+              b = true;
+            }
+          }
+        }
+
+        if (!b && currentElement) {
+          profileCard.onCrossClick();
         }
         // console.log('click', target); // TODO
       });
@@ -3144,28 +3159,28 @@ SOFTWARE.
     }
 
     const handleAddChatItemActionUpdate_ = async (wThis, aClientId, e, c) => {
-        const cnt = kRef(wThis);
-        if (!messageList) return;
-        const list = messageList.solidBuild();
-        let ok = false;
-        for (let j = list.length; j-- >= 0;) {
-          const bObj = list[j];
-          if (bObj && (bObj.id === a.clientId || bObj.id === e.id)) {
-            const dataMutable = mutableWM.get(bObj);
-            if (dataMutable && typeof dataMutable.bObjChange === 'function') {
-              cnt.visibleItems[j] = c;
-              dataMutable.bObjChange(e);
-              ok = true;
-              // console.log('bObjChange 02')
-              break;
-            }
+      const cnt = kRef(wThis);
+      if (!messageList) return;
+      const list = messageList.solidBuild();
+      let ok = false;
+      for (let j = list.length; j-- >= 0;) {
+        const bObj = list[j];
+        if (bObj && (bObj.id === a.clientId || bObj.id === e.id)) {
+          const dataMutable = mutableWM.get(bObj);
+          if (dataMutable && typeof dataMutable.bObjChange === 'function') {
+            cnt.visibleItems[j] = c;
+            dataMutable.bObjChange(e);
+            ok = true;
+            // console.log('bObjChange 02')
+            break;
           }
         }
-        if (!ok) {
-          console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
-          this.activeItems_.push(c);
-        }
-        await Promise.resolve();
+      }
+      if (!ok) {
+        console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
+        this.activeItems_.push(c);
+      }
+      await Promise.resolve();
 
 
     }
@@ -3384,8 +3399,8 @@ SOFTWARE.
       return convertAObj;
     }
     let nyhaDPr = null;
-    window.addEventListener('message', (evt)=>{
-      if((evt||0).data === 'nyhaD' && nyhaDPr!==null) nyhaDPr.resolve();
+    window.addEventListener('message', (evt) => {
+      if ((evt || 0).data === 'nyhaD' && nyhaDPr !== null) nyhaDPr.resolve();
     });
     const timelineResolve = async () => {
       if (nyhaDPr !== null) {
@@ -3402,8 +3417,8 @@ SOFTWARE.
     const [tartValue, tartValueSet] = createSignal();
     const [ezValue, ezValueSet] = createSignal();
 
-    createEffect(()=>{
-      if(modiValue() === tartValue() && mloPr !== null){
+    createEffect(() => {
+      if (modiValue() === tartValue() && mloPr !== null) {
         mloPr.resolve();
       }
     });
@@ -3507,7 +3522,7 @@ SOFTWARE.
         if (this.isAttached !== true) return;
 
         // no filtering
-        const rearrangedFn = entry=>{
+        const rearrangedFn = entry => {
 
           const {
             flushItem,
@@ -3572,7 +3587,7 @@ SOFTWARE.
               mutable.viewVisibleIdxChange = viewVisibleIdxChange;
 
               setExtra(messageEntry, {
-                getReactiveData: ()=>bObj,
+                getReactiveData: () => bObj,
                 interceptionRatioChange: interceptionRatioChange
               });
 
@@ -3717,7 +3732,7 @@ SOFTWARE.
 
               createdPromise.resolve(messageEntry);
 
-              modiValueSet(value=>value+1);
+              modiValueSet(value => value + 1);
 
 
             }
@@ -3753,8 +3768,8 @@ SOFTWARE.
 
         const promiseFn = mloPrSetup(messageList, nd - 1);
         let target0 = Date.now();
-        tartValueSet(()=>-1);
-        modiValueSet(()=>target0);
+        tartValueSet(() => -1);
+        modiValueSet(() => target0);
 
         let rJ = 0;
         let bObjX = null;
@@ -3779,7 +3794,7 @@ SOFTWARE.
         const timelines = new Set();
         const t1 = performance.now();
 
-        window.__bstFlush04__ = Date.now(); 
+        window.__bstFlush04__ = Date.now();
         let tq = t1;
         let mg = 0;
         ezPr = null;
@@ -3793,7 +3808,7 @@ SOFTWARE.
 
           ezPr = new PromiseExternal();
           messageList.solidBuildSet(loopFunc);
-          if(ezPr) await ezPr.then();
+          if (ezPr) await ezPr.then();
           listChangeCount++;
           // if(!wasEmpty && document.visibilityState==='visible') await new Promise(r=>requestAnimationFrame(r))
           const tu = performance.now();
@@ -3806,7 +3821,7 @@ SOFTWARE.
             mg++;
           }
         }
-        if(ezPr) await ezPr.then();
+        if (ezPr) await ezPr.then();
         rearrangedW.length = 0;
         rearrangedW = null;
         if (listChangeCount > 0) {
@@ -3829,7 +3844,7 @@ SOFTWARE.
         if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
         // await timelineResolve();
         await Promise.resolve();
-        if(wasEmpty) messageList.classList.add('bst-listloaded');
+        if (wasEmpty) messageList.classList.add('bst-listloaded');
         const t2 = performance.now();
         // let at1 =  timeline.currentTime
         // console.log(5913,[...timelines], timeline.currentTime)
