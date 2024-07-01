@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.42
+// @version             0.1.43
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3166,7 +3166,7 @@ SOFTWARE.
       if (!messageList) return;
       const list = messageList.solidBuild();
       let ok = false;
-      for (let j = list.length; j-- >= 0;) {
+      for (let j = list.length; --j >= 0;) {
         const bObj = list[j];
         if (bObj && (bObj.id === aClientId || bObj.id === e.id)) {
           const dataMutable = mutableWM.get(bObj);
