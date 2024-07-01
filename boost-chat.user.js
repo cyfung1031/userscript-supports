@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.40
+// @version             0.1.41
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -42,6 +42,8 @@ SOFTWARE.
 // ==/UserScript==
 
 (() => {
+
+  const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
@@ -1001,6 +1003,7 @@ SOFTWARE.
         flex-direction:column;
         max-width:100%;
         vertical-align: baseline;
+        line-height: var(--yt-live-chat-first-line-height);
       }
       .bst-message-body a{
         color: inherit;
