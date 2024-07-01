@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.7
+// @version             0.64.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -45,10 +45,11 @@
 
   const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
   const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
+  const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse
 
   const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
-  const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient.
-  const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages
+  const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient. (not exceeding 900)
+  const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages. (not exceeding 900)
 
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages <<< DON'T CHANGE >>>
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
@@ -128,6 +129,7 @@
   //      min. step increment 2.5% => max steps:  40 => 1000ms per each update
   //      min. step increment 5.0% => max steps:  20 => 1250ms per each update
   const ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX = true;    // for video playback's ticker issue. [ Playback Replay - Pause at Middle - Backwards Seeking ]
+  const SKIP_VIDEO_PLAYBACK_PROGRESS_STATE_FIX_FOR_NO_TIMEFX = false; // debug use; yt-live-chat-ticker-renderer might not require ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX
   // << end >>
 
   const FIX_TOOLTIP_DISPLAY = true;                       // changed in 2024.05.02
@@ -159,7 +161,7 @@
   // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
 
   const CHANGE_DATA_FLUSH_ASYNC = false;
-  // CHANGE_DATA_FLUSH_ASYNC is disabled due to bug report: https://greasyfork.org/scripts/469878-youtube-super-fast-chat/discussions/199479
+  // CHANGE_DATA_FLUSH_ASYNC is disabled due to bug report: https://greasyfork.org/scripts/469878/discussions/199479
   // to be further investigated
 
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
@@ -3566,83 +3568,131 @@
                 return;
               }
 
-              if (typeof cProto.handlePostMessage_ === 'function' && !cProto.handlePostMessage66_) {
+              if (typeof cProto.handlePostMessage_ === 'function' && !cProto.handlePostMessage66_ && !cProto.handlePostMessage67_ ) {
 
                 cProto.handlePostMessage66_ = cProto.handlePostMessage_;
 
-                cProto.handlePostMessage67_ = function (a) {
+                const handlePostMessageAfterPromiseA = (da) => {
 
-                  const da = a.data;
+                  if (!da || typeof da !== 'object') return;
 
+                  if ('yt-player-state-change' in da) {
 
-
-                  playEventsStack = playEventsStack.then(() => {
-
-
-
-                    if ('yt-player-state-change' in da) {
-
-                      const qc = da['yt-player-state-change'];
+                    const qc = da['yt-player-state-change'];
 
 
-                      let isQcChanged = false;
+                    let isQcChanged = false;
 
-                      if (qc === 2) { isQcChanged = qc !== _playerState; _playerState = 2; relayCount = 0; } // paused
-                      else if (qc === 3) { isQcChanged = qc !== _playerState; _playerState = 3; } // playing
-                      else if (qc === 1) { isQcChanged = qc !== _playerState; _playerState = 1; } // playing
-
-
-                      if ((isQcChanged) && playerState !== _playerState) {
-                        playerEventsByIframeRelay = true;
-                        onPlayStateChangePromise = new Promise((resolve) => {
-                          let k = _playerState;
-                          foregroundPromiseFn().then(() => {
-                            if (k === _playerState && playerState !== _playerState) playerState = _playerState;
-                            onPlayStateChangePromise = null;
-                            resolve();
-                          })
-                        }).catch(console.warn);
-
-                      }
-
-                    } else if ('yt-player-video-progress' in da) {
-                      const vp = da['yt-player-video-progress'];
+                    if (qc === 2) { isQcChanged = qc !== _playerState; _playerState = 2; relayCount = 0; } // paused
+                    else if (qc === 3) { isQcChanged = qc !== _playerState; _playerState = 3; } // playing
+                    else if (qc === 1) { isQcChanged = qc !== _playerState; _playerState = 1; } // playing
 
 
-                      relayCount++;
-                      lastPlayerProgress = vp > 0 ? vp : 0;
-
-
-                      if (relayPromise && vp > 0 && relayCount >= 2) {
-                        if (onPlayStateChangePromise) {
-                          onPlayStateChangePromise.then(() => {
-                            relayPromise && relayPromise.resolve();
-                            relayPromise = null;
-                          })
-                        } else {
-                          relayPromise.resolve();
-                          relayPromise = null;
-                        }
-                      }
+                    if ((isQcChanged) && playerState !== _playerState) {
+                      playerEventsByIframeRelay = true;
+                      onPlayStateChangePromise = new Promise((resolve) => {
+                        const k = _playerState;
+                        foregroundPromiseFn().then(() => {
+                          if (k === _playerState && playerState !== _playerState) playerState = _playerState;
+                          onPlayStateChangePromise = null;
+                          resolve();
+                        })
+                      }).catch(console.warn);
 
                     }
 
-                    return this.handlePostMessage66_(a);
+                  } else if ('yt-player-video-progress' in da) {
+                    const vp = da['yt-player-video-progress'];
+
+
+                    relayCount++;
+                    lastPlayerProgress = vp > 0 ? vp : 0;
+
+
+                    if (relayPromise && vp > 0 && relayCount >= 2) {
+                      if (onPlayStateChangePromise) {
+                        onPlayStateChangePromise.then(() => {
+                          relayPromise && relayPromise.resolve();
+                          relayPromise = null;
+                        })
+                      } else {
+                        relayPromise.resolve();
+                        relayPromise = null;
+                      }
+                    }
+
+                  }
+
+                };
+
+                cProto.handlePostMessage67_ = function (a) {
+
+                  let da = a.data;
+                  const wNode = mWeakRef(this);
+                  // const wData = mWeakRef(da);
+
+                  playEventsStack = playEventsStack.then(() => {
+
+                    const cnt = kRef(wNode);
+                    // const da = kRef(wData);
+
+                    if (!cnt || !a || !da) return;
+                    handlePostMessageAfterPromiseA(da);
+                    da = null;
+
+                    const r = cnt.handlePostMessage66_(a);
+                    a = null;
 
                   }).catch(console.warn);
 
                 }
 
+                const handlePostMessageAfterPromiseB = (da) => {
+
+                  const lcr = document.querySelector('yt-live-chat-renderer');
+                  const psc = document.querySelector("yt-player-seek-continuation");
+                  if (lcr && psc && lcr.replayBuffer_) {
+
+                    const rbProgress = lcr.replayBuffer_.lastVideoOffsetTimeMsec;
+                    const daProgress = da['yt-player-video-progress'] * 1000
+                    // document.querySelector('yt-live-chat-renderer').playerProgressChanged_(1e-5);
+
+                    const front_ = (lcr.replayBuffer_.replayQueue || 0).front_;
+                    const back_ = (lcr.replayBuffer_.replayQueue || 0).back_;
+
+                    // console.log(deepCopy( front_))
+                    // console.log(deepCopy( back_))
+                    // console.log(rbProgress, daProgress, )
+                    if (front_ && back_ && rbProgress > daProgress && back_.length > 2 && back_.some(e => e && +e.videoOffsetTimeMsec > daProgress) && back_.some(e => e && +e.videoOffsetTimeMsec < daProgress)) {
+                      // no action
+                      // console.log('ss1')
+                    } else if (rbProgress < daProgress + 3400 && rbProgress > daProgress - 1200) {
+                      //  daProgress - 1200 < rbProgress < daProgress + 3400
+                      // console.log('ss2')
+                    } else {
+
+                      lcr.previousProgressSec = 1E-5;
+                      // lcr._setIsSeeking(!0),
+                      lcr.replayBuffer_.clear()
+                      psc.fireSeekContinuation_(da['yt-player-video-progress']);
+                    }
+
+                  }
+
+
+                };
+
                 cProto.handlePostMessage_ = function (a) {
 
-                  const da = (a || 0).data || 0;
+                  let da = (a || 0).data || 0;
+                  const wNode = mWeakRef(this);
 
                   if (typeof da !== 'object') return;
 
                   if (waitForInitialDataCompletion === 1) return;
 
                   if (!isPlayProgressTriggered) {
-                    isPlayProgressTriggered = true;
+                    isPlayProgressTriggered = true; // set once
 
                     if ('yt-player-video-progress' in da) {
                       waitForInitialDataCompletion = 1;
@@ -3659,41 +3709,20 @@
                         "yt-iframed-parent-ready": true
                       }));
 
+
                       playEventsStack = playEventsStack.then(() => {
 
-                        const lcr = document.querySelector('yt-live-chat-renderer');
-                        const psc = document.querySelector("yt-player-seek-continuation");
-                        if (lcr && psc && lcr.replayBuffer_) {
+                        const cnt = kRef(wNode);
 
-                          const rbProgress = lcr.replayBuffer_.lastVideoOffsetTimeMsec;
-                          const daProgress = da['yt-player-video-progress'] * 1000
-                          // document.querySelector('yt-live-chat-renderer').playerProgressChanged_(1e-5);
+                        if (!cnt || !a || !da) return;
 
-                          const front_ = (lcr.replayBuffer_.replayQueue || 0).front_;
-                          const back_ = (lcr.replayBuffer_.replayQueue || 0).back_;
-
-                          // console.log(deepCopy( front_))
-                          // console.log(deepCopy( back_))
-                          // console.log(rbProgress, daProgress, )
-                          if (front_ && back_ && rbProgress > daProgress && back_.length > 2 && back_.some(e => e && +e.videoOffsetTimeMsec > daProgress) && back_.some(e => e && +e.videoOffsetTimeMsec < daProgress)) {
-                            // no action
-                            // console.log('ss1')
-                          } else if (rbProgress < daProgress + 3400 && rbProgress > daProgress - 1200) {
-                            //  daProgress - 1200 < rbProgress < daProgress + 3400
-                            // console.log('ss2')
-                          } else {
-
-                            lcr.previousProgressSec = 1E-5;
-                            // lcr._setIsSeeking(!0),
-                            lcr.replayBuffer_.clear()
-                            psc.fireSeekContinuation_(da['yt-player-video-progress']);
-                          }
-
-                        }
+                        handlePostMessageAfterPromiseB(da);
+                        da = null;
 
                         waitForInitialDataCompletion = 2;
 
-                        this.handlePostMessage_(a);
+                        const r = cnt.handlePostMessage_(a); // isPlayProgressTriggered is set
+                        a = null;
 
                       }).catch(console.warn);
 
@@ -3703,11 +3732,7 @@
 
                   }
 
-
-
                   this.handlePostMessage67_(a);
-
-
 
                 }
 
@@ -3964,6 +3989,22 @@
               return r;
             }
 
+            const replayQueueProxyHandler = {
+              get(target, prop, receiver) {
+                if (prop === 'qe3') return 1;
+                const v = target[prop];
+                if (prop === 'front_') {
+                  if (v && typeof v.length === 'number') {
+                    if (!v.pop78) {
+                      v.pop78 = v.pop;
+                      v.pop = pop078;
+                    }
+                  }
+                }
+                return v;
+              }
+            };
+
             cProto.playerProgressChanged_ = function (a, b, c) {
               playerProgressChangedArg1 = a;
               playerProgressChangedArg2 = b;
@@ -3972,23 +4013,7 @@
               if (replayBuffer_) {
                 const replayQueue = replayBuffer_.replayQueue
                 if (replayQueue && typeof replayQueue === 'object' && !replayQueue.qe3) {
-
-                  replayBuffer_.replayQueue = new Proxy(replayBuffer_.replayQueue, {
-                    get(target, prop, receiver) {
-                      if (prop === 'qe3') return 1;
-                      const v = target[prop];
-                      if (prop === 'front_') {
-                        if (v && typeof v.length === 'number') {
-                          if (!v.pop78) {
-                            v.pop78 = v.pop;
-                            v.pop = pop078;
-                          }
-                        }
-                      }
-                      return v;
-                    }
-                  });
-
+                  replayBuffer_.replayQueue = new Proxy(replayBuffer_.replayQueue, replayQueueProxyHandler);
                 }
               }
               return this.playerProgressChanged32_.apply(this, arguments);
@@ -5175,16 +5200,16 @@
 
 
       const tags = [
+        "yt-live-chat-ticker-renderer",
         "yt-live-chat-ticker-paid-message-item-renderer",
         "yt-live-chat-ticker-paid-sticker-item-renderer",
-        "yt-live-chat-ticker-renderer",
         "yt-live-chat-ticker-sponsor-item-renderer"
       ];
 
       const tagsItemRenderer = [
+        "yt-live-chat-ticker-renderer",
         "yt-live-chat-ticker-paid-message-item-renderer",
         "yt-live-chat-ticker-paid-sticker-item-renderer",
-        "yt-live-chat-ticker-renderer",
         "yt-live-chat-ticker-sponsor-item-renderer"
       ];
 
@@ -5342,6 +5367,12 @@
           return false;
         }
 
+        const tickerFuncProps = new Set([
+          'animateShowStats', 'animateHideStats',  // updateStatsBarAndMaybeShowAnimationRevised
+          'collapse', // slideDownNoSelfLeakage
+          'requestRemoval', // collapseNoSelfLeakage
+          'setContainerWidth', 'get', 'set', // deletedChangedNoSelfLeakage
+        ]);
 
         const fnProxySelf = function (...args) {
           const cnt = kRef(this.ref);
@@ -5355,12 +5386,8 @@
             const cnt = kRef(ref);
             if (!cnt) return;
             if (typeof cnt[prop] === 'function') {
-              if (prop === 'animateShowStats') {
-                // this.animateShowStats
-              }else if(prop==='animateHideStats'){
-                // this.animateHideStats
-              } else {
-                console.warn('proxy get to function', prop);
+              if (!target.funcs.has(prop)) {
+                console.warn(`proxy get to function | prop: ${prop}`);
               }
               if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = fnProxySelf.bind({prop, ref});
               return target[`$$${prop}$$`];
@@ -5470,7 +5497,7 @@
             // prevent memory leakage due to d.data was asked in  a.finished.then
             try{
               // console.log('updateStatsBarAndMaybeShowAnimation called', this.is)
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this) }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
               return this.updateStatsBarAndMaybeShowAnimation38.call(this.__proxySelf0__, a, b, c);
             }catch(e){
               console.log('updateStatsBarAndMaybeShowAnimationRevised ERROR');
@@ -6052,6 +6079,53 @@
 
           },
 
+          setContainerWidthNoSelfLeakage: function(){
+            // prevent memory leakage due ot delay function
+            try{
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              return this.setContainerWidth55.call(this.__proxySelf0__);
+            }catch(e){
+              console.log('setContainerWidthNoSelfLeakage ERROR');
+              console.error(e);
+            }
+
+          },
+
+          slideDownNoSelfLeakage: function(){
+            // prevent memory leakage due ot delay function
+            try{
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              return this.slideDown55.call(this.__proxySelf0__);
+            }catch(e){
+              console.log('slideDownNoSelfLeakage ERROR');
+              console.error(e);
+            }
+            
+          },
+
+          collapseNoSelfLeakage: function(){
+            // prevent memory leakage due ot delay function
+            try{
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              return this.collapse55.call(this.__proxySelf0__);
+            }catch(e){
+              console.log('collapseNoSelfLeakage ERROR');
+              console.error(e);
+            }
+          },
+
+          deletedChangedNoSelfLeakage: function(){
+            // prevent memory leakage due ot delay function
+            try{
+              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              return this.deletedChanged55.call(this.__proxySelf0__);
+            }catch(e){
+              console.log('deletedChangedNoSelfLeakage ERROR');
+              console.error(e);
+            }
+
+          },
+
 
           /** @type {(a,b)} */
           computeContainerStyleForAnimatorEnabled: function (a, b) {
@@ -6088,8 +6162,10 @@
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
                 if(attachementId !== cnt.__ticker_attachmentId__) return;
-                if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
-                // this.handlePauseReplay can be undefined if it is memory cleaned
+                if (cnt.isAttached) {
+                  if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
+                  // this.handlePauseReplay can be undefined if it is memory cleaned
+                }
               });
 
               return;
@@ -6103,9 +6179,11 @@
               
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
-                if(attachementId !== cnt.__ticker_attachmentId__) return;
-                if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
-                  cnt.handlePauseReplay66();
+                if (attachementId !== cnt.__ticker_attachmentId__) return;
+                if (cnt.isAttached) {
+                  if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
+                    cnt.handlePauseReplay66();
+                  }
                 }
 
               })
@@ -6161,8 +6239,10 @@
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
                 if(attachementId !== cnt.__ticker_attachmentId__) return;
-                if (tid === cnt.rtk && cnt.hostElement) {
-                  cnt.handleReplayProgress66(a);
+                if (cnt.isAttached) {
+                  if (tid === cnt.rtk && cnt.hostElement) {
+                    cnt.handleReplayProgress66(a);
+                  }
                 }
               })
             }
@@ -6197,20 +6277,22 @@
 
           if (FLAG_001c) continue;
 
-          if( FIX_MEMORY_LEAKAGE_TICKER_STATSBAR && typeof cProto.updateStatsBarAndMaybeShowAnimation === 'function' && !cProto.updateStatsBarAndMaybeShowAnimation38 && cProto.updateStatsBarAndMaybeShowAnimation.length ===3){
+          let flgLeakageFixApplied = 0;
 
-            console.log('FIX_MEMORY_LEAKAGE_TICKER_STATSBAR - updateStatsBarAndMaybeShowAnimation', cProto.is);
+          if (FIX_MEMORY_LEAKAGE_TICKER_STATSBAR && typeof cProto.updateStatsBarAndMaybeShowAnimation === 'function' && !cProto.updateStatsBarAndMaybeShowAnimation38 && cProto.updateStatsBarAndMaybeShowAnimation.length === 3) {
+
             cProto.updateStatsBarAndMaybeShowAnimation38 = cProto.updateStatsBarAndMaybeShowAnimation;
             cProto.updateStatsBarAndMaybeShowAnimation = dProto.updateStatsBarAndMaybeShowAnimationRevised;
+
+            flgLeakageFixApplied |= 2;
+          } else {
+            // the function is only in yt-live-chat-ticker-paid-message-item-renderer
           }
 
 
-          let rafHackState = 0;
+          // ------------- withTimerFn_ -------------
 
-          let isTimingFunctionHackable = false;
-
-          let urt = 0;
-
+          let withTimerFn_ = 0;
           if (typeof cProto.startCountdown === 'function' && typeof cProto.updateTimeout === 'function' && typeof cProto.isAnimationPausedChanged === 'function') {
 
             // console.log('startCountdown', typeof cProto.startCountdown)
@@ -6218,70 +6300,76 @@
             // console.log('isAnimationPausedChanged', typeof cProto.isAnimationPausedChanged)
 
             // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
-            isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
+            const isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
             if (!isTimingFunctionHackable) console.log('isTimingFunctionHackable = false');
+            withTimerFn_ = isTimingFunctionHackable ? 2 : 1;
           } else {
-            console.log("ATTEMPT_ANIMATED_TICKER_BACKGROUND", ` ${tag}`, "Skip Timing Function Modification");
-            continue;
+            let flag = 0;
+            if (typeof cProto.startCountdown === 'function') flag |= 1;
+            if (typeof cProto.updateTimeout === 'function') flag |= 2;
+            if (typeof cProto.isAnimationPausedChanged === 'function') flag |= 4;
+
+            console.log(`Skip Timing Function Modification: ${flag} / ${1 + 2 + 4}`, ` ${tag}`);
+            // console.log(Object.getOwnPropertyNames(cProto))
+            // continue;
           }
+          
+          // ------------- withTimerFn_ -------------
 
-          // continue;
-          if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
+          // ------------- ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX -------------
 
-            // cancelable - this.rafId < isAnimationPausedChanged >
-            rafHackState = 1;
-
-            if (isTimingFunctionHackable) {
-              rafHackState = 2;
-
-            } else {
-              rafHackState = 4;
-            }
-
-          }
-          // continue;
-
-          const doAnimator = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
-
-          const doRAFHack = rafHackState === 2;
-
-          cProto._throwOut = dProto._throwOut;
-
-          cProto._makeAnimator = doAnimator ? dProto._makeAnimator : null;
-
-          cProto._aeFinished = doAnimator ? dProto._aeFinished : null;
-
+          let urt = 0;
 
           if (ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX) {
 
 
+            /**
+             * 
+                  f.handlePauseReplay = function() {
+                    this.isAnimationPaused = !0;
+                    this.detlaSincePausedSecs = 0
+                }
+            */
+
+            /**
+             * 
+            
+            f.handlePauseReplay = function() {
+                this.isReplayPaused = !0
+            }
+            * 
+            */
 
             if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
+              const fi = fnIntegrity(cProto.handlePauseReplay);
               urt++;
-              assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
+              if (fi === '0.8.2' || fi === '0.12.4') {
+              } else {
+                assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
+              }
             } else {
-              console.log('Error for setting cProto.handlePauseReplay', tag)
+              if (withTimerFn_ > 0) console.log('Error for setting cProto.handlePauseReplay', tag)
             }
 
-            if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handlePauseReplay.length === 0) {
+            if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handleResumeReplay.length === 0) {
               urt++;
               assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
             } else {
-              console.log('Error for setting cProto.handleResumeReplay', tag)
+              if (withTimerFn_ > 0) console.log('Error for setting cProto.handleResumeReplay', tag)
             }
 
             if (typeof cProto.handleReplayProgress === 'function' && !cProto.handleReplayProgress66 && cProto.handleReplayProgress.length === 1) {
               urt++;
               assertor(() => fnIntegrity(cProto.handleReplayProgress, '1.16.13'));
             } else {
-              console.log('Error for setting cProto.handleReplayProgress', tag)
+              if (withTimerFn_ > 0) console.log('Error for setting cProto.handleReplayProgress', tag)
             }
 
 
 
           }
 
-          const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3;
+          const ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED = ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX && urt === 3 && (SKIP_VIDEO_PLAYBACK_PROGRESS_STATE_FIX_FOR_NO_TIMEFX ? (withTimerFn_ > 0) : true);
           cProto.__ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED__ = ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED;
 
           if (ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED) {
@@ -6301,79 +6389,161 @@
 
           }
 
-          const doTimerFnModification = (doRAFHack || doAnimator);
-          // doTimerFnModification = false; // M55
+          // ------------- ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX -------------
 
-          if (doAnimator && windowShownAt < 0) {
-            windowShownAt = 0;
-            setupEventForWindowShownAt();
-          }
+          // ------------- FIX_MEMORY_LEAKAGE_TICKER_TIMER -------------
 
-          if (doTimerFnModification) {
+          if (FIX_MEMORY_LEAKAGE_TICKER_TIMER) {
+            if (typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth55 && cProto.setContainerWidth.length === 0) {
+              cProto.setContainerWidth55 = cProto.setContainerWidth;
+              cProto.setContainerWidth = dProto.setContainerWidthNoSelfLeakage;
+              flgLeakageFixApplied |= 4;
+            }
+            if (typeof cProto.slideDown === 'function' && !cProto.slideDown55 && cProto.slideDown.length === 0) {
+              cProto.slideDown55 = cProto.slideDown;
+              cProto.slideDown = dProto.slideDownNoSelfLeakage;
+              flgLeakageFixApplied |= 8;
+            }
+            if (typeof cProto.collapse === 'function' && !cProto.collapse55 && cProto.collapse.length === 0) {
+              cProto.collapse55 = cProto.collapse;
+              cProto.collapse = dProto.collapseNoSelfLeakage;
+              flgLeakageFixApplied |= 16;
+            }
+            if (typeof cProto.deletedChanged === 'function' && !cProto.deletedChanged55 && cProto.deletedChanged.length === 0) {
 
-            cProto.startCountdown = (
-              doAnimator ? dProto.startCountdownForTimerFnModA : dProto.startCountdownForTimerFnModT
-            );
-
-            // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
-            cProto.updateTimeout = (
-              doAnimator ? dProto.updateTimeoutForTimerFnModA : dProto.updateTimeoutForTimerFnModT
-            );
-
-
-            // let ez = 0;
-            cProto.isAnimationPausedChanged = (
-              doAnimator ? dProto.isAnimationPausedChangedForTimerFnModA : dProto.isAnimationPausedChangedForTimerFnModT
-            );
-
-          }
-
-          if (doAnimator) {
-
-            const s = fnIntegrity(cProto.computeContainerStyle);
-
-            if (s === '2.46.29') {
-              // f.computeContainerStyle = function(a, b) {
-              //     if (!a)
-              //         return $h(kmb);
-              //     var c = this.colorFromDecimal(a.startBackgroundColor);
-              //     a = this.colorFromDecimal(a.endBackgroundColor);
-              //     b = 100 * b + "%";
-              //     return $h(lmb, c, c, b, a, b, a)
-              // }
-            } else if (s === '2.44.29' || s === '2.81.31') {
-
-              //     var ofb = da([""])
-              //         pfb = da("background:linear-gradient(90deg, {,{ {,{ {,{);".split("{"))
-
-              // f.computeContainerStyle = function(a, b) {
-              //     if (!a)
-              //         return pi(ofb);
-              //     var c = this.colorFromDecimal(a.startBackgroundColor);
-              //     a = this.colorFromDecimal(a.endBackgroundColor);
-              //     b = 100 * b + "%";
-              //     return pi(pfb, c, c, b, a, b, a)
-              // }
-
-            } else {
-              assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.46.29'));
+              cProto.deletedChanged55 = cProto.deletedChanged;
+              cProto.deletedChanged = dProto.deletedChangedNoSelfLeakage;
+              flgLeakageFixApplied |= 32;
             }
 
-            cProto.computeContainerStyle66 = cProto.computeContainerStyle;
-
-            cProto.computeContainerStyle = dProto.computeContainerStyleForAnimatorEnabled;
-
           }
 
-          if (doTimerFnModification === true) hasTimerModified = true;
+          console.log(`FIX_MEMORY_LEAKAGE_TICKER_: ${flgLeakageFixApplied} / ${1 + 2 + 4 + 8 + 16 + 32}`, cProto.is);
 
-          if (!!ATTEMPT_ANIMATED_TICKER_BACKGROUND) {
-            console.log('ATTEMPT_ANIMATED_TICKER_BACKGROUND', tag, doAnimator ? 'OK' : 'NG');
+          // ------------- FIX_MEMORY_LEAKAGE_TICKER_TIMER -------------
+
+
+
+
+          if (withTimerFn_ > 0) {
+
+            const isTimingFunctionHackable = withTimerFn_ & 2;
+
+            let doAnimator_ = false;
+
+            let rafHackState = 0;
+            // continue;
+            if (ENABLE_RAF_HACK_TICKERS && rafHub !== null) {
+
+              // cancelable - this.rafId < isAnimationPausedChanged >
+              rafHackState = 1;
+
+              if (isTimingFunctionHackable) {
+                rafHackState = 2;
+
+              } else {
+                rafHackState = 4;
+              }
+
+            }
+            // continue;
+
+            doAnimator_ = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
+
+
+            const doAnimator = doAnimator_;
+
+            cProto._throwOut = dProto._throwOut;
+
+            cProto._makeAnimator = doAnimator ? dProto._makeAnimator : null;
+
+            cProto._aeFinished = doAnimator ? dProto._aeFinished : null;
+
+
+            const doRAFHack = rafHackState === 2;
+
+
+            const doTimerFnModification = (doRAFHack || doAnimator);
+            // doTimerFnModification = false; // M55
+
+            if (doTimerFnModification) { // including memory fix leakage
+
+              if (doAnimator && windowShownAt < 0) {
+                windowShownAt = 0;
+                setupEventForWindowShownAt();
+              }
+
+              cProto.startCountdown = (
+                doAnimator ? dProto.startCountdownForTimerFnModA : dProto.startCountdownForTimerFnModT
+              );
+
+              // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+              cProto.updateTimeout = (
+                doAnimator ? dProto.updateTimeoutForTimerFnModA : dProto.updateTimeoutForTimerFnModT
+              );
+
+
+              // let ez = 0;
+              cProto.isAnimationPausedChanged = (
+                doAnimator ? dProto.isAnimationPausedChangedForTimerFnModA : dProto.isAnimationPausedChangedForTimerFnModT
+              );
+
+              flgLeakageFixApplied |= 1;
+            }
+
+
+            if (doAnimator) {
+
+
+              const s = fnIntegrity(cProto.computeContainerStyle);
+
+              if (s === '2.46.29') {
+                // f.computeContainerStyle = function(a, b) {
+                //     if (!a)
+                //         return $h(kmb);
+                //     var c = this.colorFromDecimal(a.startBackgroundColor);
+                //     a = this.colorFromDecimal(a.endBackgroundColor);
+                //     b = 100 * b + "%";
+                //     return $h(lmb, c, c, b, a, b, a)
+                // }
+              } else if (s === '2.44.29' || s === '2.81.31') {
+
+                //     var ofb = da([""])
+                //         pfb = da("background:linear-gradient(90deg, {,{ {,{ {,{);".split("{"))
+
+                // f.computeContainerStyle = function(a, b) {
+                //     if (!a)
+                //         return pi(ofb);
+                //     var c = this.colorFromDecimal(a.startBackgroundColor);
+                //     a = this.colorFromDecimal(a.endBackgroundColor);
+                //     b = 100 * b + "%";
+                //     return pi(pfb, c, c, b, a, b, a)
+                // }
+
+              } else {
+                assertor(() => fnIntegrity(cProto.computeContainerStyle, '2.46.29'));
+              }
+
+              cProto.computeContainerStyle66 = cProto.computeContainerStyle;
+
+              cProto.computeContainerStyle = dProto.computeContainerStyleForAnimatorEnabled;
+
+            }
+
+            if (doTimerFnModification === true) hasTimerModified = true;
+
+
+            if (!!ATTEMPT_ANIMATED_TICKER_BACKGROUND) {
+              console.log('ATTEMPT_ANIMATED_TICKER_BACKGROUND', tag, doAnimator ? 'OK' : 'NG');
+            }
+
+
+            if (!doAnimator && (rafHackState === 2 || rafHackState === 4)) {
+              console.log('RAF_HACK_TICKERS', tag, doRAFHack ? "OK" : "NG");
+            }
           }
 
-          if (!doAnimator && (rafHackState === 2 || rafHackState === 4)) {
-            console.log('RAF_HACK_TICKERS', tag, doRAFHack ? "OK" : "NG");
-          }
+
 
         }
 
@@ -8659,9 +8829,12 @@
               cProto.showContextMenu48 = cProto.showContextMenu;
               cProto.showContextMenu = dProto.showContextMenuWithDisableScroll;
               console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - OK", tag);
+            } else if (!ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU) {
+              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - N/A", tag);
             } else {
               console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - NG", tag);
             }
+
 
             if (ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu47 && !cProto.showContextMenu47_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
               cProto.showContextMenu47_ = cProto.showContextMenu_;
@@ -9538,8 +9711,10 @@
 
             console.log("CHANGE_DATA_FLUSH_ASYNC - OK");
 
+          } else if(!CHANGE_DATA_FLUSH_ASYNC){
+            console.log("CHANGE_DATA_FLUSH_ASYNC - N/A");
           } else {
-            console.log("CHANGE_DATA_FLUSH_ASYNC - NOT REQUIRED");
+            console.log("CHANGE_DATA_FLUSH_ASYNC - NG");
 
           }
 
@@ -9622,10 +9797,10 @@
                 }
               }
 
-              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION${INTERACTIVITY_BACKGROUND_ANIMATION} - OK`);
+              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - OK`);
 
             } else {
-              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION${INTERACTIVITY_BACKGROUND_ANIMATION} - NG`);
+              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - NG`);
 
             }
 
