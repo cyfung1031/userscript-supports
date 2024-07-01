@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.003
+// @version             0.0.004
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -33,6 +33,8 @@
 
 
 (() => {
+
+  const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
   // possible leakage in ytd-engagement-panel-section-list-renderer
   // ytd-section-list-renderer
@@ -91,7 +93,7 @@
     const listOfDisconnect = new Set();
 
     const deadChecker = new Set();
-
+    const deadCheckSelfRef = new WeakMap();
 
 
     skipObjects.add(Function);
@@ -433,7 +435,7 @@
 
         if (qNode.isConnected === false) {
 
-          addToDead(wQNode);
+          addToDead(qNode);
         }
 
         await Promise.resolve(qNode).then(f);
@@ -638,14 +640,20 @@
       return v;
     }
 
-    const addToDead = (o) => {
+    const addToDead = (wo) => {
+      const o = (wo && typeof wo.deref === 'function') ? wo?.deref() : wo;
+      wo = null;
+      if (!o) return;
 
+      if (!deadCheckSelfRef.has(o)) {
+        deadCheckSelfRef.set(o, new WeakRef(o));
+      }
 
-      if (!deadChecker.has(o)) {
+      const wo2 = deadCheckSelfRef.get(o);
 
-        o.__deadCheckAdd__ = Date.now();
-        deadChecker.add(o);
-
+      if (!deadChecker.has(wo2)) {
+        wo2.__deadCheckAdd__ = Date.now();
+        deadChecker.add(wo2);
       }
     }
 
@@ -665,7 +673,7 @@
       if (idc !== false) return;
 
 
-      const wo = [r.polymerController, r.inst].filter(e => typeof (e || 0) === 'object').map(e => new WeakRef(e));
+      let ow = [r.polymerController, r.inst].filter(e => typeof (e || 0) === 'object');
 
 
       // const polymerController1To1 = r === r.polymerController?.hostElement;
@@ -1037,8 +1045,10 @@
       cleanChildren(r);
 
 
-      for (const wp of wo) addToDead(wp);
-      addToDead(new WeakRef(r));
+      for (const o of ow) addToDead(o);
+      ow.length = 0;
+      ow = null;
+      addToDead(r);
 
 
       // console.log(747, r.polymerController)
@@ -1380,6 +1390,186 @@
 
     window.getDI = getDI;
 
+    window.__listMemoryLeakage__ = (cProto) =>{
+
+      const SKIP_userscript_funcs = true;
+
+      if(!cProto) return null;
+      cProto = cProto instanceof HTMLElement ? insp(cProto) : cProto;
+      const tag = cProto.is;
+
+      const names = new Set(Object.getOwnPropertyNames(cProto));
+      const pdsFull = Object.entries(Object.getOwnPropertyDescriptors(cProto));
+
+      const containTextFunction = (text) => {
+        if (!text || text.length < 12) return false;
+        let r = text.indexOf('function', 1) >= 0;
+        if (!r) return false;
+        return /function\s*\(.*?\).*?\{.*?\}/.test(text.trim().substring(1));
+      }
+
+      const pdsFValue = pdsFull.filter(a => typeof a[1].value === 'function').filter(a => containTextFunction(`${a[1].value}`)).map(a => [a[0], a[1].value + "", a[1].value]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
+      const pdsFGet = pdsFull.filter(a => !a[1].value).filter(a => containTextFunction(`${a[1].get}`)).map(a => [a[0], a[1].get + "", a[1].get]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
+
+
+      
+      const pdsBFValue = pdsFull.filter(a => typeof a[1].value === 'function' && ((a[1].value.name||'')+(' '+a[0])).indexOf('bound')>=0);
+
+      const pdsF = pdsFValue.concat(pdsFGet.map(a => [`get ${a[0]}`, a[1], a[1].get]));
+
+      return {
+        tag,
+        names, pdsFull, pdsFValue, pdsFGet, pdsF, pdsBFValue
+      }
+
+
+    }
+
+    window.__listMemoryLeakageProps__ = (tag) => {
+
+      // __listMemoryLeakageProps__('yt-live-chat-ticker-sponsor-item-renderer')
+      // __listMemoryLeakageProps__('yt-live-chat-paid-message-renderer')
+      // __listMemoryLeakageProps__('yt-live-chat-text-message-renderer')
+      /*
+
+        window.setPaid = new Set(Object.getOwnPropertyNames(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__))
+
+        window.setText = new Set(Object.getOwnPropertyNames(document.createElement('yt-live-chat-text-message-renderer').polymerController.__proto__))
+
+
+        window.additionalPaid= new Set([...setText.symmetricDifference(setPaid)].filter(e=>setPaid.has(e)))
+
+        window.additionalPaidPds= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__)).filter(a=>additionalPaid.has(a[0]))
+
+        additionalPaidPds.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
+
+        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
+
+
+
+
+
+        window.m335= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-ticker-sponsor-item-renderer').polymerController.__proto__))
+
+          ;([]).concat(
+          
+        m335.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
+          ).concat(
+
+        m335.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
+          )
+
+      */
+
+
+
+      const cnt =  insp(document.createElement(tag));
+      if(!cnt) return null;
+      const cProto = cnt.__proto__ || null;
+      if (!cProto) return null;
+
+      return window.__listMemoryLeakage__(cProto);
+    }
+
+
+    window.__listMemoryLeakageInst__ = (tag) => {
+
+      // __listMemoryLeakageProps__('yt-live-chat-ticker-sponsor-item-renderer')
+      // __listMemoryLeakageProps__('yt-live-chat-paid-message-renderer')
+      // __listMemoryLeakageProps__('yt-live-chat-text-message-renderer')
+      /*
+
+        window.setPaid = new Set(Object.getOwnPropertyNames(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__))
+
+        window.setText = new Set(Object.getOwnPropertyNames(document.createElement('yt-live-chat-text-message-renderer').polymerController.__proto__))
+
+
+        window.additionalPaid= new Set([...setText.symmetricDifference(setPaid)].filter(e=>setPaid.has(e)))
+
+        window.additionalPaidPds= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__)).filter(a=>additionalPaid.has(a[0]))
+
+        additionalPaidPds.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
+
+        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
+
+
+
+
+
+        window.m335= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-ticker-sponsor-item-renderer').polymerController.__proto__))
+
+          ;([]).concat(
+          
+        m335.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
+          ).concat(
+
+        m335.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
+          )
+
+      */
+
+
+
+      let noscript = document.querySelector('noscript#fnebg');
+      if(!noscript) {
+        noscript = document.createElement('noscript')
+        document.head.appendChild(noscript);
+      }
+      let node = document.createElement(tag);
+
+      noscript.appendChild(node);
+      let cNode = node.cloneNode(false, false);
+      node.replaceWith(cNode);
+      node = null;
+      cNode.remove();
+
+      const cProto = insp(cNode);
+      if (!cProto) return null;
+      return window.__listMemoryLeakage__(cProto);
+
+    }
+
+
+
+    window.__listMemoryLeakageMatch__ = (tags, fn) => {
+      // __listMemoryLeakageMatch__(null, o=>o.pdsF.filter(a=>a[0]=='dataChanged').length>0)
+      // yt-live-chat-ticker-sponsor-item-renderer
+      // yt-live-chat-ticker-paid-sticker-item-renderer
+
+      if (!tags) {
+        tags = [
+
+          "yt-live-chat-ticker-sponsor-item-renderer",
+          "yt-live-chat-ticker-paid-message-item-renderer",
+
+          "yt-live-chat-banner-header-renderer",
+          "yt-live-chat-text-message-renderer",
+          "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+          "ytd-sponsorships-live-chat-header-renderer",
+          "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
+
+          "yt-live-chat-paid-sticker-renderer",
+          "yt-live-chat-viewer-engagement-message-renderer",
+          "yt-live-chat-paid-message-renderer",
+
+
+
+
+          "yt-live-chat-ticker-renderer",
+          "yt-live-chat-ticker-paid-message-item-renderer",
+          "yt-live-chat-ticker-paid-sticker-item-renderer",
+          "yt-live-chat-ticker-sponsor-item-renderer"
+        ];
+      }
+
+      tags = [...new Set(tags)];
+
+
+      return tags.map(tag => __listMemoryLeakageProps__(tag)).filter(e => e).filter(fn);
+
+
+
+    }
 
   })();
 
