@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.46
+// @version             0.1.47
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3159,6 +3159,7 @@ SOFTWARE.
       } catch (e) {
 
         console.error('forEachItem_', status, i, this.visibleItems.length, this.activeItems_.length)
+        console.error(e)
 
       }
     }
@@ -3184,6 +3185,47 @@ SOFTWARE.
       }
       return false;
     }
+    function prettyPrint(obj, indent = 2) {
+      const cache = new Set();
+      
+      function stringify(obj, level = 0) {
+          const indentStr = ' '.repeat(level * indent);
+          const nextIndentStr = ' '.repeat((level + 1) * indent);
+  
+          if (obj === null) return 'null';
+          if (typeof obj === 'undefined') return 'undefined';
+          if (typeof obj === 'string') return `"${obj}"`;
+          if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+          if (typeof obj === 'function') return '[[ Function ]]';
+          if (typeof obj !== 'object') return String(obj);
+  
+          if (cache.has(obj)) {
+              return '[Circular]';
+          }
+          
+          if (obj instanceof Node) {
+              return `[[ ${obj.constructor.name} ]]`;
+          }
+  
+  
+          cache.add(obj);
+          const entries = Object.entries(obj);
+  
+          if (Array.isArray(obj)) {
+              const items = entries.map(([key, value]) => {
+                  return `${nextIndentStr}${stringify(value, level + 1)}`;
+              }).join(',\n');
+              return `[\n${items}\n${indentStr}]`;
+          } else {
+              const items = entries.map(([key, value]) => {
+                  return `${nextIndentStr}${key}: ${stringify(value, level + 1)}`;
+              }).join(',\n');
+              return `{\n${items}\n${indentStr}}`;
+          }
+      }
+  
+      return stringify(obj);
+  }
 
     cProto.handleAddChatItemAction_ = function (a) {
       // buggy
@@ -3209,18 +3251,27 @@ SOFTWARE.
               if (bObj && bObj.uid === aObj.uid) {
                 const dataMutable = mutableWM.get(bObj);
                 if (dataMutable && typeof dataMutable.bObjChange === 'function') {
+                  // console.log(' ===== pV ====')
+                  // console.dir(prettyPrint(p))
+                  // console.log(' ===== cV ====')
+                  // console.dir(prettyPrint(c))
                   if (replaceObject(p, c)) {
+                    
                     dataMutable.bObjChange(e);
                     replaceExistingItem = true; // to be added if not matched
-                    console.log('replaceObject(visibleItems)', p);
+                    // console.log('replaceObject(visibleItems)', p);
                   }
                 }
               }
             }
           } else { // activeItems_
+            // console.log(' ===== pA ====')
+            // console.dir(prettyPrint(p))
+            // console.log(' ===== cA ====')
+            // console.dir(prettyPrint(c))
             if (replaceObject(p, c)) {
               replaceExistingItem = true;
-              console.log('replaceObject(activeItems_)', p);
+              // console.log('replaceObject(activeItems_)', p);
             }
           }
 
