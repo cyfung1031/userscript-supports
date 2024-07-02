@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.43
+// @version             0.1.44
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -44,6 +44,8 @@ SOFTWARE.
 (() => {
 
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
+  const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100;
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
@@ -292,7 +294,7 @@ SOFTWARE.
 
     removeAdd(key) {
       super.delete(key);
-      super.add(key);
+      this.add(key);
     }
 
   }
@@ -2578,7 +2580,7 @@ SOFTWARE.
     cProto.computeIsEmpty_ = function () {
       return !(this.visibleItems?.length || 0);
     }
-    cProto._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80;
+    cProto._flag0281_ = _flag0281_;
 
     cProto.setupBoostChat = function () {
       let targetElement = (this.$.items || this.$['item-offset']);
@@ -2801,7 +2803,7 @@ SOFTWARE.
           }
         }
 
-        if (!b && currentElement) {
+        if (!b && currentElement && !target.closest('.bst-profile-card')) {
           profileCard.onCrossClick();
         }
         // console.log('click', target); // TODO
