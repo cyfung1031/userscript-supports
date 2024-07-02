@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.64.8
+// @version             0.65.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -40,12 +40,10 @@
 ((__CONTEXT__) => {
   'use strict';
 
+  const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
   // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
-
-  const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
-  const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
-  const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse
 
   const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient. (not exceeding 900)
@@ -204,6 +202,17 @@
 
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
 
+
+  // -------------------------------
+
+
+  const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
+  const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
+  const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse
+  const FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth = true; // To fix Memory Leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth()
+
+  // leakage in ytd-sponsorships-live-chat-gift-purchase-announcement-renderer - to be confirmed
+
   // <<<<< FOR MEMORY LEAKAGE >>>>
   const DEBUG_wmList = false;
   let DEBUG_wmList_started = false;
@@ -215,6 +224,44 @@
   const FLAG_001e = false;
   const FLAG_001f = false;
   // const FLAG_001g = true;
+
+
+
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+        rendererStamperObserver_: function(a, b, c) {
+            if (c.path == a) {
+                if (c.value === void 0 && !this.hasDataPath_[a])
+                    return;
+                this.hasDataPath_[a] = c.value !== void 0
+            }
+            this.rendererStamperApplyChangeRecord_(a, b, c)
+        },
+
+
+        addStampDomObserverFns_: function() {
+            for (var a in this.stampDom) {
+                var b = this.stampDom[a];
+                b.id ? (this[SQa(b.id)] = this.rendererStamperObserver_.bind(this, a, b.id),
+                this.hasDataPath_[a] = !1) : Er(new Dn("Bad rendererstamper config",this.is + ":" + a))
+            }
+        },
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+
+
+
+
   // <<<<< FOR MEMORY LEAKAGE >>>>
 
   // ========= EXPLANTION FOR 0.2% @ step timing [min. 0.2%] ===========
@@ -1214,7 +1261,35 @@
 
     removeAdd(key) {
       super.delete(key);
-      super.add(key);
+      this.add(key);
+    }
+
+  }
+
+
+  class LimitedSizeMap extends Map {
+    constructor(n) {
+      super();
+      this.limit = n;
+    }
+
+    set(key, val) {
+      if (!super.has(key)) {
+        super.set(key, val);
+        let n = super.size - this.limit;
+        if (n > 0) {
+          const iterator = super.keys();
+          do {
+            const firstKey = iterator.next().value; // Get the first (oldest) key
+            super.delete(firstKey); // Delete the oldest key
+          } while (--n > 0)
+        }
+      }
+    }
+
+    removeSet(key, val) {
+      super.delete(key);
+      this.set(key, val);
     }
 
   }
@@ -2491,12 +2566,18 @@
         if (uvid > 1e8) uvid = uvid % 100;
         let tid = ++uvid;
 
-        const cnt = this; // "yt-live-chat-participant-list-renderer"
+
+        // const cnt = this; // "yt-live-chat-participant-list-renderer"
+
+        const wNode = mWeakRef(this);
+
         mutexParticipants.lockWith(lockResolve => {
 
-          const participants00 = cnt.participantsManager.participants;
+          const cnt = kRef(wNode);
 
-          if (tid !== uvid || typeof (participants00 || 0).splice !== 'function') {
+          const participants00 = (((cnt || 0).participantsManager || 0).participants || 0);
+
+          if (tid !== uvid || !cnt || typeof (participants00 || 0).splice !== 'function') {
             lockResolve();
             return;
           }
@@ -3929,6 +4010,178 @@
       if (!assertorURL()) return;
       // if (!assertor(() => document.getElementById('yt-masthead') === null)) return;
 
+
+      const { weakWrap } = (() => {
+
+
+        // const tickerFuncProps = new Set([
+        //   'animateShowStats', 'animateHideStats',  // updateStatsBarAndMaybeShowAnimationRevised
+        //   'collapse', // slideDownNoSelfLeakage
+        //   'requestRemoval', // collapseNoSelfLeakage
+        //   'setContainerWidth', 'get', 'set', // deletedChangedNoSelfLeakage
+        //   'computeAriaLabel', //dataChanged
+        //   'startCountdown', // dataChanged [in case]
+        // ]);
+
+        // const tickerTags = new Set([
+        //   "yt-live-chat-ticker-renderer",
+        //   "yt-live-chat-ticker-paid-message-item-renderer",
+        //   "yt-live-chat-ticker-paid-sticker-item-renderer",
+        //   "yt-live-chat-ticker-sponsor-item-renderer"
+        // ]);
+
+        // const emptySet = new Set();
+
+
+
+        // const tickerFuncPropsFn = (cnt) => {
+
+        //   const is = `${cnt.is}`;
+
+        //   if (tickerTags.has(is)) {
+        //     let flg = 0;
+        //     if (cnt.get && cnt.set) flg |= 1;
+        //     if (cnt.setContainerWidth && cnt.collapse && cnt.requestRemoval) flg |= 2;
+        //     if (cnt.animateShowStats && cnt.animateHideStats) flg |= 4;
+        //     if (cnt.startCountdown) flg |= 8;
+        //     console.log(`DEBUG flag_6877 = ${flg}`, is);
+        //     // DEBUG flag_6877 = 15 yt-live-chat-ticker-paid-message-item-renderer
+        //     // DEBUG flag_6877 = 11 yt-live-chat-ticker-sponsor-item-renderer
+        //     return tickerFuncProps;
+        //   }
+
+        //   return emptySet;
+
+
+        // }
+
+
+        // const smb = Symbol();
+        const vmb = 'dtz02' // Symbol(); // return kThis for thisArg
+        const vmc = 'dtz04' // Symbol(); // whether it is proxied fn
+        const vmd = 'dtz08' // Symbol(); // self fn proxy (fn--fn)
+
+
+
+
+        const thisConversionFn = (thisArg) => {
+          if (!thisArg) return null;
+          const kThis = thisArg[vmb];
+          if (kThis) {
+            const ref = kThis.ref;
+            return (ref ? kRef(ref) : null) || null;
+          }
+          return thisArg;
+        }
+    
+        const pFnHandler2 = {
+          get(target, prop) {
+            if (prop === vmc) return target;
+            return Reflect.get(target, prop);
+          },
+          apply(target, thisArg, argumentsList) {
+            thisArg = thisConversionFn(thisArg);
+            if (thisArg) return Reflect.apply(target, thisArg, argumentsList);
+          }
+        }
+    
+        
+        const proxySelfHandler = {
+          get(target, prop) {
+            if(prop === vmb) return target;
+            const ref = target.ref;
+            const cnt = kRef(ref);
+            if (!cnt) return;
+            if (typeof cnt[prop] === 'function' && !cnt[prop][vmc] && !cnt[prop][vmb]) {
+              if (!cnt[prop][vmd]) cnt[prop][vmd] = new Proxy(cnt[prop], pFnHandler2);
+              return cnt[prop][vmd];
+            }
+            return cnt[prop];
+          },
+          set(target, prop, value) {
+            const cnt = kRef(target.ref);
+            if (!cnt) return true;
+            if(value && (value[vmc] || value[vmb])){
+              cnt[prop] = value[vmc] || thisConversionFn(value);
+              return true;
+            }
+            cnt[prop] = value;
+            return true;
+          }
+        };
+    
+        const weakWrap = (thisArg) => {
+          thisArg = thisConversionFn(thisArg);
+          if (!thisArg) {
+            console.error('thisArg is not found');
+            return null;
+          }
+          return new Proxy({ ref: mWeakRef(thisArg) }, proxySelfHandler);
+        }
+
+
+
+
+
+
+        if (!window.getComputedStyle533 && typeof window.getComputedStyle === 'function') {
+          window.getComputedStyle533 = window.getComputedStyle;
+          window.getComputedStyle = function (a, ...args) {
+            a = thisConversionFn(a);
+            if (a) {
+              return getComputedStyle533(a, ...args);
+            }
+            return null;
+          }
+        }
+
+
+
+
+
+
+
+        // const fnProxySelf = function (...args) {
+        //   const cnt = kRef(this.ref);
+        //   if (cnt) {
+        //     return cnt[this.prop](...args); // might throw error
+        //   }
+        // }
+        // const proxySelfHandler = {
+        //   get(target, prop) {
+        //     const ref = target.ref;
+        //     const cnt = kRef(ref);
+        //     if (!cnt) return;
+        //     if (prop === 'dtz06') return 1;
+        //     if (typeof cnt[prop] === 'function') {
+        //       if (!target.funcs.has(prop)) {
+        //         console.warn(`proxy get to function | prop: ${prop} | is: ${cnt.is}`);
+        //       }
+        //       if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = fnProxySelf.bind({ prop, ref });
+        //       return target[`$$${prop}$$`];
+        //     }
+        //     return cnt[prop];
+        //   },
+        //   set(target, prop, value) {
+        //     const cnt = kRef(target.ref);
+        //     if (!cnt) return true;
+        //     if (typeof value === 'function') {
+        //       console.warn(`proxy set to function | prop: ${prop} | is: ${cnt.is}`);
+        //       cnt[prop] = value;
+        //       return true;
+        //     }
+        //     cnt[prop] = value;
+        //     return true;
+        //   }
+        // };
+
+        // return { tickerFuncPropsFn, proxySelfHandler }
+
+        return {weakWrap}
+      })();
+
+
+
       if (document.documentElement && document.head) {
         addCssManaged();
       }
@@ -4031,6 +4284,7 @@
 
       customElements.whenDefined('yt-live-chat-item-list-renderer').then(() => {
 
+
         const tag = "yt-live-chat-item-list-renderer"
         const dummy = document.createElement(tag);
 
@@ -4045,6 +4299,8 @@
         console.log("[Begin]");
 
         const mclp = cProto;
+        const _flag0281_ = window._flag0281_ || mclp._flag0281_;
+
         try {
           assertor(() => typeof mclp.scrollToBottom_ === 'function');
           assertor(() => typeof mclp.flushActiveItems_ === 'function');
@@ -4075,10 +4331,10 @@
         let zarr = null;
         let mlg = 0;
 
-        if ((mclp._flag0281_ & 0x2000) == 0) {
+        if ((_flag0281_ & 0x2000) == 0) {
 
           if ((mclp.clearList || 0).length === 0) {
-            (mclp._flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
+            (_flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
             mclp.clearList66 = mclp.clearList;
             mclp.clearList = function () {
               myk++;
@@ -4255,7 +4511,7 @@
         }
 
 
-        if ((mclp._flag0281_ & 0x2) == 0) {
+        if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
 
             assertor(() => fnIntegrity(mclp.showNewItems_, '0.170.79'));
@@ -4298,10 +4554,10 @@
 
         }
 
-        if ((mclp._flag0281_ & 0x2000) == 0) {
+        if ((_flag0281_ & 0x2000) == 0) {
           if ((mclp.flushActiveItems_ || 0).length === 0) {
 
-            if ((mclp._flag0281_ & 0x2) == 0) {
+            if ((_flag0281_ & 0x2) == 0) {
 
               const sfi = fnIntegrity(mclp.flushActiveItems_);
               if (sfi === '0.156.86') {
@@ -4679,7 +4935,7 @@
           }
         }
 
-        if ((mclp._flag0281_ & 0x40) == 0) {
+        if ((_flag0281_ & 0x40) == 0) {
 
           if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
             assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
@@ -4696,7 +4952,7 @@
 
         }
 
-        if ((mclp._flag0281_ & 0x80) == 0) {
+        if ((_flag0281_ & 0x80) == 0) {
           mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
             try {
               if (mlg > 1e9) mlg = 9;
@@ -4717,7 +4973,7 @@
           }
         }
 
-        if ((mclp._flag0281_ & 0x40) == 0 ) {
+        if ((_flag0281_ & 0x40) == 0 ) {
 
           if ((mclp.atBottomChanged_ || 0).length === 1) {
             // note: if the scrolling is too frequent, the show more visibility might get wrong.
@@ -4811,7 +5067,7 @@
         }
 
 
-        if ((mclp._flag0281_ & 0x2) == 0) {
+        if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.onScrollItems_ || 0).length === 1) {
 
             assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
@@ -4892,7 +5148,7 @@
           }
         }
 
-        if ((mclp._flag0281_ & 0x2) == 0) {
+        if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.handleLiveChatActions_ || 0).length === 1) {
 
             const sfi = fnIntegrity(mclp.handleLiveChatActions_);
@@ -4993,7 +5249,7 @@
           console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
         }
 
-        if ((this._flag0281_ & 0x8) == 0) {
+        if ((_flag0281_ & 0x8) == 0) {
 
 
           if (typeof mclp.forEachItem_ === 'function' && !mclp.forEachItem66_ && skipErrorForhandleAddChatItemAction_ && mclp.forEachItem_.length === 1) {
@@ -5285,6 +5541,8 @@
             });
             */
 
+
+            
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
         if (FLAG_001b) return;
@@ -5367,45 +5625,7 @@
           return false;
         }
 
-        const tickerFuncProps = new Set([
-          'animateShowStats', 'animateHideStats',  // updateStatsBarAndMaybeShowAnimationRevised
-          'collapse', // slideDownNoSelfLeakage
-          'requestRemoval', // collapseNoSelfLeakage
-          'setContainerWidth', 'get', 'set', // deletedChangedNoSelfLeakage
-        ]);
 
-        const fnProxySelf = function (...args) {
-          const cnt = kRef(this.ref);
-          if (cnt) {
-            return cnt[this.prop](...args); // might throw error
-          }
-        }
-        const proxySelfHandler = {
-          get(target, prop) {
-            const ref = target.ref;
-            const cnt = kRef(ref);
-            if (!cnt) return;
-            if (typeof cnt[prop] === 'function') {
-              if (!target.funcs.has(prop)) {
-                console.warn(`proxy get to function | prop: ${prop}`);
-              }
-              if (!target[`$$${prop}$$`]) target[`$$${prop}$$`] = fnProxySelf.bind({prop, ref});
-              return target[`$$${prop}$$`];
-            }
-            return cnt[prop];
-          },
-          set(target, prop, value) {
-            const cnt = kRef(target.ref);
-            if (!cnt) return true;
-            if (typeof value === 'function') {
-              console.warn('proxy set to function');
-              cnt[prop] = value;
-              return true;
-            }
-            cnt[prop] = value;
-            return true;
-          }
-        }; 
 
         const dProto = {
 
@@ -5497,7 +5717,7 @@
             // prevent memory leakage due to d.data was asked in  a.finished.then
             try{
               // console.log('updateStatsBarAndMaybeShowAnimation called', this.is)
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
               return this.updateStatsBarAndMaybeShowAnimation38.call(this.__proxySelf0__, a, b, c);
             }catch(e){
               console.log('updateStatsBarAndMaybeShowAnimationRevised ERROR');
@@ -6082,7 +6302,7 @@
           setContainerWidthNoSelfLeakage: function(){
             // prevent memory leakage due ot delay function
             try{
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
               return this.setContainerWidth55.call(this.__proxySelf0__);
             }catch(e){
               console.log('setContainerWidthNoSelfLeakage ERROR');
@@ -6094,7 +6314,7 @@
           slideDownNoSelfLeakage: function(){
             // prevent memory leakage due ot delay function
             try{
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
               return this.slideDown55.call(this.__proxySelf0__);
             }catch(e){
               console.log('slideDownNoSelfLeakage ERROR');
@@ -6106,7 +6326,7 @@
           collapseNoSelfLeakage: function(){
             // prevent memory leakage due ot delay function
             try{
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
               return this.collapse55.call(this.__proxySelf0__);
             }catch(e){
               console.log('collapseNoSelfLeakage ERROR');
@@ -6117,7 +6337,7 @@
           deletedChangedNoSelfLeakage: function(){
             // prevent memory leakage due ot delay function
             try{
-              if (!this.__proxySelf0__) this.__proxySelf0__ = new Proxy({ ref: mWeakRef(this), funcs: tickerFuncProps }, proxySelfHandler);
+              if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
               return this.deletedChanged55.call(this.__proxySelf0__);
             }catch(e){
               console.log('deletedChangedNoSelfLeakage ERROR');
@@ -6562,6 +6782,100 @@
 
 
       }).catch(console.warn);
+
+      if(FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth){
+
+        /**
+         * 
+         *    
+         * 
+         * 
+            cT.prototype.dataChanged = function() {
+                var a = this;
+                this.data && (Q(this.hostElement).querySelector("#content").style.color = this.ytLiveChatTickerItemBehavior.colorFromDecimal(this.data.detailTextColor),
+                this.hostElement.ariaLabel = this.computeAriaLabel(this.data),
+                this.ytLiveChatTickerItemBehavior.startCountdown(this.data.durationSec, this.data.fullDurationSec),
+                qw(function() {
+                    a.ytLiveChatTickerItemBehavior.setContainerWidth()
+                }))
+            }
+
+
+            znb.prototype.dataChanged = function(a) {
+                var b = this;
+                a && (a.tickerThumbnails.length > 1 && Q(this.hostElement).querySelector("#content").classList.add("multiple-thumbnails"),
+                this.ytLiveChatTickerItemBehavior.startCountdown(a.durationSec, a.fullDurationSec),
+                qw(function() {
+                    b.ytLiveChatTickerItemBehavior.setContainerWidth()
+                }))
+            }
+
+        * 
+        */
+
+        const dProto = {
+          dataChanged54500: function () {
+            // prevent memory leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth() in _.dataChanged
+            if (typeof (this.ytLiveChatTickerItemBehavior || 0).setContainerWidth === 'function') {
+              try {
+                if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
+                return this.dataChanged544.call(this.__proxySelf0__);
+              } catch (e) {
+                console.log('dataChanged54500 ERROR');
+                console.error(e);
+              }
+            } else {
+              return this.dataChanged544();
+            }
+          },
+          dataChanged54501: function (a) {
+            // prevent memory leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth() in _.dataChanged
+            if (typeof (this.ytLiveChatTickerItemBehavior || 0).setContainerWidth === 'function') {
+              try {
+                if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
+                return this.dataChanged544.call(this.__proxySelf0__, a);
+              } catch (e) {
+                console.log('dataChanged54501 ERROR');
+                console.error(e);
+              }
+            } else {
+              return this.dataChanged544(a);
+            }
+          },
+        }
+
+        for (const sto of [
+          'yt-live-chat-ticker-sponsor-item-renderer',
+          'yt-live-chat-ticker-paid-sticker-item-renderer'
+        ].map(tag => [tag, customElements.whenDefined(tag)])) {
+  
+          const [tag, promise] = sto;
+  
+          promise.then(()=>{
+  
+            const dummy = document.createElement(tag);
+  
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+  
+            if (!cProto.dataChanged || cProto.dataChanged544 || typeof cProto.dataChanged !== 'function' || !(cProto.dataChanged.length >= 0 && cProto.dataChanged.length <= 1)) return;
+
+            cProto.dataChanged544 = cProto.dataChanged;
+
+            if (cProto.dataChanged.length === 0) cProto.dataChanged = dProto.dataChanged54500;
+            else if (cProto.dataChanged.length === 1) cProto.dataChanged = dProto.dataChanged54501;
+            
+  
+  
+          })
+  
+  
+        }
+
+      }
 
       customElements.whenDefined('yt-live-chat-ticker-renderer').then(() => {
 
@@ -7136,6 +7450,8 @@
             cProto.ddnB8 = 0;
             cProto.handleLiveChatAction58 = cProto.handleLiveChatAction;
             cProto.liveChatActionFilterKeys = null;
+            cProto.handleLiveChatActionTM = new LimitedSizeMap(24);
+            const tt0 = Date.now() - 100000;
             cProto.handleLiveChatAction = function (a) {
               if (this.ddnB8) return this.handleLiveChatAction58(a);
               const inQM = a && liveActionQM.delete(a); // true if added from handleLiveChatActions
@@ -7154,6 +7470,30 @@
               if (!key) {
                 return this.handleLiveChatAction58(a); // just by default
               }
+
+              // ------ avoid duplicate items -------
+              const item = ((a[key] || 0).item || 0);
+              const ifk = item ? firstObjectKey(item) : null;
+              const rendererItem = ifk ? item[ifk] : null;
+              if (rendererItem && rendererItem.id) {
+                const id = rendererItem.id || 0;
+                if (typeof id === 'string') {
+                  const map = this.handleLiveChatActionTM;
+                  if (map) {
+                    const mid = `${rendererItem.authorExternalChannelId}::${rendererItem.id}`;
+                    const prevTime = map.get(mid);
+                    const now = Date.now() - tt0;
+                    map.removeSet(mid, now);
+                    if (prevTime) console.log(388, mid, now, prevTime)
+                    if (prevTime > 0 && now - prevTime < 2400) {
+                      console.log('handleLiveChatAction Repeated Item', rendererItem.id, rendererItem);
+                      return; // skip
+                    }
+                    // map.removeSet(mid, now);
+                  }
+                }
+              }
+              // ------ avoid duplicate items -------
 
               if (inQM) {
                 liveActionsLastTickerAction = a;
@@ -8341,7 +8681,7 @@
             cnt._onItemTap_isNonStationary = 0;
             const cProto = getProto(element);
             if (!cProto.onItemTap366 && typeof cProto.onItemTap === 'function' && cProto.onItemTap.length === 1) {
-              cProto.onItemTap366 = cProto.onItemTap;
+              cProto.onItemTap366 = cProto.onItemTap; // note: [onItemTap] .some(function(){...})
               cProto.onItemTap = function (a) {
                 const t = this._onItemTap_isNonStationary;
                 this._onItemTap_isNonStationary = 0;
@@ -8696,6 +9036,7 @@
 
 
           showContextMenuForCacheReopen: function (a) {
+            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             if (!this.__showContextMenu_forceNativeRequest__) {
               const endpoint = (this.data || 0).contextMenuEndpoint || 0;
               if (endpoint) {
@@ -8711,6 +9052,7 @@
           },
 
           showContextMenuForCacheReopen_: function (a) {
+            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             if (!this.__showContextMenu_skip_cacheResolvedEndpointData__) {
               const endpoint = (this.data || 0).contextMenuEndpoint || 0;
               if (endpoint) {
@@ -8750,12 +9092,16 @@
 
             mutex.lockWith(unlock => {
               p.then(unlock);
+              p = null;
+              unlock = null;
             });
 
           },
 
           showContextMenuWithMutex: function (a) {
+            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             lastShowMenuTarget = this;
+            const wNode = mWeakRef(this);
 
             if (this.__showContextMenu_sync_mode_request__) {
 
@@ -8765,7 +9111,8 @@
               const mutex = __showContextMenu_mutex__;
 
               mutex.lockWith(unlock => {
-                if (lastShowMenuTarget !== this) {
+                const cnt = kRef(wNode);
+                if (lastShowMenuTarget !== cnt || !cnt) {
                   unlock();
                   return;
                 }
@@ -8773,7 +9120,7 @@
                 setTimeout(unlock, 800); // in case network failure
                 __showContextMenu_mutex_unlock__ = unlock;
                 try {
-                  this.showContextMenu47(a);
+                  cnt.showContextMenu47(a);
                 } catch (e) {
                   console.warn(e);
                   unlock(); // in case function script error
