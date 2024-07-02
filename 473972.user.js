@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.11
+// @version     0.16.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -17,6 +17,8 @@
 
 (() => {
 
+  const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance = 2 | 4;
   const FIX_yt_player = true; // DONT CHANGE
@@ -25,6 +27,8 @@
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
   const CHANGE_appendChild = true; // discussions#236759
+  const FIX_bind_self_this = false;　// EXPERIMENTAL !!!!! this affect page switch after live ends
+  const FIX_weakMap_weakRef = false; // EXPERIMENTAL !!!!! Might Incompatible to some userscripts (as the strong relationship is removed)
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
   // const FIX_error_many_stack_keepAliveDuration = 200; // ms
@@ -307,6 +311,293 @@
     }
   }
 
+  if (FIX_bind_self_this && !Function.prototype.bind488 && !Function.prototype.bind588) {
+    // window.m3bb = new Set();
+
+    // const smb = Symbol();
+    const vmb = 'dtz02' // Symbol(); // return kThis for thisArg
+    const vmc = 'dtz04' // Symbol(); // whether it is proxied fn
+    const vmd = 'dtz08' // Symbol(); // self fn proxy (fn--fn)
+
+    // const fnProxySelf = function (...args) {
+    //   if (args[0] === smb) return this;
+    //   const cnt = kRef(this.ref);
+    //   if (cnt) {
+    //     if (typeof cnt[this.prop] !== 'function') console.error(`this.${this.prop} is not a function. [${cnt.is || 'nil'}]`)
+    //     return cnt[this.prop](...args); // might throw error
+    //   }
+    // }
+    // fnProxySelf.bind588 = fnProxySelf.bind;
+    // const pFnHandler = {
+    //   get(target, prop){
+    //     if(prop === 'bind588') return 2;
+    //     const fnThis = target(smb);
+    //     if (fnThis && fnThis.prop && fnThis.ref) {
+    //       const cnt = kRef(fnThis.ref || null) || null;
+    //       if (cnt) {
+    //         const h = cnt[fnThis.prop];
+    //         const v = h[prop];
+    //         if (typeof v === 'function'){
+    //           if(typeof h === 'function'){
+    //             if (prop === 'call' || prop === 'bind' || prop === 'bind588' || prop === 'bind488' || prop === 'apply') {
+    //               if(h.bind588 === 1){
+    //                 const g = function(...args){
+    //                   console.log(1288, this)
+    //                   return h.call(this, ...args);
+    //                 };
+    //                 console.log(399, g)
+    //                 return g[prop];
+    //                 // console.log(12778)
+    //                 // console.log(target, target.call)
+    //                 // return target[prop];
+    //               }
+    //               // independent of this
+    //               return v; // function.bind, function.call, function.apply
+    //             }
+    //           }
+    //           console.warn('cnt[fnThis.prop][prop] is function; might rely on this', { prop, fProp: fnThis.prop, is: cnt.is, h: h });
+              
+    //           // return new Proxy(fnProxySelf.bind588({ prop: prop, ref: new WeakRef(cnt[fnThis.prop]) }), pFnHandler);
+    //         } 
+    //         return v;
+    //       }
+    //     }
+    //   },
+    //   set(target, prop, value) {
+    //     const fnThis = target(smb);
+    //     if (fnThis && fnThis.prop && fnThis.ref) {
+    //       const cnt = kRef(fnThis.ref || null) || null;
+    //       if (cnt) {
+    //         const h = cnt[fnThis.prop];
+    //         if (h) {
+    //           h[prop] = value;
+    //         } else {
+    //           console.log('h is nout found', { prop, fProp: fnThis.prop, is: cnt.is, h: h });
+    //         }
+    //       }
+    //     }
+    //     return true;
+    //   }
+    // };
+
+    const thisConversionFn = (thisArg) => {
+      if (!thisArg) return null;
+      const kThis = thisArg[vmb];
+      if (kThis) {
+        const ref = kThis.ref;
+        return (ref ? kRef(ref) : null) || null;
+      }
+      return thisArg;
+    }
+
+    const pFnHandler2 = {
+      get(target, prop) {
+        if (prop === vmc) return target;
+        return Reflect.get(target, prop);
+      },
+      apply(target, thisArg, argumentsList) {
+        thisArg = thisConversionFn(thisArg);
+        if (thisArg) return Reflect.apply(target, thisArg, argumentsList);
+      }
+    }
+
+    
+    const proxySelfHandler = {
+      get(target, prop) {
+        if(prop === vmb) return target;
+        const ref = target.ref;
+        const cnt = kRef(ref);
+        if (!cnt) return;
+        if (typeof cnt[prop] === 'function' && !cnt[prop][vmc] && !cnt[prop][vmb]) {
+          if (!cnt[prop][vmd]) cnt[prop][vmd] = new Proxy(cnt[prop], pFnHandler2);
+          return cnt[prop][vmd];
+        }
+        return cnt[prop];
+      },
+      set(target, prop, value) {
+        const cnt = kRef(target.ref);
+        if (!cnt) return true;
+        if(value && (value[vmc] || value[vmb])){
+          cnt[prop] = value[vmc] || thisConversionFn(value);
+          return true;
+        }
+        cnt[prop] = value;
+        return true;
+      }
+    };
+
+    const weakWrap = (thisArg) => {
+      thisArg = thisConversionFn(thisArg);
+      if (!thisArg) {
+        console.error('thisArg is not found');
+        return null;
+      }
+      return new Proxy({ ref: mWeakRef(thisArg) }, proxySelfHandler);
+    }
+
+    if (!window.getComputedStyle533 && typeof window.getComputedStyle === 'function') {
+      window.getComputedStyle533 = window.getComputedStyle;
+      window.getComputedStyle = function (a, ...args) {
+        a = thisConversionFn(a);
+        if (a) {
+          return getComputedStyle533(a, ...args);
+        }
+        return null;
+      }
+    }
+
+    Function._count_bind_00 = 0;
+    // Function._count_bind_01 = 0;
+
+    // let matchNativeCode = (Object+"");
+    // let matchNativeCode1 = matchNativeCode.includes("[native code]");
+    // let matchNativeLen = matchNativeCode.length  - Object.name.length;
+
+    // const matchConstructor = (thisArg) => {
+    //   const f = (thisArg || 0).constructor + "";
+    //   if (f.length > 45) return true;
+    //   if (matchNativeCode1 && f.length - thisArg.constructor.name.length === matchNativeLen) {
+    //     if (f.includes('[native code]')){
+    //       return false;
+    //     } 
+    //     return true;
+    //   }
+    //   return false;
+    // }
+
+    // const acceptThis = (thisArg)=>{
+    //   // if(!thisArg || typeof thisArg !=='object') return false;
+    //   // // if((((thisArg||0).constructor||0).name || 'XXXXXXXX').length < 3) return true;
+    //   // if(typeof thisArg.path === 'string') return true;
+    //   // if(typeof thisArg.fn === 'function') return true;
+    //   // if(typeof thisArg.id === 'string') return true;
+    //   // if(typeof thisArg.isLoaded === 'boolean') return true;
+    //   return false;
+    // }
+
+    const patchFn = (fn) => {
+
+      let s = `${fn}`;
+      if (s.length < 11 || s.includes('\n')) return false;
+      if(s.includes('bind(this')) return true;
+      if(s.includes('=this') && /[,\s][a-zA-Z_][a-zA-Z0-9_]*=this[;,]/.test(s) ) return true;
+      // var a=this;
+      // f.bind(this)
+
+
+      return false;
+    }
+
+    Function.prototype.bind488 = Function.prototype.bind;
+    Function.prototype.bind = function(thisArg, ...args){
+  
+      if (thisConversionFn(thisArg) !== thisArg) {
+        return this.bind488(thisArg, ...args);
+      }
+      if( thisArg && patchFn(this) ){
+
+        // console.log(599,`${this}`)
+
+        try {
+          // let b1 = thisArg && typeof thisArg === 'object' && typeof thisArg.isAttached === 'boolean' && !thisArg.dtz06; // ready cnt
+          // let b2 = !b1 && thisArg && (thisArg instanceof Node) && typeof thisArg.nodeName === 'string' && !thisArg.dtz06; // dom
+          // let b3 = !b1 && !b2 && thisArg && typeof thisArg === 'object' && typeof thisArg.is === 'string' && !thisArg.dtz06; // init stage ?
+          // // let b4 = !b1 && !b2 && !b3 && thisArg && typeof thisArg === 'object' && !thisArg.dtz06 && matchConstructor(thisArg);
+          // // let b5 = !b1 && !b2 && !b3 && !b4 && thisArg && typeof thisArg === 'object' && !thisArg.dtz06 && acceptThis(thisArg);
+          // // let b5 = !b1 && !b2 && !b3 && thisArg && typeof thisArg === 'object' && !thisArg.dtz06  && !(thisArg instanceof Window);
+          // // let b4 = false;
+          // let b4 =  !b1 && !b2 && !b3 && thisArg && !thisArg.dtz06;
+  
+          // // b3 = false;
+          // // b4 = false;
+          // // b5 = false;
+  
+          // if (b1 || b2 || b3 ||b4  ) {
+            const f = this;
+            const ps = thisArg.__proxySelf0__ || (thisArg.__proxySelf0__ = weakWrap(thisArg));
+            if (ps && ps[vmb]) {
+              Function._count_bind_00++;
+              return f.bind488(ps, ...args)
+            }
+          // }
+        } catch (e) {
+          console.warn(e)
+         }
+      }
+      return this.bind488(thisArg, ...args);
+    }
+    Function.prototype.bind588 = 1;
+  }
+
+
+  if (FIX_weakMap_weakRef && !window.WeakMapOriginal && typeof window.WeakMap === 'function' && typeof WeakRef === 'function') {
+    const WeakMapOriginal = window.WeakMapOriginal = window.WeakMap;
+    const wm6 = new WeakMapOriginal();
+
+    const skipW = new WeakSet();
+
+
+    window.WeakMap = class WeakMap extends WeakMapOriginal {
+      constructor(iterable = undefined) {
+        super();
+        if (iterable && iterable[Symbol.iterator]) {
+          for (const entry of iterable) {
+            entry && this.set(entry[0], entry[1]);
+          }
+        }
+      }
+      delete(a) {
+        if (!this.has(a)) return false;
+        super.delete(a);
+        return true;
+      }
+      get(a) {
+        const p = super.get(a);
+        if (p && typeof p === 'object' && p.deref && !skipW.has(p)) {
+          let v = kRef(p);
+          if (!v) {
+            super.delete(a);
+          }
+          return v || undefined;
+        }
+        return p;
+      }
+      has(a) {
+        if (!super.has(a)) return false;
+        const p = super.get(a);
+        if (p && typeof p === 'object' && p.deref && !skipW.has(p)) {
+          if (!kRef(p)) {
+            super.delete(a);
+            return false;
+          }
+        }
+        return true;
+      }
+      set(a, b) {
+        let wq = b;
+        if (b && (typeof b === 'function' || typeof b === 'object')) {
+          if (b.deref) {
+            skipW.add(b);
+            wq = b;
+          } else {
+            wq = wm6.get(b);
+            if (!wq) {
+              wq = mWeakRef(b);
+              wm6.set(b, wq);
+            }
+          }
+        }
+        super.set(a, wq);
+        return this;
+      }
+    }
+    Object.defineProperty(window.WeakMap, Symbol.toStringTag, {
+      configurable: true,
+      enumerable: false,
+      value: "WeakMap",
+      writable: false
+    });
+  }
 
   const isWatchPageURL = (url) => {
     url = url || location;
@@ -4336,7 +4627,7 @@
         window.__original__getComputedStyle__ = window.getComputedStyle;
         window.getComputedStyle = function (elem) {
           if (!(elem instanceof Element) || (arguments.length === 2 && arguments[1]) || (arguments.length > 2)) {
-            return window.__native__getComputedStyle__(...arguments);
+            return window.__original__getComputedStyle__(...arguments);
           }
           let cs = wmComputedStyle.get(elem);
           if (!cs) {
