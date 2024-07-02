@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.12.0
+// @version             0.13.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -413,7 +413,7 @@ SOFTWARE.
             }
         }
 
-        return {retrieveCE};
+        return { retrieveCE };
 
     })();
 
@@ -1312,7 +1312,169 @@ SOFTWARE.
         return exactHandleText(text.trim(), true);
     };
 
-    const handleTextAllowSymbols = new Set('_-.·'.split('').map(e=>e.codePointAt()));
+
+    const languageMapR0 = [];
+
+    const languageMap = [
+        { range: [0x0041, 0x005A], langs: ['English', 'Afrikaans', 'Albanian', 'Bosnian', 'Catalan', 'Croatian', 'Czech', 'Danish', 'Dutch', 'Estonian', 'Filipino', 'Finnish', 'French', 'Galician', 'German', 'Hungarian', 'Icelandic', 'Indonesian', 'Italian', 'Latvian', 'Lithuanian', 'Macedonian', 'Malay', 'Norwegian', 'Polish', 'Portuguese', 'Romanian', 'Slovak', 'Slovenian', 'Spanish', 'Swedish', 'Swahili', 'Turkish', 'Zulu'] },  // Basic Latin (A-Z)
+        { range: [0x0061, 0x007A], langs: ['English', 'Afrikaans', 'Albanian', 'Bosnian', 'Catalan', 'Croatian', 'Czech', 'Danish', 'Dutch', 'Estonian', 'Filipino', 'Finnish', 'French', 'Galician', 'German', 'Hungarian', 'Icelandic', 'Indonesian', 'Italian', 'Latvian', 'Lithuanian', 'Macedonian', 'Malay', 'Norwegian', 'Polish', 'Portuguese', 'Romanian', 'Slovak', 'Slovenian', 'Spanish', 'Swedish', 'Swahili', 'Turkish', 'Zulu'] },  // Basic Latin (a-z)
+        { range: [0x00C0, 0x00FF], langs: ['French', 'Portuguese', 'Spanish', 'Afrikaans'] },  // Latin-1 Supplement
+        { range: [0x0100, 0x017F], langs: ['Latvian', 'Lithuanian', 'Polish', 'Czech', 'Slovak', 'Slovenian', 'Croatian', 'Bosnian', 'Serbian', 'Montenegrin'] },  // Latin Extended-A
+        { range: [0x0180, 0x024F], langs: ['African languages', 'Esperanto'] },  // Latin Extended-B
+        { range: [0x0370, 0x03FF], langs: ['Greek'] },  // Greek and Coptic
+        { range: [0x0400, 0x04FF], langs: ['Russian', 'Ukrainian', 'Bulgarian', 'Serbian', 'Macedonian', 'Belarusian', 'Kazakh', 'Kyrgyz', 'Uzbek'] },  // Cyrillic
+        { range: [0x0500, 0x052F], langs: ['Kazakh', 'Kyrgyz', 'Uzbek'] },  // Cyrillic Supplement
+        { range: [0x0530, 0x058F], langs: ['Armenian'] },  // Armenian
+        { range: [0x0590, 0x05FF], langs: ['Hebrew'] },  // Hebrew
+        { range: [0x0600, 0x06FF], langs: ['Arabic', 'Persian', 'Urdu'] },  // Arabic
+        { range: [0x0700, 0x074F], langs: ['Syriac'] },  // Syriac
+        { range: [0x0750, 0x077F], langs: ['Arabic Supplement'] },  // Arabic Supplement
+        { range: [0x0780, 0x07BF], langs: ['Thaana'] },  // Thaana
+        { range: [0x0900, 0x097F], langs: ['Hindi', 'Marathi', 'Sanskrit', 'Nepali'] },  // Devanagari
+        { range: [0x0980, 0x09FF], langs: ['Bengali', 'Assamese'] },  // Bengali
+        { range: [0x0A00, 0x0A7F], langs: ['Punjabi'] },  // Gurmukhi
+        { range: [0x0A80, 0x0AFF], langs: ['Gujarati'] },  // Gujarati
+        { range: [0x0B00, 0x0B7F], langs: ['Odia'] },  // Oriya
+        { range: [0x0B80, 0x0BFF], langs: ['Tamil'] },  // Tamil
+        { range: [0x0C00, 0x0C7F], langs: ['Telugu'] },  // Telugu
+        { range: [0x0C80, 0x0CFF], langs: ['Kannada'] },  // Kannada
+        { range: [0x0D00, 0x0D7F], langs: ['Malayalam'] },  // Malayalam
+        { range: [0x0D80, 0x0DFF], langs: ['Sinhala'] },  // Sinhala
+        { range: [0x0E00, 0x0E7F], langs: ['Thai'] },  // Thai
+        { range: [0x0E80, 0x0EFF], langs: ['Lao'] },  // Lao
+        { range: [0x0F00, 0x0FFF], langs: ['Tibetan'] },  // Tibetan
+        { range: [0x1000, 0x109F], langs: ['Burmese'] },  // Myanmar
+        { range: [0x10A0, 0x10FF], langs: ['Georgian'] },  // Georgian
+        { range: [0x1100, 0x11FF], langs: ['Korean'] },  // Hangul Jamo
+        { range: [0x1200, 0x137F], langs: ['Amharic', 'Tigrinya', 'Geez'] },  // Ethiopic
+        { range: [0x13A0, 0x13FF], langs: ['Cherokee'] },  // Cherokee
+        { range: [0x1400, 0x167F], langs: ['Canadian Aboriginal'] },  // Unified Canadian Aboriginal Syllabics
+        { range: [0x1680, 0x169F], langs: ['Ogham'] },  // Ogham
+        { range: [0x16A0, 0x16FF], langs: ['Runic'] },  // Runic
+        { range: [0x1700, 0x171F], langs: ['Tagalog'] },  // Tagalog
+        { range: [0x1720, 0x173F], langs: ['Hanunoo'] },  // Hanunoo
+        { range: [0x1740, 0x175F], langs: ['Buhid'] },  // Buhid
+        { range: [0x1760, 0x177F], langs: ['Tagbanwa'] },  // Tagbanwa
+        { range: [0x1780, 0x17FF], langs: ['Khmer'] },  // Khmer
+        { range: [0x1800, 0x18AF], langs: ['Mongolian'] },  // Mongolian
+        { range: [0x1E00, 0x1EFF], langs: ['Latin Extended Additional'] },  // Latin Extended Additional
+        { range: [0x1F00, 0x1FFF], langs: ['Greek Extended'] },  // Greek Extended
+        { range: [0x2000, 0x206F], langs: ['General Punctuation'] },  // General Punctuation
+        { range: [0x2070, 0x209F], langs: ['Superscripts and Subscripts'] },  // Superscripts and Subscripts
+        { range: [0x20A0, 0x20CF], langs: ['Currency Symbols'] },  // Currency Symbols
+        { range: [0x2100, 0x214F], langs: ['Letterlike Symbols'] },  // Letterlike Symbols
+        { range: [0x2150, 0x218F], langs: ['Number Forms'] },  // Number Forms
+        { range: [0x2190, 0x21FF], langs: ['Arrows'] },  // Arrows
+        { range: [0x2200, 0x22FF], langs: ['Mathematical Operators'] },  // Mathematical Operators
+        { range: [0x2300, 0x23FF], langs: ['Miscellaneous Technical'] },  // Miscellaneous Technical
+        { range: [0x2400, 0x243F], langs: ['Control Pictures'] },  // Control Pictures
+        { range: [0x2440, 0x245F], langs: ['Optical Character Recognition'] },  // Optical Character Recognition
+        { range: [0x2460, 0x24FF], langs: ['Enclosed Alphanumerics'] },  // Enclosed Alphanumerics
+        { range: [0x2500, 0x257F], langs: ['Box Drawing'] },  // Box Drawing
+        { range: [0x2580, 0x259F], langs: ['Block Elements'] },  // Block Elements
+        { range: [0x25A0, 0x25FF], langs: ['Geometric Shapes'] },  // Geometric Shapes
+        { range: [0x2600, 0x26FF], langs: ['Miscellaneous Symbols'] },  // Miscellaneous Symbols
+        { range: [0x2700, 0x27BF], langs: ['Dingbats'] },  // Dingbats
+        { range: [0x3000, 0x303F], langs: ['CJK Symbols and Punctuation'] },  // CJK Symbols and Punctuation
+        { range: [0x3040, 0x309F], langs: ['Japanese'] },  // Hiragana
+        { range: [0x30A0, 0x30FF], langs: ['Japanese'] },  // Katakana
+        { range: [0x3100, 0x312F], langs: ['Bopomofo'] },  // Bopomofo
+        { range: [0x3130, 0x318F], langs: ['Korean'] },  // Hangul Compatibility Jamo
+        { range: [0x3190, 0x319F], langs: ['Kanbun'] },  // Kanbun
+        { range: [0x31A0, 0x31BF], langs: ['Bopomofo Extended'] },  // Bopomofo Extended
+        { range: [0x31F0, 0x31FF], langs: ['Katakana Phonetic Extensions'] },  // Katakana Phonetic Extensions
+        { range: [0x3200, 0x32FF], langs: ['Enclosed CJK Letters and Months'] },  // Enclosed CJK Letters and Months
+        { range: [0x3300, 0x33FF], langs: ['CJK Compatibility'] },  // CJK Compatibility
+        { range: [0x4E00, 0x9FFF], langs: ['Chinese (Simplified)', 'Chinese (Traditional)', 'Japanese', 'Korean'] },  // CJK Unified Ideographs
+        { range: [0xAC00, 0xD7AF], langs: ['Korean'] },  // Hangul Syllables
+        { range: [0xD800, 0xDBFF], langs: ['High Surrogates'] },  // High Surrogates
+        { range: [0xDC00, 0xDFFF], langs: ['Low Surrogates'] },  // Low Surrogates
+        { range: [0xF900, 0xFAFF], langs: ['CJK Compatibility Ideographs'] },  // CJK Compatibility Ideographs
+        { range: [0xFB00, 0xFB4F], langs: ['Alphabetic Presentation Forms'] },  // Alphabetic Presentation Forms
+        { range: [0xFB50, 0xFDFF], langs: ['Arabic Presentation Forms-A'] },  // Arabic Presentation Forms-A
+        { range: [0xFE20, 0xFE2F], langs: ['Combining Half Marks'] },  // Combining Half Marks
+        { range: [0xFE70, 0xFEFF], langs: ['Arabic Presentation Forms-B'] },  // Arabic Presentation Forms-B
+        { range: [0xFF00, 0xFFEF], langs: ['Halfwidth and Fullwidth Forms'] },  // Halfwidth and Fullwidth Forms
+        { range: [0xFFF0, 0xFFFF], langs: ['Specials'] },  // Specials
+        { range: [0x10000, 0x1007F], langs: ['Linear B Syllabary'] },  // Linear B Syllabary
+        { range: [0x10080, 0x100FF], langs: ['Linear B Ideograms'] },  // Linear B Ideograms
+        { range: [0x10100, 0x1013F], langs: ['Aegean Numbers'] },  // Aegean Numbers
+        { range: [0x10140, 0x1018F], langs: ['Ancient Greek Numbers'] },  // Ancient Greek Numbers
+        { range: [0x10190, 0x101CF], langs: ['Ancient Symbols'] },  // Ancient Symbols
+        { range: [0x101D0, 0x101FF], langs: ['Phaistos Disc'] },  // Phaistos Disc
+        { range: [0x10280, 0x1029F], langs: ['Lycian'] },  // Lycian
+        { range: [0x102A0, 0x102DF], langs: ['Carian'] },  // Carian
+        { range: [0x10300, 0x1032F], langs: ['Old Italic'] },  // Old Italic
+        { range: [0x10330, 0x1034F], langs: ['Gothic'] },  // Gothic
+        { range: [0x10380, 0x1039F], langs: ['Ugaritic'] },  // Ugaritic
+        { range: [0x103A0, 0x103DF], langs: ['Old Persian'] },  // Old Persian
+        { range: [0x10400, 0x1044F], langs: ['Deseret'] },  // Deseret
+        { range: [0x10450, 0x1047F], langs: ['Shavian'] },  // Shavian
+        { range: [0x10480, 0x104AF], langs: ['Osmanya'] },  // Osmanya
+        { range: [0x10800, 0x1083F], langs: ['Cypriot Syllabary'] },  // Cypriot Syllabary
+        { range: [0x10840, 0x1085F], langs: ['Imperial Aramaic'] },  // Imperial Aramaic
+        { range: [0x10900, 0x1091F], langs: ['Phoenician'] },  // Phoenician
+        { range: [0x10920, 0x1093F], langs: ['Lydian'] },  // Lydian
+        { range: [0x10A00, 0x10A5F], langs: ['Kharoshthi'] },  // Kharoshthi
+        { range: [0x10A60, 0x10A7F], langs: ['Old South Arabian'] },  // Old South Arabian
+        { range: [0x10B00, 0x10B3F], langs: ['Avestan'] },  // Avestan
+        { range: [0x10B40, 0x10B5F], langs: ['Inscriptional Parthian'] },  // Inscriptional Parthian
+        { range: [0x10B60, 0x10B7F], langs: ['Inscriptional Pahlavi'] },  // Inscriptional Pahlavi
+        { range: [0x10C00, 0x10C4F], langs: ['Old Turkic'] },  // Old Turkic
+        { range: [0x10E60, 0x10E7F], langs: ['Rumi Numeral Symbols'] },  // Rumi Numeral Symbols
+        { range: [0x11000, 0x1107F], langs: ['Brahmi'] },  // Brahmi
+        { range: [0x11080, 0x110CF], langs: ['Kaithi'] },  // Kaithi
+        { range: [0x12000, 0x123FF], langs: ['Cuneiform'] },  // Cuneiform
+        { range: [0x13000, 0x1342F], langs: ['Egyptian Hieroglyphs'] },  // Egyptian Hieroglyphs
+        { range: [0x16800, 0x16A3F], langs: ['Bamum'] },  // Bamum
+        { range: [0x1B000, 0x1B0FF], langs: ['Kana Supplement'] },  // Kana Supplement
+        { range: [0x1D000, 0x1D0FF], langs: ['Byzantine Musical Symbols'] },  // Byzantine Musical Symbols
+        { range: [0x1D100, 0x1D1FF], langs: ['Musical Symbols'] },  // Musical Symbols
+        { range: [0x1D200, 0x1D24F], langs: ['Ancient Greek Musical Notation'] },  // Ancient Greek Musical Notation
+        { range: [0x1D300, 0x1D35F], langs: ['Tai Xuan Jing Symbols'] },  // Tai Xuan Jing Symbols
+        { range: [0x1D360, 0x1D37F], langs: ['Counting Rod Numerals'] },  // Counting Rod Numerals
+        { range: [0x1D400, 0x1D7FF], langs: ['Mathematical Alphanumeric Symbols'] },  // Mathematical Alphanumeric Symbols
+        { range: [0x1F000, 0x1F02F], langs: ['Mahjong Tiles'] },  // Mahjong Tiles
+        { range: [0x1F030, 0x1F09F], langs: ['Domino Tiles'] },  // Domino Tiles
+        { range: [0x1F0A0, 0x1F0FF], langs: ['Playing Cards'] },  // Playing Cards
+        { range: [0x1F100, 0x1F1FF], langs: ['Enclosed Alphanumeric Supplement'] },  // Enclosed Alphanumeric Supplement
+        { range: [0x1F200, 0x1F2FF], langs: ['Enclosed Ideographic Supplement'] },  // Enclosed Ideographic Supplement
+        { range: [0x1F300, 0x1F5FF], langs: ['Miscellaneous Symbols and Pictographs'] },  // Miscellaneous Symbols and Pictographs
+        { range: [0x1F600, 0x1F64F], langs: ['Emoticons'] },  // Emoticons
+        { range: [0x1F680, 0x1F6FF], langs: ['Transport and Map Symbols'] },  // Transport and Map Symbols
+        { range: [0x1F700, 0x1F77F], langs: ['Alchemical Symbols'] },  // Alchemical Symbols
+        { range: [0x20000, 0x2A6DF], langs: ['CJK Unified Ideographs Extension B'] },  // CJK Unified Ideographs Extension B
+        { range: [0x2A700, 0x2B73F], langs: ['CJK Unified Ideographs Extension C'] },  // CJK Unified Ideographs Extension C
+        { range: [0x2B740, 0x2B81F], langs: ['CJK Unified Ideographs Extension D'] },  // CJK Unified Ideographs Extension D
+        { range: [0x2F800, 0x2FA1F], langs: ['CJK Compatibility Ideographs Supplement'] },  // CJK Compatibility Ideographs Supplement
+    ];
+
+
+
+    let lastLangEntry = null;
+
+    function getPossibleLanguages(unicodeChar) {
+        const unicode = typeof unicodeChar === 'number' ? unicodeChar : typeof unicodeChar === 'string' ? unicodeChar.codePointAt(0) : 0;
+
+        if (unicode >= 0x20) {
+            if (unicode >= 0x0370 && lastLangEntry && unicode >= lastLangEntry.range[0] && unicode <= lastLangEntry.range[1]) {
+                return lastLangEntry.langs;
+            }
+            for (const entry of languageMap) {
+                if (unicode >= entry.range[0] && unicode <= entry.range[1]) {
+                    if (entry.range[0] >= 0x0370) lastLangEntry = entry;
+                    return entry.langs;
+                }
+                if (entry.range[0] >= unicode && entry.range[1] >= unicode) break;
+            }
+        }
+
+        return languageMapR0;
+    }
+
+    const handleTextAllowSymbols = new Set('_-.·'.split('').map(e => e.codePointAt()));
+
+    const _cache_isExactHandleText = new Map();
     const isExactHandleText = (text, i = 0) => {
         let cpCount = 0, cp = 0;
         let cpMin = Number.MAX_VALUE
@@ -1323,12 +1485,24 @@ SOFTWARE.
         if (textLen - i > 30) return false;
         let l = textLen - suffixNumberLen;
         let maxCpCount = 30 - suffixNumberLen;
-        if(maxCpCount <= 0) return maxCpCount === 0;
+        if (maxCpCount <= 0) return maxCpCount === 0;
+        const mtext = text.substring(i);
+        let res = _cache_isExactHandleText.get(mtext);
+        if (typeof res !== 'undefined') return res;
+
+        const retFn = (res) => {
+            _cache_isExactHandleText.set(mtext, res);
+            return res;
+        }
+
         let uchars = [];
+        const uRanges = new Set();
         for (; i < l; i++) {
             cp = text.codePointAt(i);
             if (!cp) break;
             if (!handleTextAllowSymbols.has(cp)) {
+                const uRange = getPossibleLanguages(cp);
+                uRanges.add(uRange);
                 uchars.push(cp);
                 if (cpMin > cp) cpMin = cp;
                 if (cpMax < cp) cpMax = cp;
@@ -1340,22 +1514,51 @@ SOFTWARE.
                 }
             } else {
                 console.warn('cp >= 0x7FFFFFFF')
-                return false;
+                return retFn(false);
             }
             cpCount++;
-            if (cpCount > 30) return false;
+            if (cpCount > 30) {
+                return retFn(false);
+            }
         }
-        const ft = String.fromCodePoint(...uchars);
+
+        // console.log(mtext, cpMin,cpMax, uRanges)
         if (cpMin >= 32 && cpMax <= 122) {
-            return /^[-_a-zA-Z0-9.]{3,30}$/.test(ft);
-        } 
-        
-        if (cpMin >= 0x4E00 && cpMax <= 0xD7AF) {
-            if (/^[\u4E00-\u9FFF\uAC00-\uD7AF]{1,10}$/.test(ft)) return "Han|Hangul";
-        } else if (cpMin >= 0x1200 && cpMax <= 0x30FF) {
-            if (/^[\u1200-\u137F\u3040-\u30FF]{2,20}$/.test(ft)) return "Ethiopic|Hiragana|Katakana";
+            return retFn(/^[-_a-zA-Z0-9.·]{3,30}$/.test(mtext));
         }
-        return false;
+
+        let mm = {}, mi = 0;
+        for (const uRange of uRanges) {
+            if (uRange) {
+                for (const lang of uRange) {
+                    if (lang) {
+                        mm[lang] = (mm[lang] || 0) + 1;
+                    }
+                }
+            }
+            mi++;
+        }
+        let unilang = "";
+        let dd = Object.entries(mm).filter(a => a[1] === mi);
+        if (dd.length === 1) {
+            unilang = dd[0];
+        }
+
+        if (unilang[0] === "Japanese") {
+            return retFn("Japanese"); // japanese handle can mix with kanji
+        }
+
+
+        if (cpMin >= 0x1000) {
+            const ft = String.fromCodePoint(...uchars);
+            if (cpMin >= 0x4E00 && cpMax <= 0xD7AF) {
+                if (/^[\u4E00-\u9FFF\uAC00-\uD7AF]{1,10}$/.test(ft)) return retFn("Han|Hangul");
+            } else if (cpMin >= 0x1200 && cpMax <= 0x30FF) {
+                if (/^[\u1200-\u137F\u3040-\u30FF]{2,20}$/.test(ft)) return retFn("Ethiopic|Hiragana|Katakana");
+            }
+        }
+
+        return retFn(false);
 
     }
 
@@ -1367,20 +1570,50 @@ SOFTWARE.
         return text.startsWith('/@') && isExactHandleText(text, 2) ? (b ? true : text.substring(2)) : (b ? false : '');
     }
 
-    const exactHandleUrl = (text, b) => {
-        if(!text.startsWith('/@') ) return false;
-        let text2 = text.substring(2);
-        if(/%[0-9A-Fa-f]/.test(text2) && /^[a-zA-Z%0-9-_.·]+$/.test(text2)){
-            try{
-                text2 = decodeURI(text2);
-            }catch(e){}
-            text = `/@${text2}`
+    const _cache_urlHandleConversion = new Map();
+    const urlHandleConversion = (text) => {
+
+        if (text && typeof text === 'string' && text.length >= 5 && text.startsWith('/@')) {
+            let converted = _cache_urlHandleConversion.get(text);
+
+            if (typeof converted === 'string') {
+
+                text = converted;
+
+            } else if (text.includes('%')) {
+                let text0 = text;
+
+                let text2 = text.substring(2);
+                if (/%[0-9A-Fa-f]{2}/.test(text2) && /^[-_a-zA-Z%0-9.·]+$/.test(text2)) {
+                    try {
+                        text2 = decodeURI(text2);
+                    } catch (e) { }
+                    text = `/@${text2}`
+                }
+                _cache_urlHandleConversion.set(text0, text);
+
+            }
+
+
+            if (text.length >= 5 && text.length <= 32 && exactHandleUrl_(text, true)) {
+                return text;
+            }
         }
-        return exactHandleUrl_(text, b);
+
+        return '';
+
+    }
+    const exactHandleUrl = (text, b) => {
+        if (text && typeof text === 'string' && text.length >= 5 && text.startsWith('/@')) {
+            text = urlHandleConversion(text) || text;
+            return exactHandleUrl_(text, b);
+        }
+        return b ? false : '';
     }
 
     try {
         // https://www.youtube.com/watch?v=hfopp1vLFmk
+        // https://www.youtube.com/watch?v=V-4PiHDX2Mg
         let b = true
 
 
@@ -1448,9 +1681,17 @@ SOFTWARE.
         b = b && isDisplayAsHandle('@blue-pink-love');
 
 
+        b = b && isDisplayAsHandle('@mr.memebear901');
+        b = b && isDisplayAsHandle('@すいちゃん可愛い');
+        b = b && isDisplayAsHandle('@%E3%81%99%E3%81%84%E3%81%A1%E3%82%83%E3%82%93%E5%8F%AF%E6%84%9B%E3%81%84');
+        b = b && isDisplayAsHandle('@ハシビロ公');
+        b = b && isDisplayAsHandle('@%E3%83%8F%E3%82%B7%E3%83%93%E3%83%AD%E5%85%AC');
+        b = b && isDisplayAsHandle('@ex1524')
+        b = b && isDisplayAsHandle('@K88571')
+
 
         if (!b) console.error('!!!! wrong coding !!!!');
-    } catch (e) { 
+    } catch (e) {
         console.error('!!!! wrong coding !!!!', e);
     }
     /**
@@ -1886,10 +2127,15 @@ SOFTWARE.
     }
 
     const getHrefType = (href) => {
-        if (href.length === 33 && href.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href)) {
-            return 1;
-        } else if (href.length >= 5 && href.length <= 32 && exactHandleUrl(href, true)) {
-            return 2;
+        if (href && typeof href === 'string') {
+            if (href.length === 33 && href.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href)) {
+                return 1;
+            } else {
+                href = urlHandleConversion(href) || href;
+                if (href && href.length >= 5 && href.length <= 32 && exactHandleUrl_(href, true)) {
+                    return 2;
+                }
+            }
         }
         return 0;
     }
@@ -2693,9 +2939,11 @@ SOFTWARE.
                 const cnt = insp(ytElm);
                 const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
 
+
                 if (browseId && canonicalBaseUrl === hrefV && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
 
                     const hrefType = getHrefType(hrefV);
+                    // console.log(599, hrefV, hrefType)
                     if (hrefType === 1) {
                         if (hrefV === `/channel/${browseId}`) {
                             let authorText = null;
