@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.12
+// @version     0.16.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -6573,7 +6573,7 @@
 
         removeAdd(key) {
           super.delete(key);
-          super.add(key);
+          this.add(key);
         }
 
       }
