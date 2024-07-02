@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.7.5
+// @version             1.8.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -91,7 +91,11 @@
 
     const pageInjectionCode = function () {
 
+        let debugFlg001 = false;
+        // let debugFlg002 = false;
+        let globalPlayer = null;
         const SHOW_VIDEO_STATIC_IMAGE = true;
+        const PATCH_MEDIA_PUBLISH = true;
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
@@ -116,7 +120,206 @@
             };
         })();
 
+        /* globals WeakRef:false */
 
+        /** @type {(o: Object | null) => WeakRef | null} */
+        const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
+
+        /** @type {(wr: Object | null) => Object | null} */
+        const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+        /*
+
+            g.k.playVideo = function(a) {
+                this.logger.debug(function() {
+                    return "play video, player type " + a
+                });
+                var b = g.rT(this, a);
+                b && (this.appState === 2 ? (g.BR(this.X) && $U(this.Rb),
+                N0(this)) : g.pF(b.getPlayerState(), 2) ? (b = 36,
+                this.getVideoData().nk() && (b = 37),
+                this.seekTo(0, void 0, void 0, void 0, b)) : b.playVideo())
+            }
+
+            g.k.getPresentingPlayerType = function(a) {
+                if (this.appState === 1)
+                    return 1;
+                if (J0(this))
+                    return 3;
+                var b;
+                if (a && ((b = this.ye) == null ? 0 : b.vl(this.getCurrentTime())))
+                    return 2;
+                var c;
+                return g.zS(this.getVideoData()) && ((c = this.wb) == null ? 0 : c.vl()) ? 2 : g.rT(this).getPlayerType()
+            }
+
+            g.k.rS = function() {
+                var a = this.app.getPresentingPlayerType();
+                if (a === 2 && !this.app.Jf()) {
+                    var b = zV(this.app.zb());
+                    if (!Dkb(b) || Ekb(b))
+                        return
+                }
+                a === 3 ? AT(this.app.zb()).iG("control_play") : this.app.U().L("html5_ssap_ignore_play_for_ad") && g.zS(this.app.Od()) && a === 2 || this.app.playVideo(a)
+            }
+        */
+
+        // const onDurationAvailable = async function(player_, media){
+        //     if (media instanceof HTMLMediaElement && media.__canPlayPromise__ && media.duration > 0 && media.networkState >= 2 && media.readyState >= 1) {
+        //         skipPause = true;
+        //         skipVisibility = true;
+        //         debugFlg002 && console.log(1991, player_.getPresentingPlayerType())
+        //         await player_.cancelPlayback();
+        //         debugFlg002 && console.log(1992, player_.getPresentingPlayerType())
+        //         await player_.pauseVideo();
+        //         debugFlg002 && console.log(1993, player_.getPresentingPlayerType())
+        //         // window.m33e = 1;
+        //         window.m34e = player_;
+        //         // await player_.clearQueue();
+        //         await player_.playVideo();
+        //         skipVisibility = false;
+        //         skipPause = false;
+
+        //         debugFlg002 && console.log('HTMLMediaElement A2', [media.readyState, media.paused, media.networkState]);
+        //         if (media instanceof HTMLMediaElement && media.__canPlayPromise__ && media.duration > 0 && media.networkState >= 2 && media.readyState >= 4) {
+        //             media.__canPlayPromise__.resolve();
+        //             media.__canPlayPromise__ = null;
+        //         }
+        //     }
+        // }
+
+        // let skipPause = false;
+        // let skipVisibility = false;
+        // const durationchangeListener = async function (evt) {
+        //     const media = evt ? evt.target : null;
+        //     if (media instanceof HTMLMediaElement && media.__canPlayPromise__ && media.duration > 0 && media.networkState >= 2 && media.readyState >= 1) {
+        //         if (media.readyState < 4) {
+        //             debugFlg002 && console.log('HTMLMediaElement A1', [media.readyState, media.paused, media.networkState])
+        //             const player_ = kRef(globalPlayer);
+        //             if (player_) {
+        //                 onDurationAvailable(player_, media);
+        //             } else {
+        //                 console.error("HTMLMediaElement", "player_ is not found when HTMLMediaElement duration change");
+        //             }
+        //         } else {
+        //             debugFlg002 && console.log('HTMLMediaElement B', [media.readyState, media.paused, media.networkState])
+        //             media.__canPlayPromise__.resolve();
+        //             media.__canPlayPromise__ = null;
+        //         }
+        //     }
+        // }
+
+        // const canplayListener = function (evt) {
+        //     const media = evt ? evt.target : null;
+        //     if (media && media.__canPlayPromise__) {
+        //         debugFlg002 && console.log('HTMLMediaElement canplay', [media.readyState, media.paused, media.networkState]);
+        //         media.__canPlayPromise__.resolve();
+        //         media.__canPlayPromise__ = null;
+        //     }
+        //     debugFlg002 && console.log('HTMLMediaElement canplay')
+        // }
+
+        // let x6CGdPr = null;
+        // window.addEventListener('message', (evt)=>{
+        //   if((evt||0).data === 'x6CGd' && x6CGdPr!==null) x6CGdPr.resolve();
+        // });
+        // const timelineResolve = async () => {
+        //   if (x6CGdPr !== null) {
+        //     await x6CGdPr.then();
+        //     return;
+        //   }
+        //   x6CGdPr = new PromiseExternal();
+        //   window.postMessage('x6CGd');
+        //   await x6CGdPr.then();
+        //   x6CGdPr = null;
+        // }
+
+        // let playWId = 0;
+
+        // const mediaPlay = HTMLMediaElement.prototype.play
+        // HTMLMediaElement.prototype.play = function () {
+        //     debugFlg002 && console.log('HTMLMediaElement play')
+        //     if (playWId > 1e9) playWId = 9;
+        //     const tid = ++playWId;
+        //     if (!this.paused) {
+        //         return mediaPlay.apply(this, arguments);
+        //     }
+        //     if (this.readyState >= 4) return mediaPlay.apply(this, arguments);
+        //     try {
+        //         if (!this.__canPlayPromise__ && this.closest('#player')) {
+        //             this.__canPlayPromise__ = new PromiseExternal();
+        //             const player_ = kRef(globalPlayer);
+        //             debugFlg002 && console.log('HTMLMediaElement play x', this.duration, player_)
+        //             if (!(this.duration > 0)) {
+        //                 this.removeEventListener('durationchange', durationchangeListener);
+        //                 this.addEventListener('durationchange', durationchangeListener);
+        //                 this.removeEventListener('canplay', canplayListener);
+        //                 this.addEventListener('canplay', canplayListener);
+        //             } else if (player_) {
+        //                 this.removeEventListener('canplay', canplayListener);
+        //                 this.addEventListener('canplay', canplayListener);
+        //                 onDurationAvailable(player_, this);
+        //             } else {
+        //                 console.error("HTMLMediaElement", "player_ is not found when HTMLMediaElement plays");
+        //             }
+
+        //             //---------------
+
+
+        //             // this.addEventListener('canplaythrough', function(){
+        //             //     console.log('HTMLMediaElement canplaythrough')
+        //             // });
+        //             // this.addEventListener('loadeddata', function(){
+        //             //     console.log('HTMLMediaElement loadeddata')
+        //             // });
+        //             // this.addEventListener('loadedmetadata', function(){
+        //             //     console.log('HTMLMediaElement loadedmetadata')
+        //             // });
+
+        //             //---------------
+
+        //             // this.addEventListener('abort', function(){
+        //             //     console.log('HTMLMediaElement abort')
+        //             // });
+        //             // this.addEventListener('emptied', function(){
+        //             //     console.log('HTMLMediaElement emptied')
+        //             // });
+        //             // this.addEventListener('error', function(){
+        //             //     console.log('HTMLMediaElement error')
+        //             // });
+        //             // this.addEventListener('ended', function(){
+        //             //     console.log('HTMLMediaElement ended')
+        //             // });
+        //             // this.addEventListener('loadstart', function(){
+        //             //     console.log('HTMLMediaElement loadstart')
+        //             // });
+        //         }
+
+        //     } catch (e) {
+        //         console.log('HTMLMediaElement.prototype.play error');
+        //         console.error(e);
+        //         this.__canPlayPromise__ = Promise.resolve();
+        //     }
+        //     const promise = this.__canPlayPromise__;
+        //     return (async () => {
+        //         await promise.then();
+        //         if (tid !== playWId) return;
+        //         return await mediaPlay.apply(this, arguments);
+        //     })();
+        // }
+        // const mediaPause = HTMLMediaElement.prototype.pause
+        // HTMLMediaElement.prototype.pause = function () {
+        //     if (skipPause) return;
+        //     debugFlg002 && console.log('HTMLMediaElement pause')
+        //     if (playWId > 1e9) playWId = 9;
+        //     const tid = ++playWId;
+        //     const promise = this.__canPlayPromise__;
+        //     if (promise) {
+        //         promise.resolve();
+        //         this.__canPlayPromise__ = null;
+        //     }
+        //     return mediaPause.apply(this, arguments);
+        // }
 
 
 
@@ -734,6 +937,7 @@
                         };
                         const fixLiveAudioFn = async () => {
                             if (audio.paused === true) {
+
                                 await player_.clearVideo(); // avoid error in live streaming
                                 await player_.clearQueue(); // avoid error in live streaming
                                 await delayPn(300);
@@ -752,6 +956,7 @@
                                     }
                                 }
                             } else if (audio.paused === false) {
+
                                 if (!player_.isAtLiveHead()) {
                                     if (await seekToLiveHeadForLiveStream()) await delayPn(60);
                                 }
@@ -768,6 +973,7 @@
                                     await triggerPlaying();
                                 }
                             }
+
                         }
                         try {
                             let ns23 = audio.networkState == 2 || audio.networkState == 3;
@@ -818,6 +1024,7 @@
 
                                 const audio = document.querySelector('#player audio.video-stream.html5-main-video');
                                 if (audio) asyncStateChange(audio, k);
+
                             }
                         } catch (e) {
                             console.log('error_F5', e)
@@ -944,6 +1151,9 @@
                     if (!player_) return;
                     if (player_.__audio544__) return;
                     player_.__audio544__ = 1;
+
+                    globalPlayer = mWeakRef(player_);
+
                     // console.log(1233, player_)
                     const mediaCollection = document.getElementsByClassName('html5-main-video');
 
@@ -1948,6 +2158,629 @@
         };
 
         supportedFormatsConfig();
+
+
+        PATCH_MEDIA_PUBLISH && (async ()=>{
+
+
+            const _yt_player_observable = observablePromise(() => {
+                return (((window || 0)._yt_player || 0) || 0);
+            });
+  
+
+            const addProtoToArr = (parent, key, arr) => {
+
+
+                let isChildProto = false;
+                for (const sr of arr) {
+                  if (parent[key].prototype instanceof parent[sr]) {
+                    isChildProto = true;
+                    break;
+                  }
+                }
+            
+                if (isChildProto) return;
+            
+                arr = arr.filter(sr => {
+                  if (parent[sr].prototype instanceof parent[key]) {
+                    return false;
+                  }
+                  return true;
+                });
+            
+                arr.push(key);
+            
+                return arr;
+            
+            
+              }
+            
+            /*
+
+                const getD0 = (_yt_player) => {
+
+                    const w = 'D0';
+
+                    let arr = [];
+
+                    for (const [k, v] of Object.entries(_yt_player)) {
+
+                    const p = typeof v === 'function' ? v.prototype : 0;
+                    if (p
+                        && typeof p.playVideo === 'function' && p.playVideo.length === 1
+                        && typeof p.getVisibilityState === 'function' && p.getVisibilityState.length === 8
+                        && typeof p.getVideoData === 'function' && p.getVideoData.length === 0
+                        && typeof p.seekTo === 'function' && p.seekTo.length === 5
+                        && typeof p.pauseVideo === 'function' && p.pauseVideo.length === 2
+                        && typeof p.stopVideo === 'function' && p.stopVideo.length === 1
+                        && typeof p.getPresentingPlayerType === 'function' && p.getPresentingPlayerType.length === 1
+                        && typeof p.getCurrentTime === 'function' && p.getCurrentTime.length === 3
+                        && typeof p.cancelPlayback === 'function' && p.cancelPlayback.length === 2
+                        // && !p.getPlayerType
+
+                    ) {
+                        arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+
+                    }
+
+                    }
+
+                    if (arr.length === 0) {
+
+                    console.warn(`Key does not exist. [${w}]`);
+                    } else {
+
+                    console.log(`[${w}]`, arr);
+                    return arr[0];
+                    }
+
+                }
+            */
+
+            const gets0 = (_yt_player) => {
+
+                const w = 's0';
+
+                let arr = [];
+
+                for (const [k, v] of Object.entries(_yt_player)) {
+
+                const p = typeof v === 'function' ? v.prototype : 0;
+                if (p
+                    && typeof p.isBackground === 'function' && p.isBackground.length === 0
+                    && typeof p.getPlaybackRate === 'function' && p.getPlaybackRate.length === 0
+                    && typeof p.publish === 'function' && p.publish.length === 2
+                    && typeof p.isAtLiveHead === 'function' && p.isAtLiveHead.length === 2
+
+
+
+                    // && !p.getPlayerType
+
+                ) {
+                    arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+
+                }
+
+                }
+
+                if (arr.length === 0) {
+
+                console.warn(`Key does not exist. [${w}]`);
+                } else {
+
+                console.log(`[${w}]`, arr);
+                return arr[0];
+                }
+
+            }
+
+            const printObject = (b)=>{
+                return JSON.stringify( Object.entries(b||{}).filter(e=>typeof (e[1]||0)!=='object'));
+            }
+
+            /*
+                (async () => {
+                    // rAf scheduling
+            
+                    const _yt_player = await _yt_player_observable.obtain();
+            
+                    if (!_yt_player || typeof _yt_player !== 'object') return;
+            
+                    let keyD0 = getD0(_yt_player);
+            
+            
+                    if (!keyD0) return;
+            
+            
+                    const g = _yt_player
+                    let k = keyD0
+            
+                    const gk = g[k];
+                    if (typeof gk !== 'function') return;
+                    const gkp = gk.prototype;
+
+
+                    gkp.playVideo48 = gkp.playVideo;
+                    gkp.playVideo = function(a) {
+                        let r =  this.playVideo48(a);
+                        // console.log('gkpD0 playVideo',r, a)
+                        return r;
+                    }
+
+                    gkp.getVisibilityState48 = gkp.getVisibilityState;
+                    gkp.getVisibilityState = function(a, b, c, d, e, f, h, l) {
+                        let r =  this.getVisibilityState48(a, b, c, d, e, f, h, l);
+                        // console.log('gkpD0 getVisibilityState',r, a,b,c,d,e,f,h,l)
+                        r = 0;
+                        return r;
+                    }
+
+
+                    gkp.getVideoData48 = gkp.getVideoData;
+                    gkp.getVideoData = function() {
+                        let r =  this.getVideoData48();
+                        // console.log('gkpD0 getVideoData',r)
+                        return r;
+                    }
+
+                    gkp.seekTo48 = gkp.seekTo;
+                    gkp.seekTo = function(a, b, c, d, e) {
+                        let r =  this.seekTo48(a, b, c, d, e);
+                        // console.log('gkpD0 seekTo',r, a,b,c,d,e)
+                        return r;
+                    }
+
+                    
+                    gkp.pauseVideo48 = gkp.pauseVideo;
+                    gkp.pauseVideo = function(a, b) {
+                        let r =  this.pauseVideo48(a, b);
+                        // console.log('gkpD0 pauseVideo',r, a,b);
+                        return r;
+                    }
+
+
+                    gkp.stopVideo48 = gkp.stopVideo;
+                    gkp.stopVideo = function(a) {
+                        let r =  this.stopVideo48(a);
+                        // console.log('gkpD0 stopVideo',r,a)
+                        return r;
+                    }
+
+
+
+
+                    gkp.getPresentingPlayerType48 = gkp.getPresentingPlayerType;
+                    gkp.getPresentingPlayerType = function(a) {
+                        let r =  this.getPresentingPlayerType48(a);
+                        // console.log('gkpD0 getPresentingPlayerType',r,a)
+                        return r;
+                    }
+
+                    gkp.getCurrentTime48 = gkp.getCurrentTime;
+                    gkp.getCurrentTime = function(a, b, c) {
+                        let r =  this.getCurrentTime48(a, b, c);
+                        // console.log('gkpD0 getCurrentTime',r, a,b,c)
+                        return r;
+                    }
+
+                    
+                    gkp.cancelPlayback48 = gkp.cancelPlayback;
+                    gkp.cancelPlayback = function(a, b) {
+                        let r =  this.cancelPlayback48(a, b);
+                        // console.log('gkpD0 cancelPlayback',r, a,b);
+                        return r;
+                    }
+            
+                })();
+            */
+
+
+
+            /**
+             * 
+             * 
+
+                g.k.mL = function(a) {
+                    var b = a.target.Gf();
+                    if (this.mediaElement && this.mediaElement.Gf() && this.mediaElement.Gf() === b) {
+                        ehb(this, a.type);
+                        switch (a.type) {
+                        case "error":
+                            var c = yFa(this.mediaElement) || ""
+                            , d = this.mediaElement.xf();
+                            if (c === "capability.changed") {
+                                this.L("html5_restart_on_capability_change") ? (this.ma("capchg", {
+                                    msg: d
+                                }),
+                                F_(this, !0)) : u0(this);
+                                return
+                            }
+                            if (this.mediaElement.hasError() && (Ndb(this.al, c, {
+                                msg: d
+                            }) || g.zS(this.videoData) && this.wb && this.wb.handleError(c)))
+                                return;
+                            if (this.isBackground() && this.mediaElement.fh() === 4) {
+                                this.So();
+                                x0(this, "unplayable");
+                                return
+                            }
+                            break;
+                        case "durationchange":
+                            c = this.mediaElement.getDuration();
+                            isFinite(c) && (!this.Qa || c > 0) && c !== 1 && this.Hl(c);
+                            break;
+                        case "ratechange":
+                            this.ya && this.ya.setPlaybackRate(this.mediaElement.getPlaybackRate());
+                            xfb(this.Ch);
+                            this.wc().onPlaybackRateChange(this.getPlaybackRate());
+                            break;
+                        case "loadedmetadata":
+                            ghb(this);
+                            this.publish("onLoadedMetadata");
+                            W5a(this);
+                            c = this.bf();
+                            this.videoData.SB && (this.videoData.SB = c);
+                            break;
+                        case "loadstart":
+                            W5a(this);
+                            break;
+                        case "progress":
+                        case "suspend":
+                            this.Uc();
+                            this.publish("onLoadProgress", this, this.Sw());
+                            break;
+                        case "playing":
+                            this.Rb.uv("plev");
+                            this.bT && !k0(this) && (this.bT = !1,
+                            this.isAtLiveHead() || (this.logger.debug("seek to infinity on PLAYING"),
+                            this.seekTo(Infinity, {
+                                kd: "videoplayer_onPlaying"
+                            })));
+                            break;
+                        case "timeupdate":
+                            c = this.mediaElement && !this.mediaElement.getCurrentTime();
+                            d = this.mediaElement && this.mediaElement.Tk() === 0;
+                            if (c && (!this.VK || d))
+                                return;
+                            this.VK = this.VK || !!this.mediaElement.getCurrentTime();
+                            Vgb(this);
+                            this.Uc();
+                            if (!this.mediaElement || this.mediaElement.Gf() !== b)
+                                return;
+                            this.publish("onVideoProgress", this, this.getCurrentTime());
+                            break;
+                        case "waiting":
+                            if (this.mediaElement.Vw().length > 0 && this.mediaElement.Eh().length === 0 && this.mediaElement.getCurrentTime() > 0 && this.mediaElement.getCurrentTime() < 5 && this.ya)
+                                return;
+                            this.L("html5_ignore_unexpected_waiting_cfl") && (this.mediaElement.isPaused() || this.mediaElement.Tk() > 2 || !this.mediaElement.isSeeking() && aK(this.mediaElement.Eh(), this.mediaElement.getCurrentTime())) && (c = this.mediaElement.uc(),
+                            c.bh = sK(this.mediaElement).toFixed(3),
+                            this.ma("uwe", c));
+                            g.zS(this.videoData) && this.wb && n7a(this.wb, this.mediaElement.getCurrentTime());
+                            break;
+                        case "resize":
+                            ghb(this);
+                            this.videoData.B && this.videoData.B.video.quality === "auto" && this.publish("internalvideoformatchange", this.videoData, !1);
+                            break;
+                        case "pause":
+                            if (this.TW && g.pF(this.playerState, 8) && !g.pF(this.playerState, 1024) && this.getCurrentTime() === 0 && g.VB) {
+                                x0(this, "safari_autoplay_disabled");
+                                return
+                            }
+                        }
+                        if (this.mediaElement && this.mediaElement.Gf() === b) {
+                            dgb(this.Tc, a, this.wb || void 0);
+                            this.publish("videoelementevent", a);
+                            b = this.playerState;
+                            d = this.bE;
+                            var e = this.mediaElement;
+                            c = this.videoData.clientPlaybackNonce;
+                            var f = g.zS(this.videoData) && this.wb ? jY(this.wb) : void 0;
+                            if (!g.pF(b, 128)) {
+                                var h = b.state;
+                                e = e ? e : a.target;
+                                var l = e.getCurrentTime();
+                                if (!g.pF(b, 64) || a.type !== "ended" && a.type !== "pause") {
+                                    f = f || e.getDuration();
+                                    f = e.isEnded() || l > 1 && Math.abs(l - f) < 1.1;
+                                    var m = a.type === "pause" && e.isEnded();
+                                    l = a.type === "ended" || a.type === "waiting" || a.type === "timeupdate" && !g.pF(b, 4) && !a0(d, l);
+                                    if (m || f && l)
+                                        e.KJ() > 0 && e.Gf() && (h = 14);
+                                    else
+                                        switch (a.type) {
+                                        case "error":
+                                            yFa(e) && (h |= 128);
+                                            break;
+                                        case "pause":
+                                            g.pF(b, 256) ? (h ^= 256) || (h = 64) : g.pF(b, 32) || g.pF(b, 2) || g.pF(b, 4) || (h = 4,
+                                            g.pF(b, 1) && g.pF(b, 8) && (h |= 1));
+                                            break;
+                                        case "playing":
+                                            l = h;
+                                            h = (h | 8) & -1093;
+                                            l & 4 ? (h |= 1,
+                                            uK(d, e)) : a0(d, e.getCurrentTime()) && (h &= -2);
+                                            g.pF(b, 1) && uK(d, e) && (h |= 1);
+                                            break;
+                                        case "seeking":
+                                            h |= 16;
+                                            g.pF(b, 8) && (h |= 1);
+                                            h &= -3;
+                                            break;
+                                        case "seeked":
+                                            h &= -17;
+                                            uK(d, e);
+                                            break;
+                                        case "waiting":
+                                            g.pF(b, 2) || (h |= 1);
+                                            uK(d, e);
+                                            break;
+                                        case "timeupdate":
+                                            l = g.pF(b, 16),
+                                            f = g.pF(b, 4),
+                                            (g.pF(b, 8) || l) && !f && a0(d, e.getCurrentTime()) && (h = 8),
+                                            uK(d, e) && (h |= 1)
+                                        }
+                                }
+                                d = h;
+                                h = null;
+                                d & 128 && (h = a.target,
+                                e = yFa(h),
+                                l = 1,
+                                e ? (e === "capability.changed" && (l = 2),
+                                f = "GENERIC_WITHOUT_LINK",
+                                m = h.uc(),
+                                m.mediaElem = "1",
+                                /AUDIO_RENDERER/.test(h.xf()) && (f = "HTML5_AUDIO_RENDERER_ERROR"),
+                                h = {
+                                    errorCode: e,
+                                    errorMessage: g.JV[f] || "",
+                                    bP: f,
+                                    KL: yJ(m),
+                                    rJ: l,
+                                    cpn: b.Pg ? b.Pg.cpn : ""
+                                }) : h = null,
+                                h && (h.cpn = c));
+                                b = vK(b, d, h)
+                            }
+                            !g.pF(this.playerState, 1) && g.pF(b, 1) && dhb(this, "evt" + a.type);
+                            this.Ic(b)
+                        }
+                    }
+                }
+                ;
+             * 
+             * 
+             */
+
+
+
+
+            (async () => {
+                // rAf scheduling
+          
+                const _yt_player = await _yt_player_observable.obtain();
+          
+                if (!_yt_player || typeof _yt_player !== 'object') return;
+          
+                let keys0 = gets0(_yt_player);
+          
+          
+                if (!keys0) return;
+          
+          
+                const g = _yt_player
+                let k = keys0
+          
+                const gk = g[k];
+                if (typeof gk !== 'function') return;
+                const gkp = gk.prototype;
+
+
+                // gkp.isBackground48 = gkp.isBackground;
+                // gkp.isBackground = function() {
+                //     if(!this?.visibility?.isBackground88){
+                //         this.visibility.isBackground88 = 1;
+                //         this.visibility.isBackground = function(){
+                //             return false;
+                //         }
+                //     }
+                //     // console.log('gkps0', 'isBackground', this.visibility)
+                //     // return false;
+                //     // if(!this.mediaElement || !(this.mediaElement.readyState>=4)){
+                //     //     return false;
+                //     // }
+                //     // console.log(1882,)
+                //     return this.isBackground48();
+                // }
+
+                gkp.publish48 = gkp.publish;
+                gkp.publish33 = async function(a,b){
+
+                    const player_ = kRef(globalPlayer);
+                    let publishStatus = 0;
+                    const media = this.mediaElement;
+
+                    if(a==='internalaudioformatchange' && typeof (b.author||0) === 'string' && media){
+
+                        await player_.clearVideo(); // avoid error in live streaming
+                        await player_.clearQueue(); // avoid error in live streaming
+                        await refreshAllStaleEntitiesForNonReadyAudio();
+                        // await player_.cancelPlayback();
+                        publishStatus = media.__publishStatus17__ = 100;
+                    }
+
+
+
+
+
+                    const domMedia = media ? Object.values(media).filter(e => e instanceof HTMLMediaElement) : [];
+                    if (this.mediaElement && a !== 'internalvideoformatchange' && player_ && domMedia.length === 1) {
+
+                        const audio = domMedia[0];
+
+
+
+                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+                            try {
+                                if (audio.readyState == 0 && audio.isConnected === true) await player_.refreshAllStaleEntities();
+                            } catch (e) {
+                            }
+                        };
+                        // const triggerPlaying = async () => {
+                        //     await player_.cancelPlayback();
+                        //     this.pauseVideo();
+                        //     this.playVideo();
+                        //     await player_.pauseVideo();
+                        //     await player_.playVideo();
+                        // };
+                        const seekToLiveHeadForLiveStream = async () => {
+                            try {
+                                audio.isConnected === true && await player_.seekToLiveHead();
+                                if (audio.isConnected === true && (await player_.isAtLiveHead()) === true) {
+                                    audio.isConnected === true && await player_.seekToStreamTime();
+                                    return true;
+                                }
+                            } catch (e) {
+                                console.log('error_F7', e);
+                            }
+                        };
+
+
+                        if(a.includes('error') ){
+ 
+                            if(!media.__publishStatus17__ || media.__publishStatus17__ < 200){
+
+                                await player_.clearVideo(); // avoid error in live streaming
+                                await player_.clearQueue(); // avoid error in live streaming
+                                await refreshAllStaleEntitiesForNonReadyAudio();
+                                // await player_.cancelPlayback();
+
+                            }
+    
+     
+    
+    
+                        }else{
+
+
+
+                            media.__publishStatus17__ = media.__publishStatus17__ || 100;
+
+
+
+                            if (media.__publishStatus17__ === 100) await refreshAllStaleEntitiesForNonReadyAudio();
+                            if (media.__publishStatus17__ === 100 && audio.duration > 0 && player_.getPlayerState() === 3) {
+    
+    
+    
+                                media.__publishStatus17__ = 200
+                                // await refreshAllStaleEntitiesForNonReadyAudio();
+    
+                                await player_.cancelPlayback();
+                                await this.pauseVideo();
+                                // this.playVideo();
+                                // await player_.pauseVideo();
+                                await player_.playVideo();
+                                await seekToLiveHeadForLiveStream();
+    
+    
+                                // fixLiveAudioFn(domMedia0, player_, player_.getPlayerState())
+    
+    
+                                // skipPause = true;
+                                // skipVisibility = true;
+                                //  player_.cancelPlayback();
+                                //  player_.pauseVideo();
+                                //  player_.playVideo();
+                                //  skipPause = false;
+                                //  skipVisibility = false;
+    
+    
+                            } 
+    
+    
+    
+                            if (a === 'onLoadedMetadata' && media.__publishStatus17__ === 200) media.__publishStatus17__ = 201;
+                            if (a === 'videoelementevent' && b.type === 'loadedmetadata' && media.__publishStatus17__ === 201) media.__publishStatus17__ = 202;
+                            if (a === 'videoelementevent' && b.type === 'progress' && media.__publishStatus17__ === 202) {
+    
+                                media.__publishStatus17__ = 203;
+                                window.debug_mfk = this;
+                                window.debug_mfp = player_;
+    
+                                // (async ()=>{
+                                //     await timelineResolve();
+                                //     const domMedia = Object.values(this.mediaElement).filter(e=>e instanceof HTMLMediaElement);
+                                //     if(domMedia.length === 1){
+                                //         const domMedia0 = domMedia[0]
+    
+                                //         if(domMedia0.duration >0 && domMedia0.readyState >= 4){
+    
+                                //             await timelineResolve();
+                                //             console.log(939, domMedia0, domMedia0.paused, domMedia0.duration, domMedia0.readyState)
+                                //             this.pauseVideo();
+                                //             await timelineResolve();
+                                //             this.playVideo();
+    
+                                //         }
+                                //         // this.mediaElement.pause();
+                                //         // this.mediaElement.play();
+                                //     }
+    
+                                // })();
+                            }
+                            if (media.__publishStatus17__ === 203 && audio && audio.readyState === 1) {
+    
+    
+                                media.__publishStatus17__ = 204;
+                            
+                                // await timelineResolve();
+                                // await player_.cancelPlayback();
+                                await this.pauseVideo();
+                                // this.playVideo();
+                                // await timelineResolve();
+                                // await player_.pauseVideo();
+                                await player_.playVideo();
+                                // await timelineResolve();
+                                await seekToLiveHeadForLiveStream();
+    
+    
+    
+                            }
+    
+    
+                            if (media.__publishStatus17__ < 300 && media.__publishStatus17__ >= 200 && a === 'videoelementevent' && b.type==='timeupdate' && !audio.paused && audio.readyState >= 4 && audio.duration > 0) {
+                                media.__publishStatus17__ = 300;
+                                if(!player_.isAtLiveHead()) await seekToLiveHeadForLiveStream();
+                            }
+    
+
+                        }
+
+
+                        publishStatus = media.__publishStatus17__;
+
+                        if (debugFlg001) console.log('gkps0 publish | ' + publishStatus, a, printObject(b))
+
+                    }
+                }
+                gkp.publish = function(a,b){
+
+                    this.publish33(a,b);
+                    
+                    return this.publish48.apply(this, arguments);
+                }
+
+                // console.log(23488)
+
+            })();
+
+        })();
+
+
     }
 
     const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? (await GM.getValue("isEnable_aWsjF", true)) : null;
@@ -2242,3 +3075,5 @@
 
 
 })();
+
+
