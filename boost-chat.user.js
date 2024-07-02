@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.44
+// @version             0.1.45
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -268,6 +268,12 @@ SOFTWARE.
     return null;
   }
 
+  const firstObjectKey = (obj) => {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+    }
+    return null;
+  }
 
   const flushPE = createPipeline();
 
@@ -1779,7 +1785,7 @@ SOFTWARE.
 
 
       try {
-        const fk = firstKey(badge) || '';
+        const fk = firstObjectKey(badge) || '';
         const ek = badge[fk];
 
         /**
@@ -3163,38 +3169,23 @@ SOFTWARE.
 
     }
 
-    const handleAddChatItemActionUpdate_ = async (wThis, aClientId, e, c) => {
-      const cnt = kRef(wThis);
-      if (!messageList) return;
-      const list = messageList.solidBuild();
-      let ok = false;
-      for (let j = list.length; --j >= 0;) {
-        const bObj = list[j];
-        if (bObj && (bObj.id === aClientId || bObj.id === e.id)) {
-          const dataMutable = mutableWM.get(bObj);
-          if (dataMutable && typeof dataMutable.bObjChange === 'function') {
-            cnt.visibleItems[j] = c;
-            dataMutable.bObjChange(e);
-            ok = true;
-            // console.log('bObjChange 02')
-            break;
-          }
+    const replaceObject = (dist, src)=>{
+      const flushItem = dist;
+      if (flushItem) {
+        for (const k of Object.keys(flushItem)) {
+          flushItem[k] = undefined
         }
+        Object.assign(flushItem, src);
+        return true;
       }
-      if (!ok) {
-        console.log('handleAddChatItemAction_ cannot find the existing for message replacement')
-        this.activeItems_.push(c);
-      }
-      await Promise.resolve();
-
-
+      return false;
     }
 
     cProto.handleAddChatItemAction_ = function (a) {
       // buggy
       let b = this
         , c = a.item
-        , fk = (firstKey(c) || '');
+        , fk = (firstObjectKey(c) || '');
       let e = c[fk]
         , replaceExistingItem = false;
 
@@ -3203,33 +3194,30 @@ SOFTWARE.
 
       // to be reviewed for performance issue // TODO
       this.forEachItem_(function (tag, p, idx) {
+        if (replaceExistingItem) return;
         const aObj = p[fk];
         if (aObj && (aObj.id === a.clientId || aObj.id === e.id)) {
           if ("visibleItems" === tag) {
             const uid = aObj.uid;
-            let directReplaced = false;
             if (uid) {
               const list = messageList.solidBuild();
               const bObj = list[idx];
               if (bObj && bObj.uid === aObj.uid) {
                 const dataMutable = mutableWM.get(bObj);
                 if (dataMutable && typeof dataMutable.bObjChange === 'function') {
-                  b.visibleItems[idx] = c;
-                  dataMutable.bObjChange(e);
-                  directReplaced = true;
-                  // console.log('bObjChange 01')
+                  if (replaceObject(p, c)) {
+                    dataMutable.bObjChange(e);
+                    replaceExistingItem = true; // to be added if not matched
+                    console.log('replaceObject(visibleItems)', p);
+                  }
                 }
               }
-              if (!directReplaced) {
-                const wThis = mWeakRef(this);
-                const aClientId = a.clientId;
-                flushPE(() => handleAddChatItemActionUpdate_(wThis, aClientId, e, c));
-              }
             }
-            replaceExistingItem = true; // to be added if not matched
           } else { // activeItems_
-            b.activeItems_[idx] = c;
-            replaceExistingItem = true;
+            if (replaceObject(p, c)) {
+              replaceExistingItem = true;
+              console.log('replaceObject(activeItems_)', p);
+            }
           }
 
         }
@@ -3447,6 +3435,12 @@ SOFTWARE.
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
+
+        // add activeItems_ to visibleItems
+
+        // activeItems_ -> clear -> add to visibleItems
+
+
         window.__bstFlush02__ = Date.now();
         const activeItems_ = this.activeItems_;
         let _addLen = activeItems_.length;
@@ -3488,7 +3482,6 @@ SOFTWARE.
         // const crCount = this.clearCount;
         // const pEmpty = this.isEmpty;
 
-        const appendStates = new Map();
 
         if (clearCount0 !== this.clearCount) return;
         if (this.isAttached !== true) return;
@@ -3496,19 +3489,12 @@ SOFTWARE.
 
         let rearrangedW = items.map(flushItem => {
 
-
-          const aKey = firstKey(flushItem);
+          const aKey = firstObjectKey(flushItem);
           const aObj = flushItem[aKey];
-          // console.log(9192, aKey,aObj);
 
           const uid = getUID(aObj);
-          if (flushKeys.has(uid)) {
-            appendStates.set(flushItem, 1);
-            return null;
-          }
+          if (flushKeys.has(uid)) return null;
           flushKeys.add(uid);
-
-          appendStates.set(flushItem, 2);
 
           return {
             flushItem,
@@ -3526,6 +3512,7 @@ SOFTWARE.
         if (clearCount0 !== this.clearCount) return;
         if (this.isAttached !== true) return;
 
+        const mapToFlushItem = new Map();
         // no filtering
         const rearrangedFn = entry => {
 
@@ -3744,6 +3731,8 @@ SOFTWARE.
           }
           mutableWM.set(bObj, mutable);
 
+          mapToFlushItem.set(bObj, flushItem);
+
 
           return bObj;
         };
@@ -3778,8 +3767,26 @@ SOFTWARE.
 
         let rJ = 0;
         let bObjX = null;
+
+        const removeFromActiveItems = (flushItem) => {
+          if (activeItems_.length > 0) {
+            const index = activeItems_.indexOf(flushItem);
+            if (index > -1) {
+              if (index >= 1) {
+                activeItems_.splice(index, 1);
+              } else {
+                activeItems_.shift();
+              }
+              return true;
+            }
+          }
+          return false;
+        }
+
         const loopFunc = (list) => {
+
           const bObj = bObjX;
+          const flushItem = mapToFlushItem.get(bObj);
           const n = list.length - maxItemsToDisplay + 1;
           if (n >= 1) {
             if (n > 1) {
@@ -3790,7 +3797,9 @@ SOFTWARE.
               list.shift();
             }
           }
+          removeFromActiveItems(flushItem);
           list.push(bObj);
+          visibleItems.push(flushItem);
           return list;
         }
 
@@ -3810,7 +3819,6 @@ SOFTWARE.
           bObjX = rearrangedFn(rearrangedW[j]);
           timelines.add(`${timeline.currentTime}|${tq}`);
           mloUz = rJ;
-
           ezPr = new PromiseExternal();
           messageList.solidBuildSet(loopFunc);
           if (ezPr) await ezPr.then();
@@ -3826,6 +3834,7 @@ SOFTWARE.
             mg++;
           }
         }
+        mapToFlushItem.clear();
         if (ezPr) await ezPr.then();
         rearrangedW.length = 0;
         rearrangedW = null;
@@ -3866,26 +3875,6 @@ SOFTWARE.
           if (nd > 20) console.log(`one-by-one = true <${nd}>; t=${t}(T=${T})`);
         }
 
-        let jx = visibleItems.length;
-        visibleItems.length = jx + nd;
-
-        // to be reviewed - sync with list
-        if (appendStates.size > 0) {
-          let c1 = 0;
-          let c2 = 0;
-          for (const item of activeItems_) {
-            const status = appendStates.get(item) || 0;
-            if (!status) break;
-            activeItems_[c1++] = null;
-            if (status === 2) {
-              visibleItems[jx + c2] = item;
-              c2++
-            }
-          }
-          c2 !== nd && (visibleItems.length = jx + c2);
-          c1 > 0 && activeItems_.splice(0, c1);
-          appendStates.clear();
-        }
 
         window.__bstFlush06__ = Date.now();
 
