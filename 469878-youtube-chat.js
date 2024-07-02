@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.65.0
+// @version             0.65.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7484,10 +7484,12 @@
                     const prevTime = map.get(mid);
                     const now = Date.now() - tt0;
                     map.removeSet(mid, now);
-                    if (prevTime) console.log(388, mid, now, prevTime)
+                    
                     if (prevTime > 0 && now - prevTime < 2400) {
-                      console.log('handleLiveChatAction Repeated Item', rendererItem.id, rendererItem);
+                      console.log('handleLiveChatAction Repeated Item OK', rendererItem.id, rendererItem);
                       return; // skip
+                    } else if (prevTime) {
+                      console.log('handleLiveChatAction Repeated Item NG', mid, now, prevTime, rendererItem.id, rendererItem);
                     }
                     // map.removeSet(mid, now);
                   }
