@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.47
+// @version             0.1.48
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3140,7 +3140,6 @@ SOFTWARE.
     }
 
     cProto.forEachItem_ = function (a) {
-      // buggy
       let status = 0;
       let i;
       try {
@@ -3155,12 +3154,9 @@ SOFTWARE.
           a.call(this, "activeItems_", t, i++);
         }
         status = 3;
-
       } catch (e) {
-
         console.error('forEachItem_', status, i, this.visibleItems.length, this.activeItems_.length)
         console.error(e)
-
       }
     }
 
@@ -3228,9 +3224,7 @@ SOFTWARE.
   }
 
     cProto.handleAddChatItemAction_ = function (a) {
-      // buggy
-      let b = this
-        , c = a.item
+      let c = a.item
         , fk = (firstObjectKey(c) || '');
       let e = c[fk]
         , replaceExistingItem = false;
@@ -3239,29 +3233,43 @@ SOFTWARE.
       if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
 
       // to be reviewed for performance issue // TODO
+      const aClientId = a.clientId || ''; // for user client request
+      const eId = e.id || ''; // for network content update
+      const replacementTo = [];　// expected number of entries - less than or equal to 1
+
       this.forEachItem_(function (tag, p, idx) {
-        if (replaceExistingItem) return;
-        const aObj = p[fk];
-        if (aObj && (aObj.id === a.clientId || aObj.id === e.id)) {
+        const aObjId = (p[fk] || 0).id || undefined;
+        if (aObjId === aClientId || aObjId === eId) {
+          replacementTo.push([tag, p, idx]);
+        }
+      });
+
+      if (replacementTo.length > 1) {
+        console.error('replacementTo.length > 1', replacementTo.slice(0));
+        // replacementTo.splice(0, replacementTo.length - 1);
+      }
+
+      if (replacementTo.length > 0) {
+
+        for (const entry of replacementTo) {
+          const [tag, p, idx] = entry;
+          // const aObj = p[fk];
+
           if ("visibleItems" === tag) {
-            const uid = aObj.uid;
-            if (uid) {
-              const list = messageList.solidBuild();
-              const bObj = list[idx];
-              if (bObj && bObj.uid === aObj.uid) {
-                const dataMutable = mutableWM.get(bObj);
-                if (dataMutable && typeof dataMutable.bObjChange === 'function') {
-                  // console.log(' ===== pV ====')
-                  // console.dir(prettyPrint(p))
-                  // console.log(' ===== cV ====')
-                  // console.dir(prettyPrint(c))
-                  if (replaceObject(p, c)) {
-                    
-                    dataMutable.bObjChange(e);
-                    replaceExistingItem = true; // to be added if not matched
-                    // console.log('replaceObject(visibleItems)', p);
-                  }
-                }
+
+            const list = messageList.solidBuild();
+            const bObj = list[idx];
+            const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
+
+            if (typeof dataMutable.bObjChange === 'function') {
+              // console.log(' ===== pV ====')
+              // console.dir(prettyPrint(p))
+              // console.log(' ===== cV ====')
+              // console.dir(prettyPrint(c))
+              if (replaceObject(p, c)) {
+                dataMutable.bObjChange(e);
+                replaceExistingItem = true; // to be added if not matched
+                // console.log('replaceObject(visibleItems)', p);
               }
             }
           } else { // activeItems_
@@ -3276,12 +3284,13 @@ SOFTWARE.
           }
 
         }
+        replacementTo.length = 0;
+      }
 
-      });
       const d = this.get("stickinessParams.dockAtTopDurationMs", a) || 0;
       if (d) {
         const k = messageList ? messageList.querySelector(`[message-id="${e.id}"]`) : null;
-        k ? this.maybeAddDockableMessage_(k) : this.itemIdToDockDurationMap[e.id] = d
+        k ? this.maybeAddDockableMessage_(k) : (this.itemIdToDockDurationMap[e.id] = d);
       }
       replaceExistingItem || this.activeItems_.push(c);
     }
@@ -3293,7 +3302,7 @@ SOFTWARE.
           this.handleLiveChatAction_(t);
         }
         // this.maybeResizeScrollContainer_(a);
-        this.flushActiveItems_();
+        if(this.activeItems_.length > 0) this.flushActiveItems_();
         // kw(function() {
         // b.maybeScrollToBottom_()
         // });
@@ -3572,7 +3581,7 @@ SOFTWARE.
         const rearrangedFn = entry => {
 
           const {
-            flushItem,
+            flushItem,  // flushItem is object so it content can be replaced since rearrangedW
             aKey, aObj, uid
           } = entry;
 
