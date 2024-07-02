@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Google Search External Link Cache Tooltip
+// @name         Google Search Go To Cache
 // @namespace    UserScript
-// @version      0.2
+// @version      0.2.0
 // @description  Show a tooltip with Google Cache link for external links in Google search results
 // @author       CY Fung
 // @license      MIT
@@ -11,6 +11,9 @@
 
 (function() {
     'use strict';
+
+    const filterRule = '#search a[href]'
+    const forceHTTPS = false;
 
 
     function isGoogleHost(hostname) {
@@ -45,7 +48,7 @@
     document.body.appendChild(tooltip);
 
     document.addEventListener('mouseenter', function(event) {
-        if (event.target.tagName === 'A' && event.target.href) {
+        if (event.target.tagName === 'A' && event.target.href && event.target.matches(filterRule)) {
             const link = event.target.href;
             const url = new URL(link);
             if (!isGoogleHost(url.hostname)) {
@@ -79,6 +82,8 @@ let cssAdded = false;
             
             .cache-tooltip{
                 opacity: 0.75;
+                user-select: none;
+                z-index: 999;
             }
             .cache-tooltip:hover {
                 opacity: 1;
@@ -88,8 +93,9 @@ let cssAdded = false;
             `
         }
 
-        const link = element.href;
-        const cacheLink = `https://webcache.googleusercontent.com/search?q=cache:${link}`;
+        let link = element.href;
+        if(forceHTTPS) link = link.replace(/^http\:\/\//, 'https://');
+        const cacheLink = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(link)}`;
 
         tooltip.dataset.cacheLink = cacheLink;
         const rect = element.getBoundingClientRect();
