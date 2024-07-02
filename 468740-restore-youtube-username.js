@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.0
+// @version             0.13.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -1683,9 +1683,9 @@ SOFTWARE.
 
         b = b && isDisplayAsHandle('@mr.memebear901');
         b = b && isDisplayAsHandle('@すいちゃん可愛い');
-        b = b && isDisplayAsHandle('@%E3%81%99%E3%81%84%E3%81%A1%E3%82%83%E3%82%93%E5%8F%AF%E6%84%9B%E3%81%84');
+        b = b && exactHandleUrl('/@%E3%81%99%E3%81%84%E3%81%A1%E3%82%83%E3%82%93%E5%8F%AF%E6%84%9B%E3%81%84');
         b = b && isDisplayAsHandle('@ハシビロ公');
-        b = b && isDisplayAsHandle('@%E3%83%8F%E3%82%B7%E3%83%93%E3%83%AD%E5%85%AC');
+        b = b && exactHandleUrl('/@%E3%83%8F%E3%82%B7%E3%83%93%E3%83%AD%E5%85%AC');
         b = b && isDisplayAsHandle('@ex1524')
         b = b && isDisplayAsHandle('@K88571')
 
