@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.13
+// @version     0.16.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -7278,14 +7278,18 @@
 
         let busy = false;
         const doIdomRender = function () {
+
+          // if(this.__dataEnabled === false || this.__dataReady === false || this.__dataInvalid === true) return;
+          if (!this) return;
+          if (this.is && (!this.hostElement || !this.isAttached)) return;
           if (busy) {
-            return this.doIdomRender13.apply(this, arguments);
+            return this.doIdomRender13(...arguments);
           }
           busy = true;
           const { requestAnimationFrame, setTimeout } = window;
           window.requestAnimationFrame = xrequestAnimationFrame;
           window.setTimeout = xsetTimeout;
-          let r = this.doIdomRender13.apply(this, arguments);
+          let r = this.doIdomRender13(...arguments);
           window.requestAnimationFrame = requestAnimationFrame;
           window.setTimeout = setTimeout;
           busy = false;
