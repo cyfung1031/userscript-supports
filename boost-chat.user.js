@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.48
+// @version             0.1.49
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -46,6 +46,8 @@ SOFTWARE.
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
   const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100;
+
+  const DEBUG_visibleItems_trace = false;
 
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
@@ -97,6 +99,305 @@ SOFTWARE.
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
+
+  class VisibleItemList extends Array {
+    constructor(targetListGet = null, targetListSet = null) {
+      if (targetListGet && targetListSet && typeof targetListGet === 'function' && typeof targetListSet === 'function') {
+        super();
+        this.setTargetList(targetListGet, targetListSet);
+        this.setBypass(false);
+      }
+      else {
+        super(...arguments);
+        this.setBypass(true);
+      }
+    }
+
+    get length() {
+      return super.length;
+    }
+    set length(n) {
+      if (this.bypass) {
+
+        super.length = n;
+      } else {
+
+        const targetListSet = kRef(this.targetListSet);
+
+        if (!targetListSet) {
+
+          console.error('targetList failure 0xFF01');
+        }
+        targetListSet(list => {
+          list.length = 0;
+          return list;
+        });
+        super.length = n;
+      }
+      return true;
+    }
+
+    setTargetList(targetListGet, targetListSet) {
+      this.targetListGet = targetListGet ? mWeakRef(targetListGet) : null;
+      this.targetListSet = targetListSet ? mWeakRef(targetListSet) : null;
+
+    }
+
+    setConvertorMap(convertorMap) {
+      this.convertorMap = convertorMap ? mWeakRef(convertorMap) : null;
+    }
+
+    setBypass(b) {
+      this.bypass = !!b;
+    }
+
+    reverse() {
+      console.error('reverse failure 0xFFC1');
+    }
+    flat() {
+      console.error('flat failure 0xFFC1');
+    }
+    flatMap() {
+      console.error('flatMap failure 0xFFC1');
+    }
+    fill() {
+      console.error('fill failure 0xFFC1');
+    }
+    sort() {
+      console.error('sort failure 0xFFC1');
+    }
+    toReversed() {
+      console.error('toReversed failure 0xFFC1');
+    }
+    toSorted() {
+      console.error('toSorted failure 0xFFC1');
+    }
+    toSpliced() {
+      console.error('toSpliced failure 0xFFC1');
+    }
+    with() {
+      console.error('with failure 0xFFC1');
+    }
+
+    push(...itemsX) {
+      if (this.bypass) return super.push(...itemsX);
+      const targetListSet = kRef(this.targetListSet);
+
+      if (!targetListSet) {
+
+        console.error('targetListSet failure 0xFF01');
+      }
+
+      if (itemsX.length >= 1) {
+        const convertorMap = kRef(this.convertorMap);
+        if (!convertorMap) {
+
+          console.error('convertorMap failure 0xFF01');
+        }
+        const itemsY = itemsX.map(x => convertorMap.get(x)).filter(y => !!y);
+        if (itemsY.length !== itemsX.length) {
+          console.error('convertorMap failure 0xFF02');
+        }
+        targetListSet(list => {
+          list.push(...itemsY);
+          return list;
+        });
+        return super.push(...itemsX);
+      } else {
+        targetListSet(list => {
+          list.push();
+          return list;
+        });
+        return super.push();
+      }
+
+    }
+
+    pop() {
+      if (this.bypass) return super.pop();
+      const targetListSet = kRef(this.targetListSet);
+
+      if (!targetListSet) {
+
+        console.error('targetListSet failure 0xFF01');
+      }
+      targetListSet(list => {
+        list.pop();
+        return list;
+      });
+      return super.pop();
+
+    }
+
+
+
+    unshift(...itemsX) {
+      if (this.bypass) return super.unshift(...itemsX);
+      const targetListSet = kRef(this.targetListSet);
+
+      if (!targetListSet) {
+
+        console.error('targetListSet failure 0xFF01');
+      }
+
+      if (itemsX.length >= 1) {
+        const convertorMap = kRef(this.convertorMap);
+        if (!convertorMap) {
+
+          console.error('convertorMap failure 0xFF01');
+        }
+        const itemsY = itemsX.map(x => convertorMap.get(x)).filter(y => !!y);
+        if (itemsY.length !== itemsX.length) {
+          console.error('convertorMap failure 0xFF02');
+        }
+        targetListSet(list => {
+          list.unshift(...itemsY);
+          return list;
+        });
+        return super.unshift(...itemsX);
+      } else {
+
+        targetListSet(list => {
+          list.unshift();
+          return list;
+        });
+        return super.unshift();
+      }
+
+
+    }
+
+    shift() {
+      if (this.bypass) return super.shift();
+      const targetListSet = kRef(this.targetListSet);
+
+      if (!targetListSet) {
+
+        console.error('targetListSet failure 0xFF01');
+      }
+
+      targetListSet(list => {
+        list.shift();
+        return list;
+      });
+      return super.shift();
+
+    }
+
+    splice(start, deleteCount = undefined, ...itemsX) {
+      if (this.bypass) return super.splice(start, deleteCount, ...itemsX);
+      const targetListSet = kRef(this.targetListSet);
+
+      if (!targetListSet) {
+
+        console.error('targetListSet failure 0xFF01');
+      }
+
+      if (itemsX.length >= 1) {
+        const convertorMap = kRef(this.convertorMap);
+        if (!convertorMap) {
+
+          console.error('convertorMap failure 0xFF01');
+        }
+        const itemsY = itemsX.map(x => convertorMap.get(x)).filter(y => !!y);
+        if (itemsY.length !== itemsX.length) {
+          console.error('convertorMap failure 0xFF02');
+        }
+        targetListSet(list => {
+          list.splice(start, deleteCount, ...itemsY);
+          return list;
+        });
+        return super.splice(start, deleteCount, ...itemsX);
+      } else {
+
+        targetListSet(list => {
+          list.splice(start, deleteCount);
+          return list;
+        });
+        return super.splice(start, deleteCount);
+      }
+
+
+    }
+
+
+
+
+
+  }
+
+  let mme = null;
+
+  function getCodeLocation() {
+    let p = new Error().stack;
+
+    if (p.includes('solid')) return 'solid';
+    if (p.includes('VisibleItemList.')) return 'solid';
+    let q = p.match(/Array\.\w+[^\n\r]+[\r\n]+([^\n\r]+)/)
+    q = q ? q[1] : p
+    return q;
+    // const callstack = new Error().stack.split("\n");
+    // callstack.shift();
+    // while (callstack.length && callstack[0].includes("-extension://")) {
+    //     callstack.shift();
+    // }
+    // if (!callstack.length) {
+    //     return "";
+    // }
+    // return '\n' + callstack[0].trim();
+  }
+
+  if (DEBUG_visibleItems_trace) {
+
+
+    Array.prototype.push32 = Array.prototype.push;
+    Array.prototype.push = function () {
+      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
+        console.log('399 push', new Error().stack)
+      }
+      return this.push32(...arguments)
+    }
+
+
+    Array.prototype.splice32 = Array.prototype.splice;
+    Array.prototype.splice = function () {
+      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
+        // 399 splice     at a.splice (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:2405:190)
+        console.log('399 splice', new Error().stack)
+
+      }
+      return this.splice32(...arguments)
+    }
+
+
+    Array.prototype.unshift32 = Array.prototype.unshift;
+    Array.prototype.unshift = function () {
+      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
+        console.log('399 unshift', new Error().stack)
+      }
+      return this.unshift32(...arguments)
+    }
+
+
+
+    Array.prototype.shift32 = Array.prototype.shift;
+    Array.prototype.shift = function () {
+      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
+        console.log('399 shift', new Error().stack)
+      }
+      return this.shift32(...arguments)
+    }
+
+    Array.prototype.pop32 = Array.prototype.pop;
+    Array.prototype.pop = function () {
+      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
+        console.log('399 pop', new Error().stack)
+      }
+      return this.pop32(...arguments)
+    }
+
+  }
+
 
   const { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild } = (() => {
     let _setAttribute = Element.prototype.setAttribute;
@@ -2588,6 +2889,7 @@ SOFTWARE.
     }
 
     cProto.computeIsEmpty_ = function () {
+      mme = this;
       return !(this.visibleItems?.length || 0);
     }
     cProto._flag0281_ = _flag0281_;
@@ -2596,7 +2898,6 @@ SOFTWARE.
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
       // if(!this.visibleItems__) this.visibleItems__ = [];
-
       ioMessageListCleanup();
 
       // this.visibleItemsCount = 0;
@@ -2673,6 +2974,8 @@ SOFTWARE.
       //   list: []
       //  }, { equals: false });
       const [solidBuild, solidBuildSet] = createSignal([], { equals: false });
+
+      this.setupVisibleItemsList(solidBuild, solidBuildSet);
 
       messageList.solidBuild = solidBuild;
       messageList.solidBuildSet = solidBuildSet;
@@ -3140,6 +3443,7 @@ SOFTWARE.
     }
 
     cProto.forEachItem_ = function (a) {
+      // mme = this
       let status = 0;
       let i;
       try {
@@ -3170,7 +3474,7 @@ SOFTWARE.
 
     }
 
-    const replaceObject = (dist, src)=>{
+    const replaceObject = (dist, src) => {
       const flushItem = dist;
       if (flushItem) {
         for (const k of Object.keys(flushItem)) {
@@ -3183,45 +3487,45 @@ SOFTWARE.
     }
     function prettyPrint(obj, indent = 2) {
       const cache = new Set();
-      
+
       function stringify(obj, level = 0) {
-          const indentStr = ' '.repeat(level * indent);
-          const nextIndentStr = ' '.repeat((level + 1) * indent);
-  
-          if (obj === null) return 'null';
-          if (typeof obj === 'undefined') return 'undefined';
-          if (typeof obj === 'string') return `"${obj}"`;
-          if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
-          if (typeof obj === 'function') return '[[ Function ]]';
-          if (typeof obj !== 'object') return String(obj);
-  
-          if (cache.has(obj)) {
-              return '[Circular]';
-          }
-          
-          if (obj instanceof Node) {
-              return `[[ ${obj.constructor.name} ]]`;
-          }
-  
-  
-          cache.add(obj);
-          const entries = Object.entries(obj);
-  
-          if (Array.isArray(obj)) {
-              const items = entries.map(([key, value]) => {
-                  return `${nextIndentStr}${stringify(value, level + 1)}`;
-              }).join(',\n');
-              return `[\n${items}\n${indentStr}]`;
-          } else {
-              const items = entries.map(([key, value]) => {
-                  return `${nextIndentStr}${key}: ${stringify(value, level + 1)}`;
-              }).join(',\n');
-              return `{\n${items}\n${indentStr}}`;
-          }
+        const indentStr = ' '.repeat(level * indent);
+        const nextIndentStr = ' '.repeat((level + 1) * indent);
+
+        if (obj === null) return 'null';
+        if (typeof obj === 'undefined') return 'undefined';
+        if (typeof obj === 'string') return `"${obj}"`;
+        if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+        if (typeof obj === 'function') return '[[ Function ]]';
+        if (typeof obj !== 'object') return String(obj);
+
+        if (cache.has(obj)) {
+          return '[Circular]';
+        }
+
+        if (obj instanceof Node) {
+          return `[[ ${obj.constructor.name} ]]`;
+        }
+
+
+        cache.add(obj);
+        const entries = Object.entries(obj);
+
+        if (Array.isArray(obj)) {
+          const items = entries.map(([key, value]) => {
+            return `${nextIndentStr}${stringify(value, level + 1)}`;
+          }).join(',\n');
+          return `[\n${items}\n${indentStr}]`;
+        } else {
+          const items = entries.map(([key, value]) => {
+            return `${nextIndentStr}${key}: ${stringify(value, level + 1)}`;
+          }).join(',\n');
+          return `{\n${items}\n${indentStr}}`;
+        }
       }
-  
+
       return stringify(obj);
-  }
+    }
 
     cProto.handleAddChatItemAction_ = function (a) {
       let c = a.item
@@ -3302,21 +3606,86 @@ SOFTWARE.
           this.handleLiveChatAction_(t);
         }
         // this.maybeResizeScrollContainer_(a);
-        if(this.activeItems_.length > 0) this.flushActiveItems_();
+        if (this.activeItems_.length > 0) this.flushActiveItems_();
         // kw(function() {
         // b.maybeScrollToBottom_()
         // });
       }
     }
 
+
+    if (!cProto.handleRemoveChatItemAction72_ && typeof cProto.handleRemoveChatItemAction_ === 'function' && cProto.handleRemoveChatItemAction_.length === 1) {
+
+      cProto.handleRemoveChatItemAction72_ = cProto.handleRemoveChatItemAction_;
+      cProto.handleRemoveChatItemAction_ = function (a) {
+        const aTargetItemId = a.targetItemId;
+        if (!aTargetItemId) return this.handleRemoveChatItemAction72_(a)
+        const entries = [];
+        this.forEachItem_(function (tag, p, idx) {
+          const k = p ? firstObjectKey(p) : null;
+          const aObj = k ? p[k] : null;
+          if (aObj && aObj.id === aTargetItemId) {
+            entries.push([tag, idx]);
+          }
+        });
+        if (entries.length >= 1) {
+          for (const entry of entries) {
+            const [tag, idx] = entry;
+            this.splice(tag, idx, 1);
+            if (tag === "visibleItems") this.resetSmoothScroll_();
+          }
+        }
+      }
+    }
+
+    /*
+
+
+399 splice Error
+at Array.splice (chrome-extension://fjkkdihifokoajcdnhdhmcdpifmkgeid/YouTube%20Boost%20Chat.user.js#204:136:31)
+at a.splice (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:2405:190)
+at e.<anonymous> (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:11638:148)
+at cProto.forEachItem_ (chrome-extension://fjkkdihifokoajcdnhdhmcdpifmkgeid/YouTube%20Boost%20Chat.user.js#204:3219:13)
+at f.handleRemoveChatItemAction_ (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:11638:59)
+at f.handleLiveChatAction_ (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:11627:29)
+at cProto.handleLiveChatActions_ (chrome-extension://fjkkdihifokoajcdnhdhmcdpifmkgeid/YouTube%20Boost%20Chat.user.js#204:3372:16)
+at https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:1216:63
+at https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:3173:62
+at Map.forEach (<anonymous>)
+
+f.handleRemoveChatItemAction_ = function(a) {
+    var b = this;
+    this.forEachItem_(function(c, d, e) {
+        var g = Object.keys(d)[0];
+        (d = d[g]) && d.id === a.targetItemId && (b.splice(c, e, 1),
+        c === "visibleItems" && b.resetSmoothScroll_())
+    })
+}
+
+
+*/
+
+    cProto.setupVisibleItemsList = function (solidBuild, solidBuildSet) {
+      if (this.visibleItems instanceof Array && !(this.visibleItems instanceof VisibleItemList)) {
+        const q = this.visibleItems;
+        const p = this.visibleItems.slice();
+        this.visibleItems = new VisibleItemList(solidBuild, solidBuildSet);
+        p.length >= 1 && inPlaceArrayPush(this.visibleItems, p);
+        p.length = 0;
+        q.length = 0;
+      }
+    }
     cProto.clearList = function () {
       if (!this.clearCount) this.clearCount = 1;
       this.clearCount++;
       if (this.clearCount > 1e9) this.clearCount = 9;
       if (this.activeItems_) this.activeItems_.length = 0;
       flushKeys.clear();
+      // this.setupVisibleItemsList();
       if (this.visibleItems && (this.visibleItems.length > 0)) {
+        if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = true;
         this.visibleItems.length = 0;
+        if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = false;
         if (messageList) {
           messageList.classList.remove('bst-listloaded');
           messageList.solidBuildSet(a => ((a.length = 0), a));
@@ -3504,6 +3873,8 @@ SOFTWARE.
 
         // activeItems_ -> clear -> add to visibleItems
 
+        // this.setupVisibleItemsList();
+
 
         window.__bstFlush02__ = Date.now();
         const activeItems_ = this.activeItems_;
@@ -3521,7 +3892,9 @@ SOFTWARE.
         } else {
           if (_addLen > maxItemsToDisplay) {
             if (this.visibleItems && (this.visibleItems.length > 0)) {
+              if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = true;
               this.visibleItems.length = 0;
+              if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = false;
               if (messageList) {
                 messageList.solidBuildSet(a => ((a.length = 0), a));
               }
@@ -3538,9 +3911,26 @@ SOFTWARE.
         _flushed = 1;
         const items = activeItems_.slice(0);
 
+        {
 
 
 
+          const pp = this.visibleItems.map(e => Object.values(e)[0].id);
+          const fp = pp.filter(e => typeof (e || 0) === 'string')
+
+          const cp = fp.filter(e => {
+            let idx1 = fp.indexOf(e);
+            if (idx1 >= 0) {
+              return fp.indexOf(e, idx1 + 1) < 0;
+            }
+            return false;
+          });
+          if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
+
+            console.log(992, pp.length, fp.length, cp.length)
+          }
+
+        }
         //  console.log(9192, 299, items);
         // activeItems_.length = 0;
         // const crCount = this.clearCount;
@@ -3551,14 +3941,24 @@ SOFTWARE.
         if (this.isAttached !== true) return;
         if (items.length === 0) return;
 
+        let existing = new Set();
+        for (const entry of this.visibleItems) {
+          let k = firstObjectKey(entry);
+          let p = entry[k];
+          existing.add(p.id);
+        }
+
         let rearrangedW = items.map(flushItem => {
 
           const aKey = firstObjectKey(flushItem);
           const aObj = flushItem[aKey];
 
+          const id = aObj.id
           const uid = getUID(aObj);
-          if (flushKeys.has(uid)) return null;
-          flushKeys.add(uid);
+          if (existing.has(id)) return null;
+          existing.add(id);
+          // if (flushKeys.has(uid)) return null;
+          // flushKeys.add(uid);
 
           return {
             flushItem,
@@ -3566,6 +3966,7 @@ SOFTWARE.
           };
 
         }).filter(e => !!e);
+        existing.clear();
 
         const nd = rearrangedW.length;
         if (nd === 0) return;
@@ -3584,6 +3985,7 @@ SOFTWARE.
             flushItem,  // flushItem is object so it content can be replaced since rearrangedW
             aKey, aObj, uid
           } = entry;
+          // flushKeys.removeAdd(uid);
 
           convertAObj(aObj, aKey);
 
@@ -3852,6 +4254,7 @@ SOFTWARE.
           const bObj = bObjX;
           const flushItem = mapToFlushItem.get(bObj);
           const n = list.length - maxItemsToDisplay + 1;
+          visibleItems.setBypass(true);
           if (n >= 1) {
             if (n > 1) {
               visibleItems.splice(0, n);
@@ -3864,6 +4267,7 @@ SOFTWARE.
           removeFromActiveItems(flushItem);
           list.push(bObj);
           visibleItems.push(flushItem);
+          visibleItems.setBypass(false);
           return list;
         }
 
@@ -3878,7 +4282,10 @@ SOFTWARE.
         ezPr = null;
         let listChangeCount = 0;
         for (; rJ < nd; rJ++) {
-          if (clearCount0 !== this.clearCount || this.isAttached !== true) break;
+          if (clearCount0 !== this.clearCount || this.isAttached !== true) {
+            flushKeys.clear();
+            break;
+          }
           const j = rJ;
           bObjX = rearrangedFn(rearrangedW[j]);
           timelines.add(`${timeline.currentTime}|${tq}`);
@@ -3939,6 +4346,23 @@ SOFTWARE.
           if (nd > 20) console.log(`one-by-one = true <${nd}>; t=${t}(T=${T})`);
         }
 
+        {
+
+          const pp = this.visibleItems.map(e => Object.values(e)[0].id);
+          const fp = pp.filter(e => typeof (e || 0) === 'string')
+
+          const cp = fp.filter(e => {
+            let idx1 = fp.indexOf(e);
+            if (idx1 >= 0) {
+              return fp.indexOf(e, idx1 + 1) < 0;
+            }
+            return false;
+          });
+          if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
+
+            console.log(993, pp.length, fp.length, cp.length)
+          }
+        }
 
         window.__bstFlush06__ = Date.now();
 
