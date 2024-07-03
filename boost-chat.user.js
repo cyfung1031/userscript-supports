@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.49
+// @version             0.1.50
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3548,12 +3548,13 @@ SOFTWARE.
         }
       });
 
-      if (replacementTo.length > 1) {
-        console.error('replacementTo.length > 1', replacementTo.slice(0));
-        // replacementTo.splice(0, replacementTo.length - 1);
-      }
 
       if (replacementTo.length > 0) {
+
+        if (replacementTo.length > 1) {
+          console.error('replacementTo.length > 1', replacementTo.slice(0));
+          // replacementTo.splice(0, replacementTo.length - 1);
+        }
 
         for (const entry of replacementTo) {
           const [tag, p, idx] = entry;
@@ -3629,6 +3630,7 @@ SOFTWARE.
           }
         });
         if (entries.length >= 1) {
+          if (entries.length > 1) console.warn('entries.length >= 1');
           for (const entry of entries) {
             const [tag, idx] = entry;
             this.splice(tag, idx, 1);
@@ -3638,8 +3640,69 @@ SOFTWARE.
       }
     }
 
+    if (!cProto.handleReplaceChatItemAction72_ && typeof cProto.handleReplaceChatItemAction_ === 'function' && cProto.handleReplaceChatItemAction_.length === 1) {
+      cProto.handleReplaceChatItemAction72_ = cProto.handleReplaceChatItemAction_;
+      cProto.handleReplaceChatItemAction_ = function (a) {
+
+
+        const aTargetItemId = a.targetItemId;
+        const aReplacementItem = a.replacementItem;
+        if (!aTargetItemId || !aReplacementItem) return this.handleReplaceChatItemAction72_(a)
+        const itemKey = firstObjectKey(aReplacementItem);
+        const rendererItem = itemKey ? aReplacementItem[itemKey] : null;
+        if (!rendererItem) return this.handleReplaceChatItemAction72_(a)
+        const entries = [];
+        this.forEachItem_(function (tag, p, idx) {
+          const k = p ? firstObjectKey(p) : null;
+          const aObj = k ? p[k] : null;
+          if (aObj && aObj.id === aTargetItemId) {
+            entries.push([tag, p, idx]);
+          }
+        });
+        if (entries.length >= 1) {
+          if (entries.length > 1) console.warn('entries.length >= 1');
+          for (const entry of entries) {
+            const [tag, p, idx] = entry;
+            if (tag === "visibleItems") {
+              // this.splice(tag, idx, 1, aReplacementItem)
+              const list = messageList.solidBuild();
+              const bObj = list[idx];
+              const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
+
+              if (typeof dataMutable.bObjChange === 'function') {
+                if (replaceObject(p, aReplacementItem)) {
+                  dataMutable.bObjChange(rendererItem);
+                  // replaceExistingItem = true; 
+
+                  this.resetSmoothScroll_();
+                }
+              }
+
+            } else {
+              // this.activeItems_[idx] = aReplacementItem;
+              if (replaceObject(p, aReplacementItem)) {
+                // replaceExistingItem = true; 
+              }
+            }
+          }
+        }
+
+      }
+
+
+    }
+
     /*
 
+        f.handleReplaceChatItemAction_ = function(a) {
+        var b = this
+          , c = a.replacementItem;
+        this.forEachItem_(function(d, e, g) {
+            var k = Object.keys(e)[0];
+            (e = e[k]) && e.id === a.targetItemId && (d === "visibleItems" ? (b.splice(d, g, 1, c),
+            b.resetSmoothScroll_()) : b.activeItems_[g] = c)
+        })
+    }
 
 399 splice Error
 at Array.splice (chrome-extension://fjkkdihifokoajcdnhdhmcdpifmkgeid/YouTube%20Boost%20Chat.user.js#204:136:31)
@@ -3915,7 +3978,11 @@ f.handleRemoveChatItemAction_ = function(a) {
 
 
 
-          const pp = this.visibleItems.map(e => Object.values(e)[0].id);
+          const pp = this.visibleItems.map(e => {
+            if (!e) return null;
+            if (typeof e === 'object') e = Object.values(e)[0] || 0;
+            return e.id || null;
+          });
           const fp = pp.filter(e => typeof (e || 0) === 'string')
 
           const cp = fp.filter(e => {
@@ -4348,7 +4415,11 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         {
 
-          const pp = this.visibleItems.map(e => Object.values(e)[0].id);
+          const pp = this.visibleItems.map(e => {
+            if (!e) return null;
+            if (typeof e === 'object') e = Object.values(e)[0] || 0;
+            return e.id || null;
+          });
           const fp = pp.filter(e => typeof (e || 0) === 'string')
 
           const cp = fp.filter(e => {
