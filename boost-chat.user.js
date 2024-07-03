@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.50
+// @version             0.1.51
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4010,15 +4010,16 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         let existing = new Set();
         for (const entry of this.visibleItems) {
-          let k = firstObjectKey(entry);
-          let p = entry[k];
-          existing.add(p.id);
+          let k = entry ? firstObjectKey(entry) : null;
+          let p = k ? entry[k] : null;
+          p && p.id && existing.add(p.id);
         }
 
         let rearrangedW = items.map(flushItem => {
 
-          const aKey = firstObjectKey(flushItem);
-          const aObj = flushItem[aKey];
+          const aKey = flushItem ? firstObjectKey(flushItem) : null;
+          const aObj = aKey ? flushItem[aKey] : null;
+          if (!aObj) return null;
 
           const id = aObj.id
           const uid = getUID(aObj);
