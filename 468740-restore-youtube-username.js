@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.1
+// @version             0.13.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -1295,12 +1295,12 @@ SOFTWARE.
 
         - After: Uses alphabet letters or numbers from one of our 75 supported languages
             - Your handle can also include: underscores (_), hyphens (-), periods (.), Latin middle dots (·).
-            - Mixed scripts are only allowed in certain circumstances. 
+            - Mixed scripts are only allowed in certain circumstances.
             - Left-to-right scripts cannot be mixed with right-to-left scripts in a single handle except when numbers are added to the end of the handle.
 
 
 
-        
+
      *
      * @param {string} text
      * @returns
@@ -1473,6 +1473,7 @@ SOFTWARE.
     }
 
     const handleTextAllowSymbols = new Set('_-.·'.split('').map(e => e.codePointAt()));
+    const blacklistChars = new Set('@;:"\'!$#%^&*()[]<>,?/\\+{}|~`!'.split('').map(e => e.codePointAt()));
 
     const _cache_isExactHandleText = new Map();
     const isExactHandleText = (text, i = 0) => {
@@ -1501,6 +1502,7 @@ SOFTWARE.
             cp = text.codePointAt(i);
             if (!cp) break;
             if (!handleTextAllowSymbols.has(cp)) {
+                if (blacklistChars.has(cp)) return retFn(false);
                 const uRange = getPossibleLanguages(cp);
                 uRanges.add(uRange);
                 uchars.push(cp);
@@ -1542,6 +1544,8 @@ SOFTWARE.
         let dd = Object.entries(mm).filter(a => a[1] === mi);
         if (dd.length === 1) {
             unilang = dd[0];
+        } else if (dd.length === 3 && dd[0][0] === 'Arabic' && dd[1][0] === 'Persian' && dd[2][0] === 'Urdu') {
+            return retFn("Arabic");
         }
 
         if (unilang[0] === "Japanese") {
@@ -1688,6 +1692,8 @@ SOFTWARE.
         b = b && exactHandleUrl('/@%E3%83%8F%E3%82%B7%E3%83%93%E3%83%AD%E5%85%AC');
         b = b && isDisplayAsHandle('@ex1524')
         b = b && isDisplayAsHandle('@K88571')
+        b = b && isDisplayAsHandle('@مجلةالرابالعربي')
+        b = b && !isDisplayAsHandle('@@مجلةالرابالعربي')
 
 
         if (!b) console.error('!!!! wrong coding !!!!');
@@ -1737,8 +1743,8 @@ SOFTWARE.
 
     const dynamicEditableTextByControllerResolve = isMobile ? 0 : (() => {
         /**
-         * 
-         * 
+         *
+         *
             f.showReplyDialog = function(a) {
                 if (a) {
                     var b = this.replyBox;
@@ -1792,7 +1798,7 @@ SOFTWARE.
             }
 
 
-        * 
+        *
         */
 
 
