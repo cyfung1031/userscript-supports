@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.14
+// @version     0.16.15
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -7279,9 +7279,7 @@
         let busy = false;
         const doIdomRender = function () {
 
-          // if(this.__dataEnabled === false || this.__dataReady === false || this.__dataInvalid === true) return;
           if (!this) return;
-          if (this.is && (!this.hostElement || !this.isAttached)) return;
           if (busy) {
             return this.doIdomRender13(...arguments);
           }
