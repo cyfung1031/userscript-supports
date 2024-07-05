@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.25
+// @version      3.26
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -20,45 +20,6 @@
 
     const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
 
-    const { _setAttribute } = (() => {
-        let _setAttribute = Element.prototype.setAttribute;
-        try {
-            _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
-        } catch (e) { }
-        return { _setAttribute };
-    })();
-
-    const getDMPromise = (() => {
-
-        const attrName = `dm-${Date.now()}-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-        let val = 0;
-
-        let _dmPromise = null;
-        const getDMPromise_ = async (chatframe) => {
-            /** @type {MutationObserver | null} */
-            let mo;
-            await new Promise(resolve => {
-                mo = new MutationObserver(resolve);
-                mo.observe(chatframe, { attributes: true });
-                _setAttribute.call(chatframe, attrName, ++val);
-            });
-            if (mo) {
-                mo.disconnect()
-                mo.takeRecords()
-                mo = null
-            }
-        }
-
-        const getDMPromise = (chatframe) => {
-            return (_dmPromise || (_dmPromise = getDMPromise_(chatframe).then(() => {
-                _dmPromise = null;
-            }).catch(console.warn)));
-        };
-
-        return getDMPromise;
-
-    })();
-
     (async () => {
         'use strict';
 
@@ -71,7 +32,7 @@
         const cnt = insp(chat);
         const cProto = cnt.constructor.prototype || 0;
 
-        if (typeof cProto.urlChanged === 'function' && !cProto.urlChanged66 && !cProto.urlChangedAsync12) {
+        if (typeof cProto.urlChanged === 'function' && !cProto.urlChanged66 && !cProto.urlChangedAsync12 && cProto.urlChanged.length === 0) {
             cProto.urlChanged66 = cProto.urlChanged;
             let ath = 0;
             cProto.urlChangedAsync12 = async function () {
@@ -81,7 +42,9 @@
                 if (chatframe) {
                     if (chatframe.contentDocument === null) await Promise.resolve();
                     if (t !== ath) return;
-                    await getDMPromise(chatframe); // next macroTask
+                    let win = chatframe.contentWindow;
+                    win && await new Promise(r => win.setTimeout(r));
+                    win = null;
                     if (t !== ath) return;
                 }
                 this.urlChanged66();
