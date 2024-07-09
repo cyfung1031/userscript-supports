@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.15
+// @version     0.16.16
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -99,6 +99,7 @@
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
   const FIX_removeChild = true;
+  const FIX_fix_requestIdleCallback_timing = true;
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -3652,6 +3653,17 @@
       window.addEventListener("DOMContentLoaded", resolve, false);
     }
   });
+
+  if (FIX_fix_requestIdleCallback_timing && !window.requestIdleCallback471 && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback471 = window.requestIdleCallback;
+    window.requestIdleCallback = function (f, ...args) {
+      return (this || window).requestIdleCallback471(async function () {
+        await pLoad.then();
+        f.call(this, ...arguments)
+      }, ...args);
+    }
+  }
+
   pLoad.then(() => {
 
     let nonce = document.querySelector('style[nonce]');
