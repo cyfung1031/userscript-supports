@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.6
+// @version     1.6.7
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -22,7 +22,7 @@
   // Purpose 3: Enable Flags bring performance boost
 
   const DISABLE_CINEMATICS = false; // standard design
-  const NO_SerializedExperiment = true;
+  const NO_SerializedExperiment = false;
   const KEEP_PLAYER_QUALITY_STICKY = true; // see https://greasyfork.org/scripts/471033/
   const DISABLE_serializedExperimentIds = true;
   const DISABLE_serializedExperimentFlags = true;
