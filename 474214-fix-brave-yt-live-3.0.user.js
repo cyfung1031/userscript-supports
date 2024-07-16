@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.26
+// @version      3.27
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -42,9 +42,11 @@
                 if (chatframe) {
                     if (chatframe.contentDocument === null) await Promise.resolve();
                     if (t !== ath) return;
-                    let win = chatframe.contentWindow;
-                    win && await new Promise(r => win.setTimeout(r));
-                    win = null;
+                    try {
+                        let win = chatframe.contentWindow;
+                        win && await (new Promise(r => win.setTimeout(r)).catch(console.warn));
+                        win = null;
+                    } catch (e) { }
                     if (t !== ath) return;
                 }
                 this.urlChanged66();
