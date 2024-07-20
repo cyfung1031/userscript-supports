@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.51
+// @version             0.1.52
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2912,6 +2912,17 @@ SOFTWARE.
 
       fragmentAppendChild.call(fragment, noscript);
       fragmentAppendChild.call(fragment, bstMain);
+      const dummyItems = document.createElement('div');
+      dummyItems.id = 'items';
+      dummyItems.style.display = 'none';
+      
+      const dummyItemOffset = document.createElement('div');
+      dummyItemOffset.id = 'item-offset';
+      dummyItemOffset.style.display = 'none';
+      appendChild.call(dummyItemOffset, dummyItems);
+      
+
+      fragmentAppendChild.call(fragment, dummyItemOffset);
 
       replaceWith.call(targetElement, fragment);
       sharedNoscript = noscript;
