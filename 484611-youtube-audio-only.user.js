@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.8.0
+// @version             1.8.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -26,6 +26,79 @@
 
 (async function () {
     'use strict';
+
+      !window.TTP && (() => {
+        // credit to Benjamin Philipp
+        // original source: https://greasyfork.org/en/scripts/433051-trusted-types-helper
+      
+        // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
+      
+        const overwrite_default = false; // If a default policy already exists, it might be best not to overwrite it, but to try and set a custom policy and use it to manually generate trusted types. Try at your own risk
+        const prefix = `TTP`;
+        var passThroughFunc = function (string, sink) {
+          return string; // Anything passing through this function will be returned without change
+        }
+        var TTPName = "passthrough";
+        var TTP_default, TTP = { createHTML: passThroughFunc, createScript: passThroughFunc, createScriptURL: passThroughFunc }; // We can use TTP.createHTML for all our assignments even if we don't need or even have Trusted Types; this should make fallbacks and polyfills easy
+        var needsTrustedHTML = false;
+        function doit() {
+          try {
+            if (typeof window.isSecureContext !== 'undefined' && window.isSecureContext) {
+              if (window.trustedTypes && window.trustedTypes.createPolicy) {
+                needsTrustedHTML = true;
+                if (trustedTypes.defaultPolicy) {
+                  log("TT Default Policy exists");
+                  if (overwrite_default)
+                    TTP = window.trustedTypes.createPolicy("default", TTP);
+                  else
+                    TTP = window.trustedTypes.createPolicy(TTPName, TTP); // Is the default policy permissive enough? If it already exists, best not to overwrite it
+                  TTP_default = trustedTypes.defaultPolicy;
+      
+                  log("Created custom passthrough policy, in case the default policy is too restrictive: Use Policy '" + TTPName + "' in var 'TTP':", TTP);
+                }
+                else {
+                  TTP_default = TTP = window.trustedTypes.createPolicy("default", TTP);
+                }
+                log("Trusted-Type Policies: TTP:", TTP, "TTP_default:", TTP_default);
+              }
+            }
+          } catch (e) {
+            log(e);
+          }
+        }
+      
+        function log(...args) {
+          if ("undefined" != typeof (prefix) && !!prefix)
+            args = [prefix + ":", ...args];
+          if ("undefined" != typeof (debugging) && !!debugging)
+            args = [...args, new Error().stack.replace(/^\s*(Error|Stack trace):?\n/gi, "").replace(/^([^\n]*\n)/, "\n")];
+          console.log(...args);
+        }
+      
+        doit();
+      
+        // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
+      
+        window.TTP = TTP;
+      
+      })();
+      
+      function createHTML(s) {
+        if (typeof TTP !== 'undefined' && typeof TTP.createHTML === 'function') return TTP.createHTML(s);
+        return s;
+      }
+      
+      let trustHTMLErr = null;
+      try {
+        document.createElement('div').innerHTML = createHTML('1');
+      } catch (e) {
+        trustHTMLErr = e;
+      }
+      
+      if (trustHTMLErr) {
+        console.log(`trustHTMLErr`, trustHTMLErr);
+        trustHTMLErr(); // exit userscript
+      }
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -53,7 +126,7 @@
         `;
 
             // Append the dialog to the document body
-            document.body.insertAdjacentHTML('beforeend', dialogHTML);
+            document.body.insertAdjacentHTML('beforeend', createHTML(dialogHTML));
             dialog = document.getElementById('confirmDialog794');
 
         }
@@ -2787,7 +2860,7 @@
     if (typeof isEnable !== 'boolean') throw new DOMException("Please Update your browser", "NotSupportedError");
     if (isEnable) {
         const element = document.createElement('button');
-        element.setAttribute('onclick', `(${pageInjectionCode})()`);
+        element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
         element.click();
     }
 
