@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.12
+// @version             0.1.13
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -124,7 +124,7 @@
         `;
 
             // Append the dialog to the document body
-            document.body.insertAdjacentHTML('beforeend', dialogHTML);
+            document.body.insertAdjacentHTML('beforeend', createHTML(dialogHTML));
             dialog = document.getElementById('confirmDialog794');
 
         }
@@ -971,7 +971,7 @@
     if (typeof isEnable !== 'boolean') throw new DOMException("Please Update your browser", "NotSupportedError");
     if (isEnable) {
         const element = document.createElement('button');
-        element.setAttribute('onclick', `(${pageInjectionCode})()`);
+        element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
         element.click();
     }
 
