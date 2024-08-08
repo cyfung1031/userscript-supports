@@ -263,7 +263,7 @@ SOFTWARE.
         if (!controlsInitialized) {
             controlsInitialized = true;
 
-            let pb = document.querySelector('.player-controls-pb .ytm-progress-bar')
+            let pb = document.querySelector('.player-controls-content .YtmProgressBarProgressBar')
 
             if (!pb) {
                 console.log("'.player-controls-pb .ytm-progress-bar' cannot be found");
