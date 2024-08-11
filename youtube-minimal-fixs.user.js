@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.0
+// @version      0.7.1
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -259,22 +259,31 @@ SOFTWARE.
 
     function uiSetup(elm) {
 
+        if (!elm) return;
+
 
         if (!controlsInitialized) {
             controlsInitialized = true;
 
-            let pb = document.querySelector('.player-controls-content .YtmProgressBarProgressBar')
+            const isProgressBarExist = document.querySelector('[role="slider"], yt-progress-bar, ytm-progress-bar, .yt-progress-bar, .ytm-progress-bar, .YtmProgressBarProgressBar, .watch-page-progress-bar')
 
-            if (!pb) {
-                console.log("'.player-controls-pb .ytm-progress-bar' cannot be found");
-            } else {
+            // (( pb element to be reviewed. ))
 
-                pb.addEventListener('mouseup', eventHandlers.pbMouseUp, true)
+            if (isProgressBarExist) {
+
+                // let pb = document.querySelector('.player-controls-pb .ytm-progress-bar')
+
+                // if (!pb) {
+                //     console.log("'.player-controls-pb .ytm-progress-bar' cannot be found");
+                // } else {
+
+                //     pb.addEventListener('mouseup', eventHandlers.pbMouseUp, true)
 
                 elm.addEventListener('click', eventHandlers.backDropClick, true)
 
                 document.addEventListener('keydown', eventHandlers.docKeyDown, true)
 
+                // }
             }
 
         }
