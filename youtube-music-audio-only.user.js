@@ -2,7 +2,7 @@
 // @name                YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.13
+// @version             0.1.14
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -319,7 +319,7 @@
 
         };
 
-        if (!Object.defineProperty322) {
+        if (!Object.defineProperty322 && typeof Object.defineProperty === 'function' && Object.defineProperty.length === 3) {
             // _definePropertyAccessor
             Object.defineProperty322 = Object.defineProperty;
             const st = new Set(
@@ -328,18 +328,22 @@
                     'playbackMode', 'selectedItemHasVideo'
                 ]
             );
-            Object.defineProperty = function (o, k, t) {
-                if (typeof o.is === 'string') {
-                    if (!('configurable' in t) && typeof t.get === 'function' && typeof t.set === 'function') {
-                        t.configurable = true;
-                        if (st.has(k)) {
-                            t.set = function (e) {
-                                this._setPendingProperty(k, e, !0) && this._invalidateProperties()
+            const defineProperty322 = Object.defineProperty322;
+            if (defineProperty322) {
+
+                Object.defineProperty = function (o, k, t) {
+                    if (typeof o.is === 'string') {
+                        if (!('configurable' in t) && typeof t.get === 'function' && typeof t.set === 'function') {
+                            t.configurable = true;
+                            if (st.has(k)) {
+                                t.set = function (e) {
+                                    this._setPendingProperty(k, e, !0) && this._invalidateProperties()
+                                }
                             }
                         }
                     }
+                    return defineProperty322(o, k, t);
                 }
-                return this.defineProperty322(o, k, t);
             }
         }
 
