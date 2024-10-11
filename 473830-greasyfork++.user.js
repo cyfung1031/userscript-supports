@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.49
+// @version            3.2.50
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -2164,6 +2164,7 @@ const mWindow = (() => {
                             // let ethicalads497 = 'ethicalads' in window ? window.ethicalads : undefined;
                             // window.ethicalads = { wait: new Promise() }
                             document.dispatchEvent(new Event("DOMContentLoaded"));
+                            document.documentElement.dispatchEvent(new Event("turbo:load"));
                             // if (ethicalads497 === undefined) delete window.ethicalads; else window.ethicalads = ethicalads497;
                         }
                     })
