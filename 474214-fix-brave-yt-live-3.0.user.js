@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.27
+// @version      3.28
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -52,7 +52,11 @@
                 this.urlChanged66();
             }
             cProto.urlChanged = function () {
-                this.urlChangedAsync12();
+                if (document.visibilityState === 'hidden') {
+                  this.urlChanged66();
+                } else {
+                  this.urlChangedAsync12();
+                }
             }
         }
 
