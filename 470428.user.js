@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.7
+// @version     1.6.8
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -887,6 +887,9 @@
       // Tabview Youtube - multiline transcript
       'enable_mixed_direction_formatted_strings',
 
+      // Notification Menu
+      "kevlar_service_command_check",
+
       'enable_unknown_lact_fix_on_html5',
 
 
@@ -999,7 +1002,10 @@
       'desktop_delay_player_resizing',
 
 
-    ];
+    ].concat(
+      [
+      ]
+    );
 
 
     const s = new Set(BY_PASS);
@@ -1026,8 +1032,101 @@
 
     cachedSet = cachedSet || cachedSetFn({ use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach, no_autoplay_toggle });
 
+    const mps = [];
+
+    setTimeout(async () => {
+
+      if (!mps.length) return;
+      let ezz = new Set();
+      let e1 = 999;
+      let e2 = -999;
+      for (const mp of mps) {
+        for (const k of mp) {
+          ezz.add(k);
+          const kl = k.length;
+          if (kl < e1) e1 = kl;
+          if (kl > e2) e2 = kl;
+        }
+      }
+      mps.length = 0;
+
+      if (!ezz.size) return;
+
+      await new Promise(r => window.setTimeout(r, 1));
+      let qt = Date.now();
+
+      console.log('EXPERIMENT_FLAGS', [e1, e2, ezz.size]);
+
+      let mf = false;
+      const obj = JSON.parse(localStorage['bpghn01'] || '{}');
+      for (const e of ezz) {
+        if (obj[e]) continue;
+        obj[e] = qt;
+        mf = true;
+      }
+      if (mf) {
+
+        localStorage['bpghn01'] = JSON.stringify(obj);
+      }
+
+      // await new Promise(r => window.setTimeout(r, 1));
+
+      const getEFT = function (after, offset) {
+
+
+        after = typeof after === 'string' ? new Date(after) : after;
+        let afterValue = +after;
+
+
+        let arr = Object.entries(obj).map(e => {
+          return { key: e[0], date: e[1], len: e[0].length };
+        }).sort((a, b) => {
+          return a.date < b.date ? 1 : a.date > b.date ? -1 : a.len < b.len ? 1 : a.len > b.len ? -1 : `${a.key}`.localeCompare(`${b.key}`);
+        });
+
+        if (afterValue > 0) {
+          arr = arr.filter(e => {
+            return e.date >= afterValue + offset;
+          })
+        }
+
+        return [arr, after, afterValue];
+
+      }
+
+      window.log_EXPERIMENT_FLAGS_Tamer = function (after, toString) {
+
+        let [arr, after_, afterValue] = getEFT(after, -86400000);
+
+        const r = {
+          "!log": arr,
+          after: afterValue > 0 ? new Date(afterValue) : null
+        };
+        console.log("log_EXPERIMENT_FLAGS_Tamer", toString ? JSON.stringify(r) : r);
+
+      }
+
+      window.kl_EXPERIMENT_FLAGS_Tamer = function (after, kl) {
+
+
+        let [arr, after_, afterValue] = getEFT(after, -86400000);
+
+        arr = arr.filter(e => {
+          return e.len === kl
+        });
+
+        return arr.map(e => e.key).join('|')
+
+
+      }
+
+
+    }, 800);
+
     // I don't know why it requires to be extracted function.
     const mex = (EXPERIMENT_FLAGS, mzFlagDetected, fEntries) => {
+
+      let ezz = new Set();
 
       for (const [key, value] of fEntries) {
 
@@ -1076,10 +1175,15 @@
 
           }
 
+          ezz.add(key);
+
           // console.log(key)
           EXPERIMENT_FLAGS[key] = false;
         }
       }
+
+      mps.push(ezz);
+      ezz = null;
     }
 
     const mey = (EXPERIMENT_FLAGS, mzFlagDetected) => {
