@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.8
+// @version     1.6.9
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -1058,7 +1058,7 @@
       console.log('EXPERIMENT_FLAGS', [e1, e2, ezz.size]);
 
       let mf = false;
-      const obj = JSON.parse(localStorage['bpghn01'] || '{}');
+      const obj = JSON.parse(localStorage['bpghn02'] || '{}');
       for (const e of ezz) {
         if (obj[e]) continue;
         obj[e] = qt;
@@ -1066,7 +1066,7 @@
       }
       if (mf) {
 
-        localStorage['bpghn01'] = JSON.stringify(obj);
+        localStorage['bpghn02'] = JSON.stringify(obj);
       }
 
       // await new Promise(r => window.setTimeout(r, 1));
