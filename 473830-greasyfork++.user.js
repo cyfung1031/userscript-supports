@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.51
+// @version            3.2.52
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -773,7 +773,7 @@ const mWindow = (() => {
 
         const promiseWrap = (x) => {
             // bug in FireFox + Violentmonkey
-            if (typeof x.then === 'function') return x; else return Promise.resolve(x);
+            if (typeof (x || 0) === 'object' && typeof x.then === 'function') return x; else return Promise.resolve(x);
         };
 
 
