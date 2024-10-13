@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.50
+// @version            3.2.51
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -771,21 +771,18 @@ const mWindow = (() => {
 
         }
 
+        const promiseWrap = (x) => {
+            // bug in FireFox + Violentmonkey
+            if (typeof x.then === 'function') return x; else return Promise.resolve(x);
+        };
+
 
         const pnIsInstalled2 = (type, scriptName, scriptNamespace) => new Promise((resolve, reject) => {
-            const result = manager.isInstalled(scriptName, scriptNamespace);
-            if (result instanceof Promise) {
-                result.then((result) => resolve({
-                    type,
-                    result: typeof result === 'string' ? { version: result } : result
-                })).catch(reject);
-            } else {
-                resolve({
-                    type,
-                    result: typeof result === 'string' ? { version: result } : result
-                })
-            }
-
+            const resultPr = promiseWrap(manager.isInstalled(scriptName, scriptNamespace));
+            resultPr.then((result) => resolve({
+                type,
+                result: typeof result === 'string' ? { version: result } : result
+            })).catch(reject);
         }).catch(console.warn);
 
 
@@ -795,8 +792,7 @@ const mWindow = (() => {
                     resolve({
                         type,
                         result: typeof result === 'string' ? { version: result } : result
-                    })
-
+                    });
                 });
             } catch (e) {
                 reject(e);
