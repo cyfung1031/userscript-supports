@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.9
+// @version     1.6.10
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -889,6 +889,9 @@
 
       // Notification Menu
       "kevlar_service_command_check",
+
+      // Live ChatRoom Visibility
+      "live_chat_cow_visibility_set_up",
 
       'enable_unknown_lact_fix_on_html5',
 
