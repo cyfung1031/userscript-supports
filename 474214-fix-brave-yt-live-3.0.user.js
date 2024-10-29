@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.30
+// @version      3.31
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -42,11 +42,7 @@
                 if (chatframe) {
                     if (chatframe.contentDocument === null) await Promise.resolve('#').catch(console.warn);
                     if (t !== ath) return;
-                    try {
-                        let win = chatframe.contentWindow;
-                        win && await (new Promise(r => win.setTimeout.call(window, r, '1')).catch(console.warn));
-                        win = null;
-                    } catch (e) { }
+                    await (new Promise(r => window.setTimeout.call(window, r, '1')).catch(console.warn));
                     if (t !== ath) return;
                     await new Promise(resolve => {
                       (new IntersectionObserver((_, observer) => {
