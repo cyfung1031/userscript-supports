@@ -28,7 +28,7 @@ SOFTWARE.
 // @name:ja             YouTube CPU Tamer by DOMMutation
 // @name:zh-TW          YouTube CPU Tamer by DOMMutation
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.26.1
+// @version             2024.11.02.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -227,16 +227,20 @@ SOFTWARE.
   };
 
 
-  const { _setAttribute, _insertBefore } = (() => {
+  const { _setAttribute, _insertBefore, _hasAttribute } = (() => {
     let _setAttribute = Element.prototype.setAttribute;
     try {
       _setAttribute = ShadyDOM.nativeMethods.setAttribute || _setAttribute;
+    } catch (e) { }
+    let _hasAttribute = Element.prototype.hasAttribute;
+    try {
+      _hasAttribute = ShadyDOM.nativeMethods.hasAttribute || _hasAttribute;
     } catch (e) { }
     let _insertBefore = Node.prototype.insertBefore;
     try {
       _insertBefore = ShadyDOM.nativeMethods.insertBefore || _insertBefore;
     } catch (e) { }
-    return { _setAttribute, _insertBefore};
+    return { _setAttribute, _insertBefore, _hasAttribute};
   })();
 
   cleanContext(win).then(__CONTEXT__ => {
@@ -259,36 +263,37 @@ SOFTWARE.
       }
       const dm = _dm;
       dm._setAttribute = _setAttribute;
+      dm._hasAttribute = _hasAttribute;
       let j = 0;
       let attributeName_;
-      while (dm.hasAttribute(attributeName_ = `dm-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`)) {
+      while (dm._hasAttribute(attributeName_ = `dm-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`)) {
         // none
       }
       const attributeName = attributeName_;
-      let qr = null;
+      let sr = null;
       const mo = new MutationObserver(() => {
-        if (qr !== null) {
+        const sr_ = sr;
+        if (sr_ !== null) {
+          sr = null;
           if (j > 8) j = 0;
-          qr = (qr(), null);
+          sr_.resolve();
         }
       });
       mo.observe(document, { childList: true, subtree: true, attributes: true });
-      return (resolve) => {
-        if (!qr) dm._setAttribute(attributeName, ++j);
-        return qr = resolve;
-        // return qr = afInterupter = resolve;
+      return () => {
+        return sr || (sr = (dm._setAttribute(attributeName, ++j), (new PromiseExternal()))); // mutationcallback in next macrotask
       };
     };
 
     /** @type {(resolve: () => void)}  */
-    const dmPN = getDMHelper(); // dm will not execute even if document is hidden
+    const dmSN = getDMHelper(); // dm will execute even if document is hidden
 
     (() => {
       let dmPromiseP, dmPromiseQ; // non-null
       dmPromiseP = dmPromiseQ = { resolved: true }; // initial state for !uP && !uQ
       let dmix = 0;
       const dmResolve = async (rX) => {
-        await new Promise(dmPN);
+        await dmSN();
         rX.resolved = true;
         const t = ++dmix;
         if (t > 9e9) dmix = 9;
