@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.5
+// @version             0.13.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -186,6 +186,11 @@ doit();
 window.TTP = TTP;
 
 })();
+
+const NUM_CHANNEL_ID_MIN_LEN_old1 = 4; // 4 = @abc
+const NUM_CHANNEL_ID_MIN_LEN_1 = 2; // 4 = @abc -> 2 = @a
+const NUM_CHANNEL_ID_MIN_LEN_2 = 3; // 5 = /@abc -> 3 = /@a 
+
 
 function createHTML(s) {
     if (typeof TTP !== 'undefined' && typeof TTP.createHTML === 'function') return TTP.createHTML(s);
@@ -1383,10 +1388,23 @@ if (trustHTMLErr) {
      */
     const isDisplayAsHandle = (text) => {
         if (typeof text !== 'string') return false;
-        if (text.length < 4) return false;
+        const n = text.length;
+        if (n <= NUM_CHANNEL_ID_MIN_LEN_old1) {
+            if (n < NUM_CHANNEL_ID_MIN_LEN_1) return false; // @
+            // @巡空 -> <1, 2>
+            // @abc -> <4, 0>
+            const textFullL = text.replace(/[\u20-\uFF]+/g, '').length;
+            const textHalfL = n - textFullL;
+            if (textHalfL < 1) return false;
+            if (textFullL === 0 && textHalfL < 4) return false;
+        }
         if (text.indexOf('@') < 0) return false;
         return exactHandleText(text.trim(), true);
     };
+
+    const isValidMinSlashHandle = (text) => {
+        return text && typeof text === 'string' && text.length >= NUM_CHANNEL_ID_MIN_LEN_2 && text.startsWith('/@');
+    }
 
 
     const languageMapR0 = [];
@@ -1548,7 +1566,7 @@ if (trustHTMLErr) {
         return languageMapR0;
     }
 
-    const handleTextAllowSymbols = new Set('_-.·'.split('').map(e => e.codePointAt()));
+    const handleTextAllowSymbolsNChars = new Set('_-.·0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(e => e.codePointAt()));
     const blacklistChars = new Set('@;:"\'!$#%^&*()[]<>,?/\\+{}|~`!'.split('').map(e => e.codePointAt()));
 
     const _cache_isExactHandleText = new Map();
@@ -1577,7 +1595,7 @@ if (trustHTMLErr) {
         for (; i < l; i++) {
             cp = text.codePointAt(i);
             if (!cp) break;
-            if (!handleTextAllowSymbols.has(cp) && !(cp >= 0x30 && cp <= 0x39) && !(cp >= 0x41 && cp <= 0x5A) && !(cp >= 0x61 && cp <= 0x7A)) {
+            if (!handleTextAllowSymbolsNChars.has(cp)) {
                 // @[LANG]-c2w (found in Dec 2024)
                 if (blacklistChars.has(cp)) return retFn(false);
                 const uRange = getPossibleLanguages(cp);
@@ -1602,7 +1620,7 @@ if (trustHTMLErr) {
         }
 
         // console.log(mtext, cpMin,cpMax, uRanges)
-        if (cpMin >= 32 && cpMax <= 122) {
+        if (!uRanges.size || (cpMin >= 32 && cpMax <= 122)) {
             return retFn(/^[-_a-zA-Z0-9.·]{3,30}$/.test(mtext));
         }
 
@@ -1647,49 +1665,50 @@ if (trustHTMLErr) {
         return text.startsWith('@') && isExactHandleText(text, 1) ? (b ? true : text.substring(1)) : (b ? false : '');
     }
 
-    const exactHandleUrl_ = (text, b) => {
+    const exactHandleUrl_ = (text, b, c) => {
+        if (c === 2) {
+            if (isValidMinSlashHandle(text)) {
+                text = urlHandleConversion(text) || text;
+            } else {
+                return b ? false : '';
+            }
+        } else if (c === 1 && (text.length < NUM_CHANNEL_ID_MIN_LEN_2 || text.length > 32)) { // 2+30
+            return false;
+        }
         return text.startsWith('/@') && isExactHandleText(text, 2) ? (b ? true : text.substring(2)) : (b ? false : '');
     }
 
     const _cache_urlHandleConversion = new Map();
     const urlHandleConversion = (text) => {
 
-        if (text && typeof text === 'string' && text.length >= 5 && text.startsWith('/@')) {
-            let converted = _cache_urlHandleConversion.get(text);
+        let converted = _cache_urlHandleConversion.get(text);
 
-            if (typeof converted === 'string') {
+        if (typeof converted === 'string') {
 
-                text = converted;
+            text = converted;
 
-            } else if (text.includes('%')) {
-                let text0 = text;
+        } else if (text.includes('%')) {
+            let text0 = text;
 
-                let text2 = text.substring(2);
-                if (/%[0-9A-Fa-f]{2}/.test(text2) && /^[-_a-zA-Z%0-9.·]+$/.test(text2)) {
-                    try {
-                        text2 = decodeURI(text2);
-                    } catch (e) { }
-                    text = `/@${text2}`
-                }
-                _cache_urlHandleConversion.set(text0, text);
-
+            let text2 = text.substring(2);
+            if (/%[0-9A-Fa-f]{2}/.test(text2) && /^[-_a-zA-Z%0-9.·]+$/.test(text2)) {
+                try {
+                    text2 = decodeURI(text2);
+                } catch (e) { }
+                text = `/@${text2}`
             }
+            _cache_urlHandleConversion.set(text0, text);
 
-
-            if (text.length >= 5 && text.length <= 32 && exactHandleUrl_(text, true)) {
-                return text;
-            }
         }
 
-        return '';
+
+        if (exactHandleUrl_(text, true, 1)) {
+            return text;
+        } 
 
     }
     const exactHandleUrl = (text, b) => {
-        if (text && typeof text === 'string' && text.length >= 5 && text.startsWith('/@')) {
-            text = urlHandleConversion(text) || text;
-            return exactHandleUrl_(text, b);
-        }
-        return b ? false : '';
+        return exactHandleUrl_(text, b, 2);
     }
 
     try {
@@ -1774,6 +1793,11 @@ if (trustHTMLErr) {
 
         b = b && isDisplayAsHandle('@ともとも-e7d8b')
         b = b && isDisplayAsHandle('@佐藤漣-x7i')
+        b = b && isDisplayAsHandle('@巡空')
+        b = b && isDisplayAsHandle('@abc')
+        b = b && isDisplayAsHandle('@巡')
+        b = b && !isDisplayAsHandle('@xy')
+        b = b && !isDisplayAsHandle('@z')
 
 
         if (!b) console.error('!!!! wrong coding !!!!');
@@ -2217,8 +2241,10 @@ if (trustHTMLErr) {
             if (href.length === 33 && href.startsWith('/channel/') && /^\/channel\/UC[-_a-zA-Z0-9+=.]{22}$/.test(href)) {
                 return 1;
             } else {
-                href = urlHandleConversion(href) || href;
-                if (href && href.length >= 5 && href.length <= 32 && exactHandleUrl_(href, true)) {
+                if (isValidMinSlashHandle(href)) {
+                    href = urlHandleConversion(href) || href;
+                }
+                if (href && exactHandleUrl_(href, true, 1)) {
                     return 2;
                 }
             }
