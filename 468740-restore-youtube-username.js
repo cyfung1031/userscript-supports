@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.4
+// @version             0.13.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -1577,7 +1577,8 @@ if (trustHTMLErr) {
         for (; i < l; i++) {
             cp = text.codePointAt(i);
             if (!cp) break;
-            if (!handleTextAllowSymbols.has(cp)) {
+            if (!handleTextAllowSymbols.has(cp) && !(cp >= 0x30 && cp <= 0x39) && !(cp >= 0x41 && cp <= 0x5A) && !(cp >= 0x61 && cp <= 0x7A)) {
+                // @[LANG]-c2w (found in Dec 2024)
                 if (blacklistChars.has(cp)) return retFn(false);
                 const uRange = getPossibleLanguages(cp);
                 uRanges.add(uRange);
@@ -1770,6 +1771,9 @@ if (trustHTMLErr) {
         b = b && isDisplayAsHandle('@K88571')
         b = b && isDisplayAsHandle('@مجلةالرابالعربي')
         b = b && !isDisplayAsHandle('@@مجلةالرابالعربي')
+
+        b = b && isDisplayAsHandle('@ともとも-e7d8b')
+        b = b && isDisplayAsHandle('@佐藤漣-x7i')
 
 
         if (!b) console.error('!!!! wrong coding !!!!');
