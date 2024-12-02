@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.3
+// @version             0.13.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -2986,7 +2986,8 @@ if (trustHTMLErr) {
         'a.comment-icon-container[href*="channel/"]:not([jkrgy])' // Mar 2024
     ] : [
         'a[id][href*="channel/"]:not([jkrgy])', // old; Before Feb 2024
-        'a.yt-simple-endpoint.style-scope[id][href^="/@"]:not([jkrgy])' // Feb 2024
+        'a.yt-simple-endpoint.style-scope[id][href^="/@"]:not([jkrgy])', // Feb 2024
+        'a.yt-simple-endpoint.style-scope[id][href^="http://www.youtube.com/@"]:not([jkrgy])' // Dec 2024
     ];
 
     const newAuthorAnchorsProceed = async (newAnchors) => {
@@ -3015,19 +3016,35 @@ if (trustHTMLErr) {
         for (const anchor of newAnchors) {
             const hrefAttribute = anchor.getAttribute('href');
             const hrefV = ytPathnameExtract(hrefAttribute);
-            let channelId = '';
+            let mChannelId = '';
             const ytElm = isMobile ? closestYtmData(anchor) : closestYtParent(anchor);
             if (ytElm) {
                 const cnt = insp(ytElm);
                 const { browseId, canonicalBaseUrl } = getAuthorBrowseEndpoint(cnt) || 0;
+                let wChannelId = '';
+                if (!browseId && !canonicalBaseUrl && cnt) {
+                    // Dec 2024; no browserEndPoint -> urlEndpoint -> channelId not available
+                    // comment view model -> commentEntity.author.channelId
+                    const author = ((cnt.__data || cnt.data || 0).commentEntity || 0).author || 0;
+                    if (author) {
+                        const { channelId } = author;
+                        const innertubeCommand = ((author || 0).channelPageEndpoint || 0).innertubeCommand || 0;
+                        const endpoint = innertubeCommand.browseEndpoint || innertubeCommand.urlEndpoint || author.browseEndpoint || browseEndpoint.urlEndpoint || 0;
+                        const url = endpoint.canonicalBaseUrl || endpoint.url || 0;
+                        if (channelId && ytPathnameExtract(url) === hrefV && channelId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(channelId)) {
+                            wChannelId = channelId;
+                        }
+                    }
+                } else if (browseId && ytPathnameExtract(canonicalBaseUrl) === hrefV && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+                    wChannelId = browseId;
+                }
 
-
-                if (browseId && canonicalBaseUrl === hrefV && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId)) {
+                if (wChannelId) {
 
                     const hrefType = getHrefType(hrefV);
                     // console.log(599, hrefV, hrefType)
                     if (hrefType === 1) {
-                        if (hrefV === `/channel/${browseId}`) {
+                        if (hrefV === `/channel/${wChannelId}`) {
                             let authorText = null;
                             if (isMobile) { // mobile only
                                 authorText = (cnt._commentData || cnt.data || ytElm._commentData || ytElm.data || 0).authorText || 0;
@@ -3037,25 +3054,25 @@ if (trustHTMLErr) {
                             if (authorText) {
                                 const text = getYTextContent(authorText);
                                 if (typeof text === 'string' && text.startsWith('@') && exactHandleText(text, true)) {
-                                    channelIdToHandle.set(browseId, {
+                                    channelIdToHandle.set(wChannelId, {
                                         handleText: `${text}`,
                                         justPossible: true
                                     });
                                 }
                             }
-                            channelId = browseId;
+                            mChannelId = wChannelId;
                         }
                     } else if (hrefType === 2) {
                         const handle = hrefV.substring(2);
-                        channelIdToHandle.set(browseId, {
+                        channelIdToHandle.set(wChannelId, {
                             handleText: `@${handle}`
                         });
-                        channelId = browseId;
+                        mChannelId = wChannelId;
                     }
 
                 }
 
-                if (!channelId && hrefV) { // fallback
+                if (!mChannelId && hrefV) { // fallback
 
                     // author-text or name
                     // normal url: /channel/xxxxxxx
@@ -3063,14 +3080,14 @@ if (trustHTMLErr) {
 
                     const temp = obtainChannelId(hrefV); // string, can be empty
                     if (temp) {
-                        channelId = temp;
+                        mChannelId = temp;
                     }
 
                 }
             }
-            anchor.setAttribute('jkrgy', channelId);
-            if (channelId) {
-                domCheckAsync(anchor, hrefAttribute, channelId);
+            anchor.setAttribute('jkrgy', mChannelId);
+            if (mChannelId) {
+                domCheckAsync(anchor, hrefAttribute, mChannelId);
             }
         }
 
@@ -3090,6 +3107,15 @@ if (trustHTMLErr) {
         }
         return null;
     };
+    /*
+    const cntWithParent = (cnt, parentSelector) => {
+        const hostElement = cnt.hostElement || cnt;
+        if (hostElement instanceof HTMLElement) {
+            return hostElement.closest(parentSelector);
+        }
+        return null;
+    }
+    */
     const noAuthorDataSet = new Set();
     const getAuthorBrowseEndpoint = (cnt) => {
         let d;
