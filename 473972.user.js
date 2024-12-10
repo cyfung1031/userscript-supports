@@ -2,7 +2,7 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.16
+// @version     0.16.17
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -65,7 +65,6 @@
   // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
-  const SCRIPTLET_NOFIX_setTimeout = true;
   const ENABLE_discreteTasking = true;
   // << if ENABLE_discreteTasking >>
   const FIX_stampDomArray_stableList = true;
@@ -75,19 +74,12 @@
   const FIX_perfNow = true; // history state issue; see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
   const ENABLE_ASYNC_DISPATCHEVENT = false; // problematic
 
-  const UNLOAD_DETACHED_POLYMER = false; // unstable
   const FIX_Polymer_dom = true;
-
-  const WEAK_REF_BINDING = false; // false if your browser is slow // disabled due to memory leakage
-  // << if WEAK_REF_BINDING >>
-  const WEAK_REF_PROXY_DOLLAR = true; // false if your browser is slow
-  // << end >>
 
   const SCRIPTLET_REMOVE_PRUNE_propNeedles = true; // brave scriptlet related
   const DEBUG_removePrune = false; // true for DEBUG
 
   const FIX_XHR_REQUESTING = true;
-  const FIX_VIDEO_BLOCKING = false; // usually it is a ads block issue // disabled due to memory leakage
 
   const LOG_FETCHMETA_UPDATE = false; // for DEBUG
 
@@ -1789,7 +1781,7 @@
       console.log('[yt-js-engine-tamer] speedmaster by space (yt setting)', isSpeedMastSpacebarControlEnabledA, isSpeedMastSpacebarControlEnabledB);
 
       // console.log(p_a_obj.handleGlobalKeyUp)
-      console.log('[yt-js-engine-tamer] p_a', p_a_obj)
+      console.log('[yt-js-engine-tamer] p_a', p_a_obj);
 
       // console.log(p_a_obj.api)
 
@@ -2294,30 +2286,6 @@
     }
   };
 
-  const setupWD = WEAK_REF_PROXY_DOLLAR && typeof WeakRef !== 'undefined' ? function (dh) {
-
-    const $ = dh ? dh.$ : 0;
-
-    if (typeof ($ || 0) === 'object' && $[identifierWD] !== true) {
-
-      for (const [k, v] of Object.entries($)) {
-        if (v instanceof Node) {
-          $[k] = mWeakRef(v);
-        }
-      }
-
-      let kPD = mxMapPD.get($);
-      if (!kPD) {
-        kPD = new Proxy($, handlerWD);
-        mxMapPD.set($, kPD);
-      }
-      delete dh.$;
-      dh.$ = kPD;
-
-    }
-
-  } : null;
-
 
   const configureVisibilityObserverT_ = function () {
     const hostElement = this.hostElement;
@@ -2382,40 +2350,6 @@
     }
   }
 
-  const setupDataHost = WEAK_REF_BINDING && setupWF && setupWD ? function (dh, opt) {
-
-    if (typeof (dh || 0) === 'object') {
-
-      const eh = (dh.constructor || 0).prototype || dh;
-
-      setupDataHost_(eh);
-      setupDataHost_(dh);
-
-      dh.m822 = (dh.m822 || 0) + 1;
-
-      setupWF(dh, 'hostElement', hostElementCleanUp);
-      setupWF(dh, 'parentComponent');
-      setupWF(dh, 'localVisibilityObserver_');
-      setupWF(dh, 'cachedProviderNode_');
-
-
-      setupWF(dh, '__template');
-      setupWF(dh, '__templatizeOwner');
-      setupWF(dh, '__templateInfo');
-
-      // setupD1(dh, 'root', 1);
-
-      let elements_;
-      if (!('elements_72' in dh) && (elements_ = dh.elements_) && typeof elements_ === 'object' && Object.keys(elements_).length > 0) setupWF(dh, 'elements_');
-
-      setupWD(dh);
-    }
-
-
-
-
-  } : null;
-
   PROP_OverReInclusion_AVOID && (() => {
 
 
@@ -2423,30 +2357,20 @@
     const f = HTMLElement.prototype.hasOwnProperty72 = HTMLElement.prototype.hasOwnProperty;
     let byPassVal = null;
     let byPassCount = 0;
-    let mmw = new Set()
+    let mmw = new Set();
     HTMLElement.prototype.hasOwnProperty = function (prop) {
       if (arguments.length !== 1) return f.apply(this, arguments);
       if (byPassVal !== null && typeof prop === 'string') {
 
-
         if (PROP_OverReInclusion_LIST.has(prop)) {
-
           byPassCount++;
           return byPassVal;
         }
-
-        // if(byPassVal === true && !this.hasOwnProperty72(prop)){
-
-        //   Object.de
-
-        // }
-
         PROP_OverReInclusion_DEBUGLOG && mmw.add(prop);
-
 
       }
       return this.hasOwnProperty72(prop);
-    }
+    };
 
 
     /*
@@ -2525,19 +2449,6 @@
 
 
   let delay300 = null;
-
-  if (UNLOAD_DETACHED_POLYMER || WEAK_REF_BINDING) {
-    delay300 = new PromiseExternal();
-    setInterval(() => {
-      delay300.resolve();
-      delay300 = new PromiseExternal();
-    }, 300);
-  }
-
-  const aDelay = async function () {
-    await delay300.then();
-    await delay300.then();
-  }
 
   const convertionFuncMap = new WeakMap();
   let val_kevlar_should_maintain_stable_list = null;
@@ -3488,70 +3399,6 @@
   const setupWeakRef = (h) => {
 
 
-
-    /*
-    if(typeof h.is === 'string'){
-
-      const holder = h.hostElement || h;
-      if (holder instanceof Node) {
-        if (!assignedHolderWS.has(holder)) {
-          assignedHolderWS.add(holder);
-          h.kz62 = 0;
-        }
-      }
-
-    }
-
-    */
-
-    // if(h.is === 'ytd-metadata-row-container-renderer'){
-
-    //   if(!h.mk2145) h.mk2145 = crypto.randomUUID();
-
-    //   let ww = '';
-    //   const holder = h.hostElement || h;
-    //   if(holder && holder.setAttribute){
-    //     holder.setAttribute('sww',(holder.getAttribute('sww' ) || '' )+"*" )
-
-    //     ww = holder.getAttribute('sww')
-    //   }
-    //   console.log(2929,  `a.${'hostElement' in h};b.${'hostElement72' in h}`, h.mk2145,  h.is ,ww, h, `kz62=${h.kz62}` , !!(setupWD && setupWF && setupDataHost && (h.is || h.__dataHost)) )
-
-    // }
-
-    if (setupDataHost !== null && ('hostElement' in h) && !('hostElement72' in h)) {
-
-      let skip = false;
-      // if (h.is && typeof h.is === 'string' && h.is.length > 15 && h.is.length < 30) {
-      //   if (h.is.includes('yt-') && !h.$ && h.is.length !== 20 && h.is.length !== 21 && h.is.length !== 22) {
-      //     skip = true;
-      //     // return;
-      //   }
-      // }
-
-      h.kz62 = (h.kz62 || 0) + 1;
-
-      //
-
-      setupWD(h);
-      const hostElement = h.hostElement;
-
-      for (const s of ['__dataHost', '__CE_shadowRoot', '__template', '__templatizeOwner']) {
-        setupWF(h, s);
-        setupWF(hostElement, s);
-      }
-
-      setupDataHost(h.__dataHost, skip);
-      setupDataHost(hostElement.__dataHost, skip);
-
-      hostElement && aDelay().then(() => {
-        setupWF(hostElement, '__CE_shadowRoot');
-      });
-
-      if (!h.m822) setupDataHost(h)
-
-    }
-
   }
 
 
@@ -3570,41 +3417,9 @@
     nativeHTMLElement.prototype.connectedCallback = function () {
       let r;
       if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
-
-      if (WEAK_REF_BINDING && (this instanceof Node) && (this.is || this.__dataHost)) {
-
-        setupWeakRef(insp(this))
-        // setupWeakRef(this.__dataHost)
-      }
       return r;
     }
   }
-
-  SCRIPTLET_NOFIX_setTimeout && FIX_VIDEO_BLOCKING && typeof AbortSignal !== 'undefined' && (() => {
-    // resolve(1) is already done by JS Tamer (FIX_VIDEO_BLOCKING)
-    // `setTimeout(resolve(1), 5000)` is removed in 2024.05.12 YT Code
-
-    const delay = 5000;
-    let reNeedle = null;
-    let test;
-    try {
-      test = RegExp.prototype.test;
-      RegExp.prototype.test = function () { reNeedle = this; throw '' }
-      setTimeout(Symbol(), delay);
-    } catch (e) { }
-    if (test) RegExp.prototype.test = test;
-    if (reNeedle) {
-      reNeedle.test = () => false;
-      // reNeedle.test848= reNeedle.test;
-      // reNeedle.test = function(){
-      //   const r = this.test848(...arguments);
-      //   console.log('tested', r)
-      //   return r;
-      // }
-      console.log('[yt-js-engine-tamer] Disabled Scriptlet setTimeout', reNeedle);
-    }
-
-  })();
 
   ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
@@ -3612,9 +3427,6 @@
       if (this.is) {
         setupDiscreteTasks(this, true);
         if (f) this.ky36 = 1;
-      }
-      if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
-        setupWeakRef(this)
       }
       return f;
     },
@@ -3635,9 +3447,6 @@
       this[keyStConnectedCallback] = gv; // proto or object
       if (this.is) {
         setupDiscreteTasks(this);
-      }
-      if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
-        setupWeakRef(this)
       }
       return true;
     },
@@ -4960,7 +4769,7 @@
     // onVideoProgress
 
 
-    (ENABLE_discreteTasking || UNLOAD_DETACHED_POLYMER || FIX_Polymer_dom) && (async () => {
+    (ENABLE_discreteTasking || FIX_Polymer_dom) && (async () => {
 
       const Polymer = await polymerObservable.obtain();
       if (!Polymer) return;
@@ -5094,51 +4903,11 @@
         }
       }
 
-      if (UNLOAD_DETACHED_POLYMER && typeof Polymer.Base.detached === 'function' && !Polymer.Base.detached92 && Polymer.Base.detached.length === 0) {
-        Polymer.Base.detached92 = Polymer.Base.detached;
-
-        const detachedPlus = async function (elem) {
-          await delay300.then();
-          if (elem.isAttached !== false) return;
-          await delay300.then();
-          if (elem.isAttached !== false) return;
-
-          if (elem.__dataClientsReady === true) elem.__dataClientsReady = false;
-          // if (elem.__dataEnabled === true) elem.__dataEnabled = false;
-          if (elem.__dataReady === true) elem.__dataReady = false;
-
-          elem.__dataLinkedPaths = elem.__dataToNotify = elem.__dataPendingClients = null;
-          elem.__dataHasPaths = false;
-          // elem.__dataCompoundStorage = null;
-          elem.__dataHost = null;
-          elem.__dataTemp = null;
-          elem.__dataClientsInitialized = false;
-
-
-          // elem.data = {};
-          elem.data = null;
-          elem.__dataPending = null;
-          elem.__dataOld = null;
-          elem.__dataInstanceProps = null;
-
-          elem.__dataCounter = 0;
-          elem.__serializing = false;
-
-        }
-        Polymer.Base.detached = function () {
-          Promise.resolve(this).then(detachedPlus);
-          return Polymer.Base.detached92();
-        };
-      }
-
 
       if (ENABLE_discreteTasking) {
 
         Polymer.Base.__connInit__ = function () {
           setupDiscreteTasks(this);
-          // if (WEAK_REF_BINDING && (this.is || this instanceof Node)) {
-          //   setupWeakRef(this)
-          // }
         }
 
 
@@ -5206,59 +4975,28 @@
 
     CHANGE_appendChild && !Node.prototype.appendChild73 && Node.prototype.appendChild && (() => {
 
-      let __src__ = '';
-      const handlerCanplay = (evt) => {
-        const a = evt.target;
-        console.log('[yt-js-engine-tamer]', `video element added to dom | canplay`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-        if (a.currentTime < 1e-8 && a.currentTime > -1e-9 && a.autoplay === false) a.currentTime += 1e-8;
-      };
-
-      const handlerTimeupdate = (evt) => {
-        const a = evt.target;
-        console.log('[yt-js-engine-tamer]', `video element added to dom | ontimeupdate`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-        if (a.duration < 2.01 && a.duration > 1.99 && a.currentSrc === __src__) {
-          try {
-            URL.revokeObjectURL(__src__);
-            __src__ = '';
-          } finally {
-            console.log('[yt-js-engine-tamer]', `video element added to dom | revokeObjectURL`, mWeakRef(a), a.readyState, a.networkState, a.currentTime);
-          }
-        }
-      };
-
       const f = Node.prototype.appendChild73 = Node.prototype.appendChild;
       if (f) Node.prototype.appendChild = function (a) {
         if (this instanceof Element) { // exclude DocumentFragment
           try {
-            if (a instanceof HTMLVideoElement && FIX_VIDEO_BLOCKING && typeof AbortSignal !== 'undefined') {
-              const src = `${a.src}`;
-              const b = src.length > 5 && src.startsWith('blob:') && typeof a.ontimeupdate === 'function' && a.autoplay === false && a.paused === true && a.isConnected === false;
-              if (b) {
-                __src__ = src;
-                a.addEventListener('canplay', handlerCanplay, { once: true, passive: true, capture: false });
-                a.addEventListener('timeupdate', handlerTimeupdate, { once: true, passive: true, capture: false });
-              }
-              console.log('[yt-js-engine-tamer]', `video element added to dom | treatment = ${b}`, mWeakRef(a), a.readyState, a.networkState);
-            } else {
-              let checkFragmentA = (a instanceof DocumentFragment);
-              if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
-                if (headLinkCollection === null) headLinkCollection = document.head.getElementsByTagName('LINK');
-                for (const node of headLinkCollection) {
-                  if (node.rel === 'preload' && node.as === 'fetch') {
-                    node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
-                  }
+            let checkFragmentA = (a instanceof DocumentFragment);
+            if (!NO_PRELOAD_GENERATE_204_BYPASS && document.head === this) {
+              if (headLinkCollection === null) headLinkCollection = document.head.getElementsByTagName('LINK');
+              for (const node of headLinkCollection) {
+                if (node.rel === 'preload' && node.as === 'fetch') {
+                  node.rel = 'prefetch'; // see https://github.com/GoogleChromeLabs/quicklink
                 }
-              } else if (checkFragmentA && this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
-                checkFragmentA = false;
               }
-              if (checkFragmentA && a.firstElementChild === null) {
-                // no element in fragmentA
-                let doNormal = false;
-                for (let child = a.firstChild; child instanceof Node; child = child.nextSibling) {
-                  if (child.nodeType === 3) { doNormal = true; break; }
-                }
-                if (!doNormal) return a;
+            } else if (checkFragmentA && this.nodeName.startsWith('YT-')) { // yt-animated-rolling-number, yt-attributed-string
+              checkFragmentA = false;
+            }
+            if (checkFragmentA && a.firstElementChild === null) {
+              // no element in fragmentA
+              let doNormal = false;
+              for (let child = a.firstChild; child instanceof Node; child = child.nextSibling) {
+                if (child.nodeType === 3) { doNormal = true; break; }
               }
+              if (!doNormal) return a;
             }
           } catch (e) {
             console.log(e);
@@ -5266,7 +5004,6 @@
         }
         return arguments.length === 1 ? f.call(this, a) : f.apply(this, arguments);
       }
-
 
     })();
 
@@ -5442,451 +5179,462 @@
     })();
 
     FIX_yt_player && (async () => {
-      // rAf scheduling
+
+      const fOption = 1 | 2 | 4;
 
       const _yt_player = await _yt_player_observable.obtain();
 
       if (!_yt_player || typeof _yt_player !== 'object') return;
 
-      let keyZqOu = getZqOu(_yt_player);
+      const g = _yt_player;
+      let k;
 
+      if (fOption & 1) {
 
-      if (!keyZqOu) return;
+        // rAf scheduling
 
-
-      const g = _yt_player
-      let k = keyZqOu
-
-      const gk = g[k];
-      if (typeof gk !== 'function') return;
-      const gkp = gk.prototype;
-
-      let dummyObject = new gk;
-      let nilFunc = () => { };
-
-      let nilObj = {};
-
-      // console.log(1111111111)
-
-      let keyBoolD = '';
-      let keyWindow = '';
-      let keyFuncC = '';
-      let keyCidj = '';
-
-      for (const [t, y] of Object.entries(dummyObject)) {
-        if (y instanceof Window) keyWindow = t;
-      }
-
-      const dummyObjectProxyHandler = {
-        get(target, prop) {
-          let v = target[prop]
-          if (v instanceof Window && !keyWindow) {
-            keyWindow = t;
-          }
-          let y = typeof v === 'function' ? nilFunc : typeof v === 'object' ? nilObj : v;
-          if (prop === keyWindow) y = {
-            requestAnimationFrame(f) {
-              return 3;
-            },
-            cancelAnimationFrame() {
-
-            }
-          }
-          if (!keyFuncC && typeof v === 'function' && !(prop in target.constructor.prototype)) {
-            keyFuncC = prop;
-          }
-          // console.log('[get]', prop, typeof target[prop])
-
-
-          return y;
-        },
-        set(target, prop, value) {
-
-          if (typeof value === 'boolean' && !keyBoolD) {
-            keyBoolD = prop;
-          }
-          if (typeof value === 'number' && !keyCidj && value >= 2) {
-            keyCidj = prop;
-          }
-
-          // console.log('[set]', prop, value)
-          target[prop] = value
-
-          return true;
+        const keyZqOu = getZqOu(_yt_player);
+        if (!keyZqOu) {
+          console.warn('[yt-js-engine-tamer] FIX_yt_player::keyZqOu error');
+          return;
         }
-      };
+        k = keyZqOu
 
-      dummyObject.start.call(new Proxy(dummyObject, dummyObjectProxyHandler));
-
-      // console.log('gkp.start',gkp.start);
-      // console.log('gkp.stop',gkp.stop);
-      gkp._activation = false;
-
-      gkp.start = function () {
-        // p59 || console.log(12100)
-        if (!this._activation) {
-          this._activation = true;
-          foregroundPromiseFn().then(() => {
-            this._activation = false;
-            if (this[keyCidj]) {
-              Promise.resolve().then(this[keyFuncC]);
-            }
-          });
+        const gk = g[k];
+        if (typeof gk !== 'function') {
+          console.warn('[yt-js-engine-tamer] FIX_yt_player::g[keyZqOu] error');
+          return;
         }
-        this[keyCidj] = 1;
-        this[keyBoolD] = true;
-      }
-        ;
-      gkp.stop = function () {
-        this[keyCidj] = null
-      }
+        const gkp = gk.prototype;
 
+        const dummyObject = new gk;
+        const nilFunc = () => { };
 
-      /*
-        g[k].start = function() {
-            this.stop();
-            this.D = true;
-            var a = requestAnimationFrame
-              , b = cancelAnimationFrame;
-            this.j =  a.call(this.B, this.C)
-        }
-        ;
-        g[k].stop = function() {
-            if (this.isActive()) {
-                var a = requestAnimationFrame
-                  , b = cancelAnimationFrame;
-                b.call(this.B, this.j)
-            }
-            this.j = null
-        }
-      */
+        const nilObj = {};
 
-      const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
+        // console.log(1111111111)
 
-      if (keyzo) {
+        let keyBoolD = '';
+        let keyWindow = '';
+        let keyFuncC = '';
+        let keyCidj = '';
 
-        k = keyzo;
-
-        const attrUpdateFn = g[k];
-        // console.log(5992, attrUpdateFn)
-        g['$$original$$' + k] = attrUpdateFn;
-        const zoTransform = async (a, c) => {
-
-          let transformType = '';
-          let transformValue = 0;
-          let transformUnit = '';
-          let transformTypeI = 0;
-
-          const aStyle = a.style;
-
-          if (c.length < 9) {
-
-          } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
-            let p = c.substring(7, c.length - 1);
-            let q = p.length >= 1 ? parseFloat(p) : -1;
-            if (q > -1e-5 && q < 1 + 1e-5) {
-              transformType = 'scaleX'
-              transformValue = q;
-              transformUnit = '';
-              transformTypeI = 1;
-            }
-          } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
-            let p = c.substring(11, c.length - 3);
-            let q = p.length >= 1 ? parseFloat(p) : NaN;
-            if (typeof q === 'number' && !isNaN(q)) {
-              transformType = 'translateX'
-              transformValue = q;
-              transformUnit = 'px';
-              transformTypeI = 2;
-            } else if (p === 'NaN') {
-              return;
-            }
-          } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
-            let p = c.substring(7, c.length - 1);
-            let q = p.length >= 1 ? parseFloat(p) : -1;
-            if (q > -1e-5 && q < 1 + 1e-5) {
-              transformType = 'scaleY'
-              transformValue = q;
-              transformUnit = '';
-              transformTypeI = 1;
-            }
-          } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
-            let p = c.substring(11, c.length - 3);
-            let q = p.length >= 1 ? parseFloat(p) : NaN;
-            if (typeof q === 'number' && !isNaN(q)) {
-              transformType = 'translateY'
-              transformValue = q;
-              transformUnit = 'px';
-              transformTypeI = 2;
-            } else if (p === 'NaN') {
-              return;
-            }
-          } else if (c.startsWith('scalex(') && c.includes('e-')) {
-            // scalex(1.252057684158767e-16)
-            // scalex(3.0393632069734948e-9)
-            let p = c.substring(7, c.length - 1);
-            let q = p.length >= 1 ? parseFloat(p) : -1;
-            if (q > -1e-5 && q < 1e-5) {
-              transformType = 'scaleX'
-              transformValue = 0;
-              transformUnit = '';
-              transformTypeI = 1;
-            }
-          } else if (c.startsWith('scaley(') && c.includes('e-')) {
-            let p = c.substring(7, c.length - 1);
-            let q = p.length >= 1 ? parseFloat(p) : -1;
-            if (q > -1e-5 && q < 1e-5) {
-              transformType = 'scaleY'
-              transformValue = 0;
-              transformUnit = '';
-              transformTypeI = 1;
-            }
-          }
-
-          if (transformTypeI === 1) {
-            const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
-            const vz = toFixed2(q, 3);
-            c = `${transformType}(${vz})`;
-            const cv = aStyle.transform;
-            if (c === cv) return;
-            aStyle.transform = c;
-          } else if (transformTypeI === 2) {
-            const q = transformValue;
-            const vz = toFixed2(q, 1);
-            c = `${transformType}(${vz}${transformUnit})`;
-            const cv = aStyle.transform;
-            if (c === cv) return;
-            aStyle.transform = c;
-          } else { // eg empty
-            const cv = aStyle.transform;
-            if (!c && !cv) return;
-            else if (c === cv) return;
-            aStyle.transform = c;
-          }
-
-        };
-
-        const elmTransformTemp = new WeakMap();
-        const elmPropTemps = {
-          'display': new WeakMap(),
-          'width': new WeakMap(),
-          'height': new WeakMap(),
-          'outlineWidth': new WeakMap(),
-          'position': new WeakMap(),
-          'padding': new WeakMap(),
-          "cssText": new WeakMap(),
-          "right": new WeakMap(),
-          "left": new WeakMap(),
-          "top": new WeakMap(),
-          "bottom": new WeakMap(),
-          "transitionDelay": new WeakMap(),
-          "marginLeft": new WeakMap(),
-          "marginTop": new WeakMap(),
-          "marginRight": new WeakMap(),
-          "marginBottom": new WeakMap(),
+        for (const [t, y] of Object.entries(dummyObject)) {
+          if (y instanceof Window) keyWindow = t;
         }
 
-        const ns5 = Symbol();
-        const nextModify = (a, c, m, f, immediate) => {
-          const a_ = a;
-          const m_ = m;
-          const noKey = !m_.has(a_);
-          if (immediate || noKey) {
-            m_.set(a_, ns5);
-            f(a_, c);
-            noKey && nextBrowserTick_(() => {
-              const d = m_.get(a_);
-              if (d === undefined) return;
-              m_.delete(a_);
-              if (d !== ns5) f(a_, d);
-            });
-          } else {
-            m_.set(a_, c);
-          }
-        };
+        const dummyObjectProxyHandler = {
+          get(target, prop) {
+            let v = target[prop]
+            if (v instanceof Window && !keyWindow) {
+              keyWindow = t;
+            }
+            let y = typeof v === 'function' ? nilFunc : typeof v === 'object' ? nilObj : v;
+            if (prop === keyWindow) y = {
+              requestAnimationFrame(f) {
+                return 3;
+              },
+              cancelAnimationFrame() {
 
-        const set66 = new Set();
-        // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
-
-        const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
-
-          // console.log(140000, a, b, c);
-          if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
-            const num = c;
-            c = `${num}`;
-            if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
-          }
-
-          if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
-
-            let elmPropTemp = null;
-
-            if (b === "transform") {
-
-              nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
-              return;
-
-            } else if (elmPropTemp = elmPropTemps[b]) {
-
-              // if (c.length > 5 && c.includes('.')) {
-              //   console.log(123213, c)
-              // }
-
-              const b_ = b;
-              nextModify(a, c, elmPropTemp, (a, c) => {
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-              }, immediateChange);
-              return;
-
-            } else if (b === "outline-width") {
-
-              const b_ = 'outlineWidth';
-              elmPropTemp = elmPropTemps[b_];
-              nextModify(a, c, elmPropTemp, (a, c) => {
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-              }, immediateChange);
-              return;
-
-            } else if (b === 'maxWidth' || b === 'maxHeight') {
-              // I think these can be directly assigned.
-
-              const b_ = b;
-              const style = a.style;
-              const cv = style[b_];
-              if (!cv && !c) return;
-              if (cv === c) return;
-              style[b_] = c;
-              return;
-
-            } else {
-              // if(immediate && elmPropTemps[b]){
-              //   console.log(5191, b)
-              // }
-              // caption-window
-              // margin-left max-height max-width font-family fill color font-size background white-space margin
-              // text-align background-color
-              // console.log(27304, a, b, c)
-              if (!set66.has(b)) {
-                set66.add(b);
-                nextBrowserTick_(() => {
-                  if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
-                    console.log(27304, a, b, c)
-                  }
-                })
               }
             }
+            if (!keyFuncC && typeof v === 'function' && !(prop in target.constructor.prototype)) {
+              keyFuncC = prop;
+            }
+            // console.log('[get]', prop, typeof target[prop])
 
-            attrUpdateFn.call(this, a, b, c);
-            return;
-          } else if (typeof (b || 0) === 'object') {
 
-            // this is to fix caption positioning
-            // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
-            const immediate = (a.id || 0).length > 14;
-            for (const [k, v] of Object.entries(b)) {
-              modifiedFn.call(this, a, k, v, immediate);
+            return y;
+          },
+          set(target, prop, value) {
+
+            if (typeof value === 'boolean' && !keyBoolD) {
+              keyBoolD = prop;
+            }
+            if (typeof value === 'number' && !keyCidj && value >= 2) {
+              keyCidj = prop;
             }
 
-          } else {
-            console.log(27306, a, b, c);
+            // console.log('[set]', prop, value)
+            target[prop] = value;
 
-            attrUpdateFn.call(this, a, b, c);
-            return;
+            return true;
           }
-
-          // console.log(130000, a, b, c);
-
         };
-        g[k] = modifiedFn;
+
+        dummyObject.start.call(new Proxy(dummyObject, dummyObjectProxyHandler));
+
+        // console.log('gkp.start',gkp.start);
+        // console.log('gkp.stop',gkp.stop);
+        gkp._activation = false;
+
+        gkp.start = function () {
+          // p59 || console.log(12100)
+          if (!this._activation) {
+            this._activation = true;
+            foregroundPromiseFn().then(() => {
+              this._activation = false;
+              if (this[keyCidj]) {
+                Promise.resolve().then(this[keyFuncC]);
+              }
+            });
+          }
+          this[keyCidj] = 1;
+          this[keyBoolD] = true;
+        };
+
+        gkp.stop = function () {
+          this[keyCidj] = null;
+        };
 
 
         /*
-
-            g.zo = function(a, b, c) {
-                if ("string" === typeof b)
-                    (b = yo(a, b)) && (a.style[b] = c);
-                else
-                    for (var d in b) {
-                        c = a;
-                        var e = b[d]
-                          , f = yo(c, d);
-                        f && (c.style[f] = e)
-                    }
-            }
-
-
+          g[k].start = function() {
+              this.stop();
+              this.D = true;
+              var a = requestAnimationFrame
+                , b = cancelAnimationFrame;
+              this.j =  a.call(this.B, this.C)
+          }
+          ;
+          g[k].stop = function() {
+              if (this.isActive()) {
+                  var a = requestAnimationFrame
+                    , b = cancelAnimationFrame;
+                  b.call(this.B, this.j)
+              }
+              this.j = null
+          }
         */
-
-
       }
 
+      if (fOption & 2) {
+        const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
 
+        if (keyzo) {
 
-      const keyuG = PERF_471489_ ? getuG(_yt_player) : null;
+          k = keyzo;
 
-      if (keyuG) {
+          const attrUpdateFn = g[k];
+          // console.log(5992, attrUpdateFn)
+          g['$$original$$' + k] = attrUpdateFn;
+          const zoTransform = async (a, c) => {
 
-        k = keyuG;
+            let transformType = '';
+            let transformValue = 0;
+            let transformUnit = '';
+            let transformTypeI = 0;
 
-        const gk = g[k];
-        const gkp = gk.prototype;
+            const aStyle = a.style;
 
+            if (c.length < 9) {
 
-        /** @type { Map<string, WeakMap<any, any>> } */
-        const ntLogs = new Map();
-
-        if (typeof gkp.updateValue === 'function' && gkp.updateValue.length === 2 && !gkp.updateValue31) {
-
-          gkp.updateValue31 = gkp.updateValue;
-          gkp.updateValue = function (a, b) {
-            if (typeof a !== 'string') return this.updateValue31(a, b);
-
-            const element = this.element;
-            if (!(element instanceof HTMLElement)) return this.updateValue31(a, b);
-
-            let ntLog = ntLogs.get(a);
-            if (!ntLog) ntLogs.set(a, (ntLog = new WeakMap()));
-
-            let cache = ntLog.get(element);
-            if (cache && cache.value === b) {
-              return;
+            } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1 + 1e-5) {
+                transformType = 'scaleX'
+                transformValue = q;
+                transformUnit = '';
+                transformTypeI = 1;
+              }
+            } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
+              let p = c.substring(11, c.length - 3);
+              let q = p.length >= 1 ? parseFloat(p) : NaN;
+              if (typeof q === 'number' && !isNaN(q)) {
+                transformType = 'translateX'
+                transformValue = q;
+                transformUnit = 'px';
+                transformTypeI = 2;
+              } else if (p === 'NaN') {
+                return;
+              }
+            } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1 + 1e-5) {
+                transformType = 'scaleY'
+                transformValue = q;
+                transformUnit = '';
+                transformTypeI = 1;
+              }
+            } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
+              let p = c.substring(11, c.length - 3);
+              let q = p.length >= 1 ? parseFloat(p) : NaN;
+              if (typeof q === 'number' && !isNaN(q)) {
+                transformType = 'translateY'
+                transformValue = q;
+                transformUnit = 'px';
+                transformTypeI = 2;
+              } else if (p === 'NaN') {
+                return;
+              }
+            } else if (c.startsWith('scalex(') && c.includes('e-')) {
+              // scalex(1.252057684158767e-16)
+              // scalex(3.0393632069734948e-9)
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1e-5) {
+                transformType = 'scaleX'
+                transformValue = 0;
+                transformUnit = '';
+                transformTypeI = 1;
+              }
+            } else if (c.startsWith('scaley(') && c.includes('e-')) {
+              let p = c.substring(7, c.length - 1);
+              let q = p.length >= 1 ? parseFloat(p) : -1;
+              if (q > -1e-5 && q < 1e-5) {
+                transformType = 'scaleY'
+                transformValue = 0;
+                transformUnit = '';
+                transformTypeI = 1;
+              }
             }
-            if (!cache) {
-              this.__oldValueByUpdateValue__ = null;
-              ntLog.set(element, cache = { value: b });
-            } else {
-              this.__oldValueByUpdateValue__ = cache.value;
-              cache.value = b;
+
+            if (transformTypeI === 1) {
+              const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
+              const vz = toFixed2(q, 3);
+              c = `${transformType}(${vz})`;
+              const cv = aStyle.transform;
+              if (c === cv) return;
+              aStyle.transform = c;
+            } else if (transformTypeI === 2) {
+              const q = transformValue;
+              const vz = toFixed2(q, 1);
+              c = `${transformType}(${vz}${transformUnit})`;
+              const cv = aStyle.transform;
+              if (c === cv) return;
+              aStyle.transform = c;
+            } else { // eg empty
+              const cv = aStyle.transform;
+              if (!c && !cv) return;
+              else if (c === cv) return;
+              aStyle.transform = c;
             }
 
-            return this.updateValue31(a, b);
+          };
+
+          const elmTransformTemp = new WeakMap();
+          const elmPropTemps = {
+            'display': new WeakMap(),
+            'width': new WeakMap(),
+            'height': new WeakMap(),
+            'outlineWidth': new WeakMap(),
+            'position': new WeakMap(),
+            'padding': new WeakMap(),
+            "cssText": new WeakMap(),
+            "right": new WeakMap(),
+            "left": new WeakMap(),
+            "top": new WeakMap(),
+            "bottom": new WeakMap(),
+            "transitionDelay": new WeakMap(),
+            "marginLeft": new WeakMap(),
+            "marginTop": new WeakMap(),
+            "marginRight": new WeakMap(),
+            "marginBottom": new WeakMap(),
           }
 
+          const ns5 = Symbol();
+          const nextModify = (a, c, m, f, immediate) => {
+            const a_ = a;
+            const m_ = m;
+            const noKey = !m_.has(a_);
+            if (immediate || noKey) {
+              m_.set(a_, ns5);
+              f(a_, c);
+              noKey && nextBrowserTick_(() => {
+                const d = m_.get(a_);
+                if (d === undefined) return;
+                m_.delete(a_);
+                if (d !== ns5) f(a_, d);
+              });
+            } else {
+              m_.set(a_, c);
+            }
+          };
+
+          const set66 = new Set();
+          // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
+
+          const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
+
+            // console.log(140000, a, b, c);
+            if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
+              const num = c;
+              c = `${num}`;
+              if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
+            }
+
+            if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
+
+              let elmPropTemp = null;
+
+              if (b === "transform") {
+
+                nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
+                return;
+
+              } else if (elmPropTemp = elmPropTemps[b]) {
+
+                // if (c.length > 5 && c.includes('.')) {
+                //   console.log(123213, c)
+                // }
+
+                const b_ = b;
+                nextModify(a, c, elmPropTemp, (a, c) => {
+                  const style = a.style;
+                  const cv = style[b_];
+                  if (!cv && !c) return;
+                  if (cv === c) return;
+                  style[b_] = c;
+                }, immediateChange);
+                return;
+
+              } else if (b === "outline-width") {
+
+                const b_ = 'outlineWidth';
+                elmPropTemp = elmPropTemps[b_];
+                nextModify(a, c, elmPropTemp, (a, c) => {
+                  const style = a.style;
+                  const cv = style[b_];
+                  if (!cv && !c) return;
+                  if (cv === c) return;
+                  style[b_] = c;
+                }, immediateChange);
+                return;
+
+              } else if (b === 'maxWidth' || b === 'maxHeight') {
+                // I think these can be directly assigned.
+
+                const b_ = b;
+                const style = a.style;
+                const cv = style[b_];
+                if (!cv && !c) return;
+                if (cv === c) return;
+                style[b_] = c;
+                return;
+
+              } else {
+                // if(immediate && elmPropTemps[b]){
+                //   console.log(5191, b)
+                // }
+                // caption-window
+                // margin-left max-height max-width font-family fill color font-size background white-space margin
+                // text-align background-color
+                // console.log(27304, a, b, c)
+                if (!set66.has(b)) {
+                  set66.add(b);
+                  nextBrowserTick_(() => {
+                    if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
+                      console.log(27304, a, b, c)
+                    }
+                  })
+                }
+              }
+
+              attrUpdateFn.call(this, a, b, c);
+              return;
+            } else if (typeof (b || 0) === 'object') {
+
+              // this is to fix caption positioning
+              // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
+              const immediate = (a.id || 0).length > 14;
+              for (const [k, v] of Object.entries(b)) {
+                modifiedFn.call(this, a, k, v, immediate);
+              }
+
+            } else {
+              console.log(27306, a, b, c);
+
+              attrUpdateFn.call(this, a, b, c);
+              return;
+            }
+
+            // console.log(130000, a, b, c);
+
+          };
+          g[k] = modifiedFn;
+
+
           /*
-            g.k.update = function(a) {
-                for (var b = g.u(Object.keys(a)), c = b.next(); !c.done; c = b.next())
-                    c = c.value,
-                    this.updateValue(c, a[c])
-            }
-            ;
-            g.k.updateValue = function(a, b) {
-                (a = this.Td["{{" + a + "}}"]) && wG(this, a[0], a[1], b)
-            }
+  
+              g.zo = function(a, b, c) {
+                  if ("string" === typeof b)
+                      (b = yo(a, b)) && (a.style[b] = c);
+                  else
+                      for (var d in b) {
+                          c = a;
+                          var e = b[d]
+                            , f = yo(c, d);
+                          f && (c.style[f] = e)
+                      }
+              }
+  
+  
           */
 
+
         }
-
-
       }
 
+      if (fOption & 4) {
+        const keyuG = PERF_471489_ ? getuG(_yt_player) : null;
+
+        if (keyuG) {
+
+          k = keyuG;
+
+          const gk = g[k];
+          const gkp = gk.prototype;
+
+
+          /** @type { Map<string, WeakMap<any, any>> } */
+          const ntLogs = new Map();
+
+          if (typeof gkp.updateValue === 'function' && gkp.updateValue.length === 2 && !gkp.updateValue31) {
+
+            gkp.updateValue31 = gkp.updateValue;
+            gkp.updateValue = function (a, b) {
+              if (typeof a !== 'string') return this.updateValue31(a, b);
+
+              const element = this.element;
+              if (!(element instanceof HTMLElement)) return this.updateValue31(a, b);
+
+              let ntLog = ntLogs.get(a);
+              if (!ntLog) ntLogs.set(a, (ntLog = new WeakMap()));
+
+              let cache = ntLog.get(element);
+              if (cache && cache.value === b) {
+                return;
+              }
+              if (!cache) {
+                this.__oldValueByUpdateValue__ = null;
+                ntLog.set(element, cache = { value: b });
+              } else {
+                this.__oldValueByUpdateValue__ = cache.value;
+                cache.value = b;
+              }
+
+              return this.updateValue31(a, b);
+            }
+
+            /*
+              g.k.update = function(a) {
+                  for (var b = g.u(Object.keys(a)), c = b.next(); !c.done; c = b.next())
+                      c = c.value,
+                      this.updateValue(c, a[c])
+              }
+              ;
+              g.k.updateValue = function(a, b) {
+                  (a = this.Td["{{" + a + "}}"]) && wG(this, a[0], a[1], b)
+              }
+            */
+
+          }
+
+
+        }
+      }
 
 
 
