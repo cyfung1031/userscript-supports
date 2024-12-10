@@ -4,7 +4,7 @@
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
-// @version     0.16.18
+// @version     0.16.19
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -94,6 +94,8 @@
 
   const FIX_removeChild = true;
   const FIX_fix_requestIdleCallback_timing = true;
+
+  const HOOK_CSSPD_LEFT = true; // global css hack for style.left
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -3770,10 +3772,10 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[${w}]`, arr);
+      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
@@ -3808,10 +3810,10 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[${w}]`, arr);
+      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
@@ -3840,10 +3842,10 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[${w}]`, arr);
+      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
@@ -3861,22 +3863,25 @@
 
       if (
         typeof v === 'function' && v.length === 3 && k.length < 3
-        && (v + "").includes("a.style[b]=c")
       ) {
-
-        arr.push(k);
-
+        const vt = (v + "");
+        if (vt.length >= 21 && vt.includes(".style[")) {
+          if (/\((\w{1,3}),(\w{1,3}),(\w{1,3})\)\{[\s\S]*\1\.style\[\2\]=\3\W/.test(vt)) {
+            arr.push(k);
+          } else {
+            console.warn('[yt-js-engine-tamer] unexpected zo::vt', vt);
+          }
+        }
       }
 
     }
 
-
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[${w}]`, arr);
+      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
@@ -3939,10 +3944,10 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[${w}]`, arr);
+      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
@@ -4020,14 +4025,14 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
       arr = arr.map(key => [key, (brr.get(key) || 0)]);
 
       if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
 
-      if (arr.length > 2) console.log(`[${w}]`, arr);
+      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0][0];
     }
 
@@ -4110,14 +4115,14 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
       arr = arr.map(key => [key, (brr.get(key) || 0)]);
 
       if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
 
-      if (arr.length > 2) console.log(`[${w}]`, arr);
+      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0][0];
     }
 
@@ -4204,14 +4209,14 @@
 
     if (arr.length === 0) {
 
-      console.warn(`Key does not exist. [${w}]`);
+      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
     } else {
 
       arr = arr.map(key => [key, (brr.get(key) || 0)]);
 
       if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
 
-      if (arr.length > 2) console.log(`[${w}]`, arr);
+      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0][0];
     }
 
@@ -4638,7 +4643,11 @@
     }
     */
     const _yt_player_observable = observablePromise(() => {
-      return (((window || 0)._yt_player || 0) || 0);
+      const _yt_player = (((window || 0)._yt_player || 0) || 0);
+      if (_yt_player) {
+        _yt_player[`__is_yt_player__${Date.now()}`] = 1;
+        return _yt_player;
+      }
     }, promiseForTamerTimeout);
 
     const polymerObservable = observablePromise(() => {
@@ -4664,6 +4673,99 @@
         return t;
       }
     }, promiseForTamerTimeout);
+
+
+    const getScreenInfo = {
+      screenWidth: 0,
+      screenHeight: 0,
+      valueReady: false,
+      onResize: () => {
+        getScreenInfo.valueReady = false;
+      },
+      sizeProvided: () => {
+        if (getScreenInfo.valueReady) return true;
+        getScreenInfo.screenWidth = screen.width;
+        getScreenInfo.screenHeight = screen.height;
+        if (getScreenInfo.screenWidth * getScreenInfo.screenHeight > 1) {
+          getScreenInfo.valueReady = true;
+          return true;
+        }
+        return false;
+      }
+    };
+
+    window.addEventListener('resize', getScreenInfo.onResize, true);
+
+
+
+    const hookLeftPD = {
+      get() {
+        return this.getPropertyValue('left');
+      },
+      set(v) {
+
+
+        const style = this;
+        const p = 'left';
+        const cv = style[p];
+        const c = v;
+        if (!cv && !c) return true;
+        if (cv === c) return true;
+
+        let qcv = NaN;
+        let qc = NaN;
+
+
+        if (`${cv}`.length >= 3 && `${cv}`.endsWith('px')) {
+
+          qcv = +cv.slice(0, -2);
+        }
+
+        if (`${c}`.length >= 3 && `${c}`.endsWith('px')) {
+
+          qc = +c.slice(0, -2);
+        }
+
+
+        if (!isNaN(qcv) && !isNaN(qc) && getScreenInfo.sizeProvided()) {
+          const { screenWidth, screenHeight } = getScreenInfo;
+          let pWidth = screenWidth + 1024;
+          let pHeight = screenHeight + 768;
+          const minRatio = 0.003;
+          const dw = pWidth * 0.0003; // min dw = 0.3072
+          const dh = pHeight * 0.0003; // min dh = 0.2304
+          if (Math.abs(qcv - qc) < dw) return true;
+        }
+
+
+        if (!isNaN(qc)) {
+
+          let nv = +qc.toFixed(4);
+
+          if (nv > -1e-5 && nv < 1e-5) {
+            nv = 0;
+          }
+          this.setProperty(p, `${nv}px`);
+          return true;
+
+        }
+
+
+        this.setProperty('left', v);
+        return true;
+      },
+      enumerable: true,
+      configurable: true
+    };
+
+
+    if (HOOK_CSSPD_LEFT) {
+
+
+      Object.defineProperty(CSSStyleDeclaration.prototype, 'left', hookLeftPD);
+
+    }
+
 
 
 
@@ -5391,6 +5493,8 @@
                 transformUnit = '';
                 transformTypeI = 1;
               }
+            } else {
+              console.log('[yt-js-engine-tamer] zoTransform undefined', c);
             }
 
             if (transformTypeI === 1) {
@@ -5472,8 +5576,15 @@
               let elmPropTemp = null;
 
               if (b === "transform") {
+                // div.ytp-hover-progress.ytp-hover-progress-light
+                // div.ytp-play-progress.ytp-swatch-background-color
 
                 nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
+                // let ast = null;
+                // if (a instanceof HTMLElement && !('__styleH745__' in a) && (ast = a.style)) {
+                //   a.__styleH745__ = 1;
+                //   Object.defineProperty(ast, 'left', hookLeftPD);
+                // }
                 return;
 
               } else if (elmPropTemp = elmPropTemps[b]) {
