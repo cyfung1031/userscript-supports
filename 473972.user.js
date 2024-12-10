@@ -2,7 +2,9 @@
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     0.16.17
+// @match       https://www.youtube-nocookie.com/embed/*
+// @match       https://studio.youtube.com/live_chat*
+// @version     0.16.18
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
