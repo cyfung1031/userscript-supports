@@ -4,7 +4,7 @@
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
-// @version     0.16.19
+// @version     0.16.20
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -4697,61 +4697,73 @@
     window.addEventListener('resize', getScreenInfo.onResize, true);
 
 
+    // const hookLeftPending = new WeakMap();
+
+    const isNaNx = Number.isNaN;
 
     const hookLeftPD = {
       get() {
-        return this.getPropertyValue('left');
+        const p = 'left';
+        // const o = hookLeftPending.get(this);
+        // if (o && o.key) {
+        //   this.setProperty(p, o.value);
+        //   o.key = null
+        // }
+        return this.getPropertyValue(p);
       },
       set(v) {
 
-
-        const style = this;
         const p = 'left';
-        const cv = style[p];
-        const c = v;
-        if (!cv && !c) return true;
-        if (cv === c) return true;
+        const cv = this.getPropertyValue(p);
+        const sv = v;
 
-        let qcv = NaN;
-        let qc = NaN;
+        // const did = Math.floor(Math.random() * 314159265359 + 314159265359).toString(36);
 
+        // console.log(8380,did, cv, sv)
+        if (!cv && !sv) return true;
+        if (cv === sv) return true;
 
-        if (`${cv}`.length >= 3 && `${cv}`.endsWith('px')) {
+        // skip 0~9px => L>=4
 
-          qcv = +cv.slice(0, -2);
-        }
+        const qsv = `${sv}`.length >= 4 && `${sv}`.endsWith('px') ? +sv.slice(0, -2) : NaN;
 
-        if (`${c}`.length >= 3 && `${c}`.endsWith('px')) {
+        if (!isNaNx(qsv)) {
+          const qcv = `${cv}`.length >= 4 && `${cv}`.endsWith('px') ? +cv.slice(0, -2) : NaN;
 
-          qc = +c.slice(0, -2);
-        }
-
-
-        if (!isNaN(qcv) && !isNaN(qc) && getScreenInfo.sizeProvided()) {
-          const { screenWidth, screenHeight } = getScreenInfo;
-          let pWidth = screenWidth + 1024;
-          let pHeight = screenHeight + 768;
-          const minRatio = 0.003;
-          const dw = pWidth * 0.0003; // min dw = 0.3072
-          const dh = pHeight * 0.0003; // min dh = 0.2304
-          if (Math.abs(qcv - qc) < dw) return true;
-        }
-
-
-        if (!isNaN(qc)) {
-
-          let nv = +qc.toFixed(4);
-
-          if (nv > -1e-5 && nv < 1e-5) {
-            nv = 0;
+          if (!isNaNx(qcv) && getScreenInfo.sizeProvided()) {
+            const { screenWidth, screenHeight } = getScreenInfo;
+            let pWidth = screenWidth + 1024;
+            let pHeight = screenHeight + 768;
+            const minRatio = 0.003;
+            const dw = pWidth * 0.0003; // min dw = 0.3072
+            const dh = pHeight * 0.0003; // min dh = 0.2304
+            // console.log(8381,did, Math.abs(qcv - qsv) < dw)
+            if (Math.abs(qcv - qsv) < dw) return true;
           }
-          this.setProperty(p, `${nv}px`);
-          return true;
 
+          v = `${qsv > -1e-5 && qsv < 1e-5 ? 0 : qsv.toFixed(4)}px`;
+          if (`${v}`.length > `${sv}`.length) v = sv;
+          // console.log(8382, did, sv, nv, cv, this)
         }
 
+        // Promise.resolve().then(() => {
+        //   const o = hookLeftPending.get(this);
+        //   if (o && o.key === did) {
+        //     this.setProperty(p, o.value);
+        //     o.key = null;
+        //   }
+        // });
+        // hookLeftPending.set(this, {
+        //   key: did,
+        //   value: nv
+        // });
 
-        this.setProperty('left', v);
+        // if (nv != v) {
+        //   console.log(8387, v, nv);
+        // }
+
+        this.setProperty(p, v);
+        // console.log(8383, did, this.getPropertyValue(p))
         return true;
       },
       enumerable: true,
@@ -5445,7 +5457,7 @@
             } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
               let p = c.substring(11, c.length - 3);
               let q = p.length >= 1 ? parseFloat(p) : NaN;
-              if (typeof q === 'number' && !isNaN(q)) {
+              if (typeof q === 'number' && !isNaNx(q)) {
                 transformType = 'translateX'
                 transformValue = q;
                 transformUnit = 'px';
@@ -5465,7 +5477,7 @@
             } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
               let p = c.substring(11, c.length - 3);
               let q = p.length >= 1 ? parseFloat(p) : NaN;
-              if (typeof q === 'number' && !isNaN(q)) {
+              if (typeof q === 'number' && !isNaNx(q)) {
                 transformType = 'translateY'
                 transformValue = q;
                 transformUnit = 'px';
