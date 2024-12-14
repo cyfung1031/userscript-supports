@@ -351,7 +351,93 @@
       } while ((p = p.constructor) && !skipObjects.has(p))
       b.prototype && skipObjects.add(b.prototype);
       setupHClass(b);
-      return pDefine.call(this, a, b, c);
+      let r = pDefine.call(this, a, b, c);
+
+      if(0 && a==='yt-attributed-string' && location.pathname.includes('live_chat') ){
+        const cnt = (new b).polymerController;
+        const cProto = cnt.__proto__;
+
+        const mff = (cnt, kk)=>{
+
+          let ub = false;
+          if (!cnt.data && !(cnt.__data || 0).data && cnt.__dataEnabled && cnt.hostElement ) {
+            ub = true;
+          }
+         
+          if(ub){
+            const p = cnt.hostElement.parentNode;
+            const pp = new WeakRef(cnt);
+            setInterval(()=>{
+
+              if(p && !p.firstElementChild) {
+                const cnt = pp.deref();
+                if(cnt){
+                  cnt.data = null;
+                  cnt.__data = null;
+                  cnt.hostElement = null;
+                  cnt.__dataEnabled = false;
+  
+                  cnt.__dataReady = false;
+                  cnt.__dataInvalid = true;
+                }
+              }
+            }, 100);
+          }
+
+
+          if(ub && cnt.__data){
+
+            cnt.__data = new Proxy(new WeakRef(cnt.__data), {
+              get(target,prop){
+                const __data=  (target).deref();
+                if(__data) return __data[prop];
+              },
+              set(target,prop,value){
+                const __data=  (target).deref();
+                if(!__data) return true;
+                __data[prop] = value;
+                return true;
+              },
+              ownKeys(target){
+                const __data= (target).deref();
+                if(!__data) return [];
+                return Reflect.ownKeys(__data);
+              }
+            });
+          }
+
+        }
+        cProto._setPendingProperty722 = cProto._setPendingProperty;
+        cProto._setPendingProperty = function(){
+          if(!this.__data )return;
+          return this._setPendingProperty722(...arguments)
+        }
+        cProto.attached322 = cProto.attached;
+        cProto.attached = function(){
+          mff(this, 1992)
+          this.attached322();
+        }
+        cProto.detached = function(){
+
+          const cnt = this;
+          if(cnt.__data){
+            console.log(2138)
+            Object.setPrototypeOf(cnt.__data,MutationObserver.prototype)
+          }
+
+          cnt.data = null;
+          cnt.__data = null;
+          cnt.hostElement = null;
+          cnt.__dataEnabled = false;
+
+          cnt.__dataReady = false;
+          cnt.__dataInvalid = true;
+        }
+        // cProto.attributeChanged = function(){
+        //   // mff(this, 1993)
+        // }
+      }
+      return r;
     }
 
 
