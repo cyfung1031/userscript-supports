@@ -1,3 +1,20 @@
+// ==UserScript==
+// @name                YouTube Boost Chat
+// @namespace           UserScripts
+// @version             0.1.54
+// @license             MIT
+// @match               https://*.youtube.com/live_chat*
+// @grant               none
+// @author              CY Fung
+// @run-at              document-start
+// @grant               none
+// @unwrap
+// @allFrames           true
+// @inject-into         page
+// @description         5/13/2024, 9:58:33 PM
+// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
+// ==/UserScript==
+
 /*
 
 MIT License
@@ -23,23 +40,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-
-// ==UserScript==
-// @name                YouTube Boost Chat
-// @namespace           UserScripts
-// @version             0.1.53
-// @license             MIT
-// @match               https://*.youtube.com/live_chat*
-// @grant               none
-// @author              CY Fung
-// @run-at              document-start
-// @grant               none
-// @unwrap
-// @allFrames           true
-// @inject-into         page
-// @description         5/13/2024, 9:58:33 PM
-// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
-// ==/UserScript==
 
 (() => {
 
