@@ -4,7 +4,7 @@
 // @match       https://*.youtube.com/*
 // @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @grant       none
-// @version     0.0.1
+// @version     0.0.2
 // @author      CY Fung
 // @license     MIT
 // @description Some dummy elements leak.
@@ -22,6 +22,9 @@
 
 
 (() => {
+
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
     const indr = o => insp(o).$ || o.$ || 0;
@@ -101,7 +104,7 @@
             control = false;
             if (nv) {
               if (!normal) {
-                Promise.resolve().then(() => {
+                Promise.resolve(0).then(() => {
                   if (!normal && (this.classList.contains('style-scope') || this.isConnected === true)) {
                     normal = true;
                   }
