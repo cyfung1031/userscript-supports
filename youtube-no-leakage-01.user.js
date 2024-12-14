@@ -4,7 +4,7 @@
 // @match       https://*.youtube.com/*
 // @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @grant       none
-// @version     0.0.2
+// @version     0.0.3
 // @author      CY Fung
 // @license     MIT
 // @description Some dummy elements leak.
@@ -47,7 +47,7 @@
       return null;
     }
   
-    let normal = false;
+    // let normal = false;
     const ytDOMWM = new WeakMap();
     Object.defineProperty(Element.prototype, 'usePatchedLifecycles', {
       get() {
@@ -89,7 +89,7 @@
               const cnt = insp(this);
               const url0 = getThumbnail(cnt?.__data?.thumbnail?.thumbnails)?.url
               if (url0 && url0.length > 17) {
-                normal = true;
+                // normal = true;
                 control = true;
                 Promise.resolve(0).then(() => {
                   const url = getThumbnail(cnt?.__data?.thumbnail?.thumbnails)?.url || url0;
@@ -102,15 +102,15 @@
             break;
           default:
             control = false;
-            if (nv) {
-              if (!normal) {
-                Promise.resolve(0).then(() => {
-                  if (!normal && (this.classList.contains('style-scope') || this.isConnected === true)) {
-                    normal = true;
-                  }
-                });
-              }
-            }
+            // if (nv) {
+            //   if (!normal) {
+            //     Promise.resolve(0).then(() => {
+            //       if (!normal && (this.classList.contains('style-scope') || this.isConnected === true)) {
+            //         normal = true;
+            //       }
+            //     });
+            //   }
+            // }
         }
         if (control) nv = 0;
         ytDOMWM.set(this, nv);
