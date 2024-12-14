@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.004
+// @version             0.0.005
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -1446,7 +1446,12 @@
 
         tmpDeadCheckerTags[w]._count++;
 
-        const tag = (cnt.is || cnt.nodeName?.toLowerCase() || 0);
+        let _is = null;
+        try {
+          _is = cnt.is; // this.__data[c]
+        } catch (e) { }
+
+        const tag = (_is || cnt.nodeName?.toLowerCase() || 0);
         if (typeof tag === 'string') {
 
           tmpDeadCheckerTags[w][tag] = (tmpDeadCheckerTags[w][tag] || 0) + 1;
