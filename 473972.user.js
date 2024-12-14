@@ -4,7 +4,7 @@
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
-// @version     0.16.20
+// @version     0.16.21
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -96,6 +96,7 @@
   const FIX_fix_requestIdleCallback_timing = true;
 
   const HOOK_CSSPD_LEFT = true; // global css hack for style.left
+  const FORCE_NO_REUSEABLE_ELEMENT_POOL = true;
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -4352,11 +4353,13 @@
   };
 
   const promiseForYtActionCalled = new Promise(resolve => {
+
+      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-app';
     if (typeof AbortSignal !== 'undefined') {
       let hn = () => {
         if (!hn) return;
         hn = null;
-        resolve(document.querySelector('ytd-app'));
+        resolve(document.querySelector(appTag));
       };
       document.addEventListener('yt-action', hn, { capture: true, passive: true, once: true });
     } else {
@@ -4364,13 +4367,11 @@
         if (!hn) return;
         document.removeEventListener('yt-action', hn, true);
         hn = null;
-        resolve(document.querySelector('ytd-app'));
+        resolve(document.querySelector(appTag));
       };
       document.addEventListener('yt-action', hn, true);
     }
   });
-
-
 
   cleanContext(window).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
@@ -4513,18 +4514,23 @@
 
     })();
 
+
+    
+
     FIX_ytAction_ && (async () => {
+
+      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-app';
 
       const ytdApp = await new Promise(resolve => {
 
-        whenCEDefined('ytd-app').then(() => {
-          const ytdApp = document.querySelector('ytd-app');
+        whenCEDefined(appTag).then(() => {
+          const ytdApp = document.querySelector(appTag);
           if (ytdApp) {
             resolve(ytdApp);
             return;
           }
           let mo = new MutationObserver(() => {
-            const ytdApp = document.querySelector('ytd-app');
+            const ytdApp = document.querySelector(appTag);
             if (!ytdApp) return;
             if (mo) {
               mo.disconnect();
@@ -4592,6 +4598,109 @@
       }, new Promise(r => setTimeout(r, 1000))).obtain();
 
     })();
+
+
+
+    FORCE_NO_REUSEABLE_ELEMENT_POOL && promiseForYtActionCalled.then(async () => {
+
+      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-watch-flexy';
+
+      const app = await observablePromise(() => {
+
+        return document.querySelector(appTag);
+
+      }).obtain();
+
+      if (!app) return;
+
+
+      const appCnt = insp(app);
+
+      if (typeof appCnt.createComponent_ !== 'function' || appCnt.createComponent_.length != 3) return;
+
+
+      const mapGet = Map.prototype.get;
+
+
+      /** @type {Map | null} */
+      let qcMap = null;
+
+      Map.prototype.get = function (a) {
+        if (a === 'dummy-4718') qcMap = this;
+        return mapGet.call(this, a);
+      };
+      const r = appCnt.createComponent_('dummy-4718', {}, true);
+      Map.prototype.get = mapGet;
+
+      if (r && (r.nodeName || '').toLowerCase() === 'dummy-4718') {
+
+
+        // clearInterval(ckId);
+        // ckId = 0;
+
+        if (qcMap !== null && qcMap instanceof Map) {
+
+          console.log('[yt-js-engine-tamer] qcMap', qcMap);
+
+          const setArrayC = (c) => {
+            if (c instanceof Array) {
+              c.length = 0;
+              c.push = function () { };
+              c.pop = function () { };
+              c.shift = function () { };
+              c.unshift = function () { };
+              c.splice = function () { };
+              c.sort = function () { };
+              c.reverse = function () { };
+            }
+          }
+
+          const cleaning = function () {
+            qcMap.forEach(setArrayC);
+            qcMap.clear();
+          }
+
+          qcMap.set = function (b, c) {
+
+            setArrayC(c);
+
+            // console.log('qcMap.set', b, c);
+
+            if (qcMap.size > 0) {
+              // play safe
+
+              console.log('[yt-js-engine-tamer] qcMap', 'clear 01')
+              cleaning();
+            }
+
+          }
+          qcMap.get = function (b) {
+
+            // console.log('qcMap.get', b);
+
+            if (qcMap.size > 0) {
+              // play safe
+
+              console.log('[yt-js-engine-tamer] qcMap', 'clear 02')
+              cleaning();
+            }
+
+          }
+
+
+          if (qcMap.size > 0) {
+
+            console.log('[yt-js-engine-tamer] qcMap', 'clear 03')
+            cleaning();
+          }
+
+        }
+
+      }
+
+
+    });
+ 
 
     const observablePromise = (proc, timeoutPromise) => {
       let promise = null;
