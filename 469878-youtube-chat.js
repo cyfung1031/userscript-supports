@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.65.1
+// @version             0.65.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8087,10 +8087,79 @@
               return;
             }
 
+            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|0.169.106|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
 
-            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
+              cProto.dataChanged86 = cProto.dataChanged;
+              cProto.dataChanged = function () {
+
+                /* 2024.12.15 */
+                /*
+                      zO.prototype.dataChanged = function() {
+                        for (var a = Ov(R(this.hostElement).querySelector("#image")); a.firstChild; )
+                            a.removeChild(a.firstChild);
+                        if (this.data)
+                            if (this.data.icon) {
+                                var b = document.createElement("yt-icon");
+                                this.data.icon.iconType === "MODERATOR" && this.enableNewModeratorBadge ? (b.polymerController.icon = "yt-sys-icons:shield-filled",
+                                b.polymerController.defaultToFilled = !0) : b.polymerController.icon = "live-chat-badges:" + this.data.icon.iconType.toLowerCase();
+                                a.appendChild(b)
+                            } else if (this.data.customThumbnail) {
+                                b = document.createElement("img");
+                                var c;
+                                (c = (c = UA(this.data.customThumbnail.thumbnails, 16)) ? Yb(kc(c)) : null) ? (b.src = c,
+                                a.appendChild(b),
+                                b.setAttribute("alt", this.hostElement.ariaLabel || "")) : Fq(new Zn("Could not compute URL for thumbnail",this.data.customThumbnail))
+                            }
+                        }
+                  */
+
+                const a = (this || 0).data;
+                const image = ((this || 0).$ || 0).image;
+                if (image && a && image.firstElementChild) {
+                  const exisiting = image.firstElementChild;
+                  if (exisiting === image.lastElementChild) {
+
+                    if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
+
+                      const c = exisiting;
+                      const t = insp(c);
+                      const w = ('icon' in t || 'defaultToFilled' in t) ? t : c;
+                      if ("MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge) {
+                        if (w.icon !== "yt-sys-icons:shield-filled") w.icon = "yt-sys-icons:shield-filled";
+                        if (w.defaultToFilled !== true) w.defaultToFilled = true;
+                      } else {
+                        const p = "live-chat-badges:" + a.icon.iconType.toLowerCase();;
+                        if (w.icon !== p) w.icon = p;
+                        if (w.defaultToFilled !== false) w.defaultToFilled = false;
+                      }
+                      return;
 
 
+                    } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
+
+                      const c = exisiting;
+                      if (a.customThumbnail.thumbnails.map(e => e.url).includes(c.src)) {
+
+                        c.setAttribute("alt", this.hostElement.ariaLabel || "");
+                        return;
+                      }
+                      /*
+
+                        var d;
+                        (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null) ? (c.src = d,
+
+                        c.setAttribute("alt", this.hostElement.ariaLabel || "")) : lq(new tm("Could not compute URL for thumbnail", a.customThumbnail))
+                        */
+                    }
+
+                  }
+                }
+                return this.dataChanged86.apply(this, arguments)
+
+              }
+              console.log("cProto.dataChanged - OK");
+
+            } else if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
 
               cProto.dataChanged86 = cProto.dataChanged;
               cProto.dataChanged = function (a) {
@@ -8181,7 +8250,7 @@
               console.log("cProto.dataChanged - OK");
 
             } else {
-              assertor(() => fnIntegrity(cProto.dataChanged, '1.162.100'));
+              assertor(() => fnIntegrity(cProto.dataChanged, '0.169.106'));
               console.log("cProto.dataChanged - NG");
 
             }
