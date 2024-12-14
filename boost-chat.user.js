@@ -27,7 +27,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.52
+// @version             0.1.53
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -38,20 +38,26 @@ SOFTWARE.
 // @allFrames           true
 // @inject-into         page
 // @description         5/13/2024, 9:58:33 PM
-// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/26ef1fda343c85285a388fcbf08290192e6e201d/library/html.min.js
+// @require             https://raw.githubusercontent.com/cyfung1031/userscript-supports/b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
 // ==/UserScript==
 
 (() => {
 
-  const WeakMap = window.WeakMapOriginal || window.WeakMap;
+  const USE_SHADOWROOT = false;
 
   const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100;
-
   const DEBUG_visibleItems_trace = false;
-
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
   const LOGTIME_FLUSHITEMS = false;
+  const DEBUG_windowVars = false;
+
+  // ----------------------------------------------------------------------------------------------------------
+
+  const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
+
+
 
   let isThisBrowserSupported = true;
 
@@ -353,7 +359,7 @@ SOFTWARE.
     Array.prototype.push32 = Array.prototype.push;
     Array.prototype.push = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('399 push', new Error().stack)
+        console.log('[bst] 399 push', new Error().stack)
       }
       return this.push32(...arguments)
     }
@@ -363,7 +369,7 @@ SOFTWARE.
     Array.prototype.splice = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
         // 399 splice     at a.splice (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:2405:190)
-        console.log('399 splice', new Error().stack)
+        console.log('[bst] 399 splice', new Error().stack)
 
       }
       return this.splice32(...arguments)
@@ -373,7 +379,7 @@ SOFTWARE.
     Array.prototype.unshift32 = Array.prototype.unshift;
     Array.prototype.unshift = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('399 unshift', new Error().stack)
+        console.log('[bst] 399 unshift', new Error().stack)
       }
       return this.unshift32(...arguments)
     }
@@ -383,7 +389,7 @@ SOFTWARE.
     Array.prototype.shift32 = Array.prototype.shift;
     Array.prototype.shift = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('399 shift', new Error().stack)
+        console.log('[bst] 399 shift', new Error().stack)
       }
       return this.shift32(...arguments)
     }
@@ -391,7 +397,7 @@ SOFTWARE.
     Array.prototype.pop32 = Array.prototype.pop;
     Array.prototype.pop = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('399 pop', new Error().stack)
+        console.log('[bst] 399 pop', new Error().stack)
       }
       return this.pop32(...arguments)
     }
@@ -495,7 +501,7 @@ SOFTWARE.
           try {
             res = await fn();
           } catch (e) {
-            console.log('error_F1', e);
+            console.log('[bst] error_F1', e);
             reject(e);
           }
           resolve(res);
@@ -521,7 +527,7 @@ SOFTWARE.
 
     let mloUz0 = -2;
 
-    let messageListMOMap = new WeakMap();
+    const messageListMOMap = new WeakMap();
     const mloCond = () => mloUz === mloUz0 && mloPr !== null;
     const mloF = () => {
       if (mloUz === mloUz0 && mloPr !== null) mloPr.resolve();
@@ -562,12 +568,12 @@ SOFTWARE.
     return { mloPrSetup, mloCond }
   })();
 
-  const firstKey = (obj) => {
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) return key;
-    }
-    return null;
-  }
+  // const firstKey = (obj) => {
+  //   for (const key in obj) {
+  //     if (obj.hasOwnProperty(key)) return key;
+  //   }
+  //   return null;
+  // }
 
   const firstObjectKey = (obj) => {
     for (const key in obj) {
@@ -656,9 +662,6 @@ SOFTWARE.
         overflow: auto;
       }
 
-      yt-live-chat-item-list-renderer[class] {
-        /*position: static;*/
-      }
     `,
     "inner": `
 
@@ -1160,6 +1163,7 @@ SOFTWARE.
         vertical-align: baseline;
       }
       .bst-message-badges img.bst-author-badge{
+        display: inline;
         margin-bottom: var(--bst-author-badge-mb);
         vertical-align: var(--bst-author-badge-va);
         width: var(--bst-author-badge-size);
@@ -1332,6 +1336,7 @@ SOFTWARE.
         vertical-align: middle;
         position: absolute;
         box-sizing:border-box;
+        contain: content;
       }
 
       .bst-message-profile-holder{
@@ -2022,9 +2027,9 @@ SOFTWARE.
 
       
       .bst-message-entry {
-        /*transform: scale(0.15);*/
         transform-origin: bottom right; 
         transition: transform 160ms ease-in-out 16ms;
+        contain: layout style;
       }
       .bst-message-entry[view-pos]{
         transform: scale(1);
@@ -2045,7 +2050,7 @@ SOFTWARE.
   }
 
   /** @type {import('./library/html').SolidJS}.SolidJS */
-  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect } = SolidJS;
+  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap } = SolidJS;
 
 
   function getThumbnail(thumbnails, min, max) {
@@ -2152,7 +2157,8 @@ SOFTWARE.
 
         } else if (ek.customThumbnail) {
 
-          const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
+          // const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
+          const className = `bst-author-badge`;
           const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
           const alt = () => ek.accessibility?.accessibilityData?.label || '';
           const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
@@ -2793,7 +2799,7 @@ SOFTWARE.
       c = void 0 === c ? !0 : c; // true
       d = void 0 === d ? !1 : d; // false
       a = a.replace($kb, "");
-      let e = document.createDocumentFragment();
+      // let e = document.createDocumentFragment();
       const r = [];
       let g = 0;
       let k;
@@ -2838,7 +2844,7 @@ SOFTWARE.
     let _messageOverflowAnchor = null;
     /** @type {HTMLElement} */
     let _bstMain = null;
-    const qq = new WeakMap();
+    const wAttachRoot = new WeakMap();
     let _flushed = 0;
     // let bstMainScrollCount = 0;
 
@@ -2863,11 +2869,11 @@ SOFTWARE.
       }
     }
 
-    const addMessageOverflowAnchorToShadow = function (shadow) {
+    const addMessageOverflowAnchorToShadow = function (attachRoot) {
 
       const messageOverflowAnchor = document.createElement('div');
-      messageOverflowAnchor.className = 'bst-overflow-anchor'
-      shadow.appendChild(messageOverflowAnchor)
+      messageOverflowAnchor.className = 'bst-overflow-anchor';
+      attachRoot.appendChild(messageOverflowAnchor);
 
       let anchorVisible = false;
 
@@ -2905,34 +2911,37 @@ SOFTWARE.
       const bstMain = document.createElement('div');
       const hostElement = this.hostElement;
 
-      const fragment = new DocumentFragment();
-      const noscript = document.createElement('noscript');
-      appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
-      appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
+      {
+        const fragment = new DocumentFragment();
+        const noscript = document.createElement('noscript');
+        appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
+        appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
 
-      fragmentAppendChild.call(fragment, noscript);
-      fragmentAppendChild.call(fragment, bstMain);
-      const dummyItems = document.createElement('div');
-      dummyItems.id = 'items';
-      dummyItems.style.display = 'none';
-      
-      const dummyItemOffset = document.createElement('div');
-      dummyItemOffset.id = 'item-offset';
-      dummyItemOffset.style.display = 'none';
-      appendChild.call(dummyItemOffset, dummyItems);
-      
+        fragmentAppendChild.call(fragment, noscript);
+        fragmentAppendChild.call(fragment, bstMain);
+        const dummyItems = document.createElement('div');
+        dummyItems.id = 'items';
+        dummyItems.style.display = 'none';
 
-      fragmentAppendChild.call(fragment, dummyItemOffset);
+        const dummyItemOffset = document.createElement('div');
+        dummyItemOffset.id = 'item-offset';
+        dummyItemOffset.style.display = 'none';
+        appendChild.call(dummyItemOffset, dummyItems);
 
-      replaceWith.call(targetElement, fragment);
-      sharedNoscript = noscript;
 
-      const shadow = bstMain.attachShadow({ mode: "open" });
-      qq.set(hostElement, {
-        shadow,
-        intersectionObserver: new IntersectionObserver(ioMessageListCallback, { root: bstMain, threshold: [0.05, 0.95] })
+        fragmentAppendChild.call(fragment, dummyItemOffset);
+
+        replaceWith.call(targetElement, fragment);
+        sharedNoscript = noscript;
+      }
+
+      const shadowRoot = USE_SHADOWROOT ? bstMain.attachShadow({ mode: "open" }) : null;
+      const attachRoot = (USE_SHADOWROOT ? shadowRoot : bstMain);
+      const intersectionObserver = new IntersectionObserver(ioMessageListCallback, { root: bstMain, threshold: [0.05, 0.95] });
+      wAttachRoot.set(hostElement, {
+        shadowRoot,
+        bstMain
       });
-      const { intersectionObserver } = qq.get(hostElement);
       bstMain.classList.add('bst-yt-main');
       bstMain.addEventListener('scroll', (a) => {
         // bstMainScrollCount++;
@@ -2940,20 +2949,12 @@ SOFTWARE.
       }, false);
       _bstMain = bstMain;
 
+      document.head.appendChild(document.createElement('style')).textContent = `${cssTexts.outer}`;
 
-      // const pp = bstMain.parentNode.insertBefore(document.createElement('div'), bstMain.nextSibling);
-      // pp.id='item-offset'
-      // pp.className = 'style-scope yt-live-chat-item-list-renderer'
-      // pp.style.height= '100vh';
-      // pp.style.visibility='collapse';
-
-
-      document.head.appendChild(document.createElement('style')).textContent = `${cssTexts.outer}`
-
-      shadow.appendChild(document.createElement('style')).textContent = `${cssTexts.inner}`
+      attachRoot.appendChild(document.createElement('style')).textContent = `${cssTexts.inner}`;
       messageList = document.createElement('div')
       messageList.className = 'bst-message-list';
-      shadow.appendChild(messageList)
+      attachRoot.appendChild(messageList);
 
       messageList.getListRendererCnt = () => {
 
@@ -3028,62 +3029,65 @@ SOFTWARE.
       messageList.profileCardSet = profileCardSet;
       render(SolidMessageList.bind(null, solidBuild, profileCard), messageList);
 
-      addMessageOverflowAnchorToShadow.call(this, shadow);
+      addMessageOverflowAnchorToShadow.call(this, attachRoot);
 
+      {
 
-      let mouseEntered = null;
-      const getTooltip = (emojiElement) => {
-        const entry = emojiElement ? emojiElement.closest('.bst-message-entry') : null;
-        const dataMutable = entry ? mutableWM.get(entry) : null;
-        return dataMutable ? dataMutable.tooltips.get(emojiElement.id) : null;
-      }
-      const leaveEmoji = (emojiElement) => {
-
-        const tooltip = getTooltip(emojiElement);
-        if (tooltip) {
-          const [emojiDataStore, emojiDataStoreSet] = tooltip;
-          emojiDataStoreSet({ displayedTooltipText: '' });
+        let mouseEntered = null;
+        const getTooltip = (emojiElement) => {
+          const entry = emojiElement ? emojiElement.closest('.bst-message-entry') : null;
+          const dataMutable = entry ? mutableWM.get(entry) : null;
+          return dataMutable ? dataMutable.tooltips.get(emojiElement.id) : null;
         }
-      }
-      messageList.addEventListener('mouseenter', function (evt) {
-        if (mouseEntered) {
-          leaveEmoji(mouseEntered)
-          mouseEntered = null;
-        }
-        const target = evt.target;
-        if ((target instanceof HTMLImageElement) || (target instanceof HTMLElement && target.nodeName === 'YT-ICON')) {
-          if (target.hasAttribute('shared-tooltip-text')) {
-            mouseEntered = target;
-            const emojiElement = target;
-            const tooltip = getTooltip(emojiElement);
+        const leaveEmoji = (emojiElement) => {
+
+          const tooltip = getTooltip(emojiElement);
+          if (tooltip) {
             const [emojiDataStore, emojiDataStoreSet] = tooltip;
-            emojiDataStoreSet({ displayedTooltipText: emojiElement.getAttribute('shared-tooltip-text') });
-            // emojiData.displayedTooltipText = evt.target.getAttribute('shared-tooltip-text')
-            // console.log(10, evt.target.getAttribute('shared-tooltip-text'))
+            emojiDataStoreSet({ displayedTooltipText: '' });
+          }
+        }
+        messageList.addEventListener('mouseenter', function (evt) {
+          if (mouseEntered) {
+            leaveEmoji(mouseEntered)
+            mouseEntered = null;
+          }
+          const target = evt.target;
+          if ((target instanceof HTMLImageElement) || (target instanceof HTMLElement && target.nodeName === 'YT-ICON')) {
+            if (target.hasAttribute('shared-tooltip-text')) {
+              mouseEntered = target;
+              const emojiElement = target;
+              const tooltip = getTooltip(emojiElement);
+              const [emojiDataStore, emojiDataStoreSet] = tooltip;
+              emojiDataStoreSet({ displayedTooltipText: emojiElement.getAttribute('shared-tooltip-text') });
+              // emojiData.displayedTooltipText = evt.target.getAttribute('shared-tooltip-text')
+              // console.log(10, evt.target.getAttribute('shared-tooltip-text'))
+              evt.stopPropagation();
+              evt.stopImmediatePropagation();
+              return;
+            }
+          }
+
+
+        }, true)
+        messageList.addEventListener('mouseleave', function (evt) {
+          const target = evt.target;
+          if (target === mouseEntered && mouseEntered) {
+            mouseEntered = null;
+
+            const emojiElement = target;
+            leaveEmoji(emojiElement);
+
+
+            // console.log(12, evt.target.getAttribute('shared-tooltip-text'))
             evt.stopPropagation();
             evt.stopImmediatePropagation();
             return;
           }
-        }
 
+        }, true);
 
-      }, true)
-      messageList.addEventListener('mouseleave', function (evt) {
-        const target = evt.target;
-        if (target === mouseEntered && mouseEntered) {
-          mouseEntered = null;
-
-          const emojiElement = target;
-          leaveEmoji(emojiElement);
-
-
-          // console.log(12, evt.target.getAttribute('shared-tooltip-text'))
-          evt.stopPropagation();
-          evt.stopImmediatePropagation();
-          return;
-        }
-
-      }, true);
+      }
 
       const onNameFieldClick = (target, messageEntry, nameField) => {
         const extra = getExtra(messageEntry);
@@ -3106,6 +3110,7 @@ SOFTWARE.
           profileUrl: data.bst('authorAboutPage')
         });
 
+        console.log( '[bst] onNameFieldClick', Object.assign({}, unwrap(data)));
 
       }
 
@@ -3133,15 +3138,16 @@ SOFTWARE.
         // console.log('click', target); // TODO
       });
 
-
-      const attributeFn = () => {
-        if (!messageList) return;
-        let isDark = document.documentElement.hasAttribute('dark')
-        if (isDark) _setAttribute.call(messageList, 'dark', '');
-        else _removeAttribute.call(messageList, 'dark');
-      };
-      (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
-      attributeFn();
+      {
+        const attributeFn = () => {
+          if (!messageList) return;
+          const isDark = document.documentElement.hasAttribute('dark')
+          if (isDark) _setAttribute.call(messageList, 'dark', '');
+          else _removeAttribute.call(messageList, 'dark');
+        };
+        (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
+        attributeFn();
+      }
 
 
       // yt-live-chat-item-list-renderer
@@ -3407,7 +3413,7 @@ SOFTWARE.
     cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 256;
     cProto.setAtBottom = (...args) => {
 
-      console.log('setAtBottom', 583, ...args)
+      console.log('[bst] setAtBottom', 583, ...args)
 
     }
 
@@ -3449,7 +3455,7 @@ SOFTWARE.
 
     cProto.maybeAddDockableMessage17_ = cProto.maybeAddDockableMessage_;
     cProto.maybeAddDockableMessage_ = function (a) {
-      console.log('maybeAddDockableMessage_', 791, a)
+      console.log('[bst] maybeAddDockableMessage_', 791, a)
       return this.maybeAddDockableMessage17_(a)
     }
 
@@ -3478,7 +3484,7 @@ SOFTWARE.
     cProto.computeVisibleItems17 = cProto.computeVisibleItems;
     cProto.computeVisibleItems = function (a, b) {
 
-      console.log('computeVisibleItems', 791, a, b)
+      console.log('[bst] computeVisibleItems', 791, a, b)
       // if(!this.visibleItems__) this.visibleItems__ = [];
       // return this.visibleItems__;
       return this.computeVisibleItems17(a, b);
@@ -3836,19 +3842,19 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     cProto.showNewItems_ = function (...args) {
 
-      console.log('showNewItems_', 583, ...args)
+      console.log('[bst] showNewItems_', 583, ...args)
 
     }
 
     cProto.refreshOffsetContainerHeight_ = function () {
 
-      console.log('refreshOffsetContainerHeight_', 583, ...args)
+      console.log('[bst] refreshOffsetContainerHeight_', 583, ...args)
     }
 
     cProto.maybeResizeScrollContainer_ = function (...args) {
 
 
-      console.log('maybeResizeScrollContainer_', 583, ...args)
+      console.log('[bst] maybeResizeScrollContainer_', 583, ...args)
     }
 
 
@@ -3915,7 +3921,7 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     const [modiValue, modiValueSet] = createSignal();
     const [tartValue, tartValueSet] = createSignal();
-    const [ezValue, ezValueSet] = createSignal();
+    // const [ezValue, ezValueSet] = createSignal();
 
     createEffect(() => {
       if (modiValue() === tartValue() && mloPr !== null) {
@@ -3931,14 +3937,14 @@ f.handleRemoveChatItemAction_ = function(a) {
       const items = (this.$ || 0).items;
       const hostElement = this.hostElement;
       if (!(items instanceof Element)) return;
-      if (!qq.has(hostElement)) {
+      if (!wAttachRoot.has(hostElement)) {
         this.setupBoostChat();
         const thisData = this.data;
         if (thisData.maxItemsToDisplay > 0) thisData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
       }
 
       if (!messageList) return;
-      window.__bstFlush01__ = Date.now();
+      if (DEBUG_windowVars) window.__bstFlush01__ = Date.now();
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
@@ -3950,9 +3956,9 @@ f.handleRemoveChatItemAction_ = function(a) {
         // this.setupVisibleItemsList();
 
 
-        window.__bstFlush02__ = Date.now();
+        if (DEBUG_windowVars) window.__bstFlush02__ = Date.now();
         const activeItems_ = this.activeItems_;
-        let _addLen = activeItems_.length;
+        const _addLen = activeItems_.length;
         // console.log(55, _addLen)
         if (_addLen === 0) return;
         // if(this.visibleItemsCount > 40) return;
@@ -3978,7 +3984,7 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         }
 
-        window.__bstFlush03__ = Date.now();
+        if (DEBUG_windowVars) window.__bstFlush03__ = Date.now();
 
 
 
@@ -4019,11 +4025,11 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (this.isAttached !== true) return;
         if (items.length === 0) return;
 
-        let existing = new Set();
+        let existingSet = new Set();
         for (const entry of this.visibleItems) {
           let k = entry ? firstObjectKey(entry) : null;
           let p = k ? entry[k] : null;
-          p && p.id && existing.add(p.id);
+          p && p.id && existingSet.add(p.id);
         }
 
         let rearrangedW = items.map(flushItem => {
@@ -4034,8 +4040,8 @@ f.handleRemoveChatItemAction_ = function(a) {
 
           const id = aObj.id
           const uid = getUID(aObj);
-          if (existing.has(id)) return null;
-          existing.add(id);
+          if (existingSet.has(id)) return null;
+          existingSet.add(id);
           // if (flushKeys.has(uid)) return null;
           // flushKeys.add(uid);
 
@@ -4045,7 +4051,8 @@ f.handleRemoveChatItemAction_ = function(a) {
           };
 
         }).filter(e => !!e);
-        existing.clear();
+        existingSet.clear();
+        existingSet = null;
 
         const nd = rearrangedW.length;
         if (nd === 0) return;
@@ -4351,11 +4358,11 @@ f.handleRemoveChatItemAction_ = function(a) {
         }
 
         let awaitTime = 0;
-        const timeline = new DocumentTimeline;
-        const timelines = new Set();
+        // const timeline = new DocumentTimeline;
+        // const timelines = new Set();
         const t1 = performance.now();
 
-        window.__bstFlush04__ = Date.now();
+        if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let tq = t1;
         let mg = 0;
         ezPr = null;
@@ -4367,7 +4374,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
           const j = rJ;
           bObjX = rearrangedFn(rearrangedW[j]);
-          timelines.add(`${timeline.currentTime}|${tq}`);
+          // timelines.add(`${timeline.currentTime}|${tq}`);
           mloUz = rJ;
           ezPr = new PromiseExternal();
           messageList.solidBuildSet(loopFunc);
@@ -4401,7 +4408,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           await promiseFn();
         }
 
-        window.__bstFlush05__ = Date.now();
+        if (DEBUG_windowVars) window.__bstFlush05__ = Date.now();
         mloPrReleaseAt = 0;
         if (mloPr !== null) mloPr.resolve();
         mloPr = null;
@@ -4445,9 +4452,10 @@ f.handleRemoveChatItemAction_ = function(a) {
 
             console.log(993, pp.length, fp.length, cp.length)
           }
+
         }
 
-        window.__bstFlush06__ = Date.now();
+        if (DEBUG_windowVars) window.__bstFlush06__ = Date.now();
 
         // await timelineResolve();
 
