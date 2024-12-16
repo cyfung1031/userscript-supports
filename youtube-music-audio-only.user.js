@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
+// @name:ja             YouTube Music: Audio Only
+// @name:zh-TW          YouTube Music: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             0.1.15
+// @version             0.1.16
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -161,6 +163,8 @@
     window.addEventListener('beforeunload', kEventListener, false);
 
     const pageInjectionCode = function () {
+
+        const A_D_B_Y_PASS = true;
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
@@ -649,7 +653,16 @@
                 }
             }
 
+            if (A_D_B_Y_PASS) Promise.resolve().then(() => {
+                // skip a$d.s
 
+                const isAdsPlaying = document.querySelector('[is-advertisement-playing]');
+                if (isAdsPlaying && !isAdsPlaying.querySelector('img[src]')) {
+                    const audios = document.querySelectorAll('audio');
+                    if (audios.length === 1 && audios[0].paused === false && audios[0].currentTime > 0 && audios[0].duration > audios[0].currentTime) audios[0].playbackRate = 15 - Math.random() * 0.04;
+                }
+
+            }).catch(console.warn);
 
         }
 
