@@ -4,7 +4,7 @@
 // @match       https://*.youtube.com/*
 // @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @grant       none
-// @version     0.0.3
+// @version     0.0.4
 // @author      CY Fung
 // @license     MIT
 // @description Some dummy elements leak.
@@ -69,7 +69,7 @@
           // case 'yt-iframed-player-events-relay':
           case 'yt-payments-manager':
           case 'yt-visibility-monitor':
-          case 'yt-invalidation-continuation':
+          // case 'yt-invalidation-continuation': // live chat loading
           case 'yt-live-chat-replay-continuation':
           case 'yt-reload-continuation':
           case 'yt-timed-continuation':
