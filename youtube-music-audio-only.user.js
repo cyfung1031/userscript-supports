@@ -6,7 +6,7 @@
 // @description:zh-TW   No Video Streaming
 // @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.17
+// @version             0.1.18
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -659,7 +659,7 @@
                 // skip a$d.s
 
                 const isAdsPlaying = document.querySelector('[is-advertisement-playing]');
-                if (isAdsPlaying && !isAdsPlaying.querySelector('img[src]')) {
+                if (isAdsPlaying) {
                     const audios = document.querySelectorAll('audio');
                     if (audios.length === 1 && audios[0].paused === false && audios[0].currentTime > 0 && audios[0].duration > audios[0].currentTime) audios[0].playbackRate = 15 - Math.random() * 0.04;
                 }
