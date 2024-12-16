@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.8.1
+// @version             1.8.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2230,7 +2230,7 @@
 
         };
 
-        supportedFormatsConfig();
+        // supportedFormatsConfig(); // avoid issue due to failure on only video source (like ads)
 
 
         PATCH_MEDIA_PUBLISH && (async ()=>{
