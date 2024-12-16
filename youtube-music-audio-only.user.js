@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @name:ja             YouTube Music: Audio Only
-// @name:zh-TW          YouTube Music: Audio Only
 // @description         No Video Streaming
+// @description:en      No Video Streaming
+// @description:ja      No Video Streaming
+// @description:zh-TW   No Video Streaming
+// @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.16
+// @version             0.1.17
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
