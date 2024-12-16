@@ -4,7 +4,7 @@
 // @match       https://*.youtube.com/*
 // @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @grant       none
-// @version     0.0.4
+// @version     0.0.5
 // @author      CY Fung
 // @license     MIT
 // @description Some dummy elements leak.
@@ -62,7 +62,11 @@
         switch (nodeName) {
           case 'yt-attributed-string':
           case 'yt-image':
-            control = true;
+            if (this?.classList?.length > 0) {
+              control = false;
+            } else {
+              control = true;
+            }
             break;
   
           case 'yt-player-seek-continuation':
