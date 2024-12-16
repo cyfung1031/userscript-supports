@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         No Ad IFrame
 // @namespace    https://staybrowser.com/
-// @version      0.1.0
+// @version      0.1.1
 
 // @description         No Ad IFrame created by Stay
 // @description:en      No Ad IFrame created by Stay
@@ -216,24 +216,37 @@
 
     const convertionUrl = (nv, iframe) => {
 
+        let btt = 0;
+
         if (typeof nv == 'string' && nv.length > 15 && iframe instanceof HTMLIFrameElement) {
             if ((iframe.parentNode || 0).nodeName === 'NOSCRIPT') return null;
             if (nv.length >= 22 && nv.startsWith('data:text/html;base64,')) return null;
+            btt = 1;
+        } else if ((nv || '') === '' && iframe instanceof HTMLIFrameElement) {
+            btt = 2;
+        }
 
-            const cv = caching.get(nv);
-            if (cv !== undefined) return cv;
 
+        if (btt > 0) {
+            if (btt === 1) {
+                const cv = caching.get(nv);
+                if (cv !== undefined) return cv;
+            }
             for (const adf of Object.keys(adFilter)) {
                 const adk = adf.replace(/\[\d+\w*\]/g, '');
                 if (iframe.matches(adk)) {
                     const w = adFilter[adf];
                     const bv = typeof w === 'string' ? w : dynamicGeneration();
-                    caching.set(nv, bv);
-                    caching.set(bv, bv);
+                    if (btt === 1) {
+                        caching.set(nv, bv);
+                        caching.set(bv, bv);
+                    }
                     return bv;
                 }
             }
-            caching.set(nv, null);
+            if (btt === 1) {
+                caching.set(nv, null);
+            }
         }
         return null;
     };
