@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.65.2
+// @version             0.65.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8963,7 +8963,6 @@
               }
               const fakeTargetCnt = new Proxy({
                 __showContextMenu_forceNativeRequest__: 1,
-                __showContextMenu_sync_mode_request__: 1,
                 get handleGetContextMenuResponse_() {
                   propertyCounter += 2;
                   return onSuccessHelperFn;
@@ -9107,7 +9106,8 @@
 
 
           showContextMenuForCacheReopen: function (a) {
-            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
+            if (this && this.__showContextMenu_forceNativeRequest__) return this.showContextMenu37(a);
+            if (!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             if (!this.__showContextMenu_forceNativeRequest__) {
               const endpoint = (this.data || 0).contextMenuEndpoint || 0;
               if (endpoint) {
@@ -9123,7 +9123,8 @@
           },
 
           showContextMenuForCacheReopen_: function (a) {
-            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
+            if (this && this.__showContextMenu_forceNativeRequest__) return this.showContextMenu37_(a);
+            if (!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             if (!this.__showContextMenu_skip_cacheResolvedEndpointData__) {
               const endpoint = (this.data || 0).contextMenuEndpoint || 0;
               if (endpoint) {
@@ -9170,36 +9171,31 @@
           },
 
           showContextMenuWithMutex: function (a) {
-            if(!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
+            if (this.__showContextMenu_forceNativeRequest__) return this.showContextMenu47(a);
+            if (!this || !this.isAttached) return; // in case; avoid Error: No provider for: InjectionToken(NETWORK_TOKEN) in _.showContextMenu
             lastShowMenuTarget = this;
             const wNode = mWeakRef(this);
 
-            if (this.__showContextMenu_sync_mode_request__) {
 
-              return this.showContextMenu47(a);
-            } else {
+            const mutex = __showContextMenu_mutex__;
 
-              const mutex = __showContextMenu_mutex__;
+            mutex.lockWith(unlock => {
+              const cnt = kRef(wNode);
+              if (lastShowMenuTarget !== cnt || !cnt) {
+                unlock();
+                return;
+              }
 
-              mutex.lockWith(unlock => {
-                const cnt = kRef(wNode);
-                if (lastShowMenuTarget !== cnt || !cnt) {
-                  unlock();
-                  return;
-                }
+              setTimeout(unlock, 800); // in case network failure
+              __showContextMenu_mutex_unlock__ = unlock;
+              try {
+                cnt.showContextMenu47(a);
+              } catch (e) {
+                console.warn(e);
+                unlock(); // in case function script error
+              }
 
-                setTimeout(unlock, 800); // in case network failure
-                __showContextMenu_mutex_unlock__ = unlock;
-                try {
-                  cnt.showContextMenu47(a);
-                } catch (e) {
-                  console.warn(e);
-                  unlock(); // in case function script error
-                }
-
-              });
-
-            }
+            });
 
 
           },
