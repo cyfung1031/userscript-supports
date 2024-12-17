@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.0
+// @version             0.66.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -5452,6 +5452,9 @@
 
             mclp.handleLiveChatActions_ = function (arr) {
 
+
+              const mapper = new Map();
+
               // without delaying. get the time of request 
               // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
               const ct = Date.now();
@@ -5473,7 +5476,42 @@
                 if (obj.id && !obj.__timestampActionRequest__) {
                   obj.__timestampActionRequest__ = ct;
                 }
+
+                if (obj.id && obj.__timestampActionRequest__ > 0 && obj.durationSec > 0 && obj.fullDurationSec) {
+
+                  mapper.set(aItem, __timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000);
+
+
+                }
+
               }
+
+              if (mapper.size > 1) {
+
+                // sort ticker
+                let mArr1 = arr.filter(aItem => {
+
+                  if (mapper.has(aItem)) return true;
+                  return false;
+
+                });
+
+                let mArr2 = mArr1.slice(0).sort((a, b) => {
+                  return mapper.get(a) - mapper.get(b);
+                });
+
+
+                // console.log(948701, arr);
+                arr = arr.map(aItem => {
+                  const idx = mArr1.indexOf(aItem);
+                  if (idx < 0) return aItem;
+                  return mArr2[idx];
+                });
+                // console.log(948702, arr);
+
+              }
+
+
 
               // console.log(1929, cnt.activeItems_)
               // console.log(9487, arr);
@@ -7082,7 +7120,9 @@
                   while ((p = p.parentElement) instanceof HTMLElement) {
                     if (p instanceof HTMLElement) {
                       const cnt = insp(p);
-                      if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.countdownMs > 0) {
+                      if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.__advancedTicking038__ === 1 ) {
+
+                        cnt.__advancedTicking038__ = 2;
 
                         let deletionMode = false;
                         const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
@@ -7097,14 +7137,12 @@
                         }
           
 
-                        cnt.countdownMs = 0;
-                        cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null;
-                        if(deletionMode){
+                        if (deletionMode) {
                           __requestRemoval__(cnt);
-                        }else{
+                        } else {
 
                           ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
-                          cnt.slideDown());
+                            cnt.slideDown());
                         }
 
                         break;
@@ -7243,46 +7281,58 @@
               }
             });
 
+            const timeFn = (cnt)=>{
+
+              if (!cnt) return;
+              if (!cnt.hostElement) return;
+
+              const attachementId = cnt.__ticker_attachmentId__;
+              if (!attachementId) return;
+
+              Promise.resolve(cnt).then(u37fn);
+
+            }
+
             cProto.startCountdown = dProto.startCountdownAdv || (dProto.startCountdownAdv = function (a, b) {
 
+              timeFn(kRef(this));
 
+              // try {
+              //   const cnt = kRef(this);
+              //   if (!cnt) return;
+              //   if (!cnt.hostElement) return;
 
-              try {
-                const cnt = kRef(this);
-                if (!cnt) return;
-                if (!cnt.hostElement) return;
+              //   const attachementId = cnt.__ticker_attachmentId__;
+              //   if (!attachementId) return;
 
-                const attachementId = cnt.__ticker_attachmentId__;
-                if (!attachementId) return;
+              //   // a.durationSec [s] => countdownMs [ms]
+              //   // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+              //   // lastCountdownTimeMs => raf ongoing
+              //   // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
 
-                // a.durationSec [s] => countdownMs [ms]
-                // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
-                // lastCountdownTimeMs => raf ongoing
-                // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
+              //   // if (cnt._r782) return;
 
-                // if (cnt._r782) return;
+              //   // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+              //   //   cnt._throwOut();
+              //   //   return;
+              //   // }
 
-                // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
-                //   cnt._throwOut();
-                //   return;
-                // }
+              //   // TimerFnModT
 
-                // TimerFnModT
+              //   // b = void 0 === b ? 0 : b;
+              //   // void 0 !== a && (cnt.countdownMs = 1E3 * a,
+              //   //   cnt.countdownDurationMs = b ? 1E3 * b : cnt.countdownMs,
+              //   //   // cnt.ratio = 1,
+              //   //   cnt.lastCountdownTimeMs || cnt.isAnimationPaused || (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = performance.now(),
+              //   //     cnt.rafId = -1))
 
-                b = void 0 === b ? 0 : b;
-                void 0 !== a && (cnt.countdownMs = 1E3 * a,
-                  cnt.countdownDurationMs = b ? 1E3 * b : cnt.countdownMs,
-                  // cnt.ratio = 1,
-                  cnt.lastCountdownTimeMs || cnt.isAnimationPaused || (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = performance.now(),
-                    cnt.rafId = -1))
+              //   Promise.resolve(cnt).then((cnt) => {
+              //     u37fn(cnt);
+              //   })
 
-                Promise.resolve(cnt).then((cnt) => {
-                  u37fn(cnt);
-                })
-
-              } catch (e) {
-                console.warn(e);
-              }
+              // } catch (e) {
+              //   console.warn(e);
+              // }
 
 
             });
@@ -7290,53 +7340,55 @@
             cProto.updateTimeout = dProto.updateTimeoutAdv || (dProto.updateTimeoutAdv = function (a) {
 
 
+              // timeFn(kRef(this));
 
-              try {
-                const cnt = kRef(this);
-                if (!cnt) return;
-                if (!cnt.hostElement) return; // memory leakage. to be reviewed
+              // try {
+              //   const cnt = kRef(this);
+              //   if (!cnt) return;
+              //   if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
-                const attachementId = cnt.__ticker_attachmentId__;
-                if (!attachementId) return;
+              //   const attachementId = cnt.__ticker_attachmentId__;
+              //   if (!attachementId) return;
 
-                // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+              //   // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
 
-                // if (cnt._r782) return;
+              //   // if (cnt._r782) return;
 
-                // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
-                //   cnt._throwOut();
-                //   return;
-                // }
+              //   // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+              //   //   cnt._throwOut();
+              //   //   return;
+              //   // }
 
-                if (cnt.lastCountdownTimeMs !== cnt._lastCountdownTimeMsX0) {
-                  cnt.countdownMs = Math.max(0, cnt.countdownMs - (a - (cnt.lastCountdownTimeMs || 0)));
-                }
-                // console.log(703, cnt.countdownMs)
-                // cnt.ratio = cnt.countdownMs / cnt.countdownDurationMs;
+              //   // if (cnt.lastCountdownTimeMs !== cnt._lastCountdownTimeMsX0) {
+              //   //   cnt.countdownMs = Math.max(0, cnt.countdownMs - (a - (cnt.lastCountdownTimeMs || 0)));
+              //   // }
+              //   // console.log(703, cnt.countdownMs)
+              //   // cnt.ratio = cnt.countdownMs / cnt.countdownDurationMs;
 
-                u37fn(cnt);
-                cnt.isAttached && cnt.countdownMs ? (cnt.lastCountdownTimeMs = a,
-                  cnt.rafId = -1) : (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null,
-                    cnt.isAttached && ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
-                      cnt.slideDown()))
+              //   // u37fn(cnt);
+              //   // cnt.isAttached && cnt.countdownMs ? (cnt.lastCountdownTimeMs = a,
+              //   //   cnt.rafId = -1) : (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null,
+              //   //     cnt.isAttached && ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+              //   //       cnt.slideDown()))
 
 
-              } catch (e) {
-                console.warn(e);
-              }
+              // } catch (e) {
+              //   console.warn(e);
+              // }
 
             });
 
             cProto.isAnimationPausedChanged = dProto.isAnimationPausedChangedAdv || (dProto.isAnimationPausedChangedAdv = function (a, b) {
 
 
+              // timeFn(kRef(this));
 
-              const cnt = kRef(this);
-              if (!cnt) return;
-              if (!cnt.hostElement) return; // memory leakage. to be reviewed
+              // const cnt = kRef(this);
+              // if (!cnt) return;
+              // if (!cnt.hostElement) return; // memory leakage. to be reviewed
 
-              const attachementId = cnt.__ticker_attachmentId__;
-              if (!attachementId) return;
+              // const attachementId = cnt.__ticker_attachmentId__;
+              // if (!attachementId) return;
 
               // if (cnt._r782) return;
 
@@ -7347,21 +7399,21 @@
               // let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
               // cnt._forceNoDetlaSincePausedSecs783 = 0;
 
-              u37fn(cnt);
-              Promise.resolve(cnt).then((cnt) => {
+              // u37fn(cnt);
+              // Promise.resolve(cnt).then((cnt) => {
 
-                if (attachementId !== cnt.__ticker_attachmentId__) return;
+              //   if (attachementId !== cnt.__ticker_attachmentId__) return;
 
-                a ? 0 : !a && b && (a = cnt.lastCountdownTimeMs || 0,
-                  cnt.detlaSincePausedSecs && (a = (cnt.lastCountdownTimeMs || 0) + 1E3 * cnt.detlaSincePausedSecs,
-                    cnt.detlaSincePausedSecs = 0),
-                  cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now())
+              //   // a ? 0 : !a && b && (a = cnt.lastCountdownTimeMs || 0,
+              //   //   cnt.detlaSincePausedSecs && (a = (cnt.lastCountdownTimeMs || 0) + 1E3 * cnt.detlaSincePausedSecs,
+              //   //     cnt.detlaSincePausedSecs = 0),
+              //   //   cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now())
 
-                cnt = null;
+              //   cnt = null;
 
-              }).catch(e => {
-                console.log(e);
-              });
+              // }).catch(e => {
+              //   console.log(e);
+              // });
 
 
             });
