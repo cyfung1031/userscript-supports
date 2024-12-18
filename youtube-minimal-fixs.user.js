@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.7
+// @version      0.7.8
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -47,7 +47,7 @@ SOFTWARE.
 (function (__CONTEXT__) {
     "use strict";
 
-    const showNativeControls = true;
+    const showNativeControls = false;
 
     const { Promise } = __CONTEXT__;
 
