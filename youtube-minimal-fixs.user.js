@@ -1,3 +1,21 @@
+// ==UserScript==
+// @name         YouTube Minimal Fixs
+// @version      0.7.3
+// @description  This is to fix various features of YouTube Minimal on PC
+// @namespace    http://tampermonkey.net/
+// @author       CY Fung
+// @license      MIT
+// @supportURL   https://github.com/cyfung1031/userscript-supports
+// @run-at       document-start
+// @match        https://m.youtube.com/*
+// @icon         https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-minimal.png
+// @grant        none
+// @unwrap
+// @allFrames    true
+// @inject-into  page
+// ==/UserScript==
+"use strict";
+
 /*
 
 MIT License
@@ -23,23 +41,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-// ==UserScript==
-// @name         YouTube Minimal Fixs
-// @version      0.7.2
-// @description  This is to fix various features of YouTube Minimal on PC
-// @namespace    http://tampermonkey.net/
-// @author       CY Fung
-// @license      MIT
-// @supportURL   https://github.com/cyfung1031/userscript-supports
-// @run-at       document-start
-// @match        https://m.youtube.com/*
-// @icon         https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/youtube-minimal.png
-// @grant        none
-// @unwrap
-// @allFrames    true
-// @inject-into  page
-// ==/UserScript==
-"use strict";
 
 //document.addEventListener('visibilitychange',function(evt){ evt.isTrusted && document.visibilityState==='hidden' && evt.stopPropagation() }, true)
 
@@ -144,11 +145,11 @@ SOFTWARE.
     }
 
     button.icon-button:hover {
-        color:#006aff;
+        color: #006aff;
     }
 
     .ytWebScrimHost[class] {
-        cursor:initial;
+        cursor: initial;
     }
 
     `
@@ -469,6 +470,17 @@ SOFTWARE.
     document.addEventListener('pointerup', eventFn1, true);
 
     document.addEventListener('click', eventFn1, true);
+
+    document.addEventListener('playing', (evt) => {
+
+        if (evt && evt.isTrusted === true && evt.target instanceof HTMLVideoElement && evt.target.closest('#player')) {
+
+            evt.style.pointerEvents = "none";
+            if (!evt.target.muted) evt.target.volume = 1; // fixed at 1.0
+
+        }
+
+    });
 
 
 })({ Promise });
