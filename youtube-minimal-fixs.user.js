@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.4
+// @version      0.7.5
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -475,7 +475,7 @@ SOFTWARE.
 
         if (evt && evt.isTrusted === true && evt.target instanceof HTMLVideoElement && evt.target.closest('#player')) {
 
-            evt.style.pointerEvents = "none";
+            evt.target.style.pointerEvents = "none";
             if (!evt.target.muted) evt.target.volume = 1; // fixed at 1.0
 
         }
