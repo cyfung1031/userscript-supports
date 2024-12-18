@@ -25,7 +25,7 @@ SOFTWARE.
 */
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.1
+// @version      0.7.2
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -135,6 +135,21 @@ SOFTWARE.
 
     }
 
+    #player-control-overlay.fadein .player-controls-background[class] {
+        background: linear-gradient(to bottom, rgba(0,0,0,0) 78%, rgba(0,0,0,0.32) 100%);
+    }
+
+    #player, #player-control-container, .ytp-autohide[class] {
+        cursor: initial !important;
+    }
+
+    button.icon-button:hover {
+        color:#006aff;
+    }
+
+    .ytWebScrimHost[class] {
+        cursor:initial;
+    }
 
     `
 
@@ -434,6 +449,26 @@ SOFTWARE.
         }).observe(document, { subtree: true, childList: true });
 
     }
+
+
+    const isCtrl = (e) => ((e.ctrlKey && !e.metaKey) || (!e.ctrlKey && e.metaKey));
+
+    const eventFn1 = (evt) => {
+        if (isCtrl(evt)) {
+            evt.stopImmediatePropagation();
+            evt.stopPropagation();
+        }
+    };
+
+    document.addEventListener('mousedown', eventFn1, true);
+
+    document.addEventListener('mouseup', eventFn1, true);
+
+    document.addEventListener('pointerdown', eventFn1, true);
+
+    document.addEventListener('pointerup', eventFn1, true);
+
+    document.addEventListener('click', eventFn1, true);
 
 
 })({ Promise });
