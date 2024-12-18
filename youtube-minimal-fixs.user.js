@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.3
+// @version      0.7.4
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -480,7 +480,7 @@ SOFTWARE.
 
         }
 
-    });
+    }, true);
 
 
 })({ Promise });
