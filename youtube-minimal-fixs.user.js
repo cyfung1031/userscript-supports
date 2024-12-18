@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.6
+// @version      0.7.7
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -154,6 +154,22 @@ SOFTWARE.
 
     #player-control-overlay:not(.fadein)[id] {
         height: unset;
+    }
+
+    #player-control-overlay::before {
+        content: '';
+        display: block;
+        position: absolute;
+        left: -4px;
+        top: -4px;
+        right: -4px;
+        bottom: -4px;
+        box-sizing: border-box;
+        background: transparent;
+        border: 0;
+        margin: 0;
+        padding: 0;
+        z-index: -1;
     }
 
     `
