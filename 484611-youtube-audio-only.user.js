@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.8.2
+// @version             1.9.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -13,6 +13,8 @@
 // @grant               GM_registerMenuCommand
 // @grant               GM.setValue
 // @grant               GM.getValue
+// @grant               GM.listValues
+// @grant               GM.deleteValue
 // @run-at              document-start
 // @license             MIT
 // @compatible          chrome
@@ -968,7 +970,7 @@
 
                 const ytEmbedReady = observablePromise(() => document.querySelector('#player > .ytp-embed')).obtain();
 
-                const embedConfigFix = async () => {
+                const embedConfigFix = (async () => {
                     while (true) {
                         const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
                         if (config_) {
@@ -977,7 +979,7 @@
                         }
                         await delayPn(60);
                     }
-                };
+                });
 
                 ytEmbedReady.then(async (embedPlayer) => {
 
@@ -1209,7 +1211,7 @@
 
                     }
 
-                })
+                });
 
 
             } else {
@@ -2230,7 +2232,7 @@
 
         };
 
-        // supportedFormatsConfig(); // avoid issue due to failure on only video source (like ads)
+        supportedFormatsConfig();
 
 
         PATCH_MEDIA_PUBLISH && (async ()=>{
@@ -2246,27 +2248,27 @@
 
                 let isChildProto = false;
                 for (const sr of arr) {
-                  if (parent[key].prototype instanceof parent[sr]) {
-                    isChildProto = true;
-                    break;
-                  }
+                    if (parent[key].prototype instanceof parent[sr]) {
+                        isChildProto = true;
+                        break;
+                    }
                 }
-            
+
                 if (isChildProto) return;
-            
+
                 arr = arr.filter(sr => {
-                  if (parent[sr].prototype instanceof parent[key]) {
-                    return false;
-                  }
-                  return true;
+                    if (parent[sr].prototype instanceof parent[key]) {
+                        return false;
+                    }
+                    return true;
                 });
-            
+
                 arr.push(key);
-            
+
                 return arr;
-            
-            
-              }
+
+
+            };
             
             /*
 
@@ -2347,11 +2349,11 @@
                 return arr[0];
                 }
 
-            }
+            };
 
             const printObject = (b)=>{
                 return JSON.stringify( Object.entries(b||{}).filter(e=>typeof (e[1]||0)!=='object'));
-            }
+            };
 
             /*
                 (async () => {
@@ -2856,7 +2858,51 @@
 
     }
 
-    const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? (await GM.getValue("isEnable_aWsjF", true)) : null;
+    const getVideoIdByURL = () => {
+        // It's almost certainly going to stay at 11 characters. The individual characters come from a set of 64 possibilities (A-Za-z0-9_-).
+        // base64 form; 26+26+10+2; 64^len
+        // Math.pow(64,11) = 73786976294838210000
+
+        const url = new URL(location.href);
+        let m;
+
+        if (m = /^\/watch\?v=([A-Za-z0-9_-]+)/.exec(url.pathname + url.search)) return `${m[1]}`;
+        if (m = /^\/live\/([A-Za-z0-9_-]+)/.exec(url.pathname)) return `${m[1]}`;
+
+        if (m = /^\/embed\/live_stream\?channel=([A-Za-z0-9_-]+)/.exec(url.pathname + url.search)) return `L:${m[1]}`;
+        if (m = /^\/embed\/([A-Za-z0-9_-]+)/.exec(url.pathname)) return `${m[1]}`;
+
+        if (m = /^\/channel\/([A-Za-z0-9_-]+)\/live\b/.exec(url.pathname)) return `L:${m[1]}`;
+        if (url.hostname === 'youtu.be' && (m = /\/([A-Za-z0-9_-]+)/.exec(url.pathname))) return `${m[1]}`;
+
+        return '';
+
+    };
+
+    const getVideoIdByElement = ()=>{
+        const videoIdElements = [...document.querySelectorAll('[video-id]')].filter(v => !v.closest('[hidden]'));
+        const videoId = videoIdElements.length > 0 ? videoIdElements[0].getAttribute('video-id') : null;
+        return videoId || '';
+    };
+
+    const getEnableValue = async ()=>{
+        const videoId = getVideoIdByURL() || getVideoIdByElement();
+        const siteVal = videoId ? await GM.getValue(`isEnable_aWsjF_${videoId}`, null) : null;
+        return (siteVal !== null) ? siteVal : await GM.getValue("isEnable_aWsjF", true);
+    };
+
+    const setEnableVal = async (val)=>{
+        const videoId = getVideoIdByURL() || getVideoIdByElement();
+        if (videoId) {
+            try {
+                const cv = await GM.getValue(`isEnable_aWsjF_${videoId}`, null);
+                if (typeof cv === typeof val) await GM.setValue(`isEnable_aWsjF_${videoId}`, val);
+            } catch (e) { }
+        }
+        await GM.setValue("isEnable_aWsjF", val);
+    }
+
+    const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? await getEnableValue() : null;
     if (typeof isEnable !== 'boolean') throw new DOMException("Please Update your browser", "NotSupportedError");
     if (isEnable) {
         const element = document.createElement('button');
@@ -2865,7 +2911,8 @@
     }
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {
-        await GM.setValue("isEnable_aWsjF", !isEnable);
+        await setEnableVal(!isEnable);
+        await GM.setValue('lastCheck_bWsm5', Date.now());
         document.documentElement.setAttribute('forceRefresh032', '');
         location.reload();
     });
@@ -2884,7 +2931,8 @@
                     if (busy) return;
                     busy = true;
                     if (await confirm("Livestream is detected. Press OK to disable YouTube Audio Mode.")) {
-                        await GM.setValue("isEnable_aWsjF", !isEnable);
+                        await setEnableVal(!isEnable);
+                        await GM.setValue('lastCheck_bWsm5', Date.now());
                         document.documentElement.setAttribute('forceRefresh032', '');
                         location.reload();
                     }
@@ -2916,7 +2964,8 @@
         newBtn.classList.add('audio-only-toggle-btn');
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
         newBtn.addEventListener('click', async () => {
-            await GM.setValue("isEnable_aWsjF", !isEnable);
+            await setEnableVal(!isEnable);
+            await GM.setValue('lastCheck_bWsm5', Date.now());
             document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
@@ -2942,12 +2991,12 @@
         newBtn.classList.add('audio-only-toggle-btn');
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
         newBtn.addEventListener('click', async () => {
-            await GM.setValue("isEnable_aWsjF", !isEnable);
+            await setEnableVal(!isEnable);
+            await GM.setValue('lastCheck_bWsm5', Date.now());
             document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
     }
-
 
     pLoad.then(() => {
 
@@ -3007,6 +3056,69 @@
             #movie_player [style*="--audio-only-thumbnail-image"] ~ .ytp-cued-thumbnail-overlay > .ytp-cued-thumbnail-overlay-image[style*="background-image"] {
                 opacity: 0;
             }
+
+            #movie_player [style*="--audio-only-thumbnail-image"]::before {
+                content: '';
+                display: block;
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                right: 0;
+                /* background: transparent; */
+
+
+                /* We use multiple backgrounds: one gradient per side */
+                background:
+                    /* Left border gradient */
+                    linear-gradient(to right, rgba(0,0,0,0.4), transparent) left center,
+                    /* Right border gradient */
+                    linear-gradient(to left, rgba(0,0,0,0.4), transparent) right center,
+                    /* Top border gradient */
+                    linear-gradient(to bottom, rgba(0,0,0,0.4), transparent) center top,
+                    /* Bottom border gradient */
+                    linear-gradient(to top, rgba(0,0,0,0.4), transparent) center bottom;
+                    
+                /* Prevents repetition of gradients */
+                background-repeat: no-repeat;
+                
+                /* Set the size of each gradient "border" */
+                background-size:
+                    12% 100%, /* left border width and full height */
+                    12% 100%, /* right border width and full height */
+                    100% 12%, /* top border full width and small height */
+                    100% 12%; /* bottom border full width and small height */
+                    
+                /* Optional: a base background color inside the element */
+                /* background-color: #fff; */
+                /* background-color: var(--blinker-fmw83-bgc, transparent); */
+
+                    opacity: var(--fmw83-opacity, 1);
+
+                    pointer-events: none !important;
+                    z-index:-1;
+
+            }
+
+            /*
+            @keyframes blinker-fmw83 {
+                0%, 60%, 100% {
+                    opacity: 1;
+                }
+                30% {
+                    opacity: 0.96;
+                }
+            }
+                */
+                
+         
+            #movie_player.playing-mode [style*="--audio-only-thumbnail-image"]{
+                /* animation: blinker-fmw83 1.74s linear infinite; */
+                --fmw83-opacity: 0.6;
+                
+            }
+            
+
 
         `: "";
 
@@ -3076,75 +3188,98 @@
         #confirmDialog794 button {
             margin-left: 10px;
        }
+
       `
         document.head.appendChild(style);
 
-        if (false && isEnable) {
-            let mzId = 0;
+    });
 
-            let mz = 0;
-            const mof = async () => {
-                mzId && clearInterval(mzId);
-                if (mz > 1e9) mz = 9;
-                const mt = ++mz;
 
-                let q = document.querySelector('#video-preview > ytd-video-preview.style-scope.ytd-app');
-                if (!q) return;
-                if (q.hasAttribute('active') && !q.hasAttribute('hidden')) {
+    const pNavigateFinished = new Promise(resolve => {
+        document.addEventListener('yt-navigate-finish', resolve, true);
+    });
 
-                } else {
-                    return;
+    pNavigateFinished.then(() => {
+        const inputs = document.querySelectorAll('#masthead input[type="text"][name]');
+
+        let lastInputTextValue = null;
+        let busy = false;
+        let disableMonitoring = false;
+        const setGV = async (val)=>{
+
+            const videoId = getVideoIdByURL() || getVideoIdByElement();
+            if (videoId) {
+                const cgv = await GM.getValue(`isEnable_aWsjF_${videoId}`, null);
+                if (cgv !== val) {
+                    disableMonitoring = true;
+                    await GM.setValue(`isEnable_aWsjF_${videoId}`, val);
+                    await GM.setValue('lastCheck_bWsm5', Date.now());
+                    document.documentElement.setAttribute('forceRefresh032', '');
+                    location.reload();
                 }
-
-
-                let inlinePreviewPlayer = null;
-                const ss = [HTMLElement.prototype.querySelector.call(q, '#inline-preview-player')].filter(e => e && !e.closest('[hidden]'));
-                if (ss && ss.length === 1) {
-                    inlinePreviewPlayer = ss[0];
-                }
-                if (!inlinePreviewPlayer) return;
-
-                const f = () => {
-                    if (mz !== mt || !(q.hasAttribute('active') && !q.hasAttribute('hidden')) || !(inlinePreviewPlayer && inlinePreviewPlayer.isConnected === true)) {
-                        mzId && clearInterval(mzId);
-                        mzId = 0;
-                        return;
-                    }
-
-                    const s = inlinePreviewPlayer;
-                    s.classList.remove('ytp-hide-inline-preview-progress-bar');
-                    s.classList.remove('ytp-hide-inline-preview-audio-controls');
-                    s.classList.add('ytp-show-inline-preview-progress-bar');
-                    s.classList.add('ytp-show-inline-preview-audio-controls');
-                    s.classList.remove('ytp-autohide');
-                    if (q.hasAttribute('hide-volume-controls')) {
-                        q.removeAttribute('hide-volume-controls')
-                    }
-
-                    if (s.classList.contains('playing-mode') && !q.hasAttribute('playing')) {
-                        q.setAttribute('playing', '')
-                    }
-                }
-                mzId = setInterval(f, 40);
-                f();
 
             }
-            const mo = new MutationObserver(mof);
-            document.addEventListener('yt-navigate-finish', async function () {
-
-                for (const s of document.querySelectorAll('ytd-video-preview')) {
-                    mo.observe(s, {
-                        attributes: true,
-                        attributeFilter: ["hidden", "active"],
-                        attributeOldValue: false
-                    });
-                    mof();
-                }
-
-            }, false);
-
         }
-    })
+        const checkTextChangeF = async (evt) => {
+            busy = false;
+            const inputElem = (evt || 0).target;
+            if (inputElem instanceof HTMLInputElement && !disableMonitoring) {
+                const cv = inputElem.value;
+                if (cv === lastInputTextValue) return;
+                lastInputTextValue = cv;
+                if (cv === 'vvv') {
+
+                    await setGV(false);
+
+                } else if (cv === 'aaa') {
+
+                    await setGV(true);
+
+                }
+            }
+        }
+        const checkTextChange = (evt) => {
+            if (busy) return;
+            busy = true;
+            Promise.resolve(evt).then(checkTextChangeF)
+        };
+        for (const input of inputs) {
+            input.addEventListener('input', checkTextChange, false);
+            input.addEventListener('keydown', checkTextChange, false);
+            input.addEventListener('keyup', checkTextChange, false);
+            input.addEventListener('keypress', checkTextChange, false);
+            input.addEventListener('change', checkTextChange, false);
+        }
+    });
+
+    const autoCleanUpKey = async () => {
+
+        const lastCheck = await GM.getValue('lastCheck_bWsm5', null) || 0;
+        if (Date.now() - lastCheck < 16000) return; // 16s
+        GM.setValue('lastCheck_bWsm5', Date.now());
+        pLoad.then(async () => {
+            const rArr = [];
+            const arr = await GM.listValues();
+            const cv = await GM.getValue("isEnable_aWsjF", null);
+            const fn = async (entry) => {
+                try {
+                    if (typeof entry === 'string' && entry.length > 15 && entry.startsWith('isEnable_aWsjF_')) {
+                        const res = await GM.getValue(entry, null);
+                        if (typeof res === 'boolean' && res === cv) {
+                            await GM.deleteValue(entry);
+                            rArr.push(entry);
+                        }
+                    }
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+            arr.length > 1 && (await Promise.all(arr.map(fn)));
+            rArr.length > 0 && console.log('[YouTube Audio Only] autoCleanUpKey', rArr);
+        });
+    };
+
+    autoCleanUpKey();
 
 
 })();
