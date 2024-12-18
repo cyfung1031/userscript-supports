@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.6
+// @version             0.66.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -835,6 +835,7 @@
     left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
     contain: strict;
   }
+    /*
   ticker-bg-overlay-end {
     position: absolute;
     right: 0px;
@@ -850,6 +851,7 @@
     margin: 0;
     contain: strict;
   }
+    */
 
   ticker-bg-overlay-end2 {
 
@@ -875,26 +877,28 @@
   
   }
 
+  /* USE_ADVANCED_TICKING */
+
   .ticker-no-transition-time, .ticker-no-transition-time [id] {
     transition-duration: 0s !important;
   }
 
-  yt-live-chat-ticker-creator-goal-view-model ~ yt-live-chat-ticker-creator-goal-view-model {
+  [r6-advanced-ticking] yt-live-chat-ticker-creator-goal-view-model ~ yt-live-chat-ticker-creator-goal-view-model:not(.r6-closing-ticker) {
     transition-duration: 0s !important;
     /* transition: initial !important; */
   }
 
-  yt-live-chat-ticker-paid-message-item-renderer ~ yt-live-chat-ticker-paid-message-item-renderer {
+  [r6-advanced-ticking] yt-live-chat-ticker-paid-message-item-renderer ~ yt-live-chat-ticker-paid-message-item-renderer:not(.r6-closing-ticker) {
     transition-duration: 0s !important;
     /* transition: initial !important; */
   }
 
-  yt-live-chat-ticker-paid-sticker-item-renderer ~ yt-live-chat-ticker-paid-sticker-item-renderer {
+  [r6-advanced-ticking] yt-live-chat-ticker-paid-sticker-item-renderer ~ yt-live-chat-ticker-paid-sticker-item-renderer:not(.r6-closing-ticker) {
     transition-duration: 0s !important;
     /* transition: initial !important; */
   }
 
-  yt-live-chat-ticker-sponsor-item-renderer ~ yt-live-chat-ticker-sponsor-item-renderer {
+  [r6-advanced-ticking] yt-live-chat-ticker-sponsor-item-renderer ~ yt-live-chat-ticker-sponsor-item-renderer:not(.r6-closing-ticker) {
     transition-duration: 0s !important;
     /* transition: initial !important; */
   }
@@ -7367,6 +7371,7 @@
             // live replay video ->   48117005 -> 48117006 keep fire.  ->48117007 0 -> 48117007 {...}
             // live stream video -> 48117007 0 -> 48117007 YES
 
+            document.documentElement.setAttribute('r6-advanced-ticking', '');
             console.log('USE_ADVANCED_TICKING')
 
             const wio2 = dProto.wio2 || (dProto.wio2 = new IntersectionObserver((mutations) => {
@@ -7806,6 +7811,7 @@
                       prevTransitionClosing = mWeakRef(hostElement);
                     }
                     if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+                    hostElement.classList.add('r6-closing-ticker');
   
                     const pr = new PromiseExternal();
                     transitionEndAfterFnSimple.set(hostElement, pr);
@@ -7847,6 +7853,7 @@
                       prevTransitionClosing = mWeakRef(hostElement);
                     }
                     if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+                    hostElement.classList.add('r6-closing-ticker');
 
                     const pr = new PromiseExternal();
                     transitionEndAfterFnSimple.set(hostElement, pr);
