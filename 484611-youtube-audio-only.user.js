@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.9.1
+// @version             1.9.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1505,6 +1505,18 @@
 
             }
 
+            const getAppJSON = () => {
+                let t;
+                t = document.querySelector('player-microformat-renderer.PlayerMicroformatRendererHost script[type="application/ld+json"]');
+                if (t) return t;
+                t = document.querySelector('player-microformat-renderer.playerMicroformatRendererHost script[type="application/ld+json"]');
+                if (t) return t;
+
+                console.log('[mobile youtube audio only] getAppJSON fails.', document.querySelectorAll('script[type="application/ld+json"]').length);
+                return null;
+
+            }
+
 
             let lastPlayerInfoText = '';
             let mz = 0;
@@ -1517,6 +1529,8 @@
                 if (moviePlayer) {
                     html5Container = moviePlayer.closest('.html5-video-container');
                 }
+
+                console.log('STx00', html5Container)
                 if (!html5Container) return;
                 let thumbnailUrl = '';
 
@@ -1524,7 +1538,7 @@
                 let mt = ++mz;
                 const scriptText = await observablePromise(() => {
                     if (mt !== mz) return 1;
-                    const t = document.querySelector('player-microformat-renderer.PlayerMicroformatRendererHost script[type="application/ld+json"]');
+                    const t = getAppJSON();
                     const tt = (t ? t.textContent : '') || '';
                     if (tt === lastPlayerInfoText) return;
                     return tt;
@@ -1536,6 +1550,7 @@
 
 
                 if (SHOW_VIDEO_STATIC_IMAGE) {
+                    console.log('STx01')
 
                     let idx1 = scriptText.indexOf('"thumbnailUrl"');
                     let idx2 = idx1 >= 0 ? scriptText.lastIndexOf('"thumbnailUrl"') : -1;
@@ -1577,6 +1592,7 @@
                         }
 
                     }
+                    console.log('STx02', thumbnailUrl)
 
                     // const ytipr = (typeof ytInitialPlayerResponse !== 'undefined' ? ytInitialPlayerResponse : null) || 0;
 
@@ -2963,7 +2979,11 @@
         newBtn.querySelector('.ytp-menuitem-label').textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
         newBtn.classList.add('audio-only-toggle-btn');
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
-        newBtn.addEventListener('click', async () => {
+        newBtn.addEventListener('click', async (evt) => {
+            try {
+                evt.stopPropagation();
+                evt.stopImmediatePropagation();
+            } catch (e) { }
             await setEnableVal(!isEnable);
             await GM.setValue('lastCheck_bWsm5', Date.now());
             document.documentElement.setAttribute('forceRefresh032', '');
@@ -2990,12 +3010,86 @@
         newBtn.querySelector('.menu-item-button').textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
         newBtn.classList.add('audio-only-toggle-btn');
         btn.parentNode.insertBefore(newBtn, btn.nextSibling);
-        newBtn.addEventListener('click', async () => {
+        newBtn.addEventListener('click', async (evt) => {
+            try {
+                evt.stopPropagation();
+                evt.stopImmediatePropagation();
+            } catch (e) { }
             await setEnableVal(!isEnable);
             await GM.setValue('lastCheck_bWsm5', Date.now());
             document.documentElement.setAttribute('forceRefresh032', '');
             location.reload();
         });
+    }
+
+    const lastEntry = (arr) => {
+        return arr.length > 0 ? arr[arr.length - 1] : null;
+    }
+
+    function mobileMenuItemAppearedV2Fn(target) {
+
+        const btn = target.closest('yt-list-item-view-model');
+        if (!(btn instanceof HTMLElement)) return;
+        if (btn.parentNode.querySelector('yt-list-item-view-model.audio-only-toggle-btn')) return;
+        const parentNode = btn.closest('player-settings-menu');
+        if(!parentNode) return;
+        let qt = 1E9;
+        let targetBtnO = lastEntry([...parentNode.getElementsByTagName(btn.nodeName)].filter(e => e.parentElement === btn.parentElement).map((elm) => {
+            const count = elm.getElementsByTagName('*').length;
+            if (count < qt) qt = count;
+            return {
+                elm: elm,
+                count: count
+            }
+        }).filter((o) => o.count === qt));
+
+        const targetBtn = targetBtnO && targetBtnO.elm instanceof HTMLElement ? targetBtnO.elm : btn;
+
+
+        const newBtn = targetBtn.cloneNode(true);
+        if(newBtn instanceof HTMLElement){
+            document.documentElement.classList.add('with-audio-only-toggle-btn');
+
+            let newBtnContentElm = newBtn;
+            let layerCN = 8;
+            while (newBtnContentElm.childElementCount === 1 && layerCN--) {
+                newBtnContentElm = newBtnContentElm.firstElementChild;
+            }
+            if (!(newBtnContentElm instanceof HTMLElement)) newBtnContentElm = newBtn;
+            let t;
+            if (t = lastEntry(newBtnContentElm.querySelectorAll('span[role="text"]'))) {
+                newBtnContentElm = t;
+                newBtnContentElm.classList.add('audio-only-toggle-btn-content2');
+            } else if (t = lastEntry(newBtnContentElm.querySelectorAll('[role="text"]'))) {
+                newBtnContentElm = t;
+                newBtnContentElm.classList.add('audio-only-toggle-btn-content2');
+            } else if (t = lastEntry(newBtnContentElm.querySelectorAll('span'))) {
+                newBtnContentElm = t;
+                newBtnContentElm.classList.add('audio-only-toggle-btn-content2');
+            } else if (t = lastEntry(newBtnContentElm.querySelector('.yt-core-attributed-string'))) {
+                newBtnContentElm = t;
+                newBtnContentElm.classList.add('audio-only-toggle-btn-content2');
+            }
+            newBtnContentElm.textContent = `Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`;
+            newBtn.classList.add('audio-only-toggle-btn');
+            newBtnContentElm.classList.add('audio-only-toggle-btn-content');
+            btn.parentNode.insertBefore(newBtn, btn.nextSibling);
+            newBtn.addEventListener('click', async (evt) => {
+                try {
+                    evt.stopPropagation();
+                    evt.stopImmediatePropagation();
+                } catch (e) { }
+                await setEnableVal(!isEnable);
+                await GM.setValue('lastCheck_bWsm5', Date.now());
+                document.documentElement.setAttribute('forceRefresh032', '');
+                location.reload();
+            });
+            const contentWrapper = newBtn.closest('#content-wrapper');
+            if (contentWrapper) {
+                contentWrapper.style.height = 'unset';
+                contentWrapper.style.maxHeight = 'unset';
+            }
+        }
     }
 
     pLoad.then(() => {
@@ -3006,6 +3100,7 @@
 
             if (animationName === 'contextmenuInfoItemAppeared') contextmenuInfoItemAppearedFn(evt.target);
             if (animationName === 'mobileMenuItemAppeared') mobileMenuItemAppearedFn(evt.target);
+            if (animationName === 'mobileMenuItemAppearedV2') mobileMenuItemAppearedV2Fn(evt.target);
 
         }, true);
 
@@ -3136,9 +3231,37 @@
                 background-position-x: 4px;
            }
        }
+
+        @keyframes mobileMenuItemAppearedV2 {
+            0% {
+                background-position-x: 3px;
+           }
+            100% {
+                background-position-x: 4px;
+           }
+       }
         ytm-select.player-speed-settings ~ ytm-menu-item:last-of-type {
             animation: mobileMenuItemAppeared 1ms linear 0s 1 normal forwards;
        }
+
+       player-settings-menu > yt-list-item-view-model:last-of-type {
+            animation: mobileMenuItemAppearedV2 1ms linear 0s 1 normal forwards;
+       }
+
+
+       player-settings-menu .audio-only-toggle-btn-content {
+            padding: 14px 24px;
+            box-sizing: border-box;
+            font-size: 130%;
+       }
+
+       player-settings-menu .audio-only-toggle-btn-content2 {
+            padding: 0;
+            box-sizing: border-box;
+            font-size: inherit;
+       }
+
+
         @keyframes contextmenuInfoItemAppeared {
             0% {
                 background-position-x: 3px;
