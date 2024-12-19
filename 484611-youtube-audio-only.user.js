@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.9.2
+// @version             1.9.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2694,7 +2694,7 @@
                     let publishStatus = 0;
                     const media = this.mediaElement;
 
-                    if(a==='internalaudioformatchange' && typeof (b.author||0) === 'string' && media){
+                    if(a==='internalaudioformatchange' && typeof (b.author||0) === 'string' && media && player_){
 
                         await player_.clearVideo(); // avoid error in live streaming
                         await player_.clearQueue(); // avoid error in live streaming
