@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.9.0
+// @version             1.9.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -3210,7 +3210,7 @@
             const videoId = getVideoIdByURL() || getVideoIdByElement();
             if (videoId) {
                 const cgv = await GM.getValue(`isEnable_aWsjF_${videoId}`, null);
-                if (cgv !== val) {
+                if (cgv !== val || isEnable !== val) {
                     disableMonitoring = true;
                     await GM.setValue(`isEnable_aWsjF_${videoId}`, val);
                     await GM.setValue('lastCheck_bWsm5', Date.now());
