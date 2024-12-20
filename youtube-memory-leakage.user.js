@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.005
+// @version             0.0.006
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -1326,7 +1326,7 @@
             if (__lastDeadCount__ > 4) {
               tempLeftOver[nodeName] = (tempLeftOver[nodeName] || 0) + 1;
               if (di.__cannotGC__) tempLeftOverCannotGC[nodeName] = (tempLeftOverCannotGC[nodeName] || 0) + 1;
-              if (!__setToDead__ && !r.hasAttribute('__nogc__')) {
+              if (!__setToDead__ && /*!r.hasAttribute('__nogc__') && */ !r.closest('[__nogc__]')) {
 
                 di.__setToDead__ = __setToDead__ = currentTime;
 
@@ -1337,7 +1337,7 @@
 
                   for (const w of r.getElementsByTagName('*')) {
 
-                    if (!w.hasAttribute('__nogc__')) {
+                    if (/* !w.hasAttribute('__nogc__') */ !w.closest('[__nogc__]') ) {
                       deadTree.add(w);
                       DEBUG_no_laterRemoval || laterRemovals.add(new WeakRef(w));
                     }
