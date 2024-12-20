@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.9
+// @version             0.66.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -142,7 +142,7 @@
   const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = false;   // pause auto scroll faster when the context menu is about to show
   const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;                // avoid multiple requests on the same time
 
-  const BOOST_MENU_OPENCHANGED_RENDERING = true;
+  const BOOST_MENU_OPENCHANGED_RENDERING = true;                   
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // click again = close
   const NO_ITEM_TAP_FOR_NON_STATIONARY_TAP = true;                // dont open the menu (e.g. text message) if cursor is moved or long press
   const TAP_ACTION_DURATION = 280;                                // exceeding 280ms would not consider as a tap action
@@ -213,6 +213,8 @@
   const FIX_ToggleRenderPolymerControllerExtractionBug = false; // to be reviewed
 
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
+
+  const FIX_UNKNOWN_BUG_FOR_OVERLAY = true;       // no .prepare() in backdrop element. reason is unknown.
 
   // -------------------------------
 
@@ -381,6 +383,225 @@
   //             return a[b].url || null;
   //     return a[0].url || null
   // }
+
+
+  /// ------
+
+  // https://www.youtube.com/watch?v=byyvH5t0hKc
+  // yt-live-chat-ticker-creator-goal-view-model
+  // no ticker effect on timing
+
+  /*
+
+
+          {
+              "id": "ChwKGkNQS0pyNV9NdG9vREZVYlB6Z2FkRHWFUv2E",
+              "initialTickerText": {
+                  "content": "Goal",
+                  "styleRuns": [
+                      {
+                          "startIndex": 0,
+                          "length": 4
+                      }
+                  ]
+              },
+              "tickerIcon": {
+                  "sources": [
+                      {
+                          "clientResource": {
+                              "imageName": "TARGET_ADD"
+                          }
+                      }
+                  ]
+              },
+              "showGoalStatusCommand": {
+                  "innertubeCommand": {
+                      "clickTrackingParams": "CCQQ7NANIhMI58DT_ef5rhMVxMW1Cx4qBzTz",
+                      "showEngagementPanelEndpoint": {
+                          "engagementPanel": {
+                              "engagementPanelSectionListRenderer": {
+                                  "header": {
+                                      "engagementPanelTitleHeaderRenderer": {
+                                          "actionButton": {
+                                              "buttonRenderer": {
+                                                  "icon": {
+                                                      "iconType": "QUESTION_CIRCLE"
+                                                  },
+                                                  "trackingParams": "CCgQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                  "command": {
+                                                      "clickTrackingParams": "CCgQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                      "commandExecutorCommand": {
+                                                          "commands": [
+                                                              {
+                                                                  "clickTrackingParams": "CCgQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                                  "liveChatDialogEndpoint": {
+                                                                      "content": {
+                                                                          "liveChatDialogRenderer": {
+                                                                              "trackingParams": "CCkQzS8iEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                                              "title": {
+                                                                                  "runs": [
+                                                                                      {
+                                                                                          "text": "Super Chat Goal"
+                                                                                      }
+                                                                                  ]
+                                                                              },
+                                                                              "dialogMessages": [
+                                                                                  {
+                                                                                      "runs": [
+                                                                                          {
+                                                                                              "text": "Join the fun by participating in the goal! "
+                                                                                          },
+                                                                                          {
+                                                                                              "text": "Learn more.\n",
+                                                                                              "navigationEndpoint": {
+                                                                                                  "clickTrackingParams": "CCkQzS8iEwjm0Iz72rbKBxXT1EQBJekHNQM="
+                                                                                              }
+                                                                                          }
+                                                                                      ]
+                                                                                  },
+                                                                                  {
+                                                                                      "runs": [
+                                                                                          {
+                                                                                              "text": "How to participate",
+                                                                                              "bold": true,
+                                                                                              "textColor": 4294967295
+                                                                                          },
+                                                                                          {
+                                                                                              "text": "\n"
+                                                                                          },
+                                                                                          {
+                                                                                              "text": "1. Press \"Continue\"\n2. Purchase a Super Chat \n3. Watch the progress towards the goal\n4. Celebrate achieving it with the community!",
+                                                                                              "textColor": 4294967295
+                                                                                          }
+                                                                                      ]
+                                                                                  }
+                                                                              ],
+                                                                              "confirmButton": {
+                                                                                  "buttonRenderer": {
+                                                                                      "style": "STYLE_MONO_FILLED",
+                                                                                      "size": "SIZE_DEFAULT",
+                                                                                      "isDisabled": false,
+                                                                                      "text": {
+                                                                                          "simpleText": "Got it"
+                                                                                      },
+                                                                                      "trackingParams": "CCoQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                                                      "accessibilityData": {
+                                                                                          "accessibilityData": {
+                                                                                              "label": "Got it"
+                                                                                          }
+                                                                                      }
+                                                                                  }
+                                                                              }
+                                                                          }
+                                                                      }
+                                                                  }
+                                                              },
+                                                              {
+                                                                  "clickTrackingParams": "CCgQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                                  "hideEngagementPanelEndpoint": {
+                                                                      "identifier": {
+                                                                          "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                                                                          "tag": "creator_goal_progress_engagement_panel"
+                                                                      }
+                                                                  }
+                                                              }
+                                                          ]
+                                                      }
+                                                  }
+                                              }
+                                          },
+                                          "trackingParams": "CCUQ040EIhMI58DT_ef5rhMVxMW1Cx4qBzTz"
+                                      }
+                                  },
+                                  "content": {
+                                      "sectionListRenderer": {
+                                          "contents": [
+                                              {
+                                                  "creatorGoalProgressFlowViewModel": {
+                                                      "creatorGoalEntityKey": "EgtieXl2SDV0MGhLYyG7BzhF",
+                                                      "progressFlowButton": {
+                                                          "buttonViewModel": {
+                                                              "onTap": {
+                                                                  "innertubeCommand": {
+                                                                      "clickTrackingParams": "CCcQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                                      "commandMetadata": {
+                                                                          "webCommandMetadata": {
+                                                                              "ignoreNavigation": true
+                                                                          }
+                                                                      },
+                                                                      "liveChatPurchaseMessageEndpoint": {
+                                                                          "params": "Q2lrcUp3b1lWVU14ZFdObmIwTmZjMGQzZDE5RmRYVTFhVTF4Y0ZGM0VndGllWGwyU0RWME1HaExZeEFCSUFFNEFFSUNDQUUlM0Q="
+                                                                      }
+                                                                  }
+                                                              },
+                                                              "style": "BUTTON_VIEW_MODEL_STYLE_MONO",
+                                                              "trackingParams": "CCcQ8FsiEwjm0Iz72rbKBxXT1EQBJekHNQM=",
+                                                              "type": "BUTTON_VIEW_MODEL_TYPE_FILLED",
+                                                              "titleFormatted": {
+                                                                  "content": "Continue",
+                                                                  "styleRuns": [
+                                                                      {
+                                                                          "startIndex": 0,
+                                                                          "length": 8
+                                                                      }
+                                                                  ]
+                                                              }
+                                                          }
+                                                      },
+                                                      "progressCountA11yLabel": "Super Chat goal progress: $0 out of $1"
+                                                  }
+                                              }
+                                          ],
+                                          "trackingParams": "CCYQui8iEwjm0Iz72rbKBxXT1EQBJekHNQM="
+                                      }
+                                  },
+                                  "identifier": {
+                                      "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                                      "tag": "creator_goal_progress_engagement_panel"
+                                  }
+                              }
+                          },
+                          "identifier": {
+                              "surface": "ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT",
+                              "tag": "creator_goal_progress_engagement_panel"
+                          },
+                          "engagementPanelPresentationConfigs": {
+                              "engagementPanelPopupPresentationConfig": {
+                                  "popupType": "PANEL_POPUP_TYPE_DIALOG"
+                              }
+                          }
+                      }
+                  }
+              },
+              "creatorGoalEntityKey": "EgtieXl2SDV0MGhLYyG7BzhF",
+              "shouldShowSetUpFlowOnMobile": true,
+              "a11yLabel": "See Super Chat goal",
+              "loggingDirectives": {
+                  "trackingParams": "CCQQ7NANIhMI58DT_ef5rhMVxMW1Cx4qBzTz",
+                  "visibility": {
+                      "types": "12"
+                  }
+              }
+          }
+
+
+  */
+
+
+  // ------
+
+
+  // document.createElement4521 = document.createElement;
+  
+  // document.createElement = function(){
+  //   if(arguments[0]==='yt-live-chat-ticker-paid-message-item-renderer' || arguments[0]==='yt-live-chat-ticker-paid-sticker-item-renderer' || arguments[0]==='yt-live-chat-ticker-sponsor-item-renderer'){
+  //     console.log(8123, [...arguments]);
+  //     debugger;
+      
+  //   }
+  //   // if(`${arguments[0]}`.indexOf('-')>=0) console.log(8123, [...arguments]);
+  //   return document.createElement4521(...arguments);
+  // };
 
   const { IntersectionObserver } = __CONTEXT__;
   let _x69;
@@ -2014,6 +2235,19 @@
               const r = this.createComponent99_.apply(this, arguments);
               if (a === 'yt-live-chat-renderer' && !bypass) {
                 qt38 = 1;
+
+
+                // r.polymerController.__proto__.handleLiveChatActions471_ = r.polymerController.__proto__.handleLiveChatActions_;
+                // r.polymerController.__proto__.handleLiveChatActions_ = function (arr) {
+
+
+                //   preprocessChatLiveActions(arr);
+
+                //   return this.handleLiveChatActions471_(arr);
+
+    
+                // }
+
                 resolve(r); // note: this dom is not yet adopted, but promise resolve is later than ops.
                 console.log('[yt-chat-lcr] element found by method 1');
               }
@@ -4896,7 +5130,20 @@
         arr.length = insertPos; // Remove the trailing nulls.
       }
 
+      let fir = 0;
+
       const preprocessChatLiveActions = (arr) =>{
+
+        if (!fir) {
+
+
+          console.log('[yt-chat-debug] 5990', 'preprocessChatLiveActions', arr)
+
+          console.log('[yt-chat-debug] 5991', document.querySelectorAll('yt-live-chat-ticker-renderer #ticker-items [class]').length)
+
+          fir = 1;
+          // debugger;
+        }
 
         if(!arr || !arr.length) return arr;
 
@@ -5286,6 +5533,7 @@
 
         // console.log(1237006);
 
+        // console.log(5592,1)
         const groupMids = FIX_TIMESTAMP_FOR_REPLAY ? groups_.map(group=>{
 
           const [groupStart, groupEnd ] = group;
@@ -5373,6 +5621,7 @@
         };
 
 
+        // console.log(5592,2)
         // console.log(1237008);
         // if (FIX_TIMESTAMP_FOR_REPLAY) {
 
@@ -5542,6 +5791,7 @@
 
 
 
+        // console.log(5592,5)
         
 
         // console.log('preprocessChatLiveActions', arr)
@@ -5567,6 +5817,10 @@
 
             // console.log(948700, obj , obj.id, (obj.fullDurationSec - obj.durationSec) * 1000)
             const m = obj.__timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000;
+
+            // obj.__t374__ = (obj.fullDurationSec - obj.durationSec) * 1000;
+            // obj.__t375__ = obj.__timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000;
+            // console.log(5993, obj)
             // obj.__orderTime__ = m;
             mapper.set(aItem, m);
 
@@ -5613,6 +5867,8 @@
             // console.log(948706, idx, obj2 , obj2.id, (obj2.fullDurationSec - obj2.durationSec) * 1000, obj2.__orderTime__)
 
           }
+
+          // console.log(5994,arr)
 
           // console.log(948702, arr.slice(0));
           // console.log(948701, arr);
@@ -6957,7 +7213,11 @@
             mclp.handleLiveChatActions_ = function (arr) {
 
 
-              preprocessChatLiveActions(arr);
+              try{
+                preprocessChatLiveActions(arr);
+              }catch(e){
+                console.warn(e);
+              }
 
 
 
@@ -8292,8 +8552,10 @@
         }
 
 
+        let tagI = 0;
         for (const tag of tagsItemRenderer) { // ##tag##
 
+          tagI++;
 
           const dummy = document.createElement(tag);
 
@@ -8588,7 +8850,7 @@
             typeof cProto.updateTimeout === 'function' && !cProto.updateTimeout49 && cProto.updateTimeout.length === 1 &&
             typeof cProto.isAnimationPausedChanged === 'function' && !cProto.isAnimationPausedChanged49 && cProto.isAnimationPausedChanged.length === 2 &&
             typeof cProto.setContainerWidth === 'function' && cProto.setContainerWidth.length === 0 &&
-            typeof cProto.slideDown === 'function' && cProto.slideDown.length === 0 &&
+            typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0
             CSS.supports("left","clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)");
             
 
@@ -8599,7 +8861,7 @@
             // live stream video -> 48117007 0 -> 48117007 YES
 
             document.documentElement.setAttribute('r6-advanced-ticking', '');
-            console.log('USE_ADVANCED_TICKING')
+            console.log(`USE_ADVANCED_TICKING[#${tagI}]::START`)
 
             const wio2 = dProto.wio2 || (dProto.wio2 = new IntersectionObserver((mutations) => {
 
@@ -8608,12 +8870,12 @@
 
                   const marker = mutation.target;
                   let endId = marker.id
-                  if(!endId) continue;
-                  let tid = endId.substring(0, endId.length -2 );
-                  if(!tid) continue;
+                  if (!endId) continue;
+                  let tid = endId.substring(0, endId.length - 2);
+                  if (!tid) continue;
                   // let bId = `${tid}-b`;
                   const bgElm = document.querySelector(`#${tid}-b`);
-                  if(!bgElm) continue;
+                  if (!bgElm) continue;
                   const overlay = bgElm;
 
                   wio2.unobserve(marker);
@@ -8623,7 +8885,7 @@
                   while ((p = p.parentElement) instanceof HTMLElement) {
                     if (p instanceof HTMLElement) {
                       const cnt = insp(p);
-                      if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.__advancedTicking038__ === 1 ) {
+                      if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.__advancedTicking038__ === 1) {
 
                         cnt.__advancedTicking038__ = 2;
 
@@ -8642,7 +8904,7 @@
                           }
                         } else if (!timestampUnderLiveMode && cntData && cntData.durationSec > 0 && cntData.__progressAt__ > 0) {
 
-                          const targetFutureTime = (cntData.__progressAt__ + cntData.durationSec) ;
+                          const targetFutureTime = (cntData.__progressAt__ + cntData.durationSec);
                           // check whether the targetFutureTime is already the past
                           if (targetFutureTime + 0.28 < playerProgressChangedArg1) {
                             // just dispose
@@ -8677,7 +8939,7 @@
               }
 
               // console.log(mutations);
-            },{
+            }, {
 
               rootMargin: '0px',
               threshold: [1]
@@ -8712,7 +8974,7 @@
             //   //               deletionMode = true;
             //   //             }
             //   //           }
-          
+
 
             //   //           if (deletionMode) {
             //   //             __requestRemoval__(cnt);
@@ -8744,9 +9006,9 @@
             const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
 
               const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
-              if(!cntData) return;
+              if (!cntData) return;
               const cntElement = cnt.hostElement;
-              if(!(cntElement instanceof HTMLElement)) return;
+              if (!(cntElement instanceof HTMLElement)) return;
 
               const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
 
@@ -8820,7 +9082,7 @@
                   // remove if any
                   const oldElement = cntElement.querySelector('ticker-bg-overlay');
                   if (oldElement) oldElement.remove();
-                  
+
                   // use advancedTicking, ticker enabled
                   cnt.__advancedTicking038__ = 1;
 
@@ -8832,10 +9094,10 @@
                   const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
 
                   const container = cnt.$.container;
-                  
+
                   em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
 
-                  const tid = `ticker-${cnt.__ticker_attachmentId__}-${ Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                  const tid = `ticker-${cnt.__ticker_attachmentId__}-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
                   em.id = `${tid}-b`;
                   em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
@@ -8880,7 +9142,7 @@
               }
             });
 
-            const timeFn = (cnt)=>{
+            const timeFn = (cnt) => {
 
               if (!cnt) return;
               if (!cnt.hostElement) return;
@@ -9017,14 +9279,14 @@
 
             });
 
-            
+
             if (typeof cProto.slideDown === 'function' && !cProto.slideDown43 && cProto.slideDown.length === 0) {
 
               cProto.slideDown43 = cProto.slideDown;
               cProto.slideDown = dProto.slideDownAdv || (dProto.slideDownAdv = async function () {
 
                 // console.log('calling slideDown', Date.now())                
-                if(this.__advancedTicking038__){
+                if (this.__advancedTicking038__) {
 
                   if (this.__advancedTicking038__ === 1) this.__advancedTicking038__ = 2; // ignore intersectionobserver detection
 
@@ -9039,7 +9301,7 @@
                     // }
                     // if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
                     hostElement.classList.add('r6-closing-ticker');
-  
+
                     const pr = new PromiseExternal();
                     transitionEndAfterFnSimple.set(hostElement, pr);
                     transitionEndAfterFnSimple.set(container, pr);
@@ -9047,16 +9309,22 @@
                     await pr.then();
                     transitionEndAfterFnSimple.delete(hostElement);
                     transitionEndAfterFnSimple.delete(container);
-                    if(this && this.hostElement instanceof HTMLElement){
-  
+                    if (this && this.hostElement instanceof HTMLElement) {
+
                       this.collapse();
                     }
                     return;
                   }
                 }
-                  this.slideDown43();
-                
+                this.slideDown43();
+
               });
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - OK`)
+            } else {
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - NG`)
             }
 
 
@@ -9067,7 +9335,7 @@
 
                 if (this.__advancedTicking038__) {
 
-                  
+
                   if (this.__advancedTicking038__ === 1) this.__advancedTicking038__ = 2; // ignore intersectionobserver detection
 
 
@@ -9104,9 +9372,14 @@
 
 
               });
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - OK`)
+            } else {
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - NG`)
             }
-            
-            
+
+
 
             if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
               cProto.requestRemoval49 = cProto.requestRemoval;
@@ -9130,11 +9403,11 @@
                 if (hostElement instanceof HTMLElement) {
                   // try {
                   //   // hostElement.remove();
-                    
+
                   //   if (!hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.add('ticker-no-transition-time');
                   // } catch (e) { }
 
-                  try{
+                  try {
 
                     hostElement.classList.remove('r6-closing-ticker');
                   } catch (e) { }
@@ -9142,8 +9415,14 @@
                   return this.requestRemoval49();
                 }
               });
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - OK`)
+            } else {
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - NG`)
             }
-            
+
 
             if (typeof cProto.computeContainerStyle === 'function' && !cProto.computeContainerStyle49 && cProto.computeContainerStyle.length === 2) {
               cProto.computeContainerStyle49 = cProto.computeContainerStyle;
@@ -9153,6 +9432,12 @@
                 }
                 return this.computeContainerStyle49(a, b);
               });
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - OK`)
+            } else {
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - NG`)
             }
 
 
@@ -9242,6 +9527,12 @@
                 // const container = this.$.container;
                 // if(hostElement instanceof HTMLElement && hostElement.style.width) hostElement.style.width = '';
               });
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - OK`)
+            } else {
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - NG (acceptable)`)
             }
 
 
@@ -9249,7 +9540,7 @@
               cProto.setContainerWidth41 = cProto.setContainerWidth;
               cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
 
-                
+
 
                 /*
 
@@ -9265,44 +9556,44 @@
 
                 */
 
-                  const hostElement = (this || 0).hostElement;
-                  const container = this.$.container;
-  
-
-                  let qw = null;
-  
-                  {
+                const hostElement = (this || 0).hostElement;
+                const container = this.$.container;
 
 
-                    let maxC = 4;
+                let qw = null;
 
-                    for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
-  
-                      const ed = `${hostElement.id}`
-                      if (!p || !p.startsWith(`${ed}::`)) {
-  
-                        const w = hostElement.style.width;
-                        if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
-  
-                        const res = await widthReq(container);
-  
-                        hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
-  
-                      } else {
-                        qw = p.split('::');
-                        break;
-                      }
-  
+                {
+
+
+                  let maxC = 4;
+
+                  for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
+
+                    const ed = `${hostElement.id}`
+                    if (!p || !p.startsWith(`${ed}::`)) {
+
+                      const w = hostElement.style.width;
+                      if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
+
+                      const res = await widthReq(container);
+
+                      hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
+
+                    } else {
+                      qw = p.split('::');
+                      break;
                     }
 
                   }
 
-                  if(!qw){
+                }
 
-                    console.log('container width failure');
-                    this.setContainerWidth41();
-                    return; // failure
-                  }
+                if (!qw) {
+
+                  console.log('container width failure');
+                  this.setContainerWidth41();
+                  return; // failure
+                }
 
 
                 const shouldAnimateIn = ((this || 0).ytLiveChatTickerItemBehavior || 0).shouldAnimateIn || (this || 0).shouldAnimateIn || false;
@@ -9322,14 +9613,24 @@
                 } else {
                   hostElement.style.width = `${qw[1]}px`;
                 }
-  
+
 
               });
+
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - OK`)
+            } else {
+
+
+              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - NG`)
             }
 
 
 
 
+          } else if (USE_ADVANCED_TICKING) {
+            console.log(`USE_ADVANCED_TICKING[#${tagI}] is not injected.`);
           }
 
 
@@ -9850,9 +10151,64 @@
 
             console.log("AMEND_TICKER_handleLiveChatAction - OK (v1)");
           } else {
-            console.log("AMEND_TICKER_handleLiveChatAction - NG");
+            console.log("AMEND_TICKER_handleLiveChatAction - NG (acceptable)");
           }
 
+
+
+ 
+
+
+
+            /* Dec 2024 */
+
+            /*
+
+
+                f.handleLiveChatActions = function(a) {
+                    a.length && (a.forEach(this.handleLiveChatAction, this),
+                    this.updateHighlightedItem(),
+                    this.shouldAnimateIn = !0)
+                }
+                ;
+                f.handleLiveChatAction = function(a) {
+                    var b = z(a, fL)
+                      , c = z(a, gL)
+                      , d = z(a, eL)
+                      , e = z(a, gdb)
+                      , g = z(a, rdb)
+                      , k = z(a, Deb);
+                    a = z(a, Ceb);
+                    b ? this.unshift("tickerItems", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : g ? this.handleRemoveChatItemByAuthorAction(g) : k ? this.showCreatorGoalTickerChip(k) : a && this.removeCreatorGoalTickerChip(a)
+                }
+            */
+
+
+          if(USE_ADVANCED_TICKING && !cProto.handleLiveChatActions47 && typeof cProto.handleLiveChatActions === 'function' && cProto.handleLiveChatActions.length ===1){
+
+            cProto.handleLiveChatActions47 = cProto.handleLiveChatActions;
+
+            cProto.handleLiveChatActions = function (a) {
+
+              // first loading in livestream. so this is required for sorting.
+
+              try{
+                preprocessChatLiveActions(a);
+              }catch(e){
+                console.warn(e);
+              }
+              return this.handleLiveChatActions47(a);
+
+            }
+
+            console.log("USE_ADVANCED_TICKING::handleLiveChatActions - OK");
+            
+          }else if(USE_ADVANCED_TICKING){
+
+
+            console.log("USE_ADVANCED_TICKING::handleLiveChatActions - NG");
+
+          }
 
 
           const do_amend_ticker_handleLiveChatAction_v3 = AMEND_TICKER_handleLiveChatAction_v3 && !AMEND_TICKER_handleLiveChatAction
@@ -10940,7 +11296,6 @@
               // console.log(1237)
               try{
                 preprocessChatLiveActions(arr);
-
               }catch(e){
                 console.warn(e);
               }
@@ -10954,7 +11309,12 @@
             cProto.preprocessActions_ = function(arr){
               
               arr = this.preprocessActions82_(arr);
+              
+              try{
                 preprocessChatLiveActions(arr);
+              }catch(e){
+                console.warn(e);
+              }
               return arr;
             };
           }
@@ -11972,6 +12332,61 @@
 
 
 
+      if (FIX_UNKNOWN_BUG_FOR_OVERLAY) {
+        // this is to fix " TypeError: this.backdropElement.prepare is not a function "
+
+        customElements.whenDefined('tp-yt-paper-dialog').then(() => {
+
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | tp-yt-paper-dialog hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "tp-yt-paper-dialog";
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+            if (typeof cProto.__openedChanged === 'function' && !cProto.__openedChanged49 && cProto.__openedChanged.length === 0) {
+
+
+              cProto.__openedChanged49 = cProto.__openedChanged;
+
+              cProto.__openedChanged = function () {
+                const manager = (this || 0)._manager || 0;
+                if (manager && !manager.trackBackdrop49 && manager.trackBackdrop) {
+                  manager.trackBackdrop49 = manager.trackBackdrop;
+                  if (manager.trackBackdrop.length === 0) {
+                    manager.trackBackdrop = function () {
+                      try {
+                        return this.trackBackdrop49();
+                      } catch (e) {
+                        console.log('manager.trackBackdrop', e);
+                      }
+                    }
+                  }
+                }
+                return this.__openedChanged49();
+              };
+
+
+            }
+
+
+          })();
+
+
+
+        });
+
+      }
+
+
       customElements.whenDefined('tp-yt-iron-dropdown').then(() => {
 
         mightFirstCheckOnYtInit();
@@ -12220,6 +12635,7 @@
 
 
             cProto.__openedChanged = function () {
+              console.log(123445)
               this._positionInitialize_ = 1;
               // this.removeAttribute('horizontal-align')
               // this.removeAttribute('vertical-align')
@@ -12265,7 +12681,12 @@
 
                   this._prepareRenderOpened();
                 }).then(() => {
+                  console.log('[yt-chat-dialog]', this._manager)
+                  try{
                   this._manager.addOverlay(this);
+                  }catch(e){
+                    console.log('this._manager.addOverlay(this) fails.')
+                  }
                   if (this._manager._overlays.length === 1) {
                     lastOpen = this;
                     lastClose = null;
@@ -12293,7 +12714,12 @@
 
               } else {
                 Promise.resolve().then(() => {
+                  console.log('[yt-chat-dialog]', this._manager)
+                  try{
                   this._manager.removeOverlay(this);
+                  }catch(e){
+                    console.log('this._manager.removeOverlay(this) fails.')
+                  }
                   if (this._manager._overlays.length === 0) {
                     lastClose = this;
                     lastOpen = null;
