@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.6
+// @version             0.13.7
 // @license             MIT License
 
 // @author              CY Fung
@@ -1469,7 +1469,10 @@ if (trustHTMLErr) {
         { range: [0x25A0, 0x25FF], langs: ['Geometric Shapes'] },  // Geometric Shapes
         { range: [0x2600, 0x26FF], langs: ['Miscellaneous Symbols'] },  // Miscellaneous Symbols
         { range: [0x2700, 0x27BF], langs: ['Dingbats'] },  // Dingbats
-        { range: [0x3000, 0x303F], langs: ['CJK Symbols and Punctuation'] },  // CJK Symbols and Punctuation
+
+        { range: [0x3000, 0x303F], langs: ['Chinese (Simplified)', 'Chinese (Traditional)', 'Japanese', 'Korean'] },
+
+        // { range: [0x3000, 0x303F], langs: ['CJK Symbols and Punctuation'] },  // CJK Symbols and Punctuation
         { range: [0x3040, 0x309F], langs: ['Japanese'] },  // Hiragana
         { range: [0x30A0, 0x30FF], langs: ['Japanese'] },  // Katakana
         { range: [0x3100, 0x312F], langs: ['Bopomofo'] },  // Bopomofo
@@ -1641,7 +1644,11 @@ if (trustHTMLErr) {
             unilang = dd[0];
         } else if (dd.length === 3 && dd[0][0] === 'Arabic' && dd[1][0] === 'Persian' && dd[2][0] === 'Urdu') {
             return retFn("Arabic");
+        }else if (dd.length === 4 && dd[0][0] === 'Chinese (Simplified)' && dd[1][0] === 'Chinese (Traditional)' && dd[2][0] === 'Japanese' && dd[3][0] === 'Korean') {
+            return retFn("CJK");
         }
+
+
 
         if (unilang[0] === "Japanese") {
             return retFn("Japanese"); // japanese handle can mix with kanji
@@ -1798,6 +1805,8 @@ if (trustHTMLErr) {
         b = b && isDisplayAsHandle('@巡')
         b = b && !isDisplayAsHandle('@xy')
         b = b && !isDisplayAsHandle('@z')
+        
+        b = b && isDisplayAsHandle('@茶々-l9y')
 
 
         if (!b) console.error('!!!! wrong coding !!!!');
