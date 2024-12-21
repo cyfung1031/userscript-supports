@@ -4,7 +4,7 @@
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
 //
-// @version     0.1.0003
+// @version     0.1.0013
 //
 // @author              CY Fung
 // @run-at              document-start
@@ -367,6 +367,8 @@ const rm3 = window.rm3 = {};
     DEBUG_OPT && (rm3.reuseRecord = () => {
       return [...reuseRecord_]; // [[debug]]
     });
+    
+    let noTimeCheck = false;
 
     // const defaultValues = new Map();
     // const noValues = new Map();
@@ -376,8 +378,9 @@ const rm3 = window.rm3 = {};
       // note: the characterists of YouTube components are non-volatile. So don't need to waste time to check weakRef.deref() is null or not for removing in operations.
 
       const ct = Date.now();
-      if (ct - lastTimeCheck < CHECK_INTERVAL) return;
+      if (ct - lastTimeCheck < CHECK_INTERVAL || noTimeCheck) return;
       lastTimeCheck = ct;
+      noTimeCheck = true;
 
       // 16,777,216
       if (hookTos.size > 777216) hookTos.clear(); // just debug usage, dont concern
@@ -388,34 +391,50 @@ const rm3 = window.rm3 = {};
         const half = operations.size >>> 1;
         let i = 0;
         for (const value of operations) {
-          if (i++ > half) {
-            operations.delete(value);
-          }
+          if (i++ > half) break;
+          operations.delete(value);
         }
       }
 
+      // {
+      //   // smallest to largest
+      //   // past to recent
+
+      //   const iterator = operations[Symbol.iterator]();
+      //   console.log(1831, '------------------------')
+      //   while (true) {
+      //     const iteratorResult = iterator.next(); // 順番に値を取りだす
+      //     if (iteratorResult.done) break; // 取り出し終えたなら、break
+      //     console.log(1835, iteratorResult.value[3])
+      //   }
+
+      //   console.log(1839, '------------------------')
+      // }
+
+      // Set iterator
+      // s.add(2) s.add(6) s.add(1) s.add(3)
+      // next: 2 -> 6 -> 1 -> 3
+      // op1 (oldest) -> op2 -> op3 -> op4 (latest)
       const iterator = operations[Symbol.iterator]();
 
       const targetTime = ct - CONFIRM_TIME;
-      let iteratorResult;
+
+      const pivotNodes = new WeakMap();
 
       while (true) {
-        iteratorResult = iterator.next(); // 順番に値を取りだす
+        const iteratorResult = iterator.next(); // 順番に値を取りだす
         if (iteratorResult.done) break; // 取り出し終えたなら、break
-        if (iteratorResult.value[3] > targetTime) continue;
-        break;
-      }
-
-      let pivotNodes = new WeakMap();
-      while (!iteratorResult.done) {
         const entryRecord = iteratorResult.value;
-        if (entryRecord[1] < 0 && entryRecord[2] > 0 && !entryRecord[4]) {
+        if (entryRecord[3] > targetTime) break;
+
+        if (!entryRecord[4] && entryRecord[1] < 0 && entryRecord[2] > 0) {
           const element = entryRecord[0].deref();
-          if (element instanceof HTMLElement && element.isConnected === false && insp(element).isAttached === false) {
+          const eKey = (element || 0).__rm3Tag003__;
+          if (!eKey) {
+            operations.delete(entryRecord);
+          } else if (element.isConnected === false && insp(element).isAttached === false) {
             entryRecord[4] = true;
-            const creatorTag = element.__rm3Tag001__;
-            const componentTag = element.__rm3Tag002__;
-            const eKey = creatorTag && componentTag ? `${creatorTag}.${componentTag}` : '*'; // '*' for play-safe
+
             let availablePool = availablePools.get(eKey);
             if (!availablePool) availablePools.set(eKey, availablePool = new LinkedArray());
             if (!(availablePool instanceof LinkedArray)) throw new Error();
@@ -423,10 +442,12 @@ const rm3 = window.rm3 = {};
             if (!pivotNode) pivotNodes.set(availablePool, pivotNode = availablePool.head) // cached the previous newest node (head) as pivotNode
 
             availablePool.insertBeforeNode(pivotNode, entryRecord); // head = newest, tail = oldest
+
           }
         }
-        iteratorResult = iterator.next();
+
       }
+      noTimeCheck = false;
 
     }
 
@@ -438,12 +459,14 @@ const rm3 = window.rm3 = {};
         if (hostElement instanceof HTMLElement) {
           const entryRecord = entryRecords.get(hostElement);
           if (entryRecord && entryRecord[0].deref() === hostElement && hostElement.isConnected === true && this?.isAttached === true) {
+            noTimeCheck = true;
             const ct = Date.now();
             entryRecord[1] = ct;
             entryRecord[2] = -1;
             entryRecord[3] = ct;
             operations.delete(entryRecord);
             operations.add(entryRecord);
+            noTimeCheck = false;
             // note: because of performance prespective, deletion for availablePools[eKey]'s linked element would not be done here.
             // entryRecord[4] is not required to be updated here.
           }
@@ -459,12 +482,14 @@ const rm3 = window.rm3 = {};
         if (hostElement instanceof HTMLElement) {
           const entryRecord = entryRecords.get(hostElement);
           if (entryRecord && entryRecord[0].deref() === hostElement && hostElement.isConnected === false && this?.isAttached === false) {
+            noTimeCheck= true;
             const ct = Date.now();
             entryRecord[2] = ct;
             entryRecord[1] = -1;
             entryRecord[3] = ct;
             operations.delete(entryRecord);
             operations.add(entryRecord);
+            noTimeCheck= false;
             // note: because of performance prespective, deletion for availablePools[eKey]'s linked element would not be done here.
             // entryRecord[4] is not required to be updated here.
           }
@@ -507,6 +532,7 @@ const rm3 = window.rm3 = {};
       try {
 
         if (availablePool instanceof LinkedArray) {
+          noTimeCheck = true;
 
           let node = availablePool.tail; // oldest
 
@@ -647,11 +673,13 @@ const rm3 = window.rm3 = {};
 
           }
           // for(const ) availablePool
+          // noTimeCheck = false;
         }
 
       } catch (e) {
         console.warn(e)
       }
+      noTimeCheck = false;
 
 
       // console.log('createComponentDefine_', a, b, c)
@@ -668,7 +696,7 @@ const rm3 = window.rm3 = {};
       try {
 
         const cntE = insp(newElement);
-        if (cntE.attached && !cntE.attached9512) {
+        if (!cntE.attached9512 && cntE.attached) {
 
           const cProtoE = getProto(newElement);
 
@@ -695,7 +723,7 @@ const rm3 = window.rm3 = {};
 
         }
 
-        if (cntE.detached && !cntE.detached9512) {
+        if (!cntE.detached9512 && cntE.detached) {
 
           const cProtoE = getProto(newElement);
 
@@ -730,11 +758,13 @@ const rm3 = window.rm3 = {};
           // [[ weak ElementNode, attached time, detached time, time of change, inside availablePool, reuse count ]]
           const entryRecord = [new WeakRef(newElement), -1, -1, -1, false, 0];
 
+          newElement.__rm3Tag003__ = eKey;
           // pool.push(entryRecord);
           entryRecords.set(newElement, entryRecord);
-          newElement.__rm3Tag001__ = creatorTag;
-          newElement.__rm3Tag002__ = componentTag;
-          newElement.__rm3Flg001__ = cntE.__dataEnabled;
+          //   newElement.__rm3Tag001__ = creatorTag;
+          //   newElement.__rm3Tag002__ = componentTag;
+
+          //   newElement.__rm3Flg001__ = cntE.__dataEnabled;
           // // console.log(5928, cntE.data, cntE.__data)
           // if (!defaultValues.has(eKey)){
 
