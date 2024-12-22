@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.14
+// @version             0.66.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1726,6 +1726,29 @@
               });
 
             }
+
+            //  ------- follow rm3 ------- 
+
+            cnt.__dataInvalid = true;
+            cnt.__dataEnabled = false;
+            if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
+            if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
+            if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
+            if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
+              cnt.__dataClientsReady = !1;
+              cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
+              cnt.__dataHasPaths = !1;
+              cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
+              cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
+              if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
+              cnt.__dataClientsInitialized = !1;
+            }
+
+            //  ------- follow rm3 ------- 
+
+            // console.log('[yt-chat] reuse')
+            
+
             return hostElement;
 
 
@@ -8270,6 +8293,11 @@
 
                       const res = await widthReq(container);
 
+                      if (res.width < 1 || !Number.isFinite(res.width)) {
+                        // just skip due to iron-page hidden
+                        return;
+                      }
+
                       hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
 
                     } else {
@@ -8360,6 +8388,11 @@
                       if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
 
                       const res = await widthReq(container);
+
+                      if (res.width < 1 || !Number.isFinite(res.width)) {
+                        // just skip due to iron-page hidden
+                        return;
+                      }
 
                       hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
 
