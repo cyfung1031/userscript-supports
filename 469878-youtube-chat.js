@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.2
+// @version             0.66.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -832,6 +832,7 @@
     top: 0;
     bottom: 0;
     left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
+    contain: strict;
   }
   ticker-bg-overlay-end {
     position: absolute;
@@ -846,6 +847,7 @@
     border: 0;
     padding: 0;
     margin: 0;
+    contain: strict;
   }
 
   /*
@@ -3657,68 +3659,68 @@
         }
       }
 
-      async function asyncDelayChatOccurrence(m2) {
-        try {
-          await promiseForCustomYtElementsReady.then();
-          await customElements.whenDefined('yt-live-chat-text-message-renderer');
-          await new Promise(r => setTimeout(r, 1));
-          const dummy888 = document.createElement('yt-live-chat-text-message-renderer');
-          // const template = document.createElement('template');
-          // template.innerHTML = "<yt-live-chat-text-message-renderer></yt-live-chat-text-message-renderer>"
-          // const dummy888 = template.content.firstElementChild;
-          const skzCnt = insp(dummy888);
-          if (!(skzCnt && 'data' in skzCnt && 'attached' in skzCnt)) {
-            return;
-          }
-          if (!skzCnt.hostElement) skzCnt.hostElement = dummy888;
-          /** @type {HTMLTemplateElement} */
-          const skzElem = dummy888;
-          let cz1 = null;
-          const deferredZy1 = new Promise(resolve => {
-            skzCnt.attached = function () {
-              cz1 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
-              resolve(skzElem.textContent);
-            }
-            skzCnt.detached = function () {
-            }
-          });
-          skzElem.id = 'sk35z';
-          skzData(skzCnt);
-          sk35zResolveFn = null;
-          const deferredMutation = new Promise(resolve => {
-            sk35zResolveFn = resolve;
-            HTMLElement.prototype.appendChild.call(m2, skzElem);
-          });
-          const [zy1, _] = await Promise.all([deferredZy1, deferredMutation]);
-          skzCnt.attached = function () { };
-          function fn() {
-            const zy2 = skzElem.textContent;
-            const cz2 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
-            if (typeof zy1 === 'string' && typeof zy2 === 'string') {
-              allowDontRender = zy1 === zy2 && cz1 === cz2; // '0:43N​em2oji'
-            }
-            if (allowDontRender === true) return true;
-            if (allowDontRender === false) {
-              console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
-                "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
-                "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
-              );
-              console.warn(`%cWarning:\n\tYou might have added a userscript or extension that stops YouTube Super Fast Chat's quick loading.\n\tTo figure out which one affects the script, turn them off one by one and let the author know.`, 'color: #bada55');
-              console.groupEnd();
-            }
-          }
-          await new Promise(r => setTimeout(r, 1));
-          if (!fn()) return;
-          await foregroundPromiseFn().then();
-          if (!fn()) return;
-          skzElem.remove();
-          await Promise.resolve().then();
-          skzElem.textContent = '';
-          console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #16c450; color: #102624; padding: 2px 4px');
-        } catch (e) {
-          console.warn(e);
-        }
-      }
+      // async function asyncDelayChatOccurrence(m2) {
+      //   try {
+      //     await promiseForCustomYtElementsReady.then();
+      //     await customElements.whenDefined('yt-live-chat-text-message-renderer');
+      //     await new Promise(r => setTimeout(r, 1));
+      //     const dummy888 = document.createElement('yt-live-chat-text-message-renderer');
+      //     // const template = document.createElement('template');
+      //     // template.innerHTML = "<yt-live-chat-text-message-renderer></yt-live-chat-text-message-renderer>"
+      //     // const dummy888 = template.content.firstElementChild;
+      //     const skzCnt = insp(dummy888);
+      //     if (!(skzCnt && 'data' in skzCnt && 'attached' in skzCnt)) {
+      //       return;
+      //     }
+      //     if (!skzCnt.hostElement) skzCnt.hostElement = dummy888;
+      //     /** @type {HTMLTemplateElement} */
+      //     const skzElem = dummy888;
+      //     let cz1 = null;
+      //     const deferredZy1 = new Promise(resolve => {
+      //       skzCnt.attached = function () {
+      //         cz1 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
+      //         resolve(skzElem.textContent);
+      //       }
+      //       skzCnt.detached = function () {
+      //       }
+      //     });
+      //     skzElem.id = 'sk35z';
+      //     skzData(skzCnt);
+      //     sk35zResolveFn = null;
+      //     const deferredMutation = new Promise(resolve => {
+      //       sk35zResolveFn = resolve;
+      //       HTMLElement.prototype.appendChild.call(m2, skzElem);
+      //     });
+      //     const [zy1, _] = await Promise.all([deferredZy1, deferredMutation]);
+      //     skzCnt.attached = function () { };
+      //     function fn() {
+      //       const zy2 = skzElem.textContent;
+      //       const cz2 = HTMLElement.prototype.querySelector.call(skzElem, '#message img') !== null;
+      //       if (typeof zy1 === 'string' && typeof zy2 === 'string') {
+      //         allowDontRender = zy1 === zy2 && cz1 === cz2; // '0:43N​em2oji'
+      //       }
+      //       if (allowDontRender === true) return true;
+      //       if (allowDontRender === false) {
+      //         console.groupCollapsed(`%c${"YouTube Super Fast Chat"}%c${" | Incompatibility Found"}`,
+      //           "background-color: #010502; color: #fe806a; font-weight: 700; padding: 2px;",
+      //           "background-color: #010502; color: #fe806a; font-weight: 300; padding: 2px;"
+      //         );
+      //         console.warn(`%cWarning:\n\tYou might have added a userscript or extension that stops YouTube Super Fast Chat's quick loading.\n\tTo figure out which one affects the script, turn them off one by one and let the author know.`, 'color: #bada55');
+      //         console.groupEnd();
+      //       }
+      //     }
+      //     await new Promise(r => setTimeout(r, 1));
+      //     if (!fn()) return;
+      //     await foregroundPromiseFn().then();
+      //     if (!fn()) return;
+      //     skzElem.remove();
+      //     await Promise.resolve().then();
+      //     skzElem.textContent = '';
+      //     console.log('%cALLOW_DELAYED_CHAT_OCCURRENCE', 'background-color: #16c450; color: #102624; padding: 2px 4px');
+      //   } catch (e) {
+      //     console.warn(e);
+      //   }
+      // }
 
       const mutFn = (items) => {
         let seqIndex = -1;
@@ -4344,6 +4346,205 @@
       }
       // console.log(document.body===null)
 
+      const preprocessChatLiveActionsMap = new WeakSet();
+
+      const toLAObj=(aItem)=>{
+
+        if (!aItem || typeof aItem !== 'object') return false;
+        const key = firstObjectKey(aItem); // addLiveChatTickerItemAction
+        if (!key) return false;
+        let obj = aItem[key];
+        if (!obj || typeof obj !== 'object') return false;
+
+        if (typeof (obj.item || 0) == 'object' && firstObjectKey(obj) === 'item') {
+          obj = obj.item;
+          const key = firstObjectKey(obj);
+          if (key) {
+            obj = obj[key];
+          }
+        }
+
+        return obj;
+
+      };
+
+      const preprocessChatLiveActions = (arr) =>{
+
+        if(!arr || !arr.length) return arr;
+
+        if(preprocessChatLiveActionsMap.has(arr)) return arr;
+        preprocessChatLiveActionsMap.add(arr);
+
+        const ct = Date.now();
+        
+
+        // console.log('preprocessChatLiveActions', arr)
+
+
+        const mapper = new Map();
+
+        // without delaying. get the time of request 
+        // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
+        
+        for (let j = 0, l = arr.length; j < l; j++) {
+          const aItem = arr[j];
+
+          const obj = toLAObj(aItem);
+          if(obj === false) continue;
+        
+          if (obj.id && !obj.__timestampActionRequest__) {
+            // for all item entries
+            obj.__timestampActionRequest__ = ct;
+          }
+
+          if (obj.id && obj.__timestampActionRequest__ > 0 && obj.durationSec > 0 && obj.fullDurationSec) {
+
+            // console.log(948700, obj , obj.id, (obj.fullDurationSec - obj.durationSec) * 1000)
+            const m = obj.__timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000;
+            // obj.__orderTime__ = m;
+            mapper.set(aItem, m);
+
+
+          }
+
+        }
+
+        if (mapper.size > 1) {
+
+          const idxices = [];
+
+          // sort ticker
+          let mArr1 = arr.filter((aItem,idx) => {
+
+            if (mapper.has(aItem)) {
+              idxices.push(idx);
+              return true;
+            }
+            return false;
+
+          });
+
+
+          let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
+            return mapper.get(a) - mapper.get(b);
+            // low index = oldest = smallest timestamp
+          });
+
+
+
+          // console.log(948701, arr.slice(0));
+          for(let j = 0, l=mArr1.length;j <l;j++){
+
+            const idx = idxices[j];
+            // arr[idx] = mArr1[j]
+            arr[idx] = mArr2[j];
+
+            // const obj1 = toObj(mArr1[j]);
+            // const obj2 = toObj(mArr2[j]);
+
+            // console.log(948705, idx, obj1 , obj1.id, (obj1.fullDurationSec - obj1.durationSec) * 1000, obj1.__orderTime__)
+
+            // console.log(948706, idx, obj2 , obj2.id, (obj2.fullDurationSec - obj2.durationSec) * 1000, obj2.__orderTime__)
+
+          }
+
+          // console.log(948702, arr.slice(0));
+          // console.log(948701, arr);
+          // arr = arr.map(aItem => {
+          //   const idx = mArr1.indexOf(aItem);
+          //   if (idx < 0) return aItem;
+          //   return mArr2[idx];
+          // });
+          // console.log(948702, arr);
+
+          // mostly in order, but some not in order
+
+
+          // eg
+
+          /*
+
+
+            948711 68 '1734488590715474'
+            948711 69 '1734488590909853'
+              948711 70 '1734488594763719'
+              948711 71 '1734488602334615' <
+              948711 72 '1734488602267214' <
+              948711 73 '1734488602751771'
+          */
+
+          // arr.filter(aItem=>{
+
+          //   const p = toObj(aItem);
+          //   if(p.timestampUsec) return true;
+
+          // }).forEach((aItem,idx)=>{
+
+          //   const p = toObj(aItem);
+          //   console.log(948711, idx, p.timestampUsec);
+          // })
+
+          // return arr;
+
+        }
+
+
+        {
+
+
+          const mapper = new Map();
+
+
+          const idxices = [];
+
+          let mArr1 = arr.filter((aItem,idx) => {
+
+            const timestampUsec = +toLAObj(aItem).timestampUsec; // +false.x = NaN
+            if(timestampUsec > 0){
+              idxices.push(idx);
+              mapper.set(aItem, timestampUsec)
+              return true;
+            }
+            return false;
+  
+          });
+
+          if(mapper.size > 1){
+
+
+  
+            let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
+              return mapper.get(a) - mapper.get(b);
+              // low index = oldest = smallest timestamp
+            });
+    
+    
+    
+            // console.log(948701, arr.slice(0));
+            for(let j = 0, l=mArr1.length;j <l;j++){
+    
+              const idx = idxices[j];
+              arr[idx] = mArr2[j];
+  
+              // const obj1 = toObj(mArr1[j]);
+              // const obj2 = toObj(mArr2[j]);
+  
+              
+              // console.log(948711, idx, obj1 === obj2, obj1, obj1.timestampUsec);
+              // console.log(948712, idx, obj1 === obj2, obj2, obj2.timestampUsec);
+            }
+
+          }
+  
+
+        }
+
+
+        return arr;
+
+
+      }
+
       if (ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION) {
         getLCRDummy().then(async (lcrDummy) => {
 
@@ -4442,6 +4643,8 @@
         });
 
       }
+
+
 
       customElements.whenDefined('yt-live-chat-item-list-renderer').then(() => {
 
@@ -5485,63 +5688,7 @@
             mclp.handleLiveChatActions_ = function (arr) {
 
 
-              const mapper = new Map();
-
-              // without delaying. get the time of request 
-              // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
-              const ct = Date.now();
-              for (let j = 0, l = arr.length; j < l; j++) {
-                const aItem = arr[j];
-                if (!aItem || typeof aItem !== 'object') continue;
-                const key = firstObjectKey(aItem); // addLiveChatTickerItemAction
-                if (!key) continue;
-                let obj = aItem[key];
-                if (!obj || typeof obj !== 'object') continue;
-
-                if (typeof (obj.item || 0) == 'object' && firstObjectKey(obj) === 'item') {
-                  obj = obj.item;
-                  const key = firstObjectKey(obj);
-                  if (key) {
-                    obj = obj[key];
-                  }
-                }
-                if (obj.id && !obj.__timestampActionRequest__) {
-                  obj.__timestampActionRequest__ = ct;
-                }
-
-                if (obj.id && obj.__timestampActionRequest__ > 0 && obj.durationSec > 0 && obj.fullDurationSec) {
-
-                  mapper.set(aItem, __timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000);
-
-
-                }
-
-              }
-
-              if (mapper.size > 1) {
-
-                // sort ticker
-                let mArr1 = arr.filter(aItem => {
-
-                  if (mapper.has(aItem)) return true;
-                  return false;
-
-                });
-
-                let mArr2 = mArr1.slice(0).sort((a, b) => {
-                  return mapper.get(a) - mapper.get(b);
-                });
-
-
-                // console.log(948701, arr);
-                arr = arr.map(aItem => {
-                  const idx = mArr1.indexOf(aItem);
-                  if (idx < 0) return aItem;
-                  return mArr2[idx];
-                });
-                // console.log(948702, arr);
-
-              }
+              preprocessChatLiveActions(arr);
 
 
 
@@ -8982,6 +9129,64 @@
         }).catch(console.warn);
 
 
+      }
+
+
+
+      if(USE_ADVANCED_TICKING){
+
+
+        customElements.whenDefined("yt-live-chat-renderer").then(() => {
+
+            const tag = "yt-live-chat-renderer"
+            const dummy = document.createElement(tag);
+
+            
+
+          const cProto = getProto(dummy);
+
+          dummy.usePatchedLifecycles = false;
+          dummy.data = null;
+          dummy.__data = null;
+          Object.setPrototypeOf(dummy, Object.prototype);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+          /*
+          <tp-yt-paper-tooltip class="style-scope yt-live-chat-author-badge-renderer" role="tooltip" tabindex="-1" style="--paper-tooltip-delay-in: 0ms; inset: -63.3984px auto auto 0px;
+          */
+
+          if (cProto && typeof cProto.immediatelyApplyLiveChatActions === 'function' && cProto.immediatelyApplyLiveChatActions.length === 1 && !cProto.immediatelyApplyLiveChatActions82) {
+            cProto.immediatelyApplyLiveChatActions82 = cProto.immediatelyApplyLiveChatActions;
+            cProto.immediatelyApplyLiveChatActions = function(arr){
+              
+
+              try{
+                preprocessChatLiveActions(arr);
+
+              }catch(e){
+                console.warn(e);
+              }
+              return this.immediatelyApplyLiveChatActions82(arr);
+            };
+          }
+
+
+          if (cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions82_) {
+            cProto.preprocessActions82_ = cProto.preprocessActions_;
+            cProto.preprocessActions_ = function(arr){
+              
+              arr = this.preprocessActions82_(arr);
+                preprocessChatLiveActions(arr);
+              return arr;
+            };
+          }
+
+          
+
+        });
       }
 
 
