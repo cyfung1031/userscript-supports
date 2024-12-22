@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.4
+// @version             0.66.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -40,6 +40,7 @@
 ((__CONTEXT__) => { 
   'use strict';
 
+  /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
@@ -182,8 +183,8 @@
   // (Dec 2024: AMEND_TICKER_handleLiveChatAction_v3 to be removed)
   const AMEND_TICKER_handleLiveChatAction_v3 = true; // responsiveness fix (Major Feature)
 
-  const USE_ADVANCED_TICKING = true; // added in Dec 2024; need to ensure it would not affect the function if ticker design changed. to be reviewed
-
+  const USE_ADVANCED_TICKING = true; // added in Dec 2024 v0.66.0; need to ensure it would not affect the function if ticker design changed. to be reviewed
+  const END_ANIMATING_TICKERS = true; // added in Dec 2024 v0.66.5; see pressure test like https://www.youtube.com/watch?v=CQaUs-vNgXo
 
 
 
@@ -216,7 +217,7 @@
 
   const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
   const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
-  const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse
+  const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse // Dec 2024 fix in advance tickering
   const FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth = true; // To fix Memory Leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth()
 
   // leakage in ytd-sponsorships-live-chat-gift-purchase-announcement-renderer - to be confirmed
@@ -872,6 +873,10 @@
     visibility: collapse;
 
   
+  }
+
+  .ticker-no-transition-time, .ticker-no-transition-time [id] {
+    transition-duration: 0s !important;
   }
 
   /*
@@ -3170,6 +3175,8 @@
 
     const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
+    const transitionEndAfterFnSimple = new WeakMap();
+    let prevTransitionClosing = null;
 
     const fixChildrenIssue = !!fixChildrenIssue801;
     if (fixChildrenIssue && typeof Object.getOwnPropertyDescriptor === 'function' && typeof Proxy !== 'undefined') {
@@ -3254,45 +3261,45 @@
     }
 
 
-    const bnForDelayChatOccurrence = () => {
+    // const bnForDelayChatOccurrence = () => {
 
-      document.addEventListener('animationstart', (evt) => {
+    //   document.addEventListener('animationstart', (evt) => {
 
-        if (evt.animationName === 'dontRenderAnimation') {
-          evt.target.classList.remove('dont-render');
-          if (scrollChatFn) scrollChatFn();
-        }
+    //     if (evt.animationName === 'dontRenderAnimation') {
+    //       evt.target.classList.remove('dont-render');
+    //       if (scrollChatFn) scrollChatFn();
+    //     }
 
-      }, true);
+    //   }, true);
 
-      const f = (elm) => {
-        if (elm && elm.nodeType === 1) {
-          if (!skipDontRender && allowDontRender === true) {
-            // innerTextFixFn();
-            elm.classList.add('dont-render');
-          }
-        }
-      }
+    //   const f = (elm) => {
+    //     if (elm && elm.nodeType === 1) {
+    //       if (!skipDontRender && allowDontRender === true) {
+    //         // innerTextFixFn();
+    //         elm.classList.add('dont-render');
+    //       }
+    //     }
+    //   }
 
-      Node.prototype.__appendChild931__ = function (a) {
-        a = dr(a);
-        if (this.id === 'items' && this.classList.contains('yt-live-chat-item-list-renderer')) {
-          if (a && a.nodeType === 1) f(a);
-          else if (a instanceof DocumentFragment) {
-            for (let n = a.firstChild; n; n = n.nextSibling) {
-              f(n);
-            }
-          }
-        }
-      }
+    //   Node.prototype.__appendChild931__ = function (a) {
+    //     a = dr(a);
+    //     if (this.id === 'items' && this.classList.contains('yt-live-chat-item-list-renderer')) {
+    //       if (a && a.nodeType === 1) f(a);
+    //       else if (a instanceof DocumentFragment) {
+    //         for (let n = a.firstChild; n; n = n.nextSibling) {
+    //           f(n);
+    //         }
+    //       }
+    //     }
+    //   }
 
-      Node.prototype.__appendChild932__ = function () {
-        this.__appendChild931__.apply(this, arguments);
-        return Node.prototype.appendChild.apply(this, arguments);
-      }
+    //   Node.prototype.__appendChild932__ = function () {
+    //     this.__appendChild931__.apply(this, arguments);
+    //     return Node.prototype.appendChild.apply(this, arguments);
+    //   }
 
 
-    };
+    // };
 
     const watchUserCSS = () => {
 
@@ -6154,6 +6161,38 @@
           return false;
         }
 
+        const widthIORes = new WeakMap();
+        const widthIO = new IntersectionObserver((mutations) => {
+          for (const mutation of mutations) {
+            const elm = mutation.target;
+            widthIO.unobserve(elm);
+             const {promise, values} =widthIORes.get(elm) || {};
+             if(promise && values){
+
+
+              widthIORes.delete(elm);
+              values.width= mutation.boundingClientRect.width;
+              promise.resolve(values);
+             }
+          }
+        });
+        const widthReq = (elm)=>{
+
+          {
+
+            const {promise, values} =widthIORes.get(elm) || {};
+            if(promise) return promise;
+          }
+          
+          const promise = new PromiseExternal();
+          widthIORes.set(elm, {promise, values: {}});
+          widthIO.unobserve(elm);
+          widthIO.observe(elm);
+
+          return promise;
+
+        }
+
 
 
         const dProto = {
@@ -7143,17 +7182,17 @@
           // ------------- FIX_MEMORY_LEAKAGE_TICKER_TIMER -------------
 
           if (FIX_MEMORY_LEAKAGE_TICKER_TIMER) {
-            if (typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth55 && cProto.setContainerWidth.length === 0) {
+            if (!USE_ADVANCED_TICKING && typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth55 && cProto.setContainerWidth.length === 0) {
               cProto.setContainerWidth55 = cProto.setContainerWidth;
               cProto.setContainerWidth = dProto.setContainerWidthNoSelfLeakage;
               flgLeakageFixApplied |= 4;
             }
-            if (typeof cProto.slideDown === 'function' && !cProto.slideDown55 && cProto.slideDown.length === 0) {
+            if (!USE_ADVANCED_TICKING && typeof cProto.slideDown === 'function' && !cProto.slideDown55 && cProto.slideDown.length === 0) {
               cProto.slideDown55 = cProto.slideDown;
               cProto.slideDown = dProto.slideDownNoSelfLeakage;
               flgLeakageFixApplied |= 8;
             }
-            if (typeof cProto.collapse === 'function' && !cProto.collapse55 && cProto.collapse.length === 0) {
+            if (!USE_ADVANCED_TICKING && typeof cProto.collapse === 'function' && !cProto.collapse55 && cProto.collapse.length === 0) {
               cProto.collapse55 = cProto.collapse;
               cProto.collapse = dProto.collapseNoSelfLeakage;
               flgLeakageFixApplied |= 16;
@@ -7337,23 +7376,37 @@
 
                         let deletionMode = false;
                         const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
-                        if (timestampUnderLiveMode && cntData && cntData.duration > 0 && cntData.__timestampActionRequest__ > 0) {
+                        if (timestampUnderLiveMode && cntData && cntData.durationSec > 0 && cntData.__timestampActionRequest__ > 0) {
 
+                          // time choose - 0.2s for transition (slideDown sliding-down)
+                          // 60hz = 17ms
+                          // choose 0.28s
                           const targetFutureTime = cntData.__timestampActionRequest__ + cntData.durationSec * 1000;
                           // check whether the targetFutureTime is already the past
-                          if (targetFutureTime + 800 < Date.now()) {
+                          if (targetFutureTime + 280 < Date.now()) {
                             // just dispose
                             deletionMode = true;
                           }
+                        } else if (!timestampUnderLiveMode && cntData && cntData.durationSec > 0 && cntData.__progressAt__ > 0) {
+
+                          const targetFutureTime = (cntData.__progressAt__ + cntData.durationSec) ;
+                          // check whether the targetFutureTime is already the past
+                          if (targetFutureTime + 0.28 < playerProgressChangedArg1) {
+                            // just dispose
+                            deletionMode = true;
+                          }
+
+
                         }
-          
+
 
                         if (deletionMode) {
                           __requestRemoval__(cnt);
                         } else {
 
-                          ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
-                            cnt.slideDown());
+                          const w = cnt.hostElement.style.width;
+                          if (w === "auto" || w === "") cnt.setContainerWidth();
+                          cnt.slideDown();
                         }
 
                         break;
@@ -7711,6 +7764,126 @@
 
             });
 
+            
+            if (typeof cProto.slideDown === 'function' && !cProto.slideDown43 && cProto.slideDown.length === 0) {
+
+              cProto.slideDown43 = cProto.slideDown;
+              cProto.slideDown = dProto.slideDownAdv || (dProto.slideDownAdv = async function () {
+
+                // console.log('calling slideDown', Date.now())                
+                if(this.__advancedTicking038__){
+
+                  if (this.__advancedTicking038__ === 1) this.__advancedTicking038__ = 2; // ignore intersectionobserver detection
+
+
+                  const hostElement = this.hostElement;
+                  const container = this.$.container;
+                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
+                    const prevTransitionClosingElm = kRef(prevTransitionClosing);
+                    if (prevTransitionClosingElm !== hostElement) {
+                      prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
+                      prevTransitionClosing = mWeakRef(hostElement);
+                    }
+                    if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+  
+                    const pr = new PromiseExternal();
+                    transitionEndAfterFnSimple.set(hostElement, pr);
+                    transitionEndAfterFnSimple.set(container, pr);
+                    hostElement.classList.add("sliding-down");
+                    await pr.then();
+                    transitionEndAfterFnSimple.delete(hostElement);
+                    transitionEndAfterFnSimple.delete(container);
+                    if(this && this.hostElement instanceof HTMLElement){
+  
+                      this.collapse();
+                    }
+                    return;
+                  }
+                }
+                  this.slideDown43();
+                
+              });
+            }
+
+
+            if (typeof cProto.collapse === 'function' && !cProto.collapse43 && cProto.collapse.length === 0) {
+              cProto.collapse43 = cProto.collapse;
+              cProto.collapse = dProto.collapseAdv || (dProto.collapseAdv = async function () {
+
+
+                if (this.__advancedTicking038__) {
+
+                  
+                  if (this.__advancedTicking038__ === 1) this.__advancedTicking038__ = 2; // ignore intersectionobserver detection
+
+
+                  const hostElement = this.hostElement;
+                  const container = this.$.container;
+                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
+                    const prevTransitionClosingElm = kRef(prevTransitionClosing);
+                    if (prevTransitionClosingElm !== hostElement) {
+                      prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
+                      prevTransitionClosing = mWeakRef(hostElement);
+                    }
+                    if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+
+                    const pr = new PromiseExternal();
+                    transitionEndAfterFnSimple.set(hostElement, pr);
+                    transitionEndAfterFnSimple.set(container, pr);
+                    hostElement.classList.add("collapsing");
+                    hostElement.style.width = "0";
+                    await pr.then();
+                    transitionEndAfterFnSimple.delete(hostElement);
+                    transitionEndAfterFnSimple.delete(container);
+                    if (this && this.hostElement instanceof HTMLElement) {
+
+                      this.requestRemoval();
+                    }
+
+                    return;
+                  }
+
+
+                }
+                this.collapse43();
+
+
+              });
+            }
+            
+            
+
+            if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
+              cProto.requestRemoval49 = cProto.requestRemoval;
+              cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
+                if (this.__advancedTicking038__) {
+                  try {
+                    const overlayBg = this.hostElement.querySelector('ticker-bg-overlay[id]');
+                    if (overlayBg) {
+                      const overlayBgId = overlayBg.id;
+                      const tid = overlayBgId ? overlayBgId.substring(0, overlayBgId.length - 2) : '';
+                      const endElm = tid ? document.querySelector(`#${tid}-e`) : null;
+                      if (endElm) {
+                        wio2.unobserve(endElm);
+                        endElm.remove();
+                      }
+                    }
+                  } catch (e) { }
+                  this.__advancedTicking038__ = 2;
+                }
+                const hostElement = this.hostElement;
+                if (hostElement instanceof HTMLElement) {
+                  try {
+                    // hostElement.remove();
+                    
+                    if (!hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.add('ticker-no-transition-time');
+                  } catch (e) { }
+                  return this.requestRemoval49();
+                }
+              });
+            }
+            
+
             if (typeof cProto.computeContainerStyle === 'function' && !cProto.computeContainerStyle49 && cProto.computeContainerStyle.length === 2) {
               cProto.computeContainerStyle49 = cProto.computeContainerStyle;
               cProto.computeContainerStyle = dProto.computeContainerStyleAdv || (dProto.computeContainerStyleAdv = function (a, b) {
@@ -7720,6 +7893,181 @@
                 return this.computeContainerStyle49(a, b);
               });
             }
+
+
+
+            if (typeof cProto.setRevampContainerWidth === 'function' && !cProto.setRevampContainerWidth41 && cProto.setRevampContainerWidth.length === 0) {
+              cProto.setRevampContainerWidth41 = cProto.setRevampContainerWidth;
+              cProto.setRevampContainerWidth = dProto.setRevampContainerWidthAdv || (dProto.setRevampContainerWidthAdv = async function () {
+
+                // not sure the reason for auto instead of pixel.
+                // this is a new function in Dec 2024, but not mainly adopted in the coding yet
+
+                /*
+  
+  
+                        var a = this;
+                        (R(this.hostElement).querySelector("#container").clientWidth || 0) === 0 ? (this.hostElement.style.overflow = "visible",
+                        this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
+                        this.ytLiveChatTickerItemBehavior.shouldAnimateIn ? (this.hostElement.style.width = "0",
+                        Zu(function() {
+                            a.hostElement.style.width = "auto"
+                        }, 1)) : this.hostElement.style.width = "auto")
+  
+                */
+
+
+
+
+                const hostElement = (this || 0).hostElement;
+                const container = this.$.container;
+
+
+                let qw = null;
+
+                {
+
+
+                  let maxC = 4;
+
+                  for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
+
+                    const ed = `${hostElement.id}`
+                    if (!p || !p.startsWith(`${ed}::`)) {
+
+                      const w = hostElement.style.width;
+                      if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
+
+                      const res = await widthReq(container);
+
+                      hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
+
+                    } else {
+                      qw = p.split('::');
+                      break;
+                    }
+
+                  }
+
+                }
+
+                if (!qw) {
+
+                  console.log('container width failure');
+                  this.setRevampContainerWidth41();
+                  return; // failure
+                }
+
+
+                const shouldAnimateIn = ((this || 0).ytLiveChatTickerItemBehavior || 0).shouldAnimateIn || (this || 0).shouldAnimateIn || false;
+                if (shouldAnimateIn) {
+
+
+
+                  const w = hostElement.style.width;
+                  if (w !== '0px' && w !== '0') hostElement.style.width = '0';
+                  hostElement.classList.remove('ticker-no-transition-time');
+                  await widthReq(container);
+
+                  hostElement.style.width = `${qw[1]}px`;
+                  return;
+
+
+                } else {
+                  hostElement.style.width = `${qw[1]}px`;
+                }
+
+
+                // const container = this.$.container;
+                // if(hostElement instanceof HTMLElement && hostElement.style.width) hostElement.style.width = '';
+              });
+            }
+
+
+            if (typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth41 && cProto.setContainerWidth.length === 0) {
+              cProto.setContainerWidth41 = cProto.setContainerWidth;
+              cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
+
+
+
+                /*
+
+
+                  var a = this
+                    , b = R(this.hostElement).querySelector("#container").clientWidth || 0;
+                  b === 0 ? (this.hostElement.style.overflow = "visible",
+                  this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
+                  this.shouldAnimateIn ? (this.hostElement.style.width = "0",
+                  Zu(function() {
+                      a.hostElement.style.width = b + "px"
+                  }, 1)) : this.hostElement.style.width = b + "px")
+
+                */
+
+                  const hostElement = (this || 0).hostElement;
+                  const container = this.$.container;
+  
+
+                  let qw = null;
+  
+                  {
+
+
+                    let maxC = 4;
+
+                    for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
+  
+                      const ed = `${hostElement.id}`
+                      if (!p || !p.startsWith(`${ed}::`)) {
+  
+                        const w = hostElement.style.width;
+                        if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
+  
+                        const res = await widthReq(container);
+  
+                        hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
+  
+                      } else {
+                        qw = p.split('::');
+                        break;
+                      }
+  
+                    }
+
+                  }
+
+                  if(!qw){
+
+                    console.log('container width failure');
+                    this.setContainerWidth41();
+                    return; // failure
+                  }
+
+
+                const shouldAnimateIn = ((this || 0).ytLiveChatTickerItemBehavior || 0).shouldAnimateIn || (this || 0).shouldAnimateIn || false;
+                if (shouldAnimateIn) {
+
+
+
+                  const w = hostElement.style.width;
+                  if (w !== '0px' && w !== '0') hostElement.style.width = '0';
+                  hostElement.classList.remove('ticker-no-transition-time');
+                  await widthReq(container);
+
+                  hostElement.style.width = `${qw[1]}px`;
+                  return;
+
+
+                } else {
+                  hostElement.style.width = `${qw[1]}px`;
+                }
+  
+
+              });
+            }
+
+
+
 
           }
 
@@ -11336,6 +11684,136 @@
 
     if (CHECK_JSONPRUNE) {
       promiseForCustomYtElementsReady.then(fixJsonParse);
+    }
+
+    if(END_ANIMATING_TICKERS){
+
+      let lastElmW = null;
+
+      document.addEventListener('transitionstart', (evt) => {
+
+        if (evt.propertyName === 'width' && !evt.pseudoElement) {
+
+          const elm = evt.target;
+          let act = false;
+          /*
+          switch(elm.nodeName.toLowerCase()){
+
+            case  'yt-live-chat-ticker-creator-goal-view-model':
+              case 'yt-live-chat-ticker-paid-message-item-renderer':
+                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
+
+                case 'yt-live-chat-ticker-sponsor-item-renderer':
+                  act =true;
+                  break;
+
+
+          }
+          */
+          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
+            act = true;
+          }
+          if (act) {
+            const lastElm = kRef(lastElmW);
+            if (elm !== lastElm) {
+
+              if (lastElm instanceof HTMLElement) {
+                lastElm.classList.add('ticker-no-transition-time');
+              }
+              lastElmW = mWeakRef(elm);
+
+            }
+
+
+          }
+        }
+
+      }, true);
+
+
+
+      document.addEventListener('transitionend', (evt) => {
+
+        if (evt.propertyName && !evt.pseudoElement) {
+
+          const elm = evt.target;
+          const f = transitionEndAfterFnSimple.get(elm);
+          if (f) {
+            transitionEndAfterFnSimple.delete(elm);
+            f.resolve(evt.propertyName);
+          }
+        }
+
+      }, true);
+
+      /*
+
+      document.addEventListener('transitionend', (evt) => {
+
+        if (evt.propertyName === 'width' && !evt.pseudoElement) {
+
+          const elm = evt.target;
+          let act = false;
+          /-*
+          switch(elm.nodeName.toLowerCase()){
+
+            case  'yt-live-chat-ticker-creator-goal-view-model':
+              case 'yt-live-chat-ticker-paid-message-item-renderer':
+                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
+
+                case 'yt-live-chat-ticker-sponsor-item-renderer':
+                  act =true;
+                  break;
+
+
+          }
+          *-/
+          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
+            act = true;
+          }
+          if (act) {
+            elm.style.transitionDuration = '0s';
+
+          }
+        }
+
+      }, true);
+
+
+      document.addEventListener('transitioncancel', (evt) => {
+
+        if (evt.propertyName === 'width' && !evt.pseudoElement) {
+
+          const elm = evt.target;
+          let act = false;
+          /-*
+          switch(elm.nodeName.toLowerCase()){
+
+            case  'yt-live-chat-ticker-creator-goal-view-model':
+              case 'yt-live-chat-ticker-paid-message-item-renderer':
+                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
+
+                case 'yt-live-chat-ticker-sponsor-item-renderer':
+                  act =true;
+                  break;
+
+
+          }
+          *-/
+          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
+            act = true;
+          }
+          if (act) {
+            elm.style.transitionDuration = '0s';
+
+          }
+        }
+
+      }, true);
+
+      */
+
+
     }
 
   });
