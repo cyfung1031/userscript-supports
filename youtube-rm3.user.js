@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name        YouTube RM3 - Reduce Memory Usage by Reusing Components
 // @namespace   Violentmonkey Scripts
+// @version     0.1.0015
+// @license     MIT
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
 //
-// @version     0.1.0014
 //
 // @author              CY Fung
 // @run-at              document-start
@@ -363,11 +364,8 @@ const rm3 = window.rm3 = {};
     let lastTimeCheck = 0;
 
     const reuseRecord_ = new LimitedSizeSet(256); // [[debug]]
+    const reuseCount_ = new Map();
 
-    DEBUG_OPT && (rm3.reuseRecord = () => {
-      return [...reuseRecord_]; // [[debug]]
-    });
-    
     let noTimeCheck = false;
 
     // const defaultValues = new Map();
@@ -649,7 +647,8 @@ const rm3 = window.rm3 = {};
 
               if (entryRecord[5] < 1e9) entryRecord[5] += 1;
               DEBUG_OPT && Promise.resolve().then(() => console.log(`${eKey} reuse`, entryRecord)); // give some time for attach process
-              DEBUG_OPT && reuseRecord_.add([Date.now(), entryRecord]);
+              DEBUG_OPT && reuseRecord_.add([Date.now(), cnt.is, entryRecord]);
+              DEBUG_OPT && reuseCount_.set(cnt.is, (reuseCount_.get(cnt.is) || 0) + 1)
               if (rm3.reuseCount < 1e9) rm3.reuseCount++;
 
               return elm;
@@ -830,6 +829,38 @@ const rm3 = window.rm3 = {};
 
       return r;
     }
+
+    rm3.checkWhetherUnderParent = () => {
+      const r = [];
+      for (const operation of operations) {
+        const elm = operation[0].deref();
+        if (operation[2] > 0) {
+
+          r.push([!!elm, elm?.nodeName.toLowerCase(), elm?.parentNode === null]);
+        }
+      }
+      return r;
+    }
+
+    rm3.hookTags = () => {
+
+      const r = new Set();
+      for (const operation of operations) {
+        const elm = operation[0].deref();
+        if (elm && elm.is) {
+
+          r.add(elm.is)
+        }
+      }
+      return [...r];
+    }
+
+
+    DEBUG_OPT && (rm3.reuseRecord = () => {
+      return [...reuseRecord_]; // [[debug]]
+    });
+
+    DEBUG_OPT && (rm3.reuseCount_ = reuseCount_);
 
   }
 
