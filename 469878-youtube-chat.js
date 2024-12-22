@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.1
+// @version             0.66.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -823,6 +823,7 @@
   ticker-bg-overlay {
     display: block;
     position: absolute;
+    z-index: -1;
     box-sizing: border-box;
     border: 0;
     padding: 0;
@@ -1453,24 +1454,13 @@
 
 
   const valAssign = (elm, attr, val) => {
-    val = val.toFixed(3);
+    if (typeof val === 'number') val = val.toFixed(3);
     if (!(Math.abs(elm.style.getPropertyValue(attr) - val) < 1e-5)) {
       elm.style.setProperty(attr, val);
       return true;
     }
     return false;
   };
-
-  let timestampUnderLiveMode = false;
-
-  const updateTickerCurrentTime = () => {
-
-    const dntElement = kRef(dntElementWeak);
-    const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT / 1000) : playerProgressChangedArg1;
-    if (dntElement instanceof HTMLElement && v >= 0) {
-      valAssign(dntElement, '--ticker-current-time', v);
-    }
-  }
 
   let playEventsStack = Promise.resolve();
 
@@ -1481,41 +1471,83 @@
 
   let dntElementWeak = null;
 
+
+  let timestampUnderLiveMode = false;
+
+  const updateTickerCurrentTime = () => {
+
+    if(resistanceUpdateDebugMode){
+      console.log('updateTickerCurrentTime')
+
+      if(!dntElementWeak || !kRef(dntElementWeak)) dntElementWeak = mWeakRef(document.querySelector('yt-live-chat-ticker-renderer'));
+      timestampUnderLiveMode = true;
+    }
+
+    const dntElement = kRef(dntElementWeak);
+    const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT / 1000) : playerProgressChangedArg1;
+    if (dntElement instanceof HTMLElement && v >= 0) {
+      valAssign(dntElement, '--ticker-current-time', v);
+    }
+  }
+
   // ================== FOR USE_ADVANCED_TICKING ================
 
   const timeOriginDT = +new Date(performance.timeOrigin);
-  let startResitanceUpdaterStarted = false;
+  let startResistanceUpdaterStarted = false;
 
   const RESISTANCE_UPDATE_OPT = 3;
-  let resitanceUpdateLast = 0;
+  let resistanceUpdateLast = 0;
+  let resistanceUpdateBusy = false;
+  let resistanceUpdateRetry = false;
+  const resistanceUpdateDebugMode = false;
   const allBackgroundOverLays = document.getElementsByTagName('ticker-bg-overlay');
-  const resitanceUpdateFn = ()=>{
-    if(allBackgroundOverLays.length === 0) return;
+  const rgFlag = {};
+  const resistanceUpdateFn = (b) => {
+    if(b !== rgFlag && resistanceUpdateRetry === false) return;
+    if (!resistanceUpdateDebugMode && allBackgroundOverLays.length === 0) return;
+    resistanceUpdateBusy = false;
     const t = Date.now();
-    if (t - resitanceUpdateLast > 375) {
-      resitanceUpdateLast = t;
+    const d = t - resistanceUpdateLast;
+    if (d > 375) {
+      resistanceUpdateLast = t;
+      resistanceUpdateRetry = false;
       updateTickerCurrentTime();
+    } else if (typeof requestIdleCallback === 'function') {
+      resistanceUpdateRetry = true;
+      requestIdleCallback(resistanceUpdateFn);
+    } else {
+      resistanceUpdateRetry = true;
+      setTimeout(resistanceUpdateFn, d + 17);
     }
   }
-  const startResitanceUpdater = () => {
+  const resistanceUpdateFn_ = ()=>{
+    if (!resistanceUpdateBusy) {
+      resistanceUpdateBusy = true;
+      resistanceUpdateRetry = false;
+      Promise.resolve(rgFlag).then(resistanceUpdateFn);
+    }
+  }
+  const startResistanceUpdater = () => {
 
-    if (startResitanceUpdaterStarted) return;
-    startResitanceUpdaterStarted = true;
+    if (startResistanceUpdaterStarted) return;
+    startResistanceUpdaterStarted = true;
 
 
     if (RESISTANCE_UPDATE_OPT & 1)
       document.addEventListener('yt-action', () => {
-        resitanceUpdateFn();
+        resistanceUpdateFn_();
       }, true)
 
     if (RESISTANCE_UPDATE_OPT & 2)
       new MutationObserver(() => {
-        resitanceUpdateFn();
+        resistanceUpdateFn_();
       }).observe(document, {
         subtree: true, childList: true, attributes: true
       });
-    resitanceUpdateFn();
+    resistanceUpdateFn_();
   }
+
+  if(resistanceUpdateDebugMode) startResistanceUpdater();
 
 
   function dr(s) {
@@ -5523,7 +5555,7 @@
                 });
               });
 
-              Promise.resolve().then(resitanceUpdateFn);
+              resistanceUpdateFn_();
             }
             console.log("handleLiveChatActions_", "OK");
           } else {
@@ -7100,7 +7132,7 @@
 
 
           if (USE_ADVANCED_TICKING && canDoAdvancedTicking) {
-            // startResitanceUpdater();
+            // startResistanceUpdater();
             // live replay video ->   48117005 -> 48117006 keep fire.  ->48117007 0 -> 48117007 {...}
             // live stream video -> 48117007 0 -> 48117007 YES
 
@@ -7169,6 +7201,7 @@
               const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
               if(!cntData) return;
               const cntElement = cnt.hostElement;
+              if(!(cntElement instanceof HTMLElement)) return;
 
               const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
 
@@ -7185,7 +7218,10 @@
 
               let tk = cntData.__progressAt__ || cntData.__liveTimestamp__;
 
-              if (!tk || !(cntElement instanceof HTMLElement)) return;
+              if (!tk) {
+                console.log('time property is not found');
+                return;
+              }
 
 
 
@@ -7195,9 +7231,9 @@
 
               if (liveOffsetMs > 0) {
                 cntData.durationSec -= Math.floor(liveOffsetMs / 1000);
-                if(cntData.durationSec < 0) cntData.durationSec = 0;
+                if (cntData.durationSec < 0) cntData.durationSec = 0;
                 // console.log(1238, liveOffsetMs, cntData.durationSec)
-                if(!cntData.durationSec ){
+                if (!cntData.durationSec) {
                   try {
                     cnt.requestRemoval();
                   } catch (e) { }
@@ -7212,6 +7248,8 @@
 
 
 
+              const existingOverlaySelector = `ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`;
+
               if (valAssign(cntElement, '--ticker-start-time', tk) && duration > 0) {
 
                 // t0 ...... 1 ... fullDurationSec
@@ -7221,21 +7259,25 @@
                 // now - (fullDurationSec-durationSec)
 
 
-
+                // update dntElementWeak
                 const dnt = cnt.parentComponent;
                 const dntElement = dnt ? dnt.hostElement || dnt : 0;
                 if (dntElement) {
                   dntElementWeak = mWeakRef(dntElement);
-                  updateTickerCurrentTime();
+                  resistanceUpdateBusy = false;
+                  if (!startResistanceUpdaterStarted) startResistanceUpdater();
+                  else updateTickerCurrentTime();
                 }
-                if (!cntElement.querySelector(`ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`)) {
 
+                // create overlay if needed
+                if (!cntElement.querySelector(existingOverlaySelector)) {
+
+                  // remove if any
                   const oldElement = cntElement.querySelector('ticker-bg-overlay');
                   if (oldElement) oldElement.remove();
-
                   
+                  // use advancedTicking, ticker enabled
                   cnt.__advancedTicking038__ = 1;
-
 
                   const em = document.createElement('ticker-bg-overlay');
                   const ey = document.createElement('ticker-bg-overlay-end');
@@ -7243,20 +7285,17 @@
                   const cr1 = cnt.colorFromDecimal(cntData.startBackgroundColor);
                   const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
 
-
                   const container = cnt.$.container;
                   
                   em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
                   em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
 
-                  const attachmentCode = container instanceof HTMLElement ? 1 : 0;
-                  if(attachmentCode === 0){
+                  if (!(container instanceof HTMLElement)) {
                     em.insertBefore(ey, em.firstChild);
                     cntElement.insertBefore(em, cntElement.firstChild);
                     cntElement.style.borderRadius = '16px';
                     container.style.borderRadius = 'initial';
                   } else {
-
                     em.insertBefore(ey, em.firstChild);
                     container.insertBefore(em, container.firstChild);
                   }
@@ -7270,7 +7309,7 @@
                     container.style.backgroundColor = 'transparent';
                     // container.style.zIndex = '1';
                   }
-                  em.style.zIndex = '-1';
+                  // em.style.zIndex = '-1';
                   valAssign(cntElement, '--ticker-duration-time', duration)
 
                   if (wio instanceof IntersectionObserver) {
