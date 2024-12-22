@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.10
+// @version             0.66.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -43,7 +43,8 @@
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
-  const DEBUG_LOG_GROUP_EXPAND = true;
+  const DEBUG_LOG_GROUP_EXPAND = !!localStorage.__debugSuperFastChat__;
+  const DEBUG_customCreateComponent = false;
 
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
   // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
@@ -189,8 +190,10 @@
   // const END_ANIMATING_TICKERS = true; // added in Dec 2024 v0.66.5; see pressure test like https://www.youtube.com/watch?v=CQaUs-vNgXo
   const FIX_TIMESTAMP_FOR_REPLAY = true;
 
+  // const ADVANCED_TICKING_MEMORY_CLEAN_FOR_REMOVAL = true;
 
-  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
+
+  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true; // MUST BE true
   const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
   const FIX_BATCH_TICKER_ORDER = true;
 
@@ -215,6 +218,7 @@
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
 
   const FIX_UNKNOWN_BUG_FOR_OVERLAY = true;       // no .prepare() in backdrop element. reason is unknown.
+  const REUSE_TICKER = true;  // for better memory control; currently it is only available in ADVANCED_TICKING; to be further reviewed
 
   // -------------------------------
 
@@ -1043,7 +1047,7 @@
     }
   `: '';
 
-  const cssText19_FOR_ADVANCED_TICKING =`
+  const cssText19_FOR_ADVANCED_TICKING = USE_ADVANCED_TICKING ? `
       
       ticker-bg-overlay {
         display: block;
@@ -1084,7 +1088,10 @@
       }
 
 
-      .r6-width-adjustable ~ .r6-width-adjustable {
+        /* .r6-closing-ticker is provided in ADVANCED_TICKING */
+        /* so .r6-width-adjustable is only available for ADVANCED_TICKING too */
+
+        .r6-width-adjustable ~ .r6-width-adjustable {
           --r6-min-width: max-content;
         }
       
@@ -1097,7 +1104,7 @@
         }
 
   
-  `;
+  ` : '';
   // const cssText19_FOR_ADVANCED_TICKING = `
   
   // ticker-bg-overlay {
@@ -1806,7 +1813,62 @@
   let onPlayStateChangePromise = null;
 
 
+  const reuseId = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
+  const reuseStore = new Map();
+
+  const customCreateComponent = (component, data, bool)=>{
+
+    const componentTag = typeof component === 'string'  ? component : typeof (component||0).component === 'string' ? (component||0).component  : '';
+    if(componentTag){
+
+      if(REUSE_TICKER && data.id && data.fullDurationSec){
+        // bool (param c) is true by default; just force it to reuse no matter true or false
+
+        if (!bool) {
+          // show a warning if it is false.
+          console.warn('[yt-chat] REUSE_TICKER: reuse bool is false');
+        }
+
+        const record = reuseStore.get(`<${componentTag}>${data.id}:${data.fullDurationSec}`);
+        
+        const cnt = kRef(record);
+
+        
+        if(cnt && cnt.isAttached === false){
+
+          const hostElement = cnt.hostElement;
+
+          if(hostElement instanceof HTMLElement && hostElement.isConnected === false && hostElement.parentNode === null && hostElement.getAttribute('__reuseid__')===reuseId ){
+ 
+          // console.log(952, cnt.hostElement.parentNode)
+          // debugger;
+            if (hostElement.hasAttribute('__nogc__')) {
+
+              Promise.resolve(hostElement).then((hostElement) => {
+                // microtask to provide some time for DOM attachment.
+                hostElement.isConnected && hostElement.removeAttribute('__nogc__');
+              });
+
+            }
+            return hostElement;
+
+
+          }
+
+        } 
+
+      }
+
+    }
+    DEBUG_customCreateComponent && console.log(component, data, bool);
+    /*
+
+                  const cntData = this.data;
+                  reuseStore.set(`${cntData.id}:${cntData.fullDurationSec}`, mWeakRef(this));
+                  */
+
+  }
 
   const valAssign = (elm, attr, val) => {
     if (typeof val === 'number') val = val.toFixed(3);
@@ -2201,6 +2263,9 @@
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
+  let __LCRInjection__ = 0; // 0 for no injection
+  const LCRImmedidates = []; // array of sync. func
+
   let getLCRDummyP_ = null;
   // lcrPromiseFn
   const getLCRDummy = () => {
@@ -2226,16 +2291,20 @@
         dummy = await new Promise(resolve => {
 
 
-          if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_) {
+          if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_ && lcaProto.createComponent_.length === 3) {
             console.log('[yt-chat-lcr] lcaProto.createComponent_ is found');
 
             lcaProto.createComponent99_ = lcaProto.createComponent_;
             lcaProto.createComponent98_ = function (a, b, c) {
+              const z = customCreateComponent(a,b,c);
+              if(z !== undefined) return z;
               // (3) ['yt-live-chat-renderer', {…}, true]
-              const r = this.createComponent99_.apply(this, arguments);
-              if (a === 'yt-live-chat-renderer' && !bypass) {
+              const r = this.createComponent99_(a, b,c);
+              const componentTag = (typeof a === 'string' ? a : (a||0).component) || `${(r||0).nodeName}`.toLowerCase();
+              if ( componentTag === 'yt-live-chat-renderer' && !bypass) {
                 qt38 = 1;
 
+                __LCRInjection__ =  __LCRInjection__ | 1;
 
                 // r.polymerController.__proto__.handleLiveChatActions471_ = r.polymerController.__proto__.handleLiveChatActions_;
                 // r.polymerController.__proto__.handleLiveChatActions_ = function (arr) {
@@ -2247,6 +2316,11 @@
 
     
                 // }
+
+                for (const f of LCRImmedidates) {
+                  f(r);
+                }
+                LCRImmedidates.length = 0;
 
                 resolve(r); // note: this dom is not yet adopted, but promise resolve is later than ops.
                 console.log('[yt-chat-lcr] element found by method 1');
@@ -2266,6 +2340,8 @@
             const t = pz38[0]
             if (t) {
               qt38 = 2;
+
+              __LCRInjection__ =  __LCRInjection__ | 2;
               resolve(t);
               console.log('[yt-chat-lcr] element found by method 2');
             }
@@ -2291,11 +2367,11 @@
         console.log(`[yt-chat-lcr] lcr appears, dom = ${document.getElementsByTagName(tag).length}, method = ${qt38}`);
 
 
-        if (lcaProto.createComponent99_ && lcaProto.createComponent_ && lcaProto.createComponent98_ === lcaProto.createComponent_) {
-          lcaProto.createComponent_ = lcaProto.createComponent99_;
-          lcaProto.createComponent99_ = null;
-          lcaProto.createComponent98_ = null;
-        }
+        // if (lcaProto.createComponent99_ && lcaProto.createComponent_ && lcaProto.createComponent98_ === lcaProto.createComponent_) {
+        //   lcaProto.createComponent_ = lcaProto.createComponent99_;
+        //   lcaProto.createComponent99_ = null;
+        //   lcaProto.createComponent98_ = null;
+        // }
 
       } else {
         console.log('[yt-chat-lcr] lcr exists');
@@ -4824,98 +4900,98 @@
         return qw > 0 ? qv / qw : weightedSum / totalWeight;
       }
 
-      const doConsolidation = (groups)=>{
+      // const doConsolidation = (groups)=>{
 
-        const b = 5e5;
-        try{
+      //   const b = 5e5;
+      //   try{
 
-        const nl = groups.length;  
-        for(const group of groups){
-          const [groupStart, groupEnd, groupMid] = group;
-          const gCen = (groupStart + groupEnd) / 2;
+      //   const nl = groups.length;  
+      //   for(const group of groups){
+      //     const [groupStart, groupEnd, groupMid] = group;
+      //     const gCen = (groupStart + groupEnd) / 2;
 
-          group[3] = gCen;
-          group[4] = null;
+      //     group[3] = gCen;
+      //     group[4] = null;
 
-        }
+      //   }
 
-        const resArr = [];
+      //   const resArr = [];
 
-        for (let j = 0; j < nl; j++) {
-          const gCenJ = groups[j][3];
+      //   for (let j = 0; j < nl; j++) {
+      //     const gCenJ = groups[j][3];
 
-          let sb = groups[j][4];
-          if(!sb){
-            groups[j][4] = sb = new Set();
-            resArr.push(sb);
-          }
-          sb.add(j);
-          for (let k = j+1; k < nl; k++) {
+      //     let sb = groups[j][4];
+      //     if(!sb){
+      //       groups[j][4] = sb = new Set();
+      //       resArr.push(sb);
+      //     }
+      //     sb.add(j);
+      //     for (let k = j+1; k < nl; k++) {
  
-            const gCenK = groups[k][3];
+      //       const gCenK = groups[k][3];
 
-              let r = ((gCenK-b >= gCenJ-b && gCenK-b <= gCenJ+b) || (gCenK+b >= gCenJ-b && gCenK+b <= gCenJ+b));
+      //         let r = ((gCenK-b >= gCenJ-b && gCenK-b <= gCenJ+b) || (gCenK+b >= gCenJ-b && gCenK+b <= gCenJ+b));
                
-              if(r) {
-                sb.add(k);
-                if(!groups[k][4]) groups[k][4] = sb;
-              }
+      //         if(r) {
+      //           sb.add(k);
+      //           if(!groups[k][4]) groups[k][4] = sb;
+      //         }
 
 
-          }
+      //     }
 
-        }
-
-
-        const resArr2 = resArr.map(e=>[...e]).map(entry=>{
+      //   }
 
 
+      //   const resArr2 = resArr.map(e=>[...e]).map(entry=>{
 
-          const edge1s = entry.map(k => (groups[k][0]));
-          const edge2s = entry.map(k => (groups[k][1]));
-          const ws = entry.map(k => (groups[k][2]));
+
+
+      //     const edge1s = entry.map(k => (groups[k][0]));
+      //     const edge2s = entry.map(k => (groups[k][1]));
+      //     const ws = entry.map(k => (groups[k][2]));
           
 
-          const maxW = Math.max(...ws);
+      //     const maxW = Math.max(...ws);
 
-          const weights = ws.map(w=> maxW/w );
+      //     const weights = ws.map(w=> maxW/w );
 
-          const edge1 = weightingFn(edge1s, weights);
-          const edge2 = weightingFn(edge2s, weights);
+      //     const edge1 = weightingFn(edge1s, weights);
+      //     const edge2 = weightingFn(edge2s, weights);
 
-          const cen = (edge1 + edge2)/2;
-
-
-          return {
-            edge1,
-            edge2,
-            cen,
-            size:  ws.reduce((a, b) => a + b, 0),
-            entry
-          };
-
-        });
-        for(const e of resArr){
-          e.clear();
-        }
-        resArr.length = 0;
+      //     const cen = (edge1 + edge2)/2;
 
 
-        return resArr2;
+      //     return {
+      //       edge1,
+      //       edge2,
+      //       cen,
+      //       size:  ws.reduce((a, b) => a + b, 0),
+      //       entry
+      //     };
 
-      }catch(e){
+      //   });
+      //   for(const e of resArr){
+      //     e.clear();
+      //   }
+      //   resArr.length = 0;
 
-        console.warn(e)
-        return [];
 
-      }
+      //   return resArr2;
 
-        // console.log(4546, 'resArr', resArr2)
+      // }catch(e){
+
+      //   console.warn(e)
+      //   return [];
+
+      // }
+
+      //   // console.log(4546, 'resArr', resArr2)
 
 
 
         
-      }
+      // }
 
       /*
       const doConsolidation = (groups)=>{
@@ -5132,7 +5208,24 @@
 
       let fir = 0;
 
+      const limitAddition = (a, b) => {
+        // Number.MAX_SAFE_INTEGER = 9007199254740991
+        // k^2 = 9007199254740991 => k = 94906265.62425154
+        // Choose k = 2^26 = 67108864 < 94906265.62425154
+        // Consider x - x/sqrt(1+x^2/k^2) = 0.4 |x=w => w = 153302.9412
+        // Choose w = 2^17 = 131072 < 153302.9412
+
+        const k = 67108864;
+        const w = 131072;
+        if (a < w && b < w) return a + b;
+        return Math.round((a + b) / (1 + a * b / k / k));
+      }
+
       const preprocessChatLiveActions = (arr) =>{
+
+        if (!__LCRInjection__) {
+          console.error('[yt-chat] preprocessChatLiveActions might fail because of no __LCRInjection__');
+        }
 
         if (!fir) {
 
@@ -5237,12 +5330,13 @@
                   // for merging, groupA will move to right side but left than groupB, so no overlap to groupC
 
                   const group = groups[lastK];
+                  const newN = limitAddition(group[2], gCount);
 
                   group[0] = (group[0] * group[2] + groupStart * gCount) / (group[2] + gCount)
 
                   group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount) / (group[2] + gCount)
 
-                  group[2] = (group[2] + gCount);
+                  group[2] = newN;
                   // no change of lastK
                   groups[k] = null;
                   if(deletedStartIndex < 0) deletedStartIndex = k;
@@ -5273,12 +5367,13 @@
                   // Merge Group (A) = N_a + N_b + n_e{1}
 
                   const group = groups[lastK];
+                  const newN = limitAddition(limitAddition(group[2], gCount), 1);
 
                   group[0] = (group[0] * group[2] + groupStart * gCount + t0auDv) / (group[2] + gCount + 1)
 
                   group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount + t0buDv) / (group[2] + gCount + 1)
 
-                  group[2] = (group[2] + gCount + 1);
+                  group[2] = newN;
                    // no change of lastK
                   groups[k] = null;
                   if(deletedStartIndex < 0) deletedStartIndex = k;
@@ -5290,9 +5385,11 @@
                   // GroupT: N_t
                   // Group (T) = N_t + n_e{1}
 
+                  const newN = limitAddition(gCount, 1);
+
                   group[0] = newStart;
                   group[1] = lastRight = (groupEnd * gCount + t0buDv) / (gCount + 1);
-                  group[2] = gCount + 1;
+                  group[2] = newN;
 
                   lastK = k;
 
@@ -6024,7 +6121,64 @@
       }
 
       if (ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION) {
-        getLCRDummy().then(async (lcrDummy) => {
+
+        console.log('ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION is used.')
+
+        // console.log('ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION 0001')
+
+        const pop078 = function () {
+          const r = this.pop78();
+
+          if (r && (r.actions || 0).length >= 1 && r.videoOffsetTimeMsec) {
+            for (const action of r.actions) {
+
+              const itemActionKey = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
+              if (itemActionKey) {
+
+                const itemAction = action[itemActionKey];
+                const item = (itemAction || 0).item;
+                if (typeof item === 'object') {
+
+                  const rendererKey = firstObjectKey(item);
+                  if (rendererKey) {
+                    const renderer = item[rendererKey];
+                    if (renderer && typeof renderer === 'object') {
+                      renderer.__videoOffsetTimeMsec__ = r.videoOffsetTimeMsec;
+                      renderer.__progressAt__ = playerProgressChangedArg1;
+
+                      // console.log(48117006)
+                    }
+
+                  }
+
+                }
+              }
+            }
+          }
+          return r;
+        }
+
+
+
+        const replayQueueProxyHandler = {
+          get(target, prop, receiver) {
+            if (prop === 'qe3') return 1;
+            const v = target[prop];
+            if (prop === 'front_') {
+              if (v && typeof v.length === 'number') {
+                if (!v.pop78) {
+                  v.pop78 = v.pop;
+                  v.pop = pop078;
+                }
+              }
+            }
+            return v;
+          }
+        };
+
+        // lcrFn2 will run twice to ensure the method is successfully injected.
+        const lcrFn2 = (lcrDummy)=>{
+          // make minimal function overhead by pre-defining all possible outside.
 
           const tag = "yt-live-chat-renderer"
           const dummy = lcrDummy;
@@ -6035,66 +6189,15 @@
             return;
           }
 
-          mightFirstCheckOnYtInit();
-          groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
-          console.log("[Begin]");
-
-
-
-
+          // mightFirstCheckOnYtInit();
+          // groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
+          // console.log("[Begin]");
 
 
           if (typeof cProto.playerProgressChanged_ === 'function' && !cProto.playerProgressChanged32_) {
 
             cProto.playerProgressChanged32_ = cProto.playerProgressChanged_;
 
-            const pop078 = function () {
-              const r = this.pop78();
-
-              if (r && (r.actions || 0).length >= 1 && r.videoOffsetTimeMsec) {
-                for (const action of r.actions) {
-
-                  const itemActionKey = !action ? null : 'addChatItemAction' in action ? 'addChatItemAction' : 'addLiveChatTickerItemAction' in action ? 'addLiveChatTickerItemAction' : null;
-                  if (itemActionKey) {
-
-                    const itemAction = action[itemActionKey];
-                    const item = (itemAction || 0).item;
-                    if (typeof item === 'object') {
-
-                      const rendererKey = firstObjectKey(item);
-                      if (rendererKey) {
-                        const renderer = item[rendererKey];
-                        if (renderer && typeof renderer === 'object') {
-                          renderer.__videoOffsetTimeMsec__ = r.videoOffsetTimeMsec;
-                          renderer.__progressAt__ = playerProgressChangedArg1;
-
-                          // console.log(48117006)
-                        }
-
-                      }
-
-                    }
-                  }
-                }
-              }
-              return r;
-            }
-
-            const replayQueueProxyHandler = {
-              get(target, prop, receiver) {
-                if (prop === 'qe3') return 1;
-                const v = target[prop];
-                if (prop === 'front_') {
-                  if (v && typeof v.length === 'number') {
-                    if (!v.pop78) {
-                      v.pop78 = v.pop;
-                      v.pop = pop078;
-                    }
-                  }
-                }
-                return v;
-              }
-            };
 
             cProto.playerProgressChanged_ = function (a, b, c) {
               // console.log(48117005)
@@ -6114,11 +6217,18 @@
 
           }
 
-          console.log("[End]");
-          console.groupEnd();
+          // console.log("[End]");
+          // console.groupEnd();
+          
+
+        };
+        !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
 
 
-        });
+        // console.log('ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION 0002')
+
+        // getLCRDummy() must be called for injection
+        getLCRDummy().then(lcrFn2);
 
       }
 
@@ -7838,7 +7948,7 @@
             this.__ticker_attachmentId__ = ++tickerAttachmentId;
 
             const hostElement = this.hostElement;
-            if (hostElement instanceof HTMLElement) {
+            if ( USE_ADVANCED_TICKING && hostElement instanceof HTMLElement) {
               hostElement.classList.add('r6-width-adjustable');
             }
 
@@ -7848,7 +7958,7 @@
               DEBUG_wmList_started = 1;
             }
 
-            fpTicker(this.hostElement || this);
+            fpTicker(hostElement || this);
             return this.attached77();
 
           },
@@ -8846,6 +8956,7 @@
           }
 
           const canDoAdvancedTicking = 1 &&
+            ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION &&
             typeof cProto.startCountdown === 'function' && !cProto.startCountdown49 && cProto.startCountdown.length === 2 &&
             typeof cProto.updateTimeout === 'function' && !cProto.updateTimeout49 && cProto.updateTimeout.length === 1 &&
             typeof cProto.isAnimationPausedChanged === 'function' && !cProto.isAnimationPausedChanged49 && cProto.isAnimationPausedChanged.length === 2 &&
@@ -8902,7 +9013,7 @@
                             // just dispose
                             deletionMode = true;
                           }
-                        } else if (!timestampUnderLiveMode && cntData && cntData.durationSec > 0 && cntData.__progressAt__ > 0) {
+                        } else if (__LCRInjection__ && !timestampUnderLiveMode && cntData && cntData.durationSec > 0 && cntData.__progressAt__ > 0) {
 
                           const targetFutureTime = (cntData.__progressAt__ + cntData.durationSec);
                           // check whether the targetFutureTime is already the past
@@ -9005,6 +9116,10 @@
 
             const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
 
+              if (!__LCRInjection__) {
+                console.error('[yt-chat] USE_ADVANCED_TICKING fails because of no __LCRInjection__');
+              }
+
               const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
               if (!cntData) return;
               const cntElement = cnt.hostElement;
@@ -9014,11 +9129,11 @@
 
               let ct;
 
-              if (cntData && duration > 0 && !('__progressAt__' in cntData)) {
+              if (__LCRInjection__ && cntData && duration > 0 && !('__progressAt__' in cntData)) {
                 ct = Date.now();
                 cntData.__liveTimestamp__ = (cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT / 1000;
                 timestampUnderLiveMode = true;
-              } else if (cntData && duration > 0 && cntData.__progressAt__ > 0) {
+              } else if (__LCRInjection__ && cntData && duration > 0 && cntData.__progressAt__ > 0) {
                 timestampUnderLiveMode = false;
               }
               // console.log(48117007, cntData)
@@ -9398,6 +9513,17 @@
                     }
                   } catch (e) { }
                   this.__advancedTicking038__ = 2;
+                  // console.log('requestRemoval!!')
+                  if (REUSE_TICKER) {
+                    const hostElement = this.hostElement;
+                    const cntData = this.data;
+                    if (hostElement instanceof HTMLElement && cntData.id && cntData.fullDurationSec && !hostElement.hasAttribute('__reuseid__')) {
+                      hostElement.setAttribute('__reuseid__', reuseId);
+                      hostElement.setAttribute('__nogc__', ''); // provided to leakage detection script
+                      // this.__markReuse13__ = true;
+                      reuseStore.set(`<${this.is}>${cntData.id}:${cntData.fullDurationSec}`, mWeakRef(this));
+                    }
+                  }
                 }
                 const hostElement = this.hostElement;
                 if (hostElement instanceof HTMLElement) {
@@ -9411,6 +9537,58 @@
 
                     hostElement.classList.remove('r6-closing-ticker');
                   } catch (e) { }
+
+                  // if(ADVANCED_TICKING_MEMORY_CLEAN_FOR_REMOVAL){
+                  //   const wr = mWeakRef(hostElement);
+                  //   const wf = ()=>{
+                  //     const element = kRef(wr);
+                  //     if(!element) {
+                  //       console.log('[yt-chat-removalrequest] element was memory cleaned.');
+                  //       return;
+                  //     }
+
+                  //     setTimeout(wf, 8000);
+                  //     if(element.isConnected){
+                  //       console.log('[yt-chat-removalrequest] element is still connected to DOM Tree.');
+                  //       return;
+                  //     }
+
+                  //     const cnt = insp(element)
+                  //     if(typeof cnt.requestRemoval !== 'function'){
+                      
+                  //       console.log('[yt-chat-removalrequest] element is not connected to cnt.');
+                  //       return;
+                  //     }
+                  //     console.log('[yt-chat-removalrequest] element is not GC.');
+                  //     try{
+                  //     cnt.data = null;
+                  //     }catch(e){}
+                      
+                  //     Object.setPrototypeOf(cnt, Object.prototype);
+                  //     for(const k of Object.getOwnPropertyNames(cnt)){
+                  //       try{
+                  //       cnt[k] = null;
+                  //       }catch(e){}
+
+                  //       try{
+                  //         delete cnt[k];
+                  //         }catch(e){}
+                  //     }
+
+
+                  //     for(const k of Object.getOwnPropertySymbols(cnt)){
+                  //       try{
+                  //       cnt[k] = null;
+                  //       }catch(e){}
+
+                  //       try{
+                  //         delete cnt[k];
+                  //         }catch(e){}
+                  //     }
+
+                  //   }
+                  //   setTimeout(wf, 8000);
+                  // }
 
                   return this.requestRemoval49();
                 }
@@ -9779,6 +9957,20 @@
           if (!cProto || !cProto.attached) {
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
+          }
+
+          if(typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3 && !cProto.createComponent58_ ){
+
+            cProto.createComponent58_ = cProto.createComponent_;
+            cProto.createComponent_ = function (a, b, c) {
+
+              const z = customCreateComponent(a, b, c);
+              if (z !== undefined) return z;
+              const r = this.createComponent58_(a, b, c);
+              return r;
+
+            }
+
           }
 
           const do_amend_ticker_handleLiveChatAction = AMEND_TICKER_handleLiveChatAction && !AMEND_TICKER_handleLiveChatAction_v3
@@ -11257,17 +11449,17 @@
 
       }
 
-      if(USE_ADVANCED_TICKING){
+      if (USE_ADVANCED_TICKING) {
         // leading the emoji cannot be rendered.
 
         // const qz38 = lcrPromiseFn();
 
         // qz38.then((lcrGet) => {
 
-            // const tag = "yt-live-chat-renderer"
-            // const dummy = lcrGet();
+        // const tag = "yt-live-chat-renderer"
+        // const dummy = lcrGet();
 
-        getLCRDummy().then(async (lcrDummy) => {
+        const lcrFn2 = (lcrDummy) => {
 
           const tag = "yt-live-chat-renderer"
           const dummy = lcrDummy;
@@ -11290,13 +11482,13 @@
 
           if (cProto && typeof cProto.immediatelyApplyLiveChatActions === 'function' && cProto.immediatelyApplyLiveChatActions.length === 1 && !cProto.immediatelyApplyLiveChatActions82) {
             cProto.immediatelyApplyLiveChatActions82 = cProto.immediatelyApplyLiveChatActions;
-            cProto.immediatelyApplyLiveChatActions = function(arr){
-              
+            cProto.immediatelyApplyLiveChatActions = function (arr) {
+
 
               // console.log(1237)
-              try{
+              try {
                 preprocessChatLiveActions(arr);
-              }catch(e){
+              } catch (e) {
                 console.warn(e);
               }
               return this.immediatelyApplyLiveChatActions82(arr);
@@ -11306,22 +11498,24 @@
 
           if (cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions82_) {
             cProto.preprocessActions82_ = cProto.preprocessActions_;
-            cProto.preprocessActions_ = function(arr){
-              
+            cProto.preprocessActions_ = function (arr) {
+
               arr = this.preprocessActions82_(arr);
-              
-              try{
+
+              try {
                 preprocessChatLiveActions(arr);
-              }catch(e){
+              } catch (e) {
                 console.warn(e);
               }
               return arr;
             };
           }
 
-          
 
-        });
+
+        };
+        !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
+        getLCRDummy().then(lcrFn2);
       }
 
 
@@ -11429,7 +11623,7 @@
 
 
         // added in 2024.05.02
-        getLCRDummy().then(async (lcrDummy) => {
+        const lcrFn2 =  (lcrDummy) => {
 
           // console.log(8171, 99);
           const tag = "yt-live-chat-renderer"
@@ -11450,7 +11644,9 @@
             cProto.createTooltipIfRequired_ = createTooltipIfRequired_;
           }
 
-        });
+        };
+        !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
+        getLCRDummy().then(lcrFn2);
 
         // ----------------------------------------------------------------------------------------------------
 
@@ -12366,7 +12562,12 @@
                       try {
                         return this.trackBackdrop49();
                       } catch (e) {
-                        console.log('manager.trackBackdrop', e);
+                        let showMessage = true;
+                        if (e instanceof TypeError && e.message === 'this.backdropElement.prepare is not a function') {
+                          // this is well known issue. 
+                          showMessage = false;
+                        }
+                        showMessage && console.log('manager.trackBackdrop', e);
                       }
                     }
                   }
@@ -12635,7 +12836,7 @@
 
 
             cProto.__openedChanged = function () {
-              console.log(123445)
+              // console.log(123445)
               this._positionInitialize_ = 1;
               // this.removeAttribute('horizontal-align')
               // this.removeAttribute('vertical-align')
