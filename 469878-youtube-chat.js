@@ -37,7 +37,7 @@
 //
 // ==/UserScript==
 
-((__CONTEXT__) => {
+((__CONTEXT__) => { 
   'use strict';
 
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
