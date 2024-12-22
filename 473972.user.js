@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
+// @version     0.16.22
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
-// @version     0.16.21
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -5615,7 +5615,10 @@
                 transformTypeI = 1;
               }
             } else {
-              console.log('[yt-js-engine-tamer] zoTransform undefined', c);
+              if (c === 'scalex(-1)' || c === 'scaley(-1)') {
+              } else {
+                console.log('[yt-js-engine-tamer] zoTransform undefined', c);
+              }
             }
 
             if (transformTypeI === 1) {
