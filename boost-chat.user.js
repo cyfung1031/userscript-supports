@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.56
+// @version             0.1.57
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1292,6 +1292,17 @@ SOFTWARE.
         box-sizing: border-box;
         min-height: 2.7rem;
         overflow-wrap: anywhere;
+
+        /* transform-origin: bottom right; */
+        /* transition: transform 160ms ease-in-out 16ms; */
+        contain: layout style;
+        --bst-message-entry-opacity-v: 0.3; /* .bst-message-entry > .bst-message-container */
+
+      }
+
+      .bst-message-entry[view-pos] {
+        /* transform: scale(1); */
+        --bst-message-entry-opacity-v: 1.0;
       }
 
       .bst-message-entry.bst-viewer-engagement-message {
@@ -1375,7 +1386,8 @@ SOFTWARE.
         vertical-align: baseline;
       }
 
-      .bst-message-head ~ .bst-message-body{
+      /* avoid "~" operator */ /* [^\s"']\s*[~\+]\s*[a-zA-Z] */
+      .bst-message-body-next-to-head{
         line-height: var(--yt-live-chat-first-line-height);
       }
 
@@ -1479,12 +1491,6 @@ SOFTWARE.
         margin-top: 0;
         margin-bottom: -4px;
       }
-
-      /*
-      [view-pos] ~ .bst-message-entry bst-tooltip {
-        transform:translate(-50%, -100%);
-      }
-      */
 
       .bst-message-entry[view-pos="down"] bst-tooltip{
         transform:translate(-50%, -100%);
@@ -2082,24 +2088,13 @@ SOFTWARE.
         display: none !important;
       }
 
-      
-      .bst-message-entry {
-        transform-origin: bottom right; 
-        transition: transform 160ms ease-in-out 16ms;
-        contain: layout style;
-      }
-      .bst-message-entry[view-pos]{
-        transform: scale(1);
-      }
-
-
-
-      .bst-message-entry > .bst-message-container {
-        opacity: 0.3;
+      .bst-message-container {
+        opacity: var(--bst-message-entry-opacity-v, 1.0);
         transition: opacity 80ms ease-in-out 8ms;
       }
-      .bst-message-entry[view-pos] > .bst-message-container{
-        opacity: 1;
+
+      .bst-message-container-f {
+        transition: initial;
       }
 
 
@@ -2422,7 +2417,7 @@ SOFTWARE.
     }
     return html`
   <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
@@ -2450,7 +2445,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-paid-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2469,7 +2464,7 @@ SOFTWARE.
     <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
     <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
-    <div class="bst-message-body">
+    <div class="bst-message-body bst-message-body-next-to-head">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
         return formatters.messageBody(message, data);
       }}<//>
@@ -2485,7 +2480,7 @@ SOFTWARE.
   const SolidMembershipMessage = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-message-entry-ll bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <div classList=${{ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody') }}>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
     <div class="bst-message-entry-highlight"></div>
@@ -2503,7 +2498,7 @@ SOFTWARE.
           </div>
         </div>
       </div>
-      <div class="bst-message-body">${() => {
+      <div class="bst-message-body bst-message-body-next-to-head">${() => {
         return convertYTtext(data.headerPrimaryText || data.headerSubtext);
         // new member - only data.headerSubtext
         // return convertYTtext(data.headerSubtext)
@@ -2536,7 +2531,7 @@ SOFTWARE.
   const SolidGiftText = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-gift-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2554,7 +2549,7 @@ SOFTWARE.
       </div>
     </div>
     <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
-    <div class="bst-message-body">
+    <div class="bst-message-body bst-message-body-next-to-head">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
         return formatters.messageBody(message, data);
       }}<//>
@@ -2577,7 +2572,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-sponsorship-purchase`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2595,7 +2590,7 @@ SOFTWARE.
       </div>
     </div>
     <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
-    <div class="bst-message-body">
+    <div class="bst-message-body bst-message-body-next-to-head">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
         return formatters.messageBody(message, data);
       }}<//>
@@ -2613,7 +2608,7 @@ SOFTWARE.
 
     return html`
   <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
@@ -2632,7 +2627,7 @@ SOFTWARE.
       <div class="bst-paid-amount">${() => convertYTtext(data.purchaseAmountText)}</div>
     </div>
     <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
-    <div class="bst-message-body">
+    <div class="bst-message-body bst-message-body-next-to-head">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
         return formatters.messageBody(message, data);
       }}<//>
@@ -2648,7 +2643,7 @@ SOFTWARE.
   const SolidMessageText = (data) => {
     return html`
   <div class="${() => `bst-message-entry bst-${data.aKey}`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div class="bst-message-container">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2671,7 +2666,7 @@ SOFTWARE.
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
     <${Show} when=(${() => data.beforeContentButtons && data.beforeContentButtons.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
-    <div class="bst-message-body">
+    <div class="bst-message-body bst-message-body-next-to-head">
     <${For} each=(${() => data.bst('messages')})>${(message) => {
         return formatters.messageBody(message, data);
       }}<//>
@@ -2876,6 +2871,11 @@ SOFTWARE.
 
   })();
 
+
+  const [mf, mfChange] = createSignal(null);
+  let mouseActionP = null;
+  let noFlushTP = false;
+
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
     let cProto;
@@ -3004,6 +3004,37 @@ SOFTWARE.
         // bstMainScrollCount++;
         this.onScrollItems_(a);
       }, false);
+      {
+        const mListenerQ27 = async () => {
+          noFlushTP = true;
+        }
+        const mListenerQ28 = () => {
+          noFlushTP = false;
+          const p = mouseActionP;
+          if (p) {
+            mouseActionP = null;
+            p.resolve();
+          }
+        };
+
+        const mListenerQ29 = (evt) => {
+          if (evt.target === bstMain) {
+            noFlushTP = false;
+            const p = mouseActionP;
+            if (p) {
+              mouseActionP = null;
+              p.resolve();
+            }
+          }
+        };
+        bstMain.addEventListener('pointerdown', mListenerQ27, { passive: true, capture: true });
+        bstMain.addEventListener('pointerup', mListenerQ28, { passive: true, capture: true });
+        bstMain.addEventListener('pointercancel', mListenerQ28, { passive: true, capture: true });
+        bstMain.addEventListener('pointerleave', mListenerQ29, { passive: true, capture: false });
+        bstMain.addEventListener('pointerenter', mListenerQ29, { passive: true, capture: false });
+        // bstMain.addEventListener('mouseenter', mListenerQ28, { passive: true, capture: true });
+        // bstMain.addEventListener('mouseleave', mListenerQ28, { passive: true, capture: true });
+      }
       _bstMain = bstMain;
 
       document.head.appendChild(document.createElement('style')).textContent = `${cssTexts.outer}`;
@@ -3032,7 +3063,7 @@ SOFTWARE.
 
 
       const [visibleCount, visibleCountChange] = createSignal();
-
+      
 
       messageList.visibleCount = visibleCount;
 
@@ -4006,6 +4037,11 @@ f.handleRemoveChatItemAction_ = function(a) {
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
 
+        while (noFlushTP) {
+          mouseActionP = mouseActionP || new PromiseExternal();
+          await mouseActionP.then();
+        }
+
         // add activeItems_ to visibleItems
 
         // activeItems_ -> clear -> add to visibleItems
@@ -4131,7 +4167,6 @@ f.handleRemoveChatItemAction_ = function(a) {
           // flushKeys.removeAdd(uid);
 
           convertAObj(aObj, aKey);
-
 
           const [bObj, bObjSet] = createStore(aObj);
           const createdPromise = new PromiseExternal();
@@ -4337,7 +4372,7 @@ f.handleRemoveChatItemAction_ = function(a) {
 
 
             }
-          }
+          }          
           mutableWM.set(bObj, mutable);
 
           mapToFlushItem.set(bObj, flushItem);
@@ -4408,6 +4443,7 @@ f.handleRemoveChatItemAction_ = function(a) {
             }
           }
           removeFromActiveItems(flushItem);
+          mfChange(bObj);
           list.push(bObj);
           visibleItems.push(flushItem);
           visibleItems.setBypass(false);
