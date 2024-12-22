@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.3
+// @version             0.66.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -848,6 +848,30 @@
     padding: 0;
     margin: 0;
     contain: strict;
+  }
+
+  ticker-bg-overlay-end2 {
+
+    all:unset;
+    position: fixed;
+    display: block;
+    margin-left: -0.5px;
+    top: 8px;
+    left: clamp(-250px, calc( 250px * ( ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) - 1 ) ), 2px);
+
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    contain: strict;
+    z-index: -1;
+    visibility: collapse;
+
+  
   }
 
   /*
@@ -6555,7 +6579,7 @@
                       if (!cnt) return;
                       if (!cnt.hostElement) return;
 
-                      if (attachementId !== cnt.__ticker_attachmentId__) return;
+                      if (cnt && attachementId !== cnt.__ticker_attachmentId__) return;
                       
                       if (cnt.isAttached === true && cnt.countdownDurationMs > 0 && cnt.isAnimationPaused === true && cnt.isReplayPaused !== true) {
                         cnt.isAnimationPaused = false;
@@ -7285,14 +7309,22 @@
 
             console.log('USE_ADVANCED_TICKING')
 
-
-            const wio = dProto.wio || (dProto.wio = new IntersectionObserver((mutations) => {
+            const wio2 = dProto.wio2 || (dProto.wio2 = new IntersectionObserver((mutations) => {
 
               for (const mutation of mutations) {
                 if (mutation.isIntersecting) {
+
                   const marker = mutation.target;
-                  const overlay = marker instanceof HTMLElement ? marker.closest('ticker-bg-overlay') : 0;
-                  wio.unobserve(marker);
+                  let endId = marker.id
+                  if(!endId) continue;
+                  let tid = endId.substring(0, endId.length -2 );
+                  if(!tid) continue;
+                  // let bId = `${tid}-b`;
+                  const bgElm = document.querySelector(`#${tid}-b`);
+                  if(!bgElm) continue;
+                  const overlay = bgElm;
+
+                  wio2.unobserve(marker);
                   marker.remove();
                   let p = overlay || 0;
                   let cn = 4;
@@ -7333,12 +7365,72 @@
                       break;
                     }
                   }
+
+
                 }
               }
-            }, {
-              rootMargin: '1px',
-              threshold: [0]
+
+              // console.log(mutations);
+            },{
+
+              rootMargin: '0px',
+              threshold: [1]
+
             }));
+
+            // const wio = dProto.wio || (dProto.wio = new IntersectionObserver((mutations) => {
+
+            //   // for (const mutation of mutations) {
+            //   //   if (mutation.isIntersecting) {
+            //   //     const marker = mutation.target;
+            //   //     const overlay = marker instanceof HTMLElement ? marker.closest('ticker-bg-overlay') : 0;
+            //   //     wio.unobserve(marker);
+            //   //     marker.remove();
+            //   //     let p = overlay || 0;
+            //   //     let cn = 4;
+            //   //     while ((p = p.parentElement) instanceof HTMLElement) {
+            //   //       if (p instanceof HTMLElement) {
+            //   //         const cnt = insp(p);
+            //   //         if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.__advancedTicking038__ === 1 ) {
+
+            //   //           cnt.__advancedTicking038__ = 2;
+
+            //   //           let deletionMode = false;
+            //   //           const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
+            //   //           if (timestampUnderLiveMode && cntData && cntData.duration > 0 && cntData.__timestampActionRequest__ > 0) {
+
+            //   //             const targetFutureTime = cntData.__timestampActionRequest__ + cntData.durationSec * 1000;
+            //   //             // check whether the targetFutureTime is already the past
+            //   //             if (targetFutureTime + 800 < Date.now()) {
+            //   //               // just dispose
+            //   //               deletionMode = true;
+            //   //             }
+            //   //           }
+          
+
+            //   //           if (deletionMode) {
+            //   //             __requestRemoval__(cnt);
+            //   //           } else {
+
+            //   //             ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+            //   //               cnt.slideDown());
+            //   //           }
+
+            //   //           break;
+            //   //         }
+            //   //       }
+            //   //       cn--;
+            //   //       if (!cn) {
+            //   //         console.log('cnt not found for ticker-bg-overlay');
+            //   //         break;
+            //   //       }
+            //   //     }
+            //   //   }
+            //   // }
+            // }, {
+            //   rootMargin: '1px',
+            //   threshold: [0]
+            // }));
 
             // cProto._throwOut = dProto._throwOut;
 
@@ -7427,7 +7519,8 @@
                   cnt.__advancedTicking038__ = 1;
 
                   const em = document.createElement('ticker-bg-overlay');
-                  const ey = document.createElement('ticker-bg-overlay-end');
+                  // const ey = document.createElement('ticker-bg-overlay-end');
+                  const wy = document.createElement('ticker-bg-overlay-end2');
 
                   const cr1 = cnt.colorFromDecimal(cntData.startBackgroundColor);
                   const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
@@ -7435,15 +7528,19 @@
                   const container = cnt.$.container;
                   
                   em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
+
+                  const tid = `ticker-${cnt.__ticker_attachmentId__}-${ Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
+                  em.id = `${tid}-b`;
                   em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
 
                   if (!(container instanceof HTMLElement)) {
-                    em.insertBefore(ey, em.firstChild);
+                    // em.insertBefore(ey, em.firstChild);
                     cntElement.insertBefore(em, cntElement.firstChild);
                     cntElement.style.borderRadius = '16px';
                     container.style.borderRadius = 'initial';
                   } else {
-                    em.insertBefore(ey, em.firstChild);
+                    // em.insertBefore(ey, em.firstChild);
                     container.insertBefore(em, container.firstChild);
                   }
 
@@ -7459,8 +7556,18 @@
                   // em.style.zIndex = '-1';
                   valAssign(cntElement, '--ticker-duration-time', duration)
 
-                  if (wio instanceof IntersectionObserver) {
-                    wio.observe(ey);
+                  valAssign(wy, '--ticker-start-time', tk);
+                  valAssign(wy, '--ticker-duration-time', duration);
+                  wy.id = `${tid}-e`;
+
+                  dntElement.appendChild(wy);
+
+                  // if (wio instanceof IntersectionObserver) {
+                  //   wio.observe(ey);
+                  // }
+
+                  if (wio2 instanceof IntersectionObserver) {
+                    wio2.observe(wy);
                   }
 
                 }
