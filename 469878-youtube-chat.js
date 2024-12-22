@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.5
+// @version             0.66.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -878,6 +878,27 @@
   .ticker-no-transition-time, .ticker-no-transition-time [id] {
     transition-duration: 0s !important;
   }
+
+  yt-live-chat-ticker-creator-goal-view-model ~ yt-live-chat-ticker-creator-goal-view-model {
+    transition-duration: 0s !important;
+    /* transition: initial !important; */
+  }
+
+  yt-live-chat-ticker-paid-message-item-renderer ~ yt-live-chat-ticker-paid-message-item-renderer {
+    transition-duration: 0s !important;
+    /* transition: initial !important; */
+  }
+
+  yt-live-chat-ticker-paid-sticker-item-renderer ~ yt-live-chat-ticker-paid-sticker-item-renderer {
+    transition-duration: 0s !important;
+    /* transition: initial !important; */
+  }
+
+  yt-live-chat-ticker-sponsor-item-renderer ~ yt-live-chat-ticker-sponsor-item-renderer {
+    transition-duration: 0s !important;
+    /* transition: initial !important; */
+  }
+
 
   /*
 
