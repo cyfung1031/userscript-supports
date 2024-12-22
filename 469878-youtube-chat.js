@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.8
+// @version             0.66.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -216,6 +216,7 @@
 
   // -------------------------------
 
+  const USE_OBTAIN_LCR_BY_BOTH_METHODS = false; // true for play safe
 
   const FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP = true;       // To fix Memory Leakage in yt-live-chat-ticker-...-item-renderer
   const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
@@ -1761,7 +1762,6 @@
     }
   }
 
-
   const px2cm = (px) => px * window.devicePixelRatio * 0.026458333;
   const px2mm = (px) => px * window.devicePixelRatio * 0.26458333;
 
@@ -1980,10 +1980,12 @@
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
+  let getLCRDummyP_ = null;
+  // lcrPromiseFn
   const getLCRDummy = () => {
     // direct createElement or createComponent_ will make the emoji rendering crashed. reason TBC
 
-    return Promise.all([customElements.whenDefined('yt-live-chat-app'), customElements.whenDefined('yt-live-chat-renderer')]).then(async () => {
+    return getLCRDummyP_ || (getLCRDummyP_ = Promise.all([customElements.whenDefined('yt-live-chat-app'), customElements.whenDefined('yt-live-chat-renderer')]).then(async () => {
 
       const tag = "yt-live-chat-renderer"
       let dummy = document.querySelector(tag);
@@ -1994,40 +1996,66 @@
         const ytLiveChatApp = document.querySelector('yt-live-chat-app') || document.createElement('yt-live-chat-app');
 
         const lcaProto = getProto(ytLiveChatApp);
+        let fz38;
+
+        let qt38=0;
+        let bypass = false;
+        
 
         dummy = await new Promise(resolve => {
 
+
           if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_) {
+            console.log('[yt-chat-lcr] lcaProto.createComponent_ is found');
 
             lcaProto.createComponent99_ = lcaProto.createComponent_;
             lcaProto.createComponent98_ = function (a, b, c) {
               // (3) ['yt-live-chat-renderer', {…}, true]
               const r = this.createComponent99_.apply(this, arguments);
-              if (a === 'yt-live-chat-renderer') {
-                resolve(r);
+              if (a === 'yt-live-chat-renderer' && !bypass) {
+                qt38 = 1;
+                resolve(r); // note: this dom is not yet adopted, but promise resolve is later than ops.
+                console.log('[yt-chat-lcr] element found by method 1');
               }
               return r;
             };
             lcaProto.createComponent_ = lcaProto.createComponent98_;
 
-          } else {
+            if (!USE_OBTAIN_LCR_BY_BOTH_METHODS) return;
 
-            mo = new MutationObserver(() => {
-              const t = document.querySelector(tag);
-              if (t) {
-                resolve(t);
-              }
-            });
-            mo.observe(document, { subtree: true, childList: true })
           }
 
+          // console.log('[yt-chat] lcaProto traditional');
+
+          const pz38 = document.getElementsByTagName(tag);
+          fz38 = () => {
+            const t = pz38[0]
+            if (t) {
+              qt38 = 2;
+              resolve(t);
+              console.log('[yt-chat-lcr] element found by method 2');
+            }
+          };
+          mo = new MutationObserver(fz38);
+          mo.observe(document, { subtree: true, childList: true, attributes: true });
+          document.addEventListener('yt-action', fz38, true);
+          fz38();
+
         });
+
+        bypass = true;
 
         if (mo) {
           mo.disconnect();
           mo.takeRecords();
           mo = null;
         }
+        if (fz38) {
+          document.removeEventListener('yt-action', fz38, true);
+          fz38 = null;
+        }
+        console.log(`[yt-chat-lcr] lcr appears, dom = ${document.getElementsByTagName(tag).length}, method = ${qt38}`);
+
 
         if (lcaProto.createComponent99_ && lcaProto.createComponent_ && lcaProto.createComponent98_ === lcaProto.createComponent_) {
           lcaProto.createComponent_ = lcaProto.createComponent99_;
@@ -2035,10 +2063,35 @@
           lcaProto.createComponent98_ = null;
         }
 
+      } else {
+        console.log('[yt-chat-lcr] lcr exists');
       }
       return dummy;
 
+    }));
+  }
+
+
+  // keeps as alternative option
+  let lcrPromise_ = null;
+  const lcrPromiseFn = () => {
+    if (lcrPromise_) return lcrPromise_;
+    const pz38 = document.getElementsByTagName("yt-live-chat-renderer");
+    const qz38 = new PromiseExternal();
+    const fz38 = () => {
+      if (pz38.length > 0) {
+        qz38.resolve(() => (pz38[0] || document.createElement("yt-live-chat-renderer")));
+        mo.disconnect();
+        document.removeEventListener('yt-action', fz38, true);
+      }
+    };
+    const mo = new MutationObserver(fz38);
+    mo.observe(document, {
+      subtree: true, childList: true, attributes: true
     });
+    document.addEventListener('yt-action', fz38, true);
+    fz38();
+    return (lcrPromise_ = qz38);
   }
 
   const { addCssManaged } = (() => {
@@ -10848,24 +10901,28 @@
 
       }
 
-
-
       if(USE_ADVANCED_TICKING){
+        // leading the emoji cannot be rendered.
 
+        // const qz38 = lcrPromiseFn();
 
-        customElements.whenDefined("yt-live-chat-renderer").then(() => {
+        // qz38.then((lcrGet) => {
 
-            const tag = "yt-live-chat-renderer"
-            const dummy = document.createElement(tag);
+            // const tag = "yt-live-chat-renderer"
+            // const dummy = lcrGet();
 
-            
+        getLCRDummy().then(async (lcrDummy) => {
+
+          const tag = "yt-live-chat-renderer"
+          const dummy = lcrDummy;
+
 
           const cProto = getProto(dummy);
 
-          dummy.usePatchedLifecycles = false;
-          dummy.data = null;
-          dummy.__data = null;
-          Object.setPrototypeOf(dummy, Object.prototype);
+          // dummy.usePatchedLifecycles = false;
+          // dummy.data = null;
+          // dummy.__data = null;
+          // Object.setPrototypeOf(dummy, Object.prototype);
           if (!cProto || !cProto.attached) {
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
@@ -10880,6 +10937,7 @@
             cProto.immediatelyApplyLiveChatActions = function(arr){
               
 
+              // console.log(1237)
               try{
                 preprocessChatLiveActions(arr);
 
