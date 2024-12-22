@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.57
+// @version             0.1.58
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4388,6 +4388,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           needScrollToEnd = true;
           wasEmpty = true;
         } else if (this.canScrollToBottom_() === true) {
+
           // try to avoid call offsetHeight or offsetTop directly
           const list = messageList.solidBuild();
           const bObj = list && list.length ? list[0] : null;
@@ -4397,6 +4398,15 @@ f.handleRemoveChatItemAction_ = function(a) {
               needScrollToEnd = true;
             }
           }
+
+          if (!needScrollToEnd && _messageOverflowAnchor && typeof _messageOverflowAnchor.scrollIntoViewIfNeeded === 'function') {
+            _messageOverflowAnchor.scrollIntoViewIfNeeded(false);
+            // unknown reason
+            // example https://www.youtube.com/watch?v=18tiVN9sxMc&t=14m15s -> 14m21s
+            // example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
+            // guess: ticker added -> yt-live-chat-ticker-renderer appears -> height changed -> overflow-anchor not working
+          }
+
         }
 
 
@@ -4506,6 +4516,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (mloPr !== null) mloPr.resolve();
         mloPr = null;
         if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
+        
         // await timelineResolve();
         await Promise.resolve();
         if (wasEmpty) messageList.classList.add('bst-listloaded');
