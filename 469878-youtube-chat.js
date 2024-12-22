@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.11
+// @version             0.66.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1091,18 +1091,41 @@
         /* .r6-closing-ticker is provided in ADVANCED_TICKING */
         /* so .r6-width-adjustable is only available for ADVANCED_TICKING too */
 
-        .r6-width-adjustable ~ .r6-width-adjustable {
+        /* DO NOT use .r6-width-adjustable ~ .r6-width-adjustable  => very laggy */
+
+        /*
+        yt-live-chat-ticker-renderer {
+          --r6-transition-duration: 0.2s;
+        }
+
+        .r6-width-adjustable {
+          --r6-transition-duration-v: var(--r6-transition-duration);
+          transition: var(--r6-transition-duration-v);
+        }
+
+        .r6-width-adjustable-f {
+          --r6-transition-duration-v: 0s;
+        }
+      
+        .r6-closing-ticker[class] {
+          --r6-transition-duration-v: var(--r6-transition-duration);
+        }
+          */
+
+
+
+        .r6-width-adjustable {
+          --r6-min-width: 0;
+          min-width: var(--r6-min-width);
+        }
+
+        .r6-width-adjustable-f {
           --r6-min-width: max-content;
         }
       
         .r6-closing-ticker[class] {
-          --r6-min-width: 0px;
+          --r6-min-width: 0;
         }
-      
-        .r6-width-adjustable {
-          min-width: var(--r6-min-width, 0px);
-        }
-
   
   ` : '';
   // const cssText19_FOR_ADVANCED_TICKING = `
@@ -1804,6 +1827,8 @@
   };
 
   const tickerPE = createPipeline();
+
+  let qWidthAdjustable = null;
 
   /** @type {typeof PromiseExternal.prototype | null} */
   let relayPromise = null;
@@ -7948,8 +7973,19 @@
             this.__ticker_attachmentId__ = ++tickerAttachmentId;
 
             const hostElement = this.hostElement;
-            if ( USE_ADVANCED_TICKING && hostElement instanceof HTMLElement) {
-              hostElement.classList.add('r6-width-adjustable');
+            if (USE_ADVANCED_TICKING && this.__isTickerItem58__ && hostElement instanceof HTMLElement) {
+              const prevElement = kRef(qWidthAdjustable);
+              if (prevElement instanceof HTMLElement) {
+                prevElement.classList.add('r6-width-adjustable-f');
+              }
+              if (hostElement.__fgvm573__) {
+                hostElement.classList.remove('r6-closing-ticker');
+                hostElement.classList.remove('r6-width-adjustable-f');
+              } else {
+                hostElement.__fgvm573__ = 1;
+                hostElement.classList.add('r6-width-adjustable');
+              }
+              qWidthAdjustable = mWeakRef(hostElement);
             }
 
             DEBUG_wmList && wmList.add(new WeakRef(this))
@@ -9268,7 +9304,7 @@
               Promise.resolve(cnt).then(u37fn);
 
             }
-
+            cProto.__isTickerItem58__ = 1;
             cProto.startCountdown = dProto.startCountdownAdv || (dProto.startCountdownAdv = function (a, b) {
 
               timeFn(kRef(this));
@@ -9536,6 +9572,7 @@
                   try {
 
                     hostElement.classList.remove('r6-closing-ticker');
+                    hostElement.classList.remove('r6-width-adjustable-f');
                   } catch (e) { }
 
                   // if(ADVANCED_TICKING_MEMORY_CLEAN_FOR_REMOVAL){
