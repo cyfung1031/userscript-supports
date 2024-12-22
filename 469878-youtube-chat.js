@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.7
+// @version             0.66.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -42,6 +42,8 @@
 
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
+  const DEBUG_LOG_GROUP_EXPAND = true;
 
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
   // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
@@ -181,11 +183,11 @@
   // AMEND_TICKER_handleLiveChatAction to be fixed (2024.05.21)
 
   // (Dec 2024: AMEND_TICKER_handleLiveChatAction_v3 to be removed)
-  const AMEND_TICKER_handleLiveChatAction_v3 = true; // responsiveness fix (Major Feature)
+  const AMEND_TICKER_handleLiveChatAction_v3 = false; // responsiveness fix (Major Feature)
 
   const USE_ADVANCED_TICKING = true; // added in Dec 2024 v0.66.0; need to ensure it would not affect the function if ticker design changed. to be reviewed
-  const END_ANIMATING_TICKERS = true; // added in Dec 2024 v0.66.5; see pressure test like https://www.youtube.com/watch?v=CQaUs-vNgXo
-
+  // const END_ANIMATING_TICKERS = true; // added in Dec 2024 v0.66.5; see pressure test like https://www.youtube.com/watch?v=CQaUs-vNgXo
+  const FIX_TIMESTAMP_FOR_REPLAY = true;
 
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
@@ -819,117 +821,192 @@
     }
   `: '';
 
-  const cssText19_FOR_ADVANCED_TICKING = `
-  
-  ticker-bg-overlay {
-    display: block;
-    position: absolute;
-    z-index: -1;
-    box-sizing: border-box;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    width: 200%;
-    top: 0;
-    bottom: 0;
-    left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
-    contain: strict;
-  }
-    /*
-  ticker-bg-overlay-end {
-    position: absolute;
-    right: 0px;
-    top: 50%;
-    display: block;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-    box-sizing: border-box;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    contain: strict;
-  }
-    */
+  const cssText19_FOR_ADVANCED_TICKING =`
+      
+      ticker-bg-overlay {
+        display: block;
+        position: absolute;
+        z-index: -1;
+        box-sizing: border-box;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        width: 200%;
+        top: 0;
+        bottom: 0;
+        left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
+        contain: strict;
+      }
+      ticker-bg-overlay-end2 {
 
-  ticker-bg-overlay-end2 {
+        all:unset;
+        position: fixed;
+        display: block;
+        margin-left: -0.5px;
+        top: 8px;
+        left: clamp(-250px, calc( 250px * ( ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) - 1 ) ), 2px);
 
-    all:unset;
-    position: fixed;
-    display: block;
-    margin-left: -0.5px;
-    top: 8px;
-    left: clamp(-250px, calc( 250px * ( ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) - 1 ) ), 2px);
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+        box-sizing: border-box;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        contain: strict;
+        z-index: -1;
+        visibility: collapse;
 
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-    box-sizing: border-box;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    contain: strict;
-    z-index: -1;
-    visibility: collapse;
+      
+      }
+
+
+      .r6-width-adjustable ~ .r6-width-adjustable {
+          --r6-min-width: max-content;
+        }
+      
+        .r6-closing-ticker[class] {
+          --r6-min-width: 0px;
+        }
+      
+        .r6-width-adjustable {
+          min-width: var(--r6-min-width, 0px);
+        }
 
   
-  }
-
-  /* USE_ADVANCED_TICKING */
-
-  .ticker-no-transition-time, .ticker-no-transition-time [id] {
-    transition-duration: 0s !important;
-  }
-
-  [r6-advanced-ticking] yt-live-chat-ticker-creator-goal-view-model ~ yt-live-chat-ticker-creator-goal-view-model:not(.r6-closing-ticker) {
-    transition-duration: 0s !important;
-    /* transition: initial !important; */
-  }
-
-  [r6-advanced-ticking] yt-live-chat-ticker-paid-message-item-renderer ~ yt-live-chat-ticker-paid-message-item-renderer:not(.r6-closing-ticker) {
-    transition-duration: 0s !important;
-    /* transition: initial !important; */
-  }
-
-  [r6-advanced-ticking] yt-live-chat-ticker-paid-sticker-item-renderer ~ yt-live-chat-ticker-paid-sticker-item-renderer:not(.r6-closing-ticker) {
-    transition-duration: 0s !important;
-    /* transition: initial !important; */
-  }
-
-  [r6-advanced-ticking] yt-live-chat-ticker-sponsor-item-renderer ~ yt-live-chat-ticker-sponsor-item-renderer:not(.r6-closing-ticker) {
-    transition-duration: 0s !important;
-    /* transition: initial !important; */
-  }
-
-
-  /*
-
-
-    ey.style.position = 'absolute';
-    ey.style.right = '0px';
-    ey.style.top = '50%';
-    ey.style.display='block';
-    ey.style.width='1px';
-    ey.style.height='1px';
-    ey.style.opacity = '0';
-
-    em.style.display = 'block';
-    em.style.position = 'absolute';
-    em.style.boxSizing = 'border-box';
-    em.style.width = '200%';
-    em.style.top = '0';
-    em.style.bottom = '0';
-    // em.style.height = '100%';
-
-
-    // em.style.left = '-50%';
-    // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
-
-  */
-
   `;
+  // const cssText19_FOR_ADVANCED_TICKING = `
+  
+  // ticker-bg-overlay {
+  //   display: block;
+  //   position: absolute;
+  //   z-index: -1;
+  //   box-sizing: border-box;
+  //   border: 0;
+  //   padding: 0;
+  //   margin: 0;
+  //   width: 200%;
+  //   top: 0;
+  //   bottom: 0;
+  //   left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
+  //   contain: strict;
+  // }
+  //   /*
+  // ticker-bg-overlay-end {
+  //   position: absolute;
+  //   right: 0px;
+  //   top: 50%;
+  //   display: block;
+  //   width: 1px;
+  //   height: 1px;
+  //   opacity: 0;
+  //   pointer-events: none;
+  //   box-sizing: border-box;
+  //   border: 0;
+  //   padding: 0;
+  //   margin: 0;
+  //   contain: strict;
+  // }
+  //   */
+
+  // ticker-bg-overlay-end2 {
+
+  //   all:unset;
+  //   position: fixed;
+  //   display: block;
+  //   margin-left: -0.5px;
+  //   top: 8px;
+  //   left: clamp(-250px, calc( 250px * ( ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) - 1 ) ), 2px);
+
+  //   width: 1px;
+  //   height: 1px;
+  //   opacity: 0;
+  //   pointer-events: none;
+  //   box-sizing: border-box;
+  //   border: 0;
+  //   padding: 0;
+  //   margin: 0;
+  //   contain: strict;
+  //   z-index: -1;
+  //   visibility: collapse;
+
+  
+  // }
+
+  // /* USE_ADVANCED_TICKING */
+
+  // /*
+
+  // .ticker-no-transition-time, .ticker-no-transition-time [id] {
+  //   transition-duration: 0s !important;
+  // }
+
+  // [r6-advanced-ticking] .style-scope.yt-live-chat-ticker-renderer ~ .style-scope.yt-live-chat-ticker-renderer:not(.r6-closing-ticker) {
+  //   transition-duration: 0s !important; 
+  // }
+
+  // */
+
+  // .r6-width-adjustable ~ .r6-width-adjustable {
+  //   --r6-min-width: max-content;
+  // }
+
+  // .r6-closing-ticker[class] {
+  //   --r6-min-width: 0px;
+  // }
+
+  // .r6-width-adjustable {
+  //   min-width: var(--r6-min-width, 0px);
+  // }
+
+
+  //   /*
+
+
+  // .r6-width-adjustable {
+  //   transition-duration: var(--r6-transition-duration, 0s) !important;
+  // }
+
+  // .r6-width-adjustable-first {
+  //   --r6-transition-duration: 0.2s;
+  // }
+
+  // .r6-width-adjustable ~ .r6-width-adjustable-first {
+  //   --r6-transition-duration: 0s;
+  // }
+
+  // .r6-closing-ticker {
+  //   --r6-transition-duration: 0.2s;
+  // }
+  //   */
+
+  // /*
+
+
+  //   ey.style.position = 'absolute';
+  //   ey.style.right = '0px';
+  //   ey.style.top = '50%';
+  //   ey.style.display='block';
+  //   ey.style.width='1px';
+  //   ey.style.height='1px';
+  //   ey.style.opacity = '0';
+
+  //   em.style.display = 'block';
+  //   em.style.position = 'absolute';
+  //   em.style.boxSizing = 'border-box';
+  //   em.style.width = '200%';
+  //   em.style.top = '0';
+  //   em.style.bottom = '0';
+  //   // em.style.height = '100%';
+
+
+  //   // em.style.left = '-50%';
+  //   // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
+
+  // */
+
+  // `;
 
   const addCss = () => `
 
@@ -1623,7 +1700,15 @@
     return null;
   }
 
-  const assertor = (f) => f() || console.assert(false, f + "");
+
+
+  const logFn = (key, f) => {
+    return Function.prototype.bind.call(console.log, console, `%c ${key}`, 'background: #222; color: #bada55', f);
+  }
+
+ 
+
+  const assertor = (f) => f() || (console.assert(false, f + ""), false);
 
   const fnIntegrity = (f, d) => {
 
@@ -1803,7 +1888,9 @@
 
   const groupCollapsed = (text1, text2) => {
 
-    console.groupCollapsed(`%c${text1}%c${text2}`,
+    let w = 'groupCollapsed';
+    if (DEBUG_LOG_GROUP_EXPAND) w = 'group';
+    console[w](`%c${text1}%c${text2}`,
       "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;",
       "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
     );
@@ -3201,7 +3288,7 @@
     const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
     const transitionEndAfterFnSimple = new WeakMap();
-    let prevTransitionClosing = null;
+    // let prevTransitionClosing = null;
 
     const fixChildrenIssue = !!fixChildrenIssue801;
     if (fixChildrenIssue && typeof Object.getOwnPropertyDescriptor === 'function' && typeof Proxy !== 'undefined') {
@@ -3407,144 +3494,144 @@
     }
 
 
-    class WillChangeController {
-      constructor(itemScroller, willChangeValue) {
-        this.element = itemScroller;
-        this.counter = 0;
-        this.active = false;
-        this.willChangeValue = willChangeValue;
-      }
+    // class WillChangeController {
+    //   constructor(itemScroller, willChangeValue) {
+    //     this.element = itemScroller;
+    //     this.counter = 0;
+    //     this.active = false;
+    //     this.willChangeValue = willChangeValue;
+    //   }
 
-      beforeOper() {
-        if (!this.active) {
-          this.active = true;
-          this.element.style.willChange = this.willChangeValue;
-        }
-        this.counter++;
-      }
+    //   beforeOper() {
+    //     if (!this.active) {
+    //       this.active = true;
+    //       this.element.style.willChange = this.willChangeValue;
+    //     }
+    //     this.counter++;
+    //   }
 
-      afterOper() {
-        const c = this.counter;
-        foregroundPromiseFn().then(() => {
-          if (c === this.counter) {
-            this.active = false;
-            this.element.style.willChange = '';
-          }
-        });
-      }
+    //   afterOper() {
+    //     const c = this.counter;
+    //     foregroundPromiseFn().then(() => {
+    //       if (c === this.counter) {
+    //         this.active = false;
+    //         this.element.style.willChange = '';
+    //       }
+    //     });
+    //   }
 
-      release() {
-        const element = this.element;
-        this.element = null;
-        this.counter = 1e16;
-        this.active = false;
-        try {
-          element.style.willChange = '';
-        } catch (e) { }
-      }
+    //   release() {
+    //     const element = this.element;
+    //     this.element = null;
+    //     this.counter = 1e16;
+    //     this.active = false;
+    //     try {
+    //       element.style.willChange = '';
+    //     } catch (e) { }
+    //   }
 
-    }
+    // }
 
 
-    const skzData = (skz) => skz.data = {
-      "message": {
-        "runs": [
-          {
-            "text": "em2o"
-          },
-          {
-            "emoji": {
-              "emojiId": "cm35z",
-              "shortcuts": [
-                ":_s:",
-                ":s:"
-              ],
-              "searchTerms": [
-                "_s",
-                "s"
-              ],
-              "image": {
-                "thumbnails": [
-                  {
-                    "url": dummyImgURL,
-                    "width": 48,
-                    "height": 48
-                  }
-                ],
-                "accessibility": {
-                  "accessibilityData": {
-                    "label": "s"
-                  }
-                }
-              },
-              "isCustomEmoji": true
-            }
-          },
-          {
-            "text": "ji"
-          }
-        ]
-      },
-      "authorName": {
-        "simpleText": "N"
-      },
-      "authorPhoto": {
-        "thumbnails": [
-          {
-            "url": dummyImgURL,
-            "width": 64,
-            "height": 64
-          }
-        ]
-      },
-      "contextMenuEndpoint": {
-        "commandMetadata": {
-          "webCommandMetadata": {
-            "ignoreNavigation": true
-          }
-        },
-        "liveChatItemContextMenuEndpoint": {
-          "params": "123=="
-        }
-      },
-      "id": "sk35z",
-      "timestampUsec": "1232302352350000",
-      "authorBadges": [
-        {
-          "liveChatAuthorBadgeRenderer": {
-            "customThumbnail": {
-              "thumbnails": [
-                {
-                  "url": dummyImgURL,
-                  "width": 16,
-                  "height": 16
-                },
-                {
-                  "url": dummyImgURL,
-                  "width": 32,
-                  "height": 32
-                }
-              ]
-            },
-            "tooltip": "T",
-            "accessibility": {
-              "accessibilityData": {
-                "label": "E"
-              }
-            }
-          }
-        }
-      ],
-      "authorExternalChannelId": "A",
-      "contextMenuAccessibility": {
-        "accessibilityData": {
-          "label": "E"
-        }
-      },
-      "timestampText": {
-        "simpleText": "0:43"
-      }
-    };
+    // const skzData = (skz) => skz.data = {
+    //   "message": {
+    //     "runs": [
+    //       {
+    //         "text": "em2o"
+    //       },
+    //       {
+    //         "emoji": {
+    //           "emojiId": "cm35z",
+    //           "shortcuts": [
+    //             ":_s:",
+    //             ":s:"
+    //           ],
+    //           "searchTerms": [
+    //             "_s",
+    //             "s"
+    //           ],
+    //           "image": {
+    //             "thumbnails": [
+    //               {
+    //                 "url": dummyImgURL,
+    //                 "width": 48,
+    //                 "height": 48
+    //               }
+    //             ],
+    //             "accessibility": {
+    //               "accessibilityData": {
+    //                 "label": "s"
+    //               }
+    //             }
+    //           },
+    //           "isCustomEmoji": true
+    //         }
+    //       },
+    //       {
+    //         "text": "ji"
+    //       }
+    //     ]
+    //   },
+    //   "authorName": {
+    //     "simpleText": "N"
+    //   },
+    //   "authorPhoto": {
+    //     "thumbnails": [
+    //       {
+    //         "url": dummyImgURL,
+    //         "width": 64,
+    //         "height": 64
+    //       }
+    //     ]
+    //   },
+    //   "contextMenuEndpoint": {
+    //     "commandMetadata": {
+    //       "webCommandMetadata": {
+    //         "ignoreNavigation": true
+    //       }
+    //     },
+    //     "liveChatItemContextMenuEndpoint": {
+    //       "params": "123=="
+    //     }
+    //   },
+    //   "id": "sk35z",
+    //   "timestampUsec": "1232302352350000",
+    //   "authorBadges": [
+    //     {
+    //       "liveChatAuthorBadgeRenderer": {
+    //         "customThumbnail": {
+    //           "thumbnails": [
+    //             {
+    //               "url": dummyImgURL,
+    //               "width": 16,
+    //               "height": 16
+    //             },
+    //             {
+    //               "url": dummyImgURL,
+    //               "width": 32,
+    //               "height": 32
+    //             }
+    //           ]
+    //         },
+    //         "tooltip": "T",
+    //         "accessibility": {
+    //           "accessibilityData": {
+    //             "label": "E"
+    //           }
+    //         }
+    //       }
+    //     }
+    //   ],
+    //   "authorExternalChannelId": "A",
+    //   "contextMenuAccessibility": {
+    //     "accessibilityData": {
+    //       "label": "E"
+    //     }
+    //   },
+    //   "timestampText": {
+    //     "simpleText": "0:43"
+    //   }
+    // };
 
 
 
@@ -4424,6 +4511,338 @@
 
       };
 
+      const groupsK38=[];
+
+      const weightingFn = (values, weights)=>{
+        // assume all weights are positive
+        // inf -> NaN
+
+
+        // Calculate weighted average:
+        // Weighted average = (sum of (value_i * weight_i)) / (sum of weights)
+        let weightedSum = 0;
+        let totalWeight = 0;
+
+        let qv = 0, qw = 0;
+        for (let i = 0, l = values.length; i < l; i++) {
+          const w = weights[i], v = values[i];
+          if (Number.isFinite(w)) {
+            weightedSum += v * w;
+            totalWeight += w;
+          } else {
+            qv += v; qw++;
+          }
+        }
+        
+        return qw > 0 ? qv / qw : weightedSum / totalWeight;
+      }
+
+      const doConsolidation = (groups)=>{
+
+        const b = 5e5;
+        try{
+
+        const nl = groups.length;  
+        for(const group of groups){
+          const [groupStart, groupEnd, groupMid] = group;
+          const gCen = (groupStart + groupEnd) / 2;
+
+          group[3] = gCen;
+          group[4] = null;
+
+        }
+
+        const resArr = [];
+
+        for (let j = 0; j < nl; j++) {
+          const gCenJ = groups[j][3];
+
+          let sb = groups[j][4];
+          if(!sb){
+            groups[j][4] = sb = new Set();
+            resArr.push(sb);
+          }
+          sb.add(j);
+          for (let k = j+1; k < nl; k++) {
+ 
+            const gCenK = groups[k][3];
+
+              let r = ((gCenK-b >= gCenJ-b && gCenK-b <= gCenJ+b) || (gCenK+b >= gCenJ-b && gCenK+b <= gCenJ+b));
+               
+              if(r) {
+                sb.add(k);
+                if(!groups[k][4]) groups[k][4] = sb;
+              }
+
+
+          }
+
+        }
+
+
+        const resArr2 = resArr.map(e=>[...e]).map(entry=>{
+
+
+
+          const edge1s = entry.map(k => (groups[k][0]));
+          const edge2s = entry.map(k => (groups[k][1]));
+          const ws = entry.map(k => (groups[k][2]));
+          
+
+          const maxW = Math.max(...ws);
+
+          const weights = ws.map(w=> maxW/w );
+
+          const edge1 = weightingFn(edge1s, weights);
+          const edge2 = weightingFn(edge2s, weights);
+
+          const cen = (edge1 + edge2)/2;
+
+
+          return {
+            edge1,
+            edge2,
+            cen,
+            size:  ws.reduce((a, b) => a + b, 0),
+            entry
+          };
+
+        });
+        for(const e of resArr){
+          e.clear();
+        }
+        resArr.length = 0;
+
+
+        return resArr2;
+
+      }catch(e){
+
+        console.warn(e)
+        return [];
+
+      }
+
+        // console.log(4546, 'resArr', resArr2)
+
+
+
+        
+      }
+
+      /*
+      const doConsolidation = (groups)=>{
+
+        const consolidatedGroups = [];
+        for(const group of groups){
+          const [groupStart, groupEnd] = group;
+          const gCen = (groupStart + groupEnd) / 2;
+          let [gMin, gMax] = [gCen - 0.5, gCen + 0.5];
+          consolidatedGroups.push({gMin, gCen, gMax, groups:[], reductionFactor: 1.0});
+
+        }
+
+        for (let j = 0; j < consolidatedGroups.length; j++) {
+          const { gMin: gMinJ, gCen: gCenJ, gMax: gMaxJ, groups: groupsJ } = consolidatedGroups[j];
+          for (let k = 0; k < consolidatedGroups.length; k++) {
+
+            const { gMin: gMinK, gCen: gCenK, gMax: gMaxK } = consolidatedGroups[k];
+
+            let r = ((gMinK >= gMinJ && gMinK <= gMaxJ) || (gMaxK >= gMinJ && gMaxK <= gMaxJ));
+            if (r) groupsJ.push(k);
+
+          }
+          if(groupsJ.length > 1){
+
+            let vMin = 0.0, vMax = 1.0; // vMin = no overlapping;  vMax = with overlapping
+    
+
+            while ((vMax - vMin) > 1e-3 && vMin > 0) {
+              let vMid = (vMin+vMax)/2;
+
+              let wJ = (gMaxJ - gMinJ);
+              let gMinJr = gCenJ - wJ * vMid;
+              let gMaxJr = gCenJ + wJ * vMid;
+              let overlapped = false;
+
+              for (const k of groupsJ) {
+                if (k === j) continue;
+
+                const { gMin: gMinK, gCen: gCenK, gMax: gMaxK } = consolidatedGroups[k];
+
+                let wK = (gMaxK - gMinK);
+                let gMinKr = gCenK - wK * vMid;
+                let gMaxKr = gCenK + wK * vMid;
+
+                let r = ((gMinKr >= gMinJr && gMinKr <= gMaxJr) || (gMaxKr >= gMinJr && gMaxKr <= gMaxJr));
+                if (r) {
+                  overlapped = true;
+                  break;
+                }
+
+              }
+              if(overlapped) vMax = vMid;
+              else vMin = vMid;
+            }
+
+            //  0.14453125 0.1455078125
+            //  0.0322265625 0.033203125
+            consolidatedGroups[j].reductionFactor = vMin;
+            // console.log(3475, groupsJ, vMin, vMax )
+
+
+          }
+        }
+
+        const aFactors = new Array(consolidatedGroups.length).fill(1);
+        for (let j = 0; j < consolidatedGroups.length; j++) {
+          const groups = consolidatedGroups[j].groups;
+          const reductionFactor = consolidatedGroups[j].reductionFactor;
+          if (reductionFactor < 1) {
+            for (const k of groups) {
+              if (reductionFactor < aFactors[k]) aFactors[k] = reductionFactor;
+            }
+          }
+        }
+
+
+        const consolidatedGroups2 = new Array(consolidatedGroups.length);
+        for (let j = 0; j < consolidatedGroups.length; j++) {
+
+          const factor = aFactors[j];
+          const gCen = consolidatedGroups[j].gCen;
+          const gW = consolidatedGroups[j].gMax - consolidatedGroups[j].gMin;
+          consolidatedGroups2[j] = {
+            gMin:consolidatedGroups[j].gMin,
+            gMax:consolidatedGroups[j].gMax,
+            sMin: gCen - gW * factor,
+            gCen: gCen,
+            sMax: gCen + gW * factor,
+            reductionFactor: factor
+          }
+
+        }
+
+        console.log('consolidatedGroups2', consolidatedGroups2)
+
+        return consolidatedGroups2;
+      }
+      */
+
+      function insertIntoSortedArray(arr, val) {
+        // Define the binary search boundaries
+        let left = 0;
+        let right = arr.length;
+      
+        // Perform binary search to find correct insertion index
+        while (left < right) {
+          const mid = (left + right) >>> 1; // Using bitwise for floor division
+          if (arr[mid] < val) {
+            left = mid + 1;
+          } else {
+            right = mid;
+          }
+        }
+      
+        // Insert the value at the found index
+        arr.splice(left, 0, val);
+      }
+
+      function intervalsOverlap(a1, a2, b1, b2) {
+        // Order the intervals without using Math functions
+        var startA = a1 <= a2 ? a1 : a2;
+        var endA   = a1 <= a2 ? a2 : a1;
+      
+        var startB = b1 <= b2 ? b1 : b2;
+        var endB   = b1 <= b2 ? b2 : b1;
+      
+        // Check for overlap
+        return endA >= startB && endB >= startA;
+      }
+
+
+      const insertIntoSortedArrayA27 = (arr, val) => {
+        let left = 0;
+        let right = arr.length;
+      
+        // Binary search to find the correct insertion index:
+        // We want the first index where arr[index][2] >= val[2].
+        while (left < right) {
+          const mid = (left + right) >>> 1;
+          if (arr[mid][2] < val[2]) {
+            left = mid + 1;
+          } else {
+            right = mid;
+          }
+        }
+      
+        // 'left' is now the insertion index
+        left === right ? arr.push(val): arr.splice(left, 0, val);
+      };
+
+
+      const insertIntoSortedArrayA28 = (arr, val) => {
+        let left = 0;
+        const n = arr.length;
+        let right = n;
+      
+        // Binary search to find the correct insertion index:
+        // We want the first index where arr[index][2] >= val[2].
+        while (left < right) {
+          const mid = (left + right) >>> 1;
+          if (arr[mid][0] < val[0]) {
+            left = mid + 1;
+          } else {
+            right = mid;
+          }
+        }
+      
+        // 'left' is now the insertion index
+        left === n ? arr.push(val): arr.splice(left, 0, val);
+      };
+
+      /*
+      const insertIntoSortedArrayA27 = (arr, val)=>{
+        // Define the binary search boundaries
+        let left = 0;
+        let right = arr.length-1;
+      
+        // Perform binary search to find correct insertion index
+        while (right - left > 1) {
+          const mid = (left + right) >>> 1; // Using bitwise for floor division
+          if (arr[mid][2] <= val[2]) {
+            left = mid;
+          } else {
+            right = mid;
+          }
+        }
+        let i = -1;
+        if (right >= 0 && right >= left && arr[right][2] <= val[2]) i = right + 1;
+        else if (left >= 0 && right >= left && arr[left][2] <= val[2]) i = left + 1;
+        else if (left === 0 && right >= left) i = 0;
+        if (i >= 0) {
+
+          // Insert the value at the found index
+          arr.splice(i, 0, val);
+
+        } else {
+          arr.push(val);
+        }
+
+      
+      }
+      */
+      function removeNullsInPlace(arr, startI = 0) {
+        let insertPos = startI;
+        for (let i = startI; i < arr.length; i++) {
+          if (arr[i] !== null) {
+            insertPos !== i && (arr[insertPos] = arr[i]);
+            insertPos++;
+          }
+        }
+        arr.length = insertPos; // Remove the trailing nulls.
+      }
+
       const preprocessChatLiveActions = (arr) =>{
 
         if(!arr || !arr.length) return arr;
@@ -4431,7 +4850,645 @@
         if(preprocessChatLiveActionsMap.has(arr)) return arr;
         preprocessChatLiveActionsMap.add(arr);
 
+
+
         const ct = Date.now();
+
+        let groups_ = null;
+
+        // console.log(1237005);
+        // const conversionMap = new WeakMap();
+
+        const additionalInfo = new WeakMap();
+
+        // const adjustmentMap = new Map();
+
+        if (FIX_TIMESTAMP_FOR_REPLAY) {
+
+          // console.log('group02331')
+          // console.time('FIX_TIMESTAMP_FOR_REPLAY')
+
+          // const stack = new Array(arr.length);
+          // let stackL = 0;
+
+          // const arrHash = new Array(arr.length);
+
+
+          const groups = groupsK38;
+          // const delta = 2.0; // head-to-tail + 0.5 + 0.5 = 1.0  -> symmetric -> 1.0 * 2 = 2.0
+          // (2)
+          // (1.5, 2.5)
+          // (1.51, 2.49)
+          // -> (1.01, 2.01) , (1.99, 2.99)
+          // 2.99 - 1.01 = 1.98 -> 2
+
+
+
+          const pushToGroup = (t0mu)=>{
+
+            const t0auDv = t0mu - 1e6; // t0buDv - t0auDv = 2e6
+            const t0buDv = t0mu + 1e6;
+            // const t0auEv = t0mu - 2e6;
+            // const t0buEv = t0mu + 2e6;
+
+            let groupK = false;
+            // let m = -1;
+            // let q= 0;
+            //const qq =true;
+            //qq && console.log('-------')
+
+            let lastRight = null;
+            let lastK = null;
+            let deletedStartIndex = -1;
+
+            for (let k = 0, kl = groups.length; k < kl; k++) {
+
+              const group = groups[k];
+              const [groupStart, groupEnd, gCount] = group;
+              //qq && console.log(`-- ${k} ----- ${groupMid} : [${groupStart},${groupEnd}] || C1 = ${t0buEv < groupMid} || C2 = ${t0auEv > groupMid}`);
+
+              // if (t0bsEv < groupMid) continue; // if(t0m + 1.0 < groupMid - 1.0) continue;
+              // if (m < 0) m = k;
+              // if (t0asEv > groupMid){
+              //   continue; // if(t0m - 1.0 > groupMid + 1.0) break;
+              // }
+
+
+              // if (m < 0) m = k;
+
+              if (lastRight > groupStart) {
+                if (!groupK) {
+                  // just in case sth wrong
+                  console.warn('logic ERROR');
+                  groups[k] = null;
+                  if(deletedStartIndex < 0) deletedStartIndex = k;
+                  break;
+                } else {
+
+
+                  // GroupA: N_a' = N_a + n_e{1} ; Note n_e is the only way to shift right to cause " (lastRight > groupStart) "
+                  // GroupB: N_b
+                  // Merge Group (A) = N_a' + N_b
+
+                  // without entry moditification, no overlap
+                  // this must be due to entry moditifcation
+                  // entry is already count. so can be skipped after merging
+
+                  // for merging, groupA will move to right side but left than groupB, so no overlap to groupC
+
+                  const group = groups[lastK];
+
+                  group[0] = (group[0] * group[2] + groupStart * gCount) / (group[2] + gCount)
+
+                  group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount) / (group[2] + gCount)
+
+                  group[2] = (group[2] + gCount);
+                  // no change of lastK
+                  groups[k] = null;
+                  if(deletedStartIndex < 0) deletedStartIndex = k;
+                  continue;
+                }
+              }
+
+              const minGroupStart = lastRight; // all groupStart, groupEnd >= minGroupStart for k, k+1, ...
+              if (t0buDv < minGroupStart) {
+                // no overlapping could be possible
+                break;
+              }
+
+              if (intervalsOverlap(t0auDv, t0buDv, groupStart, groupEnd)) {
+
+                groupK = true;
+
+                // if (t0auDv > groupStart) group[0] = t0auDv;
+                // else if (t0buDv < groupEnd) group[1] = t0buDv;
+
+                const newStart = (groupStart * gCount + t0auDv) / (gCount + 1);
+
+                if (newStart < lastRight) {
+                  // n_e{1} will make N_b shift left
+
+                  // GroupA: N_a
+                  // GroupB: N_b
+                  // Merge Group (A) = N_a + N_b + n_e{1}
+
+                  const group = groups[lastK];
+
+                  group[0] = (group[0] * group[2] + groupStart * gCount + t0auDv) / (group[2] + gCount + 1)
+
+                  group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount + t0buDv) / (group[2] + gCount + 1)
+
+                  group[2] = (group[2] + gCount + 1);
+                   // no change of lastK
+                  groups[k] = null;
+                  if(deletedStartIndex < 0) deletedStartIndex = k;
+                  continue;
+
+                } else {
+                  // n_e{1} will make N_b shift either left or right
+
+                  // GroupT: N_t
+                  // Group (T) = N_t + n_e{1}
+
+                  group[0] = newStart;
+                  group[1] = lastRight = (groupEnd * gCount + t0buDv) / (gCount + 1);
+                  group[2] = gCount + 1;
+
+                  lastK = k;
+
+                  //  (t0asDv > groupStart)  &&  (t0bsDv < groupEnd)   means full containement
+                  // however, group size is smaller than or equal to t0width
+                }
+                
+
+              } else {
+                // just update record for next iteration
+
+                lastRight = groupEnd;
+                lastK = k;
+              }
+
+
+
+            }
+
+            if (deletedStartIndex >= 0) {
+              // rarely used
+
+              removeNullsInPlace(groups, deletedStartIndex);
+
+            }
+            if (!groupK) {
+              // groups.push([t0auDv, t0buDv, 1]);
+              insertIntoSortedArrayA28(groups, [t0auDv, t0buDv, 1]);
+              // insertIntoSortedArrayA27(groups, [t0auDv, t0buDv, t0mu]);
+            }
+
+
+          }
+
+          let autoTimeStampFrameChoose = 0;
+
+          const noTransform = (x) => {
+ 
+            return x;
+          }
+
+          const prettyNum = (x) => {
+
+            if (x > 1110553200000000) return +(x / 1e6 - autoTimeStampFrameChoose).toFixed(2);
+            return x;
+          }
+
+
+          // console.log('group02332')
+          for (let j = 0, l = arr.length; j < l; j++) {
+            const aItem = arr[j];
+
+            const obj = toLAObj(aItem);
+            if (obj === false) continue;
+
+            let p = obj.timestampText;
+            let p2, p3=null, p4a=null, p4b=null;
+            if(p&&p.simpleText ) p2 = p.simpleText;
+
+            let q = obj.timestampUsec ;
+            let q2;
+            
+            if(q && +q > 1110553200000000) q2 = +q;
+            if (q2 > 0 && !autoTimeStampFrameChoose) {
+              const q2cc = Math.round(q2 / 1e6);
+              autoTimeStampFrameChoose = q2cc - (q2cc % 10000000);
+              if (q2cc - autoTimeStampFrameChoose < 2000000) autoTimeStampFrameChoose -= 10000000;
+              // around 10day range
+              // exceeded ~10day -> above 10000000
+            }
+
+          // console.log('group02333', p2, q2)
+            // console.log(3775, q2/1e6, autoTimeStampFrameChoose)
+
+            if(p2 && q2){
+
+              let m;
+
+              if (m = /^\s*(-?)(\d+):(\d+)\s*$/.exec(p2)) {
+                let c0z = m[1] ? -1 : 1;
+                let c1 = (+m[2]);
+                let c2 = (+m[3]);
+                if (c0z > 0 && c1 >= 0 && c2 >= 0) {
+
+                  p3 = c1 * 60 + c2;
+                } else if (c0z < 0 && c1 >= 0 && c2 >= 0) {
+                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58 
+                  // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
+
+                  p3 = (-c1 * 60) + (-c2);
+
+                }
+                if (p3 !== null) {
+                  // 0:14 -> 13.5s ~ 14.4999s -> [13.5, 14.5)
+                  p4a = p3 - 0.5;
+                  p4b = p3 + 0.5;
+                }
+              } else if (m = /^\s*(-?)(\d+):(\d+):(\d+)\s*$/.exec(p2)) {
+
+                let c0z = m[1] ? -1 : 1;
+                let c1 = (+m[2]);
+                let c2 = (+m[3]);
+                let c3 = (+m[4]);
+
+
+
+                if (c0z > 0 && c1 >= 0 && c2 >= 0 && c3 >= 0) {
+
+                  p3 = c1 * 60 * 60 + c2 * 60 + c3;
+                } else if (c0z < 0 && c1 >= 0 && c2 >= 0 && c3>=0) {
+                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58 
+                  // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
+
+                  p3 = (-c1 * 60 * 60) + (-c2 * 60) + (-c3);
+
+                }
+                if (p3 !== null) {
+                  // 0:14 -> 13.5s ~ 14.4999s -> [13.5, 14.5)
+                  p4a = p3 - 0.5;
+                  p4b = p3 + 0.5;
+                }
+
+
+              }
+
+            }
+
+            if(p4a !== null && p4b !== null && q2 > 0){
+
+              // q2_us = t0_us + dt_us
+              // p4a_us <= dt_us < p4b_us
+              let p4au = p4a * 1e6;
+              let p4bu = p4b * 1e6;
+
+              // p4a_us <= q2_us - t0_us < p4b_us
+
+
+              // p4a_us - q2_us <=  - t0_us < p4b_us - q2_us
+
+              // -p4a_us + q2_us >= t0_us > -p4b_us + q2_us
+
+
+              let t0au = q2 - p4bu; // q2_us - p4b_us
+              let t0bu = q2 - p4au; // q2_us - p4a_us
+
+              // t0 (t0au, t0bu]
+
+              const t0mu = (t0au+t0bu)/2;
+
+              // stack[stackL++]=({
+              //   id: obj.id,
+              //   idx: j,
+              //   p2,
+              //   // q2s : (q2/ 1e6 - autoTimeStampFrameChoose).toFixed(2),
+              //   p3,
+              //   /*
+              //   timestampText: obj.timestampText,
+              //   timestampUsec: obj.timestampUsec, // us = 1/1000 ms
+              //   q2,
+              //   p4a,
+              //   p4b,
+              //   */
+              //   q2s: +(q2 / 1e6 - autoTimeStampFrameChoose).toFixed(2), 
+              //   t0as: +(t0au / 1e6 - autoTimeStampFrameChoose).toFixed(2), 
+              //   t0bs: +(t0bu /1e6 - autoTimeStampFrameChoose).toFixed(2),
+
+              //   t0au,
+              //   t0bu,
+              //   t0mu
+              // });
+
+              // console.log('group02334')
+              let wobj = additionalInfo.get(obj);
+              if(!wobj) additionalInfo.set(obj, wobj = {});
+
+              wobj.timestampUsecOriginal = q2;
+              // wobj.timestampUsecAdjusted = q2;
+              wobj.t0au = t0au;
+              wobj.t0bu = t0bu;
+              wobj.t0mu = t0mu;
+
+              // arrHash[j] = {
+              //   index: j,
+              //   id: obj.id,
+              //   timestampUsec: q2,
+              //   t0au,
+              //   t0bu,
+              //   t0mu
+              // };
+
+              pushToGroup(t0mu);
+
+              // console.log('group02335')
+              // console.log('grouping', `${obj.id}.${obj.timestampUsec}`);
+
+              // timestamp (q2) can be incorrect.
+
+              // https://www.youtube.com/watch?v=IKKar5SS29E
+              // ChwKGkNQZUxfXzZxLS04Q0ZXNGxyUVlkODZrQzNR
+
+              /*
+
+
+                  [
+                    {
+                      "id": "ChwKGkNNWHZqXy1xLS04Q0ZXNGxyUVlkODZrQzNR",
+                      "p2": "2:04",
+                      "p3": 124,
+                      "t0as": 8320733.78,
+                      "t0bs": 8320734.78
+                    },
+                    {
+                      "id": "ChwKGkNQZUxfXzZxLS04Q0ZXNGxyUVlkODZrQzNR",
+                      "p2": "2:04",
+                      "p3": 124,
+                      "t0as": 8320898.89, // incorrect
+                      "t0bs": 8320899.89
+                    }
+                  ]
+
+
+              */
+
+            }
+
+            
+            
+
+          }
+
+          // stack.length = stackL;
+
+
+          groups_ = groups;
+          // console.log('groups', groups)
+
+        }
+
+        // console.log(1237006);
+
+        const groupMids = FIX_TIMESTAMP_FOR_REPLAY ? groups_.map(group=>{
+
+          const [groupStart, groupEnd ] = group;
+          const groupMid = (groupStart+groupEnd)/2;
+          return groupMid;
+        }): null;
+        // console.log('groupMids', groupMids)
+
+
+        // console.log(1237007);
+
+        const adjustTimestampFn = (obj) => {
+
+          const groupCount = groupMids.length;
+
+          if (groupCount < 1) return null;
+
+          // const obj = toLAObj(aItem);
+          if (obj === false) return null;
+
+          const wobj = additionalInfo.get(obj);
+          if (!wobj) return null;
+
+          const { t0mu } = wobj;
+
+
+          let i0 = 0;
+
+          if (groupCount >= 3) {
+            // For larger arrays, use binary search.
+            let low = 0;
+            let high = groupCount - 1;
+
+            while (high - low > 1) {
+              const mid = (low + high) >>> 1;
+              if (groupMids[mid] >= t0mu) {
+                high = mid;
+              } else {
+                low = mid;
+              }
+            }
+            i0 = low;
+
+          }
+
+          let upperDiff = -1; 
+          let lowerDiff = -1;
+          for (let i = i0; i < groupCount; i++) {
+            const y = groupMids[i] - t0mu;
+            if (y >= 0) {
+              upperDiff = y; // >=0, entry > value is found
+              break;
+            }
+            lowerDiff = -y; // >0, cache
+          }
+ 
+
+          const d1 = upperDiff;
+          const d2 = lowerDiff;
+
+
+          // console.log(5381, index1 ,d1, index2 , d2);
+
+          if (d1 >= 0 && ((d2 < 0) || (d1 <= d2))) {
+            wobj.chosenT0 = t0mu + d1; // groupMids[index1];
+          } else if (d2 >= 0 && ((d1 < 0) || (d2 <= d1))) {
+            wobj.chosenT0 = t0mu - d2; // groupMids[index2];
+          } else {
+            console.warn('logic error');
+            return null;
+          }
+
+          const adjusted = wobj.timestampUsecOriginal - wobj.chosenT0;
+
+          wobj.timestampUsecAdjusted = adjusted + 1110553200000000;
+
+          // console.log('adjusted', `${obj.id}.${obj.timestampUsec}`, wobj.timestampUsecOriginal - wobj.chosenT0);
+
+          // adjustmentMap.set(`${obj.id}.${obj.timestampUsec}`, wobj.timestampUsecOriginal - wobj.chosenT0);
+
+          return adjusted;
+
+
+
+        };
+
+
+        // console.log(1237008);
+        // if (FIX_TIMESTAMP_FOR_REPLAY) {
+
+
+        //   try{
+
+        //     // console.log('groupmid',groupMids, groups);
+
+        //     for(let j = 0; j< arr.length;j++){
+        //       if(groupMids.length<1) break;
+
+        //       const aItem = arr[j];
+        //       const obj = toLAObj(aItem);
+        //       if (obj === false) continue;
+
+        //       const wobj = additionalInfo.get(obj);
+        //       if(!wobj) continue;
+
+        //       // wobj.timestampUsecOriginal = q2;
+        //       // wobj.timestampUsecAdjusted = q2;
+        //       // wobj.t0au = t0au;
+        //       // wobj.t0bu = t0bu;
+        //       // wobj.t0mu = t0mu;
+
+        //       const {t0au, t0bu, t0mu} = wobj;
+
+        //       let upper = -1;
+
+        //       for(let i = 0; i <groupMids.length;i++){
+        //         const groupMid = groupMids[i];
+        //         if(groupMid>= t0mu){
+        //           upper = i;
+        //           break;
+        //         }
+        //       }
+        //       let index1, index2;
+        //       if(upper>-1){
+        //         index1 = upper-1;
+        //         index2 = upper;
+        //       }else{
+        //         index1 = groups.length-1;
+        //         index2 = -1;
+        //       }
+        //       let d1 = null;
+        //       if(index1 >=0){
+        //         d1 = Math.abs(groupMids[index1] - t0mu);
+        //       }
+  
+        //       let d2 = null;
+        //       if(index2 >=0){
+        //         d2 = Math.abs(groupMids[index2] - t0mu);
+        //       }
+        //       // console.log(5381, index1 ,d1, index2 , d2);
+        //       if(d1 >= 0 && ((d1 <= d2) || (d2 === null)) ){
+                
+        //         wobj.chosenT0 = groupMids[index1];
+        //       } else if(d2 >= 0 &&  ((d2 <= d1) || (d1 === null))){
+        //         wobj.chosenT0 = groupMids[index2];
+        //       } else {
+        //         console.warn('logic error');
+        //         continue;
+        //       }
+
+        //       wobj.timestampUsecAdjusted =  wobj.timestampUsecOriginal - wobj.chosenT0 + 1110553200000000;
+
+        //       console.log('adjusted', `${obj.id}.${obj.timestampUsec}`,  wobj.timestampUsecOriginal - wobj.chosenT0);
+
+        //       adjustmentMap.set(`${obj.id}.${obj.timestampUsec}`, wobj.timestampUsecOriginal - wobj.chosenT0);
+        //       // conversionMap.set(obj, arrHash[j].adjustedTime);
+
+        //       // console.log(5382, index, id, t0mu, arrHash[j].adjustedT0, arrHash[j].timestampUsec, arrHash[j].adjustedTime);
+  
+        //     }
+  
+
+        //   }catch(e){
+        //     console.warn(e);
+        //   }
+
+
+
+
+
+        //   // if(stack.length > 1){
+        //   //   stack.sort((a,b)=>{
+        //   //     return a.t0mu - b.t0mu
+        //   //   });
+        //   //   // small to large
+        //   //   // console.log(34588, stack.map(e=>e.t0as))
+        //   // }
+
+        //   // grouping
+
+
+
+
+        //   // if (stack.length > 0) {
+
+        //   //   try {
+
+        //   //     for (let j = 0, l = stack.length; j < l; j++) {
+        //   //       pushToGroup(stack[j].t0mu);
+
+        //   //     }
+
+        //   //   }catch(e){
+
+        //   //     console.warn(e)
+        //   //   }
+
+        //   //   // console.log(4882, groups.map(e=>e.slice()), stack.slice())
+
+        //   // }
+
+          
+
+
+        //   // console.log(376, 'group', groups);
+
+
+        //   // consolidated group
+        //   //  const consolidatedGroups = doConsolidation(groups);
+
+
+
+
+
+
+        //   // if(stack.length > 1){
+
+
+        //   //   // // console.log(341, 'consolidatedGroups', consolidatedGroups ,groups.map(e=>{
+        //   //   // //   return e.map(noTransform);
+        //   //   // //   // return e.map(prettyNum);
+        //   //   // // }))
+
+
+        //   //   // console.log(344, 'groups', groups.map(e=>{
+        //   //   //   return e.map(noTransform);
+        //   //   //   // return e.map(prettyNum);
+        //   //   // }))
+
+        //   //   // // for(const s of stack){
+        //   //   // //   for(const g of consolidatedGroups){
+        //   //   // //     if(s.t0as<=g.cen && s.t0bs >=g.cen ){
+        //   //   // //       s.cen = g.cen;
+        //   //   // //       break;
+        //   //   // //     }
+        //   //   // //   }
+
+        //   //   // // }
+
+        //   //   // console.log(377, stack) // Ms
+
+        //   // } 
+
+
+        //   // console.timeEnd('FIX_TIMESTAMP_FOR_REPLAY')
+
+        // }
+
+
+
+
+
+
+
+
+
         
 
         // console.log('preprocessChatLiveActions', arr)
@@ -4544,6 +5601,7 @@
 
         }
 
+        // console.log(1237001);
 
         {
 
@@ -4553,22 +5611,74 @@
 
           const idxices = [];
 
+
           let mArr1 = arr.filter((aItem,idx) => {
 
-            const timestampUsec = +toLAObj(aItem).timestampUsec; // +false.x = NaN
-            if(timestampUsec > 0){
+            const obj = toLAObj(aItem);
+            if (!obj) return false;
+
+            const baseText = obj.timestampText;
+            const baseTime = +obj.timestampUsec;
+            if (!baseTime || !baseText) return false;
+            // const timestampUsec = +toLAObj(aItem).timestampUsec; // +false.x = NaN
+            // const timestampUsec = +toLAObj(aItem).adjustedTime;
+
+            let timestampUsec;
+
+            // console.log(1237002)
+            if (FIX_TIMESTAMP_FOR_REPLAY) {
+
+              // const adjustmentTime = adjustmentMap.get(`${obj.id}.${obj.timestampUsec}`);
+
+              // // const wobj = additionalInfo.get(obj);
+
+              // // if(!wobj){
+              // //   console.warn('FIX_TIMESTAMP_FOR_REPLAY - no wobj', obj)
+              // //   return false;
+              // // }
+
+              // // timestampUsec =  +wobj.timestampUsecAdjusted;
+              // if (!Number.isFinite(adjustmentTime)) {
+              //   console.warn(`FIX_TIMESTAMP_FOR_REPLAY - no adjustmentTime for ${obj.id}.${obj.timestampUsec}`, obj, [...adjustmentMap])
+              //   return false;
+              // }
+              // timestampUsec = adjustmentTime;
+
+
+              const adjustmentTime = adjustTimestampFn(obj);
+
+              if (!Number.isFinite(adjustmentTime)) {
+
+                console.warn(`FIX_TIMESTAMP_FOR_REPLAY - no adjustmentTime for ${obj.id}.${obj.timestampUsec}`, obj);
+                return false;
+              }
+              timestampUsec = adjustmentTime;
+
+
+            } else {
+
+              if (!Number.isFinite(baseTime)) {
+                console.warn(`no baseTime for ${obj.id}.${obj.timestampUsec}`, obj);
+                
+                return false;
+              }
+              timestampUsec = baseTime;
+
+            }
+
+            // if(timestampUsec > 0){
               idxices.push(idx);
               mapper.set(aItem, timestampUsec)
               return true;
-            }
-            return false;
+            // }
+            // return false;
   
           });
 
           if(mapper.size > 1){
 
-
   
+            // console.log(1237004)
             let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
               return mapper.get(a) - mapper.get(b);
               // low index = oldest = smallest timestamp
@@ -4595,6 +5705,9 @@
 
         }
 
+        // console.log(1237005)
+
+        // console.log(378, arr);
 
         return arr;
 
@@ -4980,7 +6093,37 @@
             if ((_flag0281_ & 0x2) == 0) {
 
               const sfi = fnIntegrity(mclp.flushActiveItems_);
-              if (sfi === '0.156.86') {
+              if(sfi === '0.158.86'){
+
+                // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+                //   f.flushActiveItems_ = function() {
+                //     var a = this;
+                //     if (this.activeItems_.length > 0)
+                //         if (this.canScrollToBottom_()) {
+                //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                //             b && this.splice("visibleItems", 0, b);
+                //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+                //                 this.preinsertHeight_ = this.items.clientHeight;
+                //             this.activeItems_.unshift("visibleItems");
+                //             try {
+                //                 this.push.apply(this, this.activeItems_)
+                //             } catch (c) {
+                //                 Tm(c)
+                //             }
+                //             this.activeItems_ = [];
+                //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && $u(function() {
+                //                 a.showNewItems_()
+                //             }) : $u(function() {
+                //                 a.refreshOffsetContainerHeight_();
+                //                 a.maybeScrollToBottom_()
+                //             })
+                //         } else
+                //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
+                // }
+
+              } else if (sfi === '0.156.86') {
                 // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
                 // added "refreshOffsetContainerHeight_"
@@ -5032,7 +6175,8 @@
               } else if (sfi === '0.137.81' || sfi === '0.138.81') {
                 // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
               } else {
-                assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.150.84'));
+                assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.158.86'))
+                 || logFn('mclp.flushActiveItems_', mclp.flushActiveItems_)();
               }
             }
 
@@ -5703,12 +6847,28 @@
           if ((mclp.handleLiveChatActions_ || 0).length === 1) {
 
             const sfi = fnIntegrity(mclp.handleLiveChatActions_);
-            if (sfi === '1.39.20') {
+            // handleLiveChatActions66_
+            if(sfi === '1.40.20') {
+              // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+                  // f.handleLiveChatActions_ = function(a) {
+                  //     var b = this;
+                  //     a.length && (a.forEach(this.handleLiveChatAction_, this),
+                  //     this.maybeResizeScrollContainer_(a),
+                  //     this.flushActiveItems_(),
+                  //     $u(function() {
+                  //         b.maybeScrollToBottom_()
+                  //     }))
+                  // }
+
+            } else if (sfi === '1.39.20') {
               // TBC
             } else if (sfi === '1.31.17') {
               // original
             } else {
-              assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.31.17'));
+              assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.40.20'))
+                || logFn('mclp.handleLiveChatActions_', mclp.handleLiveChatActions_)();
             }
 
             mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
@@ -6218,6 +7378,15 @@
 
         }
 
+        let mo43p = null;
+        const mo43 = new MutationObserver(()=>{
+
+          const p = mo43p;
+          mo43p = null;
+          if(p){
+            p.resolve();
+          }
+        });
 
 
         const dProto = {
@@ -6354,6 +7523,11 @@
           attachedForTickerInit: function () {
             if (tickerAttachmentId > 1e9) tickerAttachmentId = 9;
             this.__ticker_attachmentId__ = ++tickerAttachmentId;
+
+            const hostElement = this.hostElement;
+            if (hostElement instanceof HTMLElement) {
+              hostElement.classList.add('r6-width-adjustable');
+            }
 
             DEBUG_wmList && wmList.add(new WeakRef(this))
             if (DEBUG_wmList && !DEBUG_wmList_started) {
@@ -7805,12 +8979,12 @@
                   const hostElement = this.hostElement;
                   const container = this.$.container;
                   if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
-                    const prevTransitionClosingElm = kRef(prevTransitionClosing);
-                    if (prevTransitionClosingElm !== hostElement) {
-                      prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
-                      prevTransitionClosing = mWeakRef(hostElement);
-                    }
-                    if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+                    // const prevTransitionClosingElm = kRef(prevTransitionClosing);
+                    // if (prevTransitionClosingElm !== hostElement) {
+                    //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
+                    //   prevTransitionClosing = mWeakRef(hostElement);
+                    // }
+                    // if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
                     hostElement.classList.add('r6-closing-ticker');
   
                     const pr = new PromiseExternal();
@@ -7847,12 +9021,12 @@
                   const hostElement = this.hostElement;
                   const container = this.$.container;
                   if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
-                    const prevTransitionClosingElm = kRef(prevTransitionClosing);
-                    if (prevTransitionClosingElm !== hostElement) {
-                      prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
-                      prevTransitionClosing = mWeakRef(hostElement);
-                    }
-                    if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
+                    // const prevTransitionClosingElm = kRef(prevTransitionClosing);
+                    // if (prevTransitionClosingElm !== hostElement) {
+                    //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
+                    //   prevTransitionClosing = mWeakRef(hostElement);
+                    // }
+                    // if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
                     hostElement.classList.add('r6-closing-ticker');
 
                     const pr = new PromiseExternal();
@@ -7901,11 +9075,17 @@
                 }
                 const hostElement = this.hostElement;
                 if (hostElement instanceof HTMLElement) {
-                  try {
-                    // hostElement.remove();
+                  // try {
+                  //   // hostElement.remove();
                     
-                    if (!hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.add('ticker-no-transition-time');
+                  //   if (!hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.add('ticker-no-transition-time');
+                  // } catch (e) { }
+
+                  try{
+
+                    hostElement.classList.remove('r6-closing-ticker');
                   } catch (e) { }
+
                   return this.requestRemoval49();
                 }
               });
@@ -7994,7 +9174,7 @@
 
                   const w = hostElement.style.width;
                   if (w !== '0px' && w !== '0') hostElement.style.width = '0';
-                  hostElement.classList.remove('ticker-no-transition-time');
+                  // hostElement.classList.remove('ticker-no-transition-time');
                   await widthReq(container);
 
                   hostElement.style.width = `${qw[1]}px`;
@@ -8016,7 +9196,7 @@
               cProto.setContainerWidth41 = cProto.setContainerWidth;
               cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
 
-
+                
 
                 /*
 
@@ -8079,7 +9259,7 @@
 
                   const w = hostElement.style.width;
                   if (w !== '0px' && w !== '0') hostElement.style.width = '0';
-                  hostElement.classList.remove('ticker-no-transition-time');
+                  // hostElement.classList.remove('ticker-no-transition-time');
                   await widthReq(container);
 
                   hostElement.style.width = `${qw[1]}px`;
@@ -8632,7 +9812,15 @@
             && typeof cProto.handleRemoveChatItemByAuthorAction === 'function' && cProto.handleRemoveChatItemByAuthorAction.length === 1
             ;
 
-          if (do_amend_ticker_handleLiveChatAction_v3) {
+            // yt-live-chat-ticker-renderer hacks
+            // console.log('handleLiveChatActions', cProto.handleLiveChatActions, cProto.is);
+            // console.log('handleLiveChatAction', cProto.handleLiveChatAction, cProto.is);
+
+          if (do_amend_ticker_handleLiveChatAction_v3 ) {
+
+            // causing no transition ??
+            // affect performance if many tickers need to be added. (become multiple reflows)
+            // performance issue shall be fixed by no transition instead (or min-width: max-content)
 
             /*
                 f.handleLiveChatActions = function(a) {
@@ -8653,6 +9841,31 @@
                 b && this.enableCreatorGoalRevamp ? this.unshift("tickerItems", b.item) : b ? this.unshift("items", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : a && this.handleRemoveChatItemByAuthorAction(a)
             }
             */
+
+            /* Dec 2024 */
+
+            /*
+
+
+                f.handleLiveChatActions = function(a) {
+                    a.length && (a.forEach(this.handleLiveChatAction, this),
+                    this.updateHighlightedItem(),
+                    this.shouldAnimateIn = !0)
+                }
+                ;
+                f.handleLiveChatAction = function(a) {
+                    var b = z(a, fL)
+                      , c = z(a, gL)
+                      , d = z(a, eL)
+                      , e = z(a, gdb)
+                      , g = z(a, rdb)
+                      , k = z(a, Deb);
+                    a = z(a, Ceb);
+                    b ? this.unshift("tickerItems", b.item) : c ? this.handleMarkChatItemAsDeletedAction(c) : d ? this.removeTickerItemById(d.targetItemId) : e ? this.handleMarkChatItemsByAuthorAsDeletedAction(e) : g ? this.handleRemoveChatItemByAuthorAction(g) : k ? this.showCreatorGoalTickerChip(k) : a && this.removeCreatorGoalTickerChip(a)
+                }
+            */
+
+
 
             const arr00 = new Array(1);
             arr00.forEach = () => { };
@@ -8878,7 +10091,9 @@
           }
 
 
-          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.44.31' && '|1.78.45|1.82.43|1.43.31'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
+          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' 
+            && '|1.43.31|1.44.31|'.indexOf('|' + fnIntegrity(cProto.startScrolling) + '|') >= 0
+            && '|1.78.45|1.82.43|1.43.31|'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
             // to be replaced by animator
 
             cProto.startScrolling = function (a) {
@@ -8922,6 +10137,25 @@
                 ;
              * 
              */
+
+                /**
+                 * 
+                  // 2024.12.20
+
+
+
+                  f.startScrolling = function(a) {
+                      this.scrollStopHandle && av(this.scrollStopHandle);
+                      this.asyncHandle && window.cancelAnimationFrame(this.asyncHandle);
+                      this.scrollStartTime = performance.now();
+                      this.lastFrameTimestamp = performance.now();
+                      this.scrollRatePixelsPerSecond = a;
+                      this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this))
+                  }
+
+                 * 
+                 * 
+                 */
 
             cProto.__getTickerBarQuery__ = function () {
               const tickerBarQuery = this.tickerBarQuery === '#items' ? this.$.items : this.hostElement.querySelector(this.tickerBarQuery);
@@ -8977,10 +10211,10 @@
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
-            assertor(() => fnIntegrity(cProto.startScrolling, '1.44.31'));
-            assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.78.45'));
-            console.log('cProto.startScrolling', cProto.startScrolling);
-            console.log('cProto.scrollIncrementally', cProto.scrollIncrementally);
+            assertor(() => fnIntegrity(cProto.startScrolling, '1.43.31'))
+              || logFn('cProto.startScrolling', cProto.startScrolling)();
+            assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.78.45'))
+              || logFn('cProto.scrollIncrementally', cProto.scrollIncrementally)();
             console.log('RAF_FIX: scrollIncrementally', tag, "NG")
           }
 
@@ -11714,49 +12948,50 @@
       promiseForCustomYtElementsReady.then(fixJsonParse);
     }
 
-    if(END_ANIMATING_TICKERS){
-
-      let lastElmW = null;
-
-      document.addEventListener('transitionstart', (evt) => {
-
-        if (evt.propertyName === 'width' && !evt.pseudoElement) {
-
-          const elm = evt.target;
-          let act = false;
-          /*
-          switch(elm.nodeName.toLowerCase()){
-
-            case  'yt-live-chat-ticker-creator-goal-view-model':
-              case 'yt-live-chat-ticker-paid-message-item-renderer':
-                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
-
-                case 'yt-live-chat-ticker-sponsor-item-renderer':
-                  act =true;
-                  break;
+    if(USE_ADVANCED_TICKING){ // if(END_ANIMATING_TICKERS){
 
 
-          }
-          */
-          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
-            act = true;
-          }
-          if (act) {
-            const lastElm = kRef(lastElmW);
-            if (elm !== lastElm) {
+      // let lastElmW = null;
 
-              if (lastElm instanceof HTMLElement) {
-                lastElm.classList.add('ticker-no-transition-time');
-              }
-              lastElmW = mWeakRef(elm);
+      // document.addEventListener('transitionstart', (evt) => {
 
-            }
+      //   if (evt.propertyName === 'width' && !evt.pseudoElement) {
+
+      //     const elm = evt.target;
+      //     let act = false;
+      //     /*
+      //     switch(elm.nodeName.toLowerCase()){
+
+      //       case  'yt-live-chat-ticker-creator-goal-view-model':
+      //         case 'yt-live-chat-ticker-paid-message-item-renderer':
+      //           case 'yt-live-chat-ticker-paid-sticker-item-renderer':
+
+      //           case 'yt-live-chat-ticker-sponsor-item-renderer':
+      //             act =true;
+      //             break;
 
 
-          }
-        }
+      //     }
+      //     */
+      //     if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
+      //       act = true;
+      //     }
+      //     if (act) {
+      //       const lastElm = kRef(lastElmW);
+      //       if (elm !== lastElm) {
 
-      }, true);
+      //         if (lastElm instanceof HTMLElement) {
+      //           lastElm.classList.add('ticker-no-transition-time');
+      //         }
+      //         lastElmW = mWeakRef(elm);
+
+      //       }
+
+
+      //     }
+      //   }
+
+      // }, true);
 
 
 
