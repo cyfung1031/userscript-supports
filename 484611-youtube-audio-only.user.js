@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.9.3
+// @version             1.9.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2882,10 +2882,10 @@
         const url = new URL(location.href);
         let m;
 
-        if (m = /^\/watch\?v=([A-Za-z0-9_-]+)/.exec(url.pathname + url.search)) return `${m[1]}`;
+        if (m = /^\/watch\?v=([A-Za-z0-9_-]+)/.exec(`${url.pathname}?v=${url.searchParams.get('v')}`)) return `${m[1]}`;
         if (m = /^\/live\/([A-Za-z0-9_-]+)/.exec(url.pathname)) return `${m[1]}`;
 
-        if (m = /^\/embed\/live_stream\?channel=([A-Za-z0-9_-]+)/.exec(url.pathname + url.search)) return `L:${m[1]}`;
+        if (m = /^\/embed\/live_stream\?channel=([A-Za-z0-9_-]+)/.exec(`${url.pathname}?channel=${url.searchParams.get('channel')}`)) return `L:${m[1]}`;
         if (m = /^\/embed\/([A-Za-z0-9_-]+)/.exec(url.pathname)) return `${m[1]}`;
 
         if (m = /^\/channel\/([A-Za-z0-9_-]+)\/live\b/.exec(url.pathname)) return `L:${m[1]}`;
