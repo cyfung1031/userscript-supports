@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.65.3
+// @version             0.66.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -173,10 +173,19 @@
 
   const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
 
+
+
+  // (Dec 2024: AMEND_TICKER_handleLiveChatAction to be removed)
   const AMEND_TICKER_handleLiveChatAction = false; // to fix ticker duplication and unresponsively fast ticker generation
   // AMEND_TICKER_handleLiveChatAction to be fixed (2024.05.21)
 
+  // (Dec 2024: AMEND_TICKER_handleLiveChatAction_v3 to be removed)
   const AMEND_TICKER_handleLiveChatAction_v3 = true; // responsiveness fix (Major Feature)
+
+  const USE_ADVANCED_TICKING = true; // added in Dec 2024; need to ensure it would not affect the function if ticker design changed. to be reviewed
+
+
+
 
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true;
   const ADJUST_TICKER_DURATION_ALIGN_RENDER_TIME = true;
@@ -201,7 +210,6 @@
   const FIX_ToggleRenderPolymerControllerExtractionBug = false; // to be reviewed
 
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
-
 
   // -------------------------------
 
@@ -808,7 +816,63 @@
     #reaction-control-panel-overlay[class] *[class] {
       will-change: initial;
     }
-  `: ''
+  `: '';
+
+  const cssText19_FOR_ADVANCED_TICKING = `
+  
+  ticker-bg-overlay {
+    display: block;
+    position: absolute;
+    box-sizing: border-box;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 200%;
+    top: 0;
+    bottom: 0;
+    left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
+  }
+  ticker-bg-overlay-end {
+    position: absolute;
+    right: 0px;
+    top: 50%;
+    display: block;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  /*
+
+
+    ey.style.position = 'absolute';
+    ey.style.right = '0px';
+    ey.style.top = '50%';
+    ey.style.display='block';
+    ey.style.width='1px';
+    ey.style.height='1px';
+    ey.style.opacity = '0';
+
+    em.style.display = 'block';
+    em.style.position = 'absolute';
+    em.style.boxSizing = 'border-box';
+    em.style.width = '200%';
+    em.style.top = '0';
+    em.style.bottom = '0';
+    // em.style.height = '100%';
+
+
+    // em.style.left = '-50%';
+    // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
+
+  */
+
+  `;
 
   const addCss = () => `
 
@@ -1063,6 +1127,8 @@
     ${cssText17_FIX_overwidth_banner_message}
 
     ${cssText18_REACTION_ANIMATION_PANEL_CSS_FIX}
+
+    ${cssText19_FOR_ADVANCED_TICKING}
 
   `;
 
@@ -1385,12 +1451,71 @@
 
 
 
+
+  const valAssign = (elm, attr, val) => {
+    val = val.toFixed(3);
+    if (!(Math.abs(elm.style.getPropertyValue(attr) - val) < 1e-5)) {
+      elm.style.setProperty(attr, val);
+      return true;
+    }
+    return false;
+  };
+
+  let timestampUnderLiveMode = false;
+
+  const updateTickerCurrentTime = () => {
+
+    const dntElement = kRef(dntElementWeak);
+    const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT / 1000) : playerProgressChangedArg1;
+    if (dntElement instanceof HTMLElement && v >= 0) {
+      valAssign(dntElement, '--ticker-current-time', v);
+    }
+  }
+
   let playEventsStack = Promise.resolve();
 
 
   let playerProgressChangedArg1 = null;
   let playerProgressChangedArg2 = null;
   let playerProgressChangedArg3 = null;
+
+  let dntElementWeak = null;
+
+  // ================== FOR USE_ADVANCED_TICKING ================
+
+  const timeOriginDT = +new Date(performance.timeOrigin);
+  let startResitanceUpdaterStarted = false;
+
+  const RESISTANCE_UPDATE_OPT = 3;
+  let resitanceUpdateLast = 0;
+  const allBackgroundOverLays = document.getElementsByTagName('ticker-bg-overlay');
+  const resitanceUpdateFn = ()=>{
+    if(allBackgroundOverLays.length === 0) return;
+    const t = Date.now();
+    if (t - resitanceUpdateLast > 375) {
+      resitanceUpdateLast = t;
+      updateTickerCurrentTime();
+    }
+  }
+  const startResitanceUpdater = () => {
+
+    if (startResitanceUpdaterStarted) return;
+    startResitanceUpdaterStarted = true;
+
+
+    if (RESISTANCE_UPDATE_OPT & 1)
+      document.addEventListener('yt-action', () => {
+        resitanceUpdateFn();
+      }, true)
+
+    if (RESISTANCE_UPDATE_OPT & 2)
+      new MutationObserver(() => {
+        resitanceUpdateFn();
+      }).observe(document, {
+        subtree: true, childList: true, attributes: true
+      });
+    resitanceUpdateFn();
+  }
 
 
   function dr(s) {
@@ -4231,6 +4356,8 @@
                         if (renderer && typeof renderer === 'object') {
                           renderer.__videoOffsetTimeMsec__ = r.videoOffsetTimeMsec;
                           renderer.__progressAt__ = playerProgressChangedArg1;
+
+                          // console.log(48117006)
                         }
 
                       }
@@ -4259,6 +4386,7 @@
             };
 
             cProto.playerProgressChanged_ = function (a, b, c) {
+              // console.log(48117005)
               playerProgressChangedArg1 = a;
               playerProgressChangedArg2 = b;
               playerProgressChangedArg3 = c;
@@ -4269,6 +4397,7 @@
                   replayBuffer_.replayQueue = new Proxy(replayBuffer_.replayQueue, replayQueueProxyHandler);
                 }
               }
+              Promise.resolve().then(updateTickerCurrentTime);
               return this.playerProgressChanged32_.apply(this, arguments);
             };
 
@@ -4975,12 +5104,143 @@
 
         if ((_flag0281_ & 0x40) == 0 ) {
 
-          if ((mclp.atBottomChanged_ || 0).length === 1) {
+          if( (mclp.atBottomChanged_ || 0).length === 0) {
+            // note: if the scrolling is too frequent, the show more visibility might get wrong.
+
+
+
+
+
+            const sfi = fnIntegrity(mclp.atBottomChanged_);
+
+            if(sfi === '0.75.37'){
+              // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+              // Dec 2024.
+
+              /**
+               * 
+               * 
+                          
+                  f.atBottomChanged_ = function() {
+                      var a = this;
+                      this.atBottom ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = Zu(function() {
+                          R(a.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                      }, 200)) : (this.hideShowMoreAsync_ && $u(this.hideShowMoreAsync_),
+                      this.hideShowMoreAsync_ = null,
+                      R(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+                  }
+              * 
+              */
+
+            } else {
+              assertor(() => fnIntegrity(mclp.atBottomChanged_, '0.75.37'));
+            }
+
+
+            const querySelector = HTMLElement.prototype.querySelector;
+            const U = (element) => ({
+              querySelector: (selector) => querySelector.call(element, selector)
+            });
+
+            let qid = 0;
+            mclp.__updateButtonVisibility371__ = function (button) {
+              Promise.resolve(this).then((cnt) => {
+                button.style.visibility = cnt.__buttonVisibility371__;
+              });
+            }
+            const fixButtonOnClick = function (cnt, button) {
+              button.addEventListener('click', (evt) => {
+                evt.stopImmediatePropagation();
+                evt.stopPropagation();
+                evt.preventDefault();
+                Promise.resolve(cnt).then((cnt) => {
+                  cnt.scrollToBottom_();
+                });
+              }, true);
+              // button.addEventListener('pointerup', (evt)=>{
+              //   evt.stopImmediatePropagation();
+              //   evt.stopPropagation();
+              // }, true);
+              // button.addEventListener('mouseup', (evt)=>{
+              //   evt.stopImmediatePropagation();
+              //   evt.stopPropagation();
+              // }, true);
+            }
+            mclp.atBottomChanged_ = function () {
+              let a = this.atBottom;
+              const button = (this.$ || 0)['show-more'];
+              if (button) {
+                // primary execution
+                if (a) {
+                  if (this.__buttonVisibility371__ !== "hidden") {
+                    this.__buttonVisibility371__ = "hidden";
+                    if (!this.hideShowMoreAsync_) {
+                      const tid = ++qid;
+                      this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
+                        if (tid !== qid) {
+                          return;
+                        }
+                        this.__updateButtonVisibility371__(button);
+                      });
+                    }
+                  }
+                } else {
+                  if (this.__buttonVisibility371__ !== "visible") {
+                    this.__buttonVisibility371__ = "visible";
+                    if (this.hideShowMoreAsync_) {
+                      qid++;
+                    }
+                    this.hideShowMoreAsync_ = null;
+                    if (!button.__fix_onclick__) {
+                      button.__fix_onclick__ = true;
+                      fixButtonOnClick(this, button);
+                    }
+                    this.__updateButtonVisibility371__(button);
+                  }
+                }
+              } else {
+                // fallback
+                let tid = ++qid;
+                let b = this;
+                a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
+                  if (tid !== qid) return;
+                  U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
+                  this.hideShowMoreAsync_ = null,
+                  U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+              }
+            }
+
+            console.log("atBottomChanged_", "OK");
+
+          } else if ((mclp.atBottomChanged_ || 0).length === 1) {
             // note: if the scrolling is too frequent, the show more visibility might get wrong.
 
             const sfi = fnIntegrity(mclp.atBottomChanged_);
             if (sfi === '1.73.37') {
               // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+              /**
+               * 
+               * 
+               * 
+                          
+                  f.atBottomChanged_ = function(a) {
+                      var b = this;
+                      a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = zQ(function() {
+                          T(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                      }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_), 
+                      this.hideShowMoreAsync_ = null, 
+                      T(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+                  };
+
+              * 
+               * 
+               */
+
+
             } else if (sfi === '1.75.39') {
               // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
             } else {
@@ -5192,12 +5452,40 @@
 
             mclp.handleLiveChatActions_ = function (arr) {
 
+              // without delaying. get the time of request 
+              // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
+              const ct = Date.now();
+              for (let j = 0, l = arr.length; j < l; j++) {
+                const aItem = arr[j];
+                if (!aItem || typeof aItem !== 'object') continue;
+                const key = firstObjectKey(aItem); // addLiveChatTickerItemAction
+                if (!key) continue;
+                let obj = aItem[key];
+                if (!obj || typeof obj !== 'object') continue;
+
+                if (typeof (obj.item || 0) == 'object' && firstObjectKey(obj) === 'item') {
+                  obj = obj.item;
+                  const key = firstObjectKey(obj);
+                  if (key) {
+                    obj = obj[key];
+                  }
+                }
+                if (obj.id && !obj.__timestampActionRequest__) {
+                  obj.__timestampActionRequest__ = ct;
+                }
+              }
+
+              // console.log(1929, cnt.activeItems_)
+              // console.log(9487, arr);
+
               const cnt = this;
               cnt.__intermediate_delay__ = new Promise(resolve => {
                 cnt.handleLiveChatActions77_(arr).then(() => {
                   resolve();
                 });
               });
+
+              Promise.resolve().then(resitanceUpdateFn);
             }
             console.log("handleLiveChatActions_", "OK");
           } else {
@@ -6271,8 +6559,8 @@
               cnt._throwOut();
               return;
             }
-            let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
-            cnt._forceNoDetlaSincePausedSecs783 = 0;
+            // let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
+            // cnt._forceNoDetlaSincePausedSecs783 = 0;
 
             Promise.resolve(cnt).then((cnt) => {
 
@@ -6668,7 +6956,7 @@
             }
             // continue;
 
-            doAnimator_ = !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
+            doAnimator_ = !USE_ADVANCED_TICKING && !!ATTEMPT_ANIMATED_TICKER_BACKGROUND && isTimingFunctionHackable && typeof KeyframeEffect === 'function' && typeof animate === 'function' && typeof cProto.computeContainerStyle === 'function' && typeof cProto.colorFromDecimal === 'function' && isCSSPropertySupported();
 
 
             const doAnimator = doAnimator_;
@@ -6683,7 +6971,7 @@
             const doRAFHack = rafHackState === 2;
 
 
-            const doTimerFnModification = (doRAFHack || doAnimator);
+            const doTimerFnModification = !USE_ADVANCED_TICKING && (doRAFHack || doAnimator);
             // doTimerFnModification = false; // M55
 
             if (doTimerFnModification) { // including memory fix leakage
@@ -6761,6 +7049,333 @@
             if (!doAnimator && (rafHackState === 2 || rafHackState === 4)) {
               console.log('RAF_HACK_TICKERS', tag, doRAFHack ? "OK" : "NG");
             }
+          }
+
+          const canDoAdvancedTicking = 1 &&
+            typeof cProto.startCountdown === 'function' && !cProto.startCountdown49 && cProto.startCountdown.length === 2 &&
+            typeof cProto.updateTimeout === 'function' && !cProto.updateTimeout49 && cProto.updateTimeout.length === 1 &&
+            typeof cProto.isAnimationPausedChanged === 'function' && !cProto.isAnimationPausedChanged49 && cProto.isAnimationPausedChanged.length === 2 &&
+            typeof cProto.setContainerWidth === 'function' && cProto.setContainerWidth.length === 0 &&
+            typeof cProto.slideDown === 'function' && cProto.slideDown.length === 0 &&
+            CSS.supports("left","clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)");
+            
+
+
+          if (USE_ADVANCED_TICKING && canDoAdvancedTicking) {
+            // startResitanceUpdater();
+            // live replay video ->   48117005 -> 48117006 keep fire.  ->48117007 0 -> 48117007 {...}
+            // live stream video -> 48117007 0 -> 48117007 YES
+
+            console.log('USE_ADVANCED_TICKING')
+
+
+            const wio = dProto.wio || (dProto.wio = new IntersectionObserver((mutations) => {
+
+              for (const mutation of mutations) {
+                if (mutation.isIntersecting) {
+                  const marker = mutation.target;
+                  const overlay = marker instanceof HTMLElement ? marker.closest('ticker-bg-overlay') : 0;
+                  wio.unobserve(marker);
+                  marker.remove();
+                  let p = overlay || 0;
+                  let cn = 4;
+                  while ((p = p.parentElement) instanceof HTMLElement) {
+                    if (p instanceof HTMLElement) {
+                      const cnt = insp(p);
+                      if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.countdownMs > 0) {
+
+                        let deletionMode = false;
+                        const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
+                        if (timestampUnderLiveMode && cntData && cntData.duration > 0 && cntData.__timestampActionRequest__ > 0) {
+
+                          const targetFutureTime = cntData.__timestampActionRequest__ + cntData.durationSec * 1000;
+                          // check whether the targetFutureTime is already the past
+                          if (targetFutureTime + 800 < Date.now()) {
+                            // just dispose
+                            deletionMode = true;
+                          }
+                        }
+          
+
+                        cnt.countdownMs = 0;
+                        cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null;
+                        if(deletionMode){
+                          __requestRemoval__(cnt);
+                        }else{
+
+                          ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+                          cnt.slideDown());
+                        }
+
+                        break;
+                      }
+                    }
+                    cn--;
+                    if (!cn) {
+                      console.log('cnt not found for ticker-bg-overlay');
+                      break;
+                    }
+                  }
+                }
+              }
+            }, {
+              rootMargin: '1px',
+              threshold: [0]
+            }));
+
+            // cProto._throwOut = dProto._throwOut;
+
+
+            const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
+
+              const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
+              if(!cntData) return;
+              const cntElement = cnt.hostElement;
+
+              const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
+
+              let ct;
+
+              if (cntData && duration > 0 && !('__progressAt__' in cntData)) {
+                ct = Date.now();
+                cntData.__liveTimestamp__ = (cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT / 1000;
+                timestampUnderLiveMode = true;
+              } else if (cntData && duration > 0 && cntData.__progressAt__ > 0) {
+                timestampUnderLiveMode = false;
+              }
+              // console.log(48117007, cntData)
+
+              let tk = cntData.__progressAt__ || cntData.__liveTimestamp__;
+
+              if (!tk || !(cntElement instanceof HTMLElement)) return;
+
+
+
+              const liveOffsetMs = ct > 0 && cntData.__timestampActionRequest__ > 0 ? ct - cntData.__timestampActionRequest__ : 0;
+
+              // console.log(1237, liveOffsetMs, cntData.durationSec)
+
+              if (liveOffsetMs > 0) {
+                cntData.durationSec -= Math.floor(liveOffsetMs / 1000);
+                if(cntData.durationSec < 0) cntData.durationSec = 0;
+                // console.log(1238, liveOffsetMs, cntData.durationSec)
+                if(!cntData.durationSec ){
+                  try {
+                    cnt.requestRemoval();
+                  } catch (e) { }
+                  return;
+                }
+              }
+
+
+              let offset = cntData.fullDurationSec - cntData.durationSec; // consider this is live replay video, offset can be > 0
+              if (offset > 0) tk -= offset;
+              // in livestreaming. tk can be negative as we use performance.timeOrigin for t=0s time frame
+
+
+
+              if (valAssign(cntElement, '--ticker-start-time', tk) && duration > 0) {
+
+                // t0 ...... 1 ... fullDurationSec
+                // tk ...... k ... fullDurationSec-durationSec
+                // t0-fullDurationSec ...... 0 ... 0
+
+                // now - (fullDurationSec-durationSec)
+
+
+
+                const dnt = cnt.parentComponent;
+                const dntElement = dnt ? dnt.hostElement || dnt : 0;
+                if (dntElement) {
+                  dntElementWeak = mWeakRef(dntElement);
+                  updateTickerCurrentTime();
+                }
+                if (!cntElement.querySelector(`ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`)) {
+
+                  const oldElement = cntElement.querySelector('ticker-bg-overlay');
+                  if (oldElement) oldElement.remove();
+
+                  
+                  cnt.__advancedTicking038__ = 1;
+
+
+                  const em = document.createElement('ticker-bg-overlay');
+                  const ey = document.createElement('ticker-bg-overlay-end');
+
+                  const cr1 = cnt.colorFromDecimal(cntData.startBackgroundColor);
+                  const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
+
+
+                  const container = cnt.$.container;
+                  
+                  em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
+                  em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
+
+                  const attachmentCode = container instanceof HTMLElement ? 1 : 0;
+                  if(attachmentCode === 0){
+                    em.insertBefore(ey, em.firstChild);
+                    cntElement.insertBefore(em, cntElement.firstChild);
+                    cntElement.style.borderRadius = '16px';
+                    container.style.borderRadius = 'initial';
+                  } else {
+
+                    em.insertBefore(ey, em.firstChild);
+                    container.insertBefore(em, container.firstChild);
+                  }
+
+                  // em.style.left = '-50%';
+                  // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
+
+                  if (container instanceof HTMLElement) {
+
+                    container.style.background = 'transparent';
+                    container.style.backgroundColor = 'transparent';
+                    // container.style.zIndex = '1';
+                  }
+                  em.style.zIndex = '-1';
+                  valAssign(cntElement, '--ticker-duration-time', duration)
+
+                  if (wio instanceof IntersectionObserver) {
+                    wio.observe(ey);
+                  }
+
+                }
+              }
+            });
+
+            cProto.startCountdown = dProto.startCountdownAdv || (dProto.startCountdownAdv = function (a, b) {
+
+
+
+              try {
+                const cnt = kRef(this);
+                if (!cnt) return;
+                if (!cnt.hostElement) return;
+
+                const attachementId = cnt.__ticker_attachmentId__;
+                if (!attachementId) return;
+
+                // a.durationSec [s] => countdownMs [ms]
+                // a.fullDurationSec [s] => countdownDurationMs [ms] OR countdownMs [ms]
+                // lastCountdownTimeMs => raf ongoing
+                // lastCountdownTimeMs = 0 when rafId = 0 OR countdownDurationMs = 0
+
+                // if (cnt._r782) return;
+
+                // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                //   cnt._throwOut();
+                //   return;
+                // }
+
+                // TimerFnModT
+
+                b = void 0 === b ? 0 : b;
+                void 0 !== a && (cnt.countdownMs = 1E3 * a,
+                  cnt.countdownDurationMs = b ? 1E3 * b : cnt.countdownMs,
+                  // cnt.ratio = 1,
+                  cnt.lastCountdownTimeMs || cnt.isAnimationPaused || (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = performance.now(),
+                    cnt.rafId = -1))
+
+                Promise.resolve(cnt).then((cnt) => {
+                  u37fn(cnt);
+                })
+
+              } catch (e) {
+                console.warn(e);
+              }
+
+
+            });
+
+            cProto.updateTimeout = dProto.updateTimeoutAdv || (dProto.updateTimeoutAdv = function (a) {
+
+
+
+              try {
+                const cnt = kRef(this);
+                if (!cnt) return;
+                if (!cnt.hostElement) return; // memory leakage. to be reviewed
+
+                const attachementId = cnt.__ticker_attachmentId__;
+                if (!attachementId) return;
+
+                // _lastCountdownTimeMsX0 is required since performance.now() is not fully the same with rAF timestamp
+
+                // if (cnt._r782) return;
+
+                // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+                //   cnt._throwOut();
+                //   return;
+                // }
+
+                if (cnt.lastCountdownTimeMs !== cnt._lastCountdownTimeMsX0) {
+                  cnt.countdownMs = Math.max(0, cnt.countdownMs - (a - (cnt.lastCountdownTimeMs || 0)));
+                }
+                // console.log(703, cnt.countdownMs)
+                // cnt.ratio = cnt.countdownMs / cnt.countdownDurationMs;
+
+                u37fn(cnt);
+                cnt.isAttached && cnt.countdownMs ? (cnt.lastCountdownTimeMs = a,
+                  cnt.rafId = -1) : (cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = null,
+                    cnt.isAttached && ("auto" === cnt.hostElement.style.width && cnt.setContainerWidth(),
+                      cnt.slideDown()))
+
+
+              } catch (e) {
+                console.warn(e);
+              }
+
+            });
+
+            cProto.isAnimationPausedChanged = dProto.isAnimationPausedChangedAdv || (dProto.isAnimationPausedChangedAdv = function (a, b) {
+
+
+
+              const cnt = kRef(this);
+              if (!cnt) return;
+              if (!cnt.hostElement) return; // memory leakage. to be reviewed
+
+              const attachementId = cnt.__ticker_attachmentId__;
+              if (!attachementId) return;
+
+              // if (cnt._r782) return;
+
+              // if (cnt.isAttached === false && ((cnt.$ || 0).container || 0).isConnected === false) {
+              //   cnt._throwOut();
+              //   return;
+              // }
+              // let forceNoDetlaSincePausedSecs783 = cnt._forceNoDetlaSincePausedSecs783;
+              // cnt._forceNoDetlaSincePausedSecs783 = 0;
+
+              u37fn(cnt);
+              Promise.resolve(cnt).then((cnt) => {
+
+                if (attachementId !== cnt.__ticker_attachmentId__) return;
+
+                a ? 0 : !a && b && (a = cnt.lastCountdownTimeMs || 0,
+                  cnt.detlaSincePausedSecs && (a = (cnt.lastCountdownTimeMs || 0) + 1E3 * cnt.detlaSincePausedSecs,
+                    cnt.detlaSincePausedSecs = 0),
+                  cnt.lastCountdownTimeMs = cnt._lastCountdownTimeMsX0 = window.performance.now())
+
+                cnt = null;
+
+              }).catch(e => {
+                console.log(e);
+              });
+
+
+            });
+
+            if (typeof cProto.computeContainerStyle === 'function' && !cProto.computeContainerStyle49 && cProto.computeContainerStyle.length === 2) {
+              cProto.computeContainerStyle49 = cProto.computeContainerStyle;
+              cProto.computeContainerStyle = dProto.computeContainerStyleAdv || (dProto.computeContainerStyleAdv = function (a, b) {
+                if (this.__advancedTicking038__) {
+                  return "";
+                }
+                return this.computeContainerStyle49(a, b);
+              });
+            }
+
           }
 
 
@@ -7542,7 +8157,7 @@
           }
 
 
-          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.43.31' && '|1.78.45|1.82.43|'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
+          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' && fnIntegrity(cProto.startScrolling) === '1.44.31' && '|1.78.45|1.82.43|1.43.31'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
             // to be replaced by animator
 
             cProto.startScrolling = function (a) {
@@ -7561,19 +8176,31 @@
 
             // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
 
-            // 2024.03.26
-            // https://www.youtube.com/s/desktop/436f2749/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-            /*
+            /**
+             * 
+             * // 2024.12.17
+             * // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
+                f.startScrolling = function(a) {
+                    this.scrollStopHandle && $u(this.scrollStopHandle);
+                    this.asyncHandle && window.cancelAnimationFrame(this.asyncHandle);
+                    this.scrollStartTime = performance.now();
+                    this.lastFrameTimestamp = performance.now();
+                    this.scrollRatePixelsPerSecond = a;
+                    this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this))
+                }
+                ;
                 f.scrollIncrementally = function(a) {
                     var b = a - (this.lastFrameTimestamp || 0);
-                    Q(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
+                    R(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft += b / 1E3 * (this.scrollRatePixelsPerSecond || 0);
                     this.maybeClampScroll();
                     this.updateArrows();
                     this.lastFrameTimestamp = a;
-                    0 < Q(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft || this.scrollRatePixelsPerSecond && 0 < this.scrollRatePixelsPerSecond ? this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this)) : this.stopScrolling()
+                    R(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft > 0 || this.scrollRatePixelsPerSecond && this.scrollRatePixelsPerSecond > 0 ? this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this)) : this.stopScrolling()
                 }
-            */
+                ;
+             * 
+             */
 
             cProto.__getTickerBarQuery__ = function () {
               const tickerBarQuery = this.tickerBarQuery === '#items' ? this.$.items : this.hostElement.querySelector(this.tickerBarQuery);
@@ -7629,8 +8256,8 @@
 
             console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
-            assertor(() => fnIntegrity(cProto.startScrolling, '1.43.31'));
-            assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.82.43'));
+            assertor(() => fnIntegrity(cProto.startScrolling, '1.44.31'));
+            assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.78.45'));
             console.log('cProto.startScrolling', cProto.startScrolling);
             console.log('cProto.scrollIncrementally', cProto.scrollIncrementally);
             console.log('RAF_FIX: scrollIncrementally', tag, "NG")
