@@ -4,7 +4,7 @@
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
 //
-// @version     0.1.0013
+// @version     0.1.0014
 //
 // @author              CY Fung
 // @run-at              document-start
@@ -540,23 +540,13 @@ const rm3 = window.rm3 = {};
             const entryRecord = node.value;
             const prevNode = node.prev;
 
-            let ok = true;
+            let ok = false;
             let elm = null;
-            if (entryRecord[1] > 0 || entryRecord[2] < 0 || !entryRecord[4]) {
-              ok = false;
-            } else {
+            if (entryRecord[1] < 0 && entryRecord[2] > 0 && entryRecord[4]) {
               elm = entryRecord[0].deref();
-
-              if (!elm) ok = false;
-              else {
-
-                if (elm instanceof HTMLElement && elm.isConnected === false && insp(elm).isAttached === false) {
-
-                  ok = true;
-                }
+              if (elm && elm instanceof HTMLElement && elm.isConnected === false && insp(elm).isAttached === false && elm.parentNode === null) {
+                ok = true;
               }
-
-
             }
 
             if (ok) {
