@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.13
+// @version             0.66.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -318,27 +318,7 @@
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL === 1;
   const ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST = ENABLE_FLAGS_MAINTAIN_STABLE_LIST_VAL >= 1;
   const CHAT_MENU_SCROLL_UNLOCKING = CHAT_MENU_REFIT_ALONG_SCROLLING >= 1;
-  let runTickerClassName = 'run-ticker';
 
-  const dummyImgURL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
-  /*
-    WebP: data:image/webp;base64,UklGRjAB
-    PNG: data:image/png;base64,iVBORw0KGg==
-    JPEG: data:image/jpeg;base64,/9j/4AA=
-    GIF: data:image/gif;base64,R0lGODlhAQABAIA=
-    BMP: data:image/bmp;base64,Qk1oAAAA
-    SVG: data:image/svg+xml;base64,PHN2Zy8+Cg==
-
-    WebP: data:image/webp;base64,AAAAAAA=
-    PNG:  data:image/png;base64,AAAAAAA=
-    JPEG: data:image/jpeg;base64,AAAAAAA=
-    GIF:  data:image/gif;base64,AAAAAAA=
-    BMP:  data:image/bmp;base64,AAAAAAA=
-
-    data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
-
-
-  */
 
   // image sizing code
   // (d = (d = KC(a.customThumbnail.thumbnails, 16)) ? lc(oc(d)) : null)
@@ -1585,6 +1565,11 @@
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
 
+  const setTimeoutX0 = setTimeout;
+  const clearTimeoutX0 = clearTimeout;
+  const setIntervalX0 = setInterval;
+  const clearIntervalX0 = clearInterval;
+
   const isEmptyObject = (obj) => {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) return false;
@@ -1805,33 +1790,23 @@
   const RESISTANCE_UPDATE_OPT = 3;
   let resistanceUpdateLast = 0;
   let resistanceUpdateBusy = false;
-  let resistanceUpdateRetry = false;
   const resistanceUpdateDebugMode = false;
   const allBackgroundOverLays = document.getElementsByTagName('ticker-bg-overlay');
   const rgFlag = {};
   const resistanceUpdateFn = (b) => {
-    if(b !== rgFlag && resistanceUpdateRetry === false) return;
     if (!resistanceUpdateDebugMode && allBackgroundOverLays.length === 0) return;
     resistanceUpdateBusy = false;
     const t = Date.now();
     const d = t - resistanceUpdateLast;
     if (d > 375) {
       resistanceUpdateLast = t;
-      resistanceUpdateRetry = false;
       updateTickerCurrentTime();
-    } else if (typeof requestIdleCallback === 'function') {
-      resistanceUpdateRetry = true;
-      requestIdleCallback(resistanceUpdateFn);
-    } else {
-      resistanceUpdateRetry = true;
-      setTimeout(resistanceUpdateFn, d + 17);
     }
   }
   const resistanceUpdateFn_ = ()=>{
     if (!resistanceUpdateBusy) {
       resistanceUpdateBusy = true;
-      resistanceUpdateRetry = false;
-      Promise.resolve(rgFlag).then(resistanceUpdateFn);
+      Promise.resolve().then(resistanceUpdateFn);
     }
   }
   const startResistanceUpdater = () => {
@@ -1845,13 +1820,8 @@
         resistanceUpdateFn_();
       }, true)
 
-    if (RESISTANCE_UPDATE_OPT & 2)
-      new MutationObserver(() => {
-        resistanceUpdateFn_();
-      }).observe(document, {
-        subtree: true, childList: true, attributes: true
-      });
     resistanceUpdateFn_();
+    setIntervalX0(resistanceUpdateFn_, 400);
   }
 
   if(resistanceUpdateDebugMode) startResistanceUpdater();
@@ -2036,7 +2006,6 @@
 
   const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && isOverflowAnchorSupport && ENABLE_NO_SMOOTH_TRANSFORM;
 
-  let hasTimerModified = null;
 
   const fxOperator = (proto, propertyName) => {
     let propertyDescriptorGetter = null;
@@ -2151,6 +2120,40 @@
 
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+  const { insertBeforeNaFn, appendChildNaFn } = (() => {
+    // native methods
+
+    const dummyElement = document.createElement('dummy-388');
+    const HTMLElement = dummyElement.constructor;
+
+    const insertBefore = HTMLElement.prototype.insertBefore;
+    const appendChild = HTMLElement.prototype.appendChild;
+
+    return {
+      insertBeforeNaFn: (parent, node, child) => {
+        insertBefore.call(parent, node, child);
+      },
+      appendChildNaFn: (parent, node) => {
+        appendChild.call(parent, node);
+      }
+    };
+
+    /*
+        const insertBeforeFn = (parent, node, child) => {
+          if ('__shady_native_insertBefore' in parent) parent.__shady_native_insertBefore(node, child);
+          else parent.insertBefore(node, child);
+        }
+
+        const appendChildFn = (parent, node) =>{
+          if('__shady_native_appendChild' in parent) parent.__shady_native_appendChild(node);
+          else parent.appendChild(node);
+        }
+    */
+
+  })();
+  
+  
 
   let __LCRInjection__ = 0; // 0 for no injection
   const LCRImmedidates = []; // array of sync. func
@@ -3516,8 +3519,24 @@
 
     const rafHub = (ENABLE_RAF_HACK_TICKERS || ENABLE_RAF_HACK_DOCKED_MESSAGE || ENABLE_RAF_HACK_INPUT_RENDERER || ENABLE_RAF_HACK_EMOJI_PICKER) ? new RAFHub() : null;
 
+    const transitionEndHooks = new WeakSet();
     const transitionEndAfterFnSimple = new WeakMap();
+    let transitionEndAfterFnSimpleEnable = 0;
     // let prevTransitionClosing = null;
+
+    const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
+
+
+    const transitionEndAfterFn = (evt) => {
+      if (transitionEndAfterFnSimpleEnable > 0 && evt.propertyName && !evt.pseudoElement) {
+        const elm = evt.target;
+        const f = transitionEndAfterFnSimple.get(elm);
+        if (f) {
+          transitionEndAfterFnSimple.delete(elm);
+          f.resolve(evt.propertyName);
+        }
+      }
+    };
 
     const fixChildrenIssue = !!fixChildrenIssue801;
     if (fixChildrenIssue && typeof Object.getOwnPropertyDescriptor === 'function' && typeof Proxy !== 'undefined') {
@@ -6099,12 +6118,12 @@
                   const cnt = this;
 
                   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                  if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
+                  const acItems = cnt.activeItems_;
+                  if (!acItems || acItems.length === 0) return;
 
                   mlf++;
                   if (mlg > 1e9) mlg = 9;
                   ++mlg;
-                  const acItems = cnt.activeItems_;
                   if (acItems.length < MAX_ITEMS_FOR_FULL_FLUSH) {
                     const pn = preloadFn(acItems);
                     await pn();
@@ -7680,7 +7699,6 @@
 
 
 
-
           const canDoAdvancedTicking = 1 &&
             ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION &&
             typeof cProto.startCountdown === 'function' && !cProto.startCountdown49 && cProto.startCountdown.length === 2 &&
@@ -7890,12 +7908,12 @@
 
                   if (!(container instanceof HTMLElement)) {
                     // em.insertBefore(ey, em.firstChild);
-                    cntElement.insertBefore(em, cntElement.firstChild);
+                    insertBeforeNaFn(cntElement, em, cntElement.firstChild); // cntElement.insertBefore(em, cntElement.firstChild);
                     cntElement.style.borderRadius = '16px';
                     container.style.borderRadius = 'initial';
                   } else {
                     // em.insertBefore(ey, em.firstChild);
-                    container.insertBefore(em, container.firstChild);
+                    insertBeforeNaFn(container, em, container.firstChild); // container.insertBefore(em, container.firstChild);
                   }
 
                   // em.style.left = '-50%';
@@ -7914,7 +7932,7 @@
                   valAssign(wy, '--ticker-duration-time', duration);
                   wy.id = `${tid}-e`;
 
-                  dntElement.appendChild(wy);
+                  appendChildNaFn(dntElement, wy);
 
                   // if (wio instanceof IntersectionObserver) {
                   //   wio.observe(ey);
@@ -7973,7 +7991,11 @@
 
                   const hostElement = this.hostElement;
                   const container = this.$.container;
-                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
+
+                  const parentComponentCnt = insp(this.parentComponent);
+                  const parentComponentElm = parentComponentCnt? parentComponentCnt.hostElement : null;
+
+                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement && parentComponentElm instanceof HTMLElement) {
                     // const prevTransitionClosingElm = kRef(prevTransitionClosing);
                     // if (prevTransitionClosingElm !== hostElement) {
                     //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
@@ -7982,11 +8004,18 @@
                     // if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
                     hostElement.classList.add('r6-closing-ticker');
 
+                    if (!transitionEndHooks.has(parentComponentElm)) {
+                      transitionEndHooks.add(parentComponentElm);
+                      document.addEventListener('transitionend', transitionEndAfterFn, passiveCapture);
+                    }
+
                     const pr = new PromiseExternal();
                     transitionEndAfterFnSimple.set(hostElement, pr);
                     transitionEndAfterFnSimple.set(container, pr);
+                    transitionEndAfterFnSimpleEnable++;
                     hostElement.classList.add("sliding-down");
                     await pr.then();
+                    transitionEndAfterFnSimpleEnable--;
                     transitionEndAfterFnSimple.delete(hostElement);
                     transitionEndAfterFnSimple.delete(container);
                     if (this && this.hostElement instanceof HTMLElement) {
@@ -8021,7 +8050,11 @@
 
                   const hostElement = this.hostElement;
                   const container = this.$.container;
-                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement) {
+                  
+                  const parentComponentCnt = insp(this.parentComponent);
+                  const parentComponentElm = parentComponentCnt ? parentComponentCnt.hostElement : null;
+
+                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement && parentComponentElm instanceof HTMLElement) {
                     // const prevTransitionClosingElm = kRef(prevTransitionClosing);
                     // if (prevTransitionClosingElm !== hostElement) {
                     //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
@@ -8030,12 +8063,19 @@
                     // if (hostElement.classList.contains('ticker-no-transition-time')) hostElement.classList.remove('ticker-no-transition-time');
                     hostElement.classList.add('r6-closing-ticker');
 
+                    if (!transitionEndHooks.has(parentComponentElm)) {
+                      transitionEndHooks.add(parentComponentElm);
+                      document.addEventListener('transitionend', transitionEndAfterFn, passiveCapture);
+                    }
+
                     const pr = new PromiseExternal();
                     transitionEndAfterFnSimple.set(hostElement, pr);
                     transitionEndAfterFnSimple.set(container, pr);
+                    transitionEndAfterFnSimpleEnable++;
                     hostElement.classList.add("collapsing");
                     hostElement.style.width = "0";
                     await pr.then();
+                    transitionEndAfterFnSimpleEnable--;
                     transitionEndAfterFnSimple.delete(hostElement);
                     transitionEndAfterFnSimple.delete(container);
                     if (this && this.hostElement instanceof HTMLElement) {
@@ -11615,19 +11655,6 @@
 
 
 
-      document.addEventListener('transitionend', (evt) => {
-
-        if (evt.propertyName && !evt.pseudoElement) {
-
-          const elm = evt.target;
-          const f = transitionEndAfterFnSimple.get(elm);
-          if (f) {
-            transitionEndAfterFnSimple.delete(elm);
-            f.resolve(evt.propertyName);
-          }
-        }
-
-      }, true);
 
       /*
 
