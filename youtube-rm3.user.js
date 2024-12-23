@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube RM3 - Reduce Memory Usage by Reusing Components
 // @namespace   Violentmonkey Scripts
-// @version     0.1.0015
+// @version     0.1.0016
 // @license     MIT
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
@@ -43,6 +43,7 @@ const rm3 = window.rm3 = {};
   const DEBUG_OPT = false;
   const CONFIRM_TIME = 4000;
   const CHECK_INTERVAL = 400;
+  const DEBUG_dataChangeReflection = true;
 
 
   /** @type {globalThis.PromiseConstructor} */
@@ -56,6 +57,7 @@ const rm3 = window.rm3 = {};
 
 
   rm3.uniq = uniq; // [[debug]]
+  DEBUG_OPT && (rm3.location= location.href);
 
 
   rm3.inspect = () => {
@@ -384,7 +386,7 @@ const rm3 = window.rm3 = {};
       if (hookTos.size > 777216) hookTos.clear(); // just debug usage, dont concern
       if (operations.size > 7777216) {
         // extremely old elements in operations mean they have no attach/detach action. so no reuse as well. they are just trash in memory.
-        // as no checking of the weakRef.deref() being null or not, those trash could be already cleaned. However we don't concern this. 
+        // as no checking of the weakRef.deref() being null or not, those trash could be already cleaned. However we don't concern this.
         // (not to count whether they are actual memory trash or not)
         const half = operations.size >>> 1;
         let i = 0;
@@ -436,6 +438,13 @@ const rm3 = window.rm3 = {};
             let availablePool = availablePools.get(eKey);
             if (!availablePool) availablePools.set(eKey, availablePool = new LinkedArray());
             if (!(availablePool instanceof LinkedArray)) throw new Error();
+            DEBUG_OPT && console.log(3885,'add key', eKey, availablePools.size)
+            // rm3.showSize = ()=>availablePools.size
+            // setTimeout(()=>{
+            //   // window?.euu1 = availablePools
+            //   // window?.euu2 = availablePools.size
+            //   console.log(availablePools.size)
+            // }, 8000)
             let pivotNode = pivotNodes.get(availablePool);
             if (!pivotNode) pivotNodes.set(availablePool, pivotNode = availablePool.head) // cached the previous newest node (head) as pivotNode
 
@@ -512,6 +521,17 @@ const rm3 = window.rm3 = {};
     //   return x;
     // }
 
+    async function digestMessage(message) {
+      const msgUint8 = new TextEncoder().encode(message); // (utf-8 の) Uint8Array にエンコードする
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8); // メッセージをハッシュする
+      const hashArray = Array.from(new Uint8Array(hashBuffer)); // バッファーをバイト列に変換する
+      const hashHex = hashArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(""); // バイト列を 16 進文字列に変換する
+      return hashHex.toUpperCase();
+    }
+
+
 
     const createComponentDefine_ = function (a, b, c) {
 
@@ -542,6 +562,7 @@ const rm3 = window.rm3 = {};
             let elm = null;
             if (entryRecord[1] < 0 && entryRecord[2] > 0 && entryRecord[4]) {
               elm = entryRecord[0].deref();
+              // elm && console.log(3882, (elm.__shady_native_textContent || elm.textContent))
               if (elm && elm instanceof HTMLElement && elm.isConnected === false && insp(elm).isAttached === false && elm.parentNode === null) {
                 ok = true;
               }
@@ -551,99 +572,200 @@ const rm3 = window.rm3 = {};
 
               // useEntryRecord = entryRecord;
               entryRecord[4] = false;
+              // console.log('nodeDeleted', 1, entryRecord[0].deref().nodeName)
               availablePool.deleteNode(node);
               // break;
 
 
               const cnt = insp(elm);
 
-              // cnt.__dataReady = false;
-              cnt.__dataInvalid = true;
-              cnt.__dataEnabled = false; // tbc
-              // if('__dataEnabled' in cnt)   cnt.__dataEnabled = false;
-              // if ('__dataReady' in cnt && typeof cnt.__dataReady === 'boolean') cnt.__dataReady = false;
-              // if ('__dataInvalid' in cnt && typeof cnt.__dataInvalid === 'boolean') cnt.__dataInvalid = true;
 
-              // try {
-              //   if ('data' in cnt) cnt.data = null;
-              //   if ('__data' in cnt) cnt.__data = null;
-              // } catch (e) { 
-              //   console.warn(e)
-              // }
+              cnt.__dataInvalid = false;
+              // cnt._initializeProtoProperties(cnt.data)
 
-              // try {
-              //   if ('data' in cnt) cnt.data = {};
-              //   if ('__data' in cnt) cnt.__data = {};
-              // } catch (e) { 
-              //   console.warn(e)
-              // }
+              // window.meaa = cnt.$.container;
+              const cntData = cnt.data;
+              cnt.__data = Object.create(cntData);
+              cnt.__dataPending = Object.create(cntData);
+              cnt.__dataOld = {}
 
+              if (DEBUG_OPT && DEBUG_dataChangeReflection) {
 
-
-
-
-
-
-
-
-
-
-              //     const noValue = noValues.get(eKey);
-              //     if(noValue){
-              //       if(!noValue.data) cnt.data = noValue.data;
-              //       if(!noValue.__data) cnt.data = noValue.__data;
-              //     }
-
-              //     const defaultValue = defaultValues.get(eKey);
-              //     if (defaultValue) {
-
-              //     try {
-              //       if ('data' in defaultValue) cnt.data = cpy(cnt.data);
-              //       if ('__data' in defaultValue) cnt.__data = cpy(cnt.__data);
-              // } catch (e) { 
-              //       console.warn(e)
-              //     }
-              //     }
-
-              //     const flg001 = elm.__rm3Flg001__;
-              //     if (cnt.__dataEnabled !== flg001) cnt.__dataEnabled = flg001;
-
-
-
-
-
-
-
-              // const flg001 = elm.__rm3Flg001__;
-              // if (cnt.__dataEnabled !== flg001) cnt.__dataEnabled = flg001;
-
-
-              if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
-              if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
-
-              // cnt.__dataInstanceProps = null;
-              if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
-              // cnt.__serializing = !1;
-
-
-
-              if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
-
-                if ('__dataClientsInitialized' in cnt !== '__dataClientsReady' in cnt) {
-
-                  console.log('[rm3-warning] __dataClientsInitialized and __dataClientsReady should exist in the controller');
-
+                let jC1 = null;
+                let jC2 = null;
+                const jKey = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                try {
+                  jC1 = (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent);
+                  // console.log(83802, jKey, (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent))
+                } catch (e) {
+                  console.warn(e);
                 }
 
-                cnt.__dataClientsReady = !1;
-                cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
-                cnt.__dataHasPaths = !1;
-                cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
-                cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
-                if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
-                cnt.__dataClientsInitialized = !1;
+                setTimeout(() => {
+                  try {
+                    jC2 = (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent);
+                    // console.log(83804, jKey, (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent))
+                  } catch (e) {
+                    console.warn(e);
+                  }
 
+                  (async () => {
+
+
+
+                    jC1 = await digestMessage(jC1);
+                    jC2 = await digestMessage(jC2);
+
+                    console.log(83804, jKey, jC1.substring(0, 7), jC2.substring(0, 7))
+
+                  })()
+
+
+                }, 1000);
               }
+
+              // // try{
+
+              // //             console.log(83801, JSON.stringify(cntData))
+              // // }catch(e){
+              // //   console.warn(e);
+              // // }
+
+              // const jKey = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+              // try{
+
+              //             console.log(83802, jKey, (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent))
+              // }catch(e){
+              //   console.warn(e);
+              // }
+
+              // setTimeout(()=>{
+              // // try{
+
+              // //             console.log(83803, JSON.stringify(cntData))
+              // // }catch(e){
+              // //   console.warn(e);
+              // // }
+              // try{
+
+              //             console.log(83804, jKey, (cnt.hostElement.__shady_native_textContent || cnt.hostElement.textContent))
+              // }catch(e){
+              //   console.warn(e);
+              // }
+              // }, 1000);
+
+
+              // reference
+              // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+              // a.prototype._initializeProtoProperties = function(c) {
+              //     this.__data = Object.create(c);
+              //     this.__dataPending = Object.create(c);
+              //     this.__dataOld = {}
+              // }
+
+              // ------- (NO USE) ------
+              //
+              // a.prototype._initializeProperties = function() {
+              //     this.__dataProto && (this._initializeProtoProperties(this.__dataProto),
+              //     this.__dataProto = null);
+              //     b.prototype._initializeProperties.call(this)
+              // }
+              // ;
+              // a.prototype._initializeProtoProperties = function(c) {
+              //     for (var d in c)
+              //         this._setProperty(d, c[d])
+              // }
+              //
+              // ------- (NO USE) ------
+
+
+              // // cnt.__dataReady = false;
+              // cnt.__dataInvalid = true;
+              // cnt.__dataEnabled = false; // tbc
+              // // if('__dataEnabled' in cnt)   cnt.__dataEnabled = false;
+              // // if ('__dataReady' in cnt && typeof cnt.__dataReady === 'boolean') cnt.__dataReady = false;
+              // // if ('__dataInvalid' in cnt && typeof cnt.__dataInvalid === 'boolean') cnt.__dataInvalid = true;
+
+              // // try {
+              // //   if ('data' in cnt) cnt.data = null;
+              // //   if ('__data' in cnt) cnt.__data = null;
+              // // } catch (e) {
+              // //   console.warn(e)
+              // // }
+
+              // // try {
+              // //   if ('data' in cnt) cnt.data = {};
+              // //   if ('__data' in cnt) cnt.__data = {};
+              // // } catch (e) {
+              // //   console.warn(e)
+              // // }
+
+
+
+
+
+
+
+
+
+
+
+              // //     const noValue = noValues.get(eKey);
+              // //     if(noValue){
+              // //       if(!noValue.data) cnt.data = noValue.data;
+              // //       if(!noValue.__data) cnt.data = noValue.__data;
+              // //     }
+
+              // //     const defaultValue = defaultValues.get(eKey);
+              // //     if (defaultValue) {
+
+              // //     try {
+              // //       if ('data' in defaultValue) cnt.data = cpy(cnt.data);
+              // //       if ('__data' in defaultValue) cnt.__data = cpy(cnt.__data);
+              // // } catch (e) {
+              // //       console.warn(e)
+              // //     }
+              // //     }
+
+              // //     const flg001 = elm.__rm3Flg001__;
+              // //     if (cnt.__dataEnabled !== flg001) cnt.__dataEnabled = flg001;
+
+
+
+
+
+
+
+              // // const flg001 = elm.__rm3Flg001__;
+              // // if (cnt.__dataEnabled !== flg001) cnt.__dataEnabled = flg001;
+
+
+              // if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
+              // if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
+
+              // // cnt.__dataInstanceProps = null;
+              // if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
+              // // cnt.__serializing = !1;
+
+
+
+              // if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
+
+              //   if ('__dataClientsInitialized' in cnt !== '__dataClientsReady' in cnt) {
+
+              //     console.log('[rm3-warning] __dataClientsInitialized and __dataClientsReady should exist in the controller');
+
+              //   }
+
+              //   cnt.__dataClientsReady = !1;
+              //   cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
+              //   cnt.__dataHasPaths = !1;
+              //   cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
+              //   cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
+              //   if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
+              //   cnt.__dataClientsInitialized = !1;
+
+              // }
 
               if (entryRecord[5] < 1e9) entryRecord[5] += 1;
               DEBUG_OPT && Promise.resolve().then(() => console.log(`${eKey} reuse`, entryRecord)); // give some time for attach process
@@ -656,7 +778,12 @@ const rm3 = window.rm3 = {};
 
             }
 
+            // console.log('condi88', entryRecord[1] < 0 , entryRecord[2] > 0 , !!entryRecord[4], !!entryRecord[0].deref())
+
             entryRecord[4] = false;
+
+            // console.log(entryRecord);
+            // console.log('nodeDeleted',2, entryRecord[0]?.deref()?.nodeName)
             availablePool.deleteNode(node);
             node = prevNode;
 
