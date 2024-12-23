@@ -1,8 +1,8 @@
 /* ==UserStyle==
 @name           YouTube: fadeInChatMessage
 @namespace      github.com/openstyles/stylus
-@version        0.1.1
-@description    To fade in Chat Messages
+@version        0.1.2
+@description    To fade in Chat Messages (with YouTube Super Fast Chat)
 @author         CY Fung
 @preprocessor   stylus
 @var number     from-opacity              "From Opacity"                  [0.3, 0, 1, 0.05]
@@ -10,7 +10,8 @@
 @var number     fade-duration             "Fade Duration"                 [350, 10, 900, 10, 'ms']
 @var select     timing-fx                 "Timing Fx"                     {
 "cubic-bezier(.4,.9,.5,1)": "cubic-bezier(.4,.9,.5,1)",
-"linear": "linear"
+"linear": "linear",
+"ease-in-out": "ease-in-out"
 }
 ==/UserStyle== */
 
@@ -31,7 +32,7 @@
     }
 
 
-    [wsr93] {
+    .cyt-chat-last-message {
 
         animation: $animation;
     }
