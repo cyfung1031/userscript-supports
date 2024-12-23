@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.18
+// @version             0.66.19
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7584,7 +7584,7 @@
 
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
-                if(attachementId !== cnt.__ticker_attachmentId__) return;
+                if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
                   if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
                   // this.handlePauseReplay can be undefined if it is memory cleaned
@@ -7602,7 +7602,7 @@
 
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
-                if (attachementId !== cnt.__ticker_attachmentId__) return;
+                if (attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
                   if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
                     cnt.handlePauseReplay66();
@@ -7628,7 +7628,7 @@
 
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
-                if(attachementId !== cnt.__ticker_attachmentId__) return;
+                if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (tid === cnt.rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
                 // this.handleResumeReplay can be undefined if it is memory cleaned
               });
@@ -7644,7 +7644,7 @@
               relayPromise = relayPromise || new PromiseExternal();
               relayPromise.then(() => {
                 const cnt = kRef(jr);
-                if(attachementId !== cnt.__ticker_attachmentId__) return;
+                if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (relayCount > tc && playerState === 1 && _playerState === playerState && cnt.hostElement) {
                   cnt.handleResumeReplay66();
                 }
@@ -7661,7 +7661,7 @@
               const jr = mWeakRef(kRef(this));
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
-                if(attachementId !== cnt.__ticker_attachmentId__) return;
+                if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
                   if (tid === cnt.rtk && cnt.hostElement) {
                     cnt.handleReplayProgress66(a);
