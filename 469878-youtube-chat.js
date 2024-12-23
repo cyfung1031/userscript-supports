@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.17
+// @version             0.66.18
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1749,6 +1749,17 @@
             cnt.__data = Object.create(cntData);
             cnt.__dataPending = Object.create(cntData);
             cnt.__dataOld = {}
+
+            try{
+              cnt.markDirty();
+            }catch(e){}
+            try{
+              cnt.markDirtyVisibilityObserver();
+            }catch(e){}
+            try{
+              cnt.wasPrescan = cnt.wasVisible = !1
+            }catch(e){}
+
 
             // console.log(12323)
 
