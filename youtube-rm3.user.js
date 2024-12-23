@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube RM3 - Reduce Memory Usage by Reusing Components
 // @namespace   Violentmonkey Scripts
-// @version     0.1.0017
+// @version     0.1.0018
 // @license     MIT
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
@@ -532,6 +532,7 @@ const rm3 = window.rm3 = {};
     }
 
 
+    let onPageContainer = null;
 
     const createComponentDefine_ = function (a, b, c) {
 
@@ -576,6 +577,14 @@ const rm3 = window.rm3 = {};
               availablePool.deleteNode(node);
               // break;
 
+              if (!onPageContainer) {
+                let p = document.createElement('noscript');
+                p.style.all = 'unset';
+                document.body.prepend(p);
+                onPageContainer = p;
+              }
+
+              onPageContainer.appendChild(elm); // to fix some issues for the rendered elements
 
               const cnt = insp(elm);
 
@@ -599,6 +608,14 @@ const rm3 = window.rm3 = {};
               try{
                 cnt.wasPrescan = cnt.wasVisible = !1
               }catch(e){}
+
+
+              // try{
+              //   cnt._setPendingProperty('data', Object.assign({}, cntData), !0);
+              // }catch(e){}
+              // try {
+              //   cnt._flushProperties();
+              // } catch (e) { }
 
               if (DEBUG_OPT && DEBUG_dataChangeReflection) {
 
