@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.20
+// @version             0.66.21
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1692,6 +1692,8 @@
 
   const reuseStore = new Map();
 
+  let onPageContainer = null;
+
   const customCreateComponent = (component, data, bool)=>{
 
     const componentTag = typeof component === 'string'  ? component : typeof (component||0).component === 'string' ? (component||0).component  : '';
@@ -1741,24 +1743,54 @@
             // }
             // ;
 
-            cnt.__dataInvalid = false;
-            // cnt._initializeProtoProperties(cnt.data)
+            if(!cnt.__dataInvalid && cnt.__dataEnabled && cnt.__dataReady ){
 
-            // window.meaa = cnt.$.container;
-            const cntData = cnt.data;
-            cnt.__data = Object.create(cntData);
-            cnt.__dataPending = Object.create(cntData);
-            cnt.__dataOld = {}
+              // console.log(12883);
 
-            try{
-              cnt.markDirty();
-            }catch(e){}
-            try{
-              cnt.markDirtyVisibilityObserver();
-            }catch(e){}
-            try{
-              cnt.wasPrescan = cnt.wasVisible = !1
-            }catch(e){}
+
+              if (!onPageContainer) {
+                let p = document.createElement('noscript');
+                p.style.all = 'unset';
+                document.body.prepend(p);
+                onPageContainer = p;
+              }
+
+              onPageContainer.appendChild(elm); // to fix some issues for the rendered elements
+
+              cnt.__dataInvalid = false;
+              cnt.__dataEnabled = true;
+              cnt.__dataReady = true;
+              // cnt._initializeProtoProperties(cnt.data)
+  
+              // window.meaa = cnt.$.container;
+              const cntData = cnt.data;
+              cnt.__data = Object.create(cntData);
+              cnt.__dataPending = Object.create(cntData);
+              cnt.__dataOld = {}
+  
+              try{
+                cnt.markDirty();
+              }catch(e){}
+              try{
+                cnt.markDirtyVisibilityObserver();
+              }catch(e){}
+              try{
+                cnt.wasPrescan = cnt.wasVisible = !1
+              }catch(e){}
+  
+              // try{
+              //   cnt._setPendingProperty('data', Object.assign({}, cntData), !0);
+              // }catch(e){}
+              // // cnt.__dataInvalid = false;
+              // // cnt._enableProperties();
+
+              // try {
+              //   cnt._flushProperties();
+              // } catch (e) { }
+  
+              // cnt.ready();
+
+            }
 
 
             // console.log(12323)
@@ -1926,7 +1958,7 @@
   let resistanceUpdateBusy = false;
   const resistanceUpdateDebugMode = false;
   const allBackgroundOverLays = document.getElementsByTagName('ticker-bg-overlay');
-  const rgFlag = {};
+  // const rgFlag = {};
   const resistanceUpdateFn = (b) => {
     if (!resistanceUpdateDebugMode && allBackgroundOverLays.length === 0) return;
     resistanceUpdateBusy = false;
@@ -7407,6 +7439,7 @@
         }
 
 
+        const overlayBgMap = new WeakMap();
 
         const dProto = {
 
@@ -7532,6 +7565,10 @@
 
             const hostElement = (this || 0).hostElement;
             if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
+ 
+              // otherwise the startCountDown not working
+              hostElement.style.removeProperty('--ticker-start-time');
+              hostElement.style.removeProperty('--ticker-duration-time');
 
               if (kRef(qWidthAdjustable) === hostElement) {
 
@@ -8025,6 +8062,8 @@
 
             const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
 
+              if(cnt.__dataEnabled === false || cnt.__dataInvalid === true) return;
+
               if (!__LCRInjection__) {
                 console.error('[yt-chat] USE_ADVANCED_TICKING fails because of no __LCRInjection__');
               }
@@ -8081,7 +8120,11 @@
 
               const existingOverlaySelector = `ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`;
 
-              if (valAssign(cntElement, '--ticker-start-time', tk) && duration > 0) {
+              const q = kRef(overlayBgMap.get(cnt));
+
+              let r = valAssign(cntElement, '--ticker-start-time', tk);
+
+              if ((r || !q || q.isConnected === false) && duration > 0) {
 
                 // t0 ...... 1 ... fullDurationSec
                 // tk ...... k ... fullDurationSec-durationSec
@@ -8100,6 +8143,7 @@
                   else updateTickerCurrentTime();
                 }
 
+
                 // create overlay if needed
                 if (!cntElement.querySelector(existingOverlaySelector)) {
 
@@ -8110,7 +8154,9 @@
                   // use advancedTicking, ticker enabled
                   cnt.__advancedTicking038__ = 1;
 
-                  const em = document.createElement('ticker-bg-overlay');
+                  const em = q || document.createElement('ticker-bg-overlay');
+
+                  overlayBgMap.set(cnt, mWeakRef(em));
                   // const ey = document.createElement('ticker-bg-overlay-end');
                   const wy = document.createElement('ticker-bg-overlay-end2');
 
@@ -8324,9 +8370,11 @@
             if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
               cProto.requestRemoval49 = cProto.requestRemoval;
               cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
+                
+                const hostElement = this.hostElement;
                 if (this.__advancedTicking038__) {
                   try {
-                    const overlayBg = this.hostElement.querySelector('ticker-bg-overlay[id]');
+                    const overlayBg = hostElement.querySelector('ticker-bg-overlay[id]');
                     if (overlayBg) {
                       const overlayBgId = overlayBg.id;
                       const tid = overlayBgId ? overlayBgId.substring(0, overlayBgId.length - 2) : '';
@@ -8339,8 +8387,12 @@
                   } catch (e) { }
                   this.__advancedTicking038__ = 2;
                   // console.log('requestRemoval!!')
+                  if (hostElement instanceof HTMLElement) {
+                    // otherwise the startCountDown not working
+                    hostElement.style.removeProperty('--ticker-start-time');
+                    hostElement.style.removeProperty('--ticker-duration-time');
+                  }
                   if (REUSE_TICKER) {
-                    const hostElement = this.hostElement;
                     const cntData = this.data;
                     if (hostElement instanceof HTMLElement && cntData.id && cntData.fullDurationSec && !hostElement.hasAttribute('__reuseid__')) {
                       hostElement.setAttribute('__reuseid__', reuseId);
@@ -8350,7 +8402,6 @@
                     }
                   }
                 }
-                const hostElement = this.hostElement;
                 if (hostElement instanceof HTMLElement) {
                   // try {
                   //   // hostElement.remove();
