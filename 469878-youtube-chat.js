@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.19
+// @version             0.66.20
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2879,7 +2879,7 @@
 
 
 
-    let aeConstructor = null;
+    // let aeConstructor = null;
 
     // << __openedChanged82 >>
     let currentMenuPivotWR = null;
@@ -2907,12 +2907,12 @@
 
     let scrollChatFn = null;
 
-    let skipDontRender = true; // true first; false by flushActiveItems_
-    let allowDontRender = null;
+    // let skipDontRender = true; // true first; false by flushActiveItems_
+    // let allowDontRender = null;
 
     // ---- #items mutation ----
     let sk35zResolveFn = null;
-    let firstList = true;
+    // let firstList = true;
 
     // << end >>
 
@@ -4034,6 +4034,7 @@
 
 
       let hasFirstShowMore = false;
+      // let lastVisible = null;
 
       const visObserverFn = (entry) => {
 
@@ -4052,6 +4053,7 @@
         if (isVisible) {
           // target.style.setProperty('--wsr94', h + 'px');
           target.setAttribute('wSr93', 'visible');
+          // lastVisible = mWeakRef(target);
           if (nNextElem(target) === null) {
 
             // firstVisibleItemDetected = true;
@@ -4103,6 +4105,20 @@
           Promise.resolve(entry).then(visObserverFn);
 
         }
+
+        // const _lastVisible = kRef(lastVisible);
+        // for (const entry of entries) {
+
+        //   // Promise.resolve(entry).then(visObserverFn);
+        //   visObserverFn(entry);
+
+        // }
+        // const lastVisibleC = kRef(lastVisible);
+
+        // if (_lastVisible !== lastVisibleC) {
+        //   if (_lastVisible instanceof HTMLElement) _lastVisible.classList.remove('cyt-chat-last-message');
+        //   if (lastVisibleC instanceof HTMLElement) lastVisibleC.classList.add('cyt-chat-last-message');
+        // }
 
       }, {
         // root: HTMLElement.prototype.closest.call(m2, '#item-scroller.yt-live-chat-item-list-renderer'), // nullable
@@ -4167,10 +4183,11 @@
           });
           mutFn(m2);
 
-          const isFirstList = firstList;
-          firstList = false;
+          // const isFirstList = firstList;
+          // firstList = false;
 
           if (ENABLE_OVERFLOW_ANCHOR) {
+            // console.log('ENABLE_OVERFLOW_ANCHOR', m2)
 
             let items = m2;
             let addedAnchor = false;
@@ -4243,7 +4260,7 @@
 
 
                     relayCount++;
-                    lastPlayerProgress = vp > 0 ? vp : 0;
+                    lastPlayerProgress = vp > 0 ? vp : 0; // no use ?
 
 
                     if (relayPromise && vp > 0 && relayCount >= 2) {
@@ -4814,25 +4831,25 @@
 
       const limitAddition = (a, b) => {
         // Number.MAX_SAFE_INTEGER = 9007199254740991
-        // k^2 = 9007199254740991 => k = 94906265.62425154
-        // Choose k = 2^26 = 67108864 < 94906265.62425154
-        // Consider x - x/sqrt(1+x^2/k^2) = 0.4 |x=w => w = 153302.9412
-        // Choose w = 2^17 = 131072 < 153302.9412
+        // formula = Math.round((a + b) / (1 + a * b / k / k))
+        // avoid a*b > 9007199254740991
+        // say a, b <= 94800000
+        // Consider (x+x) - (x+x) / (1 + x^2 / k^2) < 0.49
+        // x < 130095
 
-        const k = 67108864;
-        const w = 131072;
+        const w = 130095;
         if (a < w && b < w) return a + b;
-        return Math.round((a + b) / (1 + a * b / k / k));
+        const k2 = 94800000 * 94800000;
+        return Math.round((a + b) / (1 + (a * b) / k2));
       }
 
       const preprocessChatLiveActions = (arr) =>{
 
-        if (!__LCRInjection__) {
-          console.error('[yt-chat] preprocessChatLiveActions might fail because of no __LCRInjection__');
-        }
-
         if (!fir) {
 
+          if (!__LCRInjection__) {
+            console.error('[yt-chat] preprocessChatLiveActions might fail because of no __LCRInjection__');
+          }
 
           console.log('[yt-chat-debug] 5990', 'preprocessChatLiveActions', arr)
 
@@ -4842,9 +4859,9 @@
           // debugger;
         }
 
-        if(!arr || !arr.length) return arr;
+        if (!arr || !arr.length) return arr;
 
-        if(preprocessChatLiveActionsMap.has(arr)) return arr;
+        if (preprocessChatLiveActionsMap.has(arr)) return arr;
         preprocessChatLiveActionsMap.add(arr);
 
 
@@ -4936,9 +4953,13 @@
                   const group = groups[lastK];
                   const newN = limitAddition(group[2], gCount);
 
-                  group[0] = (group[0] * group[2] + groupStart * gCount) / (group[2] + gCount)
+                  const factor = gCount / (group[2] + gCount);
 
-                  group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount) / (group[2] + gCount)
+                  // group[0] = (group[0] * group[2] + groupStart * gCount) / (group[2] + gCount)
+                  group[0] += (groupStart - group[0]) * factor;
+
+                  // group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount) / (group[2] + gCount)
+                  group[1] += (groupEnd - group[1]) * factor;
 
                   group[2] = newN;
                   // no change of lastK
@@ -4961,7 +4982,8 @@
                 // if (t0auDv > groupStart) group[0] = t0auDv;
                 // else if (t0buDv < groupEnd) group[1] = t0buDv;
 
-                const newStart = (groupStart * gCount + t0auDv) / (gCount + 1);
+                // const newStart = (groupStart * gCount + t0auDv) / (gCount + 1);
+                const newStart = groupStart + (t0auDv - groupStart) * 1 / (gCount + 1);
 
                 if (newStart < lastRight) {
                   // n_e{1} will make N_b shift left
@@ -4972,10 +4994,14 @@
 
                   const group = groups[lastK];
                   const newN = limitAddition(limitAddition(group[2], gCount), 1);
+                  const f1 = gCount / (group[2] + gCount + 1);
+                  const f2 = 1 / (group[2] + gCount + 1);
 
-                  group[0] = (group[0] * group[2] + groupStart * gCount + t0auDv) / (group[2] + gCount + 1)
+                  // group[0] = (group[0] * group[2] + groupStart * gCount + t0auDv) / (group[2] + gCount + 1);
+                  group[0] += (groupStart - group[0]) * f1 + (t0auDv - group[0]) * f2;
 
-                  group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount + t0buDv) / (group[2] + gCount + 1)
+                  // group[1] = lastRight = (group[1] * group[2] + groupEnd * gCount + t0buDv) / (group[2] + gCount + 1)
+                  lastRight = (group[1] += (groupEnd - group[1]) * f1 + (t0buDv - group[1]) * f2);
 
                   group[2] = newN;
                    // no change of lastK
@@ -4992,7 +5018,8 @@
                   const newN = limitAddition(gCount, 1);
 
                   group[0] = newStart;
-                  group[1] = lastRight = (groupEnd * gCount + t0buDv) / (gCount + 1);
+                  // group[1] = lastRight = (groupEnd * gCount + t0buDv) / (gCount + 1);
+                  group[1] = lastRight = groupEnd + (t0buDv - groupEnd) * 1 / (gCount + 1);
                   group[2] = newN;
 
                   lastK = k;
@@ -5915,6 +5942,8 @@
           setupStyle(itemOffset, items);
 
           setupMutObserver(items);
+
+          console.log('[yt-chat] setupMutObserver DONE')
         }
 
         mclp.attached419 = async function () {
@@ -6193,7 +6222,48 @@
 
             let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
 
-            mclp.flushActiveItems66_ = mclp.flushActiveItems_;
+            mclp.flushActiveItems66a_ = mclp.flushActiveItems_;
+            let lastLastRow = null;
+            mclp.flushActiveItems66_ = function () {
+              const visibleItemsA = (this || 0).visibleItems;
+              const lastVisibleItemA = visibleItemsA ? visibleItemsA[visibleItemsA.length - 1] : null;
+              const r = this.flushActiveItems66a_();
+
+              const visibleItemsB = (this || 0).visibleItems;
+              const lastVisibleItemB = visibleItemsB ? visibleItemsB[visibleItemsB.length - 1] : null;
+
+              if (lastVisibleItemA !== lastVisibleItemB) {
+
+                try {
+                  const lastRow = kRef(lastLastRow);
+
+                  const keyB = lastVisibleItemB ? firstObjectKey(lastVisibleItemB) : '';
+                  const idB = keyB ? (lastVisibleItemB[keyB].id || null) : null;
+
+                  if (idB) {
+
+                    let elm = this.$.items.lastElementChild;
+
+                    while (elm instanceof HTMLElement) {
+                      if (elm.id === idB) break;
+                      elm = ('__shady_native_previousElementSibling' in elm) ? elm.__shady_native_previousElementSibling : elm.previousElementSibling;
+                    }
+
+                    lastRow && lastRow.classList.remove('cyt-chat-last-message');
+                    if (elm) {
+                      elm.classList.add('cyt-chat-last-message');
+                      lastLastRow = mWeakRef(elm);
+                    }
+
+                  }
+
+                } catch (e) { }
+
+
+              }
+
+              return r; 
+            }
 
 
             const preloadFn = (acItems) => {
@@ -6325,12 +6395,12 @@
 
                 const pn = preloadFn(acItems);
                 const noVisibleItem1 = ((cnt.visibleItems || 0).length || 0) === 0;
-                skipDontRender = noVisibleItem1;
+                // skipDontRender = noVisibleItem1;
                 await pn();
                 // console.log('ss2', Date.now())
                 cnt.flushActiveItems66_();
                 const noVisibleItem2 = ((cnt.visibleItems || 0).length || 0) === 0;
-                skipDontRender = noVisibleItem2;
+                // skipDontRender = noVisibleItem2;
                 await Promise.resolve();
                 if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
                   this.data.maxItemsToDisplay = tmpMaxItemsCount;
