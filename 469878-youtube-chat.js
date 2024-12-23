@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.16
+// @version             0.66.17
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7448,6 +7448,22 @@
               cnt.rafId > 1 && rafHub.cancel(cnt.rafId);
             }).catch(console.warn);
 
+
+            const hostElement = (this || 0).hostElement;
+            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
+
+              if (kRef(qWidthAdjustable) === hostElement) {
+
+                // need to update the first ticker
+                const q = document.querySelector('.r6-width-adjustable');
+                if (q instanceof HTMLElement && q.classList.contains('r6-width-adjustable-f')) {
+                  q.classList.remove('r6-width-adjustable-f');
+                }
+                qWidthAdjustable = mWeakRef(q);
+
+              }
+            }
+
             let r;
             try {
               r = this.detached77();
@@ -7462,8 +7478,8 @@
             if (tickerAttachmentId > 1e9) tickerAttachmentId = 9;
             this.__ticker_attachmentId__ = ++tickerAttachmentId;
 
-            const hostElement = this.hostElement;
-            if (USE_ADVANCED_TICKING && this.__isTickerItem58__ && hostElement instanceof HTMLElement) {
+            const hostElement = (this || 0).hostElement;
+            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
               const prevElement = kRef(qWidthAdjustable);
               if (prevElement instanceof HTMLElement) {
                 prevElement.classList.add('r6-width-adjustable-f');
