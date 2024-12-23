@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.15
+// @version             0.66.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -141,7 +141,7 @@
   const ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU = false;   // pause auto scroll faster when the context menu is about to show
   const ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU = true;                // avoid multiple requests on the same time
 
-  const BOOST_MENU_OPENCHANGED_RENDERING = true;                   
+  const BOOST_MENU_OPENCHANGED_RENDERING = true;
   const FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK = true;  // click again = close
   const NO_ITEM_TAP_FOR_NON_STATIONARY_TAP = true;                // dont open the menu (e.g. text message) if cursor is moved or long press
   const TAP_ACTION_DURATION = 280;                                // exceeding 280ms would not consider as a tap action
@@ -232,11 +232,11 @@
 
 
 /**
- * 
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
+ *
         rendererStamperObserver_: function(a, b, c) {
             if (c.path == a) {
                 if (c.value === void 0 && !this.hasDataPath_[a])
@@ -254,11 +254,11 @@
                 this.hasDataPath_[a] = !1) : Er(new Dn("Bad rendererstamper config",this.is + ":" + a))
             }
         },
- * 
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
+ *
  */
 
 
@@ -562,12 +562,12 @@
 
 
   // document.createElement4521 = document.createElement;
-  
+
   // document.createElement = function(){
   //   if(arguments[0]==='yt-live-chat-ticker-paid-message-item-renderer' || arguments[0]==='yt-live-chat-ticker-paid-sticker-item-renderer' || arguments[0]==='yt-live-chat-ticker-sponsor-item-renderer'){
   //     console.log(8123, [...arguments]);
   //     debugger;
-      
+
   //   }
   //   // if(`${arguments[0]}`.indexOf('-')>=0) console.log(8123, [...arguments]);
   //   return document.createElement4521(...arguments);
@@ -1014,7 +1014,7 @@
   `: '';
 
   const cssText19_FOR_ADVANCED_TICKING = USE_ADVANCED_TICKING ? `
-      
+
       ticker-bg-overlay {
         display: block;
         position: absolute;
@@ -1050,7 +1050,7 @@
         z-index: -1;
         visibility: collapse;
 
-      
+
       }
 
 
@@ -1072,7 +1072,7 @@
         .r6-width-adjustable-f {
           --r6-transition-duration-v: 0s;
         }
-      
+
         .r6-closing-ticker[class] {
           --r6-transition-duration-v: var(--r6-transition-duration);
         }
@@ -1088,14 +1088,14 @@
         .r6-width-adjustable-f {
           --r6-min-width: max-content;
         }
-      
+
         .r6-closing-ticker[class] {
           --r6-min-width: 0;
         }
-  
+
   ` : '';
   // const cssText19_FOR_ADVANCED_TICKING = `
-  
+
   // ticker-bg-overlay {
   //   display: block;
   //   position: absolute;
@@ -1149,7 +1149,7 @@
   //   z-index: -1;
   //   visibility: collapse;
 
-  
+
   // }
 
   // /* USE_ADVANCED_TICKING */
@@ -1161,7 +1161,7 @@
   // }
 
   // [r6-advanced-ticking] .style-scope.yt-live-chat-ticker-renderer ~ .style-scope.yt-live-chat-ticker-renderer:not(.r6-closing-ticker) {
-  //   transition-duration: 0s !important; 
+  //   transition-duration: 0s !important;
   // }
 
   // */
@@ -1706,16 +1706,16 @@
         }
 
         const record = reuseStore.get(`<${componentTag}>${data.id}:${data.fullDurationSec}`);
-        
+
         const cnt = kRef(record);
 
-        
+
         if(cnt && cnt.isAttached === false){
 
           const hostElement = cnt.hostElement;
 
           if(hostElement instanceof HTMLElement && hostElement.isConnected === false && hostElement.parentNode === null && hostElement.getAttribute('__reuseid__')===reuseId ){
- 
+
           // console.log(952, cnt.hostElement.parentNode)
           // debugger;
             if (hostElement.hasAttribute('__nogc__')) {
@@ -1727,34 +1727,134 @@
 
             }
 
-            //  ------- follow rm3 ------- 
+            //  ------- follow rm3 -------
 
-            cnt.__dataInvalid = true;
-            cnt.__dataEnabled = false;
-            if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
-            if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
-            if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
-            if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
-              cnt.__dataClientsReady = !1;
-              cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
-              cnt.__dataHasPaths = !1;
-              cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
-              cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
-              if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
-              cnt.__dataClientsInitialized = !1;
-            }
+            // a.prototype._initializeProtoProperties = function(c) {
+            //         this.__data = Object.create(c);
+            //         this.__dataPending = Object.create(c);
+            //         this.__dataOld = {}
+            //     }
+            // a.prototype._initializeProperties = function() {
+            //     this.__dataProto && (this._initializeProtoProperties(this.__dataProto),
+            //     this.__dataProto = null);
+            //     b.prototype._initializeProperties.call(this)
+            // }
+            // ;
 
-            //  ------- follow rm3 ------- 
+            cnt.__dataInvalid = false;
+            // cnt._initializeProtoProperties(cnt.data)
+
+            // window.meaa = cnt.$.container;
+            const cntData = cnt.data;
+            cnt.__data = Object.create(cntData);
+            cnt.__dataPending = Object.create(cntData);
+            cnt.__dataOld = {}
+
+            // console.log(12323)
+
+            // setTimeoutX0(()=>{
+            //   console.log(window.meaa.parentNode)
+            // }, 1000)
+
+
+              // ------------ commented ------------
+            
+              // cnt.__dataInvalid = false;
+              // cnt.__dataEnabled = false;
+              // if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
+              // if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
+              // if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
+              // if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
+              //   cnt.__dataClientsReady = !1;
+              //   cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
+              //   cnt.__dataHasPaths = !1;
+              //   cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
+              //   cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
+              //   if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
+              //   cnt.__dataClientsInitialized = !1;
+              // }
+  
+              // try{
+              //   cnt._flushProperties();
+              // }catch(e){
+              //   console.warn(e)
+              // }
+            
+              // for (const elm of cnt.hostElement.getElementsByTagName('*')) {
+              //   if (elm.is) {
+              //     const cnt = insp(elm);
+  
+              //     cnt.__dataInvalid = false;
+              //     cnt.__dataEnabled = false;
+              //     if (cnt.__dataPending && typeof cnt.__dataPending === 'object') cnt.__dataPending = null;
+              //     if (cnt.__dataOld && typeof cnt.__dataOld === 'object') cnt.__dataOld = null;
+              //     if (cnt.__dataCounter && typeof cnt.__dataCounter === 'number') cnt.__dataCounter = 0;
+              //     if ('__dataClientsInitialized' in cnt || '__dataClientsReady' in cnt) {
+              //       cnt.__dataClientsReady = !1;
+              //       cnt.__dataLinkedPaths = cnt.__dataToNotify = cnt.__dataPendingClients = null;
+              //       cnt.__dataHasPaths = !1;
+              //       cnt.__dataCompoundStorage = null; // cnt.__dataCompoundStorage = cnt.__dataCompoundStorage || null;
+              //       cnt.__dataHost = null; // cnt.__dataHost = cnt.__dataHost || null;
+              //       if (!cnt.__dataTemp) cnt.__dataTemp = {}; // cnt.__dataTemp = {};
+              //       cnt.__dataClientsInitialized = !1;
+              //     }
+  
+              //     try {
+              //       cnt._flushProperties();
+              //     } catch (e) {
+              //       console.warn(e)
+              //     }
+  
+              //     if (elm.nodeName === 'YT-ICON') {
+              //       // console.log(2133, JSON.stringify( cnt.__data))
+              //       const qq = Object.assign({}, cnt.__data)
+              //       console.log(1232466)
+              //       const _qww = cnt;
+              //       cnt.__data = new Proxy(Object.assign({}, qq), {
+              //         get(target, p) {
+              //           console.log(12838, p)
+  
+              //           if (p === 'icon') {
+              //             window.wmk = _qww.hostElement;
+              //             //  debugger;
+              //           }
+              //           return target[p]
+              //         },
+              //         set(target, p, v) {
+              //           console.log(12839, p)
+              //           target[p] = v;
+              //           if (p === 'icon') debugger;
+              //           return true;
+              //         }
+              //       });
+  
+  
+              //       Promise.resolve(cnt).then((cnt) => {
+              //         cnt.__data = Object.assign({}, qq);
+              //       });
+              //     }
+  
+              //     // let q = elm.nextSibling;
+              //     // let h = elm.parentNode;
+              //     //             elm.remove();
+              //     //           h.insertBefore(elm, q);
+              //     // console.log(2233, elm)
+              //   }
+              // }
+            
+              // ------------ commented ------------
+
+            //  ------- follow rm3 -------
 
             // console.log('[yt-chat] reuse')
-            
+
 
             return hostElement;
 
 
           }
 
-        } 
+        }
 
       }
 
@@ -1791,10 +1891,10 @@
 
   const updateTickerCurrentTime = () => {
 
-    if(resistanceUpdateDebugMode){
+    if (resistanceUpdateDebugMode) {
       console.log('updateTickerCurrentTime')
 
-      if(!dntElementWeak || !kRef(dntElementWeak)) dntElementWeak = mWeakRef(document.querySelector('yt-live-chat-ticker-renderer'));
+      if (!dntElementWeak || !kRef(dntElementWeak)) dntElementWeak = mWeakRef(document.querySelector('yt-live-chat-ticker-renderer'));
       timestampUnderLiveMode = true;
     }
 
@@ -1826,7 +1926,7 @@
       updateTickerCurrentTime();
     }
   }
-  const resistanceUpdateFn_ = ()=>{
+  const resistanceUpdateFn_ = () => {
     if (!resistanceUpdateBusy) {
       resistanceUpdateBusy = true;
       Promise.resolve().then(resistanceUpdateFn);
@@ -1873,7 +1973,7 @@
     return Function.prototype.bind.call(console.log, console, `%c ${key}`, 'background: #222; color: #bada55', f);
   }
 
- 
+
 
   const assertor = (f) => f() || (console.assert(false, f + ""), false);
 
@@ -2175,8 +2275,8 @@
     */
 
   })();
-  
-  
+
+
 
   let __LCRInjection__ = 0; // 0 for no injection
   const LCRImmedidates = []; // array of sync. func
@@ -2201,7 +2301,7 @@
 
         let qt38=0;
         let bypass = false;
-        
+
 
         dummy = await new Promise(resolve => {
 
@@ -2229,7 +2329,7 @@
 
                 //   return this.handleLiveChatActions471_(arr);
 
-    
+
                 // }
 
                 for (const f of LCRImmedidates) {
@@ -4006,7 +4106,7 @@
     })();
 
     const { setupMutObserver } = (() => {
-  
+
 
       const mutFn = (items) => {
         let seqIndex = -1;
@@ -4515,7 +4615,7 @@
           }
           return thisArg;
         }
-    
+
         const pFnHandler2 = {
           get(target, prop) {
             if (prop === vmc) return target;
@@ -4526,8 +4626,8 @@
             if (thisArg) return Reflect.apply(target, thisArg, argumentsList);
           }
         }
-    
-        
+
+
         const proxySelfHandler = {
           get(target, prop) {
             if(prop === vmb) return target;
@@ -4551,7 +4651,7 @@
             return true;
           }
         };
-    
+
         const weakWrap = (thisArg) => {
           thisArg = thisConversionFn(thisArg);
           if (!thisArg) {
@@ -4652,27 +4752,27 @@
       };
 
       const groupsK38=[];
- 
+
 
       function intervalsOverlap(a1, a2, b1, b2) {
         // Order the intervals without using Math functions
         var startA = a1 <= a2 ? a1 : a2;
         var endA   = a1 <= a2 ? a2 : a1;
-      
+
         var startB = b1 <= b2 ? b1 : b2;
         var endB   = b1 <= b2 ? b2 : b1;
-      
+
         // Check for overlap
         return endA >= startB && endB >= startA;
       }
 
- 
+
 
       const insertIntoSortedArrayA28 = (arr, val) => {
         let left = 0;
         const n = arr.length;
         let right = n;
-      
+
         // Binary search to find the correct insertion index:
         // We want the first index where arr[index][2] >= val[2].
         while (left < right) {
@@ -4683,11 +4783,11 @@
             right = mid;
           }
         }
-      
+
         // 'left' is now the insertion index
         left === n ? arr.push(val): arr.splice(left, 0, val);
       };
- 
+
       function removeNullsInPlace(arr, startI = 0) {
         let insertPos = startI;
         for (let i = startI; i < arr.length; i++) {
@@ -4889,7 +4989,7 @@
                   //  (t0asDv > groupStart)  &&  (t0bsDv < groupEnd)   means full containement
                   // however, group size is smaller than or equal to t0width
                 }
-                
+
 
               } else {
                 // just update record for next iteration
@@ -4932,7 +5032,7 @@
 
             let q = obj.timestampUsec ;
             let q2;
-            
+
             if(q && +q > 1110553200000000) q2 = +q;
             if (q2 > 0 && !autoTimeStampFrameChoose) {
               const q2cc = Math.round(q2 / 1e6);
@@ -4957,7 +5057,7 @@
 
                   p3 = c1 * 60 + c2;
                 } else if (c0z < 0 && c1 >= 0 && c2 >= 0) {
-                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58 
+                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58
                   // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
 
                   p3 = (-c1 * 60) + (-c2);
@@ -4981,7 +5081,7 @@
 
                   p3 = c1 * 60 * 60 + c2 * 60 + c3;
                 } else if (c0z < 0 && c1 >= 0 && c2 >= 0 && c3>=0) {
-                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58 
+                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58
                   // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
 
                   p3 = (-c1 * 60 * 60) + (-c2 * 60) + (-c3);
@@ -5033,8 +5133,8 @@
               //   p4a,
               //   p4b,
               //   */
-              //   q2s: +(q2 / 1e6 - autoTimeStampFrameChoose).toFixed(2), 
-              //   t0as: +(t0au / 1e6 - autoTimeStampFrameChoose).toFixed(2), 
+              //   q2s: +(q2 / 1e6 - autoTimeStampFrameChoose).toFixed(2),
+              //   t0as: +(t0au / 1e6 - autoTimeStampFrameChoose).toFixed(2),
               //   t0bs: +(t0bu /1e6 - autoTimeStampFrameChoose).toFixed(2),
 
               //   t0au,
@@ -5096,8 +5196,8 @@
 
             }
 
-            
-            
+
+
 
           }
 
@@ -5157,7 +5257,7 @@
 
           }
 
-          let upperDiff = -1; 
+          let upperDiff = -1;
           let lowerDiff = -1;
           for (let i = i0; i < groupCount; i++) {
             const y = groupMids[i] - t0mu;
@@ -5167,7 +5267,7 @@
             }
             lowerDiff = -y; // >0, cache
           }
- 
+
 
           const d1 = upperDiff;
           const d2 = lowerDiff;
@@ -5247,14 +5347,14 @@
         //       if(index1 >=0){
         //         d1 = Math.abs(groupMids[index1] - t0mu);
         //       }
-  
+
         //       let d2 = null;
         //       if(index2 >=0){
         //         d2 = Math.abs(groupMids[index2] - t0mu);
         //       }
         //       // console.log(5381, index1 ,d1, index2 , d2);
         //       if(d1 >= 0 && ((d1 <= d2) || (d2 === null)) ){
-                
+
         //         wobj.chosenT0 = groupMids[index1];
         //       } else if(d2 >= 0 &&  ((d2 <= d1) || (d1 === null))){
         //         wobj.chosenT0 = groupMids[index2];
@@ -5271,9 +5371,9 @@
         //       // conversionMap.set(obj, arrHash[j].adjustedTime);
 
         //       // console.log(5382, index, id, t0mu, arrHash[j].adjustedT0, arrHash[j].timestampUsec, arrHash[j].adjustedTime);
-  
+
         //     }
-  
+
 
         //   }catch(e){
         //     console.warn(e);
@@ -5314,7 +5414,7 @@
 
         //   // }
 
-          
+
 
 
         //   // console.log(376, 'group', groups);
@@ -5354,7 +5454,7 @@
 
         //   //   // console.log(377, stack) // Ms
 
-        //   // } 
+        //   // }
 
 
         //   // console.timeEnd('FIX_TIMESTAMP_FOR_REPLAY')
@@ -5370,22 +5470,22 @@
 
 
         // console.log(5592,5)
-        
+
 
         // console.log('preprocessChatLiveActions', arr)
 
 
         const mapper = new Map();
 
-        // without delaying. get the time of request 
+        // without delaying. get the time of request
         // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
-        
+
         for (let j = 0, l = arr.length; j < l; j++) {
           const aItem = arr[j];
 
           const obj = toLAObj(aItem);
           if(obj === false) continue;
-        
+
           if (obj.id && !obj.__timestampActionRequest__) {
             // for all item entries
             obj.__timestampActionRequest__ = ct;
@@ -5546,7 +5646,7 @@
 
               if (!Number.isFinite(baseTime)) {
                 console.warn(`no baseTime for ${obj.id}.${obj.timestampUsec}`, obj);
-                
+
                 return false;
               }
               timestampUsec = baseTime;
@@ -5559,36 +5659,36 @@
               return true;
             // }
             // return false;
-  
+
           });
 
           if(mapper.size > 1){
 
-  
+
             // console.log(1237004)
             let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
               return mapper.get(a) - mapper.get(b);
               // low index = oldest = smallest timestamp
             });
-    
-    
-    
+
+
+
             // console.log(948701, arr.slice(0));
             for(let j = 0, l=mArr1.length;j <l;j++){
-    
+
               const idx = idxices[j];
               arr[idx] = mArr2[j];
-  
+
               // const obj1 = toObj(mArr1[j]);
               // const obj2 = toObj(mArr2[j]);
-  
-              
+
+
               // console.log(948711, idx, obj1 === obj2, obj1, obj1.timestampUsec);
               // console.log(948712, idx, obj1 === obj2, obj2, obj2.timestampUsec);
             }
 
           }
-  
+
 
         }
 
@@ -5700,7 +5800,7 @@
 
           // console.log("[End]");
           // console.groupEnd();
-          
+
 
         };
         !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
@@ -6455,9 +6555,9 @@
               // Dec 2024.
 
               /**
-               * 
-               * 
-                          
+               *
+               *
+
                   f.atBottomChanged_ = function() {
                       var a = this;
                       this.atBottom ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = Zu(function() {
@@ -6466,7 +6566,7 @@
                       this.hideShowMoreAsync_ = null,
                       R(this.hostElement).querySelector("#show-more").style.visibility = "visible")
                   }
-              * 
+              *
               */
 
             } else {
@@ -6558,21 +6658,21 @@
               // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
               /**
-               * 
-               * 
-               * 
-                          
+               *
+               *
+               *
+
                   f.atBottomChanged_ = function(a) {
                       var b = this;
                       a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = zQ(function() {
                           T(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                      }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_), 
-                      this.hideShowMoreAsync_ = null, 
+                      }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_),
+                      this.hideShowMoreAsync_ = null,
                       T(this.hostElement).querySelector("#show-more").style.visibility = "visible")
                   };
 
-              * 
-               * 
+              *
+               *
                */
 
 
@@ -7110,74 +7210,74 @@
 
       /*
             Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
-      
-      
+
+
               const dProto = {
-      
+
                 detachedForTickerInit: function () {
-      
+
                   try {
-      
+
                     this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
-      
+
                     // this.behaviorActionMap = 0;
                     // this.isVisibilityRoot = 0;
-      
-      
+
+
                   } catch (e) { }
-      
-      
+
+
                   return this.detached582MemoryLeak();
                 },
-      
+
                 attachedForTickerInit: function () {
                   wmList.add(new WeakRef(this))
-      
+
                   // fpTicker(this.hostElement || this);
                   return this.attached77();
-      
+
                 },
-      
-      
+
+
               }
-      
-      
+
+
               for (const tag of tagsItemRenderer) { // ##tag##
                 const dummy = document.createElement(tag);
-      
+
                 const cProto = getProto(dummy);
                 if (!cProto || !cProto.attached) {
                   console.warn(`proto.attached for ${tag} is unavailable.`);
                   continue;
                 }
-      
+
                 if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
                   cProto.detached582MemoryLeak = cProto.detached;
                   cProto.detached = cProto.detachedForTickerInit;
                 }
-      
+
                 cProto.attached77 = cProto.attached;
-      
+
                 cProto.attached = dProto.attachedForTickerInit;
-      
-      
+
+
               }
-      
+
             });
             */
 
 
-            
+
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
         if (FLAG_001b) return;
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
- 
+
 
         let tickerAttachmentId = 0;
- 
+
 
         const __requestRemoval__ = function (cnt) {
           if (cnt.hostElement && typeof cnt.requestRemoval === 'function') {
@@ -7215,7 +7315,7 @@
             const {promise, values} =widthIORes.get(elm) || {};
             if(promise) return promise;
           }
-          
+
           const promise = new PromiseExternal();
           widthIORes.set(elm, {promise, values: {}});
           widthIO.unobserve(elm);
@@ -7224,14 +7324,14 @@
           return promise;
 
         }
- 
+
 
 
         const dProto = {
 
 
             /**
-             * 
+             *
 
     f.updateStatsBarAndMaybeShowAnimation = function(a, b, c) {
         var d = this;
@@ -7256,14 +7356,14 @@
         })))
     }
 
-             * 
+             *
              */
 
 
 
         /**
-         * 
-         * 
+         *
+         *
 
     f.animateShowStats = function() {
         var a = this.textContent.animate({
@@ -7310,9 +7410,9 @@
             delay: b
         })
     }
-         * 
+         *
          */
-        
+
           updateStatsBarAndMaybeShowAnimationRevised: function (a, b, c) {
             // prevent memory leakage due to d.data was asked in  a.finished.then
             try{
@@ -7328,15 +7428,15 @@
           detachedForMemoryLeakage: function () {
 
             try{
-  
+
               this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
-              
+
               // this.behaviorActionMap = 0;
               // this.isVisibilityRoot = 0;
-  
-  
+
+
             }catch(e){}
-          
+
             return this.detached582MemoryLeak();
           },
 
@@ -7412,7 +7512,7 @@
               console.log('slideDownNoSelfLeakage ERROR');
               console.error(e);
             }
-            
+
           },
 
           collapseNoSelfLeakage: function(){
@@ -7472,7 +7572,7 @@
               if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
               const tid = ++this.rtk;
               const tc = relayCount;
-              
+
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
                 if (attachementId !== cnt.__ticker_attachmentId__) return;
@@ -7611,7 +7711,7 @@
             // console.log(Object.getOwnPropertyNames(cProto))
             // continue;
           }
-          
+
           // ------------- withTimerFn_ -------------
 
           // ------------- ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX -------------
@@ -7622,7 +7722,7 @@
 
 
             /**
-             * 
+             *
                   f.handlePauseReplay = function() {
                     this.isAnimationPaused = !0;
                     this.detlaSincePausedSecs = 0
@@ -7630,12 +7730,12 @@
             */
 
             /**
-             * 
-            
+             *
+
             f.handlePauseReplay = function() {
                 this.isReplayPaused = !0
             }
-            * 
+            *
             */
 
             if (typeof cProto.handlePauseReplay === 'function' && !cProto.handlePauseReplay66 && cProto.handlePauseReplay.length === 0) {
@@ -7730,7 +7830,7 @@
             typeof cProto.setContainerWidth === 'function' && cProto.setContainerWidth.length === 0 &&
             typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0
             CSS.supports("left","clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)");
-            
+
 
 
           if (USE_ADVANCED_TICKING && canDoAdvancedTicking) {
@@ -7823,7 +7923,7 @@
               threshold: [1]
 
             }));
- 
+
 
 
             const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
@@ -8006,7 +8106,7 @@
               cProto.slideDown43 = cProto.slideDown;
               cProto.slideDown = dProto.slideDownAdv || (dProto.slideDownAdv = async function () {
 
-                // console.log('calling slideDown', Date.now())                
+                // console.log('calling slideDown', Date.now())
                 if (this.__advancedTicking038__) {
 
                   if (this.__advancedTicking038__ === 1) this.__advancedTicking038__ = 2; // ignore intersectionobserver detection
@@ -8073,7 +8173,7 @@
 
                   const hostElement = this.hostElement;
                   const container = this.$.container;
-                  
+
                   const parentComponentCnt = insp(this.parentComponent);
                   const parentComponentElm = parentComponentCnt ? parentComponentCnt.hostElement : null;
 
@@ -8184,7 +8284,7 @@
 
                   //     const cnt = insp(element)
                   //     if(typeof cnt.requestRemoval !== 'function'){
-                      
+
                   //       console.log('[yt-chat-removalrequest] element is not connected to cnt.');
                   //       return;
                   //     }
@@ -8192,7 +8292,7 @@
                   //     try{
                   //     cnt.data = null;
                   //     }catch(e){}
-                      
+
                   //     Object.setPrototypeOf(cnt, Object.prototype);
                   //     for(const k of Object.getOwnPropertyNames(cnt)){
                   //       try{
@@ -8257,8 +8357,8 @@
                 // this is a new function in Dec 2024, but not mainly adopted in the coding yet
 
                 /*
-  
-  
+
+
                         var a = this;
                         (R(this.hostElement).querySelector("#container").clientWidth || 0) === 0 ? (this.hostElement.style.overflow = "visible",
                         this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
@@ -8266,7 +8366,7 @@
                         Zu(function() {
                             a.hostElement.style.width = "auto"
                         }, 1)) : this.hostElement.style.width = "auto")
-  
+
                 */
 
 
@@ -8473,10 +8573,10 @@
       if(FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth){
 
         /**
-         * 
-         *    
-         * 
-         * 
+         *
+         *
+         *
+         *
             cT.prototype.dataChanged = function() {
                 var a = this;
                 this.data && (Q(this.hostElement).querySelector("#content").style.color = this.ytLiveChatTickerItemBehavior.colorFromDecimal(this.data.detailTextColor),
@@ -8497,7 +8597,7 @@
                 }))
             }
 
-        * 
+        *
         */
 
         const dProto = {
@@ -8535,31 +8635,31 @@
           'yt-live-chat-ticker-sponsor-item-renderer',
           'yt-live-chat-ticker-paid-sticker-item-renderer'
         ].map(tag => [tag, customElements.whenDefined(tag)])) {
-  
+
           const [tag, promise] = sto;
-  
+
           promise.then(()=>{
-  
+
             const dummy = document.createElement(tag);
-  
+
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
               console.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
-  
+
             if (!cProto.dataChanged || cProto.dataChanged544 || typeof cProto.dataChanged !== 'function' || !(cProto.dataChanged.length >= 0 && cProto.dataChanged.length <= 1)) return;
 
             cProto.dataChanged544 = cProto.dataChanged;
 
             if (cProto.dataChanged.length === 0) cProto.dataChanged = dProto.dataChanged54500;
             else if (cProto.dataChanged.length === 1) cProto.dataChanged = dProto.dataChanged54501;
-            
-  
-  
+
+
+
           })
-  
-  
+
+
         }
 
       }
@@ -8611,11 +8711,11 @@
             }
 
           }
- 
 
 
 
- 
+
+
 
 
 
@@ -8661,7 +8761,7 @@
             }
 
             console.log("USE_ADVANCED_TICKING::handleLiveChatActions - OK");
-            
+
           }else if(USE_ADVANCED_TICKING){
 
 
@@ -8672,7 +8772,7 @@
             // yt-live-chat-ticker-renderer hacks
             // console.log('handleLiveChatActions', cProto.handleLiveChatActions, cProto.is);
             // console.log('handleLiveChatAction', cProto.handleLiveChatAction, cProto.is);
- 
+
 
           if (RAF_FIX_keepScrollClamped) {
 
@@ -8702,7 +8802,7 @@
           }
 
 
-          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function' 
+          if (RAF_FIX_scrollIncrementally && typeof cProto.startScrolling === 'function' && typeof cProto.scrollIncrementally === 'function'
             && '|1.43.31|1.44.31|'.indexOf('|' + fnIntegrity(cProto.startScrolling) + '|') >= 0
             && '|1.78.45|1.82.43|1.43.31|'.indexOf('|' + fnIntegrity(cProto.scrollIncrementally) + '|') >= 0) {
             // to be replaced by animator
@@ -8724,7 +8824,7 @@
             // related functions: startScrollBack, startScrollingLeft, startScrollingRight, etc.
 
             /**
-             * 
+             *
              * // 2024.12.17
              * // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
@@ -8746,11 +8846,11 @@
                     R(this.hostElement).querySelector(this.tickerBarQuery).scrollLeft > 0 || this.scrollRatePixelsPerSecond && this.scrollRatePixelsPerSecond > 0 ? this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this)) : this.stopScrolling()
                 }
                 ;
-             * 
+             *
              */
 
                 /**
-                 * 
+                 *
                   // 2024.12.20
 
 
@@ -8764,8 +8864,8 @@
                       this.asyncHandle = window.requestAnimationFrame(this.scrollIncrementally.bind(this))
                   }
 
-                 * 
-                 * 
+                 *
+                 *
                  */
 
             cProto.__getTickerBarQuery__ = function () {
@@ -8853,7 +8953,7 @@
                 ironPage.setAttribute('naohz', `${+cnt.__naohzId__}`);
 
                 addEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
-                
+
                 cnt = null;
 
               });
@@ -10574,7 +10674,7 @@
                       } catch (e) {
                         let showMessage = true;
                         if (e instanceof TypeError && e.message === 'this.backdropElement.prepare is not a function') {
-                          // this is well known issue. 
+                          // this is well known issue.
                           showMessage = false;
                         }
                         showMessage && console.log('manager.trackBackdrop', e);
