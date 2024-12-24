@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.58
+// @version             0.1.59
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3834,11 +3834,11 @@ f.handleRemoveChatItemAction_ = function(a) {
 */
 
     cProto.setupVisibleItemsList = function (solidBuild, solidBuildSet) {
-      if (this.visibleItems instanceof Array && !(this.visibleItems instanceof VisibleItemList)) {
-        const q = this.visibleItems;
-        const p = this.visibleItems.slice();
-        this.visibleItems = new VisibleItemList(solidBuild, solidBuildSet);
-        p.length >= 1 && inPlaceArrayPush(this.visibleItems, p);
+      const q = this.visibleItems;
+      if (q instanceof Array && !(q instanceof VisibleItemList)) {
+        const p = q.slice();
+        const r = this.visibleItems = new VisibleItemList(solidBuild, solidBuildSet);
+        p.length >= 1 && inPlaceArrayPush(r, p);
         p.length = 0;
         q.length = 0;
       }
@@ -3847,19 +3847,21 @@ f.handleRemoveChatItemAction_ = function(a) {
       if (!this.clearCount) this.clearCount = 1;
       this.clearCount++;
       if (this.clearCount > 1e9) this.clearCount = 9;
-      if (this.activeItems_) this.activeItems_.length = 0;
+      const activeItems_ = this.activeItems_;
+      if (activeItems_) activeItems_.length = 0;
       flushKeys.clear();
       // this.setupVisibleItemsList();
-      if (this.visibleItems && (this.visibleItems.length > 0)) {
-        if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = true;
-        this.visibleItems.length = 0;
-        if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = false;
+      const visibleItems = this.visibleItems;
+      if (visibleItems && (visibleItems.length > 0)) {
+        if (typeof visibleItems.bypass === 'boolean') visibleItems.bypass = true;
+        visibleItems.length = 0;
+        if (typeof visibleItems.bypass === 'boolean') visibleItems.bypass = false;
         if (messageList) {
           messageList.classList.remove('bst-listloaded');
           messageList.solidBuildSet(a => ((a.length = 0), a));
         }
       }
-      if (!this.activeItems_.length && !this.visibleItems.length) {
+      if (!activeItems_.length && !visibleItems.length) {
         // condition check for just in case
         this.setAtBottomTrue();
       }
@@ -4064,10 +4066,11 @@ f.handleRemoveChatItemAction_ = function(a) {
           return;
         } else {
           if (_addLen > maxItemsToDisplay) {
-            if (this.visibleItems && (this.visibleItems.length > 0)) {
-              if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = true;
-              this.visibleItems.length = 0;
-              if (typeof this.visibleItems.bypass === 'boolean') this.visibleItems.bypass = false;
+            const visibleItems = this.visibleItems;
+            if (visibleItems && (visibleItems.length > 0)) {
+              if (typeof visibleItems.bypass === 'boolean') visibleItems.bypass = true;
+              visibleItems.length = 0;
+              if (typeof visibleItems.bypass === 'boolean') visibleItems.bypass = false;
               if (messageList) {
                 messageList.solidBuildSet(a => ((a.length = 0), a));
               }
