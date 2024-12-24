@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.8
+// @version             0.13.9
 // @license             MIT License
 
 // @author              CY Fung
@@ -1068,7 +1068,7 @@ if (trustHTMLErr) {
                 return;
             }
 
-            if (!document.querySelector(`[jkrgy="${channelId}"]`)) {
+            if (!document.querySelector(`[jkrgy="${channelId}"]`) && !skipElementCheck.has(channelId)) {
                 // element has already been removed
                 lockResolve(); lockResolve = null;
                 setResult(null);
@@ -1192,6 +1192,8 @@ if (trustHTMLErr) {
         return isDisplayAsHandle(url) ? url : '';
 
     }
+
+    const skipElementCheck = new Set(); // username in reply quote (editable)
 
     /**
      *
@@ -1325,20 +1327,26 @@ if (trustHTMLErr) {
      * @param {DisplayNameResultObject} fetchResult
      * @returns
      */
+
+    const urlTestTwice = (m, a, b) => {
+        return m.endsWith(a) || (a === b ? false : m.endsWith(b));
+    };
+    
     const verifyAndConvertHandle = (currentDisplayed, fetchResult) => {
 
         const { title, langTitle, externalId, ownerUrls, channelUrl, vanityChannelUrl, verified123 } = fetchResult;
 
         const currentDisplayTrimmed = currentDisplayed.trim(); // @IORIMATSUNAGA
         const currentDisplayTrimmedLowerCase = currentDisplayTrimmed.toLowerCase(); // @iorimatsunaga
+        const currentDisplayTrimmedLowerCaseForURL = encodeURI(currentDisplayTrimmedLowerCase);
         let match = false;
         if (verified123) {
             match = true;
-        } else if ((vanityChannelUrl || '').toLowerCase().endsWith(`/${currentDisplayTrimmedLowerCase}`)) {
+        } else if (urlTestTwice((vanityChannelUrl || '').toLowerCase(), `/${currentDisplayTrimmedLowerCaseForURL}`, `/${currentDisplayTrimmedLowerCase}`)) {
             match = true;
         } else if ((ownerUrls || 0).length >= 1) {
             for (const ownerUrl of ownerUrls) {
-                if ((ownerUrl || '').toLowerCase().endsWith(`/${currentDisplayTrimmed}`)) {
+                if (urlTestTwice((ownerUrl || '').toLowerCase(), `/${currentDisplayTrimmedLowerCaseForURL}`, `/${currentDisplayTrimmedLowerCase}`)) {
                     match = true;
                     break;
                 }
@@ -2122,9 +2130,16 @@ if (trustHTMLErr) {
         }
 
         function replaceNamePN(o) {
-            return getDisplayName(o.channelId).then(fetchResult => {
+            const channelId = o.channelId;
+            channelIdToHandle.set(channelId, {
+                handleText: o.handle,
+                justPossible: true
+            });
+            skipElementCheck.add(channelId);
+            return getDisplayName(channelId).then(fetchResult => {
                 let resolveResult = null;
-                if (fetchResult) {
+                skipElementCheck.delete(channelId);
+                if (fetchResult && o.channelId === channelId) {
                     const textTrimmed = verifyAndConvertHandle(o.handle, fetchResult);
                     if (textTrimmed) {
                         o.display = `@${fetchResult.title}`;
@@ -2178,7 +2193,16 @@ if (trustHTMLErr) {
                     }
                 }
             }
+            if (names.length === 0) return; // other command runs
             await Promise.all(promises);
+
+            /*
+                if replaceNamePN fails, then following will not set.
+                    o.display = `@${fetchResult.title}`;
+                    o.newText = o.oldText.replace(o.handle, o.display);
+                    o.nLen = o.newText.length;
+                    o.nOffset = o.nLen - o.oLen;
+            */
 
             let text1 = text;
 
@@ -2188,19 +2212,18 @@ if (trustHTMLErr) {
 
                 for (let k = 0; k < names.length; k++) {
                     const o = names[k];
+                    if (typeof o.newText === 'string' && o.nLen === o.newText.length && Number.isFinite(o.nOffset) && typeof o.display === 'string') {
+                        mapInput[k] = {
+                            oIdx1: o.startIndex,
+                            oIdx2: o.endIndex,
 
-                    mapInput[k] = {
-                        oIdx1: o.startIndex,
-                        oIdx2: o.endIndex,
+                            nIdx1: o.startIndex + ac,
+                            nIdx2: o.endIndex + ac + o.nOffset,
 
-                        nIdx1: o.startIndex + ac,
-                        nIdx2: o.endIndex + ac + o.nOffset,
-
+                        }
+                        ac += o.nOffset;
                     }
-                    ac += o.nOffset;
                 }
-                // abcdef
-                // [0,3][3,6] 
 
                 const mapOutput = expandIntervals(mapInput);
                 const u = new Array(mapOutput.length);
