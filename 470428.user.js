@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.11
+// @version     1.6.12
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -89,7 +89,151 @@
 
   const ALLOW_THEATER_PLAYER_SHORTCUT_KEY_T = true;
 
+  const USE_byPassConditionAnalyzer = false;
 
+  // ----------------------------- FOR FINDING OUT THE NEW FLAG -------------------------------
+  const byPassConditionAnalyzer = (() => {
+
+    // This is to find the flags disabled by this script would cause your issue.
+    // Goal: find the flag name to whitelist
+
+    const testFn = (key, isVideoPlayerParams) => {
+
+      const kl = key.length;
+      const kl7 = kl % 7;
+      const kl5 = kl % 5;
+      const kl3 = kl % 3;
+      const kl2 = kl % 2;
+
+
+      // ture for by pass
+      const byConditions = [
+        !kl2,
+        kl3 <= 1,
+        kl5 >= 3,
+        kl7 >= 4,
+        kl >= 20,
+        kl <= 40,
+        [
+          "clean_up_manual_attribution_header",
+          "empty_attributed_string_killswitch",
+          "enable_profile_cards_cairo_updates",
+          "enable_teaser_framework_web_client",
+          "enable_tectonic_ad_ux_for_halftime",
+          "enable_web_shorts_save_audio_pivot",
+          "kevlar_clear_duplicate_pref_cookie",
+          "kevlar_disable_background_prefetch",
+          "kevlar_transcript_engagement_panel",
+          "kevlar_watch_flexy_theater_manager",
+          "mdx_load_cast_api_bootstrap_script",
+          "web_collab_playlist_thumbnail_size",
+          "web_fix_back_button_player_loading",
+          "web_fix_dynamic_metadata_diacritic",
+          "web_kevlar_enable_adaptive_signals",
+          "web_move_autoplay_video_under_chip",
+          "web_player_small_hbp_settings_menu",
+          "web_rendererstamper_event_listener",
+          "web_shorts_skip_loading_same_index",
+          "web_shorts_suggested_action_no_bvm",
+          "web_use_updated_icon_for_oac_badge",
+          "wiz_prevent_watched_double_logging"
+        ]
+      ];
+
+      // const byConditions = [
+      //   !kl2,
+      //   kl3 <= 1,
+      //   kl5 >= 3,
+      //   kl7 >= 4,
+      //   kl >= 20,
+      //   kl <= 40,
+      //   [
+      //     "clean_up_manual_attribution_header",
+      //     "empty_attributed_string_killswitch",
+      //     "enable_profile_cards_cairo_updates",
+      //     "enable_teaser_framework_web_client",
+      //     "enable_tectonic_ad_ux_for_halftime",
+      //     "enable_web_shorts_save_audio_pivot",
+      //     "kevlar_clear_duplicate_pref_cookie",
+      //     "kevlar_disable_background_prefetch",
+      //     "kevlar_transcript_engagement_panel",
+      //     "kevlar_watch_flexy_theater_manager",
+      //     "mdx_load_cast_api_bootstrap_script",
+      //     "web_collab_playlist_thumbnail_size",
+      //     "web_fix_back_button_player_loading",
+      //     "web_fix_dynamic_metadata_diacritic",
+      //     "web_kevlar_enable_adaptive_signals",
+      //     "web_move_autoplay_video_under_chip",
+      //     "web_player_small_hbp_settings_menu",
+      //     "web_rendererstamper_event_listener",
+      //     "web_shorts_skip_loading_same_index",
+      //     "web_shorts_suggested_action_no_bvm",
+      //     "web_use_updated_icon_for_oac_badge",
+      //     "wiz_prevent_watched_double_logging"
+      //   ]
+      // ];
+
+      return byConditions;
+
+    };
+
+    let u = 0;
+    let cache1 = new Set();
+    let cache2 = new Set();
+
+    const disp = () => {
+      const q = cache1.size < 50 ? [...cache1] : [];
+      const a = [];
+      const b = [];
+      for (const m of q) {
+        if (cache2.has(m)) b.push(m); else a.push(m);
+      }
+      console.log('[yt-flags-tamer]', 'filtered keys {eflags}', a.length, a);
+      console.log('[yt-flags-tamer]', 'filtered keys {vflags}', b.length, b);
+    }
+
+    const res = {
+
+      testFn_: (key, isVideoPlayerParams) => {
+
+        if (!u) {
+          u = 1;
+          u = setTimeout(disp, 400);
+        }
+        let q = testFn(key, isVideoPlayerParams).every(e => {
+
+          if (typeof e === 'object' && Symbol.iterator in Object(e)) {
+            return e.includes(key);
+          } else if (typeof e === 'string') {
+            return e.includes(key);
+          } else {
+            return !!e
+          }
+
+        });
+        if (q) {
+
+          cache1.add(key);
+          return true;
+
+        }
+        return false;
+
+
+      }
+
+    }
+
+
+    return res;
+
+
+
+
+
+
+  })();
+  // ----------------------------- FOR FINDING OUT THE NEW FLAG -------------------------------
 
   // TBC
   // kevlar_tuner_should_always_use_device_pixel_ratio
@@ -333,6 +477,7 @@
   function fOper(key, value) {
 
     if (fOperAcceptList.has(key)) return fOperAccept;
+    if (USE_byPassConditionAnalyzer && byPassConditionAnalyzer.testFn_(key, true)) return fOperAccept;
     if (key.length === 22 || key.length === 27 || key.length === 32) {
 
       if (SPACEBAR_CONTROL < 0) {
@@ -595,7 +740,7 @@
         'disable_space_scroll_fix',
         'global_spacebar_pause',
         'web_speedmaster_spacebar_control'
-      ]: []),
+      ] : []),
 
       ...(ALLOW_FLAGS_202404 ? [
 
@@ -1185,6 +1330,8 @@
           // const kl5 = kl % 5;
           // const kl3 = kl % 3;
           // const kl2 = kl % 2;
+
+          if (USE_byPassConditionAnalyzer && byPassConditionAnalyzer.testFn_(key, false)) continue;
 
 
           if (key.startsWith('html5_')) {
