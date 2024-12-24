@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.7
+// @version             0.13.8
 // @license             MIT License
 
 // @author              CY Fung
@@ -1986,10 +1986,140 @@ if (trustHTMLErr) {
 
         return null;
     };
-    const contentTextProcessViewModel = async (content, idx) => {
-        const { commandRuns, content: text, styleRuns } = content;
-        if (typeof text !== 'string') return;
-        const names = [];
+
+    const { contentTextProcessViewModel } = (() => {
+
+        const isIterable = (obj) => (obj && typeof obj[Symbol.iterator] === 'function');
+
+        /**
+         * Optimized version of expandIntervals.
+         * @param {Array} arr - Array of mapping objects with oIdx1, oIdx2, nIdx1, nIdx2.
+         * @returns {Array} - Expanded and sorted interval mappings.
+         */
+        function expandIntervals(arr) {
+            if (!arr || arr.length === 0) return [];
+
+            const n = arr.length; // n>=1
+
+            // Sort the mappings by oIdx1 if not already sorted
+            if (n > 1) arr.sort((a, b) => a.oIdx1 - b.oIdx1);
+
+            const result = new Array(n * 2 + 1); // max length
+            let j = 0;
+
+            // Handle the first gap if it exists
+            if (arr[0].oIdx1 > 0) {
+                result[j++] = {
+                    oStart: 0,
+                    oEnd: arr[0].oIdx1,
+                    nStart: 0,
+                    nEnd: arr[0].nIdx1
+                };
+            }
+
+            for (let i = 0, current; current = arr[i]; i++) {
+                result[j++] = {
+                    oStart: current.oIdx1,
+                    oEnd: current.oIdx2,
+                    nStart: current.nIdx1,
+                    nEnd: current.nIdx2
+                };
+
+                if (i >= n - 1) {
+                    // Handle the final gap
+                    result[j++] = {
+                        oStart: current.oIdx2,
+                        oEnd: null,
+                        nStart: current.nIdx2,
+                        nEnd: null
+                    };
+                    break;
+                }
+
+                // If not the last interval, handle the gap 
+                const next = arr[i + 1];
+                const gapStart = current.oIdx2;
+                const gapEnd = next.oIdx1;
+
+                if (gapStart < gapEnd) {
+                    const shift = next.nIdx1 - next.oIdx1;
+                    result[j++] = {
+                        oStart: gapStart,
+                        oEnd: gapEnd,
+                        nStart: gapStart + shift,
+                        nEnd: gapEnd + shift
+                    };
+                }
+            }
+
+
+            result.length = j;
+
+            return result;
+        }
+
+
+        // abcdef.  [0,3][3,6]
+
+        /**
+         * Updates a target array in-place based on sorted interval mappings.
+         * Assumes both targetArray and intervalMappings are sorted by startIndex.
+         * @param {Array} uArr - Array of objects with startIndex and length.
+         * @param {Array} itMap - Expanded and sorted interval mappings.
+         */
+        function updateArrayInPlaceOptimized(uArr, itMap) {
+            let mapIdx = 0;
+            const itMapN = itMap.length;
+
+            const mapIndex = (qIndex) => {
+                while (
+                    mapIdx < itMapN &&
+                    itMap[mapIdx].oEnd !== null &&
+                    qIndex > itMap[mapIdx].oEnd
+                ) {
+                    mapIdx++;
+                }
+                // expect:  qIndex>=[mapIdx].oStart && ([mapIdx].oEnd === null || qIndex<=[mapIdx].oEnd)
+
+                if (mapIdx >= itMapN) {
+                    throw new Error(`No mapping found for index ${qIndex}`);
+                }
+
+                const { oStart, nStart, oEnd, nEnd } = itMap[mapIdx];
+
+                if (qIndex == oStart) {
+                    return nStart;
+                } else if (qIndex === oEnd) {
+                    return nEnd;
+                } else {
+                    const size1 = oEnd - oStart;
+                    const size2 = nEnd === null ? size1 : nEnd - nStart;
+                    if (size1 !== size2) {
+                        return Math.round(nStart + (qIndex - oStart) / size1 * size2);
+                    } else {
+                        return nStart + (qIndex - oStart);
+                    }
+                }
+
+            };
+            for (const item of uArr) {
+
+                const {startIndex, length} = item;
+
+                if (typeof startIndex === 'number' && typeof length === 'number' && startIndex >= 0 && length >= 0) {
+
+                    const newStart = mapIndex(startIndex);
+                    const newEnd = mapIndex(startIndex + length);
+
+                    if (newStart === undefined || newEnd === undefined) {
+                        throw new Error(`Mapping failed for item: ${JSON.stringify(item)}`);
+                    }
+
+                    item.startIndex = newStart;
+                    item.length = newEnd - newStart;
+                }
+            };
+        }
 
         function replaceNamePN(o) {
             return getDisplayName(o.channelId).then(fetchResult => {
@@ -1999,100 +2129,223 @@ if (trustHTMLErr) {
                     if (textTrimmed) {
                         o.display = `@${fetchResult.title}`;
                         o.newText = o.oldText.replace(o.handle, o.display);
+                        o.nLen = o.newText.length;
+                        o.nOffset = o.nLen - o.oLen;
                     }
                 }
                 return resolveResult; // function as a Promise
             });
         }
-        const promises = [];
-        for (const commandRun of commandRuns) {
-            let browseEndpoint = null;
-            if (commandRun.length >= 1 && commandRun.startIndex >= 0 && (browseEndpoint = ((commandRun.onTap || 0).innertubeCommand || 0).browseEndpoint)) {
-                let substr = text.substring(commandRun.startIndex, commandRun.startIndex + commandRun.length);
-                const substrTrimmed = substr.trim();
-                const valBrowseEndpointBaseUrlType = browseEndpointBaseUrlType(browseEndpoint, substrTrimmed);
-                if (valBrowseEndpointBaseUrlType > 1) {
-                    const o = {
-                        startIndex: commandRun.startIndex,
-                        endIndex: commandRun.startIndex + commandRun.length,
-                        handle: substrTrimmed,
-                        oldText: substr,
-                        newText: null,
-                        channelId: browseEndpoint.browseId,
-                        nStartIndex: null,
-                        nEndIndex: null,
-                        nText: null
-                    }
-                    names.push(o);
-                    promises.push(replaceNamePN(o));
+
+        const contentTextProcessViewModel = async (content, idx) => {
+            const { commandRuns, content: text } = content;
+            if (typeof text !== 'string' || !commandRuns) return;
+            let uBool = false;
+
+            const objList = [];
+            for (const [key, value] of Object.entries(content)) {
+                if ((value || 0).length >= 1 && typeof value === 'object' && isIterable(value)) {
+                    objList.push(value);
+                    if (key === 'commandRuns') uBool = true;
                 }
             }
-        }
-        await Promise.all(promises);
 
-        let offset = 0;
-        for (const o of names) {
-            o.nStartIndex = o.startIndex + offset;
-            o.nText = o.newText === null ? o.oldText : o.newText;
-            o.nEndIndex = o.nStartIndex + offset + o.nText.length;
-            offset += o.nText.length - o.oldText.length;
-        }
+            if (!uBool) return;
 
-        let w1 = 0, w2 = 0;
-        let s = [];
-        let j = 0;
-        for (let i = 0; i < text.length;) {
-            while (w1 < commandRuns.length && commandRuns[w1].startIndex < i) w1++;
-            while (w2 < styleRuns.length && styleRuns[w2].startIndex < i) w2++;
+            const names = [];
 
-            if (j < names.length && i == names[j].startIndex) {
-
-                if (w1 < commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
-                    const run = commandRuns[w1];
-                    const o = names[j];
-                    if (run.length === o.endIndex - o.startIndex) {
-                        run.startIndex = o.nStartIndex;
-                        run.length = o.nText.length;
+            const promises = [];
+            for (const commandRun of commandRuns) {
+                let browseEndpoint = null;
+                if (commandRun.length >= 1 && commandRun.startIndex >= 0 && (browseEndpoint = ((commandRun.onTap || 0).innertubeCommand || 0).browseEndpoint)) {
+                    const substr = text.substring(commandRun.startIndex, commandRun.startIndex + commandRun.length);
+                    const substrTrimmed = substr.trim();
+                    const valBrowseEndpointBaseUrlType = browseEndpointBaseUrlType(browseEndpoint, substrTrimmed);
+                    if (valBrowseEndpointBaseUrlType > 1) {
+                        const o = {
+                            startIndex: commandRun.startIndex,
+                            endIndex: commandRun.startIndex + commandRun.length,
+                            handle: substrTrimmed,
+                            oldText: substr,
+                            newText: null,
+                            channelId: browseEndpoint.browseId,
+                            oLen: commandRun.length,
+                            nLen: null,
+                            nOffset: 0,
+                        }
+                        names.push(o);
+                        promises.push(replaceNamePN(o));
                     }
-                    w1++;
                 }
+            }
+            await Promise.all(promises);
 
-                if (w2 < styleRuns.length && styleRuns[w2].startIndex === names[j].startIndex) {
-                    const run = styleRuns[w2];
-                    const o = names[j];
-                    if (run.length === o.endIndex - o.startIndex) {
-                        run.startIndex = o.nStartIndex;
-                        run.length = o.nText.length;
+            let text1 = text;
+
+            try {
+                const mapInput = new Array(names.length);
+                let ac = 0;
+
+                for (let k = 0; k < names.length; k++) {
+                    const o = names[k];
+
+                    mapInput[k] = {
+                        oIdx1: o.startIndex,
+                        oIdx2: o.endIndex,
+
+                        nIdx1: o.startIndex + ac,
+                        nIdx2: o.endIndex + ac + o.nOffset,
+
                     }
-                    w2++;
+                    ac += o.nOffset;
                 }
+                // abcdef
+                // [0,3][3,6] 
 
+                const mapOutput = expandIntervals(mapInput);
+                const u = new Array(mapOutput.length);
 
-                // s.push(text.substring(names[j].startIndex, names[j].endIndex));
-                s.push(names[j].nText);
-                i = names[j].endIndex;
-                j++;
-            } else {
-                if (j >= names.length) {
-                    s.push(text.substring(i));
-                    i = text.length;
-                } else {
-                    if (j < names.length && names[j].startIndex > i + 1) {
-                        s.push(text.substring(i, names[j].startIndex));
-                        i = names[j].startIndex;
+                let k = 0;
+                for (let i = 0; i < mapOutput.length; i++) {
+                    const { oStart, oEnd } = mapOutput[i];
+                    if (k < names.length && oStart === names[k].startIndex && oEnd === names[k].endIndex) {
+                        u[i] = names[k++].newText;
                     } else {
-                        s.push(text.charAt(i));
-                        i++;
+                        u[i] = text.substring(oStart, oEnd !== null ? oEnd : text.length);
                     }
                 }
+                text1 = u.join('');
+                u.length = 0;
+
+                for (const runs of objList) {
+                    updateArrayInPlaceOptimized(runs, mapOutput)
+                }
+
+                content.content = text1;
+
+            } catch (e) {
+                console.warn(e);
             }
-        }
-
-        content.content = s.join('');
-        s.length = 0;
 
 
-    };
+
+
+
+        };
+
+
+        // const contentTextProcessViewModel = async (content, idx) => {
+        //     const { commandRuns, content: text, styleRuns } = content;
+        //     if (typeof text !== 'string') return;
+        //     const names = [];
+
+        //     function replaceNamePN(o) {
+        //         return getDisplayName(o.channelId).then(fetchResult => {
+        //             let resolveResult = null;
+        //             if (fetchResult) {
+        //                 const textTrimmed = verifyAndConvertHandle(o.handle, fetchResult);
+        //                 if (textTrimmed) {
+        //                     o.display = `@${fetchResult.title}`;
+        //                     o.newText = o.oldText.replace(o.handle, o.display);
+        //                 }
+        //             }
+        //             return resolveResult; // function as a Promise
+        //         });
+        //     }
+        //     const promises = [];
+        //     for (const commandRun of commandRuns) {
+        //         let browseEndpoint = null;
+        //         if (commandRun.length >= 1 && commandRun.startIndex >= 0 && (browseEndpoint = ((commandRun.onTap || 0).innertubeCommand || 0).browseEndpoint)) {
+        //             let substr = text.substring(commandRun.startIndex, commandRun.startIndex + commandRun.length);
+        //             const substrTrimmed = substr.trim();
+        //             const valBrowseEndpointBaseUrlType = browseEndpointBaseUrlType(browseEndpoint, substrTrimmed);
+        //             if (valBrowseEndpointBaseUrlType > 1) {
+        //                 const o = {
+        //                     startIndex: commandRun.startIndex,
+        //                     endIndex: commandRun.startIndex + commandRun.length,
+        //                     handle: substrTrimmed,
+        //                     oldText: substr,
+        //                     newText: null,
+        //                     channelId: browseEndpoint.browseId,
+        //                     nStartIndex: null,
+        //                     nEndIndex: null,
+        //                     nText: null
+        //                 }
+        //                 names.push(o);
+        //                 promises.push(replaceNamePN(o));
+        //             }
+        //         }
+        //     }
+        //     await Promise.all(promises);
+
+        //     let offset = 0;
+        //     for (const o of names) {
+        //         o.nStartIndex = o.startIndex + offset;
+        //         o.nText = o.newText === null ? o.oldText : o.newText;
+        //         o.nEndIndex = o.nStartIndex + offset + o.nText.length;
+        //         offset += o.nText.length - o.oldText.length;
+        //     }
+
+        //     let w1 = 0, w2 = 0;
+        //     let s = [];
+        //     let j = 0;
+        //     for (let i = 0; i < text.length;) {
+        //         while (w1 < commandRuns.length && commandRuns[w1].startIndex < i) w1++;
+        //         while (w2 < styleRuns.length && styleRuns[w2].startIndex < i) w2++;
+
+        //         if (j < names.length && i == names[j].startIndex) {
+
+        //             if (w1 < commandRuns.length && commandRuns[w1].startIndex === names[j].startIndex) {
+        //                 const run = commandRuns[w1];
+        //                 const o = names[j];
+        //                 if (run.length === o.endIndex - o.startIndex) {
+        //                     run.startIndex = o.nStartIndex;
+        //                     run.length = o.nText.length;
+        //                 }
+        //                 w1++;
+        //             }
+
+        //             if (w2 < styleRuns.length && styleRuns[w2].startIndex === names[j].startIndex) {
+        //                 const run = styleRuns[w2];
+        //                 const o = names[j];
+        //                 if (run.length === o.endIndex - o.startIndex) {
+        //                     run.startIndex = o.nStartIndex;
+        //                     run.length = o.nText.length;
+        //                 }
+        //                 w2++;
+        //             }
+
+
+        //             // s.push(text.substring(names[j].startIndex, names[j].endIndex));
+        //             s.push(names[j].nText);
+        //             i = names[j].endIndex;
+        //             j++;
+        //         } else {
+        //             if (j >= names.length) {
+        //                 s.push(text.substring(i));
+        //                 i = text.length;
+        //             } else {
+        //                 if (j < names.length && names[j].startIndex > i + 1) {
+        //                     s.push(text.substring(i, names[j].startIndex));
+        //                     i = names[j].startIndex;
+        //                 } else {
+        //                     s.push(text.charAt(i));
+        //                     i++;
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        //     content.content = s.join('');
+        //     s.length = 0;
+
+
+        // };
+
+        return { contentTextProcessViewModel };
+    })();
+    
+
 
     /**
      *
