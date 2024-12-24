@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.10
+// @version     1.6.11
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -86,6 +86,8 @@
 
   const SPACEBAR_CONTROL = -1; // 0 - only scroll down; 1 - global pause; 2 - speed control pause;
   // -1 = by pass
+
+  const ALLOW_THEATER_PLAYER_SHORTCUT_KEY_T = true;
 
 
 
@@ -1004,6 +1006,33 @@
       'web_animated_like_lazy_load',
       'desktop_delay_player_resizing',
 
+
+      ...(ALLOW_THEATER_PLAYER_SHORTCUT_KEY_T ? [
+
+        // 'clean_up_manual_attribution_header',
+        // 'empty_attributed_string_killswitch',
+        // 'enable_profile_cards_cairo_updates',
+        // 'enable_teaser_framework_web_client',
+        // 'enable_tectonic_ad_ux_for_halftime',
+        // 'enable_web_shorts_save_audio_pivot',
+        // 'kevlar_clear_duplicate_pref_cookie',
+        // 'kevlar_disable_background_prefetch',
+        // 'kevlar_transcript_engagement_panel',
+        'kevlar_watch_flexy_theater_manager',
+        // 'mdx_load_cast_api_bootstrap_script',
+        // 'web_collab_playlist_thumbnail_size',
+        // 'web_fix_back_button_player_loading',
+        // 'web_fix_dynamic_metadata_diacritic',
+        // 'web_kevlar_enable_adaptive_signals',
+        // 'web_move_autoplay_video_under_chip',
+        // 'web_player_small_hbp_settings_menu',
+        // 'web_rendererstamper_event_listener',
+        // 'web_shorts_skip_loading_same_index',
+        // 'web_shorts_suggested_action_no_bvm',
+        // 'web_use_updated_icon_for_oac_badge',
+        // 'wiz_prevent_watched_double_logging',
+
+      ] : []),
 
     ].concat(
       [
