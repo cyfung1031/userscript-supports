@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.9
+// @version             0.13.10
 // @license             MIT License
 
 // @author              CY Fung
@@ -213,6 +213,8 @@ if (trustHTMLErr) {
 // -----------------------------------------------------------------------------------------------------------------------------
 
 /* jshint esversion:8 */
+
+const Object_ = Object;
 
 /**
     @typedef {string} HandleText
@@ -1997,7 +1999,7 @@ if (trustHTMLErr) {
 
     const { contentTextProcessViewModel } = (() => {
 
-        const isIterable = (obj) => (obj && typeof obj[Symbol.iterator] === 'function');
+        const isIterable = (obj) => (Symbol.iterator in Object_(obj));
 
         /**
          * Optimized version of expandIntervals.
@@ -2167,7 +2169,7 @@ if (trustHTMLErr) {
 
             if (!uBool) return;
 
-            const names = [];
+            const nameInfos = [];
 
             const promises = [];
             for (const commandRun of commandRuns) {
@@ -2188,12 +2190,12 @@ if (trustHTMLErr) {
                             nLen: null,
                             nOffset: 0,
                         }
-                        names.push(o);
+                        nameInfos.push(o);
                         promises.push(replaceNamePN(o));
                     }
                 }
             }
-            if (names.length === 0) return; // other command runs
+            if (nameInfos.length === 0) return; // other command runs
             await Promise.all(promises);
 
             /*
@@ -2207,32 +2209,36 @@ if (trustHTMLErr) {
             let text1 = text;
 
             try {
-                const mapInput = new Array(names.length);
+                const mapInput = new Array(nameInfos.length);
                 let ac = 0;
+                let j = 0;
 
-                for (let k = 0; k < names.length; k++) {
-                    const o = names[k];
+                for (let k = 0; k < nameInfos.length; k++) {
+                    const o = nameInfos[k];
                     if (typeof o.newText === 'string' && o.nLen === o.newText.length && Number.isFinite(o.nOffset) && typeof o.display === 'string') {
-                        mapInput[k] = {
+                        mapInput[j++] = {
                             oIdx1: o.startIndex,
                             oIdx2: o.endIndex,
 
                             nIdx1: o.startIndex + ac,
                             nIdx2: o.endIndex + ac + o.nOffset,
+                            newText: o.newText
 
                         }
                         ac += o.nOffset;
                     }
                 }
+                mapInput.length = j;
 
                 const mapOutput = expandIntervals(mapInput);
-                const u = new Array(mapOutput.length);
+                const n = mapOutput.length;
+                const u = new Array(n);
 
-                let k = 0;
-                for (let i = 0; i < mapOutput.length; i++) {
+                j = 0;
+                for (let i = 0; i < n; i++) {
                     const { oStart, oEnd } = mapOutput[i];
-                    if (k < names.length && oStart === names[k].startIndex && oEnd === names[k].endIndex) {
-                        u[i] = names[k++].newText;
+                    if (j < mapInput.length && oStart === mapInput[j].oIdx1 && oEnd === mapInput[j].oIdx2) {
+                        u[i] = mapInput[j++].newText;
                     } else {
                         u[i] = text.substring(oStart, oEnd !== null ? oEnd : text.length);
                     }
