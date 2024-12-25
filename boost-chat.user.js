@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.61
+// @version             0.1.62
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2094,7 +2094,7 @@ SOFTWARE.
       }
 
       .bst-message-container-f {
-        opacity: 1.0; /* just opacity effect for the last message */
+        --bst-message-entry-opacity-v: 1.0; /* just opacity effect for the last message */
         transition: initial;
       }
 
