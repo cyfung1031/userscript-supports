@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.66.22
+// @version             0.67.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -160,10 +160,6 @@
 
   // const LIVE_CHAT_FLUSH_ON_FOREGROUND_ONLY = false;
 
-  const CHANGE_DATA_FLUSH_ASYNC = false;
-  // CHANGE_DATA_FLUSH_ASYNC is disabled due to bug report: https://greasyfork.org/scripts/469878/discussions/199479
-  // to be further investigated
-
   const CHANGE_MANAGER_UNSUBSCRIBE = true;
 
   const INTERACTIVITY_BACKGROUND_ANIMATION = 1;         // mostly for pinned message
@@ -214,20 +210,6 @@
   const FIX_MEMORY_LEAKAGE_TICKER_STATSBAR = true;        // To fix Memory Leakage in updateStatsBarAndMaybeShowAnimation
   const FIX_MEMORY_LEAKAGE_TICKER_TIMER = true;           // To fix Memory Leakage in setContainerWidth, slideDown, collapse // Dec 2024 fix in advance tickering
   const FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth = true; // To fix Memory Leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth()
-
-  // leakage in ytd-sponsorships-live-chat-gift-purchase-announcement-renderer - to be confirmed
-
-  // <<<<< FOR MEMORY LEAKAGE >>>>
-  const DEBUG_wmList = false;
-  let DEBUG_wmList_started = false;
-  // const FLAG_001 = true;
-  const FLAG_001a = false;
-  const FLAG_001b = false;
-  const FLAG_001c = false;
-  const FLAG_001d = false;
-  const FLAG_001e = false;
-  const FLAG_001f = false;
-  // const FLAG_001g = true;
 
 
 
@@ -7278,7 +7260,6 @@
 
 
       const fpTicker = (renderer) => {
-        if (FLAG_001a) return;
         const cnt = insp(renderer);
         assertor(() => typeof (cnt || 0).is === 'string');
         assertor(() => ((cnt || 0).hostElement || 0).nodeType === 1);
@@ -7308,17 +7289,6 @@
       ];
 
       const wmList = new Set;
-      if (DEBUG_wmList) {
-
-        setInterval(() => {
-          let q = document.querySelector('#label-text');
-          if(!q) return;
-          const size = new Set([...wmList].filter(e => e?.deref()?.isConnected === false).map(e => e?.deref())).size;
-          q.textContent = `${48833}, ${DEBUG_wmList_started}, ${size}`;
-
-          // console.log(48833, )
-        }, 100);
-      }
 
 
       /*
@@ -7383,7 +7353,6 @@
 
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
-        if (FLAG_001b) return;
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
         console.log("[Begin]");
@@ -7612,11 +7581,6 @@
               qWidthAdjustable = mWeakRef(hostElement);
             }
 
-            DEBUG_wmList && wmList.add(new WeakRef(this))
-            if (DEBUG_wmList && !DEBUG_wmList_started) {
-              console.log('!!!!!!!!!!!!! DEBUG_wmList_started !!!!!!!!!')
-              DEBUG_wmList_started = 1;
-            }
 
             fpTicker(hostElement || this);
             return this.attached77();
@@ -7806,8 +7770,6 @@
           cProto.attached77 = cProto.attached;
 
           cProto.attached = dProto.attachedForTickerInit;
-
-          if (FLAG_001c) continue;
 
           let flgLeakageFixApplied = 0;
 
@@ -8813,8 +8775,6 @@
       }
 
       customElements.whenDefined('yt-live-chat-ticker-renderer').then(() => {
-
-        if (FLAG_001d) return;
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-renderer hacks");
@@ -10175,8 +10135,6 @@
         ]).then(sTags => {
           // return; // M33
 
-          if (FLAG_001e) return;
-
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-renderer(s)... hacks");
           console.log("[Begin]");
@@ -10565,8 +10523,6 @@
 
 
       ]).then(sTags => {
-
-        if (FLAG_001f) return;
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
@@ -11140,7 +11096,7 @@
 
                   this._prepareRenderOpened();
                 }).then(() => {
-                  console.log('[yt-chat-dialog]', this._manager)
+                  // console.log('[yt-chat-dialog]', this._manager)
                   try{
                   this._manager.addOverlay(this);
                   }catch(e){
@@ -11173,7 +11129,7 @@
 
               } else {
                 Promise.resolve().then(() => {
-                  console.log('[yt-chat-dialog]', this._manager)
+                  // console.log('[yt-chat-dialog]', this._manager)
                   try{
                   this._manager.removeOverlay(this);
                   }catch(e){
@@ -11580,138 +11536,6 @@
           const dummyManager = insp(dummy).manager_ || 0;
           __dummyManager__ = dummyManager;
 
-          if (CHANGE_DATA_FLUSH_ASYNC && typeof cProto.async === 'function' && !cProto.async71 && cProto.async.length === 2 && typeof cProto.cancelAsync === 'function' && !cProto.cancelAsync71 && cProto.cancelAsync.length === 1) {
-
-
-            const rafHub = new RAFHub();
-
-            rafHub.keepRAF = true;
-            cProto.async71 = cProto.async;
-            cProto.cancelAsync71 = cProto.cancelAsync;
-
-            // mostly for subscription timeoutMs 10000ms
-            let mcw = 1; // 1, 3, 5, ...
-            let arr = new Map();
-
-            let __asyncInited__ = 0;
-            let __timeoutStartId__ = null;
-            const __asyncInit__ = () => {
-
-              if (__asyncInited__) return;
-              __asyncInited__ = 1;
-
-              __timeoutStartId__ = setTimeout(() => { });
-              mcw = __timeoutStartId__ * 2 + 1;
-
-              setInterval(() => {
-
-                if (!arr.length) return;
-
-                const p = Date.now();
-                let deleteKeys = [];
-                arr.forEach((entry, key) => {
-
-
-                  if (entry.cid === -1) {
-                    entry.cid = -2;
-                  } else if (entry.cid === -2) {
-
-                    let offset = p - entry.add
-                    if (offset < 0) offset = 0;
-                    let delay2 = entry.delay - offset;
-                    if (delay2 < 0) delay2 = 0;
-                    entry.cid = setTimeout(entry.q(), delay2);
-                    entry.q = null;
-
-                  } else if (entry.add + entry.delay < p) {
-                    deleteKeys.push(key);
-
-                  }
-
-                })
-
-                for (const key of deleteKeys) arr.delete(key);
-
-              }, 2000)
-
-            }
-
-
-            cProto.async = function (e, h) {
-
-              if (!(0 < h)) return this.async71(e, h); // unknown timing Fn
-
-              if (h < 8000) return this.async71(e, h) * 2; // native setTimeout
-
-              if (typeof h !== 'number') return this.async71(e, h); // exceptional case
-
-
-              if (!this.__asyncInited__) {
-                this.__asyncInited__ = 1;
-                __asyncInit__();
-              }
-              mcw += 2; // 2K+3, 2K+4, ...
-              if (mcw > 1e9) mcw = mcw % 1e4;
-              const cid = mcw;
-              const q = () => {
-                return () => {
-                  console.log('async h > 8000');
-                  e.call(this);
-                }
-              }
-              // setTimeout(q, delay)
-              arr.set(cid, {
-                cid: -1, // -1 -> -2 -> cid
-                add: Date.now(),
-                q,
-                delay: h
-              });
-              // console.log('cid-async', cid)
-              return cid;
-
-            }
-
-
-            cProto.cancelAsync = function (e) {
-
-              if (typeof e !== 'number') return this.cancelAsync71(e); // exceptional case
-
-              // console.log('cid-unasync', e)
-
-              if (0 > e) return this.cancelAsync71(e); // unknown timing fn
-
-              if (e > __timeoutStartId__ * 2) { // __timeoutStartId__ is recorded and min is 2K+1
-
-                if ((e % 2) === 0) return this.cancelAsync71(e / 2); // 2(K+1), 2(K+2), ...
-
-                if (!arr.has(e)) return; // duplciated cancel
-
-                const entry = arr.get(e);
-                if (entry.cid < 0) {
-                  entry.cid = 0;
-                  arr.delete(e);
-                } else {
-                  clearTimeout(entry.cid); // cid >= 1
-                  entry.cid = 0;
-                  arr.delete(e);
-                }
-
-              } else {
-
-                return this.cancelAsync71(e);
-
-              }
-
-            }
-
-            console.log("CHANGE_DATA_FLUSH_ASYNC - OK");
-
-          } else if(!CHANGE_DATA_FLUSH_ASYNC){
-            console.log("CHANGE_DATA_FLUSH_ASYNC - N/A");
-          } else {
-            console.log("CHANGE_DATA_FLUSH_ASYNC - NG");
-
-          }
 
         })();
 
