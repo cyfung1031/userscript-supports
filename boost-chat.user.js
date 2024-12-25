@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.60
+// @version             0.1.61
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -242,8 +242,8 @@ SOFTWARE.
       console.error('with failure 0xFFC1');
     }
 
-    push(...itemsX) {
-      if (this.bypass) return super.push(...itemsX);
+    push(...itemsX) { // performance concern? (2.8ms)
+      if (this.bypass) return super.push(...itemsX); // performance concern? (1.6ms)
       const targetListSet = kRef(this.targetListSet);
 
       if (!targetListSet) {
@@ -330,8 +330,8 @@ SOFTWARE.
 
     }
 
-    shift() {
-      if (this.bypass) return super.shift();
+    shift() { // performance concern? (12.0ms)
+      if (this.bypass) return super.shift(); // performance concern? (5.9ms)
       const targetListSet = kRef(this.targetListSet);
 
       if (!targetListSet) {
@@ -416,7 +416,7 @@ SOFTWARE.
     Array.prototype.push32 = Array.prototype.push;
     Array.prototype.push = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[bst] 399 push', new Error().stack)
+        console.log('[yt-bst] 399 push', new Error().stack)
       }
       return this.push32(...arguments)
     }
@@ -426,7 +426,7 @@ SOFTWARE.
     Array.prototype.splice = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
         // 399 splice     at a.splice (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:2405:190)
-        console.log('[bst] 399 splice', new Error().stack)
+        console.log('[yt-bst] 399 splice', new Error().stack)
 
       }
       return this.splice32(...arguments)
@@ -436,7 +436,7 @@ SOFTWARE.
     Array.prototype.unshift32 = Array.prototype.unshift;
     Array.prototype.unshift = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[bst] 399 unshift', new Error().stack)
+        console.log('[yt-bst] 399 unshift', new Error().stack)
       }
       return this.unshift32(...arguments)
     }
@@ -446,7 +446,7 @@ SOFTWARE.
     Array.prototype.shift32 = Array.prototype.shift;
     Array.prototype.shift = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[bst] 399 shift', new Error().stack)
+        console.log('[yt-bst] 399 shift', new Error().stack)
       }
       return this.shift32(...arguments)
     }
@@ -454,7 +454,7 @@ SOFTWARE.
     Array.prototype.pop32 = Array.prototype.pop;
     Array.prototype.pop = function () {
       if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[bst] 399 pop', new Error().stack)
+        console.log('[yt-bst] 399 pop', new Error().stack)
       }
       return this.pop32(...arguments)
     }
@@ -556,9 +556,9 @@ SOFTWARE.
         pipelineMutex = pipelineMutex.then(async () => {
           let res;
           try {
-            res = await fn();
+            res = await fn(); // performance concern? (8.6ms)
           } catch (e) {
-            console.log('[bst] error_F1', e);
+            console.log('[yt-bst] error_F1', e);
             reject(e);
           }
           resolve(res);
@@ -574,7 +574,7 @@ SOFTWARE.
 
   let mloPr = null;
   let mloPrReleaseAt = 0;
-  let ezPr = null;
+  // let ezPr = null;
 
   setInterval(() => {
     if (mloPr !== null && mloPrReleaseAt > 0 && Date.now() > mloPrReleaseAt) mloPr.resolve();
@@ -603,7 +603,7 @@ SOFTWARE.
       mloUz = -1;
       mloUz0 = mloUz0_;
       mloPr = new PromiseExternal();
-      mo.observe(messageList, {
+      mo.observe(messageList, { // performance concern? (2.0ms)
         subtree: false, childList: true
       });
 
@@ -611,7 +611,7 @@ SOFTWARE.
 
     }
 
-    const mloPrSetup = (messageList, mloUz0_) => {
+    const mloPrSetup = (messageList, mloUz0_) => { // performance concern? (52.1ms)
 
       const mo = mloSetup(messageList, mloUz0_);
       return async () => {
@@ -632,7 +632,7 @@ SOFTWARE.
   //   return null;
   // }
 
-  const firstObjectKey = (obj) => {
+  const firstObjectKey = (obj) => { // performance concern? (8.6ms)
     for (const key in obj) {
       if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
     }
@@ -2144,7 +2144,7 @@ SOFTWARE.
 
 
   const formatters = {
-    authorBadges(badge, data) {
+    authorBadges(badge, data) {  // performance concern? (11.0ms)
 
 
       try {
@@ -2260,9 +2260,9 @@ SOFTWARE.
           const emoji = message.emoji;
 
           const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-          const src = () => `${emoji.image.thumbnails[0].url}`
-          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || '';
-          const tooltipText = () => emoji.shortcuts?.[0] || '';
+          const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
+          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
+          const tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
           const emojiId = () => emoji.emojiId || '';
           const isCustomEmoji = () => emoji.isCustomEmoji || false;
           const dataMutable = mutableWM.get(data);
@@ -2301,7 +2301,7 @@ SOFTWARE.
     if (!s) return;
     return s;
   }
-  const setExtra = (elm, extra) => {
+  const setExtra = (elm, extra) => { // performance concern? (1.8ms)
     extras.set(elm, extra);
   }
 
@@ -2368,7 +2368,7 @@ SOFTWARE.
           removeEntry(item)
         });
 
-        switch (item.aKey) {
+        switch (item.aKey) { // performance concern? (1.5ms)
           case 'liveChatViewerEngagementMessageRenderer':
             return SolidSystemMessage(item);
           case 'liveChatPaidMessageRenderer':
@@ -2906,12 +2906,12 @@ SOFTWARE.
     let _flushed = 0;
     // let bstMainScrollCount = 0;
 
-    const ioMessageListCallback = (entries) => {
-      for (const entry of entries) {
+    const ioMessageListCallback = (entries) => { // performance concern? (6.1ms)
+      for (const entry of entries) { // performance concern? (1.1ms)
         const target = entry?.target;
         const extra = getExtra(target);
         if (extra && typeof extra.interceptionRatioChange === 'function') {
-          if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) {
+          if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) { // performance concern? (2.2ms)
 
             extra.interceptionRatioChange(entry.intersectionRatio);
           }
@@ -3081,9 +3081,9 @@ SOFTWARE.
       messageList.solidBuild = solidBuild;
       messageList.solidBuildSet = solidBuildSet;
 
-      createEffect(() => {
-        solidBuild() && (ezPr !== null) && Promise.resolve([ezPr]).then(h => h[0].resolve());
-      });
+      // createEffect(() => {
+      //   solidBuild() && (ezPr !== null) && Promise.resolve([ezPr]).then(h => h[0].resolve());
+      // });
 
       const isListEmpty = createMemo(() => solidBuild().length < 1);
       createEffect(() => {
@@ -3199,7 +3199,7 @@ SOFTWARE.
           profileUrl: data.bst('authorAboutPage')
         });
 
-        console.log( '[bst] onNameFieldClick', Object.assign({}, unwrap(data)));
+        console.log( '[yt-bst] onNameFieldClick', Object.assign({}, unwrap(data)));
 
       }
 
@@ -3442,7 +3442,7 @@ SOFTWARE.
 
 
         const badges = getAuthor(this)?.authorBadges;
-        if (typeof (badges || 0) !== 'object') return null;
+        if (typeof (badges || 0) !== 'object') return null; // performance concern? (31.1ms)
         return badges;
 
       } else if (prop === 'authorType') {
@@ -3450,10 +3450,10 @@ SOFTWARE.
         function bP(a) {
           return a ? a.icon ? a.icon.iconType.toLowerCase() : a.customThumbnail ? "member" : "" : ""
         }
-        if (!this.authorBadges || !(this.authorBadges.length >= 1)) return '';
+        if (!this.authorBadges || !(this.authorBadges.length >= 1)) return ''; // performance concern? (1.8ms)
         for (const badge of this.authorBadges) {
           const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
-          if (r && (b = (bP(r))) && "verified" !== b) {
+          if (r && (b = (bP(r))) && "verified" !== b) { // performance concern? (2.0ms)
             return b;
           }
         }
@@ -3467,7 +3467,7 @@ SOFTWARE.
         if (ts > 1107183600000) {
           const now = Date.now();
           if (ts < (now + 120000)) {
-            return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); // performance concern? (1.4ms)
           }
         }
         return null;
@@ -3502,7 +3502,7 @@ SOFTWARE.
     cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 256;
     cProto.setAtBottom = (...args) => {
 
-      console.log('[bst] setAtBottom', 583, ...args)
+      console.log('[yt-bst] setAtBottom', 583, ...args)
 
     }
 
@@ -3544,7 +3544,7 @@ SOFTWARE.
 
     cProto.maybeAddDockableMessage17_ = cProto.maybeAddDockableMessage_;
     cProto.maybeAddDockableMessage_ = function (a) {
-      console.log('[bst] maybeAddDockableMessage_', 791, a)
+      console.log('[yt-bst] maybeAddDockableMessage_', 791, a)
       return this.maybeAddDockableMessage17_(a)
     }
 
@@ -3555,8 +3555,8 @@ SOFTWARE.
       try {
         status = 1;
         i = 0;
-        for (const t of this.visibleItems) {
-          a.call(this, "visibleItems", t, i++)
+        for (const t of this.visibleItems) { // performance concern? (2.1ms)
+          a.call(this, "visibleItems", t, i++) // performance concern? (12.8ms)
         }
         status = 2;
         i = 0;
@@ -3565,7 +3565,7 @@ SOFTWARE.
         }
         status = 3;
       } catch (e) {
-        console.error('forEachItem_', status, i, this.visibleItems.length, this.activeItems_.length)
+        console.error('[yt-bst] forEachItem_', status, i, this.visibleItems.length, this.activeItems_.length)
         console.error(e)
       }
     }
@@ -3573,7 +3573,7 @@ SOFTWARE.
     cProto.computeVisibleItems17 = cProto.computeVisibleItems;
     cProto.computeVisibleItems = function (a, b) {
 
-      console.log('[bst] computeVisibleItems', 791, a, b)
+      console.log('[yt-bst] computeVisibleItems', 791, a, b)
       // if(!this.visibleItems__) this.visibleItems__ = [];
       // return this.visibleItems__;
       return this.computeVisibleItems17(a, b);
@@ -3658,7 +3658,7 @@ SOFTWARE.
       if (replacementTo.length > 0) {
 
         if (replacementTo.length > 1) {
-          console.error('replacementTo.length > 1', replacementTo.slice(0));
+          console.error('[yt-bst] replacementTo.length > 1', replacementTo.slice(0));
           // replacementTo.splice(0, replacementTo.length - 1);
         }
 
@@ -3933,19 +3933,19 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     cProto.showNewItems_ = function (...args) {
 
-      console.log('[bst] showNewItems_', 583, ...args)
+      console.log('[yt-bst] showNewItems_', 583, ...args)
 
     }
 
     cProto.refreshOffsetContainerHeight_ = function () {
 
-      console.log('[bst] refreshOffsetContainerHeight_', 583, ...args)
+      console.log('[yt-bst] refreshOffsetContainerHeight_', 583, ...args)
     }
 
     cProto.maybeResizeScrollContainer_ = function (...args) {
 
 
-      console.log('[bst] maybeResizeScrollContainer_', 583, ...args)
+      console.log('[yt-bst] maybeResizeScrollContainer_', 583, ...args)
     }
 
 
@@ -4020,7 +4020,7 @@ f.handleRemoveChatItemAction_ = function(a) {
       }
     });
 
-
+    const freqMap = new Map(); // for temp use.
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
     cProto.flushActiveItems_ = function () {
@@ -4088,27 +4088,48 @@ f.handleRemoveChatItemAction_ = function(a) {
         _flushed = 1;
         const items = activeItems_.slice(0);
 
+        const generatePFC = () => {
+
+          freqMap.clear();
+
+          const visibleItems = this.visibleItems;
+
+          const fp = new Array(visibleItems.length);
+          let fpI = 0;
+
+          const pp = visibleItems.map(e => {
+            if (!e) return null;
+            if (typeof e === 'object') e = Object.values(e)[0] || 0;
+            const r = e.id || null;
+            if (typeof r === 'string'){
+              fp[fpI++] = r;
+              freqMap.set(r, freqMap.has(r) ? false : true);
+            } 
+            return r;
+          }); // e.id (non-empty) or null
+
+          fp.length = fpI;
+
+          const cp = new Array(fpI);
+          let cpI = 0;
+          for (const [key, isUnique] of freqMap.entries()) {
+            if (isUnique) {
+              cp[cpI++] = key;
+            }
+          }
+          cp.length = cpI;
+
+          return { pp, fp, cp };
+
+        }
+
         {
 
 
-
-          const pp = this.visibleItems.map(e => {
-            if (!e) return null;
-            if (typeof e === 'object') e = Object.values(e)[0] || 0;
-            return e.id || null;
-          });
-          const fp = pp.filter(e => typeof (e || 0) === 'string')
-
-          const cp = fp.filter(e => {
-            let idx1 = fp.indexOf(e);
-            if (idx1 >= 0) {
-              return fp.indexOf(e, idx1 + 1) < 0;
-            }
-            return false;
-          });
+          const { pp, fp, cp } = generatePFC();
           if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
 
-            console.log(992, pp.length, fp.length, cp.length)
+            console.log(`[yt-bst] flushItems; length mismatched (01); pp=${pp.length}, fp=${fp.length}, cp=${cp.length}`);
           }
 
         }
@@ -4451,14 +4472,18 @@ f.handleRemoveChatItemAction_ = function(a) {
             if (n > 1) {
               visibleItems.splice(0, n);
               list.splice(0, n);
+              // listLen = 96; maxItemsToDisplay = 90; n = 7; listLen -> 89
             } else {
               visibleItems.shift();
               list.shift();
+              // listLen = 90; maxItemsToDisplay = 90; n = 1; listLen -> 89
             }
           }
+          // listLen = 0...89
           removeFromActiveItems(flushItem);
           mfChange(bObj);
           list.push(bObj);
+          // listLen = 1...90
           visibleItems.push(flushItem);
           visibleItems.setBypass(false);
           return list;
@@ -4467,13 +4492,15 @@ f.handleRemoveChatItemAction_ = function(a) {
         let awaitTime = 0;
         // const timeline = new DocumentTimeline;
         // const timelines = new Set();
-        const t1 = performance.now();
 
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
-        let tq = t1;
         let mg = 0;
-        ezPr = null;
+        // ezPr = null;
         let listChangeCount = 0;
+        const t1 = performance.now();
+        let a2 = t1;
+        let b2 = 0;
+        let c2 = a2;
         for (; rJ < nd; rJ++) {
           if (clearCount0 !== this.clearCount || this.isAttached !== true) {
             flushKeys.clear();
@@ -4483,23 +4510,27 @@ f.handleRemoveChatItemAction_ = function(a) {
           bObjX = rearrangedFn(rearrangedW[j]);
           // timelines.add(`${timeline.currentTime}|${tq}`);
           mloUz = rJ;
-          ezPr = new PromiseExternal();
+          // ezPr = new PromiseExternal();
           messageList.solidBuildSet(loopFunc);
-          if (ezPr) await ezPr.then();
+          // if (ezPr) await ezPr.then();
           listChangeCount++;
           // if(!wasEmpty && document.visibilityState==='visible') await new Promise(r=>requestAnimationFrame(r))
-          const tu = performance.now();
-          if (tu - tq >= 6) {
-            // if (wasEmpty) scrollToEnd(); // before the last timelineResolve
-            await timelineResolve();
-            const tv = performance.now();
-            awaitTime += Math.round(tv - tu);
-            tq = tv;
+          c2 = performance.now();
+          b2++;
+          if ((c2 - a2) * (b2 + 1) - 14 * b2 > 0) { //  // (c2-a2)*((b2+1)/b2)>14
+            a2 = c2;
+            b2 = 0;
             mg++;
+            await timelineResolve();
+            const t = performance.now();
+            awaitTime += Math.round(t - c2);
+            a2 = c2 = t;
+          } else {
+            await Promise.resolve();
           }
         }
         mapToFlushItem.clear();
-        if (ezPr) await ezPr.then();
+        // if (ezPr) await ezPr.then();
         rearrangedW.length = 0;
         rearrangedW = null;
         if (listChangeCount > 0) {
@@ -4508,7 +4539,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           tartValueSet(() => target1);
           if (!mloCond()) { // just in case
             // await timelineResolve();
-            console.log(`flushItems: interupted; rJ=${rJ}; nd=${nd}`);
+            console.log(`[yt-bst] flushItems: interupted; rJ=${rJ}; nd=${nd}`);
             // await new Promise(resolve=>setTimeout(resolve, 80));
             // return;
           }
@@ -4533,32 +4564,19 @@ f.handleRemoveChatItemAction_ = function(a) {
         // }
         // console.log(5914,[...timelines], timeline.currentTime)
 
-        if (LOGTIME_FLUSHITEMS) {
+        if (LOGTIME_FLUSHITEMS && t2 - t1 > 100) {
           const T = Math.round(t2 - t1);
           const t = T - awaitTime;
-          if (mg > 0) console.log(`flushItems; n=${nd}; t=${t}(T=${T}); mg=${mg}`);
-          if (nd > 20) console.log(`one-by-one = true <${nd}>; t=${t}(T=${T})`);
+          console.log(`[yt-bst] flushItems; n=${nd}; t=${T}-${awaitTime}=${t}; mg=${mg}`);
         }
 
         {
 
-          const pp = this.visibleItems.map(e => {
-            if (!e) return null;
-            if (typeof e === 'object') e = Object.values(e)[0] || 0;
-            return e.id || null;
-          });
-          const fp = pp.filter(e => typeof (e || 0) === 'string')
 
-          const cp = fp.filter(e => {
-            let idx1 = fp.indexOf(e);
-            if (idx1 >= 0) {
-              return fp.indexOf(e, idx1 + 1) < 0;
-            }
-            return false;
-          });
+          const { pp, fp, cp } = generatePFC();
           if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
 
-            console.log(993, pp.length, fp.length, cp.length)
+            console.log(`[yt-bst] flushItems; length mismatched (02); pp=${pp.length}, fp=${fp.length}, cp=${cp.length}`);
           }
 
         }
