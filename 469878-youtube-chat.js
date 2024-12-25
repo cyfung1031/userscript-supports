@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.0
+// @version             0.67.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -212,6 +212,9 @@
   const FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth = true; // To fix Memory Leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth()
 
 
+  const USE_RM_ON_FOUNTAIN_MODEL = true;
+  const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
+  const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
 
 /**
  *
@@ -2056,6 +2059,19 @@
   const px2cm = (px) => px * window.devicePixelRatio * 0.026458333;
   const px2mm = (px) => px * window.devicePixelRatio * 0.26458333;
 
+  let createElement_fountain_model_fn = null;
+  let createElement_fountain_model_enabled = null;
+
+  ; (USE_RM_ON_FOUNTAIN_MODEL) && (()=>{
+    document.createElement4719 = document.createElement;
+    document.createElement = function (a) {
+      if (createElement_fountain_model_enabled) {
+        const r = createElement_fountain_model_fn(a);
+        if (r) return r;
+      }
+      return document.createElement4719(a);
+    }
+  })();
 
   ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS || DISABLE_FLAGS_SHADYDOM_FREE) && (() => {
 
@@ -7288,7 +7304,7 @@
         "yt-live-chat-ticker-sponsor-item-renderer"
       ];
 
-      const wmList = new Set;
+      // const wmList = new Set;
 
 
       /*
@@ -11673,6 +11689,372 @@
 
       }
 
+      if (USE_RM_ON_FOUNTAIN_MODEL) {
+
+
+        customElements.whenDefined("yt-emoji-fountain-view-model").then(() => {
+
+
+          mightFirstCheckOnYtInit();
+          groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-fountain-view-model hacks");
+          console.log("[Begin]");
+          (() => {
+
+            const tag = "yt-emoji-fountain-view-model"
+            const dummy = document.createElement(tag);
+
+            const cProto = getProto(dummy);
+            if (!cProto || !cProto.attached) {
+              console.warn(`proto.attached for ${tag} is unavailable.`);
+              return;
+            }
+
+            if (typeof cProto.createEmojiAnimation === 'function' && !cProto.createEmojiAnimation037 && cProto.createEmojiAnimation.length === 4) {
+              cProto.createEmojiAnimation037 = cProto.createEmojiAnimation;
+
+              const heartEmoji = {
+                "emojiId": "❤",
+                "image": {
+                  "thumbnails": [
+                    {
+                      "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/2764/72.png"
+                    }
+                  ]
+                },
+                "searchTerms": [
+                  "red",
+                  "heart"
+                ],
+                "shortcuts": [
+                  ":red_heart:",
+                  ":heart:",
+                  "<3"
+                ],
+                "index": 318
+              };
+              const $this = {
+                reactionBuckets: [
+                  {
+                    "totalReactions": 1,
+                    "duration": {
+                      "seconds": "1"
+                    },
+                    "intensityScore": 0.75,
+                    "reactionsData": [
+                      {
+                        "unicodeEmojiId": "❤",
+                        "reactionCount": 1
+                      }
+                    ]
+                  }
+                ],
+                noEmojiIdentifier: "NO_EMOJI",
+                "emojiBucketTimerId": 155,
+                "lastEmojiRequestedForTesting": "❤",
+                "emojiAnimationTimerId": 338,
+                emojiManager: new Proxy(dummy.emojiManager, {
+                  get(target, p) {
+                    if (p === 'emojiMap') {
+                      const o = target[p] || {};
+                      if (!o["❤"]) o["❤"] = heartEmoji;
+                      return o;
+                    }
+                  }
+                }),
+                emojiContainer: null
+              };
+
+              const tracelist = new Set();
+              try {
+                createElement_fountain_model_enabled = true;
+                createElement_fountain_model_fn = function (a) {
+                  tracelist.add(a);
+                  return false;
+                }
+                cProto.createEmojiAnimation037.call($this, '❤', false, undefined, undefined);
+              } catch (e) { }
+              createElement_fountain_model_enabled = false;
+
+              const tracelistLen = tracelist.size;
+              tracelist.clear();
+
+              if (tracelistLen > 0) {
+
+                const elementList = new Set();
+                // const classList = new Set();
+
+                const fountainMap = new WeakMap();
+
+                const animationendListener = (evt) => {
+                  const p = evt.target;
+                  if (p instanceof HTMLElement && p.nodeName === 'EMOJI' && p.__removeOnAnimationEnd381__) {
+                    p.__removeOnAnimationEnd381__ = false;
+                    p.remove();
+                  }
+                };
+
+                const addEventListener716 = function (a, b, c = undefined) {
+                  // console.log(1239889, this, a,b,c)
+                  if (a === 'animationend' && this.__emoji4818__ && typeof b === 'function' && b.length === 0 && c === undefined && (this || 0).nodeName === "EMOJI" && /^function\s*\(\s*\)\s*\{\s*[$a-wA-Z_-\d]+\.remove\(\);?\s*}$/.test(`${b}`)) {
+                    const cnt = kRef(fountainMap.get(this));
+                    const hostElement = cnt ? cnt.hostElement : null;
+                    if (cnt && hostElement instanceof HTMLElement) {
+                      if (!cnt.__addedAnimationEnd381__) {
+                        cnt.__addedAnimationEnd381__ = true;
+                        hostElement.addEventListener('animationend', animationendListener, passiveCapture);
+                      }
+                      this.__removeOnAnimationEnd381__ = true; // set on addEventListener; unset on execution; (to be re-set in createEmojiAnimation)
+                      return;
+                    }
+                  }
+                  // console.log(477, a,b,c)
+                  return this.addEventListener717(...arguments)
+                }
+
+                let __weakRef9592__;
+                DEBUG_RM_ON_FOUNTAIN_MODEL && (window.__elementList183__ = elementList); // around 30 ~ 60 elements when dt = 1600ms
+
+                const updateElementList = function (cntWR) {
+
+                  try {
+
+                    const cnt = kRef(cntWR);
+                    if (!cnt) return;
+
+
+                    const ct = Date.now();
+                    for (const entry of elementList) {
+                      const [elementW, creationTime, addTime, removeTime] = entry;
+
+                      const element = kRef(elementW);
+                      if (!element) {
+                        elementList.delete(entry);
+                        continue;
+                      }
+
+                      // addTime removeTime
+                      // 0 0 -> element.isConnected === true
+                      // 0 1 -> element.isConnected === true
+                      // 1 0 -> element.isConnected === false
+                      // 1 1 X
+
+                      if (!addTime) {
+                        if (element.isConnected === true) {
+                          entry[2] = ct;
+                          entry[3] = 0;
+                          // arrange the entry to the iteration end
+                          elementList.delete(entry);
+                          elementList.add(entry);
+                        }
+                      } else if (!removeTime) {
+                        if (element.isConnected === false) {
+                          entry[2] = 0;
+                          entry[3] = ct;
+                          // arrange the entry to the iteration end
+                          // elementList.delete(entry);
+                          // elementList.add(entry);
+                        }
+                      }
+
+
+
+                    }
+                  } catch (e) {
+                    console.warn(e);
+                  }
+
+
+                }
+
+                createElement_fountain_model_fn = function (a) {
+                  if (typeof a !== 'string') return;
+                  const ct = Date.now();
+                  const timeRef = ct - FOUNTAIN_MODEL_TIME_CONFIRM;
+                  const tagNameLower = a.toLowerCase();
+                  try {
+                    for (const entry of elementList) {
+                      const [elementW, creationTime, addTime, removeTime] = entry;
+                      if (!removeTime || removeTime > timeRef) continue;
+                      const element = kRef(elementW);
+                      if (!element) { // play safe
+                        elementList.delete(entry);
+                        continue;
+                      }
+
+                      const bool = element.__tagNameLower584__ === tagNameLower && element.isConnected === false;
+
+                      // if (element.isConnected === true) {  // play safe
+                      //   continue;
+                      // }
+
+
+
+                      if (bool) {
+                      // const qq = true;
+                      // console.log(1838, p === a.toLowerCase() , entry[3] > 0 , entry[3] < targetCreationTime)
+                      // if (  qq &&  p === a.toLowerCase() && removeTime > 0 && removeTime < targetCreationTime ) {
+                        // console.log(123992, element , element.isConnected)
+
+                        elementList.delete(entry);
+                        entry[1] = ct;
+                        entry[2] = 0;
+                        entry[3] = 0;
+                        elementList.add(entry);
+
+                        element.className = '';
+                        element.style = '';
+                        if (tagNameLower === 'img') {
+                          element.src = '';
+                          element.alt = '';
+                        }
+
+                        
+
+
+                        if (!onPageContainer) {
+                          let p = document.createElement('noscript');
+                          p.style.all = 'unset';
+                          document.body.prepend(p);
+                          onPageContainer = p;
+                        }
+
+                        const cnt = insp(element);
+                        const hostElement = cnt.hostElement;
+                        if(hostElement === element && !cnt.__dataInvalid && cnt.__dataEnabled  && cnt.__dataReady){
+
+                          // console.log(1238);
+                          onPageContainer.appendChild(hostElement); // to fix some issues for the rendered elements
+          
+                          cnt.__dataInvalid = false;
+                          cnt.__dataEnabled = true;
+                          cnt.__dataReady = true;
+                          // cnt._initializeProtoProperties(cnt.data)
+              
+                          // window.meaa = cnt.$.container;
+                          const cntData = cnt.data;
+                          cnt.__data = Object.create(cntData);
+                          cnt.__dataPending = Object.create(cntData);
+                          cnt.__dataOld = {}
+              
+                          try{
+                            cnt.markDirty();
+                          }catch(e){}
+                          try{
+                            cnt.markDirtyVisibilityObserver();
+                          }catch(e){}
+                          try{
+                            cnt.wasPrescan = cnt.wasVisible = !1
+                          }catch(e){}
+  
+
+
+                        }
+
+                        element.__reuseCount918__ = (element.__reuseCount918__ || 0) + 1;
+          
+
+
+
+                        // console.log(2183, element);
+                        // emoji -> div -> img
+                        return element;
+                      }
+
+                      // console.log(element, element.nodeName);
+                      // continue;
+                      /*
+                      const p = (element.nodeName || '').toLowerCase();
+                      
+                      if (p === a.toLowerCase()) {
+                        elementList.delete(entry);
+                        entry[1] = ct;
+                        entry[2] = 0;
+                        elementList.add(entry);
+                        element.className = '';
+                        element.style = '';
+                        if (p === 'img') {
+                          element.src = '';
+                          element.alt = '';
+                        }
+                        // console.log(2183, element);
+                        // emoji -> div -> img
+                        return element;
+                        
+                      }
+                        */
+
+
+
+                    }
+
+                  } catch (e) {
+                    console.warn(e);
+                  }
+                  const elm = document.createElement4719(a)
+
+                  try {
+
+                    const elmW = mWeakRef(elm);
+                    const entry = [elmW, ct, 0, 0];
+                    elementList.add(entry);
+                    elm.__tagNameLower584__ = tagNameLower;
+                    // elm.__entry428__ = mWeakRef(entry);
+                    if (!elm.addEventListener717) {
+                      elm.addEventListener717 = elm.addEventListener;
+                      elm.addEventListener = addEventListener716;
+                      if (elm.nodeName.toLowerCase() === 'emoji') elm.__emoji4818__ = true;
+                    }
+                    if (__weakRef9592__) {
+                      const cnt = kRef(__weakRef9592__);
+                      cnt && fountainMap.set(elm, __weakRef9592__);
+                    }
+                  } catch (e) {
+                    console.warn(e);
+                  }
+
+                  return elm;
+                };
+
+                cProto.createEmojiAnimation = function (a, b, c, d) {
+                  createElement_fountain_model_enabled = true;
+                  if (!this.__weakRef9591__) {
+                    this.__weakRef9591__ = new WeakRef(this);
+                    const q = this.__weakRef9591__;
+                    const hostElement = this.hostElement;
+                    const mo = new MutationObserver(() => {
+                      Promise.resolve(q).then(updateElementList);
+                    }).observe(hostElement, { subtree: true, childList: true });
+                  }
+                  __weakRef9592__ = this.__weakRef9591__;
+                  let r = this.createEmojiAnimation037(a, b, c, d);
+                  __weakRef9592__ = null;
+                  createElement_fountain_model_enabled = false;
+                  return r;
+                }
+                console.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
+              } else {
+
+                console.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+              }
+
+            } else {
+
+              console.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+            }
+
+
+          })();
+
+          console.log("[End]");
+
+          console.groupEnd();
+
+
+  
+        }).catch(console.warn);
+
+        
+      }
 
     }
 
