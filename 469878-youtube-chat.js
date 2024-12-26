@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.6
+// @version             0.67.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -215,7 +215,7 @@
   const USE_RM_ON_FOUNTAIN_MODEL = true;
   const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
   const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
-  const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = true; // enabled for boost chat only; instant emit & no background flush
+  const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = false; // enabled for boost chat only; instant emit & no background flush
 
 /**
  *
