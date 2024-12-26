@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.1
+// @version             0.67.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -215,6 +215,7 @@
   const USE_RM_ON_FOUNTAIN_MODEL = true;
   const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
   const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
+  const ENABLE_INSTANT_EMIT_MESSAGES = true; // enabled for boost chat only
 
 /**
  *
@@ -9744,6 +9745,140 @@
               return arr;
             };
           }
+
+
+
+        };
+        !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
+        getLCRDummy().then(lcrFn2);
+      }
+
+      if (ENABLE_INSTANT_EMIT_MESSAGES){
+
+        const lcrFn2 = (lcrDummy) => {
+
+          const tag = "yt-live-chat-renderer"
+          const dummy = lcrDummy;
+
+
+          const cProto = getProto(dummy);
+
+          // dummy.usePatchedLifecycles = false;
+          // dummy.data = null;
+          // dummy.__data = null;
+          // Object.setPrototypeOf(dummy, Object.prototype);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+  
+          /*
+
+              // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+              YP.prototype.emitSmoothedMessages = function() {
+                  this.JSC$10797_nextUpdateId = null;
+                  if (this.JSC$10797_messageQueue.length) {
+                      var a = 1E4;
+                      this.JSC$10797_estimatedUpdateInterval !== null && this.JSC$10797_lastUpdateTime !== null && (a = this.JSC$10797_estimatedUpdateInterval - Date.now() + this.JSC$10797_lastUpdateTime);
+                      var b = this.JSC$10797_messageQueue.length < a / 80 ? 1 : Math.ceil(this.JSC$10797_messageQueue.length / (a / 80));
+                      var c = aba(this.JSC$10797_messageQueue.splice(0, b));
+                      this.callback && this.callback(c);
+                      this.JSC$10797_messageQueue.length && (b === 1 ? (b = a / this.JSC$10797_messageQueue.length,
+                      b *= Math.random() + .5,
+                      b = Math.min(1E3, b),
+                      b = Math.max(80, b)) : b = 80,
+                      this.JSC$10797_nextUpdateId = window.setTimeout(this.emitSmoothedMessages.bind(this), b))
+                  }
+              }
+              // emitSmoothedMessages: say b = 1000, 858.24, 529.49, 357.15, 194.96, 82.12, 80, 80, 80 ....
+
+          */
+
+
+        const _flag0281_ = window._flag0281_ || mclp._flag0281_;
+
+
+          if ((_flag0281_ & 0x40000) === 0x40000 && cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions92_) {
+            let byPass = false;
+            let q33 = false;
+            let key_estimatedUpdateInterval = '';
+            let key_lastUpdateTime = '';
+            const emitSmoothedMessagesInstantFn = function () {
+              if (byPass) return this.emitSmoothedMessages018();
+              byPass = true;
+              try {
+                if (!q33) {
+                  const keys = Object.getOwnPropertyNames(this);
+                  for (const key of keys) {
+                    if (`${key}`.endsWith('_estimatedUpdateInterval')) key_estimatedUpdateInterval = key;
+                    else if (`${key}`.endsWith('_lastUpdateTime')) key_lastUpdateTime = key;
+                    else continue;
+                    if (key_estimatedUpdateInterval && key_lastUpdateTime) break;
+                  }
+                  if (key_estimatedUpdateInterval && key_lastUpdateTime) {
+                    q33 = true;
+                  }
+                }
+                if (key_estimatedUpdateInterval && key_lastUpdateTime) {
+                  this[key_estimatedUpdateInterval] = 78; // 80 - 2
+                  this[key_lastUpdateTime] = Date.now() - 1;
+                }
+              } catch (e) { }
+              // console.log(19893,key_estimatedUpdateInterval,  key_lastUpdateTime)
+              // make a = this.JSC$10797_estimatedUpdateInterval - Date.now() + this.JSC$10797_lastUpdateTime small
+
+              // this.JSC$10797_estimatedUpdateInterval = Date.now() + 1
+              // this.JSC$10797_lastUpdateTime  = Date.now()
+
+              // if (!window.setTimeout837) {
+              //   window.setTimeout837 = window.setTimeout;
+              //   window.setTimeout838 = function (f, d) {
+              //     if (arguments.length !== 2) return window.setTimeout837(...arguments);
+              //     console.log(12883, d)
+              //     return window.setTimeout837(f, d > 80 ? 80 : d)
+              //   }
+              // }
+              // else if (window.setTimeout837 !== window.setTimeout) {
+              //   window.setTimeout837 = window.setTimeout;
+              // }
+              // let r;
+              // if (window.setTimeout837 && window.setTimeout838) {
+              //   window.setTimeout = window.setTimeout838;
+              //   r = this.emitSmoothedMessages018();
+              //   window.setTimeout = window.setTimeout837;
+              // } else {
+              //   r = this.emitSmoothedMessages018();
+              // }
+
+              const r = this.emitSmoothedMessages018();
+
+              byPass = false;
+              return r;
+            };
+            cProto.preprocessActions92_ = cProto.preprocessActions_;
+            cProto.preprocessActions_ = function (arr) {
+
+              arr = this.preprocessActions92_(arr);
+
+              try {
+
+                const smoothedQueue_ = this.smoothedQueue_;
+                if (smoothedQueue_ && !smoothedQueue_.__fix018__) {
+                  smoothedQueue_.__fix018__ = true;
+                  if (!smoothedQueue_.emitSmoothedMessages018 && typeof smoothedQueue_.emitSmoothedMessages === 'function' && smoothedQueue_.emitSmoothedMessages.length === 0) {
+                    smoothedQueue_.emitSmoothedMessages018 = smoothedQueue_.emitSmoothedMessages;
+                    smoothedQueue_.emitSmoothedMessages = emitSmoothedMessagesInstantFn;
+                  }
+                }
+              } catch (e) {
+                console.warn(e);
+               }
+              return arr;
+            };
+          }
+
 
 
 
