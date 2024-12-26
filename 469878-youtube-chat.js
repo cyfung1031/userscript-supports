@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.3
+// @version             0.67.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -9805,6 +9805,7 @@
             let q33 = false;
             let key_estimatedUpdateInterval = '';
             let key_lastUpdateTime = '';
+            let key_messageQueue = '';
             const emitSmoothedMessagesInstantFn = function () {
               if (byPass) return this.emitSmoothedMessages018();
               byPass = true;
@@ -9814,10 +9815,11 @@
                   for (const key of keys) {
                     if (`${key}`.endsWith('_estimatedUpdateInterval')) key_estimatedUpdateInterval = key;
                     else if (`${key}`.endsWith('_lastUpdateTime')) key_lastUpdateTime = key;
+                    else if (`${key}`.endsWith('_messageQueue')) key_messageQueue = key;
                     else continue;
-                    if (key_estimatedUpdateInterval && key_lastUpdateTime) break;
+                    if (key_estimatedUpdateInterval && key_lastUpdateTime && key_messageQueue) break;
                   }
-                  if (key_estimatedUpdateInterval && key_lastUpdateTime) {
+                  if (key_estimatedUpdateInterval && key_lastUpdateTime && key_messageQueue) {
                     q33 = true;
                   }
                 }
@@ -9851,8 +9853,22 @@
               // } else {
               //   r = this.emitSmoothedMessages018();
               // }
+              let doInNextCall = false;
+              try {
+                const messageQueue = key_messageQueue ? this[key_messageQueue] : null;
+                if (!messageQueue || !messageQueue.length) {
+
+                } else if (messageQueue.length > 255) {
+
+                } else if (!document.hidden) {
+
+                } else {
+                  doInNextCall = true;
+                }
+              } catch (e) { }
+
               let r;
-              if (document.hidden) {
+              if (doInNextCall) {
                 setTimeout_(() => this.emitSmoothedMessages019(), 250);
               } else {
                 r = this.emitSmoothedMessages018();
