@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.4
+// @version             0.67.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -569,7 +569,7 @@
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
-  const [setTimeout_] = setTimeout;
+  const [setTimeout_] = [setTimeout];
   // let jsonParseFix = null;
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
