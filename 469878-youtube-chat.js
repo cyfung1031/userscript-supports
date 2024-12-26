@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.5
+// @version             0.67.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -10967,8 +10967,12 @@
           })();
 
 
+          console.log("[End]");
 
-        });
+          console.groupEnd();
+
+
+        }).catch(console.warn);
 
       }
 
