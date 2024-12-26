@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.7
+// @version             0.67.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -215,7 +215,7 @@
   const USE_RM_ON_FOUNTAIN_MODEL = true;
   const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
   const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
-  const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = false; // enabled for boost chat only; instant emit & no background flush
+  const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = true; // enabled for boost chat only; instant emit & no background flush
 
 /**
  *
@@ -5901,7 +5901,7 @@
         console.log("[Begin]");
 
         const mclp = cProto;
-        const _flag0281_ = window._flag0281_ || mclp._flag0281_;
+        const _flag0281_ = window._flag0281_;
 
         try {
           assertor(() => typeof mclp.scrollToBottom_ === 'function');
@@ -9797,7 +9797,7 @@
           */
 
 
-          const _flag0281_ = window._flag0281_ || mclp._flag0281_;
+          const _flag0281_ = window._flag0281_;
 
 
           if ((_flag0281_ & 0x40000) === 0x40000 && cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions92_) {
