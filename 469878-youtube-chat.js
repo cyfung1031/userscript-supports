@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.2
+// @version             0.67.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -215,7 +215,7 @@
   const USE_RM_ON_FOUNTAIN_MODEL = true;
   const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
   const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
-  const ENABLE_INSTANT_EMIT_MESSAGES = true; // enabled for boost chat only
+  const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = true; // enabled for boost chat only; instant emit & no background flush
 
 /**
  *
@@ -569,7 +569,7 @@
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
-
+  const [setTimeout_] = setTimeout;
   // let jsonParseFix = null;
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
@@ -9753,7 +9753,7 @@
         getLCRDummy().then(lcrFn2);
       }
 
-      if (ENABLE_INSTANT_EMIT_MESSAGES){
+      if (MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT) {
 
         const lcrFn2 = (lcrDummy) => {
 
@@ -9771,7 +9771,7 @@
             console.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
-  
+
           /*
 
               // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
@@ -9797,7 +9797,7 @@
           */
 
 
-        const _flag0281_ = window._flag0281_ || mclp._flag0281_;
+          const _flag0281_ = window._flag0281_ || mclp._flag0281_;
 
 
           if ((_flag0281_ & 0x40000) === 0x40000 && cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions92_) {
@@ -9851,9 +9851,12 @@
               // } else {
               //   r = this.emitSmoothedMessages018();
               // }
-
-              const r = this.emitSmoothedMessages018();
-
+              let r;
+              if (document.hidden) {
+                setTimeout_(() => this.emitSmoothedMessages019(), 250);
+              } else {
+                r = this.emitSmoothedMessages018();
+              }
               byPass = false;
               return r;
             };
@@ -9869,12 +9872,13 @@
                   smoothedQueue_.__fix018__ = true;
                   if (!smoothedQueue_.emitSmoothedMessages018 && typeof smoothedQueue_.emitSmoothedMessages === 'function' && smoothedQueue_.emitSmoothedMessages.length === 0) {
                     smoothedQueue_.emitSmoothedMessages018 = smoothedQueue_.emitSmoothedMessages;
+                    smoothedQueue_.emitSmoothedMessages019 = emitSmoothedMessagesInstantFn;
                     smoothedQueue_.emitSmoothedMessages = emitSmoothedMessagesInstantFn;
                   }
                 }
               } catch (e) {
                 console.warn(e);
-               }
+              }
               return arr;
             };
           }
