@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.62
+// @version             0.1.63
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -45,7 +45,7 @@ SOFTWARE.
 
   const USE_SHADOWROOT = false;
 
-  const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100;
+  const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100 | 0x40000;
   const DEBUG_visibleItems_trace = false;
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
@@ -353,7 +353,7 @@ SOFTWARE.
 
       if (!targetListSet) {
 
-        console.error('targetListSet failure 0xFF01');
+        console.error('targetListSet failure 0xFF01'); // handleRemoveChatItemAction_
       }
 
       if (itemsX.length >= 1) {
