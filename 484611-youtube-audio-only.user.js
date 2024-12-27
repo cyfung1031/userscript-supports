@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             1.9.4
+// @version             2.0.0
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -29,78 +29,109 @@
 (async function () {
     'use strict';
 
-      !window.TTP && (() => {
+    // document.mfk33 = new Set([
+    //     'html5_enable_ssap_autoplay_debug_logging', // 1
+    //     // 'enable_visit_advertiser_support_on_ipad_mweb',
+    //     // 'html5_shorts_onesie_mismatched_fix',
+    //     // 'html5_early_media_for_drm',
+    //     // 'allow_vp9_1080p_mq_enc',
+    //     // 'html5_onesie_preload_use_content_owner',
+    //     'html5_exponential_memory_for_sticky', // 1
+    //     // 'html5_perf_cap_override_sticky',
+    //     // 'html5_perserve_av1_perf_cap',
+    //     // 'html5_disable_low_pipeline',
+    //     'html5_publish_all_cuepoints', // 2
+    //     'html5_ultra_low_latency_subsegment_readahead', // 2
+    //     // 'html5_disable_move_pssh_to_moov',
+    //     'html5_sunset_aac_high_codec_family', // 2
+    //     // 'html5_enable_ssap_seteos',
+    //     // 'html5_catch_errors_for_rollback',
+    //     // 'html5_sabr_enable_utc_seek_requests',
+    //     // 'html5_sabr_enable_live_clock_offset',
+    //     // 'html5_disable_client_resume_policy_for_sabr',
+    //     'html5_trigger_loader_when_idle_network', // 2
+    //     'web_key_moments_markers', // 3
+    //     'embeds_use_parent_visibility_in_ve_logging', // 1
+    //     'html5_onesie' // 1
+    // ]);
+
+    // URL.revokeObjectURL = function(objectURL){
+    //     console.log('revokeObjectURL', ...arguments)
+    //     return;
+    // }
+
+    !window.TTP && (() => {
         // credit to Benjamin Philipp
         // original source: https://greasyfork.org/en/scripts/433051-trusted-types-helper
-      
+
         // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
-      
+
         const overwrite_default = false; // If a default policy already exists, it might be best not to overwrite it, but to try and set a custom policy and use it to manually generate trusted types. Try at your own risk
         const prefix = `TTP`;
         var passThroughFunc = function (string, sink) {
-          return string; // Anything passing through this function will be returned without change
+            return string; // Anything passing through this function will be returned without change
         }
         var TTPName = "passthrough";
         var TTP_default, TTP = { createHTML: passThroughFunc, createScript: passThroughFunc, createScriptURL: passThroughFunc }; // We can use TTP.createHTML for all our assignments even if we don't need or even have Trusted Types; this should make fallbacks and polyfills easy
         var needsTrustedHTML = false;
         function doit() {
-          try {
-            if (typeof window.isSecureContext !== 'undefined' && window.isSecureContext) {
-              if (window.trustedTypes && window.trustedTypes.createPolicy) {
-                needsTrustedHTML = true;
-                if (trustedTypes.defaultPolicy) {
-                  log("TT Default Policy exists");
-                  if (overwrite_default)
-                    TTP = window.trustedTypes.createPolicy("default", TTP);
-                  else
-                    TTP = window.trustedTypes.createPolicy(TTPName, TTP); // Is the default policy permissive enough? If it already exists, best not to overwrite it
-                  TTP_default = trustedTypes.defaultPolicy;
-      
-                  log("Created custom passthrough policy, in case the default policy is too restrictive: Use Policy '" + TTPName + "' in var 'TTP':", TTP);
+            try {
+                if (typeof window.isSecureContext !== 'undefined' && window.isSecureContext) {
+                    if (window.trustedTypes && window.trustedTypes.createPolicy) {
+                        needsTrustedHTML = true;
+                        if (trustedTypes.defaultPolicy) {
+                            log("TT Default Policy exists");
+                            if (overwrite_default)
+                                TTP = window.trustedTypes.createPolicy("default", TTP);
+                            else
+                                TTP = window.trustedTypes.createPolicy(TTPName, TTP); // Is the default policy permissive enough? If it already exists, best not to overwrite it
+                            TTP_default = trustedTypes.defaultPolicy;
+
+                            log("Created custom passthrough policy, in case the default policy is too restrictive: Use Policy '" + TTPName + "' in var 'TTP':", TTP);
+                        }
+                        else {
+                            TTP_default = TTP = window.trustedTypes.createPolicy("default", TTP);
+                        }
+                        log("Trusted-Type Policies: TTP:", TTP, "TTP_default:", TTP_default);
+                    }
                 }
-                else {
-                  TTP_default = TTP = window.trustedTypes.createPolicy("default", TTP);
-                }
-                log("Trusted-Type Policies: TTP:", TTP, "TTP_default:", TTP_default);
-              }
+            } catch (e) {
+                log(e);
             }
-          } catch (e) {
-            log(e);
-          }
         }
-      
+
         function log(...args) {
-          if ("undefined" != typeof (prefix) && !!prefix)
-            args = [prefix + ":", ...args];
-          if ("undefined" != typeof (debugging) && !!debugging)
-            args = [...args, new Error().stack.replace(/^\s*(Error|Stack trace):?\n/gi, "").replace(/^([^\n]*\n)/, "\n")];
-          console.log(...args);
+            if ("undefined" != typeof (prefix) && !!prefix)
+                args = [prefix + ":", ...args];
+            if ("undefined" != typeof (debugging) && !!debugging)
+                args = [...args, new Error().stack.replace(/^\s*(Error|Stack trace):?\n/gi, "").replace(/^([^\n]*\n)/, "\n")];
+            console.log(...args);
         }
-      
+
         doit();
-      
+
         // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
-      
+
         window.TTP = TTP;
-      
-      })();
-      
-      function createHTML(s) {
+
+    })();
+
+    function createHTML(s) {
         if (typeof TTP !== 'undefined' && typeof TTP.createHTML === 'function') return TTP.createHTML(s);
         return s;
-      }
-      
-      let trustHTMLErr = null;
-      try {
+    }
+
+    let trustHTMLErr = null;
+    try {
         document.createElement('div').innerHTML = createHTML('1');
-      } catch (e) {
+    } catch (e) {
         trustHTMLErr = e;
-      }
-      
-      if (trustHTMLErr) {
+    }
+
+    if (trustHTMLErr) {
         console.log(`trustHTMLErr`, trustHTMLErr);
         trustHTMLErr(); // exit userscript
-      }
+    }
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -398,24 +429,24 @@
 
 
 
-        const createPipeline = () => {
-            let pipelineMutex = Promise.resolve();
-            const pipelineExecution = fn => {
-                return new Promise((resolve, reject) => {
-                    pipelineMutex = pipelineMutex.then(async () => {
-                        let res;
-                        try {
-                            res = await fn();
-                        } catch (e) {
-                            console.log('error_F1', e);
-                            reject(e);
-                        }
-                        resolve(res);
-                    }).catch(console.warn);
-                });
-            };
-            return pipelineExecution;
-        }
+        // const createPipeline = () => {
+        //     let pipelineMutex = Promise.resolve();
+        //     const pipelineExecution = fn => {
+        //         return new Promise((resolve, reject) => {
+        //             pipelineMutex = pipelineMutex.then(async () => {
+        //                 let res;
+        //                 try {
+        //                     res = await fn();
+        //                 } catch (e) {
+        //                     console.log('error_F1', e);
+        //                     reject(e);
+        //                 }
+        //                 resolve(res);
+        //             }).catch(console.warn);
+        //         });
+        //     };
+        //     return pipelineExecution;
+        // }
 
         const observablePromise = (proc, timeoutPromise) => {
             let promise = null;
@@ -462,11 +493,6 @@
         let clearTimeout_ = clearTimeout;
 
         const delayPn = delay => new Promise((fn => setTimeout_(fn, delay)));
-
-        const isWatchPageURL = (url) => {
-            url = url || location;
-            return location.pathname === '/watch' || location.pathname.startsWith('/live/')
-        };
 
         const mockEvent = (o, elem) => {
             o = o || {};
@@ -532,56 +558,6 @@
 
         };
 
-        const mediaNetworkStateReady = async (audio) => {
-
-            if (!(audio instanceof HTMLMediaElement)) {
-                return '';
-            }
-            let done = false;
-            const et = await Promise.race([
-
-                new Promise(resolve => {
-                    audio.addEventListener('timeupdate', (evt) => {
-                        !done && resolve && resolve(evt.type);
-                        resolve = null
-                    }, { once: true, capture: true, passive: true })
-                }),
-
-                new Promise(resolve => {
-                    audio.addEventListener('waiting', (evt) => {
-                        !done && resolve && resolve(evt.type);
-                        resolve = null
-                    }, { once: true, capture: true, passive: true })
-                }),
-
-                new Promise(resolve => {
-                    audio.addEventListener('loadstart', (evt) => {
-                        !done && resolve && resolve(evt.type);
-                        resolve = null
-                    }, { once: true, capture: true, passive: true })
-                }),
-
-                new Promise(resolve => {
-                    audio.addEventListener('durationchange', (evt) => {
-                        !done && resolve && resolve(evt.type);
-                        resolve = null
-                    }, { once: true, capture: true, passive: true })
-                })
-
-            ]);
-            done = true;
-            return et;
-
-        };
-
-        const updateLastActiveTimeAsync = (player_) => {
-            // TBC
-            Promise.resolve().then(() => {
-                if (typeof player_.updateLastActiveTime === 'function') {
-                    player_.updateLastActiveTime();
-                }
-            });
-        };
 
         const attachOneTimeEvent = function (eventType, callback) {
             let kz = false;
@@ -686,9 +662,9 @@
             configurable: true
         });
 
-        let prr = new PromiseExternal();
-        const prrPipeline = createPipeline();
-        let stopAndReload = false;
+        // let prr = new PromiseExternal();
+        // const prrPipeline = createPipeline();
+        // let stopAndReload = false;
 
         let fa = 0;
 
@@ -964,9 +940,1918 @@
 
         })();
 
+
+        const updateLastActiveTimeAsync_ = (player_) => {
+            if (player_ && typeof player_.updateLastActiveTime === 'function') {
+                player_.updateLastActiveTime();
+            }
+        };
+
+        const updateLastActiveTimeAsync = (evt) => {
+            Promise.resolve(evt?.updateLastActiveTime ? evt : evt?.target).then(updateLastActiveTimeAsync_);
+        };
+
+
+
+        const { setupAudioPlaying } = (() => {
+
+            let key_mediaElementT = '';
+
+            let internalAppXT = null;
+            let standardAppXT = null;
+            let playerAppXT = null;
+
+            const internalAppUT = new Set();
+            const standardAppUT = new Set();
+            const playerAppUT = new Set();
+            let dirtyMark = 1 | 2 | 4;
+
+
+        const getMediaElement = ()=>{
+
+            const internalApp = internalAppXM();
+            const standardApp = standardAppXM();
+
+            let t;
+
+            if (t = internalApp?.mediaElement?.[key_mediaElementT]) return t;
+
+
+            if (t = standardApp?.mediaElement?.[key_mediaElementT]) return t;
+
+            return null;
+
+            
+
+        }
+            const updateInternalAppFn = (x) => {
+                if (x !== internalAppXT) dirtyMark = 1 | 2 | 4;
+                internalAppUT.add(x);
+                internalAppXT = x;
+                // videoData
+                // stopVideo
+                // pauseVideo 
+            }
+
+            window.gt3 = () => internalAppXM();
+            const internalAppXM = () => {
+                if (!(dirtyMark & 4)) return internalAppXT;
+                if (!key_mediaElementT) return internalAppXT;
+                let result = null;
+                for (const p of internalAppUT) {
+                    if (!p.mediaElement) {
+                        internalAppUT.delete(p);
+                    } else {
+                        const element = p.mediaElement[key_mediaElementT];
+                        if (element instanceof Element) {
+                            if (element.closest('[hidden]')) {
+
+                            } else if (result === null) {
+                                result = p;
+                            }
+                        }
+                    }
+                }
+                internalAppXT = result;
+                if (dirtyMark & 4) dirtyMark -= 4;
+                return result;
+            }
+
+            const updateStandardAppFn = (x) => {
+                if (x !== standardAppXT) dirtyMark = 1 | 2 | 4;
+                standardAppUT.add(x);
+                standardAppXT = x;
+                // isAtLiveHead
+                // cancelPlayback
+                // stopVideo
+                // pauseVideo
+            }
+            window.gt2 = () => standardAppXM();
+
+            const loadVideoByPlayerVarsP20 = {};
+            const loadVideoByPlayerVarsQ20 = new Map();
+            
+
+            const standardAppXM = () => {
+
+                if (!(dirtyMark & 2)) return standardAppXT;
+
+                const internalApp = internalAppXM();
+                if (!internalApp) return standardAppXT;
+                const mediaElement = internalApp.mediaElement;
+
+
+                let result = null;
+                for (const p of standardAppUT) {
+                    if (!p.mediaElement) {
+                        standardAppUT.delete(p);
+                    } else {
+                        if (p.mediaElement === mediaElement) result = p;
+                    }
+                }
+                standardAppXT = result;
+                if (dirtyMark & 2) dirtyMark -= 2;
+                return result;
+
+            }
+
+            // player could be just a DOM element without __proto__
+            // will this update fail?
+            const updatePlayerAppFn = (x) => {
+                if (x !== playerAppXT) dirtyMark = 1 | 2 | 4;
+                console.log('updatePlayerAppFn')
+                playerAppUT.add(x);
+                playerAppXT = x;
+
+
+                const player_ = playerAppXT;
+                if(!player_.__onVideoProgressF381__){
+                    player_.__onVideoProgressF381__ = true;
+                    player_.addEventListener('onVideoProgress', updateLastActiveTimeAsync); // desktop
+                }
+            }
+            const playerAppXM = () => {
+
+                if (!(dirtyMark & 1)) return playerAppXT;
+
+                const standardApp = standardAppXM();
+                if (!standardAppXM) return playerAppXT;
+
+                const playerAppUA = [...playerAppUT];
+                loadVideoByPlayerVarsQ20.clear();
+                for (let i = 0; i < playerAppUA.length; i++) {
+                    const playerApp = playerAppUA[i];
+                    loadVideoByPlayerVarsP20.index = i;
+                    try {
+                        playerApp.loadVideoByPlayerVars(loadVideoByPlayerVarsP20, 0, 0);
+                    } catch (e) { }
+                    loadVideoByPlayerVarsP20.index = -1;
+                }
+                window.loadVideoByPlayerVarsQ20 = loadVideoByPlayerVarsQ20;
+
+                const j = loadVideoByPlayerVarsQ20.get(standardApp);
+
+                const result = Number.isFinite(j) && j >= 0 ? playerAppUA[j] : null;
+
+                const idxSet = new Set(loadVideoByPlayerVarsQ20.values());
+
+                for (let i = 0; i < playerAppUA.length; i++) {
+                    if (!idxSet.has(i)) playerAppUT.delete(playerAppUA[i]);
+                }
+                // loadVideoByPlayerVarsQ20.clear();
+
+                playerAppXT = result;
+                if (dirtyMark & 1) dirtyMark -= 1;
+                return result;
+
+            }
+            window.gt1 = () => playerAppXM();
+
+
+            const isIterable = (x) => Symbol.iterator in Object(x);
+            let setupFnsB = false;
+            const setupFns = () => {
+                if (setupFnsB) return;
+                setupFnsB = true;
+
+                try {
+
+
+                    {
+
+                        const internalApp = internalAppXM();
+
+                        console.log('[yt-audio-only] internalApp', !internalApp ? 0 : [!!internalApp.playVideo, !!internalApp.pauseVideo, !!internalApp.stopVideo, !internalApp.cancelPlayback])
+                        {
+                            const { playVideo, pauseVideo, stopVideo } = internalApp;
+
+                            console.log('[yt-audio-only] internalApp', { playVideo, pauseVideo, stopVideo });
+                        }
+
+
+
+                    }
+
+                    let internalAppPT_ = null;
+                    let standardAppPT_ = null;
+
+                    {
+
+                        const internalApp = internalAppXM();
+
+
+                        const standardApp = standardAppXM();
+
+
+                        internalAppPT_ = (internalApp ? internalApp.__proto__ : null) || 0;
+
+                        standardAppPT_ = (standardApp ? standardApp.__proto__ : null) || 0;
+                    }
+
+
+
+                    const internalAppPT = internalAppPT_;
+
+                    const standardAppPT = standardAppPT_;
+
+
+
+                    const flags_ = {}
+                    let qma = 0;
+                    const flagOn_ = (flags, key, bool) => {
+                        flags_[key] = flags[key];
+                        flags[key] = typeof flags[key] === 'boolean' ? bool : `${bool}`;
+                    }
+                    const flagOn = () => {
+                        // return;
+                        const internalApp = internalAppXM();
+                        if (!key_yn) return;
+                        const flags = internalApp?.[key_yn]?.experiments?.flags || 0;
+                        if (!flags) return;
+                        if (qma < 0) return;
+                        qma++;
+                        if (qma > 1) return;
+                        flagOn_(flags, 'html5_enable_ssap_autoplay_debug_logging', false);
+                        // flagOn_(flags, 'enable_visit_advertiser_support_on_ipad_mweb', false);
+                        // flagOn_(flags, 'html5_shorts_onesie_mismatched_fix', false);
+                        // flagOn_(flags, 'html5_early_media_for_drm', false);
+                        // flagOn_(flags, 'allow_vp9_1080p_mq_enc', false);
+                        // flagOn_(flags, 'html5_onesie_preload_use_content_owner', false);
+                        flagOn_(flags, 'html5_exponential_memory_for_sticky', false);
+                        // flagOn_(flags, 'html5_perf_cap_override_sticky', false);
+                        // flagOn_(flags, 'html5_perserve_av1_perf_cap', false);
+                        // flagOn_(flags, 'html5_disable_low_pipeline', false);
+                        flagOn_(flags, 'html5_publish_all_cuepoints', false);
+                        flagOn_(flags, 'html5_ultra_low_latency_subsegment_readahead', false);
+                        // flagOn_(flags, 'html5_disable_move_pssh_to_moov', false);
+                        flagOn_(flags, 'html5_sunset_aac_high_codec_family', false);
+                        // flagOn_(flags, 'html5_enable_ssap_seteos', false);
+
+                        // flagOn_(flags, 'html5_catch_errors_for_rollback', false);
+                        // flagOn_(flags, 'html5_sabr_enable_utc_seek_requests', false);
+                        // flagOn_(flags, 'html5_sabr_enable_live_clock_offset', false);
+                        // flagOn_(flags, 'html5_disable_client_resume_policy_for_sabr', false);
+                        flagOn_(flags, 'html5_trigger_loader_when_idle_network', false);
+
+                        flagOn_(flags, 'web_key_moments_markers', false);
+                        flagOn_(flags, 'embeds_use_parent_visibility_in_ve_logging', false);
+                        flagOn_(flags, 'html5_onesie', false);
+                        qma = 1;
+                    }
+
+                    const flagOff = () => {
+
+                        // return;
+                        const internalApp = internalAppXM();
+                        if (!key_yn) return;
+                        const flags = internalApp?.[key_yn]?.experiments?.flags || 0;
+                        if (!flags) return;
+                        if (qma <= 0) return;
+                        qma--;
+                        if (qma > 1) return;
+                        for (const [key, value] of Object.entries(flags_)) {
+                            flags[key] = value;
+                        }
+                        qma = 0;
+                    }
+
+                    if (internalAppPT && internalAppPT.playVideo && !internalAppPT.playVideo9391) {
+                        internalAppPT.playVideo9391 = internalAppPT.playVideo;
+
+                        internalAppPT.playVideo = function (p, C) {
+                            updateInternalAppFn(this);
+                            console.log('[yt-audio-only] internalApp.playVideo');
+                            try {
+                                flagOn();
+                                return this.playVideo9391(...arguments);
+                            } catch (e) {
+                                console.warn(e);
+                            } finally {
+                                flagOff();
+                            }
+                        }
+                        internalAppPT.playVideo.toString = internalAppPT.playVideo9391.toString.bind(internalAppPT.playVideo9391);
+
+
+
+                    }
+
+
+                    if (internalAppPT && internalAppPT.pauseVideo && !internalAppPT.pauseVideo9391) {
+
+                        internalAppPT.pauseVideo9391 = internalAppPT.pauseVideo;
+
+                        internalAppPT.pauseVideo = function (p) {
+                            updateInternalAppFn(this);
+                            console.log('[yt-audio-only] internalApp.pauseVideo');
+                            try {
+                                flagOn();
+                                return this.pauseVideo9391(...arguments);
+                            } catch (e) {
+                                console.warn(e);
+                            } finally {
+                                flagOff();
+                            }
+                        }
+                        internalAppPT.pauseVideo.toString = internalAppPT.pauseVideo9391.toString.bind(internalAppPT.pauseVideo9391);
+
+
+                    }
+
+
+                    if (internalAppPT && internalAppPT.stopVideo && !internalAppPT.stopVideo9391) {
+
+                        internalAppPT.stopVideo9391 = internalAppPT.stopVideo;
+
+                        internalAppPT.stopVideo = function () {
+                            updateInternalAppFn(this);
+                            console.log('[yt-audio-only] internalApp.stopVideo');
+                            try {
+                                flagOn();
+                                return this.stopVideo9391(...arguments);
+                            } catch (e) {
+                                console.warn(e);
+                            } finally {
+                                flagOff();
+                            }
+                        }
+                        internalAppPT.stopVideo.toString = internalAppPT.stopVideo9391.toString.bind(internalAppPT.stopVideo9391);
+
+
+                    }
+
+
+                    if (internalAppPT && internalAppPT.seekTo && !internalAppPT.seekTo9391 && 0) {
+
+                        internalAppPT.seekTo9391 = internalAppPT.seekTo;
+
+                        internalAppPT.seekTo = function (p) {
+                            updateInternalAppFn(this);
+                            console.log('[yt-audio-only] internalApp.seekTo');
+                            const isPlaying = this.isPlaying();
+                            try {
+                                flagOn();
+                                return this.seekTo9391(...arguments);
+                            } catch (e) {
+                                console.warn(e);
+                            } finally {
+                                flagOff();
+                                isPlaying && this.playVideo();
+                            }
+                        }
+                        internalAppPT.seekTo.toString = internalAppPT.seekTo9391.toString.bind(internalAppPT.seekTo9391);
+
+
+                    }
+
+
+                    let key_yn = '';
+                    let key_nS = '';
+
+                    {
+
+                        const internalApp = internalAppXM();
+
+                        for (const [key, value] of Object.entries(internalApp)) {
+                            if (typeof (value || 0) === 'object' && value.experiments && value.experiments.flags && !isIterable(value)) {
+                                key_yn = key;
+                            } else if (typeof (value || 0) === 'object' && 'videoTrack' in value && 'audioTrack' in value && 'isSuspended' in value && !isIterable(value)) {
+
+
+                                key_nS = key;
+                            }
+                        }
+                    }
+
+
+
+                    {
+
+
+
+                        const internalApp = internalAppXM();
+
+
+
+                        if (internalApp && typeof (internalApp.mediaElement || 0) === 'object') {
+                            for (const [key, value] of Object.entries(internalApp.mediaElement)) {
+                                if (value instanceof HTMLMediaElement) {
+                                    key_mediaElementT = key;
+                                }
+                            }
+                        }
+
+
+                    }
+
+                    let lastRecord = [];
+
+                    if (standardAppPT && typeof standardAppPT.loadVideoByPlayerVars === 'function' && !standardAppPT.loadVideoByPlayerVars311) {
+
+                        standardAppPT.loadVideoByPlayerVars311 = standardAppPT.loadVideoByPlayerVars;
+
+                        standardAppPT.loadVideoByPlayerVars = function (p, C, V, N, H) {
+                            if (p === loadVideoByPlayerVarsP20) {
+                                // console.log('loadVideoByPlayerVarsP20', p, p.index)
+                                loadVideoByPlayerVarsQ20.set(this, p.index);
+                                return;
+                            }
+                            updateStandardAppFn(this)
+                            if (p && typeof p === 'object') {
+
+                                const { adPlacements, adSlots } = p.raw_player_response || {};
+                                if (isIterable(adPlacements)) adPlacements.length = 0;
+                                if (isIterable(adSlots)) adSlots.length = 0;
+
+                                lastRecord.length = 0;
+                                lastRecord.push(...[p, C, V, N, H]);
+                                console.log('lastRecord 03022', [...lastRecord])
+                            }
+
+                            return this.loadVideoByPlayerVars311(...arguments);
+                        }
+                    }
+
+
+
+
+
+
+                    // let bypass2 = false;
+                    // let bypass3 = false;
+
+                    // if (!HTMLAudioElement.prototype.pause3828) {
+
+                    //     HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
+
+
+                    //     HTMLAudioElement.prototype.pause = async function () {
+
+                    //         if (bypass2) return await this.pause3828();
+                    //         bypass2 = true;
+
+
+                    //         const audio = this;
+
+                    //         const stateObject = player_ ? player_.getPlayerStateObject() : {};
+
+                    //         const isBuffering = stateObject.isBuffering === true;
+
+                    //         if ((isBuffering || stateObject.isSeeking) && !stateObject.isEnded && !stateObject.isError && !stateObject.isCued && player_.isReady() && !stateObject.isOrWillBePlaying) {
+
+
+
+                    //             Promise.resolve().then(async () => {
+
+                    //                 await delayPn(100);
+
+                    //                 const stateObject = player_ ? player_.getPlayerStateObject() : {};
+
+                    //                 if (player_.getPlayerState() > 0 && (stateObject.isBuffering === true || stateObject.isSeeking) && !stateObject.isEnded && !stateObject.isError && !stateObject.isCued && player_.isReady() && !stateObject.isOrWillBePlaying) {
+                    //                     bypass2 = true
+                    //                     bypass3 = true
+                    //                     await player_.cancelPlayback();
+
+                    //                     bypass2 = false
+                    //                     bypass3 = false
+
+
+                    //                     await delayPn(8)
+
+                    //                     bypass2 = true
+                    //                     bypass3 = true
+                    //                     await player_.pauseVideo();
+
+                    //                     bypass2 = false
+                    //                     bypass3 = false
+
+                    //                 }
+
+
+                    //             }).catch(console.warn);
+
+
+                    //         }
+
+                    //         try {
+
+                    //             bypass2 = true
+                    //             return await this.pause3828();
+                    //         } catch (e) {
+
+                    //         } finally {
+
+                    //             bypass2 = false
+                    //         }
+
+                    //     }
+
+
+
+                    // }
+
+                    const clearVideoAndQueue = async () => { // avoid error in live streaming
+                        const player_ = playerAppXM();
+                        const standardApp = standardAppXM();
+                        if (standardApp && standardApp.clearQueue) {
+                            return await standardApp.clearQueue();
+                        } else if (player_ && player_.clearQueue) {
+                            return await player_.clearQueue();
+                        } else {
+                            return null;
+                        }
+                    }
+
+                    const cancelPlayback = async () => {
+
+                        const player_ = playerAppXM();
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+                        if (internalApp && internalApp.stopVideo && internalApp.pauseVideo && !internalApp.cancelPlayback) {
+                            return await internalApp.stopVideo();
+                        } else if (standardApp && standardApp.cancelPlayback) {
+                            return await standardApp.cancelPlayback();
+                        } else if (player_ && player_.cancelPlayback) {
+                            return await player_.cancelPlayback();
+                        } else {
+                            return null;
+                        }
+                    }
+
+                    const pauseVideo = async () => {
+
+
+                        const player_ = playerAppXM();
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+                        if (internalApp && internalApp.stopVideo && internalApp.pauseVideo && !internalApp.cancelPlayback) {
+                            return await internalApp.pauseVideo();
+                        } else if (standardApp && standardApp.pauseVideo) {
+                            return await standardApp.pauseVideo();
+                        } else if (player_ && player_.pauseVideo) {
+                            return await player_.pauseVideo();
+                        } else {
+                            return null
+                        }
+                    }
+
+                    const playVideo = async () => {
+
+                        const player_ = playerAppXM();
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+                        if (internalApp && internalApp.stopVideo && internalApp.pauseVideo && !internalApp.cancelPlayback && internalApp.playVideo) {
+                            return await internalApp.playVideo();
+                        } else if (standardApp && standardApp.playVideo) {
+                            return await standardApp.playVideo();
+                        } else if (player_ && player_.playVideo) {
+                            return await player_.playVideo();
+                        } else {
+                            return null
+                        }
+                    }
+
+                    const isAtLiveHeadW = async () => {
+
+                        const player_ = playerAppXM();
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+
+                        if (internalApp && internalApp.isAtLiveHead) {
+                            return await internalApp.isAtLiveHead()
+                        } else if (standardApp && standardApp.isAtLiveHead) {
+                            return await standardApp.isAtLiveHead()
+                        } else if (player_ && player_.isAtLiveHead) {
+                            return await player_.isAtLiveHead()
+                        } else {
+                            return null;
+                        }
+                    }
+
+
+                    const isAdW = async () => {
+
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+                        const vd = (internalApp ? internalApp.videoData : (standardApp?standardApp.getVideoData():null)  ) || 0;
+
+                        if (vd && typeof vd.isAd === 'function') {
+                            return await vd.isAd();
+                        } else if (vd && typeof vd.isAd === 'boolean') {
+
+                            return vd.isAd;
+
+                        } else {
+                            return null;
+                        }
+                    }
+
+                    const isLoadedW = async () => {
+
+                        const standardApp = standardAppXM();
+                        const internalApp = internalAppXM();
+
+
+                        const vd = (internalApp ? internalApp.videoData : (standardApp?standardApp.getVideoData():null)  ) || 0;
+
+                        if (vd && typeof vd.isLoaded === 'function') {
+                            return await vd.isLoaded();
+                        } else if (vd && typeof vd.isLoaded === 'boolean') {
+
+                            return vd.isLoaded;
+
+                        } else {
+                            return null;
+                        }
+
+                    }
+
+                    const getPlayerWrappedStateObject = ()=>{
+                        
+
+                        // g.h.oD = function(p) {
+                        //     p = this.app.getPlayerStateObject(p);
+                        //     return {
+                        //         isBuffering: g.r(p, 1),
+                        //         isCued: p.isCued(),
+                        //         isDomPaused: g.r(p, 1024),
+                        //         isEnded: g.r(p, 2),
+                        //         isError: g.r(p, 128),
+                        //         isOrWillBePlaying: p.isOrWillBePlaying(),
+                        //         isPaused: p.isPaused(),
+                        //         isPlaying: p.isPlaying(),
+                        //         isSeeking: g.r(p, 16),
+                        //         isUiSeeking: g.r(p, 32),
+                        //         isUnstarted: g.r(p, 64)
+                        //     }
+                        // }
+                        
+
+                        const standardApp = standardAppXM();
+                        const player_ = playerAppXM();
+                        if (standardApp && typeof standardApp.getPlayerStateObject === 'function') {
+                            const fo = standardApp.getPlayerStateObject();
+                            const flag = fo ? (fo.state || 0) : 0;
+                            return {
+                                isBuffering: (flag & 1) === 1,
+                                isCued: (flag & 64) === 64 && (flag & 8) === 0 && (flag & 4) === 0,
+                                isDomPaused: (flag & 1024) === 1024,
+                                isEnded: (flag & 2) === 2,
+                                isError: (flag & 128) === 128,
+                                isOrWillBePlaying: (flag & 8) === 8 && (flag & 2) === 0 && (flag & 1024) === 0,
+                                isPaused: (flag & 4) === 4,
+                                isPlaying: (flag & 8) === 8 && (flag & 512) === 0 && (flag & 64) === 0 && (flag & 2) === 0,
+                                isSeeking: (flag & 16) === 16,
+                                isUiSeeking: (flag & 32) === 32,
+                                isUnstarted: (flag & 64) === 64,
+                            };
+                        } else if (player_ && typeof player_.getPlayerStateObject === 'function') {
+                            return player_.getPlayerStateObject();
+                        } else {
+                            return {};
+                        }
+
+                    }
+
+                    // if(internalApp?.videoData?.dispose && !internalApp.videoData.dispose838){
+                    //     internalApp.videoData.dispose838 = internalApp.videoData.dispose;
+                    //     internalApp.videoData.dispose = function(){
+                    //         console.log('internalApp.videoData.dispose');
+                    //     }
+                    // }
+
+                    // internalApp.mediaElement993 = internalApp.mediaElement;
+
+                    // Object.defineProperty(internalApp, 'mediaElement', {
+                    //     get(){
+                    //         return this.mediaElement993;
+                    //     },
+                    //     set(nv){
+                    //         return true;
+                    //     }
+                    // });
+
+
+                    if (!internalAppPT.setMediaElement661 && internalAppPT.setMediaElement) {
+
+
+                        internalAppPT.setMediaElement661 = internalAppPT.setMediaElement;
+
+                        internalAppPT.setMediaElement = function (p) {
+
+                            updateInternalAppFn(this);
+
+                            console.log('setMediaElement', p)
+                            return this.setMediaElement661(...arguments);
+                        }
+
+
+                    }
+
+                    let playBusy = 0;
+                    if (!HTMLAudioElement.prototype.play3828 && !HTMLAudioElement.prototype.pause3828) {
+
+
+
+                        HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
+
+                        // HTMLAudioElement.prototype.pause = function(){
+
+                        //     if (playBusy>0) return this.pause3828();
+
+
+                        //     const player_ = playerAppXM();
+                        //     if(player_ ){
+
+                        //         const stateObject = player_ ? player_.getPlayerStateObject() : {};
+                        //     }
+                        //     try{
+                        //         return this.pause3828();
+                        //     }catch(e){
+                        //         console.warn(e);
+                        //     }finally{
+                        //         this.play3828();
+                        //     }
+
+
+                        // }
+
+                        let u3t = null;
+
+                        HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
+
+                        HTMLAudioElement.prototype.play = async function () {
+
+                            if (playBusy > 0) return await this.play3828();
+
+                            console.log('video.play 01')
+                            dirtyMark = 1 | 2 | 4;
+
+
+                            const player_ = playerAppXM();
+                            const internalApp = internalAppXM();
+                            const standardApp = standardAppXM();
+
+                            // setTimeout_(()=>{
+
+                            //     const stateObject = player_ ? player_.getPlayerStateObject() : {};
+
+                            //     if(stateObject.isPlaying === true && stateObject.isOrWillBePlaying === true && stateObject.isPaused === false){
+
+                            //         const sdStateObject = standardApp.getPlayerStateObject();
+                            //         if(sdStateObject && (sdStateObject.state & 8) === 8){
+
+                            //             sdStateObject.state -=8;
+                            //         }
+
+                            //     }
+
+                            // }, 300);
+
+
+
+                            const audio = this;
+
+                            if (audio !== internalApp?.mediaElement?.[key_mediaElementT]) return await this.play3828();
+
+                            console.log('video.play 02')
+                            // if ((await isAdW()) === true) return;
+
+                            u3t = new PromiseExternal();
+
+                            let isAtLiveHead = await isAtLiveHeadW();
+                            Promise.resolve().then(async () => {
+                                dirtyMark = 1 | 2 | 4;
+
+                                console.log('video.play 03')
+
+
+                                // p.G("html5_onesie")
+
+                                u3t = u3t || new PromiseExternal();
+                                await Promise.race([u3t, delayPn(80)]);
+                                u3t = null;
+                                // await delayPn(80);
+                                dirtyMark = 1 | 2 | 4;
+
+
+                                console.log('video.play 04')
+                                // if ((await isAdW()) === true) return;
+
+                                if (player_ !== playerAppXM()) return;
+                                if (internalApp !== internalAppXM()) return;
+
+                                if (audio !== internalApp?.mediaElement?.[key_mediaElementT]) return;
+
+
+                                console.log('video.play 05')
+
+                                const stateObject = getPlayerWrappedStateObject();
+
+
+                                if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) return;
+
+                                console.log(1293, stateObject);
+
+                                let bool = false;
+                                let longDelay = false;
+                                if (stateObject.isBuffering && !stateObject.isEnded && !stateObject.isError && stateObject.isSeeking && stateObject.isUnstarted && !stateObject.isCued) {
+                                    bool = true;
+                                    longDelay = true;
+                                } else if (stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
+                                    bool = true;
+                                    // } else if( stateObject.isBuffering && !stateObject.isSeeking && !stateObject.isCued && !stateObject.isEnded && !stateObject.isError && stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isUnstarted){
+                                    //     // bool = true;
+                                }
+
+
+                                if (!isAtLiveHead && stateObject.isUnstarted === true && stateObject.isOrWillBePlaying) {
+
+                                    const vd = internalApp.videoData;
+                                    if (vd.isLivePlayback && vd.isLiveHeadPlayable) {
+                                        console.log('isAtLiveHead: false -> true')
+                                        isAtLiveHead = true;
+                                    }
+
+                                }
+
+                                console.log(3882, bool, isAtLiveHead)
+
+                                if (bool) {
+
+                                    playBusy++;
+
+                                    if (longDelay) await delayPn(80);
+
+                                    if ((await isLoadedW()) === false) {
+
+                                        await clearVideoAndQueue();
+                                        await cancelPlayback();
+
+
+                                    } else {
+
+                                        await cancelPlayback();
+                                    }
+                                    dirtyMark = 1 | 2 | 4;
+
+
+
+                                    // await delayPn(40);
+                                    // await audio.pause();
+
+                                    if (isAtLiveHead) {
+
+                                        try {
+                                            await player_.seekToLiveHead();
+                                            if ((await player_.isAtLiveHead()) === true) {
+                                                await player_.seekToStreamTime();
+                                            }
+                                        } catch (e) { }
+                                        dirtyMark = 1 | 2 | 4;
+                                    }
+
+                                    // await delayPn(40);
+
+
+
+
+
+                                    const qX = getPlayerWrappedStateObject();
+                                    if (qX.isBuffering || qX.isSeeking || qX.isUnstarted) {
+
+                                        await playVideo();
+                                        dirtyMark = 1 | 2 | 4;
+                                    }
+                                    playBusy--;
+
+
+                                    const q0 = getPlayerWrappedStateObject();
+                                    if (q0.isBuffering || q0.isSeeking || q0.isUnstarted) {
+
+                                        await delayPn(100);
+                                        dirtyMark = 1 | 2 | 4;
+                                        playBusy++;
+                                        await Promise.race([audio.play(), delayPn(400)]).catch(console.warn);
+                                        playBusy--;
+                                        dirtyMark = 1 | 2 | 4;
+
+                                    }
+
+                                    if (longDelay) {
+
+                                        const q1 = getPlayerWrappedStateObject();
+                                        if (q1.isBuffering || q1.isSeeking || q1.isUnstarted) {
+
+
+                                            await delayPn(80);
+                                            dirtyMark = 1 | 2 | 4;
+
+                                            await playVideo();
+                                            dirtyMark = 1 | 2 | 4;
+                                        }
+                                        const q2 = getPlayerWrappedStateObject();
+                                        if (q2.isBuffering || q2.isSeeking || q2.isUnstarted) {
+
+
+                                            await delayPn(80);
+                                            dirtyMark = 1 | 2 | 4;
+
+                                            await playVideo();
+                                            dirtyMark = 1 | 2 | 4;
+                                        }
+                                    }
+
+                                }
+
+
+
+                            }).catch(console.warn);
+
+
+                            try {
+                                dirtyMark = 1 | 2 | 4;
+                                playBusy++;
+
+                                return await this.play3828();
+                            } catch (e) {
+
+                            } finally {
+
+
+                                playBusy--;
+                                u3t && u3t.resolve();
+                                dirtyMark = 1 | 2 | 4;
+                            }
+
+
+
+                        }
+
+
+                    }
+
+
+
+                    // -------------------------------------------- BACKUP ----------------------------------------------
+                    // if (!HTMLAudioElement.prototype.play3828) {
+
+                    //     HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
+
+                    //     HTMLAudioElement.prototype.play = async function () {
+
+                    //         if (bypass3) return await this.play3828();
+
+
+
+                    //         const audio = this;
+
+                    //         const stateObject = player_.getPlayerStateObject();
+
+                    //         const isBuffering = stateObject.isBuffering === true;
+
+
+                    //         console.log(1291, player_.getPlayerState(), player_.getPlayerStateObject(), isBuffering);
+
+
+                    //         if (player_.getPlayerState() === 5 && stateObject.isUnstarted === true && !stateObject.isOrWillBePlaying && !stateObject.isPaused) {
+
+
+                    //             await clearVideoAndQueue();
+                    //             await cancelPlayback();
+
+                    //             setTimeout_(()=>{
+                    //                 audio.pause();
+                    //             }, 10);
+
+
+                    //         }
+
+
+                    //         if (player_.isReady()) {
+
+
+
+
+                    //             if ((player_.getPlayerState() === -1 || player_.getPlayerState() === 5) && isBuffering && !stateObject.isEnded && !stateObject.isError && !stateObject.isPaused && stateObject.isSeeking && stateObject.isUnstarted && !stateObject.isCued) {
+
+                    //                 Promise.resolve().then(async () => {
+
+
+
+
+                    //                     await delayPn(300);
+
+                    //                     const stateObject = player_ ? player_.getPlayerStateObject() : {};
+                    //                     console.log(1293, stateObject);
+
+
+                    //                     if (stateObject.isBuffering && !stateObject.isEnded && !stateObject.isError && stateObject.isSeeking && stateObject.isUnstarted && !stateObject.isCued) {
+
+                    //                         console.log(1293, 1);
+
+                    //                         bypass2 = true
+                    //                         await pauseVideo();
+
+                    //                         bypass2 = false
+                    //                         bypass2 = true
+                    //                         bypass3 = true
+                    //                         await clearVideoAndQueue();
+                    //                         await cancelPlayback();
+
+                    //                         bypass2 = false
+                    //                         bypass3 = false
+
+
+                    //                         try {
+                    //                             bypass2 = true
+                    //                             bypass3 = true
+                    //                             await player_.seekToLiveHead();
+                    //                             if ((await player_.isAtLiveHead()) === true) {
+                    //                                 bypass2 = true
+                    //                                 bypass3 = true
+                    //                                 await player_.seekToStreamTime();
+                    //                             }
+                    //                         } catch (e) { }
+
+
+
+                    //                         bypass3 = true
+                    //                         await playVideo();
+                    //                         bypass3 = false
+
+                    //                         //     await delayPn(8)
+
+                    //                         // let p = 9, pc = 0;
+
+                    //                         // while (p !== 9 && ++pc < 4) {
+
+                    //                         //     p = await Promise.race([delayPn(100).then(() => 9), this.play3828()]);
+
+                    //                         // }
+
+
+
+
+
+                    //                         await delayPn(100);
+
+                    //                         console.log(1293, 2);
+                    //                         bypass3 = false
+                    //                         await audio.play();
+                    //                         bypass3 = false
+
+
+                    //                         //         await delayPn(240)
+
+
+                    //                         // const stateObjectX = player_ ? player_.getPlayerStateObject() : {};
+                    //                         //     if(stateObjectX.isBuffering && !bypass3){
+                    //                         //        this.play(); 
+                    //                         //     }
+
+
+                    //                     }
+
+                    //                 }).catch(console.warn);
+
+                    //             } else if (player_.getPlayerState() === 3 && isBuffering && !stateObject.isEnded && !stateObject.isError && !stateObject.isPaused && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued) {
+
+
+                    //                 Promise.resolve().then(async () => {
+
+
+
+                    //                     await delayPn(80)
+                    //                     const stateObject = player_ ? player_.getPlayerStateObject() : {};
+
+                    //                     console.log(1292, player_.getPlayerState(), stateObject);
+
+                    //                     if (player_.getPlayerState() === 3 && stateObject.isBuffering && !stateObject.isEnded && !stateObject.isError && !stateObject.isPaused && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued) {
+
+
+
+
+                    //                         console.log(1292, 1);
+                    //                         bypass2 = true
+                    //                         bypass3 = true
+                    //                         await cancelPlayback();
+
+                    //                         bypass2 = false
+                    //                         bypass3 = false
+
+                    //                         console.log(1292, 1, 29);
+                    //                         await delayPn(8)
+                    //                         bypass2 = true
+                    //                         await pauseVideo();
+                    //                         bypass2 = false
+
+                    //                         console.log(1292, 1, 28);
+                    //                         await delayPn(8)
+                    //                         bypass3 = true
+                    //                         await playVideo();
+                    //                         bypass3 = false
+
+
+                    //                         console.log(1292, 1, 27);
+                    //                         await delayPn(8)
+
+                    //                         console.log(1292, 1, 26);
+
+                    //                         let p = 9, pc = 0;
+
+                    //                         while (p !== 9 && ++pc < 4) {
+
+                    //                             p = await Promise.race([delayPn(100).then(() => 9), this.play3828()]);
+
+                    //                         }
+
+
+                    //                         console.log(1292, 1, 25);
+
+                    //                         await delayPn(400);
+
+
+                    //                         const stateObject = player_ ? player_.getPlayerStateObject() : {};
+                    //                         if (player_.getPlayerState() === 3 && stateObject.isBuffering && !stateObject.isEnded && !stateObject.isError && !stateObject.isPaused && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && !bypass3 && !bypass2) {
+                    //                             this.play();
+                    //                         }
+
+
+                    //                     }
+                    //                 }).catch(console.warn);
+
+                    //             } else if (isBuffering && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued) {
+
+
+
+                    //                 Promise.resolve().then(async () => {
+
+
+
+                    //                     const stateObject = player_ ? player_.getPlayerStateObject() : {};
+                    //                     console.log(1298, stateObject);
+
+                    //                     if (stateObject.isBuffering && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued) {
+
+
+                    //                         bypass2 = true
+                    //                         bypass3 = true
+                    //                         await cancelPlayback();
+
+                    //                         bypass2 = false
+                    //                         bypass3 = false
+
+                    //                         await delayPn(8)
+                    //                         bypass2 = true
+                    //                         await pauseVideo();
+                    //                         bypass2 = false
+
+                    //                         await delayPn(8)
+                    //                         bypass3 = true
+                    //                         await playVideo();
+                    //                         bypass3 = false
+
+
+                    //                         await delayPn(8)
+
+                    //                         let p = 9, pc = 0;
+
+                    //                         while (p !== 9 && ++pc < 4) {
+
+                    //                             p = await Promise.race([delayPn(100).then(() => 9), this.play3828()]);
+
+                    //                         }
+
+                    //                         //         await delayPn(240)
+
+                    //                         // const stateObjectX = player_ ? player_.getPlayerStateObject() : {};
+
+                    //                         //     if(stateObjectX.isBuffering && !bypass3){
+                    //                         //        this.play(); 
+                    //                         //     }
+
+
+                    //                     }
+                    //                 }).catch(console.warn);
+
+                    //             } else if (player_.getPlayerState() === 1 && !stateObject.isBuffering && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
+
+
+                    //                 Promise.resolve().then(async () => {
+
+                    //                     await delayPn(80)
+
+                    //                     const stateObject = player_ ? player_.getPlayerStateObject() : {};
+                    //                     console.log(1218, player_.getPlayerState(), stateObject);
+
+                    //                     if (player_.getPlayerState() === 3 && stateObject.isBuffering && stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
+                    //                         console.log(1218, 1);
+
+                    //                         bypass2 = true
+                    //                         bypass3 = true
+                    //                         // await player_.cancelPlayback();
+
+                    //                         bypass2 = false
+                    //                         bypass3 = false
+
+                    //                         bypass2 = true
+                    //                         // await player_.pauseVideo();
+                    //                         bypass2 = false
+
+
+                    //                         try {
+                    //                             bypass2 = true
+                    //                             bypass3 = true
+                    //                             await player_.seekToLiveHead();
+                    //                             if ((await player_.isAtLiveHead()) === true) {
+                    //                                 bypass2 = true
+                    //                                 bypass3 = true
+                    //                                 await player_.seekToStreamTime();
+                    //                             }
+                    //                         } catch (e) { }
+
+
+                    //                         bypass3 = true
+                    //                         await playVideo();
+                    //                         bypass3 = false
+
+
+                    //                         await delayPn(8)
+
+                    //                         let p = 9, pc = 0;
+
+                    //                         while (p !== 9 && ++pc < 4) {
+
+                    //                             p = await Promise.race([delayPn(100).then(() => 9), this.play3828()]);
+
+                    //                         }
+
+
+                    //                         //         await delayPn(240)
+
+
+                    //                         // const stateObjectX = player_ ? player_.getPlayerStateObject() : {};
+                    //                         //     if(stateObjectX.isBuffering && !bypass3){
+                    //                         //        this.play(); 
+                    //                         //     }
+
+
+                    //                     }
+
+
+
+
+                    //                 });
+
+
+                    //             }
+
+                    //         }
+
+
+                    //         try {
+
+                    //             bypass3 = true
+                    //             return await this.play3828();
+                    //         } catch (e) {
+
+                    //         } finally {
+
+                    //             bypass3 = false
+                    //         }
+
+
+
+
+                    //     }
+
+                    // }
+
+
+
+
+                    // -------------------------------------------- BACKUP ----------------------------------------------
+
+
+
+
+                    // let mck = Promise.resolve();
+                    // if (!HTMLAudioElement.prototype.pause3828) {
+
+                    //     HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
+
+
+                    //     HTMLAudioElement.prototype.pause = async function () {
+
+                    //         if (bypass2) return await this.pause3828();
+
+                    //         const fn = async ()=>{
+
+
+                    //             const audio = this;
+
+                    //             const stateObject = {...player_.getPlayerStateObject()};
+
+
+                    //             if(stateObject.isBuffering || stateObject.isSeeking){
+
+                    //                 await delayPn(80);
+
+                    //                 bypass3 = true;
+                    //                 bypass2 = true;
+                    //                 player_.cancelPlayback();
+                    //                 bypass3 = true;
+                    //                 bypass2 = true;
+                    //                 player_.pauseVideo();
+                    //                 bypass3 = false;
+                    //                 bypass2 = false;
+
+                    //                 if(stateObject.isOrWillBePlaying){
+
+                    //                     await delayPn(80)
+                    //                     player_.playVideo();
+                    //                 }
+
+
+                    //             }
+
+                    //         }
+
+                    //         try{
+                    //             bypass2 = true;
+                    //             const r = await this.pause3828();
+                    //             Promise.resolve(fn);
+                    //             return r;
+                    //         }catch(e){
+                    //             console.warn(e)
+                    //         } finally{
+                    //             bypass2 = false;
+                    //         }                            
+
+                    //     }
+                    // }
+
+
+
+                    // if (!HTMLAudioElement.prototype.play3828) {
+
+                    //     HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
+
+                    //     HTMLAudioElement.prototype.play = async function () {
+
+                    //         if (bypass3) return await this.play3828();
+
+                    //         const fn = async ()=>{
+
+                    //             await delayPn(80);
+
+                    //             const audio = this;
+
+                    //             const stateObject = player_.getPlayerStateObject();
+
+
+                    //             if(stateObject.isBuffering || stateObject.isSeeking){
+                    //                 bypass3 = true;
+                    //                 bypass2 = true;
+                    //                 player_.cancelPlayback();
+                    //                 bypass3 = true;
+                    //                 bypass2 = true;
+                    //                 player_.pauseVideo();
+                    //                 bypass3 = false;
+                    //                 bypass2 = false;
+
+                    //                 await delayPn(80)
+                    //                 bypass3 = true;
+                    //                 bypass2 = true;
+                    //                 player_.playVideo();
+                    //                 bypass3 = false;
+                    //                 bypass2 = false;
+
+                    //             }
+
+                    //         }
+
+                    //         try{
+                    //             bypass3 = true;
+                    //             const r = await this.play3828();
+                    //             Promise.resolve(fn);
+                    //             return r;
+                    //         }catch(e){
+                    //             console.warn(e)
+                    //         } finally{
+                    //             bypass3 = false;
+                    //         }                            
+
+                    //     }
+                    // }
+
+
+
+                    // const USE_STATE_CHANGE = false;
+
+                    // if(USE_STATE_CHANGE){
+
+
+                    // let busy = false;
+                    // let nqj = 0;
+                    // let mdd = null;
+                    // let byPassPause = false;
+
+                    //     if (!HTMLAudioElement.prototype.play3828 && !HTMLAudioElement.prototype.pause3828) {
+
+                    //         HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
+                    //         HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
+                    //         //     HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
+
+                    //         HTMLAudioElement.prototype.pause = function () {
+                    //             if (byPassPause) {
+                    //                 try {
+                    //                     return this.pause3828();
+                    //                 } finally {
+                    //                     this.play3828();
+                    //                 }
+
+                    //             }
+                    //             if (busy) return this.pause3828();
+                    //             // const t = ++nqj;
+                    //             this.__audioPlayState33__ = -1;
+                    //             mdd = this;
+
+                    //             // while (busy) {
+                    //             //     if (t !== nqj) return;
+                    //             //     await delayPn(40);
+                    //             // }
+                    //             return this.pause3828();
+
+                    //         }
+                    //         HTMLAudioElement.prototype.play = async function () {
+                    //             if (busy) return await this.play3828();
+                    //             // const t = ++nqj;
+                    //             this.__audioPlayState33__ = 1;
+                    //             mdd = this;
+
+                    //             // while (busy) {
+                    //             //     if (t !== nqj) return;
+                    //             //     await delayPn(40);
+                    //             // }
+                    //             return await this.play3828();
+
+                    //         }
+                    //     }
+
+
+                    //     let qje = null;
+                    //     let qjf = null;
+
+                    //     let utf = null;
+                    //      player_.addEventListener('onStateChange', async () => {
+
+                    //         const t = ++nqj;
+                    //         // if(utf){
+                    //         //     utf.resolve();
+                    //         //     return;
+                    //         // }
+
+                    //         console.log('onStateChange 0939001')
+
+                    //         while (busy) {
+                    //             if (t !== nqj) return;
+                    //             await delayPn(40);
+                    //         }
+                    //         let stateObject = { ...player_.getPlayerStateObject() };
+                    //         console.log(12312, stateObject, busy)
+                    //         try {
+
+
+                    //             // if(key_mediaElementT && !internalApp.mediaElement){
+
+                    //             //     while (key_mediaElementT && !internalApp.mediaElement) {
+                    //             //         if (t !== nqj) return;
+                    //             //         await delayPn(40);
+                    //             //     }
+
+                    //             //     const stateObjectT = { ...player_.getPlayerStateObject() };
+                    //             //     stateObject = stateObjectT;
+                    //             // }
+
+
+                    //             const qt1 = !busy && (stateObject.isBuffering || stateObject.isSeeking) && !stateObject.isEnded && !stateObject.isCued && player_.getPlayerState() < 5
+
+                    //             const qt2 = !busy && !(stateObject.isBuffering || stateObject.isSeeking) && !stateObject.isEnded && stateObject.isCued && stateObject.isUnstarted;
+
+                    //             if(!internalApp.mediaElement){
+                    //                 try{
+                    //                     player_.stopVideo();
+                    //                     player_.cancelPlayback();
+                    //                     player_.clearQueue();
+                    //                     player_.clearVideo();
+                    //                     player_.stopVideo();
+                    //                     player_.cancelPlayback();
+                    //                 }catch(e){}
+                    //             }
+
+                    //             window.gt3 = internalApp;
+
+                    //             window.emm = window.emm || internalApp.mediaElement || null;
+                    //             if(window.emm && !internalApp.mediaElement) {
+                    //                 try{
+                    //                 internalApp.setMediaElement( window.emm);
+                    //                 }catch(e){}
+                    //                 internalApp.mediaElement = window.emm
+                    //             }
+                    //             else if(internalApp.mediaElement && internalApp.mediaElement!==window.emm) window.emm = internalApp.mediaElement;
+                    //         console.log(12313, qt1, qt2)
+                    //             if (qt1 || qt2) {
+
+                    //                 console.log(1929, {... internalApp[key_nS]});
+
+
+                    //                 if(internalApp[key_nS]){
+
+                    //                     if(!qjf) qjf = Object.assign({}, internalApp[key_nS].videoTrack);
+
+                    //                     if(!qje) qje = internalApp[key_nS].videoTrack.T.info.video.__proto__
+                    //                     // internalApp[key_nS].videoTrack  = null;
+                    //                     console.log(838, internalApp[key_nS].videoTrack)
+                    //                     // internalApp[key_nS].videoTrack  = internalApp[key_nS].audioTrack;
+
+
+                    //                     internalApp[key_nS].videoTrack=  Object.assign({}, qjf);
+                    //                     const o = {
+
+                    //                         "width": 0,
+                    //                         "height": 0,
+                    //                         "quality": "auto",
+                    //                         "T": 0,
+                    //                         "fps": 0,
+                    //                         "stereoLayout": 0,
+                    //                         "projectionType": "UNKNOWN",
+                    //                         "qualityLabel": "自動",
+                    //                         "C": "",
+                    //                         "primaries": ""
+
+                    //                 }
+                    //                 Object.setPrototypeOf(o,qje);
+                    //                     internalApp[key_nS].videoTrack.T.info.video = o
+                    //                     // internalApp[key_nS].videoTrack.T.info.video = internalApp[key_nS].videoTrack.T.info.audio
+
+                    //                 }
+
+                    //                 console.log(12313.2, internalApp,  internalApp?.videoData?.isLoaded() === false ,stateObject.isUnstarted === true , !stateObject.isError , !stateObject.isEnded)
+
+                    //                 /*
+                    //                 if (internalApp && internalApp?.videoData?.isLoaded() === false &&  stateObject.isUnstarted === true && !stateObject.isError && !stateObject.isEnded){
+
+                    //                     internalApp.set
+                    //                     await delayPn(80);
+
+                    //                     if (t !== nqj) return;
+                    //                     internalApp.stopVideo();
+
+                    //                     internalApp.playVideo();
+                    //                     await delayPn(80);
+                    //                     if (t !== nqj) return;
+
+
+                    //                     const stateObjectT = { ...player_.getPlayerStateObject() };
+                    //                     stateObject = stateObjectT;
+
+                    //                 }
+                    //                 */
+
+                    //                 if(qt2)console.log(12481);
+
+                    //                 if (internalApp && internalApp?.videoData?.isAd() === true) return;
+                    //                 if(qt2)console.log(12482);
+                    //                 if (internalApp && internalApp?.videoData?.isLoaded() === false){
+
+                    //                     if(qt2){
+
+                    //                         while (internalApp && internalApp?.videoData?.isLoaded() === false) {
+                    //                             if (t !== nqj) return;
+                    //                             await delayPn(40);
+                    //                         }
+                    //                         if (t !== nqj) return;
+                    //                         const stateObjectT = { ...player_.getPlayerStateObject() };
+                    //                         stateObject = stateObjectT;
+                    //                     }
+
+                    //                 }
+
+                    //                 const media = key_mediaElementT ? ( internalApp && internalApp.mediaElement  ? internalApp.mediaElement[key_mediaElementT] : null)  : mdd;
+
+                    //                 if(qt2)console.log(12483);
+                    //                 const isAtLiveHead = internalApp ? internalApp?.isAtLiveHead() : player_.isAtLiveHead();
+
+                    //                 if(qt2)console.log(12484);
+
+
+                    //                 // if(!media || media.isConnected === false) return;
+
+                    //                 if(qt2)console.log(12485);
+
+                    //                 busy = true;
+
+
+                    //                 const shallPlay = (stateObject.isOrWillBePlaying || (media ? media.__audioPlayState33__ === 1 : false) ) && stateObject.isPaused !== true;
+                    //                 console.log(12312, 1, stateObject,media?.__audioPlayState33__ )
+
+                    //                 if (internalApp && internalApp.stopVideo && internalApp.pauseVideo && !internalApp.cancelPlayback) {
+
+                    //                     bypass3 = true;
+                    //                     bypass2 = true;
+                    //                     byPassPause = true;
+                    //                     // const c = internalApp.pauseVideo 
+                    //                     // internalApp.pauseVideo  = ()=>{}; 
+                    //                     internalApp.stopVideo();
+                    //                     console.log('isAtLiveHead', isAtLiveHead)
+                    //                     // internalApp.pauseVideo  = c;
+
+                    //                     byPassPause = false;
+                    //                     bypass3 = true;
+                    //                     bypass2 = true;
+                    //                     stopped = false;
+
+                    //                 } else {
+
+                    //                     bypass3 = true;
+                    //                     bypass2 = true;
+                    //                     byPassPause = true;
+                    //                     player_.cancelPlayback();
+                    //                     byPassPause = false;
+
+                    //                     bypass3 = true;
+                    //                     bypass2 = true;
+
+                    //                     byPassPause = true;
+                    //                     player_.pauseVideo();
+                    //                     byPassPause = false;
+
+                    //                     bypass3 = false;
+                    //                     bypass2 = false;
+                    //                 }
+
+                    //                 // player_.cancelPlayback();
+                    //                 // if(stateObject.isUnstarted){
+                    //                 //     player_.clearVideo();
+                    //                 //     player_.clearQueue();
+                    //                 // }
+                    //                 // if(shallPlay) byPassPause = true; else byPassPause = false;
+
+                    //                 // byPassPause = false;
+
+
+                    //                 if (internalApp && internalApp?.videoData?.isLoaded() === false) {
+
+
+                    //                     while (internalApp && internalApp?.videoData?.isLoaded() === false) {
+                    //                         if (t !== nqj) return;
+                    //                         await delayPn(40);
+                    //                     }
+
+                    //                 }
+
+
+
+                    //                 if (shallPlay) {
+                    //                     console.log('onStateChange 0939025')
+
+
+                    //                     await delayPn(80)
+
+                    //                     console.log('onStateChange 0939026')
+
+
+                    //                     let bPlayHead = false;
+                    //                     if(stateObject.isUnstarted && (internalApp ? internalApp?.videoData?.isLiveHeadPlayable !== false : true)) bPlayHead =true;
+                    //                     if(isAtLiveHead && (internalApp ? internalApp?.videoData?.isLiveHeadPlayable !== false : true)) bPlayHead =true;
+
+
+                    //                     if (bPlayHead) {
+
+                    //                         try {
+                    //                             bypass2 = true
+                    //                             bypass3 = true
+                    //                             await player_.seekToLiveHead();
+                    //                             if ((await player_.isAtLiveHead()) === true) {
+                    //                                 bypass2 = true
+                    //                                 bypass3 = true
+                    //                                 await player_.seekToStreamTime();
+                    //                             }
+                    //                         } catch (e) { }
+                    //                     }
+
+                    //                     console.log('onStateChange 0939027')
+
+
+                    //                     if (internalApp && internalApp.playVideo) {
+
+                    //                         bypass3 = true;
+                    //                         bypass2 = true;
+                    //                         internalApp.playVideo();
+                    //                         bypass3 = false;
+                    //                         bypass2 = false;
+                    //                         console.log('onStateChange 0939028')
+
+                    //                     } else {
+
+                    //                         bypass3 = true;
+                    //                         bypass2 = true;
+                    //                         player_.playVideo();
+                    //                         bypass3 = false;
+                    //                         bypass2 = false;
+                    //                         console.log('onStateChange 0939028')
+
+
+                    //                     }
+
+                    //                     await delayPn(80)
+                    //                 } else {
+                    //                     console.log('onStateChange 0939036')
+                    //                     await Promise.race([utf, delayPn(80)])
+                    //                 }
+
+
+                    //                 if (internalApp && internalApp?.videoData?.isLoaded() === false) {
+
+
+                    //                     while (internalApp && internalApp?.videoData?.isLoaded() === false) {
+                    //                         if (t !== nqj) return;
+                    //                         await delayPn(40);
+                    //                     }
+
+                    //                 }
+
+                    //                 console.log(12312, 2)
+                    //                 busy = false;
+
+
+                    //             }
+
+                    //         } catch (e) {
+                    //             console.warn(e)
+                    //         } finally {
+                    //             busy = false;
+                    //             bypass3 = false;
+                    //             bypass2 = false;
+                    //             byPassPause = false;
+                    //         }
+                    //     });
+
+
+                    // }
+
+
+
+
+
+                    console.log('[yt-audio-only] DONE')
+
+                } catch (e) {
+                    console.warn(e);
+                }
+
+
+
+
+            }
+
+            const setupAudioPlaying = (player00_) => {
+
+                // console.log(5939,player00_);
+
+                try {
+                    const player_ = player00_;
+                    if (!player_) return;
+                    if (player_.__audio544__) return;
+                    player_.__audio544__ = 1;
+
+                    globalPlayer = mWeakRef(player_);
+                    window.gp3 = player_;
+
+
+                    const objectSets = new Set();
+                    Function.prototype.apply129 = Function.prototype.apply;
+                    Function.prototype.apply = function () {
+                        objectSets.add([this, ...arguments]);
+                        return this.apply129(...arguments)
+                    }
+                    player_.getPlayerState();
+
+                    Function.prototype.apply = Function.prototype.apply129;
+
+                    console.log(39912, [...objectSets]);
+                    let filteredObjects = [...objectSets].filter(e => {
+                        return Object(e[1]).getPlayerState === e[0]
+                    });
+                    console.log(39914, filteredObjects)
+
+                    if (filteredObjects.length > 1) {
+                        filteredObjects = filteredObjects.filter((e) => !(e[1] instanceof Node));
+                    }
+
+                    let standardApp_ = null;
+
+                    {
+
+                        let quu = null;
+                        if (filteredObjects.length === 1) {
+                            // console.log(39945,)
+                            quu = filteredObjects[0][1];
+                        }
+
+                        let qww = '';
+                        if (quu) {
+                            for (const [key, value] of Object.entries(quu.__proto__)) {
+                                if (typeof value === 'function' && value.length === 0 && `${value}`.endsWith('(this.app)}')) {
+                                    qww = key;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // window.gs3= quu;
+                        let internalApp = null;
+                        if (qww) {
+                            internalApp = quu[qww]();
+
+                            if (internalApp) {
+
+
+                                console.log(internalApp)
+                            }
+
+                        }
+                        updateInternalAppFn(internalApp);
+                        standardApp_ = quu.app || 0;
+
+                    }
+
+
+                    const standardApp = standardApp_;
+
+                    updateStandardAppFn(standardApp);
+
+
+
+                    const playerPT = player_.__proto__;
+
+                    if (playerPT && typeof playerPT.getPlayerStateObject === 'function' && !playerPT.getPlayerStateObject949) {
+
+                        playerPT.getPlayerStateObject949 = playerPT.getPlayerStateObject;
+                        playerPT.getPlayerStateObject = function () {
+                            updatePlayerAppFn(this);
+                            return this.getPlayerStateObject949(...arguments);
+                        }
+                    } else if ( player_ && typeof player_.getPlayerStateObject === 'function' && !player_.getPlayerStateObject949){
+
+                        player_.getPlayerStateObject949 = player_.getPlayerStateObject;
+                        player_.getPlayerStateObject = function () {
+                            updatePlayerAppFn(this);
+                            return this.getPlayerStateObject949(...arguments);
+                        }
+                        
+                    }
+
+                    updatePlayerAppFn(player_);
+
+                    setupFns();
+
+
+
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
+            if (!window.__ugAtg3747__) {
+                window.__ugAtg3747__ = true;
+                const updateLastActiveTimeGeneral = () => {
+                    // player_ -> yuu
+                    const player_ = playerAppXM();
+                    if (player_) player_.updateLastActiveTime();
+                };
+                document.addEventListener('timeupdate', updateLastActiveTimeGeneral, true);
+            }
+
+            return { setupAudioPlaying };
+
+        })();
+
+
         if (location.origin === 'https://www.youtube.com') {
 
+
+
             if (location.pathname.startsWith('/embed/')) {
+
+                // youtube embed
 
                 const ytEmbedReady = observablePromise(() => document.querySelector('#player > .ytp-embed')).obtain();
 
@@ -986,135 +2871,137 @@
                     embedConfigFix();
 
                     const player_ = embedPlayer;
-                    // console.log(player_)
+                    console.log(5919,player_)
 
-                    const asyncStateChange = async (audio, k) => {
-                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
-                            try {
-                                if (audio.readyState == 0) await player_.refreshAllStaleEntities();
-                            } catch (e) {
-                            }
-                        };
-                        const triggerPlaying = async () => {
-                            await player_.pauseVideo();
-                            await player_.playVideo();
-                        };
-                        const seekToLiveHeadForLiveStream = async () => {
-                            try {
-                                await player_.seekToLiveHead();
-                                if ((await player_.isAtLiveHead()) === true) {
-                                    await player_.seekToStreamTime();
-                                    return true;
-                                }
-                            } catch (e) {
-                                console.log('error_F3', e);
-                            }
-                        };
-                        const fixLiveAudioFn = async () => {
-                            if (audio.paused === true) {
+                    setupAudioPlaying(player_); // dekstop embed
 
-                                await player_.clearVideo(); // avoid error in live streaming
-                                await player_.clearQueue(); // avoid error in live streaming
-                                await delayPn(300);
-                                for (let i = 0; i < 3; i++) {
-                                    if (audio.readyState === 0) {
-                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                    }
-                                }
-                                if (k === -1) {
-                                    await refreshAllStaleEntitiesForNonReadyAudio();
-                                } else if (k === 3) {
-                                    while (audio.readyState === 0) {
-                                        await refreshAllStaleEntitiesForNonReadyAudio();
-                                        await triggerPlaying();
-                                        await delayPn(300);
-                                    }
-                                }
-                            } else if (audio.paused === false) {
+                    // const asyncStateChange = async (audio, k) => {
+                    //     const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+                    //         try {
+                    //             if (audio.readyState == 0) await player_.refreshAllStaleEntities();
+                    //         } catch (e) {
+                    //         }
+                    //     };
+                    //     const triggerPlaying = async () => {
+                    //         await player_.pauseVideo();
+                    //         await player_.playVideo();
+                    //     };
+                    //     const seekToLiveHeadForLiveStream = async () => {
+                    //         try {
+                    //             await player_.seekToLiveHead();
+                    //             if ((await player_.isAtLiveHead()) === true) {
+                    //                 await player_.seekToStreamTime();
+                    //                 return true;
+                    //             }
+                    //         } catch (e) {
+                    //             console.log('error_F3', e);
+                    //         }
+                    //     };
+                    //     const fixLiveAudioFn = async () => {
+                    //         if (audio.paused === true) {
 
-                                if (!player_.isAtLiveHead()) {
-                                    if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                }
-                                while (audio.readyState === 0) {
-                                    await refreshAllStaleEntitiesForNonReadyAudio();
-                                    await triggerPlaying();
-                                    await delayPn(300);
-                                }
-                                if (!player_.isAtLiveHead()) {
-                                    if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                }
-                                await refreshAllStaleEntitiesForNonReadyAudio();
-                                if (audio.readyState > 0 && audio.paused === true) {
-                                    await triggerPlaying();
-                                }
-                            }
+                    //             await player_.clearVideo(); // avoid error in live streaming
+                    //             await player_.clearQueue(); // avoid error in live streaming
+                    //             await delayPn(300);
+                    //             for (let i = 0; i < 3; i++) {
+                    //                 if (audio.readyState === 0) {
+                    //                     if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                    //                 }
+                    //             }
+                    //             if (k === -1) {
+                    //                 await refreshAllStaleEntitiesForNonReadyAudio();
+                    //             } else if (k === 3) {
+                    //                 while (audio.readyState === 0) {
+                    //                     await refreshAllStaleEntitiesForNonReadyAudio();
+                    //                     await triggerPlaying();
+                    //                     await delayPn(300);
+                    //                 }
+                    //             }
+                    //         } else if (audio.paused === false) {
 
-                        }
-                        try {
-                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
+                    //             if (!player_.isAtLiveHead()) {
+                    //                 if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                    //             }
+                    //             while (audio.readyState === 0) {
+                    //                 await refreshAllStaleEntitiesForNonReadyAudio();
+                    //                 await triggerPlaying();
+                    //                 await delayPn(300);
+                    //             }
+                    //             if (!player_.isAtLiveHead()) {
+                    //                 if (await seekToLiveHeadForLiveStream()) await delayPn(60);
+                    //             }
+                    //             await refreshAllStaleEntitiesForNonReadyAudio();
+                    //             if (audio.readyState > 0 && audio.paused === true) {
+                    //                 await triggerPlaying();
+                    //             }
+                    //         }
 
-                            if (!ns23 && k === player_.getPlayerState()) {
-                                if (k === -1 && audio.readyState === 0) {
-                                    const et = await mediaNetworkStateReady(audio);
-                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
-                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
-                                    // console.log(503, ns23, et, player_.getPlayerState());
-                                    if (player_.getPlayerState() !== -1) return;
-                                } else {
-                                    console.log(507, k, audio.readyState, audio.networkState)
-                                }
-                            }
+                    //     }
+                    //     try {
+                    //         let ns23 = audio.networkState == 2 || audio.networkState == 3;
 
-                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                                await delayPn(200);
-                                if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                                    await fixLiveAudioFn();
-                                }
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
-                                await seekToLiveHeadForLiveStream();
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
-                                await delayPn(60);
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
-                                    await fixLiveAudioFn();
-                                }
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === true) {
-                                await seekToLiveHeadForLiveStream();
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
-                                await delayPn(60);
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
-                                    await fixLiveAudioFn();
-                                }
-                            }
+                    //         if (!ns23 && k === player_.getPlayerState()) {
+                    //             if (k === -1 && audio.readyState === 0) {
+                    //                 const et = await mediaNetworkStateReady(audio);
+                    //                 if (audio.isConnected === false || player_.getPlayerState() === 5) return;
+                    //                 ns23 = audio.networkState == 2 || audio.networkState == 3;
+                    //                 // console.log(503, ns23, et, player_.getPlayerState());
+                    //                 if (player_.getPlayerState() !== -1) return;
+                    //             } else {
+                    //                 console.log(507, k, audio.readyState, audio.networkState)
+                    //             }
+                    //         }
 
-                        } catch (e) {
-                            console.log('error_F4', e)
-                        }
+                    //         if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                    //             await delayPn(200);
+                    //             if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
+                    //                 await fixLiveAudioFn();
+                    //             }
+                    //         } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
+                    //             await seekToLiveHeadForLiveStream();
+                    //         } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+                    //             await delayPn(60);
+                    //             if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
+                    //                 await fixLiveAudioFn();
+                    //             }
+                    //         } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === true) {
+                    //             await seekToLiveHeadForLiveStream();
+                    //         } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                    //             await delayPn(60);
+                    //             if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
+                    //                 await fixLiveAudioFn();
+                    //             }
+                    //         }
 
-                    };
+                    //     } catch (e) {
+                    //         console.log('error_F4', e)
+                    //     }
 
-                    // console.log(299, player_)
-                    const _onPlayerStateChange = (k) => {
-                        try {
-                            if (typeof k === 'number' && k === player_.getPlayerState()) {
+                    // };
 
-                                const audio = document.querySelector('#player audio.video-stream.html5-main-video');
-                                if (audio) asyncStateChange(audio, k);
+                    // // console.log(299, player_)
+                    // const _onPlayerStateChange = (k) => {
+                    //     try {
+                    //         if (typeof k === 'number' && k === player_.getPlayerState()) {
 
-                            }
-                        } catch (e) {
-                            console.log('error_F5', e)
-                        }
-                    };
+                    //             const audio = document.querySelector('#player audio.video-stream.html5-main-video');
+                    //             if (audio) asyncStateChange(audio, k);
 
-                    player_.addEventListener('onStateChange', _onPlayerStateChange);
-                    const state0 = player_.getPlayerState();
-                    if (typeof state0 === 'number') {
-                        _onPlayerStateChange(state0);
-                    }
+                    //         }
+                    //     } catch (e) {
+                    //         console.log('error_F5', e)
+                    //     }
+                    // };
 
-                    player_.addEventListener('onVideoProgress', () => {
-                        updateLastActiveTimeAsync(player_);
-                    });
+                    // player_.addEventListener('onStateChange', _onPlayerStateChange);
+                    // const state0 = player_.getPlayerState();
+                    // if (typeof state0 === 'number') {
+                    //     _onPlayerStateChange(state0);
+                    // }
+
+                    // player_.addEventListener('onVideoProgress', () => {
+                    //     updateLastActiveTimeAsync(player_);
+                    // });
 
                     // console.log(1231)
 
@@ -1216,214 +3103,46 @@
 
             } else {
 
+
+                // youtube normal
+
                 attachOneTimeEvent('yt-action', () => {
                     const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
                     ytConfigFix(config_);
                 });
 
-                const setupAudioPlaying = (player00_) => {
-                    const player_ = player00_;
-                    if (!player_) return;
-                    if (player_.__audio544__) return;
-                    player_.__audio544__ = 1;
-
-                    globalPlayer = mWeakRef(player_);
-
-                    // console.log(1233, player_)
-                    const mediaCollection = document.getElementsByClassName('html5-main-video');
-
-                    const stopAndReloadFn = async () => {
-                        let isLive = false;
-                        if (isWatchPageURL()) {
-                            const liveBtn = document.querySelector('.ytp-live-badge.ytp-button');
-                            try {
-                                if (liveBtn && !liveBtn.closest('[hidden]') && (liveBtn.textContent || '').trim().length > 0) {
-                                    isLive = true;
-                                }
-                            } catch (e) { }
-                        }
-                        if (isLive) {
-                            player_.destroy();
-                            location.replace(location.href);
-                            await delayPn(8000);
-                        } else {
-                            // await player_.stopVideo();
-                            // await player_.updateVideoData();
-                            // try{
-                            //     await player_.refreshAllStaleEntities();
-                            // }catch(e){}
-                            // await player_.playVideo();
-                        }
-                    };
-                    const asyncStateChange = async (audio, k) => {
-
-                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
-                            try {
-                                if (audio.readyState == 0 && audio.isConnected === true) await player_.refreshAllStaleEntities();
-                            } catch (e) {
-                            }
-                        };
-                        const triggerPlaying = async () => {
-                            await player_.cancelPlayback();
-                            await player_.pauseVideo();
-                            await player_.playVideo();
-                        };
-                        const seekToLiveHeadForLiveStream = async () => {
-                            try {
-                                audio.isConnected === true && await player_.seekToLiveHead();
-                                if (audio.isConnected === true && (await player_.isAtLiveHead()) === true) {
-                                    audio.isConnected === true && await player_.seekToStreamTime();
-                                    return true;
-                                }
-                            } catch (e) {
-                                console.log('error_F7', e);
-                            }
-                        };
-                        const fixLiveAudioFn = async () => {
-                            if (stopAndReload) {
-                                stopAndReload = false;
-                                await stopAndReloadFn();
-                            }
-                            if (audio.isConnected === true && audio.paused === true) {
-                                await player_.clearVideo(); // avoid error in live streaming
-                                await player_.clearQueue(); // avoid error in live streaming
-                                await delayPn(300);
-                                for (let i = 0; i < 3; i++) {
-                                    if (audio.readyState === 0 && audio.isConnected === true) {
-                                        if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                    }
-                                }
-                                if (k === -1) {
-                                    await refreshAllStaleEntitiesForNonReadyAudio();
-                                } else if (k === 3) {
-                                    while (audio.readyState === 0 && audio.isConnected === true) {
-                                        await refreshAllStaleEntitiesForNonReadyAudio();
-                                        await triggerPlaying();
-                                        await delayPn(300);
-                                    }
-                                }
-                            } else if (audio.isConnected === true && audio.paused === false) {
-                                if (!player_.isAtLiveHead() && audio.isConnected === true) {
-                                    if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                }
-                                while (audio.readyState === 0 && audio.isConnected === true) {
-                                    await refreshAllStaleEntitiesForNonReadyAudio();
-                                    await triggerPlaying();
-                                    await delayPn(300);
-                                }
-                                if (!player_.isAtLiveHead() && audio.isConnected === true) {
-                                    if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                }
-                                await refreshAllStaleEntitiesForNonReadyAudio();
-                                if (audio.readyState > 0 && audio.paused === true && audio.isConnected === true) {
-                                    await triggerPlaying();
-                                }
-                            }
-                        }
-                        try {
-
-                            let ns23 = audio.networkState == 2 || audio.networkState == 3;
-
-                            if (!ns23 && k === player_.getPlayerState()) {
-                                if (k === -1 && audio.readyState === 0) {
-                                    const et = await mediaNetworkStateReady(audio);
-                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
-                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
-                                    console.log(513, ns23, et, player_.getPlayerState());
-                                    if (player_.getPlayerState() !== -1) return;
-                                } else if (k === 3 && audio.readyState === 0 && audio.networkState === 0) {
-                                    const et = await Promise.race([mediaNetworkStateReady(audio), delayPn(800)]); // idk
-                                    if (audio.isConnected === false || player_.getPlayerState() === 5) return;
-                                    ns23 = audio.networkState == 2 || audio.networkState == 3;
-                                    console.log(514, ns23, et, player_.getPlayerState());
-                                    if (player_.getPlayerState() !== 3) return;
-                                } else {
-                                    console.log(517, k, audio.readyState, audio.networkState) // 517 3 0 0 after tab sleeping
-                                }
-                            }
-
-                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                                await delayPn(200);
-                                if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                                    await fixLiveAudioFn();
-                                }
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
-                                await seekToLiveHeadForLiveStream();
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
-                                await delayPn(60);
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === false) {
-                                    await fixLiveAudioFn();
-                                }
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === true) {
-                                await seekToLiveHeadForLiveStream();
-                            } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
-                                await delayPn(60);
-                                if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.muted === true) {
-                                    await fixLiveAudioFn();
-                                }
-                            }
-
-                        } catch (e) {
-                            console.log('error_F8', e)
-                        }
-
-                    };
-                    let mid = 0;
-                    const getAudioElement = () => {
-                        if (mediaCollection.length === 0) return null;
-                        if (mediaCollection.length > 1) {
-                            const audios = [...mediaCollection].filter(e => e && !e.closest('[hidden]') && e.closest('ytd-player'));
-                            if (audios.length === 1) {
-                                return audios[0];
-                            }
-                        } else if (mediaCollection.length === 1) {
-                            const e = mediaCollection[0];
-                            if (e && !e.closest('[hidden]') && e.closest('ytd-player')) return e;
-                        }
-                        return null;
-                    };
-                    const _onPlayerStateChange = (k_) => {
-                        const k = k_;
-                        const ps = player_.getPlayerState();
-                        if (stopAndReload) {
-                            stopAndReload = false;
-                            const audio = getAudioElement();
-                            if (audio) {
-                                prrPipeline(async () => {
-                                    await prr.then();
-                                    await stopAndReloadFn();
-                                });
-                            }
-                        }
-                        if (typeof k === 'number' && k === ps && ps !== 5) {
-
-                            if (mid > 1e9) mid = 9;
-                            const t = ++mid;
-                            prrPipeline(async () => {
-                                if (t !== mid) return;
-                                await prr.then();
-                                if (t !== mid) return;
-                                const audio = getAudioElement();
-
-                                if (audio && player_.getPlayerState() === ps) {
-                                    await asyncStateChange(audio, k);
-                                }
-                            });
-                        }
-                    };
-
-                    player_.addEventListener('onStateChange', _onPlayerStateChange);
-                    const state0 = player_.getPlayerState();
-                    // console.log(221, state0)
-                    if (typeof state0 === 'number') {
-                        _onPlayerStateChange(state0);
+                let r3 = new PromiseExternal();
+                document.addEventListener('yt-action', ()=>{
+                    let u = document.querySelector('ytd-watch-flexy');
+                    if(u && typeof insp(u).calculateCurrentPlayerSize_ === 'function'){
+                        r3.resolve(u);
                     }
 
-                    player_.addEventListener('onVideoProgress', () => {
-                        updateLastActiveTimeAsync(player_);
-                    });
+                },true);
 
-                }
+                r3.then((watchFlexy)=>{
+                    // for offline video, without audio -> so no size
+
+                    if(!watchFlexy) return;
+                    const cnt = insp(watchFlexy);
+                    if(typeof cnt.calculateCurrentPlayerSize_ ==='function' && !cnt.calculateCurrentPlayerSize3991_){
+
+                        cnt.calculateCurrentPlayerSize3991_ = cnt.calculateCurrentPlayerSize_;
+                        cnt.calculateCurrentPlayerSize_ = function(){
+                            const r =  this.calculateCurrentPlayerSize3991_(...arguments);
+
+                            if(r && r.width > 10 && !Number.isFinite(r.height)){
+                                r.height = Math.round(r.width / 16 * 9);
+                            }
+                            return r;
+
+                        }
+
+                    }
+
+                });
+
+
 
                 customElements.whenDefined('ytd-player').then(() => {
                     const dummy = document.querySelector('ytd-player') || document.createElement('ytd-player');
@@ -1443,9 +3162,10 @@
                         configFixBeforeCreate();
                         let r = this.createMainAppPlayer932_(a, b, c);
                         try {
-                            this.mainAppPlayer_.api.then(function (e) {
-                                setupAudioPlaying(e);
-                            })
+                            (async () => {
+                                const e = await this.mainAppPlayer_.api;
+                                setupAudioPlaying(e); // desktop normal
+                            })();
                         } finally {
                             return r;
                         }
@@ -1454,31 +3174,33 @@
                         configFixBeforeCreate();
                         let r = this.initPlayer932_(a);
                         try {
-                            r.then(() => {
-                                setupAudioPlaying(this.player_);
-                            })
+                            (async () => {
+                                const e = await r;
+                                setupAudioPlaying(this.player_); // desktop normal
+                            })();
                         } finally {
                             return r;
                         }
                     }
                 })
 
-                let useStopAndReload = !isWatchPageURL();
-                document.addEventListener('yt-navigate-start', () => {
-                    prr = new PromiseExternal();
-                    if (useStopAndReload) stopAndReload = true;
-                });
+                // let useStopAndReload = !isWatchPageURL();
+                // document.addEventListener('yt-navigate-start', () => {
+                //     prr = new PromiseExternal();
+                //     // if (useStopAndReload) stopAndReload = true;
+                // });
 
-                document.addEventListener('yt-navigate-cache', () => {
-                    prr = new PromiseExternal();
-                    if (useStopAndReload) stopAndReload = true;
-                });
+                // document.addEventListener('yt-navigate-cache', () => {
+                //     prr = new PromiseExternal();
+                //     // if (useStopAndReload) stopAndReload = true;
+                // });
 
-                document.addEventListener('yt-navigate-finish', () => {
-                    prr.resolve();
-                });
+                // document.addEventListener('yt-navigate-finish', () => {
+                //     prr.resolve();
+                // });
 
             }
+
 
         } else if (location.origin === 'https://m.youtube.com') {
 
@@ -1622,21 +3344,12 @@
             }
 
             let player0 = null;
-            let mgg = null;
             const mff = function (e) {
-                if (!player0) {
-                    if (e && typeof ((e || 0).target || 0).getPlayerState === 'function') {
-                        player0 = e.target
-                        if (mgg) mgg();
-                    }
+                const target = (e || 0).target || 0;
+                if (target !== player0 && target && typeof target.getPlayerState === 'function') {
+                    player0 = target;
+                    setupAudioPlaying(target); // mobile 
                 }
-
-
-                // if (SHOW_VIDEO_STATIC_IMAGE && (e.type === 'player-state-change' || e.type === 'video-data-change')) {
-
-                //     onVideoChangeForMobile();
-                // }
-
             }
 
             document.addEventListener('player-initialized', mff, true);
@@ -1656,181 +3369,11 @@
             document.addEventListener('video-progress', mff, true);
             document.addEventListener('local-media-change', mff, true);
 
+ 
 
-            let tc = false;
-            // let pw = null;
-            (async () => {
-
-                let player__;
-
-                const getAudioElement = () => {
-                    const elm = player__ || player0;
-                    const audio = elm && elm.isConnected === true ? HTMLElement.prototype.querySelector.call(elm, '.video-stream.html5-main-video') : null;
-                    return audio;
-                }
-
-                const asyncStateChange = async (audio, k) => {
-                    const player_ = player__;
-                    if (!player_) return;
-                    if (typeof player_.getPlayerState !== 'function') return;
-
-                    const refreshAllStaleEntitiesForNonReadyAudio = async () => {
-                        // try {
-                        //     if (audio.readyState == 0) await player_.refreshAllStaleEntities();
-                        // } catch (e) {
-                        // }
-                    };
-                    const triggerPlaying = async () => {
-                        await player_.cancelPlayback();
-                        await player_.pauseVideo();
-                        await player_.playVideo();
-                    };
-                    const seekToLiveHeadForLiveStream = async () => {
-                        try {
-                            await player_.seekToLiveHead();
-                            if ((await player_.isAtLiveHead()) === true) {
-                                await player_.seekToStreamTime();
-                                return true;
-                            }
-                        } catch (e) {
-                            console.log('error_F9', e);
-                        }
-                    };
-                    const fixLiveAudioFn = async () => {
-                        if (audio.paused === true) {
-                            await player_.clearVideo(); // avoid error in live streaming
-                            await player_.clearQueue(); // avoid error in live streaming
-                            await delayPn(300);
-                            for (let i = 0; i < 3; i++) {
-                                if (audio.readyState === 0) {
-                                    if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                                }
-                            }
-                            if (k === -1) {
-                                await refreshAllStaleEntitiesForNonReadyAudio();
-                            } else if (k === 3) {
-                                while (audio.readyState === 0) {
-                                    await refreshAllStaleEntitiesForNonReadyAudio();
-                                    await triggerPlaying();
-                                    await delayPn(300);
-                                }
-                                // console.log(8809,audio.readyState)
-                            }
-                        } else if (audio.paused === false) {
-                            if (!player_.isAtLiveHead()) {
-                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                            }
-                            while (audio.readyState === 0) {
-                                await refreshAllStaleEntitiesForNonReadyAudio();
-                                await triggerPlaying();
-                                await delayPn(300);
-                            }
-                            if (!player_.isAtLiveHead()) {
-                                if (await seekToLiveHeadForLiveStream()) await delayPn(60);
-                            }
-                            await refreshAllStaleEntitiesForNonReadyAudio();
-                            if (audio.readyState > 0 && audio.paused === true) {
-                                await triggerPlaying();
-                            }
-                        }
-
-                    }
-                    try {
-
-                        let ns23 = audio.networkState == 2 || audio.networkState == 3
-                        // console.log(127001, k, player_.getPlayerState(), audio.readyState, ns23, audio.muted)
-
-                        if (!ns23 && k === player_.getPlayerState()) {
-                            if (k === -1 && audio.readyState === 0) {
-                                const et = await mediaNetworkStateReady(audio);
-                                if (audio.isConnected === false || player_.getPlayerState() === 5) return;
-                                ns23 = audio.networkState == 2 || audio.networkState == 3;
-                                console.log(523, ns23, et, player_.getPlayerState());
-                                if (player_.getPlayerState() !== -1) return;
-                            } else {
-                                console.log(527, k, audio.readyState, audio.networkState)
-                            }
-                        }
-
-                        if (removeBottomOverlayForMobile) await removeBottomOverlayForMobile(300);
-
-                        if (k === 3 && player_.getPlayerState() === 3 && audio.readyState > 0 && ns23 && audio.muted === true) {
-                            tc = true;
-                        }
-                        if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                            await delayPn(200);
-                            if (k === -1 && player_.getPlayerState() === -1 && audio.readyState === 0 && ns23) {
-                                // console.log(8806)
-                                await fixLiveAudioFn();
-                            }
-                        } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState === 1 && ns23 && audio.muted === false) {
-                            await seekToLiveHeadForLiveStream();
-                        } else if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23) {
-                            await delayPn(60);
-                            if (k === 3 && player_.getPlayerState() === 3 && audio.readyState == 0 && ns23 && audio.paused === false) {
-                                // console.log(8807)
-                                await fixLiveAudioFn();
-                            }
-
-                        }
-
-                    } catch (e) {
-                        console.log('error_F10', e)
-                    }
-
-                };
-                const _onPlayerStateChange = (e) => {
-                    if (e && (e || 0).target) {
-                        player__ = e.target
-                    }
-                    const player_ = player__;
-                    try {
-                        if (!player_) return;
-                        let k = null;
-                        if (e && e.detail && e.detail.state) {
-                            k = e.detail.state
-                        }
-                        if (typeof player_.getPlayerState === 'function' && typeof k === 'number' && k === player_.getPlayerState()) {
-                            const audio = getAudioElement();
-                            if (audio) asyncStateChange(audio, k);
-                        }
-                    } catch (e) {
-                        console.log('error_F11', e)
-                    }
-                };
-
-                let idleAudioActivatePending = false;
-
-                const _onVideoProgress = (e) => {
-                    if (e && (e || 0).target) {
-                        player__ = e.target
-                    }
-                    const player_ = player__;
-                    if (!player_) return;
-                    updateLastActiveTimeAsync(player_);
-                    if (tc) {
-                        tc = false;
-                        if (!idleAudioActivatePending) {
-                            idleAudioActivatePending = true;
-                        }
-                    }
-                };
-
-                mgg = function () {
-                    const player_ = player0;
-                    if (player_) {
-                        const state0 = player_.getPlayerState();
-                        if (typeof state0 === 'number') {
-                            _onPlayerStateChange({ type: 'player-state-change', target: player_, detail: { state: state0 } });
-                        }
-                    }
-                }
-
-                document.addEventListener('player-state-change', _onPlayerStateChange, true);
-
-                document.addEventListener('video-progress', _onVideoProgress, true);
-
-            })();
+            document.addEventListener('video-progress', updateLastActiveTimeAsync, true); // mobile
+ 
+ 
 
             //       document.addEventListener('DOMContentLoaded', (evt) => {
             //         const mo = new MutationObserver((mutations)=>{
@@ -2100,6 +3643,7 @@
 
         }
 
+
         attachOneTimeEvent('yt-action', function () {
             const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
             ytConfigFix(config_);
@@ -2251,13 +3795,13 @@
         supportedFormatsConfig();
 
 
-        PATCH_MEDIA_PUBLISH && (async ()=>{
+        PATCH_MEDIA_PUBLISH && (async () => {
 
 
             const _yt_player_observable = observablePromise(() => {
                 return (((window || 0)._yt_player || 0) || 0);
             });
-  
+
 
             const addProtoToArr = (parent, key, arr) => {
 
@@ -2285,7 +3829,7 @@
 
 
             };
-            
+
             /*
 
                 const getD0 = (_yt_player) => {
@@ -2337,57 +3881,57 @@
 
                 for (const [k, v] of Object.entries(_yt_player)) {
 
-                const p = typeof v === 'function' ? v.prototype : 0;
-                if (p
-                    && typeof p.isBackground === 'function' && p.isBackground.length === 0
-                    && typeof p.getPlaybackRate === 'function' && p.getPlaybackRate.length === 0
-                    && typeof p.publish === 'function' && p.publish.length === 2
-                    && typeof p.isAtLiveHead === 'function' && p.isAtLiveHead.length === 2
+                    const p = typeof v === 'function' ? v.prototype : 0;
+                    if (p
+                        && typeof p.isBackground === 'function' && p.isBackground.length === 0
+                        && typeof p.getPlaybackRate === 'function' && p.getPlaybackRate.length === 0
+                        && typeof p.publish === 'function' && p.publish.length === 2
+                        && typeof p.isAtLiveHead === 'function' && p.isAtLiveHead.length === 2
 
 
 
-                    // && !p.getPlayerType
+                        // && !p.getPlayerType
 
-                ) {
-                    arr = addProtoToArr(_yt_player, k, arr) || arr;
+                    ) {
+                        arr = addProtoToArr(_yt_player, k, arr) || arr;
 
 
-                }
+                    }
 
                 }
 
                 if (arr.length === 0) {
 
-                console.warn(`Key does not exist. [${w}]`);
+                    console.warn(`Key does not exist. [${w}]`);
                 } else {
 
-                console.log(`[${w}]`, arr);
-                return arr[0];
+                    console.log(`[${w}]`, arr);
+                    return arr[0];
                 }
 
             };
 
-            const printObject = (b)=>{
-                return JSON.stringify( Object.entries(b||{}).filter(e=>typeof (e[1]||0)!=='object'));
+            const printObject = (b) => {
+                return JSON.stringify(Object.entries(b || {}).filter(e => typeof (e[1] || 0) !== 'object'));
             };
 
             /*
                 (async () => {
                     // rAf scheduling
-            
+
                     const _yt_player = await _yt_player_observable.obtain();
-            
+
                     if (!_yt_player || typeof _yt_player !== 'object') return;
-            
+
                     let keyD0 = getD0(_yt_player);
-            
-            
+
+
                     if (!keyD0) return;
-            
-            
+
+
                     const g = _yt_player
                     let k = keyD0
-            
+
                     const gk = g[k];
                     if (typeof gk !== 'function') return;
                     const gkp = gk.prototype;
@@ -2423,7 +3967,7 @@
                         return r;
                     }
 
-                    
+
                     gkp.pauseVideo48 = gkp.pauseVideo;
                     gkp.pauseVideo = function(a, b) {
                         let r =  this.pauseVideo48(a, b);
@@ -2456,22 +4000,22 @@
                         return r;
                     }
 
-                    
+
                     gkp.cancelPlayback48 = gkp.cancelPlayback;
                     gkp.cancelPlayback = function(a, b) {
                         let r =  this.cancelPlayback48(a, b);
                         // console.log('gkpD0 cancelPlayback',r, a,b);
                         return r;
                     }
-            
+
                 })();
             */
 
 
 
             /**
-             * 
-             * 
+             *
+             *
 
                 g.k.mL = function(a) {
                     var b = a.target.Gf();
@@ -2642,8 +4186,8 @@
                     }
                 }
                 ;
-             * 
-             * 
+             *
+             *
              */
 
 
@@ -2651,20 +4195,20 @@
 
             (async () => {
                 // rAf scheduling
-          
+
                 const _yt_player = await _yt_player_observable.obtain();
-          
+
                 if (!_yt_player || typeof _yt_player !== 'object') return;
-          
+
                 let keys0 = gets0(_yt_player);
-          
-          
+
+
                 if (!keys0) return;
-          
-          
+
+
                 const g = _yt_player
                 let k = keys0
-          
+
                 const gk = g[k];
                 if (typeof gk !== 'function') return;
                 const gkp = gk.prototype;
@@ -2688,13 +4232,13 @@
                 // }
 
                 gkp.publish48 = gkp.publish;
-                gkp.publish33 = async function(a,b){
+                gkp.publish33 = async function (a, b) {
 
                     const player_ = kRef(globalPlayer);
                     let publishStatus = 0;
                     const media = this.mediaElement;
 
-                    if(a==='internalaudioformatchange' && typeof (b.author||0) === 'string' && media && player_){
+                    if (a === 'internalaudioformatchange' && typeof (b.author || 0) === 'string' && media && player_) {
 
                         await player_.clearVideo(); // avoid error in live streaming
                         await player_.clearQueue(); // avoid error in live streaming
@@ -2740,9 +4284,9 @@
                         };
 
 
-                        if(a.includes('error') ){
- 
-                            if(!media.__publishStatus17__ || media.__publishStatus17__ < 200){
+                        if (a.includes('error')) {
+
+                            if (!media.__publishStatus17__ || media.__publishStatus17__ < 200) {
 
                                 await player_.clearVideo(); // avoid error in live streaming
                                 await player_.clearQueue(); // avoid error in live streaming
@@ -2750,11 +4294,11 @@
                                 // await player_.cancelPlayback();
 
                             }
-    
-     
-    
-    
-                        }else{
+
+
+
+
+                        } else {
 
 
 
@@ -2764,23 +4308,23 @@
 
                             if (media.__publishStatus17__ === 100) await refreshAllStaleEntitiesForNonReadyAudio();
                             if (media.__publishStatus17__ === 100 && audio.duration > 0 && player_.getPlayerState() === 3) {
-    
-    
-    
+
+
+
                                 media.__publishStatus17__ = 200
                                 // await refreshAllStaleEntitiesForNonReadyAudio();
-    
+
                                 await player_.cancelPlayback();
                                 await this.pauseVideo();
                                 // this.playVideo();
                                 // await player_.pauseVideo();
                                 await player_.playVideo();
                                 await seekToLiveHeadForLiveStream();
-    
-    
+
+
                                 // fixLiveAudioFn(domMedia0, player_, player_.getPlayerState())
-    
-    
+
+
                                 // skipPause = true;
                                 // skipVisibility = true;
                                 //  player_.cancelPlayback();
@@ -2788,46 +4332,46 @@
                                 //  player_.playVideo();
                                 //  skipPause = false;
                                 //  skipVisibility = false;
-    
-    
-                            } 
-    
-    
-    
+
+
+                            }
+
+
+
                             if (a === 'onLoadedMetadata' && media.__publishStatus17__ === 200) media.__publishStatus17__ = 201;
                             if (a === 'videoelementevent' && b.type === 'loadedmetadata' && media.__publishStatus17__ === 201) media.__publishStatus17__ = 202;
                             if (a === 'videoelementevent' && b.type === 'progress' && media.__publishStatus17__ === 202) {
-    
+
                                 media.__publishStatus17__ = 203;
                                 window.debug_mfk = this;
                                 window.debug_mfp = player_;
-    
+
                                 // (async ()=>{
                                 //     await timelineResolve();
                                 //     const domMedia = Object.values(this.mediaElement).filter(e=>e instanceof HTMLMediaElement);
                                 //     if(domMedia.length === 1){
                                 //         const domMedia0 = domMedia[0]
-    
+
                                 //         if(domMedia0.duration >0 && domMedia0.readyState >= 4){
-    
+
                                 //             await timelineResolve();
                                 //             console.log(939, domMedia0, domMedia0.paused, domMedia0.duration, domMedia0.readyState)
                                 //             this.pauseVideo();
                                 //             await timelineResolve();
                                 //             this.playVideo();
-    
+
                                 //         }
                                 //         // this.mediaElement.pause();
                                 //         // this.mediaElement.play();
                                 //     }
-    
+
                                 // })();
                             }
                             if (media.__publishStatus17__ === 203 && audio && audio.readyState === 1) {
-    
-    
+
+
                                 media.__publishStatus17__ = 204;
-                            
+
                                 // await timelineResolve();
                                 // await player_.cancelPlayback();
                                 await this.pauseVideo();
@@ -2837,17 +4381,17 @@
                                 await player_.playVideo();
                                 // await timelineResolve();
                                 await seekToLiveHeadForLiveStream();
-    
-    
-    
+
+
+
                             }
-    
-    
-                            if (media.__publishStatus17__ < 300 && media.__publishStatus17__ >= 200 && a === 'videoelementevent' && b.type==='timeupdate' && !audio.paused && audio.readyState >= 4 && audio.duration > 0) {
+
+
+                            if (media.__publishStatus17__ < 300 && media.__publishStatus17__ >= 200 && a === 'videoelementevent' && b.type === 'timeupdate' && !audio.paused && audio.readyState >= 4 && audio.duration > 0) {
                                 media.__publishStatus17__ = 300;
-                                if(!player_.isAtLiveHead()) await seekToLiveHeadForLiveStream();
+                                if (!player_.isAtLiveHead()) await seekToLiveHeadForLiveStream();
                             }
-    
+
 
                         }
 
@@ -2858,10 +4402,10 @@
 
                     }
                 }
-                gkp.publish = function(a,b){
+                gkp.publish = function (a, b) {
 
-                    this.publish33(a,b);
-                    
+                    this.publish33(a, b);
+
                     return this.publish48.apply(this, arguments);
                 }
 
@@ -2872,6 +4416,9 @@
         })();
 
 
+    //# sourceURL=debug://userscript/yt-audio-only.js
+
+    
     }
 
     const getVideoIdByURL = () => {
@@ -2895,19 +4442,19 @@
 
     };
 
-    const getVideoIdByElement = ()=>{
+    const getVideoIdByElement = () => {
         const videoIdElements = [...document.querySelectorAll('[video-id]')].filter(v => !v.closest('[hidden]'));
         const videoId = videoIdElements.length > 0 ? videoIdElements[0].getAttribute('video-id') : null;
         return videoId || '';
     };
 
-    const getEnableValue = async ()=>{
+    const getEnableValue = async () => {
         const videoId = getVideoIdByURL() || getVideoIdByElement();
         const siteVal = videoId ? await GM.getValue(`isEnable_aWsjF_${videoId}`, null) : null;
         return (siteVal !== null) ? siteVal : await GM.getValue("isEnable_aWsjF", true);
     };
 
-    const setEnableVal = async (val)=>{
+    const setEnableVal = async (val) => {
         const videoId = getVideoIdByURL() || getVideoIdByElement();
         if (videoId) {
             try {
@@ -3032,7 +4579,7 @@
         if (!(btn instanceof HTMLElement)) return;
         if (btn.parentNode.querySelector('yt-list-item-view-model.audio-only-toggle-btn')) return;
         const parentNode = btn.closest('player-settings-menu');
-        if(!parentNode) return;
+        if (!parentNode) return;
         let qt = 1E9;
         let targetBtnO = lastEntry([...parentNode.getElementsByTagName(btn.nodeName)].filter(e => e.parentElement === btn.parentElement).map((elm) => {
             const count = elm.getElementsByTagName('*').length;
@@ -3047,7 +4594,7 @@
 
 
         const newBtn = targetBtn.cloneNode(true);
-        if(newBtn instanceof HTMLElement){
+        if (newBtn instanceof HTMLElement) {
             document.documentElement.classList.add('with-audio-only-toggle-btn');
 
             let newBtnContentElm = newBtn;
@@ -3173,17 +4720,17 @@
                     linear-gradient(to bottom, rgba(0,0,0,0.4), transparent) center top,
                     /* Bottom border gradient */
                     linear-gradient(to top, rgba(0,0,0,0.4), transparent) center bottom;
-                    
+
                 /* Prevents repetition of gradients */
                 background-repeat: no-repeat;
-                
+
                 /* Set the size of each gradient "border" */
                 background-size:
                     12% 100%, /* left border width and full height */
                     12% 100%, /* right border width and full height */
                     100% 12%, /* top border full width and small height */
                     100% 12%; /* bottom border full width and small height */
-                    
+
                 /* Optional: a base background color inside the element */
                 /* background-color: #fff; */
                 /* background-color: var(--blinker-fmw83-bgc, transparent); */
@@ -3205,14 +4752,14 @@
                 }
             }
                 */
-                
-         
+
+
             #movie_player.playing-mode [style*="--audio-only-thumbnail-image"]{
                 /* animation: blinker-fmw83 1.74s linear infinite; */
                 --fmw83-opacity: 0.6;
-                
+
             }
-            
+
 
 
         `: "";
@@ -3328,7 +4875,7 @@
         let lastInputTextValue = null;
         let busy = false;
         let disableMonitoring = false;
-        const setGV = async (val)=>{
+        const setGV = async (val) => {
 
             const videoId = getVideoIdByURL() || getVideoIdByElement();
             if (videoId) {
@@ -3405,6 +4952,8 @@
     autoCleanUpKey();
 
 
-})();
 
+
+
+})();
 
