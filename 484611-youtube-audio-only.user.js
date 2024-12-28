@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.0.1
+// @version             2.0.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -207,6 +207,12 @@
         const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
 
+            let byPassSync = false;
+            let byPassNonFatalError = false;
+
+            const dmo = {};
+
+
         const observablePromise = (proc, timeoutPromise) => {
             let promise = null;
             return {
@@ -323,6 +329,105 @@
                 callback(evt);
             }, { capture: true, passive: true, once: true });
         }
+
+        let skipPlayPause = 0;
+
+        const { remapString } = (() => {
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            /**
+             * Create a deterministic "random" mapping from 'a'..'z' -> shuffled letters.
+             * Returns a Map for O(1) lookups.
+             */
+            function createRandomAlphabetMap() {
+                const baseAlphabet = "abcdefghijklmnopqrstuvwxyz";
+                const letters = baseAlphabet.split("");
+
+
+                // Shuffle letters with that seeded generator
+                const shuffledLetters = shuffleArray(letters);
+
+                // Build the Map
+                const map = new Map();
+                for (let i = 0, l = baseAlphabet.length; i < l; i++) {
+                    map.set(baseAlphabet[i], shuffledLetters[i]);
+                    map.set(baseAlphabet[i].toUpperCase(), shuffledLetters[i].toUpperCase());
+                }
+                return map;
+            }
+
+            // Create the random map once at initialization
+            let randomAlphabetMap = null;
+            
+            /**
+             * Remaps alphabetic letters in a string according to randomAlphabetMap.
+             * Preserves the case of letters and leaves non-alphabet characters unchanged.
+             */
+            function remapString(input) {
+                if (!randomAlphabetMap) return input;
+                let result = new Array(input.length);
+                let i = 0;
+                for (const char of input) {
+                    result[i++] = randomAlphabetMap.get(char) || char;
+                }
+                return result.join('');
+            }
+
+            const listA = [
+                "error",
+                "internalvideodatachange",
+                "statechange",
+                "SEEK_TO",
+                "videoelementevent",
+                "onLoadedMetadata",
+                "progresssync",
+                "onVideoProgress",
+                "SEEK_COMPLETE",
+                "playbackstarted",
+                "onLoadProgress",
+                "nonfatalerror",
+                "internalAbandon",
+                "internalvideoformatchange",
+                "internalaudioformatchange",
+                "playbackready",
+                "mediasourceattached",
+                "beginseeking",
+                "endseeking"
+            ];
+
+            const mdA = listA.join('|');
+
+            loop1:
+            while (!randomAlphabetMap) {
+                randomAlphabetMap = createRandomAlphabetMap();
+
+                const listB = listA.map(remapString);
+                const mdB = listB.join('|');
+                for (const a of listA) {
+                    if (mdB.includes(a)) {
+                        randomAlphabetMap = null;
+                        continue loop1;
+                    }
+                }
+                for (const b of listB) {
+                    if (mdA.includes(b)) {
+                        randomAlphabetMap = null;
+                        continue loop1;
+                    }
+                }
+                break;
+            }
+
+            return { remapString };
+        })()
+
 
         function removeTempObjectProp01() {
             delete Object.prototype['kevlar_non_watch_unified_player'];
@@ -712,6 +817,7 @@
         const { setupAudioPlaying } = (() => {
 
 
+
             let key_mediaElementT = '';
 
             let internalAppXT = null;
@@ -724,23 +830,23 @@
             let dirtyMark = 1 | 2 | 4;
 
 
-        const getMediaElement = ()=>{
+            const getMediaElement = () => {
 
-            const internalApp = internalAppXM();
-            const standardApp = standardAppXM();
+                const internalApp = internalAppXM();
+                const standardApp = standardAppXM();
 
-            let t;
+                let t;
 
-            if (t = internalApp?.mediaElement?.[key_mediaElementT]) return t;
+                if (t = internalApp?.mediaElement?.[key_mediaElementT]) return t;
 
 
-            if (t = standardApp?.mediaElement?.[key_mediaElementT]) return t;
+                if (t = standardApp?.mediaElement?.[key_mediaElementT]) return t;
 
-            return null;
+                return null;
 
-            
 
-        }
+
+            }
             const updateInternalAppFn = (x) => {
                 if (x !== internalAppXT) dirtyMark = 1 | 2 | 4;
                 internalAppUT.add(x);
@@ -787,7 +893,7 @@
 
             const loadVideoByPlayerVarsP20 = {};
             const loadVideoByPlayerVarsQ20 = new Map();
-            
+
 
             const standardAppXM = () => {
 
@@ -822,7 +928,7 @@
 
 
                 const player_ = playerAppXT;
-                if(!player_.__onVideoProgressF381__){
+                if (!player_.__onVideoProgressF381__) {
                     player_.__onVideoProgressF381__ = true;
                     player_.addEventListener('onVideoProgress', updateLastActiveTimeAsync); // desktop
                 }
@@ -1065,7 +1171,15 @@
                     if (internalAppPT && internalAppPT.publish && !internalAppPT.publish9391) {
                         internalAppPT.publish9391 = internalAppPT.publish;
 
+
                         internalAppPT.publish = function (p, C) {
+                            remapString(p)
+
+                            // console.log(8189, 'publish', byPassSync,  p, C)
+                            if (byPassSync || (byPassNonFatalError && p === 'nonfatalerror' )) {
+                                // 'error', 'nonfatalerror', 'statechange', 'SEEK_TO'
+                                return this.publish9391(typeof p === 'string' ? remapString(p) : p, C);
+                            }
                             // if(p === 'nonfatalerror') return;
                             // console.log('[yt-audio-only] publish', p, C);
                             return this.publish9391(...arguments);
@@ -1310,7 +1424,7 @@
                         const standardApp = standardAppXM();
                         const internalApp = internalAppXM();
 
-                        const vd = (internalApp ? internalApp.videoData : (standardApp?standardApp.getVideoData():null)  ) || 0;
+                        const vd = (internalApp ? internalApp.videoData : (standardApp ? standardApp.getVideoData() : null)) || 0;
 
                         if (vd && typeof vd.isAd === 'function') {
                             return await vd.isAd();
@@ -1329,7 +1443,7 @@
                         const internalApp = internalAppXM();
 
 
-                        const vd = (internalApp ? internalApp.videoData : (standardApp?standardApp.getVideoData():null)  ) || 0;
+                        const vd = (internalApp ? internalApp.videoData : (standardApp ? standardApp.getVideoData() : null)) || 0;
 
                         if (vd && typeof vd.isLoaded === 'function') {
                             return await vd.isLoaded();
@@ -1343,8 +1457,8 @@
 
                     }
 
-                    const getPlayerWrappedStateObject = ()=>{
-                        
+                    const getPlayerWrappedStateObject = () => {
+
 
                         // g.h.oD = function(p) {
                         //     p = this.app.getPlayerStateObject(p);
@@ -1362,7 +1476,7 @@
                         //         isUnstarted: g.r(p, 64)
                         //     }
                         // }
-                        
+
 
                         const standardApp = standardAppXM();
                         const player_ = playerAppXM();
@@ -1408,6 +1522,40 @@
                     //     }
                     // });
 
+                    const updateAtPublish = (x)=>{
+                        dirtyMark = 1 | 2 | 4;
+                        updateInternalAppFn(x);
+                    }
+
+                    const refreshAllStaleEntitiesForNonReadyAudio = async () => {
+
+                        const player_ = playerAppXM(); // player or xj
+                        const audio = getMediaElement();
+                        try {
+                            // byPassSync = true;
+                            if (audio.readyState == 0 && audio.isConnected === true) await player_.refreshAllStaleEntities();
+                            // byPassSync = false;
+                        } catch (e) {
+                        }
+                    };
+                    const seekToLiveHeadForLiveStream = async () => {
+
+                        const player_ = playerAppXM(); // player or xj
+                        const audio = getMediaElement();
+
+                        try {
+                            audio.isConnected === true && await player_.seekToLiveHead();
+                            if (audio.isConnected === true && (await player_.isAtLiveHead()) === true) {
+                                audio.isConnected === true && await player_.seekToStreamTime();
+                                return true;
+                            }
+                        } catch (e) {
+                            console.log('error_F7', e);
+                        }
+                    };
+
+                    Object.assign(dmo, {clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement,playerAppXM,standardAppXM, internalAppXM });
+
 
                     if (!internalAppPT.setMediaElement661 && internalAppPT.setMediaElement) {
 
@@ -1432,31 +1580,20 @@
 
                         HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
 
-                        // HTMLAudioElement.prototype.pause = function(){
+                        HTMLAudioElement.prototype.pause = function(){
 
-                        //     if (playBusy>0) return this.pause3828();
+                            if(skipPlayPause & 2) return;
+                             return this.pause3828();
+ 
 
-
-                        //     const player_ = playerAppXM();
-                        //     if(player_ ){
-
-                        //         const stateObject = player_ ? player_.getPlayerStateObject() : {};
-                        //     }
-                        //     try{
-                        //         return this.pause3828();
-                        //     }catch(e){
-                        //         console.warn(e);
-                        //     }finally{
-                        //         this.play3828();
-                        //     }
-
-
-                        // }
+                        }
 
 
                         HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
 
                         HTMLAudioElement.prototype.play = async function () {
+
+                            if(skipPlayPause & 1) return;
 
                             if (playBusy > 0) return await this.play3828();
 
@@ -1471,7 +1608,7 @@
 
                             const audio = this;
 
-                            if (audio !== internalApp?.mediaElement?.[key_mediaElementT]) return await this.play3828();
+                            if (audio !== getMediaElement()) return await this.play3828();
 
                             console.log('video.play 02')
                             // if ((await isAdW()) === true) return;
@@ -1493,7 +1630,7 @@
                                 if (player_ !== playerAppXM()) return;
                                 if (internalApp !== internalAppXM()) return;
 
-                                if (audio !== internalApp?.mediaElement?.[key_mediaElementT]) return;
+                                if (audio !== getMediaElement()) return;
 
 
                                 console.log('video.play 05')
@@ -1535,6 +1672,8 @@
 
                                     if (longDelay) await delayPn(80);
 
+                                    // byPassSync = true;
+                                    byPassNonFatalError = true;
                                     if ((await isLoadedW()) === false) {
 
                                         await clearVideoAndQueue();
@@ -1545,6 +1684,8 @@
 
                                         await cancelPlayback();
                                     }
+                                    byPassNonFatalError = false;
+
                                     dirtyMark = 1 | 2 | 4;
 
 
@@ -1575,7 +1716,11 @@
                                         await playVideo();
                                         dirtyMark = 1 | 2 | 4;
                                     }
+
+
+                                    // byPassSync = false;
                                     playBusy--;
+
 
 
                                     const q0 = getPlayerWrappedStateObject();
@@ -1631,7 +1776,7 @@
                             } finally {
 
 
-                                playBusy--; 
+                                playBusy--;
                                 dirtyMark = 1 | 2 | 4;
                             }
 
@@ -1726,6 +1871,23 @@
 
                     }
 
+                    {
+                        const internalApp = internalAppXM();
+                        const arr = Object.entries(internalApp).filter(e => e[1] && typeof e[1].sync === 'function');
+
+                        for (const [key, o] of arr) {
+                            if (o.sync && !o.sync9383) {
+                                o.sync9383 = o.sync
+                                o.sync = function () {
+                                    if (byPassSync) {
+                                        return;
+                                    }
+                                    return this.sync9383(...arguments)
+                                }
+                            }
+                        }
+                    }
+
 
                     const standardApp = standardApp_;
 
@@ -1742,14 +1904,14 @@
                             updatePlayerAppFn(this);
                             return this.getPlayerStateObject949(...arguments);
                         }
-                    } else if ( player_ && typeof player_.getPlayerStateObject === 'function' && !player_.getPlayerStateObject949){
+                    } else if (player_ && typeof player_.getPlayerStateObject === 'function' && !player_.getPlayerStateObject949) {
 
                         player_.getPlayerStateObject949 = player_.getPlayerStateObject;
                         player_.getPlayerStateObject = function () {
                             updatePlayerAppFn(this);
                             return this.getPlayerStateObject949(...arguments);
                         }
-                        
+
                     }
 
                     updatePlayerAppFn(player_);
@@ -1804,7 +1966,7 @@
                     embedConfigFix();
 
                     const player_ = embedPlayer;
-                    console.log(5919,player_)
+                    console.log(5919, player_)
 
                     setupAudioPlaying(player_); // dekstop embed
 
@@ -2045,26 +2207,26 @@
                 });
 
                 let r3 = new PromiseExternal();
-                document.addEventListener('yt-action', ()=>{
+                document.addEventListener('yt-action', () => {
                     let u = document.querySelector('ytd-watch-flexy');
-                    if(u && typeof insp(u).calculateCurrentPlayerSize_ === 'function'){
+                    if (u && typeof insp(u).calculateCurrentPlayerSize_ === 'function') {
                         r3.resolve(u);
                     }
 
-                },true);
+                }, true);
 
-                r3.then((watchFlexy)=>{
+                r3.then((watchFlexy) => {
                     // for offline video, without audio -> so no size
 
-                    if(!watchFlexy) return;
+                    if (!watchFlexy) return;
                     const cnt = insp(watchFlexy);
-                    if(typeof cnt.calculateCurrentPlayerSize_ ==='function' && !cnt.calculateCurrentPlayerSize3991_){
+                    if (typeof cnt.calculateCurrentPlayerSize_ === 'function' && !cnt.calculateCurrentPlayerSize3991_) {
 
                         cnt.calculateCurrentPlayerSize3991_ = cnt.calculateCurrentPlayerSize_;
-                        cnt.calculateCurrentPlayerSize_ = function(){
-                            const r =  this.calculateCurrentPlayerSize3991_(...arguments);
+                        cnt.calculateCurrentPlayerSize_ = function () {
+                            const r = this.calculateCurrentPlayerSize3991_(...arguments);
 
-                            if(r && r.width > 10 && !Number.isFinite(r.height)){
+                            if (r && r.width > 10 && !Number.isFinite(r.height)) {
                                 r.height = Math.round(r.width / 16 * 9);
                             }
                             return r;
@@ -2279,11 +2441,11 @@
             document.addEventListener('video-progress', mff, true);
             document.addEventListener('local-media-change', mff, true);
 
- 
+
 
             document.addEventListener('video-progress', updateLastActiveTimeAsync, true); // mobile
- 
- 
+
+
 
             //       document.addEventListener('DOMContentLoaded', (evt) => {
             //         const mo = new MutationObserver((mutations)=>{
@@ -2740,43 +2902,88 @@
 
             };
 
-            const gets0 = (_yt_player) => {
+            const getxjvN = (_yt_player)=>{
+                // one is quu (this.app.getPlayerStateObject(p))
+                // one is standardApp (return this.getPresentingPlayerType()===3?R$(this.C7).g7:g.O5(this,p).getPlayerState())
 
-                const w = 's0';
 
-                let arr = [];
-
-                for (const [k, v] of Object.entries(_yt_player)) {
+                for (const [k, v] of Object.entries(ktg)) {
 
                     const p = typeof v === 'function' ? v.prototype : 0;
                     if (p
-                        && typeof p.isBackground === 'function' && p.isBackground.length === 0
-                        && typeof p.getPlaybackRate === 'function' && p.getPlaybackRate.length === 0
-                        && typeof p.publish === 'function' && p.publish.length === 2
-                        && typeof p.isAtLiveHead === 'function' && p.isAtLiveHead.length === 2
+                        && typeof p.cancelPlayback === 'function'  
+                        && typeof p.stopVideo === 'function'  
+                        && typeof p.pauseVideo === 'function' 
+                        && typeof p.playVideo === 'function' 
 
 
 
                         // && !p.getPlayerType
 
                     ) {
-                        arr = addProtoToArr(_yt_player, k, arr) || arr;
+                        console.log(k, v, p.getPlayerStateObject)
 
 
                     }
 
                 }
+            }
+
+
+            const gets0 = (_yt_player) => {
+                // internalApp
+
+                const w = 's0';
+
+                let arr = [];
+                let brr = new Map();
+
+                for (const [k, v] of Object.entries(_yt_player)) {
+
+                    const p = typeof v === 'function' ? v.prototype : 0;
+                    if (p) {
+
+                        let q = 0;
+
+
+                        if (typeof p.isBackground === 'function') q += 1;
+                        if (typeof p.getPlaybackRate === 'function') q += 1;
+                        if (typeof p.publish === 'function') q += 1;
+                        if (typeof p.isAtLiveHead === 'function') q += 1;
+
+                        if (q < 4) continue;
+
+                        if (typeof p.isBackground === 'function' && p.isBackground.length === 0) q += 20;
+                        if (typeof p.getPlaybackRate === 'function' && p.getPlaybackRate.length === 0) q += 20;
+                        if (typeof p.publish === 'function' && p.publish.length === 2) q += 18;
+                        if (typeof p.isAtLiveHead === 'function' && p.isAtLiveHead.length === 2) q += 18;
+
+                        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
+
+                        if (q > 0) brr.set(k, q);
+
+                    }
+
+
+                }
 
                 if (arr.length === 0) {
 
-                    console.warn(`Key does not exist. [${w}]`);
+                    console.warn(`[yt-audio-only] (key-extraction) Key does not exist. [${w}]`);
                 } else {
 
-                    console.log(`[${w}]`, arr);
-                    return arr[0];
+                    arr = arr.map(key => [key, (brr.get(key) || 0)]);
+
+                    if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
+
+                    if (arr.length > 2) console.log(`[yt-audio-only] (key-extraction) [${w}]`, arr);
+                    return arr[0][0];
                 }
 
+
+
             };
+            
 
             const printObject = (b) => {
                 return JSON.stringify(Object.entries(b || {}).filter(e => typeof (e[1] || 0) !== 'object'));
@@ -2790,7 +2997,10 @@
 
                 if (!_yt_player || typeof _yt_player !== 'object') return;
 
+                window.ktg = _yt_player;
+
                 let keys0 = gets0(_yt_player);
+                // console.log(keys0)
 
 
                 if (!keys0) return;
@@ -2804,59 +3014,57 @@
                 const gkp = gk.prototype;
 
 
+                const errorRS = remapString('error');
+
                 gkp.publish48 = gkp.publish;
                 gkp.publish33 = async function (a, b) {
+                    // console.log(3888, a,b);
 
-                    const player_ = kRef(globalPlayer);
+                    const isLoaded = await dmo.isLoadedW();
+                    if(!isLoaded) return;
+
+                    window.gt6=this;
+
+
+                    const player_ = dmo.playerAppXM();
                     let publishStatus = 0;
                     const media = this.mediaElement;
 
+                    let kb = false;
+
                     if (a === 'internalaudioformatchange' && typeof (b.author || 0) === 'string' && media && player_) {
 
-                        await player_.clearVideo(); // avoid error in live streaming
-                        await player_.clearQueue(); // avoid error in live streaming
-                        await refreshAllStaleEntitiesForNonReadyAudio();
-                        // await player_.cancelPlayback();
+                        kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+
+                        // byPassSync = true;
+                        byPassNonFatalError = true;
+                        await dmo.clearVideoAndQueue();
+                        await dmo.refreshAllStaleEntitiesForNonReadyAudio();
+                        byPassNonFatalError =false;
+                        // byPassSync = false;
+                        // await cancelPlayback();
                         publishStatus = media.__publishStatus17__ = 100;
                     }
 
 
 
+                    const audio = player_ ? dmo.getMediaElement() : null;
 
+                    if (this.mediaElement && audio && a !== 'internalvideoformatchange' && player_) {
 
-                    const domMedia = media ? Object.values(media).filter(e => e instanceof HTMLMediaElement) : [];
-                    if (this.mediaElement && a !== 'internalvideoformatchange' && player_ && domMedia.length === 1) {
+ 
 
-                        const audio = domMedia[0];
-
-
-
-                        const refreshAllStaleEntitiesForNonReadyAudio = async () => {
-                            try {
-                                if (audio.readyState == 0 && audio.isConnected === true) await player_.refreshAllStaleEntities();
-                            } catch (e) {
-                            }
-                        };
-                        const seekToLiveHeadForLiveStream = async () => {
-                            try {
-                                audio.isConnected === true && await player_.seekToLiveHead();
-                                if (audio.isConnected === true && (await player_.isAtLiveHead()) === true) {
-                                    audio.isConnected === true && await player_.seekToStreamTime();
-                                    return true;
-                                }
-                            } catch (e) {
-                                console.log('error_F7', e);
-                            }
-                        };
-
-
-                        if (a.includes('error')) {
+                        if (a.includes('error') || a.includes(errorRS)) {
 
                             if (!media.__publishStatus17__ || media.__publishStatus17__ < 200) {
 
-                                await player_.clearVideo(); // avoid error in live streaming
-                                await player_.clearQueue(); // avoid error in live streaming
-                                await refreshAllStaleEntitiesForNonReadyAudio();
+                                kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+                                // byPassSync = true;
+                                byPassNonFatalError = true;
+                                await dmo.clearVideoAndQueue(); // avoid error in live streaming
+                                await dmo.refreshAllStaleEntitiesForNonReadyAudio();
+                                byPassNonFatalError= false;
+                                // byPassSync = false;
 
                             }
 
@@ -2865,15 +3073,33 @@
 
                             media.__publishStatus17__ = media.__publishStatus17__ || 100;
 
-                            if (media.__publishStatus17__ === 100) await refreshAllStaleEntitiesForNonReadyAudio();
+                            // const utv = player_.isAtLiveHead();
+
+
+                            if (media.__publishStatus17__ === 100) {
+                                kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+                                byPassNonFatalError = true;
+                                await dmo.refreshAllStaleEntitiesForNonReadyAudio();
+                                byPassNonFatalError = false;
+                            } 
                             if (media.__publishStatus17__ === 100 && audio.duration > 0 && player_.getPlayerState() === 3) {
 
                                 media.__publishStatus17__ = 200
 
-                                await player_.cancelPlayback();
-                                await this.pauseVideo();
-                                await player_.playVideo();
-                                await seekToLiveHeadForLiveStream();
+                                kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+
+                                byPassSync = true;
+                                skipPlayPause = 3;
+                                byPassNonFatalError = true;
+                                await dmo.cancelPlayback();
+                                await dmo.playVideo();
+                                byPassNonFatalError = false;
+                                skipPlayPause = 0;
+                                byPassSync = false;
+                                await dmo.seekToLiveHeadForLiveStream();
+                                
+
+                                await dmo.playVideo();
 
                             }
 
@@ -2889,18 +3115,33 @@
                             }
                             if (media.__publishStatus17__ === 203 && audio && audio.readyState === 1) {
 
+                                // byPassSync = true;
+                                media.__publishStatus17__ = 204;
 
-                                media.__publishStatus17__ = 204; 
-                                await this.pauseVideo();
-                                await player_.playVideo();
-                                await seekToLiveHeadForLiveStream();
+                                kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+
+                                byPassSync = true;
+                                skipPlayPause = 3;
+                                byPassNonFatalError = true;
+                                await dmo.pauseVideo();
+                                await dmo.playVideo();
+                                byPassNonFatalError = false;
+                                skipPlayPause =0 ;
+                                byPassSync = false;
+                                await dmo.seekToLiveHeadForLiveStream();
+                                // byPassSync = false;
+
+                                await dmo.playVideo();
 
                             }
 
 
                             if (media.__publishStatus17__ < 300 && media.__publishStatus17__ >= 200 && a === 'videoelementevent' && b.type === 'timeupdate' && !audio.paused && audio.readyState >= 4 && audio.duration > 0) {
                                 media.__publishStatus17__ = 300;
-                                if (!player_.isAtLiveHead()) await seekToLiveHeadForLiveStream();
+                                if (!player_.isAtLiveHead()){
+                                    kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+                                    await dmo.seekToLiveHeadForLiveStream();
+                                } 
                             }
 
 
@@ -2914,9 +3155,9 @@
                     }
                 }
                 gkp.publish = function (a, b) {
-                    try{
-                        this.publish33(a, b);
-                    }catch(e){
+                    try {
+                        if (dmo.ready) this.publish33(a, b);
+                    } catch (e) {
                         console.warn(e);
                     }
                     return this.publish48(...arguments);
@@ -2929,9 +3170,9 @@
         })();
 
 
-    //# sourceURL=debug://userscript/yt-audio-only.js
+        //# sourceURL=debug://userscript/yt-audio-only.js
 
-    
+
     }
 
     const getVideoIdByURL = () => {
