@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.8
+// @version             0.67.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1747,13 +1747,12 @@
               cnt.__dataEnabled = true;
               cnt.__dataReady = true;
               // cnt._initializeProtoProperties(cnt.data)
-  
+
               // window.meaa = cnt.$.container;
-              const cntData = cnt.data;
-              cnt.__data = Object.create(cntData);
-              cnt.__dataPending = Object.create(cntData);
+              if (cnt.__data) cnt.__data = Object.assign({}, cnt.__data);
+              cnt.__dataPending = {};
               cnt.__dataOld = {}
-  
+
               try{
                 cnt.markDirty();
               }catch(e){}
@@ -12090,9 +12089,9 @@
                           // cnt._initializeProtoProperties(cnt.data)
               
                           // window.meaa = cnt.$.container;
-                          const cntData = cnt.data;
-                          cnt.__data = Object.create(cntData);
-                          cnt.__dataPending = Object.create(cntData);
+
+                          if (cnt.__data) cnt.__data = Object.assign({}, cnt.__data);
+                          cnt.__dataPending = {};
                           cnt.__dataOld = {}
               
                           try{
