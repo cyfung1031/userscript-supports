@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.8
+// @version      0.7.9
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -172,6 +172,10 @@ SOFTWARE.
         z-index: -1;
     }
 
+    #global-loader ytw-scrim {
+        display: none;
+    }
+
     `
 
     let controlsInitialized = false
@@ -179,10 +183,6 @@ SOFTWARE.
     async function videoToggle(video) {
 
         if (video.paused) video.play(); else video.pause();
-    }
-
-    let elements = {
-
     }
 
     const eventHandlers = {
