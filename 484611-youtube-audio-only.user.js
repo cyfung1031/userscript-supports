@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.1
+// @version             2.1.2
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1191,11 +1191,12 @@
 
                 const player_ = playerAppXT;
 
-                if (!player_.__s4539__) {
+
+                if (!player_.__s4539__ || !player_.__s4549__) {
                     player_.__s4539__ = true;
 
 
-                    if (!player_.__onVideoProgressF381__) {
+                    if (!player_.__onVideoProgressF381__ && typeof player_.addEventListener === 'function') {
                         player_.__onVideoProgressF381__ = true;
                         try {
                             player_.removeEventListener('onVideoProgress', updateLastActiveTimeAsync); // desktop
@@ -1217,6 +1218,8 @@
                             return this.getPlayerStateObject949(...arguments);
                         }
                     }
+
+
 
                     // globalPlayer = mWeakRef(player_);
                     // window.gp3 = player_;
@@ -1240,7 +1243,7 @@
                         let filteredObjects = [...objectSets].filter(e => {
                             return Object(e[1]).getPlayerState === e[0]
                         });
-                        console.log(39914, filteredObjects)
+                        console.log(39914, filteredObjects);
 
                         if (filteredObjects.length > 1) {
                             filteredObjects = filteredObjects.filter((e) => !(e[1] instanceof Node));
@@ -1295,6 +1298,7 @@
                             const internalApp = internalApp_ || playerDap_[key_L1]();
                             if (internalApp) {
                                 updateInternalAppFn(internalApp);
+                                player_.__s4549__ = true;
                             }
                         }
                     }
@@ -1307,6 +1311,7 @@
 
 
                 }
+ 
 
             }
 
