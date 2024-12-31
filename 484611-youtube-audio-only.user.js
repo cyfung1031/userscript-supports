@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.0
+// @version             2.1.1
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -334,24 +334,7 @@
             }, { capture: true, passive: true, once: true });
         }
 
-        const isInternalApp = (internalApp, playerDap) => {
-
-            // if(location.hostname === 'm.youtube.com'){
-            //     return typeof m.isBackground === 'function' && ('mediaElement' in m) && typeof m.videoData !== 'undefined'
-            // }else{
-            //     return typeof m.publish === 'function' && ('mediaElement' in m) && typeof m.videoData !== 'undefined';
-            // }
-
-            if (internalApp === playerDap) return false;
-            if (internalApp.app) return false;
-            if (!internalApp || typeof internalApp !== 'object') return false;
-            if (!('mediaElement' in internalApp) || !('videoData' in internalApp) || !('playerState' in internalApp)) return false;
-
-            return true;
-
-        }
-
-        const evaluateInternalAppScore = (internalApp)=>{
+        const evaluateInternalAppScore = (internalApp) => {
 
 
             let r = 0;
@@ -477,9 +460,12 @@
                 }
                 break;
             }
+            if (!randomAlphabetMap) {
+                console.error('randomAlphabetMap is not available.')
+            }
 
             return { remapString };
-        })()
+        })();
 
 
         function removeTempObjectProp01() {
@@ -894,6 +880,55 @@
             let playerAppXT = null;
             let playerDapXT = null;
 
+
+
+            /*
+            const __wmObjectRefs__ = new WeakMap();
+            class WeakRefSet extends Set {
+                constructor() {
+                    super();
+                }
+                add(obj) {
+                    if (typeof (obj || 0) === 'object') {
+                        let ref = __wmObjectRefs__.get(obj);
+                        if (!ref) {
+                            __wmObjectRefs__.set(obj, (ref = mWeakRef(obj)));
+                        }
+                        super.add(ref);
+                    }
+                    return this;
+                }
+                delete(obj) {
+                    if (!obj) return null;
+                    const ref = __wmObjectRefs__.get(obj);
+                    if (ref) {
+                        if(kRef(ref)) return super.delete(ref);
+                        super.delete(ref);
+                        return false;
+                    }
+                    return false;
+                }
+                *[Symbol.iterator]() {
+                    for (const value of super.values()) {
+                        const obj = (kRef(value) || null);
+                        if (!obj) {
+                            super.delete(value);
+                            continue;
+                        }
+                        yield obj;
+                    }
+                }
+                has(obj) {
+                    if (!obj) return null;
+                    const ref = __wmObjectRefs__.get(obj);
+                    if (!ref) return false;
+                    if (kRef(ref)) return super.has(ref);
+                    super.delete(ref);
+                    return false;
+                }
+            }
+            */
+
             const internalAppUT = new Set();
             const standardAppUT = new Set();
             const playerAppUT = new Set();
@@ -905,9 +940,9 @@
             // let playerAppPTDone = false;
             let standardAppPTDone = false;
             let internalAppPTDone = false;
-        
 
-            window.gtz = ()=>{
+
+            window.gtz = () => {
                 return {
                     internalAppUT, standardAppUT, playerAppUT, playerDapUT, dirtyMark
                 }
@@ -938,17 +973,9 @@
                 return this.sync9383(...arguments)
             };
 
+            const updateInternalAppFn_ = () => {
 
-
-            const updateInternalAppFn = (x) => {
-                if (x !== internalAppXT) dirtyMark = 1 | 2 | 4 | 8;
-                internalAppUT.add(x);
-                internalAppXT = x;
-                // videoData
-                // stopVideo
-                // pauseVideo 
-
-                const internalApp = x;
+                const internalApp = internalAppXT;
                 if (internalApp && !internalApp.__s4538__) {
                     if (internalApp.mediaElement) internalApp.__s4538__ = true;
 
@@ -994,14 +1021,26 @@
 
 
                 if (!internalAppPTDone) {
-                    const proto = x ? x.__proto__ : null;
+                    const proto = internalApp ? internalApp.__proto__ : null;
                     if (proto) {
                         internalAppPTDone = true;
                         internalAppPTFn(proto);
                     }
                 }
 
+            }
 
+            const updateInternalAppFn = (x) => {
+                if (x !== internalAppXT) {
+                    dirtyMark = 1 | 2 | 4 | 8;
+                    internalAppUT.add(x);
+                    internalAppXT = x;
+                    // videoData
+                    // stopVideo
+                    // pauseVideo 
+
+                }
+                updateInternalAppFn_();
             }
 
             window.gt3 = () => internalAppXM();
@@ -1016,7 +1055,7 @@
                     } else {
                         const element = iaMediaP[key_mediaElementT];
                         if (element instanceof Element) {
-                            if(!element.isConnected){
+                            if (!element.isConnected) {
                                 // valid entry but audio is not on the page
 
                             } else if (element.closest('[hidden]')) {
@@ -1027,28 +1066,36 @@
                         }
                     }
                 }
+                if (!result) return result;
+                internalAppUT.add(result);
                 internalAppXT = result;
+                updateInternalAppFn_();
                 if (dirtyMark & 4) dirtyMark -= 4;
                 return result;
             }
 
-
-            const updateStandardAppFn = (x) => {
-                if (x !== standardAppXT) dirtyMark = 1 | 2 | 4 | 8;
-                standardAppUT.add(x);
-                standardAppXT = x;
-                // isAtLiveHead
-                // cancelPlayback
-                // stopVideo
-                // pauseVideo
-
+            const updateStandardAppFn_ = () => {
+                const standardAppXT_ = standardAppXT;
                 if (!standardAppPTDone) {
-                    const proto = x ? x.__proto__ : null;
+                    const proto = standardAppXT_ ? standardAppXT_.__proto__ : null;
                     if (proto) {
                         standardAppPTDone = true;
                         standardAppPTFn(proto);
                     }
                 }
+            }
+
+            const updateStandardAppFn = (x) => {
+                if (x !== standardAppXT) {
+                    dirtyMark = 1 | 2 | 4 | 8;
+                    standardAppUT.add(x);
+                    standardAppXT = x;
+                    // isAtLiveHead
+                    // cancelPlayback
+                    // stopVideo
+                    // pauseVideo
+                }
+                updateStandardAppFn_(x);
             }
             window.gt2 = () => standardAppXM();
 
@@ -1074,18 +1121,16 @@
                         if (iaMediaP === iaMedia) result = p;
                     }
                 }
+                if (!result) return result;
+                standardAppUT.add(result);
                 standardAppXT = result;
+                updateStandardAppFn_();
                 if (dirtyMark & 2) dirtyMark -= 2;
                 return result;
 
             }
 
-
-            const updatePlayerDapFn = (x) => {
-                if (x !== playerDapXT) dirtyMark = 1 | 2 | 4 | 8;
-                // console.log('updatePlayerDapFn')
-                playerDapUT.add(x);
-                playerDapXT = x;
+            const updatePlayerDapFn_ = () => {
 
                 const playerD_ = playerDapXT;
                 if (!playerD_.__onVideoProgressF381__) {
@@ -1097,19 +1142,28 @@
                 }
 
                 if (!playerDapPTDone) {
-                    const proto = x ? x.__proto__ : null;
+                    const proto = playerD_ ? playerD_.__proto__ : null;
                     if (proto) {
                         playerDapPTDone = true;
                         playerDapPTFn(proto);
                     }
                 }
 
-
                 const standardApp_ = playerD_.app || 0;
                 if (standardApp_) {
                     updateStandardAppFn(standardApp_);
                 }
-                
+            }
+
+            const updatePlayerDapFn = (x) => {
+                if (x !== playerDapXT) {
+                    dirtyMark = 1 | 2 | 4 | 8;
+                    // console.log('updatePlayerDapFn')
+                    playerDapUT.add(x);
+                    playerDapXT = x;
+                }
+                updatePlayerDapFn_(x);
+
             }
 
             window.gt11 = () => {
@@ -1125,18 +1179,15 @@
                     if (!p.app || !p.app.mediaElement) playerDapUT.delete(p);
                     else if (p.app === standardApp) result = p;
                 }
+                if (!result) return result;
+                playerDapUT.add(result);
                 playerDapXT = result;
+                updatePlayerDapFn_();
                 if (dirtyMark & 8) dirtyMark -= 8;
                 return result;
             }
 
-            // player could be just a DOM element without __proto__
-            // will this update fail?
-            const updatePlayerAppFn = (x) => {
-                if (x !== playerAppXT) dirtyMark = 1 | 2 | 4 | 8;
-                // console.log('updatePlayerAppFn')
-                playerAppUT.add(x);
-                playerAppXT = x;
+            const updatePlayerAppFn_ = () => {
 
                 const player_ = playerAppXT;
 
@@ -1258,6 +1309,18 @@
                 }
 
             }
+
+            // player could be just a DOM element without __proto__
+            // will this update fail?
+            const updatePlayerAppFn = (x) => {
+                if (x !== playerAppXT) {
+                    dirtyMark = 1 | 2 | 4 | 8;
+                    // console.log('updatePlayerAppFn')
+                    playerAppUT.add(x);
+                    playerAppXT = x;
+                }
+                updatePlayerAppFn_();
+            }
             const playerAppXM = () => {
 
                 if (!(dirtyMark & 1)) return playerAppXT;
@@ -1287,8 +1350,10 @@
                     if (!idxSet.has(i)) playerAppUT.delete(playerAppUA[i]);
                 }
                 // loadVideoByPlayerVarsQ20.clear();
-
+                if (!result) return result;
+                playerAppUT.add(result);
                 playerAppXT = result;
+                updatePlayerAppFn_();
                 if (dirtyMark & 1) dirtyMark -= 1;
                 return result;
 
@@ -1425,7 +1490,7 @@
 
                         internalAppPT.playVideo = function (p, C) {
                             updateInternalAppFn(this);
-                            console.log(`[yt-audio-only] internalApp.playVideo; skipPlayPause=${skipPlayPause?1:0}`);
+                            console.log(`[yt-audio-only] internalApp.playVideo; skipPlayPause=${skipPlayPause ? 1 : 0}`);
                             try {
                                 flagOn();
                                 return this.playVideo9391(...arguments);
@@ -1448,7 +1513,7 @@
 
                         internalAppPT.pauseVideo = function (p) {
                             updateInternalAppFn(this);
-                            console.log(`[yt-audio-only] internalApp.pauseVideo; skipPlayPause=${skipPlayPause?1:0}`);
+                            console.log(`[yt-audio-only] internalApp.pauseVideo; skipPlayPause=${skipPlayPause ? 1 : 0}`);
                             try {
                                 flagOn();
                                 return this.pauseVideo9391(...arguments);
@@ -1470,7 +1535,7 @@
 
                         internalAppPT.stopVideo = function () {
                             updateInternalAppFn(this);
-                            console.log(`[yt-audio-only] internalApp.stopVideo; skipPlayPause=${skipPlayPause?1:0}`);
+                            console.log(`[yt-audio-only] internalApp.stopVideo; skipPlayPause=${skipPlayPause ? 1 : 0}`);
                             try {
                                 flagOn();
                                 return this.stopVideo9391(...arguments);
@@ -1505,7 +1570,7 @@
 
                         internalAppPT.sendAbandonmentPing = function () {
 
- 
+
 
 
 
@@ -1523,7 +1588,7 @@
                             byPassNonFatalError = true;
                             byPassPublishPatch = true;
 
-                            dirtyMark = 1|2|4|8;
+                            dirtyMark = 1 | 2 | 4 | 8;
 
                             return this.sendAbandonmentPing9391(...arguments);
                         }
@@ -1550,7 +1615,7 @@
                             internalAppPT.publish33 = async function (a, b) {
                                 // console.log(3888, a,b);
 
-                                
+
                                 if (byPassPublishPatch) return;
                                 const isLoaded = await dmo.isLoadedW();
                                 if (!isLoaded) return;
@@ -1573,7 +1638,7 @@
 
                                 } else if (iaMedia.__publishStatus17__ >= 100 && iaMedia.__publishStatus17__ < 300) {
 
-                                    if( iaMedia.__publishStatus18__ < Date.now() ) {
+                                    if (iaMedia.__publishStatus18__ < Date.now()) {
                                         iaMedia.__publishStatus17__ = 0;
                                         iaMedia.__publishStatus18__ = 0;
                                         return;
@@ -1639,7 +1704,7 @@
                                             byPassNonFatalError = false;
                                             console.log(`[yt-audio-only] publish (***, =100)`);
                                         }
-                                        if (iaMedia.__publishStatus17__ === 100 && audio.duration > 0 /* && (dmo.getPlayerStateInt() === 3 || dmo.getPlayerStateInt() === 2) */ ) {
+                                        if (iaMedia.__publishStatus17__ === 100 && audio.duration > 0 /* && (dmo.getPlayerStateInt() === 3 || dmo.getPlayerStateInt() === 2) */) {
 
                                             iaMedia.__publishStatus17__ = 200
 
@@ -1670,11 +1735,11 @@
                                             console.log(`[yt-audio-only] publish (onLoadedMetadata, =200, =>201)`);
                                             iaMedia.__publishStatus18__ = Date.now() + 240;
                                         }
-                                        if (a === 'videoelementevent' && b.type === 'loadedmetadata' && iaMedia.__publishStatus17__ === 201){
+                                        if (a === 'videoelementevent' && b.type === 'loadedmetadata' && iaMedia.__publishStatus17__ === 201) {
                                             iaMedia.__publishStatus17__ = 202;
                                             console.log(`[yt-audio-only] publish (videoelementevent.loadedmetadata, =201, =>202)`);
                                             iaMedia.__publishStatus18__ = Date.now() + 240;
-                                        } 
+                                        }
                                         if (a === 'videoelementevent' && b.type === 'progress' && iaMedia.__publishStatus17__ === 202) {
 
                                             iaMedia.__publishStatus17__ = 203;
@@ -1770,7 +1835,7 @@
                                 }
                             }
 
-                            let qb = false; 
+                            let qb = false;
                             if (byPassSync || (byPassNonFatalError && p === 'nonfatalerror')) {
                                 qb = true;
                             }
@@ -2064,18 +2129,18 @@
                         } catch (e) { }
                     }
 
-                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt,getPlayerWrappedStateObject });
+                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt, getPlayerWrappedStateObject });
 
 
 
-                    const getPublishStatus17= ()=>{
+                    const getPublishStatus17 = () => {
 
                         const internalApp = internalAppXM();
                         const iaMedia = internalApp ? internalApp.mediaElement : null;
                         return iaMedia ? iaMedia.__publishStatus17__ : null;
                     }
 
-                    const shouldWaitPublish = ()=>{
+                    const shouldWaitPublish = () => {
                         let waitPublish = false;
                         const internalApp = internalAppXM();
                         const iaMedia = internalApp ? internalApp.mediaElement : null;
@@ -2135,7 +2200,7 @@
                                 dirtyMark = 1 | 2 | 4 | 8;
 
                                 // between play02 and play03, < publish (***, duration>0, stateInt=3, =100, =>200) > should occur
-                                console.log('[yt-audio-only] video.play03', getPublishStatus17() )
+                                console.log('[yt-audio-only] video.play03', getPublishStatus17())
 
 
 
@@ -2166,7 +2231,7 @@
 
                                 let bool = false;
                                 if (stateObject.isBuffering && !stateObject.isEnded && !stateObject.isError && stateObject.isSeeking && stateObject.isUnstarted && !stateObject.isCued) {
-                                    bool = true; 
+                                    bool = true;
                                 } else if (stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
                                     bool = true;
                                     // } else if( stateObject.isBuffering && !stateObject.isSeeking && !stateObject.isCued && !stateObject.isEnded && !stateObject.isError && stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isUnstarted){
@@ -2249,8 +2314,8 @@
                                     // byPassSync = false;
                                     playBusy--;
 
-                                    const r = await Promise.race([promiseSeek, delayPn(800).then(()=>123)]);
-                                    promiseSeek= null;
+                                    const r = await Promise.race([promiseSeek, delayPn(800).then(() => 123)]);
+                                    promiseSeek = null;
 
                                     if (r !== 123) {
                                         try {
@@ -3188,9 +3253,38 @@
 
             };
 
+            const getEntriesForPlayerInterfaces = (_yt_player) => {
+
+                const entries = Object.entries(_yt_player);
+
+                const arr = new Array(entries.length);
+                let arrI = 0;
+
+                for (const entry of entries) {
+                    const [k, v] = entry;
+
+                    const p = typeof v === 'function' ? v.prototype : 0;
+                    if (p) {
+
+                        const b = (
+                            typeof p.cancelPlayback === 'function' ||
+                            typeof p.stopVideo === 'function' ||
+                            typeof p.pauseVideo === 'function' ||
+                            typeof p.playVideo === 'function' ||
+                            typeof p.getPlayerStateObject === 'function'
+                        );
+                        if (b) arr[arrI++] = entry;
+                    }
+                }
+
+                arr.length = arrI;
+                return arr;
 
 
-            const getKeyPlayerDap = (_yt_player) => {
+            }
+
+
+            const getKeyPlayerDap = (_yt_player, filteredEntries) => {
                 // one is quu (this.app.getPlayerStateObject(p))
                 // one is standardApp (return this.getPresentingPlayerType()===3?R$(this.C7).g7:g.O5(this,p).getPlayerState())
 
@@ -3200,7 +3294,7 @@
                 let arr = [];
                 let brr = new Map();
 
-                for (const [k, v] of Object.entries(_yt_player)) {
+                for (const [k, v] of filteredEntries) {
 
                     const p = typeof v === 'function' ? v.prototype : 0;
                     if (p) {
@@ -3293,7 +3387,7 @@
 
             }
 
-            const getKeyStandardApp = (_yt_player) => {
+            const getKeyStandardApp = (_yt_player, filteredEntries) => {
                 // one is quu (this.app.getPlayerStateObject(p))
                 // one is standardApp (return this.getPresentingPlayerType()===3?R$(this.C7).g7:g.O5(this,p).getPlayerState())
 
@@ -3303,7 +3397,7 @@
                 let arr = [];
                 let brr = new Map();
 
-                for (const [k, v] of Object.entries(_yt_player)) {
+                for (const [k, v] of filteredEntries) {
 
                     const p = typeof v === 'function' ? v.prototype : 0;
                     if (p) {
@@ -3398,7 +3492,7 @@
             }
 
 
-            const getKeyInternalApp = (_yt_player) => {
+            const getKeyInternalApp = (_yt_player, filteredEntries) => {
                 // internalApp
 
                 const w = 'keyInternalApp';
@@ -3406,7 +3500,7 @@
                 let arr = [];
                 let brr = new Map();
 
-                for (const [k, v] of Object.entries(_yt_player)) {
+                for (const [k, v] of filteredEntries) {
 
                     const p = typeof v === 'function' ? v.prototype : 0;
                     if (p) {
@@ -3480,9 +3574,13 @@
 
                 // console.log(keys0)
 
-                let keyPlayerDap = getKeyPlayerDap(_yt_player)
-                let keyStandardApp = getKeyStandardApp(_yt_player)
-                let keyInternalApp = getKeyInternalApp(_yt_player);
+                const entriesForPlayerInterfaces = getEntriesForPlayerInterfaces(_yt_player);
+
+                const keyPlayerDap = getKeyPlayerDap(_yt_player, entriesForPlayerInterfaces)
+                const keyStandardApp = getKeyStandardApp(_yt_player, entriesForPlayerInterfaces)
+                const keyInternalApp = getKeyInternalApp(_yt_player, entriesForPlayerInterfaces);
+
+                console.log('[yt-audio-only] key obtained', [keyPlayerDap, keyStandardApp, keyInternalApp]);
 
                 if (!keyPlayerDap || !keyStandardApp || !keyInternalApp) {
                     console.warn('[yt-audio-only] key failure', [keyPlayerDap, keyStandardApp, keyInternalApp]);
