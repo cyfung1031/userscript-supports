@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.2
+// @version             2.1.3
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1286,6 +1286,7 @@
                                     if (listOfPossibles.length >= 1) {
                                         key_L1 = listOfPossibles[0][0];
                                         internalApp_ = listOfPossibles[0][1];
+                                        console.log('[yt-audio-only] key_L1', key_L1);
                                     }
                                     listOfPossibles.length = 0;
                                     // key_L1 = '';
@@ -1302,9 +1303,6 @@
                             }
                         }
                     }
-
-
-
 
 
                     setupFns();
