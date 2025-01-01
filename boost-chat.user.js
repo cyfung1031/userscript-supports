@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.65
+// @version             0.1.66
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3400,8 +3400,16 @@ SOFTWARE.
       {
         const fragment = new DocumentFragment();
         const noscript = document.createElement('noscript');
+        noscript.id = 'bst-noscript';
         appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
         appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
+
+        const div0 = document.createElement('div');
+        div0.id = 'bst-noscript-div';
+        appendChild.call(noscript, div0);
+        const shadowDiv0 = div0.attachShadow({ mode: "open" });
+        shadowDiv0.appendChild(wliveChatTextMessageRenderer);
+        shadowDiv0.appendChild(wliveChatTextInputRenderer);
 
         fragmentAppendChild.call(fragment, noscript);
         fragmentAppendChild.call(fragment, bstMain);
