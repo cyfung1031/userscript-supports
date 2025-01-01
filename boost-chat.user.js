@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.63
+// @version             0.1.64
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -672,7 +672,15 @@ SOFTWARE.
   const flushKeys = new LimitedSizeSet(64);
   const mutableWM = new WeakMap();
 
-
+  // const objUnwrap = (obj)=>{
+  //   if(typeof (obj||0) === 'object'){
+  //     let key = firstObjectKey(obj);
+  //     if(key){
+  //       obj = obj[key];
+  //     }
+  //   }
+  //   return obj;
+  // }
 
   const canScrollIntoViewWithOptions = (() => {
 
@@ -1361,12 +1369,20 @@ SOFTWARE.
         pointer-events: none !important;
       }
 
+      .bst-message-entry-holding .bst-message-entry-highlight{
+        --color-background-interactable-alpha-hover: var(--color-opac-w-5);
+      }
+
       .bst-message-entry-line {
         position: relative;
         display: inline;
       }
 
       .bst-message-entry:hover .bst-message-entry-highlight{
+        background-color: var(--bst-highlight-color);
+      }
+
+      .bst-message-entry-holding .bst-message-entry-highlight{
         background-color: var(--bst-highlight-color);
       }
 
@@ -1486,6 +1502,9 @@ SOFTWARE.
       .bst-message-entry:hover{
         z-index:1;
       }
+      .bst-message-entry-holding{
+        z-index:2;
+      }
       bst-tooltip{
         transform:translate(-50%, 100%);
         margin-top: 0;
@@ -1498,7 +1517,23 @@ SOFTWARE.
         margin-bottom: 0;
       }
 
+      .bst-message-entry[view-pos="down"] .bst-message-menu-container{
+        bottom: 100%;
+      }
 
+      .bst-message-menu-container tp-yt-paper-listbox{
+        display: var(--bst-message-menu-listbox-display, flex) !important;
+        flex-direction: var(--bst-message-menu-listbox-flex-direction, column) !important;
+      }
+
+      .bst-message-entry{
+        --bst-message-menu-listbox-display: flex;
+        --bst-message-menu-listbox-flex-direction: column;
+      }
+
+      .bst-message-entry[view-pos="down"]{
+        --bst-message-menu-listbox-flex-direction: column-reverse;
+      }
 
       .bst-message-entry[author-type="member"] .bst-message-name-color{
         --bst-username-color: var(--yt-live-chat-sponsor-color);
@@ -1818,6 +1853,48 @@ SOFTWARE.
 
 
 
+      .bst-message-entry-holding{
+        --bst-message-menu-display: block;
+      }
+
+      .bst-message-menu-container{
+
+      pointer-events: none !important;
+
+      display: var(--bst-message-menu-display, none);
+
+      position: absolute;
+      /*
+      background: black;
+      */
+      left: 0;
+      right: 0;
+      padding: 8px;
+      /*
+      border: 1px solid white;
+      */
+
+      }
+
+      .bst-message-menu-item{
+      
+      padding: 4px 8px;
+      background-color: var(--color-opac-w-4);
+      margin:2px;
+      cursor: pointer;
+
+      }
+
+      .bst-message-menu-item:hover{
+       
+      background-color: var(--color-opac-w-6); 
+
+      }
+
+
+
+
+
 
       .bst-sponsorship-purchase .bst-message-body{
         display:block;
@@ -1959,7 +2036,7 @@ SOFTWARE.
         right: 0;
         height: 100px;     /* border: 3px solid white; */
         box-sizing: border-box;
-        z-index: 2;
+        z-index: 3;
         display: flex;
         flex-direction: row;
         border-top-left-radius: var(--border-radius-medium);
@@ -2098,6 +2175,20 @@ SOFTWARE.
         transition: initial;
       }
 
+
+      .bst-message-menu-list{
+        display: flex;
+        justify-content: end;
+        pointer-events: none !important;
+      }
+
+      .bst-message-menu-list ytd-menu-popup-renderer{
+        max-width: initial !important;
+        min-width: initial !important;
+        max-height: initial !important;
+        min-height: initial !important;
+        pointer-events: initial !important;
+      }
 
     `
   }
@@ -2335,7 +2426,170 @@ SOFTWARE.
       <div ref=${onButtonContainerCreated} class="bst-message-before-content-button-container">
       </div>
     `
-  }
+  };
+
+  let createIdx = 0;
+  const SolidMenuList = (items) => {
+
+    const onSolidMenuListCreated = (div) => {
+      /*
+
+      if (!sharedNoscript) return;
+      const beforeContentButtons = data.beforeContentButtons;
+      if (!beforeContentButtons || beforeContentButtons.length !== 1) return;
+      const buttonViewModel = beforeContentButtons[0].buttonViewModel;
+      if (!buttonViewModel) return;
+
+      const bvData = Object.assign({}, buttonViewModel, { title: "", trackingParams: "", title_: buttonViewModel.title });
+
+      if (!sharedButtonViewModel) {
+        sharedButtonViewModel = document.createElement('yt-button-view-model');
+        sharedNoscript.appendChild(sharedButtonViewModel);
+        let cloneNode = sharedButtonViewModel.cloneNode(false, false);
+        sharedButtonViewModel.replaceWith(cloneNode);
+        sharedButtonViewModel = cloneNode;
+      }
+
+      const modelNode = sharedButtonViewModel.cloneNode(false, false);
+      insp(modelNode).data = bvData;
+
+      */
+
+    /*
+
+      let ytdMenu = document.querySelector('#bst-menu-popup-renderer');
+      if(!ytdMenu){
+
+        ytdMenu =  document.createElement('ytd-menu-popup-renderer');
+        ytdMenu.id='bst-menu-popup-renderer';
+        sharedNoscript.appendChild(ytdMenu);
+      }
+
+      insp(ytdMenu).data=Object.assign({}, {items: items, openImmediately: true})
+
+      */
+
+      const ytLiveChatAppElm = document.querySelector('yt-live-chat-app');
+      const ytLiveChatAppCnt = insp(ytLiveChatAppElm);
+
+
+      if (!ytLiveChatAppCnt) return;
+      if (!ytLiveChatAppCnt.handleOpenPopupAction || ytLiveChatAppCnt.handleOpenPopupAction.length !== 2) return;
+
+      // ytLiveChatAppCnt.handleCloseAllPopupsAction_();
+      (async () => {
+
+        if (createIdx > 1e9) createIdx = 9;
+        const createIdx_ = ++createIdx;
+
+        let ux = null;
+
+        const popups_ = ytLiveChatAppCnt.popups_;
+        let popupKey = '';
+        if (popups_) {
+
+          for (const k of Object.keys(popups_)) {
+            const v = popups_[k];
+            if (v && v.popupContent && insp(v.popupContent).data?.__iwme848__) {
+              popupKey = k;
+              ux = v
+              break;
+            }
+          }
+        }
+
+        const ud = {
+          "items": [
+            ...items
+          ],
+          "openImmediately": true,
+          "__iwme848__": true,
+        };
+
+
+        const openPopupActionObj = {
+          "popupType": "DROPDOWN",
+          "popup": {
+            "menuPopupRenderer": ud
+          }
+        };
+
+
+        let pr = new PromiseExternal();
+        let mo = new MutationObserver(() => {
+
+          if (createIdx_ !== createIdx) {
+            mo && mo.disconnect();
+            mo = null
+            return;
+          }
+
+
+          const elements = [...document.querySelectorAll('ytd-menu-popup-renderer')].filter(e => {
+            return !!insp(e)?.data?.__iwme848__;
+          })
+
+          if (elements[0]) {
+            pr && pr.resolve(elements[0]);
+            pr = null;
+          }
+
+        });
+
+        mo && mo.observe(document, { subtree: true, childList: true });
+
+        if (ux && popupKey) {
+
+          const contentWrapper = ux?.popup?.$?.contentWrapper;
+          const popupContent = ux.popupContent;
+
+          if (contentWrapper instanceof Node && popupContent instanceof Node && typeof ytLiveChatAppCnt.completeOpenPopupAction_ === 'function' && ytLiveChatAppCnt.completeOpenPopupAction_.length === 3) {
+            contentWrapper?.appendChild(popupContent);
+
+            ytLiveChatAppCnt.completeOpenPopupAction_(openPopupActionObj, div, ux);
+
+          } else {
+
+            if (ux.rendererName && ux.openPopupAction.uniqueId && typeof ytLiveChatAppCnt.handleClosePopupAction_ === 'function' && ytLiveChatAppCnt.handleClosePopupAction_.length === 2) {
+              ytLiveChatAppCnt.handleClosePopupAction_(ux.rendererName, ux.openPopupAction.uniqueId);
+            }
+
+            delete ytLiveChatAppCnt.popups_[popupKey];
+
+            ytLiveChatAppCnt.handleOpenPopupAction({
+              "openPopupAction": openPopupActionObj,
+            }, div);
+          }
+
+
+        } else {
+
+          ytLiveChatAppCnt.handleOpenPopupAction({
+            "openPopupAction": openPopupActionObj,
+          }, div);
+
+        }
+
+        const elm = pr ? await pr.then() : null;
+        pr = null;
+        mo && mo.disconnect();
+
+        if (elm && createIdx_ === createIdx) {
+
+          div.appendChild(elm);
+        }
+
+
+      })();
+
+      // div.appendChild(ytdMenu);
+
+    };
+    return html`
+      <div ref=${onSolidMenuListCreated} class="bst-message-menu-list">
+      </div>
+    `
+  };
 
 
   const SolidMessageList = (sb, profileCard) => {
@@ -2355,7 +2609,7 @@ SOFTWARE.
         <div class="bst-profile-card-main">
         <a target="_blank" href="${() => profileCard.profileUrl}">${() => profileCard.username}</a>
         </div>
-        <div class="bst-profile-card-cross" onClick="${profileCard.onCrossClick}">
+        <div class="bst-profile-card-cross" onClick="${profileCard_onCrossClick}">
         X
         </div>
       </div>
@@ -2418,7 +2672,7 @@ SOFTWARE.
     }
     return html`
   <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!data.icon})>${() => {
@@ -2432,6 +2686,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${() => menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${() => SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>`
@@ -2445,8 +2702,8 @@ SOFTWARE.
 
 
     return html`
-  <div class="${() => `bst-message-entry bst-paid-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2472,6 +2729,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>
@@ -2480,8 +2740,8 @@ SOFTWARE.
 
   const SolidMembershipMessage = (data) => {
     return html`
-  <div class="${() => `bst-message-entry bst-message-entry-ll bst-membership-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <div classList=${{ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": data.bst('hasMessageBody') }}>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
     <div class="bst-message-entry-highlight"></div>
@@ -2506,6 +2766,9 @@ SOFTWARE.
       }}</div>
     </div>
     <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
     </div>
   </div>
   <${Show} when=(${() => data.bst('hasMessageBody')})>${() => {
@@ -2531,8 +2794,8 @@ SOFTWARE.
 
   const SolidGiftText = (data) => {
     return html`
-  <div class="${() => `bst-message-entry bst-gift-message`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2557,6 +2820,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>
@@ -2572,8 +2838,8 @@ SOFTWARE.
 
 
     return html`
-  <div class="${() => `bst-message-entry bst-sponsorship-purchase`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2598,6 +2864,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>
@@ -2608,8 +2877,8 @@ SOFTWARE.
     /* https://www.youtube.com/live/BDjEOkw_iOA?si=CGG7boBJvfT2KLFT&t=6636 */
 
     return html`
-  <div class="${() => `bst-message-entry bst-paid-sticker`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${data.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
@@ -2635,16 +2904,21 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>
 `;
   }
 
+
+
   const SolidMessageText = (data) => {
     return html`
-  <div class="${() => `bst-message-entry bst-${data.aKey}`}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data})}">
+  <div classList="${()=>({'bst-message-entry': true, [`bst-${data.aKey}`]: true, 'bst-message-entry-holding': entryHolding() === data.uid})}" message-uid="${() => data.uid}" message-id="${() => data.id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => data.bst('authorType')}">
+  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== data.uid})}">
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => data.getProfilePic(64, -1)}" /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -2674,10 +2948,22 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && !menuRenderObj.loading })>
+      ${()=>SolidMenuList(menuRenderObj.menuListXd())}
+  <//>
   </div>
   </div>
   </div>
 `;
+/*
+
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && menuRenderObj.loading })>Loading<//>
+  <${Show} when=(${()=> menuRenderObj.messageUid === data.uid && menuRenderObj.error })>Error ( ${()=> menuRenderObj.error.toString(16) } )<//>
+    <${For} each=(${() => menuRenderObj.menuListXd()})>${(menuEntry, idx) => {
+        return html`<div class="bst-message-menu-item" menu-item-idx="${() => idx()}">${() => convertYTtext(objUnwrap(menuEntry).text)}</div>`;
+      }}<//>
+
+      */
   };
 
   const SolidMessagePlaceHolder = (data) => {
@@ -2873,7 +3159,136 @@ SOFTWARE.
   })();
 
 
-  const [mf, mfChange] = createSignal(null);
+  // class StoreType {
+
+  // }
+
+  // const storeTypeFn = ()=>{
+  //   let p = {};
+  //   let q = '';
+  //   return function(x){
+  //     if(typeof x === 'object'){
+  //       let id = q = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}|${Date.now()}`;
+  //       p = {[id]: x};
+  //       return true;
+  //     }
+  //     return p[`${x || q}`] || null;
+  //   }
+  // }
+
+  const storeTypeFn = (key) => {
+    let obj = {};
+    let ud = false;
+    const resFn = function () {
+      return obj[this[key]];
+    };
+    resFn.update = (nv) => {
+      ud = !ud;
+      const id = `${ud}`;
+      obj = { [id]: nv };
+      return id;
+    }
+    return resFn;
+
+  }
+
+  const [menuRenderObj, menuRenderObjSet] = createStore({
+
+    menuListXp: '',
+    messageUid: '',
+    loading: false,
+    error: 0,
+    menuListXd: storeTypeFn('menuListXp')
+
+  });
+
+
+  const [profileCard, profileCardSet] = createStore({
+    wElement: null,
+    top: -1,
+    showOnTop: null,
+    iconUrl: null,
+    username: null,
+    profileUrl: null
+  });
+
+  const profileCard_onCrossClick = () => {
+    profileCardSet({
+      wElement: null,
+      top: -1,
+      showOnTop: null,
+      iconUrl: null,
+      username: null,
+      profileUrl: null,
+    });
+  };
+
+  const solidContextMenuOpened = createMemo(() => {
+    const e1 = !!menuRenderObj.menuListXd();
+    const e2 = !!menuRenderObj.messageUid;
+    const e3 = profileCard.wElement;
+    return (e1 && e2) || kRef(e3);
+  });
+
+  // setInterval(()=>{
+  //   console.log(389588, menuRenderObj.menuListXd(), menuRenderObj.messageUid,profileCard.wElement)
+  // }, 1000);
+
+  let lcRendererWR = null;
+
+  const getLcRendererCnt = () => {
+
+    lcRendererWR = lcRendererWR || mWeakRef(document.querySelector('yt-live-chat-item-list-renderer'));
+    const lcrElement = kRef(lcRendererWR);
+    if (!lcrElement) lcRendererWR = null;
+    const lcrCnt = insp(lcrElement);
+    return lcrCnt;
+
+  }
+
+  const onContextMenuOpened_ = () => {
+
+    const lcrCnt = getLcRendererCnt();
+    if (!lcrCnt) return;
+
+    if (typeof lcrCnt.onContextMenuOpened_ === 'function' && lcrCnt.onContextMenuOpened_.length === 0) {
+      lcrCnt.onContextMenuOpened_();
+    } else {
+      lcrCnt.contextMenuOpen = !0;
+    }
+
+
+  }
+
+
+  const onContextMenuClosed_ = () => {
+    const lcrCnt = getLcRendererCnt();
+
+    if (!lcrCnt) return;
+
+    if (typeof lcrCnt.onContextMenuClosed_ === 'function' && lcrCnt.onContextMenuClosed_.length === 0) {
+      lcrCnt.onContextMenuClosed_();
+    } else {
+      lcrCnt.contextMenuOpen = !1;
+    }
+
+
+  }
+
+
+
+  createEffect(() => {
+    const p = solidContextMenuOpened();
+    if (p) {
+      onContextMenuOpened_();
+    } else if (!p) {
+      onContextMenuClosed_();
+    }
+
+  })
+
+  const [entryHolding, entryHoldingChange] = createSignal("");
+  const [mf, mfChange] = createSignal("");
   let mouseActionP = null;
   let noFlushTP = false;
 
@@ -2952,11 +3367,24 @@ SOFTWARE.
       _messageOverflowAnchor = messageOverflowAnchor;
     }
 
+    if (!cProto.canScrollToBottom581_ && typeof cProto.canScrollToBottom_ === 'function' && cProto.canScrollToBottom_.length === 0) {
+
+
+      cProto.pointerHolding581 = false;
+
+      cProto.canScrollToBottom581_ = cProto.canScrollToBottom_;
+
+      cProto.canScrollToBottom_ = function () {
+        return this.canScrollToBottom581_() && !this.pointerHolding581;
+      }
+
+    }
+
     cProto.computeIsEmpty_ = function () {
       mme = this;
       return !(this.visibleItems?.length || 0);
     }
-    cProto._flag0281_ = _flag0281_;
+    // cProto._flag0281_ = _flag0281_;
 
     cProto.setupBoostChat = function () {
       let targetElement = (this.$.items || this.$['item-offset']);
@@ -3064,7 +3492,7 @@ SOFTWARE.
 
 
       const [visibleCount, visibleCountChange] = createSignal();
-      
+
 
       messageList.visibleCount = visibleCount;
 
@@ -3094,25 +3522,10 @@ SOFTWARE.
         }
       });
 
-      const [profileCard, profileCardSet] = createStore({
-        wElement: null,
-        top: -1,
-        showOnTop: null,
-        iconUrl: null,
-        username: null,
-        profileUrl: null,
-        onCrossClick: () => {
-          profileCardSet({
-            wElement: null,
-            top: -1,
-            showOnTop: null,
-            iconUrl: null,
-            username: null,
-            profileUrl: null,
-          });
-          if (this.atBottom === true && this.allowScroll === false && this.contextMenuOpen === true) this.contextMenuOpen = false;
-        }
-      });
+
+
+      
+
 
       messageList.profileCard = profileCard;
       messageList.profileCardSet = profileCardSet;
@@ -3184,7 +3597,8 @@ SOFTWARE.
         const data = extra.getReactiveData();
         if (!data) return;
 
-        if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
+        entryHoldingChange(messageEntry.getAttribute('message-uid') || '');
+        // if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
 
         let r1 = nameField.getBoundingClientRect();
         let fTop = r1.top - messageList.getBoundingClientRect().top;
@@ -3199,18 +3613,177 @@ SOFTWARE.
           profileUrl: data.bst('authorAboutPage')
         });
 
-        console.log( '[yt-bst] onNameFieldClick', Object.assign({}, unwrap(data)));
+        console.log('[yt-bst] onNameFieldClick', Object.assign({}, unwrap(data)));
 
       }
 
+
+      let pointerDown = -1;
+      let waitingToShowMenu = null;
+      let waitingToCloseMenu = null;
+
+      messageList.addEventListener('pointerdown', function (evt) {
+        if (evt.button || pointerDown >= 0) return;
+        pointerDown = -1;
+        const lcrCnt = getLcRendererCnt();
+        if (lcrCnt) {
+          lcrCnt.pointerHolding581 = true;
+        }
+
+        const target = evt?.target;
+        waitingToShowMenu = null;
+        waitingToCloseMenu = null;
+
+        if (target instanceof Element) {
+
+          const messageEntry0 = target.closest('.bst-message-entry');
+          const messageUid = messageEntry0 ? messageEntry0.getAttribute('message-uid') : '';
+
+          if (messageUid && messageEntry0 && kRef(profileCard.wElement) !== messageEntry0) {
+            profileCard_onCrossClick();
+          }
+
+          // console.log(389588, 1, messageUid);
+          if (messageUid) {
+
+            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder');
+            if (target.closest('.bst-message-menu-container')) {
+            } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
+
+              // console.log(389588, 2, messageUid);
+              if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+              if (menuRenderObj.messageUid) {
+
+                menuRenderObjSet({
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+
+              }
+
+              waitingToShowMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+              preShowMenu(messageEntry0);
+            } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
+
+
+
+              // console.log(389588, 3, messageUid);
+              // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+              if (menuRenderObj.messageUid) {
+                menuRenderObjSet({
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+
+              }
+              entryHoldingChange('');
+
+
+            } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
+
+              // console.log(389588, 4, messageUid);
+              waitingToCloseMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+              // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
+              // menuRenderObjSet({
+              //   menuListXp: '',
+              //   messageUid: '',
+              //   loading: false,
+              // });
+
+
+
+            } else if (entryHolding() !== messageUid) {
+
+              // console.log(389588, 5, messageUid);
+              // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+              if (menuRenderObj.messageUid) {
+                menuRenderObjSet({
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+              }
+
+              entryHoldingChange('');
+
+
+            } else {
+
+              // console.log(389588, 6, messageUid);
+              entryHoldingChange('');
+            }
+
+          } else if (entryHolding()) {
+
+            // console.log(389588, 7, messageUid);
+            if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+            if (menuRenderObj.messageUid) {
+
+              menuRenderObjSet({
+                menuListXp: '',
+                messageUid: '',
+                loading: false,
+              });
+            }
+
+          }
+
+        }
+
+
+      });
+
+
+
+      messageList.addEventListener('pointerup', function (evt) {
+
+
+        if (pointerDown >= 0) return;
+
+        pointerDown = -1;
+
+        const lcrCnt = getLcRendererCnt();
+        if (lcrCnt && !`${window.getSelection()}`) {
+          lcrCnt.pointerHolding581 = false;
+        }
+
+
+
+      });
+
+
+      messageList.addEventListener('pointercancel', function (evt) {
+
+
+        if (pointerDown >= 0) return;
+
+        pointerDown = -1;
+
+
+
+      });
+
+      const distance = (x, y) => Math.sqrt(x * x + y * y);
+
       messageList.addEventListener('click', function (evt) {
 
-        const currentElement = kRef(profileCard.wElement);
+        const waitingToShowMenu_ = waitingToShowMenu;
+        waitingToShowMenu = null;
 
+        const waitingToCloseMenu_ = waitingToCloseMenu;
+        waitingToCloseMenu = null;
+
+        const currentProfileCardElement = kRef(profileCard.wElement);
 
         let b = false;
         const target = evt?.target;
-        if (target) {
+        if (target instanceof Element) {
           const messageEntry = target.closest('.bst-message-entry');
           if (messageEntry) {
             const nameField = target.closest('.bst-name-field');
@@ -3221,10 +3794,79 @@ SOFTWARE.
           }
         }
 
-        if (!b && currentElement && !target.closest('.bst-profile-card')) {
-          profileCard.onCrossClick();
+        if (!b && currentProfileCardElement && !target.closest('.bst-profile-card')) {
+          profileCard_onCrossClick();
         }
-        // console.log('click', target); // TODO
+
+        if (waitingToShowMenu_ && target instanceof Element) {
+          const { pageX0, pageY0 } = waitingToShowMenu_;
+          const { pageX, pageY } = evt;
+
+          const d = distance(pageX - pageX0, pageY - pageY0);
+
+          const messageEntry0 = target.closest('.bst-message-entry');
+          const messageUid = messageEntry0 ? messageEntry0.getAttribute('message-uid') : '';
+          if (d < 4 && messageUid) {
+
+
+            showMenu(messageEntry0);
+          } else {
+
+            if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+            if (menuRenderObj.messageUid) {
+
+              menuRenderObjSet({
+                menuListXp: '',
+                messageUid: '',
+                loading: false,
+              });
+
+              entryHoldingChange('');
+            }
+
+          }
+
+        }
+
+        if (waitingToCloseMenu_ && target instanceof Element) {
+
+          const messageEntry0 = target.closest('.bst-message-entry');
+          const messageUid = messageEntry0 ? messageEntry0.getAttribute('message-uid') : '';
+
+
+          if (messageUid) {
+
+            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder');
+            if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
+
+            } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
+
+            } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
+
+
+              const { pageX0, pageY0 } = waitingToCloseMenu_;
+              const { pageX, pageY } = evt;
+
+              const d = distance(pageX - pageX0, pageY - pageY0);
+
+
+              if (d < 4) {
+
+                // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+                menuRenderObjSet({
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+                entryHoldingChange('');
+
+              }
+            }
+
+          }
+        }
+
+
       });
 
       {
@@ -3975,7 +4617,7 @@ f.handleRemoveChatItemAction_ = function(a) {
     */
 
     function getUID(aObj) {
-      return `${aObj.authorExternalChannelId}:${aObj.timestampUsec}`
+      return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
     }
     function convertAObj(aObj, aKey) {
 
@@ -4019,6 +4661,137 @@ f.handleRemoveChatItemAction_ = function(a) {
         mloPr.resolve();
       }
     });
+
+
+    const menuMenuCache = new Map();
+
+    const preShowMenu = function (messageEntry_) {
+
+
+      const messageEntry = messageEntry_ || this;
+      const messageUid = (messageEntry.getAttribute('message-uid') || '');
+      if (messageUid) {
+
+
+        const resT = menuMenuCache.get(messageUid);
+
+
+        if (resT) return resT;
+
+        const resPR = new Promise(resolve => {
+
+
+          const cnt = insp(wliveChatTextMessageRenderer);
+          cnt.showContextMenu.call({
+            data: {
+              contextMenuEndpoint: messageEntry.polymerController.dataRaw.contextMenuEndpoint
+            },
+            isAttached: true,
+            is: cnt.is,
+            __showContextMenu_forceNativeRequest__: true,
+            showContextMenu37: cnt.showContextMenu37,
+            showContextMenu47: cnt.showContextMenu47,
+            showContextMenu47_: cnt.showContextMenu47_,
+            showContextMenu_: cnt.showContextMenu_,
+            showContextMenu: cnt.showContextMenu,
+
+            handleGetContextMenuResponse_: function (a) {
+              a.isSuccess = true;
+              menuMenuCache.set(messageUid, a);
+              resolve(a);
+            },
+            handleGetContextMenuError: function (a) {
+
+              a.isFailure = true;
+              menuMenuCache.set(messageUid, a);
+              resolve(a);
+
+            }
+          }, undefined);
+
+
+
+        });
+        menuMenuCache.set(messageUid, resPR);
+
+        return resPR;
+
+
+
+      }
+      return null;
+    }
+
+    const showMenu = function (messageEntry_) {
+      const messageEntry = messageEntry_ || this;
+      const messageUid = (messageEntry.getAttribute('message-uid') || '');
+      if (messageUid) {
+
+        if (menuRenderObj.messageUid === messageUid) return;
+        entryHoldingChange(messageUid);
+        menuRenderObjSet({
+          menuListXp: '',
+          messageUid: messageUid,
+          loading: true,
+        });
+
+        const callback = (a) => {
+
+          if (a && a.isSuccess) {
+
+            let menuRenderer = null;
+            if (a && typeof a === 'object') {
+              for (const [key, value] of Object.entries(a)) {
+                if (typeof (value || 0) === 'object' && value.menuRenderer) {
+                  menuRenderer = value.menuRenderer;
+                  break;
+                }
+              }
+            }
+
+            if (menuRenderer) {
+
+
+              menuRenderObjSet({
+                menuListXp: menuRenderObj.menuListXd.update(menuRenderer.items.slice(0)),
+                messageUid: messageUid,
+                loading: false,
+              });
+            } else {
+
+              menuRenderObjSet({
+                menuListXp: '',
+                messageUid: messageUid,
+                loading: false,
+              });
+
+            }
+
+
+
+
+          } else {
+
+            menuRenderObjSet({
+              menuListXp: '',
+              messageUid: messageUid,
+              loading: false,
+              error: 1
+            });
+          }
+
+
+        }
+
+        const resA = preShowMenu(messageEntry);
+        if (resA && typeof resA.then === 'function') {
+          resA.then(callback);
+        } else if (resA) {
+          callback(resA);
+        }
+
+      }
+    }
 
     const freqMap = new Map(); // for temp use.
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
@@ -4253,6 +5026,7 @@ f.handleRemoveChatItemAction_ = function(a) {
               });
 
               const bObjChange = mutable.bObjChange;
+              messageEntry.showMenu = showMenu;
               messageEntry.polymerController = {
                 set(prop, val) {
                   if (prop === 'data') {
@@ -4481,7 +5255,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
           // listLen = 0...89
           removeFromActiveItems(flushItem);
-          mfChange(bObj);
+          mfChange(bObj.id);
           list.push(bObj);
           // listLen = 1...90
           visibleItems.push(flushItem);
