@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.9
+// @version             0.67.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7046,12 +7046,14 @@
           return (t - lastWheel < 80) || currentMouseDown || currentTouchDown || (t - lastUserInteraction < 80);
         }
 
-        if ((mclp.canScrollToBottom_ || 0).length === 0) {
+        if ((mclp.canScrollToBottom_ || 0).length === 0 && !mclp.canScrollToBottom157_) {
 
           assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.9.5'));
 
+
+          mclp.canScrollToBottom157_ = mclp.canScrollToBottom_;
           mclp.canScrollToBottom_ = function () {
-            return this.atBottom && this.allowScroll && !this.hasUserJustInteracted11_();
+            return this.canScrollToBottom157_() && !this.hasUserJustInteracted11_();
           }
 
           console.log("canScrollToBottom_", "OK");
