@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.4
+// @version             2.1.5
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -216,6 +216,7 @@
         let byPassPublishPatch = false;
 
         const dmo = {};
+        const qzk = Symbol();
 
 
         const observablePromise = (proc, timeoutPromise) => {
@@ -1654,9 +1655,14 @@
 
                                 let kb = false;
 
+                                const audio = dmo.getMediaElement();
+
                                 if (a === 'internalaudioformatchange' && typeof (b.author || 0) === 'string' && iaMedia) {
 
                                     kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+
+                                    byPassSync = false;
+                                    skipPlayPause = 0;
 
                                     // byPassSync = true;
                                     byPassNonFatalError = true;
@@ -1669,9 +1675,12 @@
 
                                     console.log(`[yt-audio-only] publish (internalaudioformatchange, =>100)`);
                                     iaMedia.__publishStatus18__ = Date.now() + 240;
+                                    if (audio) {
+                                        if (audio[qzk] > 1e9) audio[qzk] = 9;
+                                        audio[qzk] = (audio[qzk] || 0) + 1;
+                                    }
                                 }
 
-                                const audio = dmo.getMediaElement();
 
                                 if (this.mediaElement && audio && a !== 'internalvideoformatchange') {
 
@@ -1682,6 +1691,9 @@
                                         if (!iaMedia.__publishStatus17__ || iaMedia.__publishStatus17__ < 200) {
 
                                             kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
+
+                                            byPassSync = false;
+                                            skipPlayPause = 0;
                                             // byPassSync = true;
                                             byPassNonFatalError = true;
                                             await dmo.clearVideoAndQueue(); // avoid error in live streaming
@@ -2145,7 +2157,6 @@
                     let playBusy = 0;
                     if (!HTMLAudioElement.prototype.play3828 && !HTMLAudioElement.prototype.pause3828 && PATCH_MEDIA_PLAYPAUSE) {
 
-                        const qzk = Symbol();
 
                         HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
                         HTMLAudioElement.prototype.pause = function () {
@@ -2336,7 +2347,7 @@
                                     if(lzt !== audio[qzk]) return;
                                     console.log(`[yt-audio-only] video.play10 {${lzt}}`, getPublishStatus17());
 
-                                    const r = await Promise.race([promiseSeek_, delayPn(800).then(() => 123)]);
+                                    const r = await Promise.race([promiseSeek_, delayPn(400).then(() => 123)]);
                                     promiseSeek = null;
 
                                     if(lzt !== audio[qzk]) return;
@@ -2344,21 +2355,31 @@
                                     console.log(`[yt-audio-only] video.play11 {${lzt}}`, getPublishStatus17(), r);
 
                                     let stateObject;
-                                    while (true) {
+                                    let tryCount = 8;
+                                    while (tryCount--) {
                                         stateObject = getPlayerWrappedStateObject();
                                         if (!stateObject.isSeeking || stateObject.isError || stateObject.isEnded || stateObject.isPaused || r === 123) break;
                                         await delayPn(80);
                                         if (lzt !== audio[qzk]) return;
                                     }
 
-                                    console.log(`[yt-audio-only] video.play18 {${lzt}}`, getPublishStatus17());
+                                    console.log(`[yt-audio-only] video.play12 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+
+                                    if (stateObject && !stateObject.isOrWillBePlaying && !stateObject.isPlaying && stateObject.isPaused) {
+                                        await delayPn(80);
+                                        if (lzt !== audio[qzk]) return;
+                                        stateObject = getPlayerWrappedStateObject();
+                                        console.log(`[yt-audio-only] video.play12.1 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+                                    }
+
+                                    console.log(`[yt-audio-only] video.play13 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
 
                                     if (stateObject && !stateObject.isSeeking) {
                                         if (stateObject.isError || stateObject.isEnded) {
                                         } else if (stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isPaused) {
                                         } else {
 
-                                            console.log(`[yt-audio-only] video.play18.1 {${lzt}}`, getPublishStatus17(), {...stateObject});
+                                            console.log(`[yt-audio-only] video.play13.1 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
                                             try {
                                                 // listAllPublish = false;
                                                 dirtyMark = 1 | 2 | 4 | 8;
