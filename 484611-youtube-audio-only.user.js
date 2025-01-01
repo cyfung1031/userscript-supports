@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.3
+// @version             2.1.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -172,6 +172,7 @@
         // let globalPlayer = null;
         const SHOW_VIDEO_STATIC_IMAGE = true;
         const PATCH_MEDIA_PUBLISH = true;
+        const PATCH_MEDIA_PLAYPAUSE = true;
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
@@ -1766,41 +1767,17 @@
                                             byPassNonFatalError = false;
                                             skipPlayPause = 0;
                                             byPassSync = false;
+                                            console.log('[yt-audio-only] publish skipPlayPause 10002', iaMedia.__publishStatus17__, skipPlayPause);
                                             await dmo.seekToLiveHeadForLiveStream();
                                             // byPassSync = false;
 
+                                            console.log('[yt-audio-only] publish skipPlayPause 10003', iaMedia.__publishStatus17__, skipPlayPause);
                                             await dmo.playVideo();
-                                            delayPn(80).then(async () => {
-                                                const internalApp = internalAppXM();
-                                                if (internalApp !== this) return;
-                                                const iaMedia = internalApp.mediaElement;
-
-                                                if (iaMedia.__publishStatus17__ === 204) {
-
-                                                    iaMedia.__publishStatus17__ = 200
-
-                                                    byPassSync = true;
-                                                    skipPlayPause = 3;
-                                                    byPassNonFatalError = true;
-                                                    await dmo.cancelPlayback();
-                                                    await dmo.playVideo();
-                                                    byPassNonFatalError = false;
-                                                    skipPlayPause = 0;
-                                                    byPassSync = false;
-                                                    await delayPn(80);
-
-                                                    await dmo.seekToLiveHeadForLiveStream();
-                                                    // byPassSync = false;
-
-                                                    await dmo.playVideo();
-
-                                                    console.log(`[yt-audio-only] publish (***, =204, =>200)`);
-
-                                                }
-                                            });
 
                                             console.log(`[yt-audio-only] publish (***, audio.readyState=1, =203, =>204)`);
                                             iaMedia.__publishStatus18__ = Date.now() + 240;
+
+                                            console.log('[yt-audio-only] publish skipPlayPause 10004',iaMedia.__publishStatus17__, skipPlayPause);
 
                                         }
 
@@ -1987,13 +1964,24 @@
                         }
                     }
 
+                    const getInternalVideoData = () => {
+
+                        const internalApp = internalAppXM();
+                        if (internalApp && internalApp.videoData) {
+                            return internalApp.videoData;
+                        }
+                        const standardApp = standardAppXM();
+                        if (standardApp && typeof standardApp.getVideoData === 'function') {
+                            return standardApp.getVideoData();
+                        }
+                        return null;
+
+                    }
+
 
                     const isAdW = async () => {
 
-                        const standardApp = standardAppXM();
-                        const internalApp = internalAppXM();
-
-                        const vd = (internalApp ? internalApp.videoData : (standardApp ? standardApp.getVideoData() : null)) || 0;
+                        const vd = getInternalVideoData() || 0;
 
                         if (vd && typeof vd.isAd === 'function') {
                             return await vd.isAd();
@@ -2008,11 +1996,7 @@
 
                     const isLoadedW = async () => {
 
-                        const standardApp = standardAppXM();
-                        const internalApp = internalAppXM();
-
-
-                        const vd = (internalApp ? internalApp.videoData : (standardApp ? standardApp.getVideoData() : null)) || 0;
+                        const vd = getInternalVideoData() || 0;
 
                         if (vd && typeof vd.isLoaded === 'function') {
                             return await vd.isLoaded();
@@ -2132,7 +2116,7 @@
                         } catch (e) { }
                     }
 
-                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt, getPlayerWrappedStateObject });
+                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt, getPlayerWrappedStateObject, getInternalVideoData });
 
 
 
@@ -2159,7 +2143,9 @@
                     }
 
                     let playBusy = 0;
-                    if (!HTMLAudioElement.prototype.play3828 && !HTMLAudioElement.prototype.pause3828) {
+                    if (!HTMLAudioElement.prototype.play3828 && !HTMLAudioElement.prototype.pause3828 && PATCH_MEDIA_PLAYPAUSE) {
+
+                        const qzk = Symbol();
 
                         HTMLAudioElement.prototype.pause3828 = HTMLAudioElement.prototype.pause;
                         HTMLAudioElement.prototype.pause = function () {
@@ -2175,49 +2161,77 @@
                                 }
                             }
 
-                            return this.pause3828();
+                            if (playBusy > 0){
+
+                                return this.pause3828();
+                            }else{
+                                const audio= this;
+
+                                if (audio[qzk] > 1e9) audio[qzk] = 9;
+                                const lzt = audio[qzk] ? ++audio[qzk] : (audio[qzk] = 1);
+                                return this.pause3828();
+                            }
+
+                            
                         }
+
 
                         HTMLAudioElement.prototype.play3828 = HTMLAudioElement.prototype.play;
                         HTMLAudioElement.prototype.play = async function () {
                             if (skipPlayPause & 1) return;
 
                             if (playBusy > 0) return await this.play3828();
-                            console.log('[yt-audio-only] video.play01');
+
+                            const audio = this;
+
+                            if (audio[qzk] > 1e9) audio[qzk] = 9;
+                            const lzt = audio[qzk] ? ++audio[qzk] : (audio[qzk] = 1);
+
+                            console.log(`[yt-audio-only] video.play01 {${lzt}}`);
                             if (getMediaElement() !== this) {
                                 dirtyMark = 1 | 2 | 4 | 8;
                             }
 
 
-                            const audio = this;
                             const internalApp = internalAppXM();
                             if (!internalApp.mediaElement) return await this.play3828();
                             if (audio !== getMediaElement()) return await this.play3828();
 
-                            console.log('[yt-audio-only] video.play02', getPublishStatus17())
+                        
+
+                            console.log(`[yt-audio-only] video.play02 {${lzt}}`, getPublishStatus17())
                             // if ((await isAdW()) === true) return;
 
 
                             let isAtLiveHead = await isAtLiveHeadW();
                             Promise.resolve().then(async () => {
+
+                                if(lzt !== audio[qzk]) return;
                                 dirtyMark = 1 | 2 | 4 | 8;
 
+
                                 // between play02 and play03, < publish (***, duration>0, stateInt=3, =100, =>200) > should occur
-                                console.log('[yt-audio-only] video.play03', getPublishStatus17())
+                                console.log(`[yt-audio-only] video.play03 {${lzt}}`, getPublishStatus17())
 
 
 
                                 if (!shouldWaitPublish()) {
                                     await delayPn(80);
                                     dirtyMark = 1 | 2 | 4 | 8;
+                                    if(lzt !== audio[qzk]) return;
                                 }
+
 
                                 if (shouldWaitPublish()) {
                                     await delayPn(400);
                                     dirtyMark = 1 | 2 | 4 | 8;
+                                    if(lzt !== audio[qzk]) return;
                                 }
 
-                                console.log('[yt-audio-only] video.play04', getPublishStatus17());
+                                const publishStatus1701 = getPublishStatus17();
+
+
+                                console.log(`[yt-audio-only] video.play04 {${lzt}}`, publishStatus1701);
 
                                 if (getMediaElement() !== this) {
                                     dirtyMark = 1 | 2 | 4 | 8;
@@ -2228,7 +2242,7 @@
                                 const stateObject = getPlayerWrappedStateObject();
                                 if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) return;
 
-                                console.log('[yt-audio-only] video.play05')
+                                console.log(`[yt-audio-only] video.play05 {${lzt}}`, publishStatus1701);
 
                                 console.log(1293, stateObject);
 
@@ -2237,26 +2251,25 @@
                                     bool = true;
                                 } else if (stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
                                     bool = true;
-                                    // } else if( stateObject.isBuffering && !stateObject.isSeeking && !stateObject.isCued && !stateObject.isEnded && !stateObject.isError && stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isUnstarted){
-                                    //     // bool = true;
+                                } else if (publishStatus1701 > 200 && publishStatus1701 < 300){
+                                    // loadedmetadata done
+                                    bool = true;
                                 }
 
 
                                 if (!isAtLiveHead && stateObject.isUnstarted === true && stateObject.isOrWillBePlaying) {
-
-                                    const vd = internalApp.videoData;
+                                    const vd = getInternalVideoData();
                                     if (vd.isLivePlayback && vd.isLiveHeadPlayable) {
                                         console.log('isAtLiveHead: false -> true')
                                         isAtLiveHead = true;
                                     }
-
                                 }
 
                                 console.log(3882, bool, isAtLiveHead)
 
                                 if (bool) {
 
-                                    console.log('[yt-audio-only] video.play06')
+                                    console.log(`[yt-audio-only] video.play06 {${lzt}}`, publishStatus1701);
 
 
 
@@ -2266,15 +2279,18 @@
 
                                     playBusy++;
 
-                                    console.log('[yt-audio-only] video.play07')
+                                    console.log(`[yt-audio-only] video.play07 {${lzt}}`, publishStatus1701);
 
                                     // byPassSync = true;
                                     byPassNonFatalError = true;
                                     byPassPublishPatch = true;
                                     if ((await isLoadedW()) === false) {
+
+                                        console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = false");
                                         await clearVideoAndQueue();
                                         await cancelPlayback();
                                     } else {
+                                        console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = true");
                                         await cancelPlayback();
                                     }
                                     byPassNonFatalError = false;
@@ -2283,32 +2299,32 @@
                                     dirtyMark = 1 | 2 | 4 | 8;
 
 
-                                    console.log('[yt-audio-only] video.play08')
+                                    console.log(`[yt-audio-only] video.play08 {${lzt}}`, getPublishStatus17());
 
 
                                     // await delayPn(40);
                                     // await audio.pause();
 
-                                    promiseSeek = new PromiseExternal();
+                                    const promiseSeek_ = promiseSeek = new PromiseExternal();
                                     // listAllPublish = true;
                                     if (isAtLiveHead) {
-                                        console.log('[yt-audio-only] video.play08.1')
+                                        console.log(`[yt-audio-only] video.play08.1 {${lzt}}`, getPublishStatus17());
                                         await trySeekToLiveHead();
                                         dirtyMark = 1 | 2 | 4 | 8;
-                                        console.log('[yt-audio-only] video.play08.2')
+                                        console.log(`[yt-audio-only] video.play08.2 {${lzt}}`, getPublishStatus17());
                                     }
 
                                     // await delayPn(40);
 
-                                    console.log('[yt-audio-only] video.play09')
+                                    console.log(`[yt-audio-only] video.play09 {${lzt}}`, getPublishStatus17());
                                     const qX = getPlayerWrappedStateObject();
                                     if (qX.isBuffering || qX.isSeeking || qX.isUnstarted) {
 
-                                        console.log('[yt-audio-only] video.play09.1')
+                                        console.log(`[yt-audio-only] video.play09.1 {${lzt}}`, getPublishStatus17());
                                         await playVideo();
                                         dirtyMark = 1 | 2 | 4 | 8;
 
-                                        console.log('[yt-audio-only] video.play09.2')
+                                        console.log(`[yt-audio-only] video.play09.2 {${lzt}}`, getPublishStatus17());
                                     }
 
 
@@ -2317,33 +2333,41 @@
                                     // byPassSync = false;
                                     playBusy--;
 
-                                    const r = await Promise.race([promiseSeek, delayPn(800).then(() => 123)]);
+                                    if(lzt !== audio[qzk]) return;
+                                    console.log(`[yt-audio-only] video.play10 {${lzt}}`, getPublishStatus17());
+
+                                    const r = await Promise.race([promiseSeek_, delayPn(800).then(() => 123)]);
                                     promiseSeek = null;
 
-                                    if (r !== 123) {
-                                        try {
-                                            // listAllPublish = false;
-                                            await playVideo();
-                                            dirtyMark = 1 | 2 | 4 | 8;
-                                        } catch (e) {
-                                        }
-                                        return;
-                                    } else {
-                                        try {
-                                            // listAllPublish = false;
-                                            await playVideo();
-                                            dirtyMark = 1 | 2 | 4 | 8;
-                                        } catch (e) {
-                                        }
-                                        setTimeout_(() => {
-                                            audio.play();
-                                        }, 80);
-                                        return;
+                                    if(lzt !== audio[qzk]) return;
+
+                                    console.log(`[yt-audio-only] video.play11 {${lzt}}`, getPublishStatus17(), r);
+
+                                    let stateObject;
+                                    while (true) {
+                                        stateObject = getPlayerWrappedStateObject();
+                                        if (!stateObject.isSeeking || stateObject.isError || stateObject.isEnded || stateObject.isPaused || r === 123) break;
+                                        await delayPn(80);
+                                        if (lzt !== audio[qzk]) return;
                                     }
 
+                                    console.log(`[yt-audio-only] video.play18 {${lzt}}`, getPublishStatus17());
 
+                                    if (stateObject && !stateObject.isSeeking) {
+                                        if (stateObject.isError || stateObject.isEnded) {
+                                        } else if (stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isPaused) {
+                                        } else {
 
-
+                                            console.log(`[yt-audio-only] video.play18.1 {${lzt}}`, getPublishStatus17(), {...stateObject});
+                                            try {
+                                                // listAllPublish = false;
+                                                dirtyMark = 1 | 2 | 4 | 8;
+                                                await playVideo();
+                                            } catch (e) {
+                                            }
+                                        }
+                                    }
+                                   
 
                                 }
 
