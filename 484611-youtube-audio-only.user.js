@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.5
+// @version             2.1.6
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2365,7 +2365,7 @@
 
                                     console.log(`[yt-audio-only] video.play12 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
 
-                                    if (stateObject && !stateObject.isOrWillBePlaying && !stateObject.isPlaying && stateObject.isPaused) {
+                                    if (!r && stateObject && !stateObject.isOrWillBePlaying && !stateObject.isPlaying && stateObject.isPaused) {
                                         await delayPn(80);
                                         if (lzt !== audio[qzk]) return;
                                         stateObject = getPlayerWrappedStateObject();
