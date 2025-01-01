@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.64
+// @version             0.1.65
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3646,8 +3646,9 @@ SOFTWARE.
           // console.log(389588, 1, messageUid);
           if (messageUid) {
 
-            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder');
-            if (target.closest('.bst-message-menu-container')) {
+            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
+            if (testElement?.classList?.contains('bst-message-menu-container')) {
+              menuMenuCache.delete(messageUid); // menu action will change menu items
             } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
 
               // console.log(389588, 2, messageUid);
