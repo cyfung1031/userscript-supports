@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.66
+// @version             0.1.67
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -5264,7 +5264,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
           // listLen = 0...89
           removeFromActiveItems(flushItem);
-          mfChange(bObj.id);
+          mfChange(bObj.uid);
           list.push(bObj);
           // listLen = 1...90
           visibleItems.push(flushItem);
