@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.53
+// @version            3.2.54
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -2110,9 +2110,31 @@ const mWindow = (() => {
             const userLink = document.querySelector('.user-profile-link a[href]');
             const userID = userLink ? userLink.getAttribute('href') : undefined;
 
+            const urlMatch = (url1, url2) => {
+                url1 = `${url1}`
+                url2 = `${url2}`;
+                if (url1.includes(location.hostname)) {
+                    url1 = url1.replace(`https://${location.hostname}/`, '/')
+                    url1 = url1.replace(`http://${location.hostname}/`, '/')
+                    url1 = url1.replace(/^\/+/, '/')
+                } else if (!url1.startsWith('/')) {
+                    url1 = `/${url1}`;
+                }
+                if (url2.includes(location.hostname)) {
+                    url2 = url2.replace(`https://${location.hostname}/`, '/')
+                    url2 = url2.replace(`http://${location.hostname}/`, '/')
+                    url2 = url2.replace(/^\/+/, '/')
+                } else if (!url2.startsWith('/')) {
+                    url2 = `/${url2}`;
+                }
+                url1 = url1.replace(/\?\w+=\w+(&\w+=\w+)*$/, '');
+                url2 = url2.replace(/\?\w+=\w+(&\w+=\w+)*$/, '');
+                return url1.toLowerCase() === url2.toLowerCase();
+            }
+
             UU.addStyle(mWindow.pageCSS);
             // blacklisted scripts / hidden scripts / install button
-            if (window.location.pathname !== userID && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
+            if (!urlMatch(window.location.pathname, userID) && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
 
                 const scriptList = document.querySelector('.script-list');
                 if (scriptList) {
