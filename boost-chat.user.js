@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.72
+// @version             0.1.73
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3712,7 +3712,10 @@ SOFTWARE.
 
       const dblClickMessage = async (messageEntry, target) => {
 
+        const ct = Date.now();
+        if (lastSingleClick + 180 > ct) return;
 
+        resetSelection();
 
         const singleEmoji = target.closest('img.emoji');
         let text;
@@ -3953,6 +3956,7 @@ SOFTWARE.
 
       let promiseForDblclick = null;
       let dblClickDT = 0;
+      let lastSingleClick = 0;
 
       messageList.addEventListener('click', async function (evt) {
 
@@ -3968,7 +3972,9 @@ SOFTWARE.
         promiseForDblclick = new PromiseExternal();
         await Promise.race([promiseForDblclick, delayPn(140)]);
         promiseForDblclick = null;
-        if (dblClickDT + 180 > Date.now()) return;
+        const ct = Date.now();
+        if (dblClickDT + 180 > ct) return;
+        lastSingleClick = ct;
 
         const currentProfileCardElement = kRef(profileCard.wElement);
 
