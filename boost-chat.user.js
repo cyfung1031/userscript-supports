@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.68
+// @version             0.1.69
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3559,7 +3559,32 @@ SOFTWARE.
       //  const [solidBuild, solidBuildSet] = createStore({
       //   list: []
       //  }, { equals: false });
-      const [solidBuild, solidBuildSet] = createSignal([], { equals: false });
+      let [solidBuild_, solidBuildSet_] = createSignal([], { equals: false });
+      const [solidBuild, solidBuildSet] = [solidBuild_, (x) => {
+        if (x && x.length > 0) {
+          if (profileCard.wElement) {
+            profileCardSet({
+              wElement: null,
+              top: -1,
+              showOnTop: null,
+              iconUrl: null,
+              username: null,
+              profileUrl: null,
+            });
+          }
+          if (menuRenderObj.messageUid) {
+            menuRenderObjSet({
+              menuListXp: '',
+              messageUid: '',
+              loading: false,
+            });
+          }
+          if (entryHolding()) {
+            entryHoldingChange('');
+          }
+        }
+        return solidBuildSet_(x);
+      }];
 
       this.setupVisibleItemsList(solidBuild, solidBuildSet);
 
@@ -3581,7 +3606,7 @@ SOFTWARE.
 
 
 
-      
+
 
 
       messageList.profileCard = profileCard;
@@ -3966,8 +3991,21 @@ SOFTWARE.
           const messageUid = messageEntry0 ? messageEntry0.getAttribute('message-uid') : '';
           if (d < 4 && messageUid) {
 
+            const elementRect = messageEntry0.getBoundingClientRect();
 
-            showMenu(messageEntry0);
+            if (pageX >= elementRect.left && pageX <= elementRect.right && pageY >= elementRect.top && pageY <= elementRect.bottom) {
+
+              showMenu(messageEntry0);
+            } else if (menuRenderObj.messageUid) {
+
+              menuRenderObjSet({
+                menuListXp: '',
+                messageUid: '',
+                loading: false,
+              });
+
+              entryHoldingChange('');
+            }
           } else {
 
             if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
