@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.67
+// @version             0.1.68
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3292,6 +3292,55 @@ SOFTWARE.
   let mouseActionP = null;
   let noFlushTP = false;
 
+  const delayPn = delay => new Promise((fn => setTimeout(fn, delay)));
+
+  const getElementText = function (el) {
+    let text = '';
+    const tagName = el.nodeType === 1 ? el.nodeName.toLocaleLowerCase() : '';
+    switch (tagName) {
+      case '':
+        // Text node (3) or CDATA node (4) - return its text
+        if ((el.nodeType === 3) || (el.nodeType === 4)) text = el.nodeValue;
+        break;
+      case 'tp-yt-paper-tooltip':
+      case 'bst-tooltip':
+      case 'script':
+      case 'style':
+      case 'meta':
+      case 'noscript':
+      case 'link':
+      case 'audio':
+      case 'video':
+      case 'object':
+        break;
+      case 'img':
+        // If node is an element (1) and an img, input[type=image], or area element, return its alt text
+        text = el.getAttribute('shared-tooltip-text') || el.getAttribute('alt') || '';
+        break;
+      case 'area':
+        // If node is an element (1) and an img, input[type=image], or area element, return its alt text
+        text = el.getAttribute('alt') || '';
+        break;
+      case 'input':
+        // If node is an element (1) and an img, input[type=image], or area element, return its alt text
+        if (
+          (el.getAttribute('type') && el.getAttribute('type').toLowerCase() == 'image')
+        ) {
+          text = el.getAttribute('alt') || '';
+          break;
+        }
+      default:
+        // Traverse children unless this is a script or style element
+        if ((el.nodeType === 1)) {
+          let node = el.__shady_native_firstChild || el.firstChild;
+          for (; node; node = node.__shady_native_nextSibling || node.nextSibling) {
+            text += getElementText(node);
+          }
+        }
+    }
+    return text;
+  };
+
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
     let cProto;
@@ -3630,9 +3679,98 @@ SOFTWARE.
       let waitingToShowMenu = null;
       let waitingToCloseMenu = null;
 
+
+      const dblClickMessage = async (messageEntry, target) => {
+
+
+
+        const singleEmoji = target.closest('img.emoji');
+        let text;
+        if (singleEmoji) {
+
+
+          text = getElementText(singleEmoji).trim();
+        } else {
+
+          const body = messageEntry.querySelector('.bst-message-body');
+          text = body ? getElementText(body).trim() : '';
+        }
+        if (text) {
+
+
+          const renderer = document
+            .querySelector('yt-live-chat-text-input-field-renderer[class]');
+          const input = renderer
+            ?.querySelector('#input');
+
+          if (input && !input.closest('[hidden]')) {
+
+            await delayPn(40);
+
+            await input.focus();
+
+            // await delayPn(1);
+
+            insp(renderer).setText('');
+            insp(renderer).onInputChange();
+
+            // await delayPn(1);
+
+            const data = new DataTransfer();
+            data.setData('text/plain', text);
+            input.dispatchEvent(
+              new ClipboardEvent('paste', { bubbles: true, clipboardData: data })
+            );
+
+            // await delayPn(1);
+            insp(renderer).onInputChange();
+
+            const range = document.createRange();//Create a range (a range is a like the selection but invisible)
+            range.selectNodeContents(input);//Select the entire contents of the element with the range
+            range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+            const selection = window.getSelection();//get the selection object (allows you to change selection)
+            selection.removeAllRanges();//remove any selections already made
+            selection.addRange(range);//make the range you have just created the visible selection
+
+
+          }
+
+        }
+
+
+      }
+
+      messageList.addEventListener('dblclick', function (evt) {
+
+
+        if (evt.button) return;
+        const target = evt?.target;
+
+
+        if (target instanceof Element) {
+
+          const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
+
+
+          if (testElement?.classList?.contains('bst-message-entry')) {
+
+            dblClickMessage(testElement, target);
+
+          }
+        }
+
+
+      });
+
       messageList.addEventListener('pointerdown', function (evt) {
         if (evt.button || pointerDown >= 0) return;
         pointerDown = -1;
+
+
+        dblClickDT = Date.now();
+        promiseForDblclick && promiseForDblclick.resolve();
+        if (promiseForDblclick) return;
+
         const lcrCnt = getLcRendererCnt();
         if (lcrCnt) {
           lcrCnt.pointerHolding581 = true;
@@ -3780,13 +3918,24 @@ SOFTWARE.
 
       const distance = (x, y) => Math.sqrt(x * x + y * y);
 
-      messageList.addEventListener('click', function (evt) {
+      let promiseForDblclick = null;
+      let dblClickDT = 0;
+
+      messageList.addEventListener('click', async function (evt) {
+
 
         const waitingToShowMenu_ = waitingToShowMenu;
         waitingToShowMenu = null;
 
         const waitingToCloseMenu_ = waitingToCloseMenu;
         waitingToCloseMenu = null;
+
+
+        dblClickDT = 0;
+        promiseForDblclick = new PromiseExternal();
+        await Promise.race([promiseForDblclick, delayPn(140)]);
+        promiseForDblclick = null;
+        if (dblClickDT + 180 > Date.now()) return;
 
         const currentProfileCardElement = kRef(profileCard.wElement);
 
