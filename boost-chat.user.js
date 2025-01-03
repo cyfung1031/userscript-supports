@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.73
+// @version             0.1.74
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2396,6 +2396,51 @@ SOFTWARE.
     extras.set(elm, extra);
   }
 
+  function simulateClickOnBody() {
+    // Create and dispatch pointerdown
+    const pointerDownEvent = new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      // You can add more PointerEvent-specific properties as needed
+    });
+    document.body.dispatchEvent(pointerDownEvent);
+  
+    // Create and dispatch mousedown
+    const mouseDownEvent = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      // You can add coordinates, modifiers, etc. as needed
+    });
+    document.body.dispatchEvent(mouseDownEvent);
+  
+    // Create and dispatch pointerup
+    const pointerUpEvent = new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    document.body.dispatchEvent(pointerUpEvent);
+  
+    // Create and dispatch mouseup
+    const mouseUpEvent = new MouseEvent('mouseup', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    document.body.dispatchEvent(mouseUpEvent);
+  
+    // Finally, create and dispatch click
+    const clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    document.body.dispatchEvent(clickEvent);
+  }
+  
+
   const SolidBeforeContentButton0 = (data) => {
 
     const onButtonContainerCreated = (div) => {
@@ -2429,6 +2474,142 @@ SOFTWARE.
   };
 
   let createIdx = 0;
+  const onSolidMenuListCreated_ = async (items, div, ytLiveChatAppCnt) => {
+
+    if (createIdx > 1e9) createIdx = 9;
+    const createIdx_ = ++createIdx;
+
+    let ux = null;
+
+    const popups_ = ytLiveChatAppCnt.popups_;
+    let popupKey = '';
+    if (popups_) {
+
+      for (const k of Object.keys(popups_)) {
+        const v = popups_[k];
+        if (v && v.popupContent && insp(v.popupContent).data?.__iwme848__) {
+          popupKey = k;
+          ux = v
+          break;
+        }
+      }
+    }
+
+    const ud = {
+      "items": [
+        ...items
+      ],
+      "openImmediately": true,
+      "__iwme848__": true,
+    };
+
+
+    const openPopupActionObj = {
+      "popupType": "DROPDOWN",
+      "popup": {
+        "menuPopupRenderer": ud
+      }
+    };
+
+
+    let pr = new PromiseExternal();
+    let mo = new MutationObserver(() => {
+
+      if (createIdx_ !== createIdx) {
+        mo && mo.disconnect();
+        mo = null
+        return;
+      }
+
+
+      const elements = [...document.querySelectorAll('ytd-menu-popup-renderer[class]')].filter(e => {
+        return !!insp(e)?.data?.__iwme848__;
+      })
+
+      if (elements[0]) {
+        pr && pr.resolve(elements[0]);
+        pr = null;
+      }
+
+    });
+
+    mo && mo.observe(document, { subtree: true, childList: true });
+
+    if (ux && popupKey) {
+
+      const contentWrapper = ux?.popup?.$?.contentWrapper;
+      const popupContent = ux.popupContent;
+
+      if (contentWrapper instanceof Node && popupContent instanceof Node && typeof ytLiveChatAppCnt.completeOpenPopupAction_ === 'function' && ytLiveChatAppCnt.completeOpenPopupAction_.length === 3) {
+        contentWrapper?.appendChild(popupContent);
+
+        ytLiveChatAppCnt.completeOpenPopupAction_(openPopupActionObj, div, ux);
+
+      } else {
+
+        if (ux.rendererName && ux.openPopupAction.uniqueId && typeof ytLiveChatAppCnt.handleClosePopupAction_ === 'function' && ytLiveChatAppCnt.handleClosePopupAction_.length === 2) {
+          ytLiveChatAppCnt.handleClosePopupAction_(ux.rendererName, ux.openPopupAction.uniqueId);
+        }
+
+        delete ytLiveChatAppCnt.popups_[popupKey];
+
+        ytLiveChatAppCnt.handleOpenPopupAction({
+          "openPopupAction": openPopupActionObj,
+        }, div);
+      }
+
+
+    } else {
+
+      ytLiveChatAppCnt.handleOpenPopupAction({
+        "openPopupAction": openPopupActionObj,
+      }, div);
+
+    }
+
+    const elm = pr ? await pr.then() : null;
+    pr = null;
+    mo && mo.disconnect();
+
+    if (elm && createIdx_ === createIdx) {
+
+      setTimeout(simulateClickOnBody, 1);
+      /*
+      let node;
+      const listOfParents = [];
+      node = elm.parentNode;
+      while (node instanceof Element && node.nodeName !== 'BODY' && node.nodeName !== 'HTML') {
+        listOfParents.push(node);
+        node = node.parentNode;
+      }
+      setTimeout(() => {
+        let menuRoot = null;
+        for (const node of listOfParents) {
+          if (!node.isConnected) continue;
+          if (node.hasAttribute('prevent-autonav')) node.removeAttribute('prevent-autonav');
+          if (node.nodeName.toLocaleLowerCase() === 'tp-yt-iron-dropdown') {
+            menuRoot = node;
+          }
+        }
+        if (menuRoot) {
+          for (const node of listOfParents) {
+            if (!node.isConnected) continue;
+            node.style.display = 'none';
+            node.setAttribute('aria-hidden', 'true');
+            if (menuRoot === node) break;
+          }
+        }
+        listOfParents.length = 0;
+      }, 100);
+      */
+      div.appendChild(elm);
+
+    }
+
+
+
+
+  };
   const SolidMenuList = (items) => {
 
     const onSolidMenuListCreated = (div) => {
@@ -2477,110 +2658,7 @@ SOFTWARE.
       if (!ytLiveChatAppCnt.handleOpenPopupAction || ytLiveChatAppCnt.handleOpenPopupAction.length !== 2) return;
 
       // ytLiveChatAppCnt.handleCloseAllPopupsAction_();
-      (async () => {
-
-        if (createIdx > 1e9) createIdx = 9;
-        const createIdx_ = ++createIdx;
-
-        let ux = null;
-
-        const popups_ = ytLiveChatAppCnt.popups_;
-        let popupKey = '';
-        if (popups_) {
-
-          for (const k of Object.keys(popups_)) {
-            const v = popups_[k];
-            if (v && v.popupContent && insp(v.popupContent).data?.__iwme848__) {
-              popupKey = k;
-              ux = v
-              break;
-            }
-          }
-        }
-
-        const ud = {
-          "items": [
-            ...items
-          ],
-          "openImmediately": true,
-          "__iwme848__": true,
-        };
-
-
-        const openPopupActionObj = {
-          "popupType": "DROPDOWN",
-          "popup": {
-            "menuPopupRenderer": ud
-          }
-        };
-
-
-        let pr = new PromiseExternal();
-        let mo = new MutationObserver(() => {
-
-          if (createIdx_ !== createIdx) {
-            mo && mo.disconnect();
-            mo = null
-            return;
-          }
-
-
-          const elements = [...document.querySelectorAll('ytd-menu-popup-renderer')].filter(e => {
-            return !!insp(e)?.data?.__iwme848__;
-          })
-
-          if (elements[0]) {
-            pr && pr.resolve(elements[0]);
-            pr = null;
-          }
-
-        });
-
-        mo && mo.observe(document, { subtree: true, childList: true });
-
-        if (ux && popupKey) {
-
-          const contentWrapper = ux?.popup?.$?.contentWrapper;
-          const popupContent = ux.popupContent;
-
-          if (contentWrapper instanceof Node && popupContent instanceof Node && typeof ytLiveChatAppCnt.completeOpenPopupAction_ === 'function' && ytLiveChatAppCnt.completeOpenPopupAction_.length === 3) {
-            contentWrapper?.appendChild(popupContent);
-
-            ytLiveChatAppCnt.completeOpenPopupAction_(openPopupActionObj, div, ux);
-
-          } else {
-
-            if (ux.rendererName && ux.openPopupAction.uniqueId && typeof ytLiveChatAppCnt.handleClosePopupAction_ === 'function' && ytLiveChatAppCnt.handleClosePopupAction_.length === 2) {
-              ytLiveChatAppCnt.handleClosePopupAction_(ux.rendererName, ux.openPopupAction.uniqueId);
-            }
-
-            delete ytLiveChatAppCnt.popups_[popupKey];
-
-            ytLiveChatAppCnt.handleOpenPopupAction({
-              "openPopupAction": openPopupActionObj,
-            }, div);
-          }
-
-
-        } else {
-
-          ytLiveChatAppCnt.handleOpenPopupAction({
-            "openPopupAction": openPopupActionObj,
-          }, div);
-
-        }
-
-        const elm = pr ? await pr.then() : null;
-        pr = null;
-        mo && mo.disconnect();
-
-        if (elm && createIdx_ === createIdx) {
-
-          div.appendChild(elm);
-        }
-
-
-      })();
+      onSolidMenuListCreated_(items, div, ytLiveChatAppCnt);
 
       // div.appendChild(ytdMenu);
 
@@ -3406,7 +3484,7 @@ SOFTWARE.
         Promise.resolve().then(() => {
           if (!anchorVisible) {
             this.setAtBottomFalse();
-          } else {
+          } else if (!hasAnySelection()) {
             this.setAtBottomTrue();
           }
         });
@@ -3456,6 +3534,10 @@ SOFTWARE.
       if (entryHolding()) {
         entryHoldingChange('');
       }
+    }
+
+    const hasAnySelection = () => {
+      return !!(profileCard.wElement || menuRenderObj.messageUid || entryHolding());
     }
 
     cProto.setupBoostChat = function () {
