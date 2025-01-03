@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.70
+// @version             0.1.71
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3560,28 +3560,31 @@ SOFTWARE.
       //   list: []
       //  }, { equals: false });
       let [solidBuild_, solidBuildSet_] = createSignal([], { equals: false });
+      const resetSelection = () => {
+        if (profileCard.wElement) {
+          profileCardSet({
+            wElement: null,
+            top: -1,
+            showOnTop: null,
+            iconUrl: null,
+            username: null,
+            profileUrl: null,
+          });
+        }
+        if (menuRenderObj.messageUid) {
+          menuRenderObjSet({
+            menuListXp: '',
+            messageUid: '',
+            loading: false,
+          });
+        }
+        if (entryHolding()) {
+          entryHoldingChange('');
+        }
+      }
       const [solidBuild, solidBuildSet] = [solidBuild_, (x) => {
         if (x && x.length > 0) {
-          if (profileCard.wElement) {
-            profileCardSet({
-              wElement: null,
-              top: -1,
-              showOnTop: null,
-              iconUrl: null,
-              username: null,
-              profileUrl: null,
-            });
-          }
-          if (menuRenderObj.messageUid) {
-            menuRenderObjSet({
-              menuListXp: '',
-              messageUid: '',
-              loading: false,
-            });
-          }
-          if (entryHolding()) {
-            entryHoldingChange('');
-          }
+          resetSelection();
         }
         return solidBuildSet_(x);
       }];
@@ -3741,7 +3744,7 @@ SOFTWARE.
 
             // await delayPn(1);
 
-            const textSplit = text.split(/(\:+[^\:]+\:)/g);
+            const textSplit = text.split(/(:+[^:]+:)/g);
             const data = new DataTransfer();
             for (const s of textSplit) {
               if (!s) continue;
@@ -4326,6 +4329,7 @@ SOFTWARE.
 
 
       if (this.atBottom === false) {
+        resetSelection();
         this.atBottom = true;
         if (this.activeItems_.length > 0) this.flushActiveItems_();
       }
