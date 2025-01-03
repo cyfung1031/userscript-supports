@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.71
+// @version             0.1.72
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3435,6 +3435,29 @@ SOFTWARE.
     }
     // cProto._flag0281_ = _flag0281_;
 
+    const resetSelection = () => {
+      if (profileCard.wElement) {
+        profileCardSet({
+          wElement: null,
+          top: -1,
+          showOnTop: null,
+          iconUrl: null,
+          username: null,
+          profileUrl: null,
+        });
+      }
+      if (menuRenderObj.messageUid) {
+        menuRenderObjSet({
+          menuListXp: '',
+          messageUid: '',
+          loading: false,
+        });
+      }
+      if (entryHolding()) {
+        entryHoldingChange('');
+      }
+    }
+
     cProto.setupBoostChat = function () {
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
@@ -3560,28 +3583,7 @@ SOFTWARE.
       //   list: []
       //  }, { equals: false });
       let [solidBuild_, solidBuildSet_] = createSignal([], { equals: false });
-      const resetSelection = () => {
-        if (profileCard.wElement) {
-          profileCardSet({
-            wElement: null,
-            top: -1,
-            showOnTop: null,
-            iconUrl: null,
-            username: null,
-            profileUrl: null,
-          });
-        }
-        if (menuRenderObj.messageUid) {
-          menuRenderObjSet({
-            menuListXp: '',
-            messageUid: '',
-            loading: false,
-          });
-        }
-        if (entryHolding()) {
-          entryHoldingChange('');
-        }
-      }
+
       const [solidBuild, solidBuildSet] = [solidBuild_, (x) => {
         if (x && x.length > 0) {
           resetSelection();
