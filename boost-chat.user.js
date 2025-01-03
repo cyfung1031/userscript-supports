@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.69
+// @version             0.1.70
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3741,14 +3741,17 @@ SOFTWARE.
 
             // await delayPn(1);
 
+            const textSplit = text.split(/(\:+[^\:]+\:)/g);
             const data = new DataTransfer();
-            data.setData('text/plain', text);
-            input.dispatchEvent(
-              new ClipboardEvent('paste', { bubbles: true, clipboardData: data })
-            );
+            for (const s of textSplit) {
+              if (!s) continue;
+              data.setData('text/plain', s);
+              input.dispatchEvent(
+                new ClipboardEvent('paste', { bubbles: true, clipboardData: data })
+              );
+              insp(renderer).onInputChange();
+            }
 
-            // await delayPn(1);
-            insp(renderer).onInputChange();
 
             const range = document.createRange();//Create a range (a range is a like the selection but invisible)
             range.selectNodeContents(input);//Select the entire contents of the element with the range
