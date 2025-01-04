@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.79
+// @version             0.1.80
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -11,7 +11,12 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-// @description         5/13/2024, 9:58:33 PM
+
+// @description         Full Replacement of YouTube Chat Message List
+// @description:ja      YouTubeチャットメッセージリストの完全置き換え
+// @description:zh-TW   完全替換 YouTube 聊天訊息列表
+// @description:zh-CN   完全替换 YouTube 聊天消息列表
+
 // @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
 // ==/UserScript==
 
