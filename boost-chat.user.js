@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.74
+// @version             0.1.75
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2572,39 +2572,11 @@ SOFTWARE.
     mo && mo.disconnect();
 
     if (elm && createIdx_ === createIdx) {
-
-      setTimeout(simulateClickOnBody, 1);
-      /*
-      let node;
-      const listOfParents = [];
-      node = elm.parentNode;
-      while (node instanceof Element && node.nodeName !== 'BODY' && node.nodeName !== 'HTML') {
-        listOfParents.push(node);
-        node = node.parentNode;
-      }
-      setTimeout(() => {
-        let menuRoot = null;
-        for (const node of listOfParents) {
-          if (!node.isConnected) continue;
-          if (node.hasAttribute('prevent-autonav')) node.removeAttribute('prevent-autonav');
-          if (node.nodeName.toLocaleLowerCase() === 'tp-yt-iron-dropdown') {
-            menuRoot = node;
-          }
-        }
-        if (menuRoot) {
-          for (const node of listOfParents) {
-            if (!node.isConnected) continue;
-            node.style.display = 'none';
-            node.setAttribute('aria-hidden', 'true');
-            if (menuRoot === node) break;
-          }
-        }
-        listOfParents.length = 0;
-      }, 100);
-      */
       div.appendChild(elm);
-
     }
+
+    setTimeout(simulateClickOnBody, 1);
+    setTimeout(simulateClickOnBody, 80); // play-safe
 
 
 
