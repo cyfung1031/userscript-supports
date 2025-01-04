@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.76
+// @version             0.1.77
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3796,6 +3796,9 @@ SOFTWARE.
 
             await delayPn(40);
 
+            const cnt = getLcRendererCnt();
+            const isAtBottom = cnt ? cnt.atBottom && cnt.canScrollToBottom_() : null;
+
             await input.focus();
 
             // await delayPn(1);
@@ -3824,6 +3827,11 @@ SOFTWARE.
             selection.removeAllRanges();//remove any selections already made
             selection.addRange(range);//make the range you have just created the visible selection
 
+            if (isAtBottom) {
+              Promise.resolve(cnt).then((cnt) => {
+                cnt.scrollToBottom_();
+              });
+            }
 
           }
 
