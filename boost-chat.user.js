@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.75
+// @version             0.1.76
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -159,6 +159,9 @@ SOFTWARE.
       }
     };
   })();
+
+  const isCtrl = (e) => !!((e.ctrlKey && !e.metaKey) || (!e.ctrlKey && e.metaKey));
+  const isAlt = (e) => !!(e.altKey);
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
@@ -3763,7 +3766,6 @@ SOFTWARE.
       let waitingToShowMenu = null;
       let waitingToCloseMenu = null;
 
-
       const dblClickMessage = async (messageEntry, target) => {
 
         const ct = Date.now();
@@ -3879,81 +3881,104 @@ SOFTWARE.
             profileCard_onCrossClick();
           }
 
+
           // console.log(389588, 1, messageUid);
           if (messageUid) {
 
-            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
-            if (testElement?.classList?.contains('bst-message-menu-container')) {
-              menuMenuCache.delete(messageUid); // menu action will change menu items
-            } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
 
-              // console.log(389588, 2, messageUid);
-              if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+              const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
+              if (testElement?.classList?.contains('bst-message-menu-container')) {
+                menuMenuCache.delete(messageUid); // menu action will change menu items
+              } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
+  
+                const shouldShowMenuAction = isCtrl(evt) || isAlt(evt);
+ 
+                if (shouldShowMenuAction) {
+                  if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
 
-              if (menuRenderObj.messageUid) {
+                  if (menuRenderObj.messageUid) {
 
-                menuRenderObjSet({
-                  menuListXp: '',
-                  messageUid: '',
-                  loading: false,
-                });
+                    menuRenderObjSet({
+                      menuListXp: '',
+                      messageUid: '',
+                      loading: false,
+                    });
 
+                  }
+
+                  waitingToShowMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+                  preShowMenu(messageEntry0);
+                } else {
+                  if (entryHolding()) entryHoldingChange('');
+
+
+                  if (menuRenderObj.messageUid) {
+
+                    menuRenderObjSet({
+                      menuListXp: '',
+                      messageUid: '',
+                      loading: false,
+                    });
+
+                  }
+
+                }
+  
+              } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
+  
+  
+  
+                // console.log(389588, 3, messageUid);
+                // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+  
+                if (menuRenderObj.messageUid) {
+                  menuRenderObjSet({
+                    menuListXp: '',
+                    messageUid: '',
+                    loading: false,
+                  });
+  
+                }
+                entryHoldingChange('');
+  
+  
+              } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
+  
+                // console.log(389588, 4, messageUid);
+                waitingToCloseMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+                // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
+                // menuRenderObjSet({
+                //   menuListXp: '',
+                //   messageUid: '',
+                //   loading: false,
+                // });
+  
+  
+  
+              } else if (entryHolding() !== messageUid) {
+  
+                // console.log(389588, 5, messageUid);
+                // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
+  
+                if (menuRenderObj.messageUid) {
+                  menuRenderObjSet({
+                    menuListXp: '',
+                    messageUid: '',
+                    loading: false,
+                  });
+                }
+  
+                entryHoldingChange('');
+  
+  
+              } else {
+  
+                // console.log(389588, 6, messageUid);
+                entryHoldingChange('');
               }
 
-              waitingToShowMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
-              preShowMenu(messageEntry0);
-            } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
+             
 
-
-
-              // console.log(389588, 3, messageUid);
-              // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
-
-              if (menuRenderObj.messageUid) {
-                menuRenderObjSet({
-                  menuListXp: '',
-                  messageUid: '',
-                  loading: false,
-                });
-
-              }
-              entryHoldingChange('');
-
-
-            } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
-
-              // console.log(389588, 4, messageUid);
-              waitingToCloseMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
-              // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
-              // menuRenderObjSet({
-              //   menuListXp: '',
-              //   messageUid: '',
-              //   loading: false,
-              // });
-
-
-
-            } else if (entryHolding() !== messageUid) {
-
-              // console.log(389588, 5, messageUid);
-              // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
-
-              if (menuRenderObj.messageUid) {
-                menuRenderObjSet({
-                  menuListXp: '',
-                  messageUid: '',
-                  loading: false,
-                });
-              }
-
-              entryHoldingChange('');
-
-
-            } else {
-
-              // console.log(389588, 6, messageUid);
-              entryHoldingChange('');
-            }
 
           } else if (entryHolding()) {
 
