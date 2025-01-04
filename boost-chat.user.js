@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.77
+// @version             0.1.78
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3765,6 +3765,7 @@ SOFTWARE.
       let pointerDown = -1;
       let waitingToShowMenu = null;
       let waitingToCloseMenu = null;
+      let qcz7 = 0;
 
       const dblClickMessage = async (messageEntry, target) => {
 
@@ -3819,7 +3820,6 @@ SOFTWARE.
               insp(renderer).onInputChange();
             }
 
-
             const range = document.createRange();//Create a range (a range is a like the selection but invisible)
             range.selectNodeContents(input);//Select the entire contents of the element with the range
             range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
@@ -3828,10 +3828,21 @@ SOFTWARE.
             selection.addRange(range);//make the range you have just created the visible selection
 
             if (isAtBottom) {
-              Promise.resolve(cnt).then((cnt) => {
-                cnt.scrollToBottom_();
+
+              const pcz = ++qcz7;
+              flushPE(async () => {
+                if (pcz !== qcz7) return;
+                setTimeout(() => {
+                  if (pcz !== qcz7) return;
+                  const cnt = getLcRendererCnt();
+                  if (cnt && (!cnt.atBottom || !cnt.canScrollToBottom_())) cnt.scrollToBottom_();
+                }, 80);
               });
             }
+
+            setTimeout(()=>{
+              input.scrollTop += 1e9;
+            },1)
 
           }
 
@@ -4207,6 +4218,41 @@ SOFTWARE.
         visibleCountChange(j);
       });
 
+
+      Promise.resolve().then(() => {
+        
+        let qcz4 = 0;
+        document.addEventListener('keydown', (evt) => {
+          const target = (evt?.target || 0);
+          if (target instanceof HTMLElement && target.id === 'input') {
+            const cnt = getLcRendererCnt();
+            const isAtBottom = cnt ? cnt.atBottom && cnt.canScrollToBottom_() : null;
+            target.__ah46n__ = isAtBottom;
+          }
+        });
+        document.addEventListener('keyup', (evt) => {
+          const target = (evt?.target || 0);
+          const isAtBottom__ = target.__ah46n__;
+          if (isAtBottom__) {
+            target.__ah46n__ = null;
+            const pcz = ++qcz4;
+            flushPE(()=>{
+              if(pcz !== qcz4) return;
+              setTimeout(() => {
+                if(pcz !== qcz4) return;
+                const cnt = getLcRendererCnt();
+                if (!cnt) return;
+                if (cnt.atBottom && cnt.canScrollToBottom_()) {
+                } else {
+                  cnt.scrollToBottom_();
+                }
+              }, 80);
+            })
+          }
+        });
+
+
+      });
 
     }
 
@@ -4858,10 +4904,13 @@ f.handleRemoveChatItemAction_ = function(a) {
     }
     cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 512;
 
+    let qcz9 = 0;
     cProto.scrollToBottom_ = function () {
       // console.log(1882)
-      flushPE(async () => {
 
+      const pcz = ++qcz9;
+      flushPE(async () => {
+        if(pcz!==qcz9) return;
         scrollToEnd();
 
         this.setAtBottomTrue();
