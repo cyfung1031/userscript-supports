@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.54
+// @version            3.2.55
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -622,6 +622,11 @@ const mWindow = (() => {
          .discussion-list .hidden {
             display: none;
          }
+
+         /* Greasy Fork Empty Ad Block */
+        .ethical-ads-text[class]:empty {
+            min-height: unset;
+        }
 
 
     `
@@ -1274,6 +1279,21 @@ const mWindow = (() => {
     };
 
 
+    const PromiseExternal = ((resolve_, reject_) => {
+        const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+        return class PromiseExternal extends Promise {
+            constructor(cb = h) {
+                super(cb);
+                if (cb === h) {
+                    /** @type {(value: any) => void} */
+                    this.resolve = resolve_;
+                    /** @type {(reason?: any) => void} */
+                    this.reject = reject_;
+                }
+            }
+        };
+    })();
+
     /**
      * Get script data from Greasy Fork API
      *
@@ -1289,15 +1309,32 @@ const mWindow = (() => {
     //   for (var i = 0, len = nums.length; i < len; i++) total += nums[i];
     //   return total;
     // };
-    const getScriptData = async (id, noCache) => {
+    let reqStoresA = new Map();
+    let reqStoresB = new Map();
 
-        if (!(id >= 0)) return Promise.resolve()
-        const url = `https://${window.location.hostname}/scripts/${id}.json`;
-        return new Promise((resolve, reject) => {
+    const getOldestEntry = (noCache)=>{
+        const reqStores = noCache ? reqStoresB : reqStoresA;
+        const oldestEntry = reqStores.entries().next();
+        if(!oldestEntry || !oldestEntry.value) return [];
+        const id = oldestEntry.value[0]
+        const req = oldestEntry.value[1]
+        reqStores.delete(id);
+        return [id, req];
+    }
 
+    let mutexC = Promise.resolve();
+    const getScriptDataAN = (noCache)=>{
+        mutexC = mutexC.then(async ()=>{
+
+            const [id, req] = getOldestEntry(noCache);
+    
+            if (!(id > 0)) return;
+
+            const url = `https://${window.location.hostname}/scripts/${id}.json`;
+            
             const onPageElement = document.querySelector(`[data-script-namespace][data-script-id="${id || 'null'}"][data-script-name][data-script-version][href]`)
             if (onPageElement && /^https\:\/\/update\.\w+\.org\/scripts\/\d+\/[^.?\/]+\.user\.js$/.test(onPageElement.getAttribute('href') || '')) {
-
+    
                 const result = {
                     "id": +onPageElement.getAttribute('data-script-id'),
                     // "created_at": "2023-08-24T21:16:50.000Z",
@@ -1329,12 +1366,12 @@ const mWindow = (() => {
                     // "locale": "en",
                     // "deleted": false
                 };
-                resolve(result);
+                req.resolve(result);
                 return;
             }
-
-            networkMP1 = networkMP1.then(() => new Promise(unlock => {
-
+    
+            await (networkMP1 = networkMP1.then(() => new Promise(unlock => {
+    
                 const maxAgeInSeconds = 900;
                 const rd = previousIsCache ? 1 : Math.floor(Math.random() * 80 + 80);
                 let fetchStart = 0;
@@ -1358,12 +1395,12 @@ const mWindow = (() => {
                         }),
                     }))
                     .then((response) => {
-
+    
                         let fetchStop = Date.now();
                         // const dd = fetchStop - fetchStart;
                         // dd (cache) = {min: 1, max: 8, avg: 3.7}
                         // dd (normal) = {min: 136, max: 316, avg: 162.62}
-
+    
                         // ss.push(dd)
                         // ss.maxValue = Math.max(...ss);
                         // ss.minValue = Math.min(...ss);
@@ -1391,17 +1428,29 @@ const mWindow = (() => {
                         console.warn(response.status, response);
                         new Promise(r => setTimeout(r, 470)).then(unlock); // reload later
                     })
-                    .then((data) => resolve(data))
+                    .then((data) => req.resolve(data))
                     .catch((e) => {
                         unlock();
                         UU.log(id, url)
                         console.warn(e)
                         // reject(e)
                     })
-
-            })).catch(() => { })
+    
+            })).catch(() => { }))
 
         });
+
+    }
+    const getScriptData = (id, noCache) => {
+        if (!(+id > 0)) return Promise.resolve();
+        id = +id;
+        const reqStores = noCache ? reqStoresB : reqStoresA;
+        const cachedReq = reqStores.get(id);
+        if (cachedReq) return cachedReq;
+        const req = new PromiseExternal();
+        reqStores.set(id, req);
+        getScriptDataAN(noCache);
+        return req;
     }
 
     /**
@@ -1910,6 +1959,32 @@ const mWindow = (() => {
 
     }
 
+    const updateReqStoresWithElementsOrder = (x) => {
+        try {
+            const reqStoresA_ = reqStoresA;
+            const reqStoresB_ = reqStoresB;
+            const order2 = [...reqStoresA_.keys()];
+            const order3 = [...reqStoresB_.keys()];
+            const orders1 = x;
+            const orders = new Set([...orders1, ...order2, ...order3]);
+            const reqStoresA2 = new Map();
+            const reqStoresB2 = new Map();
+            for (const id of orders) {
+                const reqA = reqStoresA_.get(id);
+                if (reqA) reqStoresA2.set(id, reqA);
+                const reqB = reqStoresB_.get(id);
+                if (reqB) reqStoresB2.set(id, reqB);
+            }
+            reqStoresA = reqStoresA2;
+            reqStoresB = reqStoresB2;
+            reqStoresA_.clear();
+            reqStoresB_.clear();
+        } catch (e) {
+            console.warn(e)
+        }
+    };
+
+    let lastIdArrString = '';
 
     const foundScriptList = async (scriptList) => {
 
@@ -1937,6 +2012,13 @@ const mWindow = (() => {
                 if (gmc.get('showInstallButton')) {
                     showInstallButton(scriptID, element)
                 }
+            }
+
+            const idArr = [...scriptList.querySelectorAll('li[data-script-id]')].map(e => +e.getAttribute('data-script-id'));
+            const idArrString = idArr.join(',');
+            if (lastIdArrString !== idArrString) {
+                lastIdArrString = idArrString;
+                updateReqStoresWithElementsOrder(idArr);
             }
 
         }
