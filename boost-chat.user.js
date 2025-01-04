@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.78
+// @version             0.1.79
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2477,25 +2477,24 @@ SOFTWARE.
   };
 
   let createIdx = 0;
+  let ux302 = null;
+  let popupKey302 = '';
   const onSolidMenuListCreated_ = async (items, div, ytLiveChatAppCnt) => {
 
     if (createIdx > 1e9) createIdx = 9;
     const createIdx_ = ++createIdx;
 
-    let ux = null;
+    let ux0 = null;
 
     const popups_ = ytLiveChatAppCnt.popups_;
-    let popupKey = '';
-    if (popups_) {
 
-      for (const k of Object.keys(popups_)) {
-        const v = popups_[k];
-        if (v && v.popupContent && insp(v.popupContent).data?.__iwme848__) {
-          popupKey = k;
-          ux = v
-          break;
-        }
-      }
+
+    const popupKey = popupKey302;
+    const ux = ux302;
+
+    if (ux && popupKey) {
+      ux0 = popups_[popupKey];
+      popups_[popupKey] = ux;
     }
 
     const ud = {
@@ -2577,6 +2576,28 @@ SOFTWARE.
     if (elm && createIdx_ === createIdx) {
       div.appendChild(elm);
     }
+
+    (() => {
+      popupKey302 = '';
+      const popups_ = ytLiveChatAppCnt.popups_;
+      if (popups_) {
+        for (const k of Object.keys(popups_)) {
+          const v = popups_[k];
+          if (v && v.popupContent && insp(v.popupContent).data?.__iwme848__) {
+            popupKey302 = k;
+            ux302 = v;
+            break;
+          }
+        }
+      }
+      if (popupKey302) {
+        if (ux0) {
+          popups_[popupKey302] = ux0;
+        } else {
+          delete popups_[popupKey302];
+        }
+      }
+    })();
 
     setTimeout(simulateClickOnBody, 1);
     setTimeout(simulateClickOnBody, 80); // play-safe
