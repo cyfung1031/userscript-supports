@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.9
+// @version             2.1.10
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2320,6 +2320,7 @@
 
                                     // ----- play safe ----
 
+                                    /*
                                     let stateObject;
                                     let tryCount = 8;
                                     while (tryCount--) {
@@ -2329,8 +2330,11 @@
                                         if (lzt !== audio[qzk]) return;
                                     }
                                     // wait for [80ms, 640ms]
+                                    */
 
-                                    if (lzt !== audio[qzk]) return;
+                                    // if (lzt !== audio[qzk]) return;
+
+                                    let stateObject = getPlayerWrappedStateObject();
 
                                     if (stateObject.isPlaying && stateObject.isOrWillBePlaying) return; // normal checking
                                     if (stateObject.isError || stateObject.isEnded) return; // error checking
@@ -2367,6 +2371,14 @@
 
                                     // ----- play safe ----
 
+
+                                } else if(!stateObject.isDomPaused && stateObject.isBuffering && stateObject.isOrWillBePlaying && !stateObject.isSeeking && !stateObject.isUnstarted) {
+                                    console.log(3883)
+                                    playBusy++;
+                                    await delayPn(80);
+                                    playVideo();
+                                    await delayPn(80);
+                                    playBusy--;
 
                                 }
 
