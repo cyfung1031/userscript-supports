@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.10
+// @version             2.1.11
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2375,9 +2375,9 @@
                                 } else if(!stateObject.isDomPaused && stateObject.isBuffering && stateObject.isOrWillBePlaying && !stateObject.isSeeking && !stateObject.isUnstarted) {
                                     console.log(3883)
                                     playBusy++;
-                                    await delayPn(80);
+                                    await delayPn(160);
                                     playVideo();
-                                    await delayPn(80);
+                                    await delayPn(160);
                                     playBusy--;
 
                                 }
