@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.21
+// @version             2.1.22
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2336,6 +2336,8 @@
                                 const stateObject = getPlayerWrappedStateObject();
 
                                 if (stateObject.isDomPaused && stateObject.isBuffering && !stateObject.isOrWillBePlaying && !stateObject.isPaused && !stateObject.isPlaying && !stateObject.isSeeking && stateObject.isUnstarted) {
+                                    // allow case; would fall into (publishStatus1701 > 200 && publishStatus1701 < 300) case
+                                } else if (stateObject.isDomPaused && stateObject.isBuffering && !stateObject.isOrWillBePlaying && !stateObject.isPaused && !stateObject.isPlaying && stateObject.isSeeking && stateObject.isUnstarted) {
                                     // allow case; would fall into (publishStatus1701 > 200 && publishStatus1701 < 300) case
                                 } else {
                                     if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) {
