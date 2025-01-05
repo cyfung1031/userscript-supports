@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.14
+// @version             2.1.20
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -548,6 +548,15 @@
             return thumbnailUrl;
         }
 
+        const staticImageMap = new Map();
+
+        const delayedUpdateStaticImage = (target) => {
+
+            dmo.delayedUpdateStaticImage && dmo.delayedUpdateStaticImage(target);
+
+
+        }
+
         const pmof = () => {
 
             if (SHOW_VIDEO_STATIC_IMAGE) {
@@ -559,18 +568,36 @@
                 const container = mediaElm ? mediaElm.closest('.html5-video-container') : null;
                 if (!container) return;
 
-                let thumbnailUrl = '';
-                const ytdPage = container.closest('ytd-watch-flexy');
-                if (ytdPage && ytdPage.is === 'ytd-watch-flexy') {
-                    const cnt = insp(ytdPage);
-                    let thumbnails = null;
-                    try {
-                        thumbnails = cnt.polymerController.__data.playerData.videoDetails.thumbnail.thumbnails
-                        // thumbnails = cnt.__data.watchNextData.playerOverlays.playerOverlayRenderer.autoplay.playerOverlayAutoplayRenderer.background.thumbnails
-                    } catch (e) { }
+                const movie_player = mediaElm.closest('#movie_player, #masthead-player');
 
-                    thumbnailUrl = getThumbnailUrlFromThumbnails(thumbnails);
+                let videoId = '';
+                try {
+                    videoId = movie_player && insp(movie_player).getVideoData().video_id;
+                } catch (e) { }
+
+                let thumbnailUrl = '';
+
+                if (videoId) { thumbnailUrl = staticImageMap.get(videoId); }
+
+                if (!thumbnailUrl) {
+                    const ytdPage = container.closest('ytd-watch-flexy');
+                    if (ytdPage && ytdPage.is === 'ytd-watch-flexy') {
+                        const cnt = insp(ytdPage);
+                        let thumbnails = null;
+                        try {
+                            thumbnails = insp(cnt).__data.playerData.videoDetails.thumbnail.thumbnails
+                            // thumbnails = cnt.__data.watchNextData.playerOverlays.playerOverlayRenderer.autoplay.playerOverlayAutoplayRenderer.background.thumbnails
+                        } catch (e) { }
+
+                        thumbnailUrl = getThumbnailUrlFromThumbnails(thumbnails);
+
+                        if (videoId && thumbnailUrl && typeof thumbnailUrl === 'string') {
+                            staticImageMap.set(videoId, thumbnailUrl);
+                        }
+
+                    }
                 }
+
 
 
                 if (thumbnailUrl && typeof thumbnailUrl === 'string') {
@@ -597,7 +624,8 @@
             if (!(target instanceof HTMLMediaElement)) return;
             const targetClassList = target.classList || 0;
             const isPlayerVideo = typeof targetClassList.contains === 'function' ? targetClassList.contains('video-stream') && targetClassList.contains('html5-main-video') : false;
-
+            dirtyMark = 1 | 2 | 4 | 8;
+            delayedUpdateStaticImage(target);
             if (durationchangeForMobile || isPlayerVideo) {
                 if (target.readyState !== 1) {
                     fa = 1;
@@ -691,7 +719,7 @@
                 if (evt === 'player-autonav-pause' || evt === 'visibilitychange') {
                     evt += 'y'
                     fn = dummyFn;
-                } else if (evt === 'click' && this.id === 'movie_player') {
+                } else if (evt === 'click' && (this.id === 'movie_player' || this.id === 'masthead-player')) {
                     clickLockFn = fn;
                     clickTarget = this;
                 }
@@ -991,30 +1019,57 @@
             }
 
             window.gt3 = () => internalAppXM();
+            window.gt3x = ()=>internalAppUT;
             const internalAppXM = () => {
                 if (!(dirtyMark & 4)) return internalAppXT;
                 if (!key_mediaElementT) return internalAppXT;
                 let result = null;
+                const possibleResults = [];
                 for (const p of internalAppUT) {
                     const iaMediaP = p.mediaElement;
                     if (!iaMediaP) {
-                        internalAppUT.delete(p);
+                        // internalAppUT.delete(p);
                     } else {
                         const element = iaMediaP[key_mediaElementT];
                         if (element instanceof Element) {
-                            if (!element.isConnected) {
+                            if (element instanceof HTMLMediaElement && Number.isNaN(element.duration)) {
+
+                            } else if (!element.isConnected) {
                                 // valid entry but audio is not on the page
 
                             } else if (element.closest('[hidden]')) {
 
-                            } else if (result === null) {
-                                result = p;
+                            } else if (result === null && element.duration > 0) {
+                                possibleResults.push([p, element.duration, (element.paused?1:0)]);
+                                // 3600 ads might be added
                             }
                         }
                     }
                 }
+                if (possibleResults.length > 0) {
+                    if (possibleResults.length === 1) result = possibleResults[0][0];
+                    else {
+                        possibleResults.sort((a, b) => {
+
+                            if (b[2] && !a[2]) return -1;
+                            if (!b[2] && a[2]) return 1;
+                            return (b[1] - a[1]);
+
+                        });
+                        result = possibleResults[0][0];
+                    }
+                    possibleResults.length = 0;
+                }
                 if (!result) return result;
-                internalAppUT.add(result);
+                if (!internalAppUT.has(result)) {
+                    for (const p of internalAppUT) {
+                        const iaMediaP = p.mediaElement;
+                        if (!iaMediaP) {
+                            internalAppUT.delete(p);
+                        }
+                    }
+                    internalAppUT.add(result);
+                }
                 internalAppXT = result;
                 updateInternalAppFn_();
                 if (dirtyMark & 4) dirtyMark -= 4;
@@ -1063,13 +1118,21 @@
                 for (const p of standardAppUT) {
                     const iaMediaP = p.mediaElement;
                     if (!iaMediaP) {
-                        standardAppUT.delete(p);
+                        // standardAppUT.delete(p);
                     } else {
                         if (iaMediaP === iaMedia) result = p;
                     }
                 }
                 if (!result) return result;
-                standardAppUT.add(result);
+                if (!standardAppUT.has(result)) {
+                    for (const p of standardAppUT) {
+                        const iaMediaP = p.mediaElement;
+                        if (!iaMediaP) {
+                            standardAppUT.delete(p);
+                        }
+                    }
+                    standardAppUT.add(result);
+                }
                 standardAppXT = result;
                 updateStandardAppFn_();
                 if (dirtyMark & 2) dirtyMark -= 2;
@@ -1123,7 +1186,9 @@
                 if (!standardApp) return playerDapXT;
                 let result = null;
                 for (const p of playerDapUT) {
-                    if (!p.app || !p.app.mediaElement) playerDapUT.delete(p);
+                    if (!p.app || !p.app.mediaElement) {
+                        // playerDapUT.delete(p);
+                    }
                     else if (p.app === standardApp) result = p;
                 }
                 if (!result) return result;
@@ -1347,16 +1412,31 @@
                             loadVideoByPlayerVarsQ20.set(this, p.index);
                             return;
                         }
-                        updateStandardAppFn(this)
-                        if (p && typeof p === 'object') {
+                        try {
+                            // update static image here!
+                            updateStandardAppFn(this)
+                            if (p && typeof p === 'object') {
 
-                            const { adPlacements, adSlots } = p.raw_player_response || {};
-                            if (isIterable(adPlacements)) adPlacements.length = 0;
-                            if (isIterable(adSlots)) adSlots.length = 0;
+                                const { adPlacements, adSlots } = p.raw_player_response || {};
+                                if (isIterable(adPlacements)) adPlacements.length = 0;
+                                if (isIterable(adSlots)) adSlots.length = 0;
 
-                            lastRecord.length = 0;
-                            lastRecord.push(...[p, C, V, N, H]);
-                            console.log('lastRecord 03022', [...lastRecord])
+                                lastRecord.length = 0;
+                                lastRecord.push(...[p, C, V, N, H]);
+                                console.log('lastRecord 03022', [...lastRecord])
+                                const videoDetails = ((p || 0).raw_player_response || 0).videoDetails || 0;
+                                if (videoDetails) {
+                                    const thumbnails = (videoDetails.thumbnail || 0).thumbnails || 0;
+                                    const url = thumbnails ? getThumbnailUrlFromThumbnails(thumbnails) : '';
+                                    const videoId = videoDetails.videoId;
+                                    videoId && url && typeof url === 'string' && typeof videoId === 'string' && staticImageMap.set(videoId, url);
+                                    // console.log('staticImageMap set', videoId, url);
+                                }
+                                dirtyMark = 1 | 2 | 4 | 8;
+                            }
+
+                        } catch (e) {
+                            console.warn(e);
                         }
 
                         return this.loadVideoByPlayerVars311(...arguments);
@@ -1802,6 +1882,7 @@
                         internalAppPT.setMediaElement = function (p) {
                             updateInternalAppFn(this);
                             console.log('setMediaElement', p)
+                            delayedUpdateStaticImage(getMediaElement());
                             return this.setMediaElement661(...arguments);
                         }
                     }
@@ -2073,7 +2154,55 @@
                         } catch (e) { }
                     }
 
-                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt, getPlayerWrappedStateObject, getInternalVideoData });
+                    let u75 = 0;
+
+                    const delayedUpdateStaticImage = async (target) => {
+
+                        if (u75 > 1e9) u75 = 9;
+                        const t75 = ++u75;
+                        await delayPn(40);
+                        if (t75 !== u75) return;
+
+                        const date0 = Date.now();
+
+                        const mediaEm = target;
+
+                        if (!mediaEm || mediaEm.isConnected === false) return;
+
+                        let movie_player, h5vc;
+
+                        while (Date.now() - date0 < 800) {
+                            movie_player = mediaEm.closest('#movie_player, #masthead-player');
+                            h5vc = mediaEm.closest('.html5-video-container');
+                            if (movie_player && h5vc) break;
+                            await delayPn(40);
+                            if (t75 !== u75) return;
+                        }
+
+                        if (!movie_player || !h5vc) return;
+
+                        if (!mediaEm || mediaEm.isConnected === false) return;
+
+                        if (movie_player.querySelectorAll('video, audio').length !== 1) return;
+                        if (h5vc.querySelectorAll('video, audio').length !== 1) return;
+
+                        let videoId = '';
+                        try {
+                            videoId = movie_player && insp(movie_player).getVideoData().video_id;
+                        } catch (e) { }
+
+                        if (!videoId) return;
+                        let thumbnailUrl = '';
+
+                        if (videoId) { thumbnailUrl = staticImageMap.get(videoId); }
+
+                        if (!thumbnailUrl) return;
+
+                        const displayImage = `url(${thumbnailUrl})`;
+                        h5vc.style.setProperty('--audio-only-thumbnail-image', `${displayImage}`);
+
+                    }
+                    Object.assign(dmo, { clearVideoAndQueue, cancelPlayback, pauseVideo, playVideo, isAtLiveHeadW, updateAtPublish, refreshAllStaleEntitiesForNonReadyAudio, seekToLiveHeadForLiveStream, ready: true, isLoadedW, getMediaElement, playerAppXM, standardAppXM, internalAppXM, playerDapXM, getPlayerStateInt, getPlayerWrappedStateObject, getInternalVideoData, delayedUpdateStaticImage });
 
 
 
@@ -2148,20 +2277,31 @@
                                 dirtyMark = 1 | 2 | 4 | 8;
                             }
 
+                            if (getPublishStatus17() === null) {
+                                // video switching -> ad media 3600
+                                console.log('wait for mediaElement')
+                                await delayPn(400);
+                                if (lzt !== audio[qzk]) return;
+                            }
 
-                            const internalApp = internalAppXM();
-                            if (!internalApp.mediaElement) return await this.play3828();
-                            if (audio !== getMediaElement()) return await this.play3828();
-
-
+                            if (audio !== getMediaElement()) {
+                                // video switching -> ad media 3600
+                                console.log('wait for correct mediaElement')
+                                await delayPn(400);
+                                if (lzt !== audio[qzk]) return;
+                            }
 
                             console.log(`[yt-audio-only] video.play02 {${lzt}}`, getPublishStatus17())
                             // if ((await isAdW()) === true) return;
 
 
+                            const internalApp = internalAppXM();
+
                             let isAtLiveHead = await isAtLiveHeadW();
                             // window.dmo = dmo;
-                            Promise.resolve().then(async () => {
+                            (internalApp || 0).mediaElement && audio === getMediaElement() && Promise.resolve().then(async () => {
+
+                                // if(audio.isConnected === false) return;
 
                                 if (lzt !== audio[qzk]) return;
                                 dirtyMark = 1 | 2 | 4 | 8;
@@ -2181,6 +2321,7 @@
                                     if (lzt !== audio[qzk]) return;
                                 }
 
+                                // if(audio.isConnected === false) return;
                                 const publishStatus1701 = getPublishStatus17();
 
 
@@ -2197,7 +2338,22 @@
                                 if (stateObject.isDomPaused && stateObject.isBuffering && !stateObject.isOrWillBePlaying && !stateObject.isPaused && !stateObject.isPlaying && !stateObject.isSeeking && stateObject.isUnstarted) {
                                     // allow case; would fall into (publishStatus1701 > 200 && publishStatus1701 < 300) case
                                 } else {
-                                    if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) return;
+                                    if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) {
+                                        console.log('[yt-audio-only] leave', stateObject)
+                                        if (publishStatus1701 === 300 && (await isLoadedW()) === true && !isAtLiveHead && !skipPlayPause && !byPassPublishPatch && !byPassNonFatalError) {
+                                            if (lzt !== audio[qzk]) return;
+                                            // guess - paused before. switching video -> remains paused status
+                                            byPassNonFatalError = true;
+                                            byPassPublishPatch = true;
+                                            skipPlayPause = 3;
+                                            await cancelPlayback();
+                                            await playVideo();
+                                            skipPlayPause = 0;
+                                            byPassNonFatalError = false;
+                                            byPassPublishPatch = false;
+                                        }
+                                        return;
+                                    }
                                 }
 
                                 console.log(`[yt-audio-only] video.play05 {${lzt}}`, publishStatus1701);
@@ -2232,27 +2388,34 @@
                                     if (internalApp !== internalAppXM()) return;
                                     if (!internalApp.mediaElement) return;
 
+
+                                // if(audio.isConnected === false) return;
+
                                     playBusy++;
 
                                     console.log(`[yt-audio-only] video.play07 {${lzt}}`, publishStatus1701);
 
 
-                                    // byPassSync = true;
-                                    byPassNonFatalError = true;
-                                    byPassPublishPatch = true;
-                                    skipPlayPause = 3;
-                                    if ((await isLoadedW()) === false) {
-                                        console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = false");
-                                        await clearVideoAndQueue();
-                                        await cancelPlayback();
-                                    } else {
-                                        console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = true");
-                                        await cancelPlayback();
-                                    }
-                                    await delayPn(80); // wait some time for byPassNonFatalError and byPassPublishPatch
-                                    skipPlayPause = 0;
-                                    byPassNonFatalError = false;
-                                    byPassPublishPatch = false;
+                                    // if (!audio.closest('ytd-miniplayer')) {
+
+
+                                        // byPassSync = true;
+                                        byPassNonFatalError = true;
+                                        byPassPublishPatch = true;
+                                        skipPlayPause = 3;
+                                        if ((await isLoadedW()) === false) {
+                                            console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = false");
+                                            await clearVideoAndQueue();
+                                            await cancelPlayback();
+                                        } else {
+                                            console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = true");
+                                            await cancelPlayback();
+                                        }
+                                        await delayPn(80); // wait some time for byPassNonFatalError and byPassPublishPatch
+                                        skipPlayPause = 0;
+                                        byPassNonFatalError = false;
+                                        byPassPublishPatch = false;
+                                    // }
 
                                     dirtyMark = 1 | 2 | 4 | 8;
 
@@ -2484,14 +2647,14 @@
                         let html5Container = null;
 
 
-                        const moviePlayer = document.querySelector('#movie_player .html5-video-container .video-stream.html5-main-video');
+                        const moviePlayer = document.querySelector('#movie_player .html5-video-container .video-stream.html5-main-video, #masthead-player .html5-video-container .video-stream.html5-main-video');
                         if (moviePlayer) {
                             html5Container = moviePlayer.closest('.html5-video-container');
                         }
 
                         if (html5Container) {
 
-                            const overlayImage = document.querySelector('#movie_player .ytp-cued-thumbnail-overlay-image[style]');
+                            const overlayImage = document.querySelector('#movie_player .ytp-cued-thumbnail-overlay-image[style], #masthead-player .ytp-cued-thumbnail-overlay-image[style]');
                             if (overlayImage) {
 
                                 const cStyle = window.getComputedStyle(overlayImage);
@@ -3059,7 +3222,7 @@
 
             async function delayRun(pr) {
 
-                let q = document.querySelector('#movie_player');
+                let q = document.querySelector('#movie_player') || document.querySelector('#masthead-player');
                 if (!q) return;
                 let a = document.querySelector('.video-stream.html5-main-video');
                 if (!a) return;
@@ -3925,16 +4088,19 @@
                 background-image:none !important;
             }
 
-            #movie_player > .html5-video-container:not(:empty) {
+            #movie_player > .html5-video-container:not(:empty),
+            #masthead-player > .html5-video-container:not(:empty) {
                 box-sizing: border-box;
                 height: 100%;
             }
 
-            #movie_player [style*="--audio-only-thumbnail-image"] ~ .ytp-cued-thumbnail-overlay > .ytp-cued-thumbnail-overlay-image[style*="background-image"] {
+            #movie_player [style*="--audio-only-thumbnail-image"] ~ .ytp-cued-thumbnail-overlay > .ytp-cued-thumbnail-overlay-image[style*="background-image"],
+            #masthead-player [style*="--audio-only-thumbnail-image"] ~ .ytp-cued-thumbnail-overlay > .ytp-cued-thumbnail-overlay-image[style*="background-image"] {
                 opacity: 0;
             }
 
-            #movie_player [style*="--audio-only-thumbnail-image"]::before {
+            #movie_player [style*="--audio-only-thumbnail-image"]::before,
+            #masthead-player [style*="--audio-only-thumbnail-image"]::before {
                 content: '';
                 display: block;
                 position: absolute;
@@ -3989,7 +4155,8 @@
                 */
 
 
-            #movie_player.playing-mode [style*="--audio-only-thumbnail-image"]{
+            #movie_player.playing-mode [style*="--audio-only-thumbnail-image"],
+            #masthead-player.playing-mode [style*="--audio-only-thumbnail-image"] {
                 /* animation: blinker-fmw83 1.74s linear infinite; */
                 --fmw83-opacity: 0.6;
 
