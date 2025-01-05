@@ -2,7 +2,7 @@
 // @name                YouTube: Add Channel Name to Shorts Thumbnail
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
-// @version             0.2.5
+// @version             0.2.6
 // @license             MIT License
 // @author              CY Fung
 // @grant               none
@@ -408,7 +408,7 @@ SOFTWARE.
 
         const metaline = details ? qsOne(details, '#details #metadata-line') : qsOne(hostElement, 'ytd-reel-item-renderer #details #metadata-line');
         if (metaline) {
-          metaline.setAttribute('ePCWh', nameToAdd);
+          metaline.setAttribute('ePCWu', nameToAdd);
         } else {
           console.log('metaline cannot be found', content);
         }
@@ -452,7 +452,7 @@ SOFTWARE.
       if (useOldModel) {
         const metaline = details ? qsOne(details, '[ePCWu]') : qsOne(hostElement, '[ePCWu]');
         if (metaline) {
-          metaline.removeAttribute('ePCWh');
+          metaline.removeAttribute('ePCWu');
         }
       } else if (content) {
         const subhead = qsOne(content, '[ePCWu]');
