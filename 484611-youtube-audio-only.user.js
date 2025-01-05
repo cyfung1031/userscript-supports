@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.8
+// @version             2.1.9
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -33,7 +33,7 @@
 
     const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
     function createHTML(s) {
-      return defaultPolicy.createHTML(s);
+        return defaultPolicy.createHTML(s);
     }
 
     let trustHTMLErr = null;
@@ -1256,7 +1256,7 @@
 
 
                 }
- 
+
 
             }
 
@@ -1734,7 +1734,7 @@
                                             console.log(`[yt-audio-only] publish (***, audio.readyState=1, =203, =>204)`);
                                             iaMedia.__publishStatus18__ = Date.now() + 240;
 
-                                            console.log('[yt-audio-only] publish skipPlayPause 10004',iaMedia.__publishStatus17__, skipPlayPause);
+                                            console.log('[yt-audio-only] publish skipPlayPause 10004', iaMedia.__publishStatus17__, skipPlayPause);
 
                                         }
 
@@ -2117,18 +2117,18 @@
                                 }
                             }
 
-                            if (playBusy > 0){
+                            if (playBusy > 0) {
 
                                 return this.pause3828();
-                            }else{
-                                const audio= this;
+                            } else {
+                                const audio = this;
 
                                 if (audio[qzk] > 1e9) audio[qzk] = 9;
                                 const lzt = audio[qzk] ? ++audio[qzk] : (audio[qzk] = 1);
                                 return this.pause3828();
                             }
 
-                            
+
                         }
 
 
@@ -2153,16 +2153,17 @@
                             if (!internalApp.mediaElement) return await this.play3828();
                             if (audio !== getMediaElement()) return await this.play3828();
 
-                        
+
 
                             console.log(`[yt-audio-only] video.play02 {${lzt}}`, getPublishStatus17())
                             // if ((await isAdW()) === true) return;
 
 
                             let isAtLiveHead = await isAtLiveHeadW();
+                            // window.dmo = dmo;
                             Promise.resolve().then(async () => {
 
-                                if(lzt !== audio[qzk]) return;
+                                if (lzt !== audio[qzk]) return;
                                 dirtyMark = 1 | 2 | 4 | 8;
 
 
@@ -2174,14 +2175,14 @@
                                 if (!shouldWaitPublish()) {
                                     await delayPn(80);
                                     dirtyMark = 1 | 2 | 4 | 8;
-                                    if(lzt !== audio[qzk]) return;
+                                    if (lzt !== audio[qzk]) return;
                                 }
 
 
                                 if (shouldWaitPublish()) {
                                     await delayPn(400);
                                     dirtyMark = 1 | 2 | 4 | 8;
-                                    if(lzt !== audio[qzk]) return;
+                                    if (lzt !== audio[qzk]) return;
                                 }
 
                                 const publishStatus1701 = getPublishStatus17();
@@ -2212,7 +2213,7 @@
                                     bool = true;
                                 } else if (stateObject.isOrWillBePlaying && stateObject.isSeeking && !stateObject.isCued && stateObject.isPlaying) {
                                     bool = true;
-                                } else if (publishStatus1701 > 200 && publishStatus1701 < 300){
+                                } else if (publishStatus1701 > 200 && publishStatus1701 < 300) {
                                     // loadedmetadata done
                                     bool = true;
                                 }
@@ -2239,7 +2240,7 @@
 
                                     console.log(`[yt-audio-only] video.play07 {${lzt}}`, publishStatus1701);
 
- 
+
                                     // byPassSync = true;
                                     byPassNonFatalError = true;
                                     byPassPublishPatch = true;
@@ -2255,7 +2256,7 @@
                                     await delayPn(80); // wait some time for byPassNonFatalError and byPassPublishPatch
                                     byPassNonFatalError = false;
                                     byPassPublishPatch = false;
-                       
+
                                     dirtyMark = 1 | 2 | 4 | 8;
 
                                     console.log(`[yt-audio-only] video.play08 {${lzt}}`, getPublishStatus17());
@@ -2285,19 +2286,26 @@
                                         dirtyMark = 1 | 2 | 4 | 8;
                                         console.log(`[yt-audio-only] video.play09.2 {${lzt}}`, getPublishStatus17());
                                     }
- 
 
                                     await delayPn(80); // wait sometime for playBusy
+
+                                    if (isAtLiveHead === true && (await isAtLiveHeadW()) === false) {
+                                        console.log(`[yt-audio-only] video.play08.3 {${lzt}}`, getPublishStatus17());
+                                        await trySeekToLiveHead();
+                                        dirtyMark = 1 | 2 | 4 | 8;
+                                        console.log(`[yt-audio-only] video.play08.4 {${lzt}}`, getPublishStatus17());
+                                        await delayPn(80); // wait sometime for playBusy
+                                    }
 
                                     // byPassSync = false;
                                     playBusy--;
 
-                                    if(lzt !== audio[qzk]) return; // abnormal
+                                    if (lzt !== audio[qzk]) return; // abnormal
 
-                                    if(promiseSeek_ !== promiseSeek) return; // abnormal
+                                    if (promiseSeek_ !== promiseSeek) return; // abnormal
 
                                     console.log(`[yt-audio-only] video.play10 {${lzt}}`, getPublishStatus17());
-                                  
+
                                     const r = await Promise.race([promiseSeek_, delayPn(400).then(() => 123)]);
                                     promiseSeek = null;
 
@@ -2306,9 +2314,9 @@
                                         return;
                                     }
 
-                                    if(lzt !== audio[qzk]) return; // normal
+                                    if (lzt !== audio[qzk]) return; // normal
 
-                                    console.log(`[yt-audio-only] video.play11 {${lzt}}`, getPublishStatus17(), r);
+                                    console.log(`[yt-audio-only] video.play11 {${lzt}}`, getPublishStatus17(), r, isAtLiveHead, await isAtLiveHeadW());
 
                                     // ----- play safe ----
 
@@ -2329,24 +2337,24 @@
 
                                     // retry
 
-                                    console.log(`[yt-audio-only] video.play12 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+                                    console.log(`[yt-audio-only] video.play12 {${lzt}}`, getPublishStatus17(), r, { ...stateObject });
 
                                     if (!r && stateObject && !stateObject.isOrWillBePlaying && !stateObject.isPlaying && stateObject.isPaused) {
                                         // wait for the playing case
                                         await delayPn(80);
                                         if (lzt !== audio[qzk]) return;
                                         stateObject = getPlayerWrappedStateObject();
-                                        console.log(`[yt-audio-only] video.play12.1 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+                                        console.log(`[yt-audio-only] video.play12.1 {${lzt}}`, getPublishStatus17(), r, { ...stateObject });
                                     }
 
-                                    console.log(`[yt-audio-only] video.play13 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+                                    console.log(`[yt-audio-only] video.play13 {${lzt}}`, getPublishStatus17(), r, { ...stateObject });
 
                                     if (stateObject && !stateObject.isSeeking) {
                                         if (stateObject.isError || stateObject.isEnded) {
                                         } else if (stateObject.isOrWillBePlaying && stateObject.isPlaying && !stateObject.isPaused) {
                                         } else {
 
-                                            console.log(`[yt-audio-only] video.play13.1 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
+                                            console.log(`[yt-audio-only] video.play13.1 {${lzt}}`, getPublishStatus17(), r, { ...stateObject });
                                             try {
                                                 // listAllPublish = false;
                                                 dirtyMark = 1 | 2 | 4 | 8;
@@ -2358,7 +2366,7 @@
 
 
                                     // ----- play safe ----
-                                   
+
 
                                 }
 
