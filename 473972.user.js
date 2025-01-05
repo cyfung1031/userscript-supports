@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.16.22
+// @version     0.16.23
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -97,6 +97,49 @@
 
   const HOOK_CSSPD_LEFT = true; // global css hack for style.left
   const FORCE_NO_REUSEABLE_ELEMENT_POOL = true;
+
+  const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
+
+  // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
+  // example. https://www.youtube.com/channel/UCgPev1KKSCMbnNRsvN83Hag/about
+  // first tp-yt-paper-dialog: show once the page is loaded.
+  // second tp-yt-paper-dialog: click "...more"
+  // third tp-yt-paper-dialog: click "... and 3 more links"
+  // check with document.querySelectorAll('ytd-popup-container tp-yt-paper-dialog').length
+  // currently, uniqueId is preassigned by the network resolveCommand.
+  // so don't modify the source side, just modify the display side (popup display) via handleOpenPopupAction
+  // other related functions e.g. handleClosePopupCommand_, getAndMaybeCreatePopup_, handleClosePopupAction_, getAndMaybeCreatePopup_
+  
+  // handleOpenPopupAction -> createCacheKey
+  // handleClosePopupAction_ -> createCacheKey
+  // handleGetPopupOpenedAction_ -> createCacheKey
+  // getAndMaybeCreatePopup_ -> createCacheKey
+  // closePopup -> createCacheKey
+
+  // yt-close-popup-command -> handleClosePopupCommand_
+
+  // ensurePopup_ -> getAndMaybeCreatePopup_
+
+  // yt-close-popup-action -> handleClosePopupAction_
+  // closePopup -> handleClosePopupAction_
+  // handleOpenPopupAction -> handleClosePopupAction_
+  // handleClosePopupCommand_ -> handleClosePopupAction_
+  // closeSheet -> handleClosePopupAction_("yt-sheet-view-model")
+
+  // yt-open-popup-action -> handleOpenPopupAction
+
+
+  // yt-close-popup-action -> handleClosePopupAction_ -> createCacheKey
+  // yt-close-popup-command -> handleClosePopupCommand_ -> handleClosePopupAction_ -> createCacheKey
+  
+  // Experimental flag "ytpopup_disable_default_html_caching" is disabled by default. 
+  // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
+  // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
+
+
+
+
+
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
   // dependency: FIX_yt_player
@@ -288,6 +331,38 @@
       }
     }
   };
+
+
+  const firstObjectKey = (obj) => {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+    }
+    return null;
+  };
+
+  function searchNestedObject(obj, predicate, maxDepth = 64) {
+    // normal case: depth until 36
+    const result = [];
+    const visited = new WeakSet();
+
+    function search(obj, depth) {
+      visited.add(obj);
+      for (const [key, value] of Object.entries(obj)) {
+        // Recursively search nested objects and arrays
+        if (value !== null && typeof value === 'object') {
+          // Prevent infinite loops by checking if the object is already visited or depth exceeded
+          if (depth + 1 <= maxDepth && !visited.has(value)) {
+            search(value, depth + 1);
+          }
+        } else if (predicate(value)) {
+          result.push([obj, key]);
+        }
+      }
+    }
+
+    typeof (obj || 0) === 'object' && search(obj, 0);
+    return result;
+  }
 
   /** @type {(o: Object | null) => WeakRef | null} */
   const mWeakRef = typeof WeakRef === 'function' ? (o => o ? new WeakRef(o) : null) : (o => o || null);
@@ -2409,8 +2484,10 @@
         console.log('[yt-js-engine-tamer] byPassCount = 0 in forwardDynamicProps')
       }
       byPassCount = 0;
-      if (PROP_OverReInclusion_DEBUGLOG && mmw.size > 0) console.log(399, '[yt-js-engine-tamer]', [...mmw])
-      PROP_OverReInclusion_DEBUGLOG && mmw.clear();
+      if (PROP_OverReInclusion_DEBUGLOG && mmw.size > 0) {
+        console.log(399, '[yt-js-engine-tamer]', [...mmw]);
+        mmw.clear();
+      }
       return ret;
     };
 
@@ -2452,8 +2529,6 @@
 
   })();
 
-
-  let delay300 = null;
 
   const convertionFuncMap = new WeakMap();
   let val_kevlar_should_maintain_stable_list = null;
@@ -7315,6 +7390,142 @@
 
       }
 
+      
+
+
+      FIX_POPUP_UNIQUE_ID && whenCEDefined('ytd-popup-container').then(async () => {
+
+        const sMap = new Map();
+
+        const ZTa = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
+        const ZT = function () {
+          for (var a = Array(36), b = 0, c, d = 0; d < 36; d++)
+            d == 8 || d == 13 || d == 18 || d == 23 ? a[d] = "-" : d == 14 ? a[d] = "4" : (b <= 2 && (b = 33554432 + Math.random() * 16777216 | 0),
+              c = b & 15,
+              b >>= 4,
+              a[d] = ZTa[d == 19 ? c & 3 | 8 : c]);
+          return a.join("")
+        };
+
+
+        const popupContainerCollection = document.getElementsByTagName('ytd-popup-container');
+
+        const popupContainer = await observablePromise(() => {
+          return popupContainerCollection[0];
+        }).obtain();
+
+
+        let cProto;
+        cProto = insp(popupContainer).constructor.prototype;
+
+
+        if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || cProto.handleOpenPopupAction.length !== 2) {
+          console.log('FIX_POPUP_UNIQUE_ID NG')
+          return;
+        } 
+        cProto.handleOpenPopupAction3868 = cProto.handleOpenPopupAction;
+
+        cProto.handleOpenPopupAction = function (a, b) {
+
+          if (typeof (a || 0) === 'object' && !a.__jOdQA__) {
+
+            a.__jOdQA__ = true;
+
+            try {
+
+              const h = this.hostElement;
+
+              if (h instanceof HTMLElement) {
+
+                const map = h.__skme44__ = h.__skme44__ || new Map();
+
+                let mKey = '';
+                const wKey = firstObjectKey(a);
+                const wObj = wKey ? a[wKey] : null;
+                if (wKey && wObj && typeof (wObj.popup || 0) === 'object') {
+                  const pKey = firstObjectKey(wObj.popup)
+                  const pObj = pKey ? wObj.popup[pKey] : null;
+                  let contentKey = '';
+                  let headerKey = '';
+
+                  if (pObj && pObj.identifier && pObj.content && pObj.header) {
+                    contentKey = firstObjectKey(pObj.content)
+                    headerKey = firstObjectKey(pObj.header)
+                  }
+                  if (contentKey && headerKey) {
+
+                    mKey = `${wKey}(popupType:${wObj.popupType},popup(${pKey}(content(${contentKey}:...),header(${headerKey}:...),identifer(surface:${pObj.identifier.surface}))))`
+
+                    if (mKey) {
+
+                      if (!wObj.uniqueId) {
+                        for (let i = 0; i < 8; i++) {
+                          wObj.uniqueId = ZT();
+                          if (!sMap.has(wObj.uniqueId)) break;
+                        }
+                      }
+                      const oId = wObj.uniqueId
+
+                      let nId_ = map.get(mKey);
+                      if (!nId_) {
+                        map.set(mKey, nId_ = oId);
+                      }
+
+                      wObj.uniqueId = nId_ || wObj.uniqueId;
+
+                      const nId = wObj.uniqueId
+
+                      sMap.set(oId, nId);
+                      sMap.set(nId, nId);
+
+                      wObj.uniqueId = nId;
+                      pObj.targetId = nId;
+                      pObj.identifier.tag = nId;
+
+                      if (oId !== nId) {
+                        console.log('FIX_POPUP_UNIQUE_ID', oId, nId);
+                      }
+
+                    }
+
+                  }
+                }
+
+                // console.log(12213, mKey, a, b, h)
+
+              }
+
+            } catch (e) {
+              console.warn(e)
+            }
+
+            try {
+
+              const results = searchNestedObject(a, (x) => {
+                if (typeof x === 'string' && x.length === 36) {
+                  if (/[a-zA-Z\d]{8}-[a-zA-Z\d]{4}-[a-zA-Z\d]{4}-[a-zA-Z\d]{4}-[a-zA-Z\d]{12}/.test(x)) return true;
+                }
+                return false;
+              });
+              for (const [obj, key] of results) {
+                const oId = obj[key];
+                const nId = sMap.get(oId);
+                if (nId) obj[key] = nId;
+              }
+            } catch (e) {
+              console.warn(e)
+            }
+
+
+          }
+
+          return this.handleOpenPopupAction3868(...arguments)
+        }
+
+        console.log('FIX_POPUP_UNIQUE_ID OK')
+
+
+      })
 
 
     });
