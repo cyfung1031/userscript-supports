@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.7
+// @version             2.1.8
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2196,7 +2196,12 @@
                                 if (!internalApp.mediaElement) return;
                                 if (audio !== getMediaElement()) return;
                                 const stateObject = getPlayerWrappedStateObject();
-                                if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) return;
+
+                                if (stateObject.isDomPaused && stateObject.isBuffering && !stateObject.isOrWillBePlaying && !stateObject.isPaused && !stateObject.isPlaying && !stateObject.isSeeking && stateObject.isUnstarted) {
+                                    // allow case; would fall into (publishStatus1701 > 200 && publishStatus1701 < 300) case
+                                } else {
+                                    if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) return;
+                                }
 
                                 console.log(`[yt-audio-only] video.play05 {${lzt}}`, publishStatus1701);
 
@@ -2227,16 +2232,14 @@
 
                                     console.log(`[yt-audio-only] video.play06 {${lzt}}`, publishStatus1701);
 
-
-
                                     if (internalApp !== internalAppXM()) return;
                                     if (!internalApp.mediaElement) return;
-
 
                                     playBusy++;
 
                                     console.log(`[yt-audio-only] video.play07 {${lzt}}`, publishStatus1701);
 
+ 
                                     // byPassSync = true;
                                     byPassNonFatalError = true;
                                     byPassPublishPatch = true;
@@ -2249,11 +2252,11 @@
                                         console.log(`[yt-audio-only] video.play07.1 {${lzt}}`, "isLoadedW = true");
                                         await cancelPlayback();
                                     }
+                                    await delayPn(80); // wait some time for byPassNonFatalError and byPassPublishPatch
                                     byPassNonFatalError = false;
                                     byPassPublishPatch = false;
-
+                       
                                     dirtyMark = 1 | 2 | 4 | 8;
-
 
                                     console.log(`[yt-audio-only] video.play08 {${lzt}}`, getPublishStatus17());
 
@@ -2262,6 +2265,8 @@
                                     // await audio.pause();
 
                                     const promiseSeek_ = promiseSeek = new PromiseExternal();
+
+
                                     // listAllPublish = true;
                                     if (isAtLiveHead) {
                                         console.log(`[yt-audio-only] video.play08.1 {${lzt}}`, getPublishStatus17());
@@ -2275,29 +2280,37 @@
                                     console.log(`[yt-audio-only] video.play09 {${lzt}}`, getPublishStatus17());
                                     const qX = getPlayerWrappedStateObject();
                                     if (qX.isBuffering || qX.isSeeking || qX.isUnstarted) {
-
                                         console.log(`[yt-audio-only] video.play09.1 {${lzt}}`, getPublishStatus17());
                                         await playVideo();
                                         dirtyMark = 1 | 2 | 4 | 8;
-
                                         console.log(`[yt-audio-only] video.play09.2 {${lzt}}`, getPublishStatus17());
                                     }
+ 
 
-
-
+                                    await delayPn(80); // wait sometime for playBusy
 
                                     // byPassSync = false;
                                     playBusy--;
 
-                                    if(lzt !== audio[qzk]) return;
-                                    console.log(`[yt-audio-only] video.play10 {${lzt}}`, getPublishStatus17());
+                                    if(lzt !== audio[qzk]) return; // abnormal
 
+                                    if(promiseSeek_ !== promiseSeek) return; // abnormal
+
+                                    console.log(`[yt-audio-only] video.play10 {${lzt}}`, getPublishStatus17());
+                                  
                                     const r = await Promise.race([promiseSeek_, delayPn(400).then(() => 123)]);
                                     promiseSeek = null;
 
-                                    if(lzt !== audio[qzk]) return;
+                                    if (getPlayerWrappedStateObject().isDomPaused) {
+                                        console.log('manual playing is required') // found in Firefox
+                                        return;
+                                    }
+
+                                    if(lzt !== audio[qzk]) return; // normal
 
                                     console.log(`[yt-audio-only] video.play11 {${lzt}}`, getPublishStatus17(), r);
+
+                                    // ----- play safe ----
 
                                     let stateObject;
                                     let tryCount = 8;
@@ -2307,10 +2320,19 @@
                                         await delayPn(80);
                                         if (lzt !== audio[qzk]) return;
                                     }
+                                    // wait for [80ms, 640ms]
+
+                                    if (lzt !== audio[qzk]) return;
+
+                                    if (stateObject.isPlaying && stateObject.isOrWillBePlaying) return; // normal checking
+                                    if (stateObject.isError || stateObject.isEnded) return; // error checking
+
+                                    // retry
 
                                     console.log(`[yt-audio-only] video.play12 {${lzt}}`, getPublishStatus17(), r, {...stateObject});
 
                                     if (!r && stateObject && !stateObject.isOrWillBePlaying && !stateObject.isPlaying && stateObject.isPaused) {
+                                        // wait for the playing case
                                         await delayPn(80);
                                         if (lzt !== audio[qzk]) return;
                                         stateObject = getPlayerWrappedStateObject();
@@ -2333,6 +2355,9 @@
                                             }
                                         }
                                     }
+
+
+                                    // ----- play safe ----
                                    
 
                                 }
