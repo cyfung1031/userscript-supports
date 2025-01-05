@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.20
+// @version             2.1.21
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -1662,11 +1662,11 @@
                                 let publishStatus = 0;
                                 const iaMedia = this.mediaElement;
 
-                                if (!stateObject) return;
+                                if (!stateObject || !iaMedia) return;
 
                                 if (stateObject.isUnstarted === true) {
 
-                                } else if (iaMedia.__publishStatus17__ >= 100 && iaMedia.__publishStatus17__ < 300) {
+                                } else if (iaMedia && iaMedia.__publishStatus17__ >= 100 && iaMedia.__publishStatus17__ < 300) {
 
                                     if (iaMedia.__publishStatus18__ < Date.now()) {
                                         iaMedia.__publishStatus17__ = 0;
