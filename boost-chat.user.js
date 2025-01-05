@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.81
+// @version             0.1.82
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -5072,11 +5072,12 @@ f.handleRemoveChatItemAction_ = function(a) {
               }
             }
 
-            if (menuRenderer) {
 
+            const items = menuRenderer ? menuRenderer.items : null; // no login -> no items; only {openImmediately: true, trackingParams: XXXX}
+            if (items) {
 
               menuRenderObjSet({
-                menuListXp: menuRenderObj.menuListXd.update(menuRenderer.items.slice(0)),
+                menuListXp: menuRenderObj.menuListXd.update(items.slice(0)),
                 messageUid: messageUid,
                 loading: false,
               });
@@ -5084,7 +5085,7 @@ f.handleRemoveChatItemAction_ = function(a) {
 
               menuRenderObjSet({
                 menuListXp: '',
-                messageUid: messageUid,
+                messageUid: '',
                 loading: false,
               });
 
@@ -5097,9 +5098,9 @@ f.handleRemoveChatItemAction_ = function(a) {
 
             menuRenderObjSet({
               menuListXp: '',
-              messageUid: messageUid,
+              messageUid: '',
               loading: false,
-              error: 1
+              // error: 1
             });
           }
 
