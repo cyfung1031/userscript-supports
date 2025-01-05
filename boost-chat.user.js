@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.1.80
+// @version             0.1.81
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -11,13 +11,12 @@
 // @unwrap
 // @allFrames           true
 // @inject-into         page
-
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
 // @description         Full Replacement of YouTube Chat Message List
 // @description:ja      YouTubeチャットメッセージリストの完全置き換え
 // @description:zh-TW   完全替換 YouTube 聊天訊息列表
 // @description:zh-CN   完全替换 YouTube 聊天消息列表
-
-// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
 // ==/UserScript==
 
 /*
@@ -50,7 +49,6 @@ SOFTWARE.
 
   const USE_SHADOWROOT = false;
 
-  const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100 | 0x40000;
   const DEBUG_visibleItems_trace = false;
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
@@ -80,62 +78,14 @@ SOFTWARE.
     return;
   }
 
+  const _flag0281_ = window._flag0281_ = 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x100 | 0x40000;
 
-  !window.TTP && (()=>{
-    // credit to Benjamin Philipp
-    // original source: https://greasyfork.org/en/scripts/433051-trusted-types-helper
 
-  // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
 
-  const overwrite_default = false; // If a default policy already exists, it might be best not to overwrite it, but to try and set a custom policy and use it to manually generate trusted types. Try at your own risk
-  const prefix = `TTP`;
-  var passThroughFunc = function(string, sink){
-  return string; // Anything passing through this function will be returned without change
+  const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
+  function createHTML(s) {
+    return defaultPolicy.createHTML(s);
   }
-  var TTPName = "passthrough";
-  var TTP_default, TTP = {createHTML: passThroughFunc, createScript: passThroughFunc, createScriptURL: passThroughFunc}; // We can use TTP.createHTML for all our assignments even if we don't need or even have Trusted Types; this should make fallbacks and polyfills easy
-  var needsTrustedHTML = false;
-  function doit(){
-  try{
-    if(typeof window.isSecureContext !== 'undefined' && window.isSecureContext){
-      if (window.trustedTypes && window.trustedTypes.createPolicy){
-        needsTrustedHTML = true;
-        if(trustedTypes.defaultPolicy){
-          log("TT Default Policy exists");
-          if(overwrite_default)
-            TTP = window.trustedTypes.createPolicy("default", TTP);
-          else
-            TTP = window.trustedTypes.createPolicy(TTPName, TTP); // Is the default policy permissive enough? If it already exists, best not to overwrite it
-          TTP_default = trustedTypes.defaultPolicy;
-
-          log("Created custom passthrough policy, in case the default policy is too restrictive: Use Policy '" + TTPName + "' in var 'TTP':", TTP);
-        }
-        else{
-          TTP_default = TTP = window.trustedTypes.createPolicy("default", TTP);
-        }
-        log("Trusted-Type Policies: TTP:", TTP, "TTP_default:", TTP_default);
-      }
-    }
-  }catch(e){
-    log(e);
-  }
-  }
-
-  function log(...args){
-  if("undefined" != typeof(prefix) && !!prefix)
-    args = [prefix + ":", ...args];
-  if("undefined" != typeof(debugging) && !!debugging)
-    args = [...args, new Error().stack.replace(/^\s*(Error|Stack trace):?\n/gi, "").replace(/^([^\n]*\n)/, "\n")];
-  console.log(...args);
-  }
-
-  doit();
-
-  // --------------------------------------------------- Trusted Types Helper ---------------------------------------------------
-
-  window.TTP = TTP;
-
-  })();
   
   const { appendChild: fragmentAppendChild } = ((h0) => h0)(new DocumentFragment());
 
