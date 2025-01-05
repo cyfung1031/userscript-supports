@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.12
+// @version             2.1.13
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -2387,6 +2387,24 @@
                                     }
                                     playBusy--;
 
+                                } else if(!stateObject.isDomPaused && !stateObject.isBuffering && stateObject.isOrWillBePlaying && !stateObject.isSeeking && !stateObject.isUnstarted) {
+
+
+                                    console.log(3884)
+                                    playBusy++;
+                                    await delayPn(80);
+                                    playVideo();
+                                    await delayPn(80);
+                                    if (isAtLiveHead === true && (await isAtLiveHeadW()) === false) {
+                                        console.log(`[yt-audio-only] video.play21.1 {${lzt}}`, getPublishStatus17());
+                                        await trySeekToLiveHead();
+                                        dirtyMark = 1 | 2 | 4 | 8;
+                                        console.log(`[yt-audio-only] video.play21.2 {${lzt}}`, getPublishStatus17());
+                                        await delayPn(80); // wait sometime for playBusy
+                                    }
+                                    playBusy--;
+                                }else{
+                                    console.log(3889, stateObject)
                                 }
 
 
