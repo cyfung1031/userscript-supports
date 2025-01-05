@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.16.23
+// @version     0.16.24
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5627,73 +5627,58 @@
 
             const aStyle = a.style;
 
-            if (c.length < 9) {
+            let cType = 0;
 
-            } else if (c.startsWith('scalex(0.') || (c === 'scalex(0)' || c === 'scalex(1)')) {
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1 + 1e-5) {
-                transformType = 'scaleX'
-                transformValue = q;
-                transformUnit = '';
-                transformTypeI = 1;
+            const cl = c.length;
+
+            if (cl >= 8) {
+              // scale(1)
+              if (c.startsWith('scale') && c.charCodeAt(6) === 40 && c.charCodeAt(cl - 1) === 41) {
+                cType = 1;
+                let t = c.charCodeAt(5);
+                if (t === 88 || t === 120) cType = 1 | 4;
+                if (t === 89 || t === 121) cType = 1 | 8;
+              } else if (c.startsWith('translate') && c.charCodeAt(10) === 40 && c.charCodeAt(cl - 1) === 41) {
+                cType = 2;
+                let t = c.charCodeAt(9);
+                if (t === 88 || t === 120) cType = 2 | 4;
+                if (t === 89 || t === 121) cType = 2 | 8;
               }
-            } else if (c.startsWith('translateX(') && c.endsWith('px)')) {
-              let p = c.substring(11, c.length - 3);
-              let q = p.length >= 1 ? parseFloat(p) : NaN;
-              if (typeof q === 'number' && !isNaNx(q)) {
-                transformType = 'translateX'
-                transformValue = q;
-                transformUnit = 'px';
-                transformTypeI = 2;
-              } else if (p === 'NaN') {
-                return;
+              let w = 0;
+              if (w = (cType === 5) ? 1 : (cType === 9) ? 2 : 0) {
+                let p = c.substring(7, cl - 1);
+                let q = p.length >= 1 ? parseFloat(p) : NaN;
+                if (typeof q === 'number' && !isNaNx(q)) {
+                  transformType = w === 1 ? 'scaleX' : 'scaleY';
+                  transformValue = q;
+                  transformUnit = '';
+                  transformTypeI = 1;
+                } else {
+                  cType = 256;
+                }
+              } else if (w = (cType === 6) ? 1 : (cType === 10) ? 2 : 0) {
+                if (c.endsWith('px)')) {
+                  let p = c.substring(11, cl - 3);
+                  let q = p.length >= 1 ? parseFloat(p) : NaN;
+                  if (typeof q === 'number' && !isNaNx(q)) {
+                    transformType = w === 1 ? 'translateX' : 'translateY';
+                    transformValue = q;
+                    transformUnit = 'px';
+                    transformTypeI = 2;
+                  } else if (p === 'NaN') {
+                    return;
+                  }
+                } else {
+                  cType = 256;
+                }
+              } else if (cType > 0) {
+                cType = 256;
               }
-            } else if (c.startsWith('scaley(0.') || (c === 'scaley(0)' || c === 'scaley(1)')) {
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1 + 1e-5) {
-                transformType = 'scaleY'
-                transformValue = q;
-                transformUnit = '';
-                transformTypeI = 1;
-              }
-            } else if (c.startsWith('translateY(') && c.endsWith('px)')) {
-              let p = c.substring(11, c.length - 3);
-              let q = p.length >= 1 ? parseFloat(p) : NaN;
-              if (typeof q === 'number' && !isNaNx(q)) {
-                transformType = 'translateY'
-                transformValue = q;
-                transformUnit = 'px';
-                transformTypeI = 2;
-              } else if (p === 'NaN') {
-                return;
-              }
-            } else if (c.startsWith('scalex(') && c.includes('e-')) {
-              // scalex(1.252057684158767e-16)
-              // scalex(3.0393632069734948e-9)
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1e-5) {
-                transformType = 'scaleX'
-                transformValue = 0;
-                transformUnit = '';
-                transformTypeI = 1;
-              }
-            } else if (c.startsWith('scaley(') && c.includes('e-')) {
-              let p = c.substring(7, c.length - 1);
-              let q = p.length >= 1 ? parseFloat(p) : -1;
-              if (q > -1e-5 && q < 1e-5) {
-                transformType = 'scaleY'
-                transformValue = 0;
-                transformUnit = '';
-                transformTypeI = 1;
-              }
-            } else {
-              if (c === 'scalex(-1)' || c === 'scaley(-1)') {
-              } else {
-                console.log('[yt-js-engine-tamer] zoTransform undefined', c);
-              }
+            }
+
+
+            if (cType === 256) {
+              console.log('[yt-js-engine-tamer] zoTransform undefined', c);
             }
 
             if (transformTypeI === 1) {
@@ -5759,6 +5744,7 @@
           };
 
           const set66 = new Set();
+          const log77 = new Map();
           // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
 
           const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
@@ -5856,7 +5842,23 @@
               }
 
             } else {
-              console.log(27306, a, b, c);
+
+              // a = circle, b = stroke-dasharray, c= "1.8422857142857143 32"
+              // ytp-ad-timed-pie-countdown-inner
+
+              if (typeof b === 'string') {
+
+                let m = log77.get(b);
+                if (!m) {
+                  m = [];
+                  console.log(27306, m);
+                  log77.set(b, m);
+                }
+                m.push([a, b, c]);
+
+              } else {
+                console.log(27306, a, b, c);
+              }
 
               attrUpdateFn.call(this, a, b, c);
               return;
