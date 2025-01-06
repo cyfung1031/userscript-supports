@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.22
+// @version             2.1.23
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -159,6 +159,7 @@
         let byPassNonFatalError = false;
         let skipPlayPause = 0;
         let byPassPublishPatch = false;
+        let dirtyMark = 1 | 2 | 4 | 8;
 
         const dmo = {};
         const qzk = Symbol();
@@ -622,9 +623,10 @@
         document.addEventListener('durationchange', (evt) => {
             const target = (evt || 0).target;
             if (!(target instanceof HTMLMediaElement)) return;
+            dirtyMark = 1 | 2 | 4 | 8;
+            target.__lastTouch582__ = Date.now();
             const targetClassList = target.classList || 0;
             const isPlayerVideo = typeof targetClassList.contains === 'function' ? targetClassList.contains('video-stream') && targetClassList.contains('html5-main-video') : false;
-            dirtyMark = 1 | 2 | 4 | 8;
             delayedUpdateStaticImage(target);
             if (durationchangeForMobile || isPlayerVideo) {
                 if (target.readyState !== 1) {
@@ -908,7 +910,6 @@
             const standardAppUT = new Set();
             const playerAppUT = new Set();
             const playerDapUT = new Set();
-            let dirtyMark = 1 | 2 | 4 | 8;
 
 
             let playerDapPTDone = false;
@@ -1040,7 +1041,7 @@
                             } else if (element.closest('[hidden]')) {
 
                             } else if (result === null && element.duration > 0) {
-                                possibleResults.push([p, element.duration, (element.paused?1:0)]);
+                                possibleResults.push([p, (element.__lastTouch582__ || 0), element.duration, (element.paused?1:0)]);
                                 // 3600 ads might be added
                             }
                         }
@@ -1051,9 +1052,13 @@
                     else {
                         possibleResults.sort((a, b) => {
 
-                            if (b[2] && !a[2]) return -1;
-                            if (!b[2] && a[2]) return 1;
-                            return (b[1] - a[1]);
+                            let t = (b[1] - a[1]);
+                            if (t < 360 && t > -360) t = 0;
+                            if (t > 0 || t < 0) return t;
+                            if (b[3] && !a[3]) return -1;
+                            if (!b[3] && a[3]) return 1;
+                            return (b[2] - a[2]); 
+
 
                         });
                         result = possibleResults[0][0];
@@ -1613,10 +1618,6 @@
                                 iaMedia.__publishStatus18__ = 0;
                             }
 
-                            byPassSync = false;
-                            skipPlayPause = 0;
-                            byPassNonFatalError = true;
-                            byPassPublishPatch = true;
 
                             dirtyMark = 1 | 2 | 4 | 8;
 
@@ -1683,6 +1684,8 @@
                                 const audio = dmo.getMediaElement();
 
                                 if (a === 'internalaudioformatchange' && typeof (b.author || 0) === 'string' && iaMedia) {
+                                    skipPlayPause = 0
+                                    playBusy = 0;
 
                                     kb = kb ? true : ((dmo.updateAtPublish && dmo.updateAtPublish(this)), true);
 
@@ -1700,10 +1703,10 @@
 
                                     console.log(`[yt-audio-only] publish (internalaudioformatchange, =>100)`);
                                     iaMedia.__publishStatus18__ = Date.now() + 240;
-                                    if (audio) {
-                                        if (audio[qzk] > 1e9) audio[qzk] = 9;
-                                        audio[qzk] = (audio[qzk] || 0) + 1;
-                                    }
+                                    // if (audio) {
+                                    //     if (audio[qzk] > 1e9) audio[qzk] = 9;
+                                    //     audio[qzk] = (audio[qzk] || 0) + 1;
+                                    // }
                                 }
 
 
@@ -1880,8 +1883,11 @@
                     if (!internalAppPT.setMediaElement661 && typeof internalAppPT.setMediaElement === 'function') {
                         internalAppPT.setMediaElement661 = internalAppPT.setMediaElement;
                         internalAppPT.setMediaElement = function (p) {
+                            dirtyMark = 1 | 2 | 4 | 8;
                             updateInternalAppFn(this);
                             console.log('setMediaElement', p)
+                            const mediaEm = p && key_mediaElementT ? p[key_mediaElementT] : null;
+                            if (mediaEm) mediaEm.__lastTouch582__ = Date.now();
                             delayedUpdateStaticImage(getMediaElement());
                             return this.setMediaElement661(...arguments);
                         }
@@ -2308,6 +2314,7 @@
 
                                 // between play02 and play03, < publish (***, duration>0, stateInt=3, =100, =>200) > should occur
                                 console.log(`[yt-audio-only] video.play03 {${lzt}}`, getPublishStatus17())
+                                
 
                                 if (!shouldWaitPublish()) {
                                     await delayPn(80);
@@ -2341,18 +2348,17 @@
                                     // allow case; would fall into (publishStatus1701 > 200 && publishStatus1701 < 300) case
                                 } else {
                                     if (stateObject.isOrWillBePlaying === false || stateObject.isPaused === true || stateObject.isEnded === true) {
-                                        console.log('[yt-audio-only] leave', stateObject)
-                                        if (publishStatus1701 === 300 && (await isLoadedW()) === true && !isAtLiveHead && !skipPlayPause && !byPassPublishPatch && !byPassNonFatalError) {
+                                        console.log('[yt-audio-only] leave 00', stateObject)
+                                        if (publishStatus1701 === 300 && (await isLoadedW()) === true && stateObject.isPaused && !stateObject.isOrWillBePlaying && !stateObject.isEnded && stateObject.isBuffering && !isAtLiveHead && !skipPlayPause && !byPassPublishPatch && !byPassNonFatalError) {
+                                            console.log('[yt-audio-only] leave 01', stateObject)
                                             if (lzt !== audio[qzk]) return;
+                                            console.log('[yt-audio-only] leave 02', stateObject)
                                             // guess - paused before. switching video -> remains paused status
-                                            byPassNonFatalError = true;
-                                            byPassPublishPatch = true;
-                                            skipPlayPause = 3;
+                                            
                                             await cancelPlayback();
+                                            await delayPn(80);
                                             await playVideo();
-                                            skipPlayPause = 0;
-                                            byPassNonFatalError = false;
-                                            byPassPublishPatch = false;
+                                           
                                         }
                                         return;
                                     }
