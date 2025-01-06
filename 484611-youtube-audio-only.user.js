@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.23
+// @version             2.1.24
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -562,7 +562,8 @@
 
             if (SHOW_VIDEO_STATIC_IMAGE) {
 
-                const medias = [...document.querySelectorAll('ytd-watch-flexy #player .html5-video-container .video-stream.html5-main-video')].filter(e => !e.closest('[hidden]'));
+                let medias = [...document.querySelectorAll('ytd-watch-flexy #player .html5-video-container .video-stream.html5-main-video')].filter(e => !e.closest('[hidden]'));
+                if(medias.length === 0) medias = [...document.querySelectorAll('ytd-watch-flexy .html5-video-container .video-stream.html5-main-video')].filter(e => !e.closest('[hidden]'));
                 if (medias.length !== 1) return;
                 const mediaElm = medias[0];
 
@@ -585,14 +586,16 @@
                     if (ytdPage && ytdPage.is === 'ytd-watch-flexy') {
                         const cnt = insp(ytdPage);
                         let thumbnails = null;
+                        let videoDetails = null;
                         try {
-                            thumbnails = insp(cnt).__data.playerData.videoDetails.thumbnail.thumbnails
+                            videoDetails = insp(cnt).__data.playerData.videoDetails;
+                            thumbnails = videoDetails.thumbnail.thumbnails;
                             // thumbnails = cnt.__data.watchNextData.playerOverlays.playerOverlayRenderer.autoplay.playerOverlayAutoplayRenderer.background.thumbnails
                         } catch (e) { }
 
                         thumbnailUrl = getThumbnailUrlFromThumbnails(thumbnails);
 
-                        if (videoId && thumbnailUrl && typeof thumbnailUrl === 'string') {
+                        if (videoId && thumbnailUrl && typeof thumbnailUrl === 'string' && videoId === videoDetails.videoId ) {
                             staticImageMap.set(videoId, thumbnailUrl);
                         }
 
