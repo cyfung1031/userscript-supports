@@ -1,18 +1,22 @@
 // ==UserScript==
-// @name            YouTube: Floating Chat Window on Fullscreen
-// @namespace       UserScript
-// @version         0.5.4
-// @license         MIT License
-// @author          CY Fung
-// @match           https://www.youtube.com/*
-// @exclude         /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
-// @description     To make floating chat window on fullscreen
-// @require         https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@8fac46500c5a916e6ed21149f6c25f8d1c56a6a3/library/ytZara.js
-// @run-at          document-start
-// @grant           none
+// @name                YouTube: Floating Chat Window on Fullscreen
+// @namespace           UserScript
+// @version             0.5.5
+// @license             MIT License
+// @author              CY Fung
+// @match               https://www.youtube.com/*
+// @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@8fac46500c5a916e6ed21149f6c25f8d1c56a6a3/library/ytZara.js
+// @run-at              document-start
+// @grant               none
 // @unwrap
-// @allFrames       true
-// @inject-into     page
+// @allFrames           true
+// @inject-into         page
+// @description         To make a floating chat window on fullscreen
+// @description:ja      フルスクリーンで浮動チャットウィンドウを表示する
+// @description:zh-TW   在全螢幕上顯示浮動聊天視窗
+// @description:zh-CN   在全屏上显示浮动聊天窗口
 // ==/UserScript==
 
 
@@ -27,6 +31,37 @@
 
     let c27 = 0;
     let mouseDownActiveElement = null;
+
+    /** @type {globalThis.PromiseConstructor} */
+    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+
+
+    const HTMLElement_ = HTMLElement;
+
+    /**
+     *  @param {Element} elm
+     * @param {string} selector
+     * @returns {Element | null}
+     *  */
+    const qsOne = (elm, selector) => {
+        return HTMLElement_.prototype.querySelector.call(elm, selector);
+    }
+
+    /**
+     *  @param {Element} elm
+     * @param {string} selector
+     * @returns {NodeListOf<Element>}
+     *  */
+    const qsAll = (elm, selector) => {
+        return HTMLElement_.prototype.querySelectorAll.call(elm, selector);
+    }
+
+
+    const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
+
+    const hkey_script = 'vdnvorrwsksy';
+    if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
+    win[hkey_script] = true;
 
     document.addEventListener('click', function (evt) {
 
@@ -111,16 +146,6 @@
         }
 
     }, { capture: true, passive: false });
-
-
-    const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
-
-    const hkey_script = 'vdnvorrwsksy';
-    if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
-    win[hkey_script] = true;
-
-    /** @type {globalThis.PromiseConstructor} */
-    const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
     const svgDefs = () => `
         <svg version="1.1" xmlns="//www.w3.org/2000/svg" xmlns:xlink="//www.w3.org/1999/xlink" style="display:none;">
@@ -628,32 +653,32 @@
         function moveWindow(e) {
 
             const chatWindow = kRef(chatWindowWR);
-            if (chatWindow) {
+            if (!chatWindow) return;
 
-                Promise.resolve(chatWindow).then(chatWindow => {
+            Promise.resolve(chatWindow).then(chatWindow => {
 
-                    let newX = initialLeft + e.pageX - startX;
-                    let newY = initialTop + e.pageY - startY;
+                let newX = initialLeft + e.pageX - startX;
+                let newY = initialTop + e.pageY - startY;
 
-                    if (Math.abs(e.pageX - startX) > 10 || Math.abs(e.pageY - startY) > 10) isMoved = true;
+                if (Math.abs(e.pageX - startX) > 10 || Math.abs(e.pageY - startY) > 10) isMoved = true;
 
-                    chatWindow.style.setProperty('--f3-left', newX + "px");
-                    chatWindow.style.setProperty('--f3-top', newY + "px");
+                chatWindow.style.setProperty('--f3-left', newX + "px");
+                chatWindow.style.setProperty('--f3-top', newY + "px");
 
-                    updateOpacity(chatWindow, {
-                        x: newX,
-                        y: newY,
-                        w: startWidth,
-                        h: startHeight,
-                    }, screen);
+                updateOpacity(chatWindow, {
+                    x: newX,
+                    y: newY,
+                    w: startWidth,
+                    h: startHeight,
+                }, screen);
 
-                });
+            });
 
-                e.stopImmediatePropagation();
-                e.stopPropagation();
-                e.preventDefault();
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
 
-            }
+
         }
 
 
@@ -681,7 +706,7 @@
             if (chatWindow) {
                 Promise.resolve(chatWindow).then(chatWindow => {
 
-                    let rect = chatWindow.getBoundingClientRect();
+                    const rect = chatWindow.getBoundingClientRect();
                     initialLeft = rect.x;
                     initialTop = rect.y;
 
@@ -865,83 +890,85 @@
         let iframeFullscreenChangedBinded = null;
 
         function onMessage(evt) {
-            if (evt.data === hkey_script) {
+            if (evt.data !== hkey_script) return;
 
-                const iframeWin = evt.source;
-                if (!iframeWin) return;
-                const iframeDoc = iframeWin.document;
+            const iframeWin = evt.source;
+            if (!iframeWin) return;
+            const iframeDoc = iframeWin.document;
 
-                function onReady() {
+            const intervalCheckFn = () => {
 
-                    iframeDoc.head.appendChild(document.createElement('style')).textContent = createStyleTextForIframe();
+                if (!activeStyle) return;
 
-                    const tm = document.createElement('template');
-                    tm.innerHTML = svgDefs();
-                    iframeDoc.body.appendChild(tm.content)
+                let xpathExpression = "//style[text()[contains(., 'userscript-control[floating-chat-iframe]')]]";
 
-                    if (iframeFullscreenChangedBinded) document.removeEventListener('fullscreenchange', iframeFullscreenChangedBinded, false);
-                    iframeFullscreenChangedBinded = iframeFullscreenChanged.bind(iframeDoc);
-                    document.addEventListener('fullscreenchange', iframeFullscreenChangedBinded, false);
+                // Evaluating the XPath expression and getting string value directly
+                let result = iframeDoc.evaluate(xpathExpression, iframeDoc, null, XPathResult.STRING_TYPE, null);
 
-                    iframeFullscreenChangedBinded();
+                let newText = result && result.stringValue ? result.stringValue : null;
 
-                    setInterval(() => {
+                if (newText !== _lastStyleText) {
+                    _lastStyleText = newText;
+                    // console.log(123)
 
-                        if (!activeStyle) return;
+                    let tid = ++tvc;
 
-                        let xpathExpression = "//style[text()[contains(., 'userscript-control[floating-chat-iframe]')]]";
+                    getRafPromise().then(() => {
 
-                        // Evaluating the XPath expression and getting string value directly
-                        let result = iframeDoc.evaluate(xpathExpression, iframeDoc, null, XPathResult.STRING_TYPE, null);
+                        if (tid !== tvc) return;
 
-                        let newText = result && result.stringValue ? result.stringValue : null;
+                        let style = iframeWin.getComputedStyle(iframeDoc.documentElement);
 
-                        if (newText !== _lastStyleText) {
-                            _lastStyleText = newText;
-                            // console.log(123)
+                        let fc = style.getPropertyValue('--floodcolor');
+                        if (fc) {
 
-                            let tid = ++tvc;
+                            let floodColor03 = iframeDoc.querySelector('#floodColor-03');
+                            floodColor03 && floodColor03.setAttribute('flood-color', fc);
 
-                            getRafPromise().then(() => {
+                            let floodColor04 = iframeDoc.querySelector('#floodColor-04');
+                            floodColor04 && floodColor04.setAttribute('flood-color', fc);
 
-                                if (tid !== tvc) return;
-
-                                let style = iframeWin.getComputedStyle(iframeDoc.documentElement);
-
-                                let fc = style.getPropertyValue('--floodcolor');
-                                if (fc) {
-
-                                    let floodColor03 = iframeDoc.querySelector('#floodColor-03');
-                                    floodColor03 && floodColor03.setAttribute('flood-color', fc);
-
-                                    let floodColor04 = iframeDoc.querySelector('#floodColor-04');
-                                    floodColor04 && floodColor04.setAttribute('flood-color', fc);
-
-                                    iframeDoc.documentElement.setAttribute('hpkns', '')
-                                } else {
-                                    iframeDoc.documentElement.removeAttribute('hpkns')
-
-                                }
-
-                            });
+                            iframeDoc.documentElement.setAttribute('hpkns', '')
+                        } else {
+                            iframeDoc.documentElement.removeAttribute('hpkns')
 
                         }
 
-                    }, 100);
+                    });
 
                 }
 
-                Promise.resolve().then(() => {
+            };
 
-                    if (iframeDoc.readyState !== 'loading') {
-                        onReady();
-                    } else {
-                        iframeWin.addEventListener("DOMContentLoaded", onReady, false);
-                    }
+            function onReady() {
 
-                });
+                iframeDoc.head.appendChild(document.createElement('style')).textContent = createStyleTextForIframe();
+
+                const tm = document.createElement('template');
+                tm.innerHTML = svgDefs();
+                iframeDoc.body.appendChild(tm.content)
+
+                if (iframeFullscreenChangedBinded) document.removeEventListener('fullscreenchange', iframeFullscreenChangedBinded, false);
+                iframeFullscreenChangedBinded = iframeFullscreenChanged.bind(iframeDoc);
+                document.addEventListener('fullscreenchange', iframeFullscreenChangedBinded, false);
+
+                iframeFullscreenChangedBinded();
+
+                setInterval(intervalCheckFn, 100);
 
             }
+
+            Promise.resolve().then(() => {
+
+                if (iframeDoc.readyState !== 'loading') {
+                    onReady();
+                } else {
+                    iframeWin.addEventListener("DOMContentLoaded", onReady, false);
+                }
+
+            });
+
+
 
         }
 
@@ -960,7 +987,7 @@
 
                 if (!chatWindowCnt) return;
 
-                const btn = HTMLElement.prototype.querySelector.call(chatWindow, '#show-hide-button[hidden]')
+                const btn = qsOne(chatWindow, '#show-hide-button[hidden]')
                 if (!btn) return;
 
                 if (btn && filteroutHidden(chatWindow)) {
@@ -980,7 +1007,7 @@
         function setChat(chat) {
 
             if (!(chat instanceof Element)) return;
-            let resizeHandle = HTMLElement.prototype.querySelector.call(chat, '.resize-handle')
+            let resizeHandle = qsOne(chat, '.resize-handle')
             if (resizeHandle) return;
 
             const chatDollar = insp(chat).$ || chat.$ || 0;
@@ -1041,8 +1068,8 @@
 
 
             chatWindow = chat;
-            showHideButton = (HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
-            showButton = (HTMLElement.prototype.querySelector.call(chat, '#show-button'));
+            showHideButton = (qsOne(chat, '#show-hide-button'));
+            showButton = (qsOne(chat, '#show-button'));
             chatWindowWR = mWeakRef(chat)
             showHideButtonWR = mWeakRef(showHideButton);
             showButtonWR = mWeakRef(showButton);
@@ -1084,7 +1111,7 @@
             else if (showHideButton) showHideButton.removeEventListener("mousedown", initializeMove, false);
 
 
-            let resizeHandle = HTMLElement.prototype.querySelector.call(chat, '.resize-handle')
+            let resizeHandle = qsOne(chat, '.resize-handle')
             if (resizeHandle) {
                 resizeHandle.remove();
             }
@@ -1092,8 +1119,8 @@
             chat.removeEventListener("mousedown", initializeResize, false);
 
 
-            showHideButton = (HTMLElement.prototype.querySelector.call(chat, '#show-hide-button'));
-            showButton = (HTMLElement.prototype.querySelector.call(chat, '#show-button'));
+            showHideButton = (qsOne(chat, '#show-hide-button'));
+            showButton = (qsOne(chat, '#show-button'));
 
             if (showHideButton) showHideButton.removeEventListener("mousedown", initializeMove, false);
             else if (showButton) showButton.removeEventListener("mousedown", initializeMove, false);
