@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.9
+// @version      0.7.10
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -62,7 +62,7 @@ SOFTWARE.
             if (listener.length === 0 && !listener.name) {
 
 
-                let s = listener + "";
+                let s = `${listener}`;
                 if (s.length >= 17 && s.length <= 19) {
                     return // ƒ (){a.Eh()} 18
                 } else if (s.length > 348 && s.indexOf(".getVisibilityState()") > 0) {

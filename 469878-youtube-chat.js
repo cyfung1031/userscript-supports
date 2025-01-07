@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.10
+// @version             0.67.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2003,7 +2003,7 @@
 
 
 
-  const assertor = (f) => f() || (console.assert(false, f + ""), false);
+  const assertor = (f) => f() || (console.assert(false, `${f}`), false);
 
   const fnIntegrity = (f, d) => {
 
@@ -10420,7 +10420,7 @@
           if (!cnt) return;
           if (e.timeStamp - e0.timeStamp > TAP_ACTION_DURATION) {
             cnt._onItemTap_isNonStationary = Date.now() + 40;
-          } else if ((window.getSelection() + "").trim().replace(/[\u2000-\u200a\u202f\u2800\u200B\u200C\u200D\uFEFF]+/g, '').length >= 1) {
+          } else if (`${window.getSelection()}`.trim().replace(/[\u2000-\u200a\u202f\u2800\u200B\u200C\u200D\uFEFF]+/g, '').length >= 1) {
             cnt._onItemTap_isNonStationary = Date.now() + 40;
           } else {
             const dx = e.clientX - e0.clientX;

@@ -28,7 +28,7 @@ SOFTWARE.
 // @namespace           UserScript
 // @match               https://www.youtube.com/*
 // @grant               none
-// @version             0.1.18
+// @version             0.1.19
 // @license             MIT License
 // @author              CY Fung
 // @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -147,7 +147,7 @@ SOFTWARE.
       }
 
 
-      const nativeConstructorCheck = ENABLE_NATIVE_CONSTRUCTOR_CHECK ? (o.constructor + "").indexOf('native code') > 0 : true;
+      const nativeConstructorCheck = ENABLE_NATIVE_CONSTRUCTOR_CHECK ? `${o.constructor}`.indexOf('native code') > 0 : true;
 
       if (p.startsWith('__shady_')) {
 
@@ -195,7 +195,7 @@ SOFTWARE.
       return defineProperty.call(this, o, p, opts);
     }
 
-    const asserter = (f) => Promise.resolve().then(() => console.assert(f(), f + ""));
+    const asserter = (f) => Promise.resolve().then(() => console.assert(f(), `${f}`));
 
     const setVJS = () => {
       if (window.Promise !== Promise) window.Promise = Promise;

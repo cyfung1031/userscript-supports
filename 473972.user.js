@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.16.24
+// @version     0.16.25
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -527,7 +527,7 @@
     // let matchNativeLen = matchNativeCode.length  - Object.name.length;
 
     // const matchConstructor = (thisArg) => {
-    //   const f = (thisArg || 0).constructor + "";
+    //   const f = `${(thisArg || 0).constructor}`;
     //   if (f.length > 45) return true;
     //   if (matchNativeCode1 && f.length - thisArg.constructor.name.length === matchNativeLen) {
     //     if (f.includes('[native code]')){
@@ -1409,7 +1409,7 @@
 
     const getCurrentSelectionText = () => {
       if (currentSelectionText !== null) return currentSelectionText
-      return (currentSelectionText = getSelection() + "")
+      return (currentSelectionText = `${getSelection()}`)
     }
 
     const pageMediaWatcher = () => {
@@ -3795,14 +3795,14 @@
   let headLinkCollection = null;
 
 
-  // const assertor = (f) => f() || console.assert(false, f + "");
+  // const assertor = (f) => f() || console.assert(false, `${f}`);
 
   const fnIntegrity = (f, d) => {
     if (!f || typeof f !== 'function') {
       console.warn('f is not a function', f);
       return;
     }
-    let p = f + "", s = 0, j = -1, w = 0;
+    let p = `${f}`, s = 0, j = -1, w = 0;
     for (let i = 0, l = p.length; i < l; i++) {
       const t = p[i];
       if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
@@ -3940,7 +3940,7 @@
       if (
         typeof v === 'function' && v.length === 3 && k.length < 3
       ) {
-        const vt = (v + "");
+        const vt = `${v}`;
         if (vt.length >= 21 && vt.includes(".style[")) {
           if (/\((\w{1,3}),(\w{1,3}),(\w{1,3})\)\{[\s\S]*\1\.style\[\2\]=\3\W/.test(vt)) {
             arr.push(k);
@@ -7330,7 +7330,7 @@
          */
 
         const xrequestAnimationFrame = function (f) {
-          const h = f + "";
+          const h = `${f}`;
           if (h.startsWith("function(){setTimeout(function(){") && h.endsWith("})}")) {
             let t = null;
             xsetTimeout.m511 = 1;

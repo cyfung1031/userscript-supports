@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Memory Leakage Script
-// @version             0.0.006
+// @version             0.0.007
 // @license             MIT
 // @namespace           UserScript
 // 1 @match               https://www.youtube.com/live_chat*
@@ -1499,8 +1499,8 @@
         return /function\s*\(.*?\).*?\{.*?\}/.test(text.trim().substring(1));
       }
 
-      const pdsFValue = pdsFull.filter(a => typeof a[1].value === 'function').filter(a => containTextFunction(`${a[1].value}`)).map(a => [a[0], a[1].value + "", a[1].value]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
-      const pdsFGet = pdsFull.filter(a => !a[1].value).filter(a => containTextFunction(`${a[1].get}`)).map(a => [a[0], a[1].get + "", a[1].get]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
+      const pdsFValue = pdsFull.filter(a => typeof a[1].value === 'function').filter(a => containTextFunction(`${a[1].value}`)).map(a => [a[0], `${a[1].value}`, a[1].value]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
+      const pdsFGet = pdsFull.filter(a => !a[1].value).filter(a => containTextFunction(`${a[1].get}`)).map(a => [a[0], `${a[1].get}`, a[1].get]).filter(a => SKIP_userscript_funcs ? `${a[1]}`.trim().indexOf('\n') < 0 : true);
 
 
       
@@ -1532,9 +1532,9 @@
 
         window.additionalPaidPds= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__)).filter(a=>additionalPaid.has(a[0]))
 
-        additionalPaidPds.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
+        additionalPaidPds.filter(a=>!a[1].value).filter(a=>`${a[1].get}`.substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
 
-        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
+        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>`${a[1].value}`.substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
 
 
 
@@ -1544,10 +1544,10 @@
 
           ;([]).concat(
           
-        m335.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
+        m335.filter(a=>!a[1].value).filter(a=>`${a[1].get}`.substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
           ).concat(
 
-        m335.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
+        m335.filter(a=>typeof a[1].value === 'function').filter(a=>`${a[1].value}`.substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
           )
 
       */
@@ -1579,9 +1579,9 @@
 
         window.additionalPaidPds= Object.entries(Object.getOwnPropertyDescriptors(document.createElement('yt-live-chat-paid-message-renderer').polymerController.__proto__)).filter(a=>additionalPaid.has(a[0]))
 
-        additionalPaidPds.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
+        additionalPaidPds.filter(a=>!a[1].value).filter(a=>`${a[1].get}`.substring(1).indexOf('function')>=0).map(a=>a[1].get+"")
 
-        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
+        additionalPaidPds.filter(a=>typeof a[1].value === 'function').filter(a=>`${a[1].value}`.substring(1).indexOf('function')>=0).map(a=>a[1].value+"")
 
 
 
@@ -1591,10 +1591,10 @@
 
           ;([]).concat(
           
-        m335.filter(a=>!a[1].value).filter(a=>(a[1].get + "").substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
+        m335.filter(a=>!a[1].value).filter(a=>`${a[1].get}`.substring(1).indexOf('function')>=0).map(a=> [a[0], a[1].get+""] )
           ).concat(
 
-        m335.filter(a=>typeof a[1].value === 'function').filter(a=>(a[1].value + "").substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
+        m335.filter(a=>typeof a[1].value === 'function').filter(a=>`${a[1].value}`.substring(1).indexOf('function')>=0).map(a=>[a[0], a[1].value+""])
           )
 
       */
