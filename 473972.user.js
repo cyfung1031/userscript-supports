@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.0
+// @version     0.17.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -144,6 +144,7 @@
   const DEBUG_DBR847 = false;
   const DEBUG_xx847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
+  const DEBUG_renderDebounceTs = true;
 
   /*
 
@@ -425,6 +426,23 @@
         });
       };
     }
+  }
+
+  const traceStack = (stack) => {
+    let result = new Set();
+    let p = new Set();
+    let u = ''
+    for (const s of stack.split('\n')) {
+      if (s.split(':').length < 3) continue;
+      let m = /(([\w-_\.]+):\d+:\d+)[^:\r\n]*/.exec(s);
+      if (!m) continue;
+      p.add(m[2]);
+      if (p.size >= 3) break;
+      if(!u) u = m[2];
+      else if(p.size === 2 && u && u=== m[2]) break;
+      result.add(s);
+    }
+    return [...result].join('\n');
   }
 
   if (FIX_bind_self_this && !Function.prototype.bind488 && !Function.prototype.bind588) {
@@ -871,6 +889,8 @@
     const s83 = Symbol();
     const s84 = Symbol();
     const s85 = Symbol();
+    const s85b = Symbol();
+    const s85c = Symbol();
 
     let renderDebounceTs = null;
 
@@ -885,6 +905,10 @@
 
       if (renderDebounceTs.size > 0) {
         console.warn('renderDebounceTs.size is incorect', renderDebounceTs.size);
+        try {
+          Polymer.flush();
+          return;
+        } catch (e) { }
       }
 
       renderDebouncePromise && Promise.resolve().then(() => {
@@ -1023,8 +1047,37 @@
             Set.prototype.add = w;
             if (u !== null) {
               renderDebounceTs = u;
-              // window.renderDebounceTs = renderDebounceTs
-              console.log('renderDebounceTs', renderDebounceTs);
+              if (DEBUG_renderDebounceTs) {
+                renderDebounceTs.add58438 = renderDebounceTs.add;
+                renderDebounceTs.add = function () {
+                  console.log('renderDebounceTs.add')
+                  console.log(traceStack((new Error()).stack))
+                  debugger;
+                  return this.add58438(...arguments)
+                }
+
+                renderDebounceTs.delete58438 = renderDebounceTs.delete;
+                renderDebounceTs.delete = function () {
+                  console.log('renderDebounceTs.delete')
+                  const stack = `${(new Error()).stack}`
+                  let isCallbackRemoval = false;
+                  if (stack) {
+                    let t = stack.replace(/[^\r\n]+renderDebounceTs\.delete[^\r\n]+/, '').replace('://','');
+                    const s = t.split(':');
+                    if (s.length === 3 && +s[1] > 0 && +s[2] > 0) {
+                      isCallbackRemoval = true;
+                    }
+                  }
+                  if (isCallbackRemoval) {
+                    return this.delete58438(...arguments)
+                  }
+                  console.log(traceStack((new Error()).stack))
+                  debugger;
+                  return this.delete58438(...arguments)
+                }
+              }
+              DEBUG_renderDebounceTs && (window.renderDebounceTs = renderDebounceTs);
+              console.log('renderDebounceTs', renderDebounceTs, `debug=${DEBUG_renderDebounceTs}`);
             }
           }
 
@@ -1213,7 +1266,7 @@
         this[s81] = nv;
         return true;
       }
-    })
+    });
 
 
     Object.defineProperty(Object.prototype, '__renderDebouncer', {
@@ -1331,8 +1384,31 @@
         this[s85] = nv;
         return true;
       }
+    });
+
+    // PS-DOM-REPEAT
+
+    Object.defineProperty(Object.prototype, 'JSC$10034_renderDebouncer', {
+      get() {
+        return this[s85b];
+      },
+      set(nv) {
+
+        this[s85b] = nv;
+        return true;
+      }
     })
 
+    Object.defineProperty(Object.prototype, 'JSC$10027_renderDebouncer', {
+      get() {
+        return this[s85c];
+      },
+      set(nv) {
+
+        this[s85c] = nv;
+        return true;
+      }
+    })
 
 
   })();
