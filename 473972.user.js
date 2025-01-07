@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.16.25
+// @version     0.17.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -137,7 +137,47 @@
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
 
 
+  const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
+  const FIX_DOM_IF_TEMPLATE = true;
+  // const FIX_DOM_REPEAT_TEMPLATE = true; // to be implemented
+  const FIX_DOM_IFREPEAT_RenderDebouncerChange = true; // semi-experimental (added in 0.17.0)
+  const DEBUG_DBR847 = false;
+  const DEBUG_xx847 = false;
+  const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
 
+  /*
+
+  FIX_DOM_IFREPEAT_RenderDebouncerChange
+
+  avoid Polymer.flush
+   // https://www.youtube.com/s/desktop/26a583e4/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+    var Is = function() {
+        do {
+            var a = window.ShadyDOM && ShadyDOM.flush();
+            window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush();
+            var b = NNa()
+        } while (a || b)
+    };
+
+    , NNa = function() {
+        var a = !!ts.size;
+        ts.forEach(function(b) {
+            try {
+                b.flush()
+            } catch (c) {
+                setTimeout(function() {
+                    throw c
+                })
+            }
+        });
+        return a
+    };
+
+    // why flush twice after all ts are completed? (!!ts.size => true => loop again)
+    // this coding logic should be incorrect (mistake).
+
+  */
 
 
 
@@ -265,6 +305,7 @@
   win[hkey_script] = true;
 
 
+  const [setTimeoutX0, clearTimeoutX0] = [setTimeout, clearTimeout];
 
   let BY_PASS_KEYBOARD_CONTROL = false;
 
@@ -369,6 +410,8 @@
 
   /** @type {(wr: Object | null) => Object | null} */
   const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
+
+  const isIterable = (obj) => (Symbol.iterator in Object_(obj));
 
   if (typeof Document.prototype.requestStorageAccessFor === 'function') {
     if (DENY_requestStorageAccess) {
@@ -783,6 +826,515 @@
         return child;
       }
     }
+  })();
+
+  FIX_DOM_IF_REPEAT && (() => {
+    // https://www.youtube.com/s/desktop/26a583e4/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+    // DOM-IF is still a core class of Polymer, so no polymerController is available.
+    // Be careful of the mixture of polymer functions and native Element functions
+    // Be careful of the coding design is different with the modern Yt elements
+
+
+    /*
+
+
+    function Ks(a, b, c) {
+        if (kj && !BOa(a))
+            throw Error("strictTemplatePolicy: template owner not trusted");
+        c = c || {};
+        if (a.__templatizeOwner)
+            throw Error("A <template> can only be templatized once");
+        a.__templatizeOwner = b;
+        var d = (b ? b.constructor : Js)._parseTemplate(a)
+          , e = d.templatizeInstanceClass;
+        e || (e = COa(a, d, c),
+        d.templatizeInstanceClass = e);
+        var g = BOa(a);
+        EOa(a, d, c, g);
+        c = function() {
+            return e.apply(this, arguments) || this
+        }
+        ;
+        h(c, e);
+        c.prototype._methodHost = g;
+        c.prototype.__dataHost = a;
+        c.prototype.__templatizeOwner = b;
+        c.prototype.__hostProps = d.hostProps;
+        return c
+    }
+
+    */
+
+    // Polymer.enqueueDebouncer
+
+    const s81 = Symbol();
+    const s83 = Symbol();
+    const s84 = Symbol();
+    const s85 = Symbol();
+
+    let renderDebounceTs = null;
+
+    let renderDebouncePromise = null;
+    let qp;
+
+    let cme = 0;
+
+    const shadyFlushMO = new MutationObserver(() => {
+
+      if (!renderDebounceTs) return;
+
+      if (renderDebounceTs.size > 0) {
+        console.warn('renderDebounceTs.size is incorect', renderDebounceTs.size);
+      }
+
+      renderDebouncePromise && Promise.resolve().then(() => {
+
+        if (renderDebouncePromise) {
+          renderDebouncePromise && renderDebouncePromise.resolve();
+          renderDebouncePromise = null;
+          DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by MutationObserver')
+        }
+
+      });
+
+      // Polymer.flush
+
+      window.ShadyDOM && ShadyDOM.flush();
+      window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush();
+
+
+    });
+
+    if (FIX_DOM_IFREPEAT_RenderDebouncerChange) {
+
+      const observablePromise = (proc, timeoutPromise) => {
+        let promise = null;
+        return {
+          obtain() {
+            if (!promise) {
+              promise = new Promise(resolve => {
+                let mo = null;
+                const f = () => {
+                  let t = proc();
+                  if (t) {
+                    mo.disconnect();
+                    mo.takeRecords();
+                    mo = null;
+                    resolve(t);
+                  }
+                }
+                mo = new MutationObserver(f);
+                mo.observe(document, { subtree: true, childList: true })
+                f();
+                timeoutPromise && timeoutPromise.then(() => {
+                  resolve(null)
+                });
+              });
+            }
+            return promise
+          }
+        }
+      }
+
+
+      let p = 0;
+      qp = observablePromise(() => {
+        if (!(p & 1)) {
+
+          if (window.ShadyDOM && ShadyDOM.flush) {
+            p |= 1;
+            if (!ShadyDOM.flush847) {
+
+              ShadyDOM.flush847 = ShadyDOM.flush;
+              ShadyDOM.flush = function () {
+
+                DEBUG_xx847 && console.log('xx847 ShadyDOM.flush')
+                renderDebouncePromise && Promise.resolve().then(() => {
+                  if (renderDebouncePromise) {
+
+                    renderDebouncePromise && renderDebouncePromise.resolve();
+                    renderDebouncePromise = null;
+
+                    DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by ShadyDOM.flush')
+
+                  }
+
+                });
+                let r = this.flush847(...arguments);
+                if (r) {
+                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
+                }
+                return r
+              }
+
+            }
+          }
+        }
+
+        if (!(p & 2)) {
+
+          if (window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush) {
+            p |= 2;
+            const ScopingShim = window.ShadyCSS && window.ShadyCSS.ScopingShim;
+            if (!ScopingShim.flush848) {
+
+              ScopingShim.flush848 = ScopingShim.flush;
+              ScopingShim.flush = function () {
+
+                DEBUG_xx847 && console.log('xx847 ScopingShim.flush')
+
+                renderDebouncePromise && Promise.resolve().then(() => {
+
+                  if (renderDebouncePromise) {
+
+                    renderDebouncePromise && renderDebouncePromise.resolve();
+                    renderDebouncePromise = null;
+
+                    DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by ScopingShim.flush')
+
+
+
+                  }
+
+                });
+                return this.flush848(...arguments);
+              }
+
+            }
+          }
+        }
+        if (p === 3) {
+          p |= 8;
+
+          let r = (window.ShadyDOM && ShadyDOM.flush && ShadyDOM.flush847
+            && window.ShadyCSS && window.ShadyCSS.ScopingShim &&
+            window.ShadyCSS.ScopingShim.flush && window.ShadyCSS.ScopingShim.flush848);
+
+          if (r) {
+            let w = Set.prototype.add;
+            let u = null;
+            Set.prototype.add = function () {
+              u = this;
+              throw new Error();
+            }
+            try {
+              Polymer.enqueueDebouncer()
+            } catch (e) { }
+            Set.prototype.add = w;
+            if (u !== null) {
+              renderDebounceTs = u;
+              // window.renderDebounceTs = renderDebounceTs
+              console.log('renderDebounceTs', renderDebounceTs);
+            }
+          }
+
+          return true;
+        }
+      })
+
+      // if(window.ShadyDOM && ShadyDOM.flush){
+      //   console.log('FIX_DOM_IF_RenderDebouncerChange X1')
+
+      // }
+      // if(window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush){
+
+      //   console.log('FIX_DOM_IF_RenderDebouncerChange X2')
+      // }
+
+      // console.log('FIX_DOM_IF_RenderDebouncerChange X3')
+
+    }
+
+    Object.defineProperty(Object.prototype, '_lastIf', {
+      get() {
+        return this[s81];
+      },
+      set(nv) {
+        if (nv === false && this.nodeName === "DOM-IF" && this.__renderDebouncer === null && this[s81] === undefined) {
+          // DOM-IF initialization
+          nv = null; // avoid (this.if == this._lastIf) primitive type conversion (object vs false)
+
+          this.__xiWB8__ = 2;
+
+          const cProto = this.__proto__;
+          if (cProto && !cProto.__xiWB7__) {
+            cProto.__xiWB7__ = 1;
+
+            // dom-if __template
+            // dom-repeat template
+            if (FIX_DOM_IF_TEMPLATE && !cProto.__template && !cProto.__template847) {
+              cProto.__template847 = true;
+              try {
+                // note: this is not "_template" in Polymer ( see POLYMER_COMPONENT_DEFINITION )
+                Object.defineProperty(cProto, '__template', {
+                  get() {
+                    const v = this[s84];
+                    return (typeof (v || 0) === 'object' && v.deref) ? kRef(v) : v;
+                  },
+                  set(nv) {
+                    if (typeof (nv || 0) === 'object' && !nv.deref) nv = mWeakRef(nv);
+                    this[s84] = nv;
+                    return true;
+                  }
+                });
+              } catch (e) {
+                console.warn(e);
+              }
+
+              console.log('FIX_DOM_IF - __template')
+            }
+
+            // dom-if __ensureTemplate
+            // dom-repeat __ensureTemplatized
+            if (FIX_DOM_IF_TEMPLATE && !cProto.__ensureTemplate847 && typeof cProto.__ensureTemplate === 'function' && cProto.__ensureTemplate.length === 0 && this instanceof HTMLElement && `${cProto.__ensureTemplate}`.length > 20) {
+              // note that "_templateInfo" diffs the different version of DOM-IF
+
+              cProto.__ensureTemplate847 = cProto.__ensureTemplate;
+              cProto.__ensureTemplate = function () {
+                if (!(this instanceof HTMLElement) || arguments.length > 0) return this.__ensureTemplate847(...arguments);
+                if (!this.__template) {
+                  let b;
+                  if (this._templateInfo) {
+                    b = this;
+                  } else {
+                    if (!this.__templateCollection011__) this.__templateCollection011__ = this.getElementsByTagName('template');
+                    b = this.__templateCollection011__[0];
+                    if (!b) {
+                      let a = mWeakRef(this);
+                      let c = new MutationObserver(function () {
+                        if (!this.__templateCollection011__[0]) throw Error("dom-if requires a <template> child"); // to be reviewed
+                        if (c && a) {
+                          c.disconnect();
+                          a = kRef(a);
+                          a && a.__render();
+                          a && (a.__templateCollection011__ = null);
+                        }
+                        c = null;
+                        a = null;
+                      });
+                      c && c.observe(this, {
+                        childList: !0
+                      });
+                      return !1
+                    } else {
+                      this.__templateCollection011__ = null;
+                    }
+                  }
+                  this.__template = b
+                }
+                return !0
+              }
+
+              console.log('FIX_DOM_IF - __ensureTemplate')
+
+            }
+
+
+            // if(!cProto.__createAndInsertInstance847 && typeof cProto.__createAndInsertInstance === 'function' && cProto.__createAndInsertInstance.length === 1 && `${cProto.__createAndInsertInstance}`.length >20){
+
+            //   cProto.__createAndInsertInstance847 = cProto.__createAndInsertInstance;
+
+            //   cProto.__createAndInsertInstance = function (a) {
+            //     Promise.resolve().then(()=>{
+            //       console.log('__createAndInsertInstance')
+            //       window.lm5 = window.lm5 || [];
+            //       window.lm5.push([mWeakRef(this), mWeakRef(this.__instance)])
+            //     });
+            //     return this.__createAndInsertInstance847(a); 
+            //   }
+
+            // }
+
+
+            // if(!cProto._bindTemplate847 && typeof cProto._bindTemplate === 'function' && cProto._bindTemplate.length === 2){
+
+            //   cProto._bindTemplate847 = cProto._bindTemplate;
+
+            //   cProto._bindTemplate = function (a, b) {
+            //     return this._bindTemplate847(kRef(a), b); // might throw Error as a -> null inside _bindTemplate847
+            //   }
+
+            // }
+            // if(!cProto._stampTemplate847 && typeof cProto._stampTemplate === 'function' && cProto._stampTemplate.length === 2){
+
+            //   cProto._stampTemplate847 = cProto._stampTemplate;
+
+            //   cProto._stampTemplate = function (a, b) {
+            //     return this._stampTemplate847(kRef(a), b); // might throw Error as a -> null inside _stampTemplate847
+            //   }
+
+            // }
+            console.log('FIX_DOM_IF OK', Object.keys(cProto))
+          }
+
+
+          // need to fix __observeEffects
+          // this.__observeEffects.if[0].info.method === this.__debounceRender
+          const f = () => {
+
+            const __observeEffects = this.__observeEffects;
+
+            if (__observeEffects && __observeEffects.if && isIterable(__observeEffects.if)) {
+              for (const effect of __observeEffects.if) {
+                const info = effect.info;
+                if (info && typeof info.method === 'function') {
+
+                  if (info.method === this.__debounceRender847 || info.method === this.__debounceRender) {
+                    info.method = FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME ? '__debounceRender' : this.__debounceRender;
+                  }
+
+                }
+              }
+            }
+
+
+            if (__observeEffects && __observeEffects.restamp && isIterable(__observeEffects.restamp)) {
+              for (const effect of __observeEffects.restamp) {
+                const info = effect.info;
+                if (info && typeof info.method === 'function') {
+
+                  if (info.method === this.__debounceRender847 || info.method === this.__debounceRender) {
+                    info.method = FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME ? '__debounceRender' : this.__debounceRender;
+                  }
+
+                }
+              }
+            }
+
+            // console.log(5881, this.__observeEffects)
+          }
+          if (FIX_DOM_IFREPEAT_RenderDebouncerChange) {
+            f();
+            Promise.resolve().then(f);
+            // afterward, don't care adding fn directly (the fn is already modified)
+          }
+
+        }
+        this[s81] = nv;
+        return true;
+      }
+    })
+
+
+    Object.defineProperty(Object.prototype, '__renderDebouncer', {
+      get() {
+        return this[s85];
+      },
+      set(nv) {
+        if (nv === null && this[s85] === undefined) {
+          // DOM-IF / DOM-REPEAT initialization
+
+
+          const cProto = this.__proto__;
+          if (qp) {
+            qp.obtain();
+            qp = null;
+            shadyFlushMO.observe(document.documentElement, { attributes: ['nw3a24np'] });
+          }
+          if (FIX_DOM_IFREPEAT_RenderDebouncerChange && !cProto.__debounceRender847 && typeof cProto.__debounceRender === 'function' && !(`${cProto.__debounceRender}`.includes("{}"))) {
+
+            cProto.__debounceRender847 = cProto.__debounceRender;
+
+            if (cProto.__debounceRender.length === 2) {
+
+              cProto.__debounceRender = function (a, b) {
+
+                if (!renderDebounceTs) return this.__debounceRender847(a, b);
+
+                b = b === void 0 ? 0 : b;
+
+                /*
+                        b = b === void 0 ? 0 : b;
+                        this.__renderDebouncer = us(this.__renderDebouncer, b > 0 ? Rr.after(b) : Tr, a.bind(this));
+                        vs(this.__renderDebouncer)
+                */
+
+                this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
+                if (!renderDebouncePromise) {
+                  renderDebouncePromise = new PromiseExternal();
+                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
+                }
+
+                renderDebouncePromise.then(async () => {
+                  if (b > 0) await delayPn(b);
+
+                  const f = this.__dsIRYqw1__;
+                  if (f === cme) return;
+                  this.__dsIRYqw1__ = cme;
+                  a.call(this);
+                  DEBUG_DBR847 && console.log(`__DBR847__ done 01 (delay=${b})`, this.__DBR848__)
+
+                });
+
+                DEBUG_DBR847 && console.log(`__DBR847__ add 01 (delay=${b})`, this.__DBR848__)
+              }
+
+            } else if (cProto.__debounceRender.length === 0) {
+
+
+              cProto.__debounceRender = function () {
+
+                if (!renderDebounceTs) return this.__debounceRender847();
+
+                this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                /*
+                        var a = this;
+                        this.__renderDebouncer = us(this.__renderDebouncer, Tr, function() {
+                            return a.__render()
+                        });
+                        vs(this.__renderDebouncer)
+                */
+
+                if (!renderDebouncePromise) {
+                  renderDebouncePromise = new PromiseExternal();
+                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
+                }
+                renderDebouncePromise.then(() => {
+                  const f = this.__dsIRYqw1__;
+                  if (f === cme) return;
+                  this.__dsIRYqw1__ = cme;
+                  this.__render()
+                  DEBUG_DBR847 && console.log('__DBR847__ done 02', this.__DBR848__)
+                });
+                DEBUG_DBR847 && console.log('__DBR847__ add 02', this.__DBR848__)
+
+
+              }
+            }
+          }
+
+
+
+          // if(FIX_DOM_IFREPEAT_RenderDebouncerChange && !cProto.render847 && typeof cProto.render === 'function' && cProto.render.length === 0 && !(`${cProto.render}`.includes("{}"))){
+          //   cProto.render847 = cProto.render;
+          //   cProto.render = function(){
+
+          //     this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+          //     try{
+          //       this.render847();
+          //     }catch(e){}
+          //     // if(this.__DBR847__){
+          //     //   this.__DBR847__.resolve();
+          //     //   DEBUG_DBR847 && console.log('__DBR847__ resolve', this.__DBR848__)
+          //     // }
+
+          //     // renderDebouncePromise && renderDebouncePromise.resolve()
+          //     // renderDebouncePromise = null;
+          //     // DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by render', this.__DBR848__)
+
+          //   }
+          //   console.log('FIX_DOM_IF - render', `${cProto.render847}`, cProto.render847)
+          // }
+
+        }
+        this[s85] = nv;
+        return true;
+      }
+    })
+
+
+
   })();
 
   // WEAKREF_ShadyDOM
