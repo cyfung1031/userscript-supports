@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.1
+// @version             0.2.2
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -164,7 +164,13 @@ SOFTWARE.
     }
 
 
+    setLength(n) {
+      W(this).length = n;
+    }
 
+    getLength(){
+      return this.length;
+    }
 
 
 
@@ -4823,7 +4829,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (messageList) {
           messageList.classList.remove('bst-listloaded');
           const solidBuild = messageList.solidBuild;
-          W(solidBuild).length = 0;
+          solidBuild.setLength(0);
         }
       }
       if (!activeItems_.length && !visibleItems.length) {
@@ -5199,7 +5205,7 @@ f.handleRemoveChatItemAction_ = function(a) {
               visibleItems.length = 0;
               if (messageList) {
                 const solidBuild = messageList.solidBuild;
-                W(solidBuild).length = 0;
+                solidBuild.setLength(0);
               }
             }
             activeItems_.splice(0, _addLen - maxItemsToDisplay);
