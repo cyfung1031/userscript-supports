@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.0
+// @version             0.2.1
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1979,10 +1979,27 @@ SOFTWARE.
 
   const { R, W } = (() => {
 
+    /*
     const sWrapper = (w) => {
       const [singalGet, singalSet] = createSignal(1);
       return function (e = 0) {
         e ? Promise.resolve(x => (x & 1073741823) + e).then(singalSet) : singalGet();
+        return w;
+      };
+    };
+    */
+
+    
+    const sWrapper = (w) => {
+      let u = 2;
+      const [singalGet, singalSet] = createSignal(1);
+      const p = (m) => singalSet(u); // first Promise
+      // const p = (m) => m === u && singalSet(u); // last Promise
+      // const p = (m) => singalSet(u + (m === u)); // first and last Promise
+      return function (e = 0) {
+        e
+          ? Promise.resolve((u = (u & 1073741823) + e)).then(p)
+          : singalGet();
         return w;
       };
     };
@@ -1996,13 +2013,13 @@ SOFTWARE.
     const W = (x) => {
       let valueOf = x.valueOf;
       if (valueOf === op.valueOf) valueOf = x.valueOf = sWrapper(x);
-      return valueOf(1);
+      return valueOf(3);
     }
     return { R, W };
 
   })();
-  // window.MMR = R;
-  // window.MMW = W;
+  window.MMR = R;
+  window.MMW = W;
 
 
   const MEMO = (obj, key, val) => {
@@ -2018,6 +2035,41 @@ SOFTWARE.
     } else {
       return (obj).valueOf[m]();
     }
+  }
+
+  const dsMapEmojiId = new WeakMap();
+
+  const dsMapEmojiIdInit = (tooltips, emoji, prefix)=>{
+
+    let emojiElementId = dsMapEmojiId.get(emoji);
+
+
+    if (!emojiElementId) {
+
+      emojiElementId = `${prefix}-${tooltips.size + 1}`;
+
+      dsMapEmojiId.set(emoji, emojiElementId);
+
+      tooltips.set(emojiElementId, {
+        displayedTooltipText: ''
+      });
+
+
+    } else {
+
+      if (!tooltips.get(emojiElementId)) {
+        tooltips.set(emojiElementId, {
+          displayedTooltipText: ''
+        });
+
+      }else{
+
+        tooltips.get(emojiElementId).displayedTooltipText = '';
+      }
+
+
+    }
+    return emojiElementId;
   }
 
   function getThumbnail(thumbnails, min, max) {
@@ -2119,7 +2171,7 @@ SOFTWARE.
         *
         */
 
-        if (ek.icon) {
+        if (ek.icon && typeof ek.icon === 'object') {
 
           const icon = ek.icon;
           const type = icon.iconType.toLowerCase();
@@ -2127,14 +2179,13 @@ SOFTWARE.
 
           } else {
 
-            const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
 
             const dataMutable = mutableWM.get(data);
             if (dataMutable) {
-              const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-              dataMutable.tooltips.set(badgeElementId, {
-                displayedTooltipText: ''
-              });
+
+              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+
+              const badgeElementId = dsMapEmojiIdInit(dataMutable.tooltips, ek.icon, 'badge');
 
               const displayedTooltipText = () => {
                 const dataMutable = mutableWM.get(data);
@@ -2158,7 +2209,7 @@ SOFTWARE.
           }
 
 
-        } else if (ek.customThumbnail) {
+        } else if ( typeof (ek.customThumbnail||0) === 'object' ) {
 
           // const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
           const className = `bst-author-badge`;
@@ -2167,10 +2218,8 @@ SOFTWARE.
           const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
           const dataMutable = mutableWM.get(data);
           if (dataMutable) {
-            const badgeElementId = `badge-${dataMutable.tooltips.size + 1}`;
-            dataMutable.tooltips.set(badgeElementId, {
-              displayedTooltipText: ''
-            });
+
+            const badgeElementId = dsMapEmojiIdInit(dataMutable.tooltips, ek.customThumbnail, 'badge');
 
             const displayedTooltipText = () => {
               const dataMutable = mutableWM.get(data);
@@ -2203,6 +2252,9 @@ SOFTWARE.
         return html`<span>${() => R(message).text}</span>`
       }
 
+
+
+      /*
       if (typeof message.emoji !== 'undefined') {
 
 
@@ -2239,6 +2291,53 @@ SOFTWARE.
         }
 
       }
+      */
+
+      
+      if (typeof message.emoji !== 'undefined' && typeof (message.emoji||0) === 'object') {
+
+
+        try {
+
+          const dataMutable = mutableWM.get(data);
+          if (dataMutable) {
+            const emoji = message.emoji;
+
+
+            const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+
+
+            const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
+            const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
+            const tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
+            const emojiId = () => emoji.emojiId || '';
+            const isCustomEmoji = () => emoji.isCustomEmoji || false;
+
+
+            const emojiElementId = dsMapEmojiIdInit(dataMutable.tooltips, emoji, 'emoji');
+
+ 
+
+            const displayedTooltipText = () => {
+              const dataMutable = mutableWM.get(data);
+              const emojiDataStore = dataMutable.tooltips.get(emojiElementId);
+              return R(emojiDataStore).displayedTooltipText
+            }
+
+            
+
+            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
+          } else {
+            return '';
+          }
+
+        } catch (e) {
+          console.warn(e);
+        }
+
+      }
+
+      
     }
   }
 
@@ -4284,6 +4383,7 @@ SOFTWARE.
 
     }
 
+
     function bst(prop) {
 
       if (prop === 'getUsername') {
@@ -4841,7 +4941,6 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     */
 
-    const eData = new WeakMap();
 
     function getUID(aObj) {
       return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
@@ -4873,11 +4972,12 @@ f.handleRemoveChatItemAction_ = function(a) {
       aObj.bst = bst;
 
       MEMO(aObj, 'messageObject353', () =>{
+        // need improvement
 
         const data = R(aObj);
         const m1 = MEMO(aObj, 'rendererFlag') === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
         const m2 = convertMessage(m1);
-        const m3 = m2.map(message => formatters.messageBody(message, data));
+        const m3 = m2.map(message => formatters.messageBody(message, data)); // memory leakage !!!!!!
 
         return m3;
       });
