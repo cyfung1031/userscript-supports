@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.11
+// @version             0.13.12
 // @license             MIT License
 
 // @author              CY Fung
@@ -3435,7 +3435,12 @@ const Object_ = Object;
                 console.log('no browseEndpoint can be found', tag);
             }
         } else {
-            console.log('no browseEndpoint can be found', (cnt || 0).is, 'NO DATA');
+            const is = (cnt || 0).is
+            if (is === 'ytd-guide-entry-renderer') {
+
+            } else {
+                console.log('no browseEndpoint can be found', is, 'NO DATA');
+            }
         }
         return null;
     };
