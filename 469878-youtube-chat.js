@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.12
+// @version             0.67.13
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -11522,124 +11522,122 @@
 
             cProto.onMouseOver_ = function (evt) {
 
-              const ct = Date.now();
-              if (lastShow + 18 > ct) return;
 
               const p = (evt || 0).target || 0;
-              if (p.nodeType === 1) {
-
-                if (wm.has(p)) {
-
-                  const cnt = insp(this);
-                  // console.log('12321', 1);
-                  // console.log('onMouseOver_ OK', evt.target, iwd);
-
-                  lastShow = ct;
-                  // document.createElement5872 = document.createElement;
-                  // document.createElement = createElement5873;
-                  // cnt.createTooltipIfRequired_();
-                  // document.createElement = document.createElement5872; 
+              if (p.nodeType === 1 && wm.has(p)) {
 
 
-                  // if(CS.__shady_parentNode){
-                  //   __shady_native_appendChild.call(CS.__shady_parentNode, CS);
-                  // }
-                  // console.log(193, CS.parentNode, CS.__shady_parentNode)
+                const ct = Date.now();
+                if (lastShow + 18 > ct) return;
+
+                const cnt = insp(this);
+                // console.log('12321', 1);
+                // console.log('onMouseOver_ OK', evt.target, iwd);
+
+                lastShow = ct;
+                // document.createElement5872 = document.createElement;
+                // document.createElement = createElement5873;
+                // cnt.createTooltipIfRequired_();
+                // document.createElement = document.createElement5872; 
 
 
-                  // const y1 = document.createElement('img')
-                  // y1.setAttribute('shared-tooltip-text', 'x')
-                  // const y2 = document.createElement('div')
-                  // y2.appendChild(y1);
-                  // cnt.onMouseOver37_.call(this, {
-                  //   target: y1
-                  // });
-
-                  // const a = p;
-                  // const b = p.getAttribute("shared-tooltip-text");
-                  // const c = p.parentNode;
-                  // const d = p.id;
-
-                  try {
-
-                    cnt.onMouseOver37_.call(this, evt);
-                  } catch (e) {
-                    console.warn(e);
-                  }
-
-                  //       CS.remove();
-                  //       CS.root = null;
-                  //       CS.for = null;
-                  //       CS.data = {};
-                  //       CS.offset = 8;
-                  //       CS.fitToVisibleBounds = !0;
-
-                  //       console.log('12321', 2);
-
-                  // if(CS.parentElement!==p || CS.for !== d){
-                  //   // let q = CS.parentNode;
-                  //   // q && q.removeChild(CS);
-
-                  //   // CS.textContent = b;
-                  //   // c.appendChild(CS);
-                  //   CS.for = d;
-                  //   CS.animationDelay = cnt.sharedTooltipAnimationDelay;
-                  //   CS.position = cnt.sharedTooltipPosition;
+                // if(CS.__shady_parentNode){
+                //   __shady_native_appendChild.call(CS.__shady_parentNode, CS);
+                // }
+                // console.log(193, CS.parentNode, CS.__shady_parentNode)
 
 
-                  // }
+                // const y1 = document.createElement('img')
+                // y1.setAttribute('shared-tooltip-text', 'x')
+                // const y2 = document.createElement('div')
+                // y2.appendChild(y1);
+                // cnt.onMouseOver37_.call(this, {
+                //   target: y1
+                // });
 
+                // const a = p;
+                // const b = p.getAttribute("shared-tooltip-text");
+                // const c = p.parentNode;
+                // const d = p.id;
 
-                  //       console.log('12321', 3);
+                try {
 
-
-
-                  //       // HTMLElement.prototype.removeChild8572 = HTMLElement.prototype.removeChild;
-                  // // HTMLElement.prototype.removeChild = removeChild8573
-                  // // try{
-
-                  // //   cnt.onMouseOver37_.call(this, evt);
-                  // // }catch(e){
-                  // //   if(e&&e.code === 8 && e.name==='NotFoundError'){
-
-                  // //     console.warn(e)
-                  // //     debugger;
-
-                  // //   }else{
-                  // //     throw e;
-                  // //   }
-                  // // }
-
-
-                  //       let evt_ = {
-                  //         target: p
-                  //       }
-
-                  //       if (CS._showing) CS.hide();
-                  //       try {
-                  //         CS.hide();
-                  //       } catch (e) { }
-
-                  //       console.log('12321', 4);
-                  //       try{
-
-                  //         cnt.onMouseOver37_.call(this, evt_);
-                  //       }catch(e){}
-
-                  //       setTimeout(() => {
-                  //         console.log('12321', CS._showing);
-                  //         if (!CS._showing) {
-
-                  //           cnt.onMouseOver37_.call(this, evt_);
-
-                  //         }
-                  //       }, 100);
-
-
-
-                  // HTMLElement.prototype.removeChild = HTMLElement.prototype.removeChild8572;
-
+                  cnt.onMouseOver37_.call(this, evt);
+                } catch (e) {
+                  console.warn(e);
                 }
+
+                //       CS.remove();
+                //       CS.root = null;
+                //       CS.for = null;
+                //       CS.data = {};
+                //       CS.offset = 8;
+                //       CS.fitToVisibleBounds = !0;
+
+                //       console.log('12321', 2);
+
+                // if(CS.parentElement!==p || CS.for !== d){
+                //   // let q = CS.parentNode;
+                //   // q && q.removeChild(CS);
+
+                //   // CS.textContent = b;
+                //   // c.appendChild(CS);
+                //   CS.for = d;
+                //   CS.animationDelay = cnt.sharedTooltipAnimationDelay;
+                //   CS.position = cnt.sharedTooltipPosition;
+
+
+                // }
+
+
+                //       console.log('12321', 3);
+
+
+
+                //       // HTMLElement.prototype.removeChild8572 = HTMLElement.prototype.removeChild;
+                // // HTMLElement.prototype.removeChild = removeChild8573
+                // // try{
+
+                // //   cnt.onMouseOver37_.call(this, evt);
+                // // }catch(e){
+                // //   if(e&&e.code === 8 && e.name==='NotFoundError'){
+
+                // //     console.warn(e)
+                // //     debugger;
+
+                // //   }else{
+                // //     throw e;
+                // //   }
+                // // }
+
+
+                //       let evt_ = {
+                //         target: p
+                //       }
+
+                //       if (CS._showing) CS.hide();
+                //       try {
+                //         CS.hide();
+                //       } catch (e) { }
+
+                //       console.log('12321', 4);
+                //       try{
+
+                //         cnt.onMouseOver37_.call(this, evt_);
+                //       }catch(e){}
+
+                //       setTimeout(() => {
+                //         console.log('12321', CS._showing);
+                //         if (!CS._showing) {
+
+                //           cnt.onMouseOver37_.call(this, evt_);
+
+                //         }
+                //       }, 100);
+
+
+
+                // HTMLElement.prototype.removeChild = HTMLElement.prototype.removeChild8572;
 
                 // cnt.onMouseOver37_.call(this, evt);
               }
