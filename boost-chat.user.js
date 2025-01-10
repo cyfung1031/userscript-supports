@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.2
+// @version             0.2.3
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -114,6 +114,18 @@ SOFTWARE.
       }
     };
   })();
+
+  if (!HTMLElement.prototype.getAttribute23751 && !HTMLElement.prototype.getAttribute23752 && typeof HTMLElement.prototype.getAttribute === 'function') {
+
+    HTMLElement.prototype.getAttribute23751 = HTMLElement.prototype.getAttribute;
+    HTMLElement.prototype.getAttribute23752 = function (x) {
+      if (x === 'shared-tooltip-text') {
+        return null;
+      }
+      return this.getAttribute23751(x)
+    };
+
+  }
 
   const isCtrl = (e) => !!((e.ctrlKey && !e.metaKey) || (!e.ctrlKey && e.metaKey));
   const isAlt = (e) => !!(e.altKey);
@@ -2024,58 +2036,44 @@ SOFTWARE.
     return { R, W };
 
   })();
+
   window.MMR = R;
   window.MMW = W;
 
+  const memoStore = new WeakMap();
+
+
+
 
   const MEMO = (obj, key, val) => {
-    const m = `__memo$$${key}$$__`;
-    if (val === null) {
-      obj.valueOf[m] = null;
-    } else if (val) {
-      if (!(m in obj.valueOf)) {
-        W(obj).valueOf[m] = createMemo(val);
+    const m = `${key}`;
+    if (!key) {
+      if (key === null) {
+        memoStore.delete(obj);
       } else {
-        console.warn('duplicated MEMO');
+        return memoStore.get(obj);
       }
-    } else {
-      return (obj).valueOf[m]();
     }
-  }
-
-  const dsMapEmojiId = new WeakMap();
-
-  const dsMapEmojiIdInit = (tooltips, emoji, prefix)=>{
-
-    let emojiElementId = dsMapEmojiId.get(emoji);
-
-
-    if (!emojiElementId) {
-
-      emojiElementId = `${prefix}-${tooltips.size + 1}`;
-
-      dsMapEmojiId.set(emoji, emojiElementId);
-
-      tooltips.set(emojiElementId, {
-        displayedTooltipText: ''
-      });
-
-
-    } else {
-
-      if (!tooltips.get(emojiElementId)) {
-        tooltips.set(emojiElementId, {
-          displayedTooltipText: ''
-        });
-
-      }else{
-
-        tooltips.get(emojiElementId).displayedTooltipText = '';
+    if (val === null) {
+      let s = memoStore.get(obj);
+      if (s && s[m]) s[m] = null;
+    } else if (val) {
+      let s = memoStore.get(obj);
+      if (!s) memoStore.set(obj, s = {});
+      if (!s[m]) {
+        s[m] = createMemo(val);
+      } else {
+        console.warn('MEMO setter: duplicated');
       }
-
-
+      return s[m];
+    } else {
+      let s = memoStore.get(obj);
+      let r = s ? s[m] : null;
+      if (!r) {
+        console.warn('MEMO getter: duplicated');
+      }
+      return r;
     }
-    return emojiElementId;
   }
 
   function getThumbnail(thumbnails, min, max) {
@@ -2115,7 +2113,7 @@ SOFTWARE.
       aObj.bst = bst;
 
  
-      MEMO(aObj, 'messageObject353', () =>{
+      MEMO(aObj, 'messageXT', () =>{
  
       });
 
@@ -2130,7 +2128,9 @@ SOFTWARE.
 
     MEMO(o, 'authorName', null); 
 
-    MEMO(o, 'messageObject353', null);
+    MEMO(o, 'messageXT', null);
+
+    MEMO(o, null);
 
     const dataMutable = mutableWM.get(o);
     dataMutable && dataMutable.removeEntry();
@@ -2185,31 +2185,30 @@ SOFTWARE.
 
           } else {
 
+ 
 
-            const dataMutable = mutableWM.get(data);
-            if (dataMutable) {
-
-              const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-
-              const badgeElementId = dsMapEmojiIdInit(dataMutable.tooltips, ek.icon, 'badge');
-
-              const displayedTooltipText = () => {
-                const dataMutable = mutableWM.get(data);
-                const emojiDataStore = dataMutable.tooltips.get(badgeElementId);
-                return R(emojiDataStore).displayedTooltipText
-              }
-
-              const onYtIconCreated = (el) => {
+              let tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+              
+              let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+              let elmWR = null;
+              let onYtIconCreated = (el) => {
                 const cnt = insp(el);
                 cnt.icon = "live-chat-badges:" + type;
                 _setAttribute.call(el, 'icon-type', type);
-                _setAttribute.call(el, 'shared-tooltip-text', tooltipText());
+                tooltipText = tooltipText();
+                _setAttribute.call(el, 'shared-tooltip-text', tooltipText);
+                tooltipDisplaySet(tooltipText);
+                if (el.getAttribute23752) {
+                  el.getAttribute = el.getAttribute23752;
+                }
+                elmWR = mWeakRef(el);
               }
-              return html`<yt-icon id="${() => badgeElementId}" class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-
-            } else {
-              return '';
-            }
+              onCleanup(() => {
+                elmWR = null;
+                tooltipDisplay = tooltipDisplaySet = onYtIconCreated = null;
+              })
+              return html`<yt-icon class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
+ 
 
 
           }
@@ -2221,22 +2220,29 @@ SOFTWARE.
           const className = `bst-author-badge`;
           const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
           const alt = () => ek.accessibility?.accessibilityData?.label || '';
-          const tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-          const dataMutable = mutableWM.get(data);
-          if (dataMutable) {
+    
 
-            const badgeElementId = dsMapEmojiIdInit(dataMutable.tooltips, ek.customThumbnail, 'badge');
 
-            const displayedTooltipText = () => {
-              const dataMutable = mutableWM.get(data);
-              const emojiDataStore = dataMutable.tooltips.get(badgeElementId);
-              return R(emojiDataStore).displayedTooltipText
+
+          let tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
+
+          let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+          let elmWR = null;
+          let onImgCreated = (el) => {
+            tooltipText = tooltipText();
+            tooltipDisplaySet(tooltipText);
+            if (el.getAttribute23752) {
+              el.getAttribute = el.getAttribute23752;
             }
-
-            return html`<img id="${badgeElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-          } else {
-            return '';
+            elmWR = mWeakRef(el);
           }
+          onCleanup(()=>{
+            tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+          });
+          return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
+
+
+
 
 
         }
@@ -2246,105 +2252,68 @@ SOFTWARE.
         console.warn(e);
       }
 
-    },
-    messageBody(message, data) {
-
-      if (typeof message === 'string') return html`<span>${() => message}</span>`
-      if (typeof message.text === 'string') {
-        if (message.navigationEndpoint?.urlEndpoint?.url) {
-          const urlEndpoint = message.navigationEndpoint.urlEndpoint;
-          return html`<a href="${() => R(urlEndpoint).url}" rel="${() => R(urlEndpoint).nofollow === true ? 'nofollow' : null}" target="${() => R(urlEndpoint).target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => R(message).text}</span>`
-        }
-        return html`<span>${() => R(message).text}</span>`
-      }
-
-
-
-      /*
-      if (typeof message.emoji !== 'undefined') {
-
-
-        try {
-          const emoji = message.emoji;
-
-          const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-          const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
-          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
-          const tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
-          const emojiId = () => emoji.emojiId || '';
-          const isCustomEmoji = () => emoji.isCustomEmoji || false;
-          const dataMutable = mutableWM.get(data);
-          if (dataMutable) {
-            const emojiElementId = `emoji-${dataMutable.tooltips.size + 1}`;
-            
-            dataMutable.tooltips.set(emojiElementId, {
-              displayedTooltipText: ''
-            });
-
-            const displayedTooltipText = () => {
-              const dataMutable = mutableWM.get(data);
-              const emojiDataStore = dataMutable.tooltips.get(emojiElementId);
-              return R(emojiDataStore).displayedTooltipText
-            }
-
-            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-          } else {
-            return '';
-          }
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-      }
-      */
-
-      
-      if (typeof message.emoji !== 'undefined' && typeof (message.emoji||0) === 'object') {
-
-
-        try {
-
-          const dataMutable = mutableWM.get(data);
-          if (dataMutable) {
-            const emoji = message.emoji;
-
-
-            const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-
-
-            const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
-            const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
-            const tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
-            const emojiId = () => emoji.emojiId || '';
-            const isCustomEmoji = () => emoji.isCustomEmoji || false;
-
-
-            const emojiElementId = dsMapEmojiIdInit(dataMutable.tooltips, emoji, 'emoji');
-
- 
-
-            const displayedTooltipText = () => {
-              const dataMutable = mutableWM.get(data);
-              const emojiDataStore = dataMutable.tooltips.get(emojiElementId);
-              return R(emojiDataStore).displayedTooltipText
-            }
-
-            
-
-            return html`<img id="${emojiElementId}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${displayedTooltipText}</bst-tooltip>`
-          } else {
-            return '';
-          }
-
-        } catch (e) {
-          console.warn(e);
-        }
-
-      }
-
-      
     }
+    // messageBody(message, data) {
+
+    //   if (typeof message === 'string') return html`<span>${() => message}</span>`
+    //   if (typeof message.text === 'string') {
+    //     if (message.navigationEndpoint?.urlEndpoint?.url) {
+    //       const urlEndpoint = message.navigationEndpoint.urlEndpoint;
+    //       return html`<a href="${() => R(urlEndpoint).url}" rel="${() => R(urlEndpoint).nofollow === true ? 'nofollow' : null}" target="${() => R(urlEndpoint).target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => R(message).text}</span>`
+    //     }
+    //     return html`<span>${() => R(message).text}</span>`
+    //   }
+
+
+
+      
+    //   if (typeof message.emoji !== 'undefined' && typeof (message.emoji||0) === 'object') {
+
+
+    //     try {
+ 
+    //         const emoji = message.emoji;
+
+
+    //         const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+
+
+    //         const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
+    //         const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
+    //         let tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
+    //         const emojiId = () => emoji.emojiId || '';
+    //         const isCustomEmoji = () => emoji.isCustomEmoji || false;
+
+
+
+
+
+
+    //         let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+    //         let elmWR = null;
+    //         let onImgCreated = (el) => {
+    //           tooltipText = tooltipText();
+    //           tooltipDisplaySet(tooltipText);
+    //           if (el.getAttribute23752) {
+    //             el.getAttribute = el.getAttribute23752;
+    //           }
+    //           elmWR = mWeakRef(el);
+    //         }
+    //         onCleanup(()=>{
+    //           tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+    //         });
+    //         return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
+  
+   
+
+    //     } catch (e) {
+    //       console.warn(e);
+    //     }
+
+    //   }
+
+      
+    // }
   }
 
   let sharedButtonViewModel = null;
@@ -2395,9 +2364,10 @@ SOFTWARE.
   }
   
 
-  const SolidBeforeContentButton0 = (data) => {
+  const SolidBeforeContentButton0 = (props) => {
 
     const onButtonContainerCreated = (div) => {
+      let data = props.entryData;
 
       if (!sharedNoscript) return;
       const beforeContentButtons = data.beforeContentButtons;
@@ -2419,6 +2389,10 @@ SOFTWARE.
       insp(modelNode).data = bvData;
 
       div.appendChild(modelNode);
+
+      data = null;
+      props = null;
+      div = null;
 
     };
     return html`
@@ -2557,9 +2531,12 @@ SOFTWARE.
 
 
   };
-  const SolidMenuList = (items) => {
+  const SolidMenuList = (props) => {
+
 
     const onSolidMenuListCreated = (div) => {
+
+      let items = props.items;
       /*
 
       if (!sharedNoscript) return;
@@ -2608,8 +2585,8 @@ SOFTWARE.
       onSolidMenuListCreated_(items, div, ytLiveChatAppCnt);
 
       // div.appendChild(ytdMenu);
-
-      items = null;
+      data = null;
+      props = null;
       div = null;
 
     };
@@ -2619,13 +2596,480 @@ SOFTWARE.
     `
   };
 
+  const replaceAll = String.prototype.replaceAll ? function (str, pattern, replacement) {
+    return str.replaceAll(pattern, replacement);
+  } : function (str, search, replace) {
+    if (typeof search === 'string') {
+      return str.split(search).join(replace);
+    } else if (search instanceof RegExp) {
+      const newRegExp = new RegExp(search.source, search.flags + 'g');
+      return str.replace(newRegExp, replace);
+    }
+    throw new TypeError('The search argument must be a string or a RegExp');
+  };
+  const emojiIdSymbol = Symbol();
+  const messageFlattenIcons = new Map();
 
-  const SolidMessageList = (sb, profileCard) => {
+  const messageUnflatten = (str) => {
+
+    const b1 = String.fromCharCode(0xE274);
+    let p = str.includes(`${b1}@`);
+    return str.split(`${b1};`).map(s => {
+
+      const r = s.split(`${b1},`);
+      if (p && s.includes(`${b1}@`)) {
+        for (let i = 0; i < r.length; i++) {
+          r[i] = r[i].replace(`${b1}@`, `${b1}`);
+        }
+
+      }
+      return r;
+
+    });
+
+  }
+  let fixMessages = null;
+  const messageFlatten = (message)=>{
+
+    // E${b1}${emojiId}${b2}T${b1}${text}${b2}E${b1}${emojiId}
+
+    let runs = null;
+
+    let t;
+    if (typeof (message || 0) !== 'object') runs= [];
+    else if ((t = message.simpleText) && typeof t === 'string') {
+      runs = [{ text: t }];
+    } else if ((t = message.runs) && t.length >= 0) {
+      runs = t;
+    } else {
+      runs = [];
+    }
+
+    fixMessages && (runs = fixMessages(runs));
+
+    const resultArr = new Array(runs.length);
+    let i = 0;
+    const b1 = String.fromCharCode(0xE274);
+
+    for(const run of runs){
+
+      const wKey = typeof run.text ==='string' ? 'text' : firstObjectKey(run);
+
+      const wVal = wKey ? run[wKey]: null;
+
+    
+      if(wKey === 'emoji' && typeof wVal === 'object'){
+        
+        let emojiId =  wVal[emojiIdSymbol] || wVal.emojiId;
+        if(typeof (emojiId||0) !== 'string'){
+          emojiId = wVal[emojiIdSymbol] = `$$${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+        }
+        let iconStored = messageFlattenIcons.get(emojiId);
+        if(!iconStored){
+          messageFlattenIcons.set(emojiId, iconStored = wVal);
+        }
+
+        if(emojiId.includes(b1)){
+          // invalid. just skip
+          console.warn('Error 0481', run);
+        }else{
+          t = `E${b1},${emojiId}`;
+          resultArr[i++] = t
+        }
+       
+
+
+      }else if(wKey === 'text' && typeof wVal === 'string'){
+
+
+
+        t = wVal;
+        if (t.includes(b1)) {
+          t = replaceAll(t, b1, `${b1}@`);
+        }
+
+        const urlEndpoint = run.navigationEndpoint?.urlEndpoint;
+        const url =urlEndpoint?.url;
+        if(url){
+
+          const { nofollow, target } = urlEndpoint;
+          t = `T${b1},${t}${b1},A${b1},${url}${b1},${nofollow || ''}${b1},${target || ''}`;
+        }else{
+          t=`T${b1},${t}`;
+        }
+        resultArr[i++] = t;
+      }else{
+        console.warn('Error 0482', run);
+      }
+    }
+
+
+    resultArr.length = i;
+    return resultArr.join(`${b1};`);
+
+
+
+
+/*
+[
+    {
+        "text": "大好き"
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/M72iZYbCHr2k_9EP9fGUmAo",
+            "shortcuts": [
+                ":_にぱぁ:",
+                ":にぱぁ:"
+            ],
+            "searchTerms": [
+                "_にぱぁ",
+                "にぱぁ"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/4Q8_RUaekNbE6XTkylSGx2IEbXp7OalBZB7IDLu_zGT0tyDjY8Mi8zTfS4f6CE1mN0Us0_nm=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "にぱぁ"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    }
+]
+
+*/
+
+/*
+
+[
+    {
+        "emoji": {
+            "emojiId": "🌭",
+            "shortcuts": [
+                ":hot_dog:"
+            ],
+            "searchTerms": [
+                "hot",
+                "dog"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/1f32d/72.png"
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "🌭"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "🧜‍♀",
+            "shortcuts": [
+                ":mermaid:"
+            ],
+            "searchTerms": [
+                "mermaid"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/1f9dc_200d_2640/72.png"
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "🧜‍♀"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "🥖",
+            "shortcuts": [
+                ":baguette_bread:"
+            ],
+            "searchTerms": [
+                "baguette",
+                "bread"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/1f956/72.png"
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "🥖"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "💗",
+            "shortcuts": [
+                ":growing_heart:",
+                ":heartpulse:"
+            ],
+            "searchTerms": [
+                "growing",
+                "heart",
+                "heartpulse"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/1f497/72.png"
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "💗"
+                    }
+                }
+            }
+        }
+    }
+]
+
+
+
+
+[
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/lf4nZJyyLYnWgwODzpuQBA",
+            "shortcuts": [
+                ":_ペンライト:",
+                ":ペンライト:"
+            ],
+            "searchTerms": [
+                "_ペンライト",
+                "ペンライト"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/qFvk19WffG348lFrdIk2ACLc8tn5_OIqyNINCfHCjz83vl1z8ITziwKIxOD06skW_aHQHAwWk0M=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "ペンライト"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/M72iZbzDHr2k_9EP9fGUmAo",
+            "shortcuts": [
+                ":_クラッチ:",
+                ":クラッチ:"
+            ],
+            "searchTerms": [
+                "_クラッチ",
+                "クラッチ"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/Oi2sH_kWkyq4_dJbdsYKyTA68sZsCtYqq58_cfwmf2NHgq5_-lEyiOQW6myBhFnIBCiSWqSMYvY=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "クラッチ"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/M72iZenDHr2k_9EP9fGUmAo",
+            "shortcuts": [
+                ":_ゲーミングペンライト:",
+                ":ゲーミングペンライト:"
+            ],
+            "searchTerms": [
+                "_ゲーミングペンライト",
+                "ゲーミングペンライト"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/mFhN5NK8Qm-Lu_QN3iTukx--9_hfHs_C3GTpoQzUdyc3JwwCXGtJ0ffuPWvL4rY67nCfRgZ5T-U=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "ゲーミングペンライト"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/lf4nZJyyLYnWgwODzpuQBA",
+            "shortcuts": [
+                ":_ペンライト:",
+                ":ペンライト:"
+            ],
+            "searchTerms": [
+                "_ペンライト",
+                "ペンライト"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/qFvk19WffG348lFrdIk2ACLc8tn5_OIqyNINCfHCjz83vl1z8ITziwKIxOD06skW_aHQHAwWk0M=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "ペンライト"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/M72iZbzDHr2k_9EP9fGUmAo",
+            "shortcuts": [
+                ":_クラッチ:",
+                ":クラッチ:"
+            ],
+            "searchTerms": [
+                "_クラッチ",
+                "クラッチ"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/Oi2sH_kWkyq4_dJbdsYKyTA68sZsCtYqq58_cfwmf2NHgq5_-lEyiOQW6myBhFnIBCiSWqSMYvY=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "クラッチ"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    },
+    {
+        "emoji": {
+            "emojiId": "UCz1RAeb7dVaUcd-4rEgyxPw/M72iZenDHr2k_9EP9fGUmAo",
+            "shortcuts": [
+                ":_ゲーミングペンライト:",
+                ":ゲーミングペンライト:"
+            ],
+            "searchTerms": [
+                "_ゲーミングペンライト",
+                "ゲーミングペンライト"
+            ],
+            "image": {
+                "thumbnails": [
+                    {
+                        "url": "https://yt3.ggpht.com/mFhN5NK8Qm-Lu_QN3iTukx--9_hfHs_C3GTpoQzUdyc3JwwCXGtJ0ffuPWvL4rY67nCfRgZ5T-U=w48-h48-c-k-nd",
+                        "width": 48,
+                        "height": 48
+                    }
+                ],
+                "accessibility": {
+                    "accessibilityData": {
+                        "label": "ゲーミングペンライト"
+                    }
+                }
+            },
+            "isCustomEmoji": true
+        }
+    }
+]
+
+
+*/
+
+
+    console.log(message);
+  }
+
+
+  const SolidMessageTextTags = window.SolidMessageTextTags = new Set();
+
+  const SolidMessageListEntry = (props) =>{
+
+    const aKey = props.data.aKey;
+    switch (aKey) { // performance concern? (1.5ms)
+      case 'liveChatViewerEngagementMessageRenderer':
+        return SolidSystemMessage(props);
+      case 'liveChatPaidMessageRenderer':
+        return SolidPaidMessage(props);
+      case 'liveChatMembershipItemRenderer':
+        return SolidMembershipMessage(props);
+      case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
+        return SolidGiftText(props);
+      case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
+        return SolidSponsorshipPurchase(props);
+      case 'liveChatPaidStickerRenderer':
+        /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
+        /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
+        return SolidPaidSticker(props);
+      case 'liveChatPlaceholderItemRenderer':
+        return SolidMessagePlaceHolder(props);
+      case 'liveChatTextMessageRenderer':
+      default:
+        // uww = true;
+        SolidMessageTextTags.add(aKey);
+        if (SolidMessageTextTags.size > 1) {
+          console.warn(`SolidMessageTextTags: ${[...SolidMessageTextTags].join(', ')}`);
+        }
+        return SolidMessageText(props); // liveChatTextMessageRenderer
+    }
+
+  }
+
+  const SolidMessageList = (sb) => {
 
     onCleanup(()=>{
       // console.log('SolidMessageList cleanup 0001')
       sb= null;
-      profileCard =null;
     });
  
 
@@ -2655,7 +3099,6 @@ SOFTWARE.
       <${For} each=(${() => R(sb)})>${(qItem) => {
 
         
-
         const wKey = qItem ? firstObjectKey(qItem) : '';
         const wItem = wKey ? qItem[wKey] : null;
         let item = wItem ? R(wItem) : null;
@@ -2675,28 +3118,10 @@ SOFTWARE.
           eItem.convert();
 
           eItem = null;
+ 
 
-          switch (item.aKey) { // performance concern? (1.5ms)
-            case 'liveChatViewerEngagementMessageRenderer':
-              return SolidSystemMessage(item);
-            case 'liveChatPaidMessageRenderer':
-              return SolidPaidMessage(item);
-            case 'liveChatMembershipItemRenderer':
-              return SolidMembershipMessage(item);
-            case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
-              return SolidGiftText(item);
-            case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
-              return SolidSponsorshipPurchase(item);
-            case 'liveChatPaidStickerRenderer':
-              /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
-              /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
-              return SolidPaidSticker(item);
-            case 'liveChatPlaceholderItemRenderer':
-              return SolidMessagePlaceHolder(item);
-            default:
-              // uww = true;
-              return SolidMessageText(item); // liveChatTextMessageRenderer
-          }
+
+          return html`<${SolidMessageListEntry} data=(${()=>item}) />`;
 
         }
 
@@ -2708,7 +3133,94 @@ SOFTWARE.
   }
 
 
-  const SolidSystemMessage = (data) => {
+
+  const SolidMessageRenderer = (props) =>{
+
+    const data = props.entryData;
+    const messageXT = R(data).bst('messageXM');
+
+    return html`<${For} each=(${() => messageXT()})>${(arr=>{
+
+      // console.log(1338, arr)
+      const [p1, v1, p2,v2, ...args] = arr;
+
+      // console.log(21392, p1,v1,p2,v2, ...args)
+      if(p1 === 'T'){
+        
+        if(p2 === 'A' && v2){
+          
+          const text = v1;
+          const url = v2;
+          const [nofollow, target] = args;
+
+          
+
+
+          return html`<a href="${() =>url}" rel="${() => nofollow === 'true' ? 'nofollow' : null}" target="${() => target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => text}</span>`
+
+        }
+        
+        return html`<span>${() => v1}</span>`;
+
+
+
+      }else if(p1 === 'E'){
+        const emojiId = v1;
+  
+        const emoji = messageFlattenIcons.get(emojiId);
+        if(emoji){
+
+
+          try {
+  
+ 
+
+              const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
+
+
+              const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
+              const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
+              let tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
+              const emojiId = () => emoji.emojiId || '';
+              const isCustomEmoji = () => emoji.isCustomEmoji || false;
+
+
+
+
+              let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+              let elmWR = null;
+              let onImgCreated = (el) => {
+                tooltipText = tooltipText();
+                tooltipDisplaySet(tooltipText);
+                if (el.getAttribute23752) {
+                  el.getAttribute = el.getAttribute23752;
+                }
+                elmWR = mWeakRef(el);
+              }
+              onCleanup(()=>{
+                tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+              });
+              return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
+    
+     
+
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+      }
+      
+      return '';
+
+    })}
+    <//>`
+
+  }
+
+  const SolidSystemMessage = (props) => {
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     const dataMutable = mutableWM.get(data);
@@ -2733,7 +3245,7 @@ SOFTWARE.
 
     onCleanup(() => {
       removeEntry(data)
-      data = null;
+      props = data = null; 
       p =null;
       icon = null;
     });
@@ -2747,16 +3259,16 @@ SOFTWARE.
     <${Show} when=(${() => !!icon})>${() => {
         return p();
       }}<//>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -2765,16 +3277,18 @@ SOFTWARE.
   }
 
 
-  const SolidPaidMessage = (data) => {
+  const SolidPaidMessage = (props) => {
+
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
 
 
-
-
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
     return html`
@@ -2797,16 +3311,16 @@ SOFTWARE.
     </div>
     <div class="bst-paid-amount">${() => convertYTtext(R(data).purchaseAmountText)}</div>
     </div>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -2814,12 +3328,15 @@ SOFTWARE.
 `;
   };
 
-  const SolidMembershipMessage = (data) => {
+  const SolidMembershipMessage = (props) => {
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
     return html`
@@ -2850,7 +3367,7 @@ SOFTWARE.
     </div>
     <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
     </div>
   </div>
@@ -2860,9 +3377,7 @@ SOFTWARE.
       <div class="bst-message-entry-highlight"></div>
       <div class="bst-message-entry-line">
         <div class="bst-message-body">
-        <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-            return message;
-          }}<//>
+        <${SolidMessageRenderer} entryData=(${()=>data}) />
         </div>
       </div>
     </div>
@@ -2875,12 +3390,15 @@ SOFTWARE.
 
 
 
-  const SolidGiftText = (data) => {
+  const SolidGiftText = (props) => {
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
     return html`
@@ -2902,16 +3420,16 @@ SOFTWARE.
         </div>
       </div>
     </div>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -2922,12 +3440,16 @@ SOFTWARE.
 
 
 
-  const SolidSponsorshipPurchase = (data) => {
+  const SolidSponsorshipPurchase = (props) => {
+
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null;
     });
 
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
@@ -2952,16 +3474,16 @@ SOFTWARE.
         </div>
       </div>
     </div>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -2969,13 +3491,14 @@ SOFTWARE.
 `;
   };
 
-  const SolidPaidSticker = (data) => {
+  const SolidPaidSticker = (props) => {
     /* https://www.youtube.com/live/BDjEOkw_iOA?si=CGG7boBJvfT2KLFT&t=6636 */
 
+    let data = props.data
 
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
 
@@ -2999,16 +3522,16 @@ SOFTWARE.
       </div>
       <div class="bst-paid-amount">${() => convertYTtext(R(data).purchaseAmountText)}</div>
     </div>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -3018,14 +3541,19 @@ SOFTWARE.
 
 
 
-  const SolidMessageText = (data) => {
+  const SolidMessageText = (props) => {
+
+
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
 
       // console.log('SolidMessageText cleanup 2001', data.uid !== null)
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
     return html`
@@ -3052,16 +3580,16 @@ SOFTWARE.
       </div>
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
-    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>${() => SolidBeforeContentButton0(data)}<//>
+    <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
+    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${For} each=(${() => R(data).bst('messages')})>${(message) => {
-        return message;
-      }}<//>
+    <${SolidMessageRenderer} entryData=(${()=>data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
   <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => SolidMenuList(R(menuRenderObj).menuListXd())}
+      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
   <//>
   </div>
   </div>
@@ -3069,12 +3597,15 @@ SOFTWARE.
 `;
   };
 
-  const SolidMessagePlaceHolder = (data) => {
+  const SolidMessagePlaceHolder = (props) => {
 
+    let data = props.data;
+
+    const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     onCleanup(() => {
       removeEntry(data)
-      data = null; 
+      props = data = null; 
     });
 
     return html`<bst-live-chat-placeholder ref="${mutableWM.get(data).setupFn}"></bst-live-chat-placeholder>`;
@@ -3322,6 +3853,7 @@ SOFTWARE.
 
   }
 
+  
 
 
   createEffect(() => {
@@ -3336,6 +3868,7 @@ SOFTWARE.
 
   const [entryHolding, entryHoldingChange] = createSignal("");
   const [mf, mfChange] = createSignal("");
+  const [tooltipTarget, tooltipTargetChange] = createSignal(null);
   let mouseActionP = null;
   let noFlushTP = false;
 
@@ -3362,18 +3895,18 @@ SOFTWARE.
         break;
       case 'img':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
-        text = el.getAttribute('shared-tooltip-text') || el.getAttribute('alt') || '';
+        text = el.getAttribute23751('shared-tooltip-text') || el.getAttribute23751('alt') || '';
         break;
       case 'area':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
-        text = el.getAttribute('alt') || '';
+        text = el.getAttribute23751('alt') || '';
         break;
       case 'input':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
         if (
-          (el.getAttribute('type') && el.getAttribute('type').toLowerCase() == 'image')
+          (el.getAttribute23751('type') && el.getAttribute23751('type').toLowerCase() == 'image')
         ) {
-          text = el.getAttribute('alt') || '';
+          text = el.getAttribute23751('alt') || '';
           break;
         }
       default:
@@ -3670,37 +4203,29 @@ SOFTWARE.
 
 
       messageList.profileCard = profileCard;
-      render(SolidMessageList.bind(null, solidBuild, profileCard), messageList);
+      render(SolidMessageList.bind(null, solidBuild), messageList);
 
       addMessageOverflowAnchorToShadow.call(this, attachRoot);
 
       {
 
         let mouseEntered = null;
-        const getTooltip = (emojiElement) => {
-          const entry = emojiElement ? emojiElement.closest('.bst-message-entry') : null;
-          const dataMutable = entry ? mutableWM.get(entry) : null;
-          return dataMutable ? dataMutable.tooltips.get(emojiElement.id) : null;
-        }
-        const leaveEmoji = (emojiElement) => {
 
-          const tooltip = getTooltip(emojiElement);
-          if (tooltip) {
-            W(tooltip).displayedTooltipText = '';
-          }
-        }
+
+
         messageList.addEventListener('mouseenter', function (evt) {
+
+          const target = evt?.target; 
+
+
           if (mouseEntered) {
-            leaveEmoji(mouseEntered)
+            tooltipTargetChange(null)
             mouseEntered = null;
-          }
-          const target = evt.target;
+          } 
           if ((target instanceof HTMLImageElement) || (target instanceof HTMLElement && target.nodeName === 'YT-ICON')) {
             if (target.hasAttribute('shared-tooltip-text')) {
               mouseEntered = target;
-              const emojiElement = target;
-              const tooltip = getTooltip(emojiElement);
-              W(tooltip).displayedTooltipText = emojiElement.getAttribute('shared-tooltip-text');
+              tooltipTargetChange(mWeakRef(target)); 
               evt.stopPropagation();
               evt.stopImmediatePropagation();
               return;
@@ -3708,14 +4233,16 @@ SOFTWARE.
           }
 
 
-        }, true)
+        }, true);
         messageList.addEventListener('mouseleave', function (evt) {
-          const target = evt.target;
+
+
+          const target = evt?.target;
+
           if (target === mouseEntered && mouseEntered) {
             mouseEntered = null;
-
-            const emojiElement = target;
-            leaveEmoji(emojiElement);
+ 
+            tooltipTargetChange(null);
 
 
             // console.log(12, evt.target.getAttribute('shared-tooltip-text'))
@@ -4250,7 +4777,7 @@ SOFTWARE.
 
 
     function getAuthor(o) {
-      if (MEMO(o, 'rendererFlag') === 1) {
+      if (MEMO(o, 'rendererFlag')() === 1) {
         return o?.header?.liveChatSponsorshipsHeaderRenderer;
       }
       return o;
@@ -4287,7 +4814,7 @@ SOFTWARE.
       return null;
     }
 
-    const fixMessages = (messages) => {
+    fixMessages = (messages) => {
 
       const cnt = messageList?.getInputRendererCnt() || null;
       if (!cnt) return messages;
@@ -4394,20 +4921,20 @@ SOFTWARE.
 
       if (prop === 'getUsername') {
         
-        return MEMO(this, 'authorName');
+        return MEMO(this, 'authorName')();
       } else if (prop === 'hasMessageBody') {
 
-        const message = MEMO(this, 'rendererFlag') === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
+        const message = MEMO(this, 'rendererFlag')() === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
         if (typeof (message || 0) !== 'object') return false;
         if (message.simpleText) return true;
 
         const runs = message.runs;
         return runs && runs.length && runs[0];
 
-      } else if (prop === 'messages') {
+      } else if(prop === 'messageXM'){
 
-        return MEMO(this, 'messageObject353');
-
+        return MEMO(this, 'messageXM');
+      
       } else if (prop === 'authorBadges') {
 
 
@@ -4963,13 +5490,13 @@ f.handleRemoveChatItemAction_ = function(a) {
 
       if (aKey && typeof aKey === 'string') W(aObj).aKey = aKey;
 
-      MEMO(aObj, 'rendererFlag', ()=>{
+      const rendererFlag = MEMO(aObj, 'rendererFlag', ()=>{
         if(R(aObj).aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
         return 0;
       });
 
       MEMO(aObj, 'authorName', () => {
-        const dx = R(aObj) && MEMO(aObj, 'rendererFlag') === 1 ? aObj.header?.liveChatSponsorshipsHeaderRenderer : aObj
+        const dx = R(aObj) && rendererFlag() === 1 ? aObj.header?.liveChatSponsorshipsHeaderRenderer : aObj
         return convertYTtext(dx.authorName);
       });
  
@@ -4977,16 +5504,19 @@ f.handleRemoveChatItemAction_ = function(a) {
       aObj.getStickerURL = getStickerURL;
       aObj.bst = bst;
 
-      MEMO(aObj, 'messageObject353', () =>{
-        // need improvement
-
+      const messageXT = createMemo(()=>{
         const data = R(aObj);
-        const m1 = MEMO(aObj, 'rendererFlag') === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
-        const m2 = convertMessage(m1);
-        const m3 = m2.map(message => formatters.messageBody(message, data)); // memory leakage !!!!!!
+        const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
+        return messageFlatten(m1);
+      })
 
-        return m3;
-      });
+      MEMO(aObj, 'messageXM', () =>{
+        const str = messageXT();
+        return messageUnflatten(str);
+      })
+
+
+
 
 
     }
