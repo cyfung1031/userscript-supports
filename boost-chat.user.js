@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.3
+// @version             0.2.4
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -57,6 +57,7 @@ SOFTWARE.
 
   // ----------------------------------------------------------------------------------------------------------
 
+  /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
 
@@ -2046,14 +2047,15 @@ SOFTWARE.
 
 
   const MEMO = (obj, key, val) => {
-    const m = `${key}`;
-    if (!key) {
-      if (key === null) {
-        memoStore.delete(obj);
-      } else {
-        return memoStore.get(obj);
-      }
+
+    if (key === null) {
+      memoStore.delete(obj);
+      return;
+    } else if (!key) {
+      return memoStore.get(obj);
     }
+
+    const m = `${key}`;
     if (val === null) {
       let s = memoStore.get(obj);
       if (s && s[m]) s[m] = null;
