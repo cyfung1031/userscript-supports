@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.11
+// @version             0.67.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -132,7 +132,7 @@
   const SKIP_VIDEO_PLAYBACK_PROGRESS_STATE_FIX_FOR_NO_TIMEFX = false; // debug use; yt-live-chat-ticker-renderer might not require ENABLE_VIDEO_PLAYBACK_PROGRESS_STATE_FIX
   // << end >>
 
-  const FIX_TOOLTIP_DISPLAY = true;                       // changed in 2024.05.02
+  const FIX_TOOLTIP_DISPLAY = true;                       // changed in 2024.05.02; updated in 2025.01.10
   const USE_VANILLA_DEREF = true;
   const FIX_DROPDOWN_DERAF = true;                        // DONT CHANGE
 
@@ -201,6 +201,8 @@
   const REACTION_ANIMATION_PANEL_CSS_FIX = true;
 
   const FIX_UNKNOWN_BUG_FOR_OVERLAY = true;       // no .prepare() in backdrop element. reason is unknown.
+
+  const FIX_MOUSEOVER_FN = true;  // avoid onMouseOver_ being triggerd quite a lot
 
   // -------------------------------
 
@@ -1556,6 +1558,9 @@
   const setIntervalX0 = setInterval;
   const clearIntervalX0 = clearInterval;
 
+  const __shady_native_appendChild = HTMLElement.prototype.__shady_native_appendChild || HTMLElement.prototype.appendChild;
+  const __shady_native_removeChild = HTMLElement.prototype.__shady_native_removeChild || HTMLElement.prototype.removeChild;
+
   const isEmptyObject = (obj) => {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) return false;
@@ -2325,6 +2330,18 @@
   let getLCRDummyP_ = null;
   // lcrPromiseFn
   const getLCRDummy = () => {
+
+    /* remarks */
+
+    /*
+
+    // YouTube uses `<ps-dom-if class="style-scope ytd-live-chat-frame"><template></template></ps-dom-if>` to create yt-live-chat-renderer
+    // <ps-dom-if> is located inside ytd-live-chat-frame#chat in main frame
+    // <ps-dom-if>.hostElement is located as iframe's yt-live-chat-app > div#contents > yt-live-chat-renderer
+
+    */
+
+
     // direct createElement or createComponent_ will make the emoji rendering crashed. reason TBC
 
     return getLCRDummyP_ || (getLCRDummyP_ = Promise.all([customElements.whenDefined('yt-live-chat-app'), customElements.whenDefined('yt-live-chat-renderer')]).then(async () => {
@@ -9983,8 +10000,11 @@
                   */
                   Object.defineProperty(eProto, 'target', {
                     get() {
-                      let a = this.parentNode, b = this.getRootNode();
-                      return (this.for ? b.querySelector("#" + this.for) : a)
+                      const cnt = insp(this);
+                      const hostElement = cnt.hostElement || cnt;
+                      let a = hostElement.parentNode, b = hostElement.getRootNode();
+                      const fr = cnt.for || hostElement.for;
+                      return (fr ? b.querySelector("#" + fr) : a)
                     }
                   })
                 }
@@ -10008,6 +10028,37 @@
               if (typeof tooltipInitProps.for === 'string') EU['for'] = tooltipInitProps.for; else delete EU.for;
             } catch (e) { }
           }
+
+          // 2025.01.10 fix
+          const CS = EU;
+          if (!CS._showing && CS.__shady_parentNode && CS.__shady_parentNode !== CS.parentNode) {
+            if (CS.__shady_parentNode) {
+              try {
+                CS.__shady_parentNode.__shady_removeChild(CS);
+              } catch (e) { }
+            }
+            if (CS.__shady_parentNode) {
+              try {
+                CS.__shady_parentNode.removeChild(CS);
+              } catch (e) { }
+            }
+            if (CS.__shady_parentNode) {
+              try {
+                CS.__shady_parentNode.__shady_native_removeChild(CS);
+              } catch (e) { }
+            }
+            if (CS.__shady_parentNode) {
+              try {
+                __shady_native_removeChild.call(CS.__shady_parentNode, CS);
+              } catch (e) { }
+            }
+            if (CS.parentNode && !CS.__shady_parentNode) {
+              try {
+                __shady_native_removeChild.call(CS.parentNode, CS);
+              } catch (e) { }
+            }
+          }
+
           return r;
         };
 
@@ -11384,7 +11435,248 @@
 
       });
 
+      FIX_MOUSEOVER_FN && (() => {
 
+        // this is to show tooltip for emoji
+
+
+        let lastShow = 0;
+
+        const wm = new WeakSet();
+        const mo1 = new MutationObserver((mutations) => {
+
+          for (const p of document.querySelectorAll('[shared-tooltip-text]:not([__a6cwm__])')) {
+            p.setAttribute('__a6cwm__', '');
+          }
+
+        });
+        mo1.observe(document, { subtree: true, attributes: true, attributeFilter: ['shared-tooltip-text'], childList: true });
+
+        const mo2 = new MutationObserver((mutations) => {
+
+          for (const mutation of mutations) {
+            const p = mutation.target;
+            if (mutation.attributeName) {
+              if (p.getAttribute('shared-tooltip-text')) { // allow hack
+                wm.add(p);
+                for (const e of p.getElementsByTagName('*')) {
+                  wm.add(e);
+                }
+              } else {
+                if (wm.has(p)) {
+                  wm.remove(p);
+                  for (const e of p.getElementsByTagName('*')) {
+                    wm.remove(e);
+                  }
+                }
+              }
+            }
+          }
+        });
+        mo2.observe(document, { subtree: true, attributes: true, attributeFilter: ['__a6cwm__', 'shared-tooltip-text'], childList: false });
+
+
+        let done = 0;
+        // lcrFn2 will run twice to ensure the method is successfully injected.
+        const lcrFn2 = (lcrDummy) => {
+          // make minimal function overhead by pre-defining all possible outside.
+
+          const tag = "yt-live-chat-renderer"
+          const dummy = lcrDummy;
+
+          const cProto = getProto(dummy);
+          if (!cProto || !cProto.attached) {
+            console.warn(`proto.attached for ${tag} is unavailable.`);
+            return;
+          }
+
+          // mightFirstCheckOnYtInit();
+          // groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-renderer hacks");
+          // console.log("[Begin]");
+
+
+
+          if (done !== 1 && typeof cProto.onMouseOver_ === 'function' && !cProto.onMouseOver37_ && typeof cProto.createTooltipIfRequired_ === 'function' && cProto.createTooltipIfRequired_.length === 0) {
+
+            done = 1;
+            const onMouseOver37_ = cProto.onMouseOver37_ = cProto.onMouseOver_;
+            // let iwd = 0;
+
+            // const removeChild8573 = function(...args){
+            //   try{
+            //     return this.removeChild8572(...args)
+            //   }catch(e){
+            //     console.warn(e)
+            //     debugger;
+            //   }
+            // };
+
+            // let CS = null;
+
+
+
+            // const createElement5873 = function(a){
+            //   window.CS199= CS = document.createElement5872(a);
+            //   return CS;
+            // }
+
+            cProto.onMouseOver_ = function (evt) {
+
+              const ct = Date.now();
+              if (lastShow + 18 > ct) return;
+
+              const p = (evt || 0).target || 0;
+              if (p.nodeType === 1) {
+
+                if (wm.has(p)) {
+
+                  const cnt = insp(this);
+                  // console.log('12321', 1);
+                  // console.log('onMouseOver_ OK', evt.target, iwd);
+
+                  lastShow = ct;
+                  // document.createElement5872 = document.createElement;
+                  // document.createElement = createElement5873;
+                  // cnt.createTooltipIfRequired_();
+                  // document.createElement = document.createElement5872; 
+
+
+                  // if(CS.__shady_parentNode){
+                  //   __shady_native_appendChild.call(CS.__shady_parentNode, CS);
+                  // }
+                  // console.log(193, CS.parentNode, CS.__shady_parentNode)
+
+
+                  // const y1 = document.createElement('img')
+                  // y1.setAttribute('shared-tooltip-text', 'x')
+                  // const y2 = document.createElement('div')
+                  // y2.appendChild(y1);
+                  // cnt.onMouseOver37_.call(this, {
+                  //   target: y1
+                  // });
+
+                  // const a = p;
+                  // const b = p.getAttribute("shared-tooltip-text");
+                  // const c = p.parentNode;
+                  // const d = p.id;
+
+                  try {
+
+                    cnt.onMouseOver37_.call(this, evt);
+                  } catch (e) {
+                    console.warn(e);
+                  }
+
+                  //       CS.remove();
+                  //       CS.root = null;
+                  //       CS.for = null;
+                  //       CS.data = {};
+                  //       CS.offset = 8;
+                  //       CS.fitToVisibleBounds = !0;
+
+                  //       console.log('12321', 2);
+
+                  // if(CS.parentElement!==p || CS.for !== d){
+                  //   // let q = CS.parentNode;
+                  //   // q && q.removeChild(CS);
+
+                  //   // CS.textContent = b;
+                  //   // c.appendChild(CS);
+                  //   CS.for = d;
+                  //   CS.animationDelay = cnt.sharedTooltipAnimationDelay;
+                  //   CS.position = cnt.sharedTooltipPosition;
+
+
+                  // }
+
+
+                  //       console.log('12321', 3);
+
+
+
+                  //       // HTMLElement.prototype.removeChild8572 = HTMLElement.prototype.removeChild;
+                  // // HTMLElement.prototype.removeChild = removeChild8573
+                  // // try{
+
+                  // //   cnt.onMouseOver37_.call(this, evt);
+                  // // }catch(e){
+                  // //   if(e&&e.code === 8 && e.name==='NotFoundError'){
+
+                  // //     console.warn(e)
+                  // //     debugger;
+
+                  // //   }else{
+                  // //     throw e;
+                  // //   }
+                  // // }
+
+
+                  //       let evt_ = {
+                  //         target: p
+                  //       }
+
+                  //       if (CS._showing) CS.hide();
+                  //       try {
+                  //         CS.hide();
+                  //       } catch (e) { }
+
+                  //       console.log('12321', 4);
+                  //       try{
+
+                  //         cnt.onMouseOver37_.call(this, evt_);
+                  //       }catch(e){}
+
+                  //       setTimeout(() => {
+                  //         console.log('12321', CS._showing);
+                  //         if (!CS._showing) {
+
+                  //           cnt.onMouseOver37_.call(this, evt_);
+
+                  //         }
+                  //       }, 100);
+
+
+
+                  // HTMLElement.prototype.removeChild = HTMLElement.prototype.removeChild8572;
+
+                }
+
+                // cnt.onMouseOver37_.call(this, evt);
+              }
+
+
+            };
+
+            const lcrs = [...new Set([lcrDummy, ...document.querySelectorAll('yt-live-chat-renderer')])];
+            for (const lcr of lcrs) {
+              const cnt = insp(lcr);
+              const hostElement = cnt.hostElement;
+              if (hostElement && cnt.isAttached === true && cnt.onMouseOver37_ === cProto.onMouseOver37_ && typeof cProto.onMouseOver_ === 'function' && cProto.onMouseOver_ !== cProto.onMouseOver37_ && cnt.onMouseOver_ === cProto.onMouseOver_) {
+                hostElement.removeEventListener("mouseover", cProto.onMouseOver37_, !0)
+                hostElement.addEventListener("mouseover", cProto.onMouseOver_, !0)
+              }
+            }
+
+
+
+
+            console.log('FIX_MOUSEOVER_FN - OK')
+
+          } else if (done !== 1) {
+            done = 2;
+            console.log('FIX_MOUSEOVER_FN - NG')
+          }
+
+          // console.log("[End]");
+          // console.groupEnd();
+
+
+        };
+        !__LCRInjection__ && LCRImmedidates.push(lcrFn2);
+        // getLCRDummy() must be called for injection
+        getLCRDummy().then(lcrFn2);
+
+      })();
 
 
       /*
