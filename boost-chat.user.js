@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.4
+// @version             0.2.5
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -64,12 +64,17 @@ SOFTWARE.
 
 
   let isThisBrowserSupported = true;
+  let DO_scrollIntoViewIfNeeded = false;
 
   if (isThisBrowserSupported && (typeof Element.prototype.attachShadow !== 'function' || typeof IntersectionObserver === 'undefined' || typeof CSS === 'undefined' || typeof CSS.supports === 'undefined')) {
     isThisBrowserSupported = false;
   } else {
     const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
-    if (isThisBrowserSupported && !isOverflowAnchorSupported) {
+    const isScrollIntoViewIfNeededSupported = typeof Element.prototype.scrollIntoViewIfNeeded === 'function';
+
+    if (isThisBrowserSupported && !isOverflowAnchorSupported && isScrollIntoViewIfNeededSupported) {
+      DO_scrollIntoViewIfNeeded = true;
+    } else if (isThisBrowserSupported && !isOverflowAnchorSupported && !isScrollIntoViewIfNeededSupported) {
       isThisBrowserSupported = false;
     }
   }
@@ -190,6 +195,8 @@ SOFTWARE.
   }
 
   let mme = null;
+
+
 
   function getCodeLocation() {
     let p = new Error().stack;
@@ -370,68 +377,6 @@ SOFTWARE.
 
 
 
-  let mloUz = -1;
-
-  let mloPr = null;
-  let mloPrReleaseAt = 0;
-  // let ezPr = null;
-
-  setInterval(() => {
-    if (mloPr !== null && mloPrReleaseAt > 0 && Date.now() > mloPrReleaseAt) mloPr.resolve();
-  }, 100);
-
-  const { mloPrSetup, mloCond } = (() => {
-
-    let mloUz0 = -2;
-
-    const messageListMOMap = new WeakMap();
-    const mloCond = () => mloUz === mloUz0 && mloPr !== null;
-    const mloF = () => {
-      if (mloUz === mloUz0 && mloPr !== null) mloPr.resolve();
-    };
-    const mloSetup = (messageList, mloUz0_) => {
-
-      if (mloPr !== null) mloPr.resolve();
-
-      let mo = messageListMOMap.get(messageList);
-      if (!mo) {
-        messageListMOMap.set(messageList, mo = new MutationObserver(mloF));
-      }
-
-      mo.disconnect();
-      mo.takeRecords();
-      mloUz = -1;
-      mloUz0 = mloUz0_;
-      mloPr = new PromiseExternal();
-      mo.observe(messageList, { // performance concern? (2.0ms)
-        subtree: false, childList: true
-      });
-
-      return mo;
-
-    }
-
-    const mloPrSetup = (messageList, mloUz0_) => { // performance concern? (52.1ms)
-
-      const mo = mloSetup(messageList, mloUz0_);
-      return async () => {
-        await mloPr.then();
-        mo.disconnect();
-        mo.takeRecords();
-        mloPr = null;
-      }
-
-    }
-    return { mloPrSetup, mloCond }
-  })();
-
-  // const firstKey = (obj) => {
-  //   for (const key in obj) {
-  //     if (obj.hasOwnProperty(key)) return key;
-  //   }
-  //   return null;
-  // }
-
   const firstObjectKey = (obj) => { // performance concern? (8.6ms)
     for (const key in obj) {
       if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
@@ -471,16 +416,6 @@ SOFTWARE.
 
   const flushKeys = new LimitedSizeSet(64);
   const mutableWM = new WeakMap();
-
-  // const objUnwrap = (obj)=>{
-  //   if(typeof (obj||0) === 'object'){
-  //     let key = firstObjectKey(obj);
-  //     if(key){
-  //       obj = obj[key];
-  //     }
-  //   }
-  //   return obj;
-  // }
 
   const canScrollIntoViewWithOptions = (() => {
 
@@ -1277,6 +1212,7 @@ SOFTWARE.
       }
 
       bst-tooltip {
+        all: unset;
         contain: content;
         position: absolute;
         background-color: var(--paper-tooltip-background, #616161);
@@ -1294,6 +1230,11 @@ SOFTWARE.
         overflow: hidden;
         z-index: 2;
         pointer-events: none !important;
+
+        transform: var(--bst-tooltip-transform, translate(-50%, 100%));
+        margin-top: var(--bst-tooltip-mt, 0);
+        margin-bottom: var(--bst-tooltip-mb, -4px);
+
       }
       bst-tooltip:empty{
         display: none;
@@ -1305,20 +1246,12 @@ SOFTWARE.
       .bst-message-entry-holding{
         z-index:2;
       }
-      bst-tooltip{
-        transform:translate(-50%, 100%);
-        margin-top: 0;
-        margin-bottom: -4px;
-      }
 
-      .bst-message-entry[view-pos="down"] bst-tooltip{
-        transform:translate(-50%, -100%);
-        margin-top: -4px;
-        margin-bottom: 0;
-      }
-
-      .bst-message-entry[view-pos="down"] .bst-message-menu-container{
-        bottom: 100%;
+      .bst-message-entry[view-pos="down"] {
+        --bst-tooltip-transform: translate(-50%, -100%);
+        --bst-tooltip-mt: -4px;
+        --bst-tooltip-mb: 0;
+        --bst-message-menu-container-bottom: 100%;
       }
 
       .bst-message-menu-container tp-yt-paper-listbox{
@@ -1354,134 +1287,10 @@ SOFTWARE.
       }
 
 
-      /**
-       *
-       *
-
-      yt-live-chat-author-chip {
-          display: inline-flex;
-          align-items: baseline
-      }
-
-      yt-live-chat-author-chip[bold-color-usernames] #author-name.yt-live-chat-author-chip {
-          color: var(--yt-live-chat-primary-text-color)
-      }
-
-      #author-name.yt-live-chat-author-chip {
-          box-sizing: border-box;
-          border-radius: 2px;
-          color: var(--yt-live-chat-secondary-text-color);
-          font-weight: 500
-      }
-
-      #author-name.single-line.yt-live-chat-author-chip {
-          -webkit-box-orient: vertical;
-          text-overflow: ellipsis;
-          white-space: normal;
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          overflow: hidden;
-          word-break: break-all
-      }
-
-      yt-live-chat-author-chip[is-highlighted] #author-name.yt-live-chat-author-chip {
-          padding: 2px 4px;
-          color: var(--yt-live-chat-author-chip-verified-text-color);
-          background-color: var(--yt-live-chat-author-chip-verified-background-color)
-      }
-
-      yt-live-chat-author-chip[is-highlighted] #author-name.owner.yt-live-chat-author-chip,#author-name.owner.yt-live-chat-author-chip {
-          background-color: var(--yt-live-chat-author-chip-owner-background-color);
-          color: var(--yt-live-chat-author-chip-owner-text-color)
-      }
-
-      yt-live-chat-author-chip[disable-highlighting] #author-name.yt-live-chat-author-chip {
-          color: var(--yt-live-chat-disable-highlight-message-author-name-color,rgba(255,255,255,.7));
-          font-size: 110%;
-      }
-
-      yt-live-chat-author-chip[dashboard-money-feed] #author-name.yt-live-chat-author-chip {
-          display: block;
-          color: var(--yt-live-chat-secondary-text-color)
-      }
-
-      #author-name.moderator.yt-live-chat-author-chip {
-          color: var(--yt-live-chat-moderator-color)
-      }
-
-      #author-name.member.yt-live-chat-author-chip {
-          color: var(--yt-live-chat-sponsor-color)
-      }
-
-
-      **/
-
-      /**
-      *
-      *
-      *
-      #chip-badges.yt-live-chat-author-chip:empty {
-        display: none
-      }
-
-      yt-live-chat-author-chip[is-highlighted] #chat-badges.yt-live-chat-author-chip:not(:empty) {
-        margin-left: 1px
-      }
-
-      #chat-badges.yt-live-chat-author-chip {
-        white-space: nowrap
-      }
-
-      yt-live-chat-author-chip[prepend-chat-badges] yt-live-chat-author-badge-renderer.yt-live-chat-author-chip {
-        margin: 0 2px 0 0
-      }
-
-      yt-live-chat-author-badge-renderer.yt-live-chat-author-chip {
-        margin: 0 0 0 2px;
-        vertical-align: sub
-      }
-
-      yt-live-chat-author-chip[is-highlighted] #chip-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer.yt-live-chat-author-chip {
-        color: inherit
-      }
-
-      #chip-badges.yt-live-chat-author-chip yt-live-chat-author-badge-renderer.yt-live-chat-author-chip:last-of-type {
-        margin-right: -2px
-      }
-
-      #timestamp.yt-live-chat-auto-mod-message-renderer {
-        display: var(--yt-live-chat-item-timestamp-display,inline);
-        margin: var(--yt-live-chat-item-timestamp-margin,0 8px 0 0);
-        color: var(--yt-live-chat-tertiary-text-color);
-        font-size: 11px
-      }
-
-      #author-photo.yt-live-chat-auto-mod-message-renderer {
-        display: block;
-        margin-right: var(--yt-live-chat-author-photo-margin-right,16px);
-        overflow: hidden;
-        border-radius: 50%;
-        flex: none
-      }
-
-      yt-live-chat-auto-mod-message-renderer[avatar-hidden] #author-photo.yt-live-chat-auto-mod-message-renderer {
-        display: none
-      }
-
-      #menu.yt-live-chat-auto-mod-message-renderer {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        right: 0;
-        transform: translateX(100px)
-      }
-
-      **/
 
       .bst-viewer-engagement-message .bst-message-entry-line{
         display: flex;
         flex-direction: row;
-        /* align-items: center; */
         padding: 12px 8px;
       }
 
@@ -1519,7 +1328,7 @@ SOFTWARE.
 
 
       .bst-paid-message .bst-message-body{
-        display:block;
+        display: block;
       }
       .bst-paid-message .bst-message-body:empty{
         display: none;
@@ -1535,23 +1344,19 @@ SOFTWARE.
       }
 
 
-      .bst-paid-message .bst-paid-amount{
-        font-size: 115%;
-      }
-      .bst-paid-sticker .bst-paid-amount{
-        font-size: 115%;
+      .bst-paid-message, .bst-paid-sticker{
+        --bst-paid-amount-font-size: 115%;
       }
 
       .bst-paid-amount{
         display: inline;
         white-space: nowrap;
         margin-left: 12px;
-
+        font-size: var(--bst-paid-amount-font-size, inherit);
       }
 
       .bst-paid-message .bst-message-entry-highlight[class]{
         --bst-highlight-color: var(--yt-live-chat-paid-message-background-color,#1565c0);
-        /* border-radius: 12px; */
         background-color: var(--bst-highlight-color);
       }
       .bst-paid-message .bst-message-head{
@@ -1597,97 +1402,37 @@ SOFTWARE.
 
 
 
-      /*
-      .bst-message-menu-container {
-        display: none;
-      }
-
-      .bst-liveChatTextMessageRenderer .bst-message-menu-container {
-        display: flex;
-      }
-
-
-      .bst-message-entry .bst-message-menu-container yt-icon {
-        background-color: var(--yt-emoji-picker-search-background-color);
-        opacity: 0.68;
-      }
-
-
-
-      .bst-message-entry .bst-message-menu-container yt-icon:hover {
-        opacity: 0.88;
-      }
-
-
-
-      .bst-message-entry:hover .bst-message-menu-container {
-        visibility: visible;
-      }
-
-      .bst-message-menu-container {
-        visibility: collapse;
-
-
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 26px;
-        flex-direction: row;
-        box-sizing: border-box;
-        align-items: start;
-        margin-top: -20px;
-      }
-
-      .bst-message-menu-container yt-icon {
-
-        width: 26px;
-        height: 26px;
-        max-height: 100%;
-
-        box-sizing: border-box;
-        border-radius: 0px;
-        contain: strict;
-      }
-      */
-
-
-
       .bst-message-entry-holding{
         --bst-message-menu-display: block;
       }
 
       .bst-message-menu-container{
 
-      pointer-events: none !important;
+        pointer-events: none !important;
 
-      display: var(--bst-message-menu-display, none);
+        display: var(--bst-message-menu-display, none);
 
-      position: absolute;
-      /*
-      background: black;
-      */
-      left: 0;
-      right: 0;
-      padding: 8px;
-      /*
-      border: 1px solid white;
-      */
+        position: absolute;
+        left: 0;
+        right: 0;
+        padding: 8px;
+
+        bottom: var(--bst-message-menu-container-bottom, initial);
 
       }
 
       .bst-message-menu-item{
       
-      padding: 4px 8px;
-      background-color: var(--color-opac-w-4);
-      margin:2px;
-      cursor: pointer;
+        padding: 4px 8px;
+        background-color: var(--color-opac-w-4);
+        margin:2px;
+        cursor: pointer;
 
       }
 
       .bst-message-menu-item:hover{
        
-      background-color: var(--color-opac-w-6); 
+        background-color: var(--color-opac-w-6); 
 
       }
 
@@ -1746,7 +1491,7 @@ SOFTWARE.
         background-size: 6rem;
       }
 
-      .bst-paid-sticker .bst-message-head /*.bst-paid-sticker .bst-paid-amount*/ {
+      .bst-paid-sticker .bst-message-head {
         color: var(--yt-live-chat-paid-sticker-chip-text-color, var(--bst-default-text-color));
       }
 
@@ -1821,7 +1566,7 @@ SOFTWARE.
       }
 
       .bst-name-field:hover .bst-name-field-box {
-        pointer-events: none;     /* display: block;*/
+        pointer-events: none;
       }
 
       bst-live-chat-placeholder {
@@ -1996,7 +1741,7 @@ SOFTWARE.
   /** @type {import('./library/html').SolidJS}.SolidJS */
   const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap } = SolidJS;
 
-  const { R, W } = (() => {
+  const { R, W ,rwWrap } = (() => {
 
     /*
     const sWrapper = (w) => {
@@ -2019,6 +1764,7 @@ SOFTWARE.
         e
           ? Promise.resolve((u = (u & 1073741823) + e)).then(p)
           : singalGet();
+        (this !== w && this)?.valueOf?.(e);
         return w;
       };
     };
@@ -2034,7 +1780,14 @@ SOFTWARE.
       if (valueOf === op.valueOf) valueOf = x.valueOf = sWrapper(x);
       return valueOf(3);
     }
-    return { R, W };
+    const rwWrap = (x) => {
+      if(typeof x === 'function') return x;
+      let valueOf = x.valueOf;
+      if (valueOf === op.valueOf) valueOf = x.valueOf = sWrapper(x);
+      return x.valueOf;
+    }
+
+    return { R, W, rwWrap };
 
   })();
 
@@ -2044,6 +1797,25 @@ SOFTWARE.
   const memoStore = new WeakMap();
 
 
+  let rcPromise = null;
+  const [rcSignal ,rcSignalSet]=createSignal(1);
+  let rcValue = 1;
+
+  const rcSignalAdd = (p) => {
+    if (p) {
+      rcValue = (rcValue & 1073741823) + 1;
+    }
+    rcSignalSet(r => (r & 1073741823) + 1);
+  };
+
+
+  createEffect(() => {
+    const m = rcSignal();
+    if (rcValue === m) {
+      rcPromise && rcPromise.resolve();
+      rcPromise= null;
+    }
+  });
 
 
   const MEMO = (obj, key, val) => {
@@ -2631,14 +2403,15 @@ SOFTWARE.
 
   }
   let fixMessages = null;
-  const messageFlatten = (message)=>{
+  const messageFlatten = (message) => {
 
     // E${b1}${emojiId}${b2}T${b1}${text}${b2}E${b1}${emojiId}
 
     let runs = null;
 
+    // ------ convertMessage ------
     let t;
-    if (typeof (message || 0) !== 'object') runs= [];
+    if (typeof (message || 0) !== 'object') runs = [];
     else if ((t = message.simpleText) && typeof t === 'string') {
       runs = [{ text: t }];
     } else if ((t = message.runs) && t.length >= 0) {
@@ -2646,44 +2419,45 @@ SOFTWARE.
     } else {
       runs = [];
     }
+    // ------ convertMessage ------
+
+    // ------ fixMessages ------
 
     fixMessages && (runs = fixMessages(runs));
+
+    // ------ fixMessages ------
 
     const resultArr = new Array(runs.length);
     let i = 0;
     const b1 = String.fromCharCode(0xE274);
 
-    for(const run of runs){
+    for (const run of runs) {
 
-      const wKey = typeof run.text ==='string' ? 'text' : firstObjectKey(run);
+      const wKey = typeof run.text === 'string' ? 'text' : firstObjectKey(run);
 
-      const wVal = wKey ? run[wKey]: null;
+      const wVal = wKey ? run[wKey] : null;
 
-    
-      if(wKey === 'emoji' && typeof wVal === 'object'){
-        
-        let emojiId =  wVal[emojiIdSymbol] || wVal.emojiId;
-        if(typeof (emojiId||0) !== 'string'){
+
+      if (wKey === 'emoji' && typeof wVal === 'object') {
+
+        let emojiId = wVal[emojiIdSymbol] || wVal.emojiId;
+        if (typeof (emojiId || 0) !== 'string') {
           emojiId = wVal[emojiIdSymbol] = `$$${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
         }
         let iconStored = messageFlattenIcons.get(emojiId);
-        if(!iconStored){
+        if (!iconStored) {
           messageFlattenIcons.set(emojiId, iconStored = wVal);
         }
 
-        if(emojiId.includes(b1)){
+        if (emojiId.includes(b1)) {
           // invalid. just skip
           console.warn('Error 0481', run);
-        }else{
+        } else {
           t = `E${b1},${emojiId}`;
           resultArr[i++] = t
         }
-       
 
-
-      }else if(wKey === 'text' && typeof wVal === 'string'){
-
-
+      } else if (wKey === 'text' && typeof wVal === 'string') {
 
         t = wVal;
         if (t.includes(b1)) {
@@ -2691,16 +2465,16 @@ SOFTWARE.
         }
 
         const urlEndpoint = run.navigationEndpoint?.urlEndpoint;
-        const url =urlEndpoint?.url;
-        if(url){
+        const url = urlEndpoint?.url;
+        if (url) {
 
           const { nofollow, target } = urlEndpoint;
           t = `T${b1},${t}${b1},A${b1},${url}${b1},${nofollow || ''}${b1},${target || ''}`;
-        }else{
-          t=`T${b1},${t}`;
+        } else {
+          t = `T${b1},${t}`;
         }
         resultArr[i++] = t;
-      }else{
+      } else {
         console.warn('Error 0482', run);
       }
     }
@@ -3029,15 +2803,29 @@ SOFTWARE.
 */
 
 
-    console.log(message);
   }
 
+  let timelineResolve;
+
+  const ojWrap = (obj => {
+    return typeof obj === 'function' ? obj : () => obj;
+  });
+  const ojUnwrap = (obj => {
+    return typeof obj === 'function' ? obj() : obj;
+  });
 
   const SolidMessageTextTags = window.SolidMessageTextTags = new Set();
 
   const SolidMessageListEntry = (props) =>{
 
-    const aKey = props.data.aKey;
+    // rcSignalAdd(1);
+    rcValue++;
+    onMount(async ()=>{
+      timelineResolve && (await timelineResolve());
+      rcSignalAdd(0);
+    });
+
+    const aKey = props.data().aKey;
     switch (aKey) { // performance concern? (1.5ms)
       case 'liveChatViewerEngagementMessageRenderer':
         return SolidSystemMessage(props);
@@ -3055,6 +2843,64 @@ SOFTWARE.
         return SolidPaidSticker(props);
       case 'liveChatPlaceholderItemRenderer':
         return SolidMessagePlaceHolder(props);
+      case 'liveChatOfferClickCountMessageRenderer':
+        
+      /*
+      // https://www.youtube.com/watch?v=TeLstIBwC6M
+
+      {
+    "id": "ChwKGkNPaW5fUHpUZzRrREZlb0oxZ0FkOGZ3SG5n",
+    "timestampUsec": "1728557900305443",
+    "messageTitle": {
+        "runs": [
+            {
+                "text": "Popular · 50 product views"
+            }
+        ]
+    },
+    "productTitle": "hololive closet 姫森ルーナ ワンピース衣装 グッズ / 【旧価格】姫森ルーナ ワンピース衣装",
+    "ctaTitle": "View details",
+    "onClickCommand": {
+        "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+        "commandExecutorCommand": {
+            "commands": [
+                {
+                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+                    "commandMetadata": {
+                        "webCommandMetadata": {
+                            "sendPost": true,
+                            "apiUrl": "/youtubei/v1/feedback"
+                        }
+                    },
+                    "feedbackEndpoint": {
+                        "feedbackToken": "AB9zfpJVTVG6XlNyM8IGTAF4_uFSLNjzDAv0QPeNJA7VXUYRgm7M649bhD-up_TUD8Fxa4C6Lk6sy5dZU3ZayLOfaFB6_38h2pIo_XgnbuZ4tqnnkQm9nkgl9zMxJaWgtfZfTnzJioFbh2fSwi4KRaUawVRDaIclGvxN5PYUoZygbvGC6lmaDD_aSw-Bixmv9bEhc_ZCz-PCBHSXLvE13obqekTg0VlFtSpjv5WqYyDfFSNN6ugfpu8WgHay0Vt3Gh_jiU-N39Ya7irPS6Vuqpq6btEcfKp59ycGjyHTGqDjZwx-Z8_7b8vdImr5PdY0zKJk1L1Jhu0PeYp1lUEETQldUu1xPanSHrChsHYglDDwbVGCv4a2twDU58k7Fp5JcB0EwXzq-t9qv4iSqCkUGLsO-FkdstJkWmLDsRDVaSJRZ1zdP-kfFpRlMELjEoGMj4LSAJZK5dI5r3t5dkFuEyJQ0MGXfZX5VjgjxmHgc3jevi8iAa6nVije3SQLGtqtiIZgbH17PfZoi1pNKXPD6xWoWNHzaswLZ20hdzzm6MSoksvus5Jl3ITb7ITftBxX2d4D8a9MJLlOgTbd6SZU1_REVnYtW2Rz5ubYGBD23Y0kCu6rreg9PCGqcOlfR1o2DYF6uJ2uoiWgClQssaCgnQvIL8mlVfbsfF_rViYNkQv6izZ8HJ8t4OY3WMssXuihkkLG7mWyj_-xtCbRKXk4h4uUTiDRqSV3mKHKbGYimyad6QYWHIGLdwc-VKqmPAJtHL41a9czy9oRSK-rpdiRBAr8YBG5AYBT9w"
+                    }
+                },
+                {
+                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+                    "commandMetadata": {
+                        "webCommandMetadata": {
+                            "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=AfmBOoo0CFucg2Jet-CLW3QuMFovsqEQaPd1QXIkwZ4r-EnBU8wkUDmFuA4&utm_content=YT3-0jm-H1Z2sZeKbup5OpcW2QZNxOIHbVHutHcSjxE80EvJHR6u0vAJCXxh1TWXrmtQrWwsPEevB9E8030ScvRS&utm_term=UCa9Y57gfeY0Zro_noHRVrnw&utm_medium=product_shelf&utm_source=youtube",
+                            "webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+                            "rootVe": 83769
+                        }
+                    },
+                    "urlEndpoint": {
+                        "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=AfmBOoo0CFucg2Jet-CLW3QuMFovsqEQaPd1QXIkwZ4r-EnBU8wkUDmFuA4&utm_content=YT3-0jm-H1Z2sZeKbup5OpcW2QZNxOIHbVHutHcSjxE80EvJHR6u0vAJCXxh1TWXrmtQrWwsPEevB9E8030ScvRS&utm_term=UCa9Y57gfeY0Zro_noHRVrnw&utm_medium=product_shelf&utm_source=youtube",
+                        "target": "TARGET_NEW_WINDOW"
+                    }
+                }
+            ]
+        }
+    },
+    "trackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+    "__clientId__": "COin_PzWg5kDFeoJ2gAd9fwSmg",
+    "uid": "undefined:1728557900305443",
+    "aKey": "liveChatOfferClickCountMessageRenderer",
+    "rendererFlag": 0,
+    "messageFixed": []
+}
+    */
       case 'liveChatTextMessageRenderer':
       default:
         // uww = true;
@@ -3109,21 +2955,24 @@ SOFTWARE.
         let eItem = item ? mutableWM.get(item) : null;
         if(eItem){
 
+          let itemWrapped = rwWrap(item);
+          item = null;
           // let uww = false;
           onCleanup(() => {
 
             // if(uww) console.log('SolidMessageListItem cleanup 1001', item.uid !== null)
-            removeEntry(item)
-            item = null;
+            removeEntry(itemWrapped())
+            itemWrapped = null;
           });
 
           eItem.convert();
 
           eItem = null;
  
+          
 
 
-          return html`<${SolidMessageListEntry} data=(${()=>item}) />`;
+          return html`<${SolidMessageListEntry} data=(${()=>itemWrapped}) />`;
 
         }
 
@@ -3220,7 +3069,7 @@ SOFTWARE.
   }
 
   const SolidSystemMessage = (props) => {
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3229,7 +3078,7 @@ SOFTWARE.
     if (!dataMutable) return '';
 
     let icon = data.icon;
-    let p = null
+    let iconElementFn = null
     if (icon) {
 
       const type = icon.iconType.toLowerCase();
@@ -3239,7 +3088,7 @@ SOFTWARE.
         cnt.icon = type;
         _setAttribute.call(el, 'icon-type', type);
       }
-      p = () => html`<div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>`
+      iconElementFn = () => html`<div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>`
 
 
     }
@@ -3248,7 +3097,7 @@ SOFTWARE.
     onCleanup(() => {
       removeEntry(data)
       props = data = null; 
-      p =null;
+      iconElementFn =null;
       icon = null;
     });
 
@@ -3259,7 +3108,7 @@ SOFTWARE.
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => !!icon})>${() => {
-        return p();
+        return iconElementFn();
       }}<//>
     <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
     <${SolidBeforeContentButton0} entryData=(${()=>data}) />
@@ -3269,9 +3118,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>`
@@ -3281,7 +3130,7 @@ SOFTWARE.
 
   const SolidPaidMessage = (props) => {
 
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3321,9 +3170,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>
@@ -3331,7 +3180,7 @@ SOFTWARE.
   };
 
   const SolidMembershipMessage = (props) => {
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3368,9 +3217,9 @@ SOFTWARE.
       }}</div>
     </div>
     <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
     </div>
   </div>
   <${Show} when=(${() => R(data).bst('hasMessageBody')})>${() => {
@@ -3393,7 +3242,7 @@ SOFTWARE.
 
 
   const SolidGiftText = (props) => {
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3430,9 +3279,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>
@@ -3444,7 +3293,7 @@ SOFTWARE.
 
   const SolidSponsorshipPurchase = (props) => {
 
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3484,9 +3333,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>
@@ -3496,7 +3345,7 @@ SOFTWARE.
   const SolidPaidSticker = (props) => {
     /* https://www.youtube.com/live/BDjEOkw_iOA?si=CGG7boBJvfT2KLFT&t=6636 */
 
-    let data = props.data
+    let data = props.data();
 
     onCleanup(() => {
       removeEntry(data)
@@ -3532,9 +3381,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>
@@ -3546,7 +3395,7 @@ SOFTWARE.
   const SolidMessageText = (props) => {
 
 
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3590,9 +3439,9 @@ SOFTWARE.
     </div>
   </div>
   <div class="bst-message-menu-container">
-  <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
-      ${() => html`<${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />`}
-  <//>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
+    <//>
   </div>
   </div>
   </div>
@@ -3601,7 +3450,7 @@ SOFTWARE.
 
   const SolidMessagePlaceHolder = (props) => {
 
-    let data = props.data;
+    let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
@@ -3796,8 +3645,8 @@ SOFTWARE.
     profileUrl: null
   };
 
-  const profileCard_onCrossClick = () => {
-    Object.assign(W(profileCard), {
+  const profileCard_onCrossClick = (e) => {
+    !e?.button && Object.assign(W(profileCard), {
       wElement: null,
       top: -1,
       showOnTop: null,
@@ -4785,6 +4634,20 @@ SOFTWARE.
       return o;
     }
 
+    function getAuthorBadgeType(authorBadges) {
+      if (!authorBadges || !(authorBadges.length >= 1)) return ''; // performance concern? (1.8ms)
+      for (const badge of authorBadges) {
+        const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
+        if (r) {
+          const b = r ? r.icon ? r.icon.iconType.toLowerCase() : r.customThumbnail ? "member" : "" : ""
+          if (b && "verified" !== b) {
+            return b;
+          }
+        }
+      }
+      return '';
+    }
+
 
     function getProfilePic(min, max) {
       let w = getAuthor(this)?.authorPhoto || 0;
@@ -4903,22 +4766,6 @@ SOFTWARE.
     }
 
 
-    const convertMessage = function (message) {
-
-      if (typeof (message || 0) !== 'object') return [];
-      let t;
-      if ((t = message.simpleText) && typeof t === 'string') {
-        message = [{ text: t }];
-      } else if ((t = message.runs) && t.length >= 0) {
-        message = t;
-      } else {
-        message = [];
-      }
-      return fixMessages(message);
-
-    }
-
-
     function bst(prop) {
 
       if (prop === 'getUsername') {
@@ -4946,17 +4793,7 @@ SOFTWARE.
 
       } else if (prop === 'authorType') {
 
-        function bP(a) {
-          return a ? a.icon ? a.icon.iconType.toLowerCase() : a.customThumbnail ? "member" : "" : ""
-        }
-        if (!this.authorBadges || !(this.authorBadges.length >= 1)) return ''; // performance concern? (1.8ms)
-        for (const badge of this.authorBadges) {
-          const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
-          if (r && (b = (bP(r))) && "verified" !== b) { // performance concern? (2.0ms)
-            return b;
-          }
-        }
-        return ''
+        return  getAuthorBadgeType(this.authorBadges);
       } else if (prop === 'shouldHighlight') {
         const authorType = this.bst('authorType');
         return authorType === 'owner';
@@ -5518,34 +5355,29 @@ f.handleRemoveChatItemAction_ = function(a) {
       })
 
 
-
-
-
     }
+
     let nyhaDPr = null;
+    const nyhaDId = `nyhaD${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+    const nyhaDPost = window.postMessage.bind(window, nyhaDId);
     window.addEventListener('message', (evt) => {
-      if ((evt || 0).data === 'nyhaD' && nyhaDPr !== null) nyhaDPr.resolve();
-    });
-    const timelineResolve = async () => {
-      if (nyhaDPr !== null) {
-        await nyhaDPr.then();
-        return;
+      if ((evt || 0).data === nyhaDId) {
+        const t = nyhaDPr;
+        if (t !== null) {
+          nyhaDPr = null;
+          t.resolve();
+        }
       }
-      nyhaDPr = new PromiseExternal();
-      window.postMessage('nyhaD');
-      await nyhaDPr.then();
-      nyhaDPr = null;
+    });
+    timelineResolve = async () => {
+      let t = nyhaDPr;
+      if (t === null) {
+        t = nyhaDPr = new PromiseExternal();
+        nyhaDPost();
+      }
+      await t.then();
     }
 
-    const [modiValue, modiValueSet] = createSignal();
-    const [tartValue, tartValueSet] = createSignal();
-    // const [ezValue, ezValueSet] = createSignal();
-
-    createEffect(() => {
-      if (modiValue() === tartValue() && mloPr !== null) {
-        mloPr.resolve();
-      }
-    });
 
 
     const menuMenuCache = new Map();
@@ -5794,6 +5626,8 @@ f.handleRemoveChatItemAction_ = function(a) {
           if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
 
             console.log(`[yt-bst] flushItems; length mismatched (01); pp=${pp.length}, fp=${fp.length}, cp=${cp.length}`);
+
+            // stuck in here.  cannot flush more items
           }
 
         }
@@ -5981,17 +5815,7 @@ f.handleRemoveChatItemAction_ = function(a) {
                 },
                 get authorType() {
                   const bObj = kRef(bObjWR);
-                  function bP(a) {
-                    return a ? a.icon ? a.icon.iconType.toLowerCase() : a.customThumbnail ? "member" : "" : ""
-                  }
-                  if (!bObj.authorBadges || !(bObj.authorBadges.length >= 1)) return '';
-                  for (const badge of bObj.authorBadges) {
-                    const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
-                    if (r && (b = (bP(r))) && "verified" !== b) {
-                      return b;
-                    }
-                  }
-                  return ''
+                  return getAuthorBadgeType( bObj.authorBadges);
                 }
               };
 
@@ -6110,7 +5934,9 @@ f.handleRemoveChatItemAction_ = function(a) {
 
               }
 
-              modiValueSet(value => value + 1);
+
+
+              rcSignalAdd(1);
 
             }
           }
@@ -6151,14 +5977,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         }
 
 
-        if (mloPr !== null) mloPr.resolve();
-        mloPr = null;
-        mloPrReleaseAt = 0;
 
-        const promiseFn = mloPrSetup(messageList, nd - 1);
-        let target0 = Date.now();
-        tartValueSet(() => -1);
-        modiValueSet(() => target0);
 
         let rJ = 0;
         let bObjX = null;
@@ -6198,13 +6017,15 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         let awaitTime = 0;
 
+        // console.log('[yt-bst] XX', '000000')
+
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let mg = 0;
         let listChangeCount = 0;
+        rcValue = rcSignal();
         const t1 = performance.now();
         let a2 = t1;
         let b2 = 0;
-        let c2 = a2;
         for (; rJ < nd; rJ++) {
           if (clearCount0 !== this.clearCount || this.isAttached !== true) {
             flushKeys.clear();
@@ -6212,19 +6033,20 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
           const j = rJ;
           bObjX = rearrangedFn(rearrangedW[j]);
-          mloUz = rJ;
+          rcSignalAdd(1);
           loopFunc(messageList.solidBuild);
           listChangeCount++;
-          c2 = performance.now();
+          const c2 = performance.now();
+          // console.log('[yt-bst] XX', c2, mg, rcSignal(), rcValue )
           b2++;
           if ((c2 - a2) * (b2 + 1) - 14 * b2 > 0) { //  // (c2-a2)*((b2+1)/b2)>14
-            a2 = c2;
-            b2 = 0;
-            mg++;
             await timelineResolve();
             const t = performance.now();
             awaitTime += Math.round(t - c2);
-            a2 = c2 = t;
+            a2 = t;
+            b2 = 0;
+            mg++;
+            // console.log('[yt-bst] YY', t, mg)
           } else {
             await Promise.resolve();
           }
@@ -6232,20 +6054,23 @@ f.handleRemoveChatItemAction_ = function(a) {
         mapToFlushItem.clear();
         rearrangedW.length = 0;
         rearrangedW = null;
-        if (listChangeCount > 0) {
-          mloPrReleaseAt = Date.now() + 100;
-          const target1 = target0 + listChangeCount;
-          tartValueSet(() => target1);
-          if (!mloCond()) { // just in case
-            console.log(`[yt-bst] flushItems: interupted; rJ=${rJ}; nd=${nd}`);
-          }
-          await promiseFn();
+
+        // console.log('[yt-bst] XX', '111111')
+        
+
+        const rcPromise_ = rcPromise = new PromiseExternal();
+        // rcSignalAdd(1);
+        rcValue++;
+        await timelineResolve();
+        rcSignalAdd(0);
+        await rcPromise_.then();
+        if (rcPromise_ === rcPromise) rcPromise = null;
+
+        if (DO_scrollIntoViewIfNeeded) {
+          document.querySelector('.bst-overflow-anchor').scrollIntoViewIfNeeded();
         }
 
         if (DEBUG_windowVars) window.__bstFlush05__ = Date.now();
-        mloPrReleaseAt = 0;
-        if (mloPr !== null) mloPr.resolve();
-        mloPr = null;
         if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
         
         await Promise.resolve();
