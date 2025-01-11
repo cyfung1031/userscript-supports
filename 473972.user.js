@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.1
+// @version     0.17.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -19,6 +19,7 @@
 
 (() => {
 
+  /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
@@ -144,7 +145,7 @@
   const DEBUG_DBR847 = false;
   const DEBUG_xx847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
-  const DEBUG_renderDebounceTs = true;
+  const DEBUG_renderDebounceTs = false;
 
   /*
 
@@ -1052,7 +1053,7 @@
                 renderDebounceTs.add = function () {
                   console.log('renderDebounceTs.add')
                   console.log(traceStack((new Error()).stack))
-                  debugger;
+                  // debugger;
                   return this.add58438(...arguments)
                 }
 
