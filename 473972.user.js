@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.2
+// @version     0.17.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1073,7 +1073,7 @@
                     return this.delete58438(...arguments)
                   }
                   console.log(traceStack((new Error()).stack))
-                  debugger;
+                  // debugger;
                   return this.delete58438(...arguments)
                 }
               }
