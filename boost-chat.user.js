@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.5
+// @version             0.2.6
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1573,6 +1573,22 @@ SOFTWARE.
         display: none;
       }
 
+      .bst-live-chat-element[class] {
+        padding:0;
+        margin:0;
+      }
+
+      bst-live-chat-unknownitem {
+        display: block;
+        height: 3.4rem;
+        background-color: rgb(127, 127, 127);
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      bst-live-chat-unknownitem:hover{
+        opacity: 1;
+      }
+
       .bst-profile-card {
         position: absolute;
         display: none;
@@ -2814,7 +2830,9 @@ SOFTWARE.
     return typeof obj === 'function' ? obj() : obj;
   });
 
-  const SolidMessageTextTags = window.SolidMessageTextTags = new Set();
+  const SolidMessageElementTags = window.SolidMessageElementTags = new Set();
+
+  let SolidMessageElementTagsSizeCached = 0;
 
   const SolidMessageListEntry = (props) =>{
 
@@ -2843,72 +2861,25 @@ SOFTWARE.
         return SolidPaidSticker(props);
       case 'liveChatPlaceholderItemRenderer':
         return SolidMessagePlaceHolder(props);
-      case 'liveChatOfferClickCountMessageRenderer':
-        
-      /*
-      // https://www.youtube.com/watch?v=TeLstIBwC6M
 
-      {
-    "id": "ChwKGkNPaW5fUHpUZzRrREZlb0oxZ0FkOGZ3SG5n",
-    "timestampUsec": "1728557900305443",
-    "messageTitle": {
-        "runs": [
-            {
-                "text": "Popular · 50 product views"
-            }
-        ]
-    },
-    "productTitle": "hololive closet 姫森ルーナ ワンピース衣装 グッズ / 【旧価格】姫森ルーナ ワンピース衣装",
-    "ctaTitle": "View details",
-    "onClickCommand": {
-        "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
-        "commandExecutorCommand": {
-            "commands": [
-                {
-                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
-                    "commandMetadata": {
-                        "webCommandMetadata": {
-                            "sendPost": true,
-                            "apiUrl": "/youtubei/v1/feedback"
-                        }
-                    },
-                    "feedbackEndpoint": {
-                        "feedbackToken": "AB9zfpJVTVG6XlNyM8IGTAF4_uFSLNjzDAv0QPeNJA7VXUYRgm7M649bhD-up_TUD8Fxa4C6Lk6sy5dZU3ZayLOfaFB6_38h2pIo_XgnbuZ4tqnnkQm9nkgl9zMxJaWgtfZfTnzJioFbh2fSwi4KRaUawVRDaIclGvxN5PYUoZygbvGC6lmaDD_aSw-Bixmv9bEhc_ZCz-PCBHSXLvE13obqekTg0VlFtSpjv5WqYyDfFSNN6ugfpu8WgHay0Vt3Gh_jiU-N39Ya7irPS6Vuqpq6btEcfKp59ycGjyHTGqDjZwx-Z8_7b8vdImr5PdY0zKJk1L1Jhu0PeYp1lUEETQldUu1xPanSHrChsHYglDDwbVGCv4a2twDU58k7Fp5JcB0EwXzq-t9qv4iSqCkUGLsO-FkdstJkWmLDsRDVaSJRZ1zdP-kfFpRlMELjEoGMj4LSAJZK5dI5r3t5dkFuEyJQ0MGXfZX5VjgjxmHgc3jevi8iAa6nVije3SQLGtqtiIZgbH17PfZoi1pNKXPD6xWoWNHzaswLZ20hdzzm6MSoksvus5Jl3ITb7ITftBxX2d4D8a9MJLlOgTbd6SZU1_REVnYtW2Rz5ubYGBD23Y0kCu6rreg9PCGqcOlfR1o2DYF6uJ2uoiWgClQssaCgnQvIL8mlVfbsfF_rViYNkQv6izZ8HJ8t4OY3WMssXuihkkLG7mWyj_-xtCbRKXk4h4uUTiDRqSV3mKHKbGYimyad6QYWHIGLdwc-VKqmPAJtHL41a9czy9oRSK-rpdiRBAr8YBG5AYBT9w"
-                    }
-                },
-                {
-                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
-                    "commandMetadata": {
-                        "webCommandMetadata": {
-                            "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=AfmBOoo0CFucg2Jet-CLW3QuMFovsqEQaPd1QXIkwZ4r-EnBU8wkUDmFuA4&utm_content=YT3-0jm-H1Z2sZeKbup5OpcW2QZNxOIHbVHutHcSjxE80EvJHR6u0vAJCXxh1TWXrmtQrWwsPEevB9E8030ScvRS&utm_term=UCa9Y57gfeY0Zro_noHRVrnw&utm_medium=product_shelf&utm_source=youtube",
-                            "webPageType": "WEB_PAGE_TYPE_UNKNOWN",
-                            "rootVe": 83769
-                        }
-                    },
-                    "urlEndpoint": {
-                        "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=AfmBOoo0CFucg2Jet-CLW3QuMFovsqEQaPd1QXIkwZ4r-EnBU8wkUDmFuA4&utm_content=YT3-0jm-H1Z2sZeKbup5OpcW2QZNxOIHbVHutHcSjxE80EvJHR6u0vAJCXxh1TWXrmtQrWwsPEevB9E8030ScvRS&utm_term=UCa9Y57gfeY0Zro_noHRVrnw&utm_medium=product_shelf&utm_source=youtube",
-                        "target": "TARGET_NEW_WINDOW"
-                    }
-                }
-            ]
-        }
-    },
-    "trackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
-    "__clientId__": "COin_PzWg5kDFeoJ2gAd9fwSmg",
-    "uid": "undefined:1728557900305443",
-    "aKey": "liveChatOfferClickCountMessageRenderer",
-    "rendererFlag": 0,
-    "messageFixed": []
-}
-    */
-      case 'liveChatTextMessageRenderer':
+      case 'liveChatTextMessageRenderer': 
+      return SolidMessageText(props); // liveChatTextMessageRenderer
+
+      case 'liveChatOfferClickCountMessageRenderer':
+      // return SolidOfferClick(props); // just append the native element. might have memory leakage
+
       default:
-        // uww = true;
-        SolidMessageTextTags.add(aKey);
-        if (SolidMessageTextTags.size > 1) {
-          console.warn(`SolidMessageTextTags: ${[...SolidMessageTextTags].join(', ')}`);
+
+        SolidMessageElementTags.add(aKey);
+        const size = SolidMessageElementTags.size;
+        if (size !== SolidMessageElementTagsSizeCached) {
+          SolidMessageElementTagsSizeCached = size;
+          if (size > 0 && aKey !== 'liveChatOfferClickCountMessageRenderer') {
+            console.warn(`SolidMessageElementTags: ${[...SolidMessageElementTags].join(', ')}`);
+          }
         }
-        return SolidMessageText(props); // liveChatTextMessageRenderer
+        return SolidDefaultElement(props); // just append the native element. might have memory leakage
+
     }
 
   }
@@ -3460,6 +3431,158 @@ SOFTWARE.
     });
 
     return html`<bst-live-chat-placeholder ref="${mutableWM.get(data).setupFn}"></bst-live-chat-placeholder>`;
+
+  };
+
+  const SolidOfferClick = (props)=>{
+
+
+    let data = props.data();
+ 
+    const setupFn_ = (elm)=>{
+
+
+      const mElm = document.createElement('yt-live-chat-offer-click-count-message-renderer')
+      sharedNoscript.appendChild(mElm);
+      mElm.data = data;
+
+      mElm.classList.add('bst-live-chat-element');
+
+      elm.appendChild(mElm);
+
+      return mutableWM.get(data).setupFn(elm);
+
+
+    }
+    
+
+      /*
+      // https://www.youtube.com/watch?v=TeLstIBwC6M
+
+      {
+    "id": "ChwKGkNPaW5fUHpUZzRrREZlb0oxZ0FkOGZ3SG5n",
+    "timestampUsec": "1728557900305443",
+    "messageTitle": {
+        "runs": [
+            {
+                "text": "Popular · 50 product views"
+            }
+        ]
+    },
+    "productTitle": "hololive closet 姫森ルーナ ワンピース衣装 グッズ / 【旧価格】姫森ルーナ ワンピース衣装",
+    "ctaTitle": "View details",
+    "onClickCommand": {
+        "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+        "commandExecutorCommand": {
+            "commands": [
+                {
+                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+                    "commandMetadata": {
+                        "webCommandMetadata": {
+                            "sendPost": true,
+                            "apiUrl": "/youtubei/v1/feedback"
+                        }
+                    },
+                    "feedbackEndpoint": {
+                        "feedbackToken": "AB4yrpHVTUG7-rpeiRCAr9ZWG5BYET3y"
+                    }
+                },
+                {
+                    "clickTrackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+                    "commandMetadata": {
+                        "webCommandMetadata": {
+                            "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=AfmBOLW3QuMFovsS&utm_term=UCa9YHRVrnw&utm_medium=product_shelf&utm_source=youtube",
+                            "webPageType": "WEB_PAGE_TYPE_UNKNOWN",
+                            "rootVe": 83769
+                        }
+                    },
+                    "urlEndpoint": {
+                        "url": "https://shop.hololivepro.com/products/hololivecloset_himemoriluna_1?variant=44046847443164&country=JP&currency=JPY&utm_campaign=sag_organic&srsltid=Afm8wkUDmFuA4&utm_content=YT3-0jm-H1Z2sZRVrnw&utm_medium=product_shelf&utm_source=youtube",
+                        "target": "TARGET_NEW_WINDOW"
+                    }
+                }
+            ]
+        }
+    },
+    "trackingParams": "CEZQvHwLGEbQwHjMoJcY9ayKAyXC31wCHe8FQF5=",
+    "__clientId__": "COin_PzWg5kDFeoJ2gAd9fwSmg",
+    "uid": "undefined:1728557900305443",
+    "aKey": "liveChatOfferClickCountMessageRenderer",
+    "rendererFlag": 0,
+    "messageFixed": []
+}
+    */
+
+
+    return html`<bst-live-chat-elementholder ref="${setupFn_}"></bst-live-chat-elementholder>`;
+
+  };
+
+  const mapToElementTag = new Map(Object.entries({
+    liveChatAutoModMessageRenderer: "yt-live-chat-auto-mod-message-renderer",
+    liveChatPaidMessageRenderer: "yt-live-chat-paid-message-renderer",
+    liveChatLegacyPaidMessageRenderer: "yt-live-chat-legacy-paid-message-renderer",
+    liveChatMembershipItemRenderer: "yt-live-chat-membership-item-renderer",
+    liveChatTextMessageRenderer: "yt-live-chat-text-message-renderer",
+    liveChatPaidStickerRenderer: "yt-live-chat-paid-sticker-renderer",
+    liveChatDonationAnnouncementRenderer: "yt-live-chat-donation-announcement-renderer",
+    liveChatModeChangeMessageRenderer: "yt-live-chat-mode-change-message-renderer",
+    liveChatModerationMessageRenderer: "yt-live-chat-moderation-message-renderer",
+    liveChatOfferClickCountMessageRenderer: "yt-live-chat-offer-click-count-message-renderer",
+    liveChatPlaceholderItemRenderer: "yt-live-chat-placeholder-item-renderer",
+    liveChatPurchasedProductMessageRenderer: "ytd-live-chat-purchased-product-message-renderer",
+    liveChatSponsorshipsGiftPurchaseAnnouncementRenderer: "ytd-sponsorships-live-chat-gift-purchase-announcement-renderer",
+    liveChatSponsorshipsGiftRedemptionAnnouncementRenderer: "ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
+    liveChatViewerEngagementMessageRenderer: "yt-live-chat-viewer-engagement-message-renderer",
+    serverErrorMessage: "yt-live-chat-server-error-message"
+  }));
+  // mapToElementTag.set('liveChatOfferClickCountMessageRenderer' ,'yt-live-chat-offer-click-count-message-renderer');
+
+
+  const SolidDefaultElement = (props) => {
+
+    let data = props.data();
+    const aKey = data.aKey;
+    let elementTag = '';
+
+    if (aKey) {
+      elementTag = mapToElementTag.get(aKey);
+      if (!elementTag) {
+        const lcrCnt = getLcRendererCnt();
+        if (lcrCnt) {
+          const mapping = lcrCnt.configureRendererStamper()?.visibleItems?.mapping;
+          if (mapping && typeof mapping === 'object') {
+            elementTag = mapping[aKey];
+            elementTag = (elementTag && elementTag.component) || elementTag;
+            if (typeof (elementTag || 0) !== 'string') elementTag = '';
+          }
+        }
+        mapToElementTag.set(aKey, (elementTag || ''));
+      }
+    }
+
+    const setupFn_ = (elm) => {
+      if (elementTag) {
+        const mElm = document.createElement(elementTag)
+        sharedNoscript.appendChild(mElm);
+        mElm.data = data;
+        mElm.classList.add('bst-live-chat-element');
+        elm.appendChild(mElm);
+      } else {
+        const mElm = document.createElement('bst-live-chat-unknownitem')
+        mElm.classList.add('bst-live-chat-element');
+        mElm.setAttribute('title', 'unknown');
+        elm.appendChild(mElm);
+      }
+      const r = mutableWM.get(data).setupFn(elm);
+      data = null;
+      elm = null;
+      elementTag = '';
+      props = null;
+      return r;
+    };
+
+    return html`<bst-live-chat-elementholder ref="${setupFn_}"></bst-live-chat-elementholder>`;
 
   };
 
