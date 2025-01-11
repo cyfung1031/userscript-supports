@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.3
+// @version     0.17.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -110,7 +110,7 @@
   // currently, uniqueId is preassigned by the network resolveCommand.
   // so don't modify the source side, just modify the display side (popup display) via handleOpenPopupAction
   // other related functions e.g. handleClosePopupCommand_, getAndMaybeCreatePopup_, handleClosePopupAction_, getAndMaybeCreatePopup_
-  
+
   // handleOpenPopupAction -> createCacheKey
   // handleClosePopupAction_ -> createCacheKey
   // handleGetPopupOpenedAction_ -> createCacheKey
@@ -132,8 +132,8 @@
 
   // yt-close-popup-action -> handleClosePopupAction_ -> createCacheKey
   // yt-close-popup-command -> handleClosePopupCommand_ -> handleClosePopupAction_ -> createCacheKey
-  
-  // Experimental flag "ytpopup_disable_default_html_caching" is disabled by default. 
+
+  // Experimental flag "ytpopup_disable_default_html_caching" is disabled by default.
   // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
 
@@ -146,6 +146,9 @@
   const DEBUG_xx847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
   const DEBUG_renderDebounceTs = false;
+
+
+  const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
 
   /*
 
@@ -491,9 +494,9 @@
     //             }
     //           }
     //           console.warn('cnt[fnThis.prop][prop] is function; might rely on this', { prop, fProp: fnThis.prop, is: cnt.is, h: h });
-              
+
     //           // return new Proxy(fnProxySelf.bind588({ prop: prop, ref: new WeakRef(cnt[fnThis.prop]) }), pFnHandler);
-    //         } 
+    //         }
     //         return v;
     //       }
     //     }
@@ -536,7 +539,7 @@
       }
     }
 
-    
+
     const proxySelfHandler = {
       get(target, prop) {
         if(prop === vmb) return target;
@@ -594,7 +597,7 @@
     //   if (matchNativeCode1 && f.length - thisArg.constructor.name.length === matchNativeLen) {
     //     if (f.includes('[native code]')){
     //       return false;
-    //     } 
+    //     }
     //     return true;
     //   }
     //   return false;
@@ -625,7 +628,7 @@
 
     Function.prototype.bind488 = Function.prototype.bind;
     Function.prototype.bind = function(thisArg, ...args){
-  
+
       if (thisConversionFn(thisArg) !== thisArg) {
         return this.bind488(thisArg, ...args);
       }
@@ -642,11 +645,11 @@
           // // let b5 = !b1 && !b2 && !b3 && thisArg && typeof thisArg === 'object' && !thisArg.dtz06  && !(thisArg instanceof Window);
           // // let b4 = false;
           // let b4 =  !b1 && !b2 && !b3 && thisArg && !thisArg.dtz06;
-  
+
           // // b3 = false;
           // // b4 = false;
           // // b5 = false;
-  
+
           // if (b1 || b2 || b3 ||b4  ) {
             const f = this;
             const ps = thisArg.__proxySelf0__ || (thisArg.__proxySelf0__ = weakWrap(thisArg));
@@ -846,6 +849,142 @@
       }
     }
   })();
+
+
+  FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS && (() => {
+
+
+    // let cid = 0;
+
+    let pf = null;
+    let pv = 0;
+    // let qv = false;
+    const cif = () => {
+      if (pv + 100 > Date.now()) pf && pf();
+    };
+    let cid = 0;
+
+    // let mq = 0;
+
+    HTMLElement.prototype.addEventListener4882 = HTMLElement.prototype.addEventListener;
+    HTMLElement.prototype.addEventListener = function (a, b, c) {
+      if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
+
+        const bt = `${b}`;
+
+        if (bt.length >= 61 && bt.length <= 71 && bt.startsWith('function(){try{return ') && bt.includes('.apply(this,arguments)}catch(')) {
+          b[`__$$${a}$$1926__`] = true;
+          this[`__$$${a}$$1937__`] = (this[`__$$${a}$$1937__`] || 0) + 1;
+          if (this[`__$$${a}$$1937__`] > 1e9) this[`__$$${a}$$1937__`] -= 5e8;
+          // console.log(3928, a, this[`__$$${a}$$1937__`])
+          if (!this[`__$$${a}$$1938__`]) {
+            this[`__$$${a}$$1938__`] = b;
+
+            // if(a === 'mousemove'){
+
+            //   this.addEventListener4882('mouseover', function(evt){
+
+            //       qv =  evt.target instanceof HTMLMediaElement
+            //   });
+            // }
+
+            if (a === 'mousemove') {
+
+              this.addEventListener4882('mouseenter', (evt) => {
+                if (cid) return;
+                cid = setInterval(cif, 100);
+              });
+              this.addEventListener4882('mouseleave', (evt) => {
+
+                clearInterval(cif, 100);
+                cid = 0;
+              });
+
+            }
+
+            this.addEventListener4882(a, (evt) => {
+
+
+
+              const evt_ = evt;
+              if (!this[`__$$${a}$$1937__`]) return;
+
+              // if (a === 'mousemove' || a === 'mouseover' || a === 'mouseenter') {
+              //   mq = Date.now();
+              // }
+
+              if (a === 'mousemove') {
+
+
+                pf = () => {
+
+                  this[`__$$${a}$$1938__`](evt_);
+                  // console.log(1237);
+                }
+
+                pv = Date.now();
+              } else {
+
+
+                if (a === 'mouseout' || a === 'mouseleave') {
+
+                  pv = 0;
+                  // let tq = Date.now();
+                  this[`__$$${a}$$1938__`](evt_);
+                  // console.log(1233);
+                } else if (a === 'mouseover' || a === 'mouseenter') {
+
+                  nextBrowserTick(() => { // mouseout first -> mouseover
+                    this[`__$$${a}$$1938__`](evt_);
+                    // console.log(1233);
+                  }, 1);
+                }
+
+
+
+              }
+
+
+
+            }, c);
+
+
+            return;
+          } else {
+
+            return;
+          }
+        }
+
+      }
+      return this.addEventListener4882(a, b, c)
+    }
+
+
+
+
+    HTMLElement.prototype.removeEventListener4882 = HTMLElement.prototype.removeEventListener;
+    HTMLElement.prototype.removeEventListener = function (a, b, c) {
+      if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
+
+        if (b[`__$$${a}$$1926__`]) {
+          b[`__$$${a}$$1926__`] = false;
+
+          if (this[`__$$${a}$$1937__`]) this[`__$$${a}$$1937__`] -= 1;
+
+          //  console.log(3929, a, this[`__$$${a}$$1937__`], b[`__$$${a}$$1926__`])
+
+          return;
+
+        }
+
+      }
+      return this.removeEventListener4882(a, b, c)
+    }
+
+
+  })();
+
 
   FIX_DOM_IF_REPEAT && (() => {
     // https://www.youtube.com/s/desktop/26a583e4/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
@@ -1194,7 +1333,7 @@
             //       window.lm5 = window.lm5 || [];
             //       window.lm5.push([mWeakRef(this), mWeakRef(this.__instance)])
             //     });
-            //     return this.__createAndInsertInstance847(a); 
+            //     return this.__createAndInsertInstance847(a);
             //   }
 
             // }
@@ -3083,8 +3222,8 @@
 
 
     /*
-    
-    
+
+
             z.prototype.forwardDynamicProps = function() {
                 var B = m(this.inst);
                 B = h(B);
@@ -3096,7 +3235,7 @@
                     r(b) && !ly(F) && Wua(this.inst, F)
                 }
             }
-    
+
             */
 
 
@@ -3399,10 +3538,10 @@
             console.log(212, h.is);
             const f = h.onMouseOver_;
           const g = ump3.get(f) || function () {
-    
+
               if (!this.__mEZ__) {
-    
-    
+
+
                   const w = document.createElement;
                   let EU = null;
                   document.createElement = function () {
@@ -3415,16 +3554,16 @@
                       this.polymerController.createTooltipIfRequired_();
                       done = true;
                   } catch (e) {
-    
+
                   }
                   if (!done) {
                       try {
                           this.createTooltipIfRequired_();
                           done = true;
                       } catch (e) {
-    
+
                       }
-    
+
                   }
                   this.__mEZ__ = EU;
                   document.createElement = w;
@@ -3440,7 +3579,7 @@
           ump3.set(f, g);
           g.km34 = 1;
           h.onMouseOver_ = g;
-    
+
         }
         */
 
@@ -5219,7 +5358,7 @@
     })();
 
 
-    
+
 
     FIX_ytAction_ && (async () => {
 
@@ -5404,7 +5543,7 @@
 
 
     });
- 
+
 
     const observablePromise = (proc, timeoutPromise) => {
       let promise = null;
@@ -6500,7 +6639,7 @@
 
 
           /*
-  
+
               g.zo = function(a, b, c) {
                   if ("string" === typeof b)
                       (b = yo(a, b)) && (a.style[b] = c);
@@ -6512,8 +6651,8 @@
                           f && (c.style[f] = e)
                       }
               }
-  
-  
+
+
           */
 
 
@@ -7942,7 +8081,7 @@
         }
 
         /**
-         * 
+         *
             IGb = function(a) {
                     var b, c = null == (b = a.requestAninmationFrameResolver) ? void 0 : b.promise;
                     c || (a.requestAninmationFrameResolver = new Vi,
@@ -7955,7 +8094,7 @@
                     return c
                 }
 
-                
+
          */
 
         const xrequestAnimationFrame = function (f) {
@@ -8021,7 +8160,7 @@
 
       }
 
-      
+
 
 
       FIX_POPUP_UNIQUE_ID && whenCEDefined('ytd-popup-container').then(async () => {
@@ -8053,7 +8192,7 @@
         if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || cProto.handleOpenPopupAction.length !== 2) {
           console.log('FIX_POPUP_UNIQUE_ID NG')
           return;
-        } 
+        }
         cProto.handleOpenPopupAction3868 = cProto.handleOpenPopupAction;
 
         cProto.handleOpenPopupAction = function (a, b) {
