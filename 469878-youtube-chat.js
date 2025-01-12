@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.14
+// @version             0.68.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -43,8 +43,14 @@
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
-  const DEBUG_LOG_GROUP_EXPAND = !!localStorage.__debugSuperFastChat__;
+  const DEBUG_LOG_GROUP_EXPAND = +localStorage.__debugSuperFastChat__ > 0;
+  const DEBUG_LOG_HIDE_OK = true;
+  const DEBUG_skipLog001 = true;
+  const DEBUG_preprocessChatLiveActions = false;
   const DEBUG_customCreateComponent = false;
+  
+  // const SHOW_DEVTOOL_DEBUG = true; // for debug use
+  const SHOW_DEVTOOL_DEBUG = typeof ResizeObserver === 'function' && CSS.supports('position-area:center');
 
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
   // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
@@ -547,19 +553,6 @@
 
 
   // ------
-
-
-  // document.createElement4521 = document.createElement;
-
-  // document.createElement = function(){
-  //   if(arguments[0]==='yt-live-chat-ticker-paid-message-item-renderer' || arguments[0]==='yt-live-chat-ticker-paid-sticker-item-renderer' || arguments[0]==='yt-live-chat-ticker-sponsor-item-renderer'){
-  //     console.log(8123, [...arguments]);
-  //     debugger;
-
-  //   }
-  //   // if(`${arguments[0]}`.indexOf('-')>=0) console.log(8123, [...arguments]);
-  //   return document.createElement4521(...arguments);
-  // };
 
   const { IntersectionObserver } = __CONTEXT__;
   let _x69;
@@ -1455,97 +1448,6 @@
 
   `;
 
-
-  const konsole = {
-    nil: Symbol(),
-    logs: [],
-    style: '',
-    log(...args) {
-      konsole.logs.push({
-        type: 'log',
-        msg: [konsole.tag || konsole.nil, ...args, konsole.style || konsole.nil].filter(e => e !== konsole.nil)
-      });
-    },
-    setTag(tag) {
-      konsole.tag = tag;
-    },
-    setStyle(style) {
-      konsole.style = style;
-    },
-    groupCollapsed(...args) {
-
-      konsole.logs.push({
-        type: 'groupCollapsed',
-        msg: [...args].filter(e => e !== konsole.nil)
-      });
-    },
-    groupEnd() {
-
-      konsole.logs.push({
-        type: 'groupEnd'
-      })
-    },
-    print() {
-      const copy = konsole.logs.slice(0);
-      konsole.logs.length = 0;
-      for (const { type, msg } of copy) {
-        if (type === 'log') {
-          console.log(...msg)
-        } else if (type === 'groupCollapsed') {
-
-          console.groupCollapsed(...msg)
-        } else if (type === 'groupEnd') {
-          console.groupEnd();
-        }
-
-      }
-
-    }
-  };
-
-  /*
-  konsole.groupCollapsedX = (text1, text2) => {
-
-    if(!text2){
-
-      konsole.groupCollapsed(`%c${text1}`,
-      "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;"
-    );
-    }else{
-
-      konsole.groupCollapsed(`%c${text1}%c${text2}`,
-      "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;",
-      "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
-    );
-    }
-  }
-
-  konsole.groupCollapsedX('YouTube Super Fast Chat');
-
-  setTimeout(()=>{
-
-    konsole.setTag('[[Fonts Pre-Rendering]]');
-    konsole.log(123);
-    konsole.log('wsd',332, 'ssa');
-    konsole.setTag('');
-  }, 100);
-
-  setTimeout(()=>{
-
-    konsole.setTag('[[Fonts Pre-Rendering 2]]');
-    konsole.log(123);
-    konsole.log('wsd',332, 'ssa');
-    konsole.setTag('');
-  }, 300);
-
-  setTimeout(()=>{
-
-  konsole.groupEnd();
-  konsole.print();
-  }, 1000);
-
-  */
-
   const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (this instanceof Window ? this : window);
 
   // Create a unique key for the script and check if it is already running
@@ -1648,26 +1550,6 @@
       }
     };
   })();
-
-
-  const createPipeline = () => {
-    let pipelineMutex = Promise.resolve();
-    const pipelineExecution = fn => {
-      return new Promise((resolve, reject) => {
-        pipelineMutex = pipelineMutex.then(async () => {
-          let res;
-          try {
-            res = await fn();
-          } catch (e) {
-            console.log('error_F1', e);
-            reject(e);
-          }
-          resolve(res);
-        }).catch(console.warn);
-      });
-    };
-    return pipelineExecution;
-  };
 
   let qWidthAdjustable = null;
 
@@ -2196,14 +2078,97 @@
   const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
   const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
 
+  let groupCI = [];
+  let groupDI = 0;
+
+  const [console_] = [console];
+  const console1 = {
+    log(...args) {
+      if (!SHOW_DEVTOOL_DEBUG) return;
+      if (groupDI === 1) return grouppedConsoleLog(...args);
+      return console_.log(...args);
+    },
+    warn(...args) {
+      if (!SHOW_DEVTOOL_DEBUG) return;
+      if (groupDI === 1) return grouppedConsoleWarn(...args);
+      return console_.warn(...args);
+    },
+    debug(...args) {
+      if (!SHOW_DEVTOOL_DEBUG) return;
+      if (groupDI === 1) return grouppedConsoleDebug(...args);
+      return console_.debug(...args);
+    }
+  }
+  const grouppedConsoleLog = (...args) => {
+    if (DEBUG_LOG_HIDE_OK) {
+      for (const arg of args) {
+        if (typeof arg !== 'string') break;
+        if (arg.endsWith('OK')) return;
+      }
+    }
+    groupCI.push(['log', ...args]);
+  }
+  const grouppedConsoleWarn = (...args) => {
+    groupCI.push(['warn', ...args]);
+  }
+  const grouppedConsoleDebug = (...args) => {
+    groupCI.push(['debug', ...args]);
+  }
   const groupCollapsed = (text1, text2) => {
+    if (!SHOW_DEVTOOL_DEBUG) return;
+    if (groupDI !== 0) console_.warn('groupDI in groupCollapsed fails', groupDI);
+    groupDI++;
+    groupCI.length = 0;
 
     let w = 'groupCollapsed';
     if (DEBUG_LOG_GROUP_EXPAND) w = 'group';
-    console[w](`%c${text1}%c${text2}`,
+    groupCI.push([w, `%c${text1}%c${text2}`,
       "background-color: #010502; color: #6acafe; font-weight: 700; padding: 2px;",
       "background-color: #010502; color: #6ad9fe; font-weight: 300; padding: 2px;"
-    );
+    ]);
+  }
+  const groupEnd = () => {
+    if (!SHOW_DEVTOOL_DEBUG) return;
+    groupDI--;
+    if (groupDI !== 0) console_.warn('groupDI in groupEnd fails', groupDI);
+    if (groupCI.length >= 0) {
+      let withContent = false;
+      for (const entry of groupCI) {
+        if (entry[0] === 'group' || entry[0] === 'groupCollapsed') continue;
+        if (entry[1] === '[Begin]' || entry[1] === '[End]') continue;
+        withContent = true;
+        break;
+      }
+      if (withContent) {
+        for (const entry of groupCI) {
+          const args = entry.slice(1);
+          let colorHighLight = '';
+          for (const arg of args) {
+            if (typeof arg !== 'string') {
+              colorHighLight = '';
+              break;
+            }
+            if (arg === 'OK' || arg === 'NG') {
+              colorHighLight = arg;
+            } else {
+              if (arg.endsWith(' OK')) colorHighLight = 'OK';
+              else if (arg.endsWith(' NG')) colorHighLight = 'NG';
+            }
+          }
+          let print = args;
+          if (colorHighLight) {
+            print = [args.map(e => `%c${e}`).join(' '), ...args.map(e => {
+              if (colorHighLight === 'OK' && e.includes(colorHighLight)) return "background-color:rgb(29, 29, 29); color:rgb(57, 215, 83); font-weight: 600;";
+              if (colorHighLight === 'NG' && e.includes(colorHighLight)) return "background-color:rgb(29, 29, 29); color:rgb(215, 133, 57); font-weight: 600;";
+              return "background-color:rgb(29, 29, 29); color:rgb(231, 231, 231); font-weight: 400;";
+            })];
+          }
+          console[entry[0]](...print);
+        }
+        console.groupEnd();
+        groupCI.length = 0;
+      }
+    }
   }
 
   // const microNow = () => performance.now() + (performance.timeOrigin || performance.timing.navigationStart);
@@ -2518,16 +2483,16 @@
         }
       }
 
-      console.log('number of elzm-font elements', arr.length);
+      console1.log('number of elzm-font elements', arr.length);
 
       HTMLElement.prototype.append.apply(efsContainer, arr);
 
       (document.body || document.documentElement).appendChild(efsContainer);
 
 
-      console.log('elzm-font elements have been added to the page for rendering.');
+      console1.log('elzm-font elements have been added to the page for rendering.');
 
-      console.groupEnd();
+      groupEnd();
 
     }
 
@@ -3045,12 +3010,12 @@
           }
 
           groupCollapsed("YouTube Super Fast Chat", " | PREFETCH SUPPORTS");
-          if (ENABLE_BASE_PREFETCHING) console.log('dns-prefetch', (kptPF & 1) ? 'OK' : 'NG');
-          if (ENABLE_BASE_PREFETCHING) console.log('preconnect', (kptPF & 2) ? 'OK' : 'NG');
-          if (ENABLE_PRELOAD_THUMBNAIL) console.log('prefetch', (kptPF & 4) ? 'OK' : 'NG');
-          // console.log('subresource', (kptPF & 8) ? 'OK' : 'NG');
-          if (ENABLE_PRELOAD_THUMBNAIL) console.log('preload', (kptPF & 16) ? 'OK' : 'NG');
-          console.groupEnd();
+          
+          if (ENABLE_BASE_PREFETCHING) console1.log('dns-prefetch', (kptPF & 1) ? 'OK' : 'NG');
+          if (ENABLE_BASE_PREFETCHING) console1.log('preconnect', (kptPF & 2) ? 'OK' : 'NG');
+          if (ENABLE_PRELOAD_THUMBNAIL) console1.log('prefetch', (kptPF & 4) ? 'OK' : 'NG');
+          if (ENABLE_PRELOAD_THUMBNAIL) console1.log('preload', (kptPF & 16) ? 'OK' : 'NG');
+          groupEnd();
 
         }
 
@@ -3446,37 +3411,28 @@
           })();
 
 
-          resPromise.then(resValue => {
-
-            const isLogRequired = SHOW_PARTICIPANT_CHANGES_IN_CONSOLE && ((resValue === 0) || ((resValue & 4) === 4));
+          resPromise.then(async (resValue) => {
+            const condition = resValue === 0 ? 1 : (resValue & 4) === 4 ? 2 : 0;
+            const isLogRequired = SHOW_PARTICIPANT_CHANGES_IN_CONSOLE && condition > 0;
             isLogRequired && groupCollapsed("Participant List Change", `tid = ${tid}; res = ${resValue}`);
-            if (resValue === 0) {
-              new Promise(resolve => {
+            if (condition === 1) {
+              isLogRequired && console1.log("Full Refresh begins");
+              await new Promise(resolve => {
                 cnt.resolveForDOMRendering781 = resolve;
-                isLogRequired && console.log("Full Refresh begins");
                 cnt.__notifyPath5036__("participantsManager.participants"); // full refresh
-              }).then(() => {
-                isLogRequired && console.log("Full Refresh ends");
-                console.groupEnd();
-              }).then(lockResolve);
-              return;
-            }
-
-            const delayLockResolve = (resValue & 4) === 4;
-
-            if (delayLockResolve) {
-              isLogRequired && console.log(`Number of participants (before): ${beforeParticipants.length}`);
-              isLogRequired && console.log(`Number of participants (after): ${participants.length}`);
-              isLogRequired && console.log(`Total number of rendered participants: ${cnt.__getAllParticipantsDOMRenderedLength__()}`);
-              isLogRequired && console.log(`Participant Renderer Content Updated: ${(resValue & 8) === 8}`);
-              isLogRequired && console.groupEnd();
+              });
+              isLogRequired && console1.log("Full Refresh ends");
+            } else if (condition === 2) {
+              isLogRequired && console1.log(`Number of participants (before): ${beforeParticipants.length}`);
+              isLogRequired && console1.log(`Number of participants (after): ${participants.length}`);
+              isLogRequired && console1.log(`Total number of rendered participants: ${cnt.__getAllParticipantsDOMRenderedLength__()}`);
+              isLogRequired && console1.log(`Participant Renderer Content Updated: ${(resValue & 8) === 8}`);
               // requestAnimationFrame is required to avoid particiant update during DOM changing (stampDomArraySplices_)
               // mutex lock with requestAnimationFrame can also disable participants update in background
-              requestAnimationFrame(lockResolve);
-            } else {
-              lockResolve();
             }
-
+            isLogRequired && groupEnd();
+            (condition === 2) && (await new Promise(requestAnimationFrame));
+            lockResolve();
           });
 
         });
@@ -3535,7 +3491,7 @@
           const EXPERIMENT_FLAGS = ytcfg.data_.EXPERIMENT_FLAGS;
           for (const key of fgsArr) fgs[key] = EXPERIMENT_FLAGS[key];
         } catch (e) { }
-        console.log(`EXPERIMENT_FLAGS: ${JSON.stringify(fgs, null, 2)}`);
+        console1.log(`EXPERIMENT_FLAGS: ${JSON.stringify(fgs, null, 2)}`);
 
         const canDoReplacement = (() => {
           if (typeof cProto.__notifyPath5035__ === 'function' && cProto.__notifyPath5035__.name !== 'dummy5035') {
@@ -3568,21 +3524,14 @@
           return true;
         })();
 
-        console.log(`Data Manipulation Boost = ${canDoReplacement}`);
+        console1.log(`Data Manipulation Boost = ${canDoReplacement}`);
 
         assertor(() => fnIntegrity(cProto.attached, '0.32.22')) // just warning
         if (typeof cProto.flushRenderStamperComponentBindings_ === 'function') {
           const fiRSCB = fnIntegrity(cProto.flushRenderStamperComponentBindings_);
-          // const s = fiRSCB.split('.');
-          // Feb 2024: 0.403.247 => NG
-          // if (s[0] === '0' && +s[1] > 381 && +s[1] < 391 && +s[2] > 228 && +s[2] < 238) {
-          //   console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - OK`);
-          // } else {
-          //   console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ### - NG`);
-          // }
-          console.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ###`);
+          console1.log(`flushRenderStamperComponentBindings_ ### ${fiRSCB} ###`);
         } else {
-          console.log("flushRenderStamperComponentBindings_ - not found");
+          console1.log("flushRenderStamperComponentBindings_ - not found");
         }
         // assertor(() => fnIntegrity(cProto.flushRenderStamperComponentBindings_, '0.386.233')) // just warning
 
@@ -3619,25 +3568,15 @@
           }
 
           groupCollapsed("Participant List attached", "");
-          // cnt.$.participants.appendChild = cnt.$.participants.__shady_native_appendChild =  function(){
-          //   console.log(123, 'appendChild');
-          //   return HTMLElement.prototype.appendChild.apply(this, arguments)
-          // }
-
-          // cnt.$.participants.insertBefore =cnt.$.participants.__shady_native_insertBefore =  function(){
-          //   console.log(123, 'insertBefore');
-          //   return HTMLElement.prototype.insertBefore.apply(this, arguments)
-          // }
-
           cnt.__notifyPath5036__ = cnt.notifyPath
           const participants = ((cnt.participantsManager || 0).participants || 0);
           assertor(() => (participants.length > -1 && typeof participants.slice === 'function'));
-          console.log(`initial number of participants: ${participants.length}`);
+          console1.log(`initial number of participants: ${participants.length}`);
           const newParticipants = (participants.length >= 1 && typeof participants.slice === 'function') ? participants.slice(0) : [];
           beforeParticipantsMap.set(cnt, newParticipants);
           cnt.notifyPath = notifyPath7081;
-          console.log(`CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT = ${CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT}`);
-          console.groupEnd();
+          console1.log(`CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT = ${CHECK_CHANGE_TO_PARTICIPANT_RENDERER_CONTENT}`);
+          groupEnd();
         }
         cProto.attached = function () {
           fpPList(this.hostElement || this);
@@ -3672,12 +3611,12 @@
             cProto.stampDomArray_.nIegT = 1;
 
           }
-          console.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - YES`);
+          console1.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - OK`);
         } else {
-          console.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - NO`);
+          console1.log(`ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST - NG`);
         }
 
-        console.groupEnd();
+        groupEnd();
 
         if (onPageElements.length >= 1) {
           for (const s of onPageElements) {
@@ -3720,6 +3659,7 @@
 
     const fixChildrenIssue = !!fixChildrenIssue801;
     if (fixChildrenIssue && typeof Object.getOwnPropertyDescriptor === 'function' && typeof Proxy !== 'undefined') {
+      let fixChildrenIssue_status = false;
       const divProto = HTMLDivElement.prototype;
       const polymerControllerSetData3 = function (c, d, e) {
         return insp(this).set(c, d, e);
@@ -3790,56 +3730,21 @@
             };
             Object.defineProperty(divProto, 'children', m);
 
-            console.log('fixChildrenIssue - set OK')
+            fixChildrenIssue_status = true;
+            
 
           }
         }
 
       }
 
+      if (!fixChildrenIssue_status) {
+        console.log('fixChildrenIssue - set NG')
+      }
+
 
     }
 
-
-    // const bnForDelayChatOccurrence = () => {
-
-    //   document.addEventListener('animationstart', (evt) => {
-
-    //     if (evt.animationName === 'dontRenderAnimation') {
-    //       evt.target.classList.remove('dont-render');
-    //       if (scrollChatFn) scrollChatFn();
-    //     }
-
-    //   }, true);
-
-    //   const f = (elm) => {
-    //     if (elm && elm.nodeType === 1) {
-    //       if (!skipDontRender && allowDontRender === true) {
-    //         // innerTextFixFn();
-    //         elm.classList.add('dont-render');
-    //       }
-    //     }
-    //   }
-
-    //   Node.prototype.__appendChild931__ = function (a) {
-    //     a = dr(a);
-    //     if (this.id === 'items' && this.classList.contains('yt-live-chat-item-list-renderer')) {
-    //       if (a && a.nodeType === 1) f(a);
-    //       else if (a instanceof DocumentFragment) {
-    //         for (let n = a.firstChild; n; n = n.nextSibling) {
-    //           f(n);
-    //         }
-    //       }
-    //     }
-    //   }
-
-    //   Node.prototype.__appendChild932__ = function () {
-    //     this.__appendChild931__.apply(this, arguments);
-    //     return Node.prototype.appendChild.apply(this, arguments);
-    //   }
-
-
-    // };
 
     const watchUserCSS = () => {
 
@@ -3922,150 +3827,7 @@
     }
 
 
-    // class WillChangeController {
-    //   constructor(itemScroller, willChangeValue) {
-    //     this.element = itemScroller;
-    //     this.counter = 0;
-    //     this.active = false;
-    //     this.willChangeValue = willChangeValue;
-    //   }
-
-    //   beforeOper() {
-    //     if (!this.active) {
-    //       this.active = true;
-    //       this.element.style.willChange = this.willChangeValue;
-    //     }
-    //     this.counter++;
-    //   }
-
-    //   afterOper() {
-    //     const c = this.counter;
-    //     foregroundPromiseFn().then(() => {
-    //       if (c === this.counter) {
-    //         this.active = false;
-    //         this.element.style.willChange = '';
-    //       }
-    //     });
-    //   }
-
-    //   release() {
-    //     const element = this.element;
-    //     this.element = null;
-    //     this.counter = 1e16;
-    //     this.active = false;
-    //     try {
-    //       element.style.willChange = '';
-    //     } catch (e) { }
-    //   }
-
-    // }
-
-
-    // const skzData = (skz) => skz.data = {
-    //   "message": {
-    //     "runs": [
-    //       {
-    //         "text": "em2o"
-    //       },
-    //       {
-    //         "emoji": {
-    //           "emojiId": "cm35z",
-    //           "shortcuts": [
-    //             ":_s:",
-    //             ":s:"
-    //           ],
-    //           "searchTerms": [
-    //             "_s",
-    //             "s"
-    //           ],
-    //           "image": {
-    //             "thumbnails": [
-    //               {
-    //                 "url": dummyImgURL,
-    //                 "width": 48,
-    //                 "height": 48
-    //               }
-    //             ],
-    //             "accessibility": {
-    //               "accessibilityData": {
-    //                 "label": "s"
-    //               }
-    //             }
-    //           },
-    //           "isCustomEmoji": true
-    //         }
-    //       },
-    //       {
-    //         "text": "ji"
-    //       }
-    //     ]
-    //   },
-    //   "authorName": {
-    //     "simpleText": "N"
-    //   },
-    //   "authorPhoto": {
-    //     "thumbnails": [
-    //       {
-    //         "url": dummyImgURL,
-    //         "width": 64,
-    //         "height": 64
-    //       }
-    //     ]
-    //   },
-    //   "contextMenuEndpoint": {
-    //     "commandMetadata": {
-    //       "webCommandMetadata": {
-    //         "ignoreNavigation": true
-    //       }
-    //     },
-    //     "liveChatItemContextMenuEndpoint": {
-    //       "params": "123=="
-    //     }
-    //   },
-    //   "id": "sk35z",
-    //   "timestampUsec": "1232302352350000",
-    //   "authorBadges": [
-    //     {
-    //       "liveChatAuthorBadgeRenderer": {
-    //         "customThumbnail": {
-    //           "thumbnails": [
-    //             {
-    //               "url": dummyImgURL,
-    //               "width": 16,
-    //               "height": 16
-    //             },
-    //             {
-    //               "url": dummyImgURL,
-    //               "width": 32,
-    //               "height": 32
-    //             }
-    //           ]
-    //         },
-    //         "tooltip": "T",
-    //         "accessibility": {
-    //           "accessibilityData": {
-    //             "label": "E"
-    //           }
-    //         }
-    //       }
-    //     }
-    //   ],
-    //   "authorExternalChannelId": "A",
-    //   "contextMenuAccessibility": {
-    //     "accessibilityData": {
-    //       "label": "E"
-    //     }
-    //   },
-    //   "timestampText": {
-    //     "simpleText": "0:43"
-    //   }
-    // };
-
-
-
     const { lcRendererElm, visObserver } = (() => {
-
-
 
       let lcRendererWR = null;
 
@@ -4897,9 +4659,9 @@
             console.error('[yt-chat] preprocessChatLiveActions might fail because of no __LCRInjection__');
           }
 
-          console.log('[yt-chat-debug] 5990', 'preprocessChatLiveActions', arr)
+          DEBUG_preprocessChatLiveActions && console.log('[yt-chat-debug] 5990', 'preprocessChatLiveActions', arr)
 
-          console.log('[yt-chat-debug] 5991', document.querySelectorAll('yt-live-chat-ticker-renderer #ticker-items [class]').length)
+          DEBUG_preprocessChatLiveActions && console.log('[yt-chat-debug] 5991', document.querySelectorAll('yt-live-chat-ticker-renderer #ticker-items [class]').length)
 
           fir = 1;
           // debugger;
@@ -5787,7 +5549,7 @@
 
       if (ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION) {
 
-        console.log('ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION is used.')
+        console.log('[yt-chat-control] ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION is used.')
 
         // console.log('ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION 0001')
 
@@ -5883,7 +5645,7 @@
           }
 
           // console.log("[End]");
-          // console.groupEnd();
+          // groupEnd();
 
 
         };
@@ -5913,7 +5675,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-item-list-renderer hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
 
         const mclp = cProto;
         const _flag0281_ = window._flag0281_;
@@ -5963,9 +5725,9 @@
               this.__intermediate_delay__ = null;
               this.clearList66();
             };
-            console.log("clearList", "OK");
+            console1.log("clearList", "OK");
           } else {
-            console.log("clearList", "NG");
+            console1.log("clearList", "NG");
           }
 
         }
@@ -6124,9 +5886,9 @@
             }
           }
 
-          console.log("async", "OK");
+          console1.log("async", "OK");
         } else {
-          console.log("async", "NG");
+          console1.log("async", "NG");
         }
 
 
@@ -6165,9 +5927,9 @@
               });
             }
 
-            console.log("showNewItems_", "OK");
+            console1.log("showNewItems_", "OK");
           } else {
-            console.log("showNewItems_", "NG");
+            console1.log("showNewItems_", "NG");
           }
 
         }
@@ -6308,8 +6070,7 @@
               }
 
               return r; 
-            }
-
+            };
 
             const preloadFn = (acItems) => {
               let waitFor = [];
@@ -6403,28 +6164,29 @@
 
                   groupCollapsed("YouTube Super Fast Chat", " | flushActiveItems78_");
 
-                  logger && console.log('[Begin]')
+                  console1.log('[Begin]')
 
-                  console.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
+                  console1.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
                   if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && lockedMaxItemsToDisplay === tmpMaxItemsCount && lockedMaxItemsToDisplay !== reducedMaxItemsToDisplay) {
-                    console.log('reduce maxitems');
+                    console1.log('reduce maxitems');
                     if (tmpMaxItemsCount > reducedMaxItemsToDisplay) {
                       // as all the rendered chats are already "outdated"
                       // all old chats shall remove and reduced number of few chats will be rendered
                       // then restore to the original number
                       changeMaxItemsToDisplay = true;
                       this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
-                      console.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
+                      console1.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
                     }
                     this.activeItems_.splice(0, activeItemsLen - this.data.maxItemsToDisplay);
                     //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
 
-                    console.log('new this.activeItems_.length > N', this.activeItems_.length);
+                    console1.log('new this.activeItems_.length > N', this.activeItems_.length);
                   } else {
                     this.activeItems_.splice(0, activeItemsLen - (tmpMaxItemsCount < 900 ? tmpMaxItemsCount : 900));
 
-                    console.log('new this.activeItems_.length > N', this.activeItems_.length);
+                    console1.log('new this.activeItems_.length > N', this.activeItems_.length);
                   }
+
                 }
                 // it is found that it will render all stacked chats after switching back from background
                 // to avoid lagging in popular livestream with massive chats, trim first before rendering.
@@ -6448,19 +6210,19 @@
                 if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
                   this.data.maxItemsToDisplay = tmpMaxItemsCount;
 
-                  logger && console.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
+                  logger && console1.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
                   //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
                 } else if (changeMaxItemsToDisplay) {
 
-                  logger && console.log(`'maxItemsToDisplay' cannot be restored`, {
+                  logger && console1.log(`'maxItemsToDisplay' cannot be restored`, {
                     maxItemsToDisplay: this.data.maxItemsToDisplay,
                     reducedMaxItemsToDisplay,
                     originalMaxItemsToDisplay: tmpMaxItemsCount
                   });
                 }
-                logger && console.log('[End]');
+                logger && console1.log('[End]');
 
-                logger && console.groupEnd();
+                logger && groupEnd();
 
                 if (noVisibleItem1 && !noVisibleItem2) {
                   // fix possible no auto scroll issue.
@@ -6528,7 +6290,7 @@
               } catch (e) {
                 console.warn(e);
               }
-            }
+            };
 
             mclp.flushActiveItems77_ = function () {
 
@@ -6567,7 +6329,7 @@
 
               });
 
-            }
+            };
 
             mclp.flushActiveItems_ = function () {
               const cnt = this;
@@ -6615,10 +6377,10 @@
                 });
               });
 
-            }
-            console.log("flushActiveItems_", "OK");
+            };
+            console1.log("flushActiveItems_", "OK");
           } else {
-            console.log("flushActiveItems_", "NG");
+            console1.log("flushActiveItems_", "NG");
           }
         }
 
@@ -6632,9 +6394,9 @@
               // this.itemOffset.style.height = this.items.clientHeight + "px";
               // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
             }
-            console.log("refreshOffsetContainerHeight_", "OK");
+            console1.log("refreshOffsetContainerHeight_", "OK");
           } else {
-            console.log("refreshOffsetContainerHeight_", "NG");
+            console1.log("refreshOffsetContainerHeight_", "NG");
           }
 
         }
@@ -6766,7 +6528,7 @@
               }
             }
 
-            console.log("atBottomChanged_", "OK");
+            console1.log("atBottomChanged_", "OK");
 
           } else if ((mclp.atBottomChanged_ || 0).length === 1) {
             // note: if the scrolling is too frequent, the show more visibility might get wrong.
@@ -6873,9 +6635,9 @@
               }
             }
 
-            console.log("atBottomChanged_", "OK");
+            console1.log("atBottomChanged_", "OK");
           } else {
-            console.log("atBottomChanged_", "NG");
+            console1.log("atBottomChanged_", "NG");
           }
         }
 
@@ -6954,9 +6716,9 @@
                 });
               });
             }
-            console.log("onScrollItems_", "OK");
+            console1.log("onScrollItems_", "OK");
           } else {
-            console.log("onScrollItems_", "NG");
+            console1.log("onScrollItems_", "NG");
           }
         }
 
@@ -7040,9 +6802,9 @@
 
               resistanceUpdateFn_();
             }
-            console.log("handleLiveChatActions_", "OK");
+            console1.log("handleLiveChatActions_", "OK");
           } else {
-            console.log("handleLiveChatActions_", "NG");
+            console1.log("handleLiveChatActions_", "NG");
           }
         }
 
@@ -7065,9 +6827,9 @@
             return this.canScrollToBottom157_() && !this.hasUserJustInteracted11_();
           }
 
-          console.log("canScrollToBottom_", "OK");
+          console1.log("canScrollToBottom_", "OK");
         } else {
-          console.log("canScrollToBottom_", "NG");
+          console1.log("canScrollToBottom_", "NG");
         }
 
         if (ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -7091,9 +6853,9 @@
           mclp.resetSmoothScroll_ = function () {
             //
           }
-          console.log("ENABLE_NO_SMOOTH_TRANSFORM", "OK");
+          console1.log("ENABLE_NO_SMOOTH_TRANSFORM", "OK");
         } else {
-          console.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
+          console1.log("ENABLE_NO_SMOOTH_TRANSFORM", "NG");
         }
 
         if ((_flag0281_ & 0x8) == 0) {
@@ -7177,10 +6939,10 @@
             return res;
           }
 
-          if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+          if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console1.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
         } else {
 
-          if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
+          if (FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION) console1.log("handleAddChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_ADDITION ]", "OK");
         }
 
 
@@ -7197,14 +6959,14 @@
             return this.handleReplaceChatItemAction66_.apply(this, arguments);
           }
 
-          if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
+          if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console1.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
         } else {
 
-          if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
+          if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console1.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
         }
 
-        console.log("[End]");
-        console.groupEnd();
+        console1.log("[End]");
+        groupEnd();
 
       }).catch(console.warn);
 
@@ -7318,71 +7080,11 @@
       // const wmList = new Set;
 
 
-      /*
-            Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
-
-
-              const dProto = {
-
-                detachedForTickerInit: function () {
-
-                  try {
-
-                    this.actionHandlerBehavior.unregisterActionMap(this.behaviorActionMap)
-
-                    // this.behaviorActionMap = 0;
-                    // this.isVisibilityRoot = 0;
-
-
-                  } catch (e) { }
-
-
-                  return this.detached582MemoryLeak();
-                },
-
-                attachedForTickerInit: function () {
-                  wmList.add(new WeakRef(this))
-
-                  // fpTicker(this.hostElement || this);
-                  return this.attached77();
-
-                },
-
-
-              }
-
-
-              for (const tag of tagsItemRenderer) { // ##tag##
-                const dummy = document.createElement(tag);
-
-                const cProto = getProto(dummy);
-                if (!cProto || !cProto.attached) {
-                  console.warn(`proto.attached for ${tag} is unavailable.`);
-                  continue;
-                }
-
-                if (FIX_MEMORY_LEAKAGE_TICKER_ACTIONMAP && typeof cProto.detached582MemoryLeak !== 'function' && typeof cProto.detached === 'function') {
-                  cProto.detached582MemoryLeak = cProto.detached;
-                  cProto.detached = cProto.detachedForTickerInit;
-                }
-
-                cProto.attached77 = cProto.attached;
-
-                cProto.attached = dProto.attachedForTickerInit;
-
-
-              }
-
-            });
-            */
-
-
-
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-... hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
 
 
         let tickerAttachmentId = 0;
@@ -7776,7 +7478,7 @@
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
+            console1.warn(`proto.attached for ${tag} is unavailable.`);
             continue;
           }
 
@@ -7816,7 +7518,7 @@
 
             // <<< to be reviewed cProto.updateTimeout --- isTimingFunctionHackable -- doHack >>>
             const isTimingFunctionHackable = fnIntegrity(cProto.startCountdown, '2.66.37') && fnIntegrity(cProto.updateTimeout, '1.76.45') && fnIntegrity(cProto.isAnimationPausedChanged, '2.56.30')
-            if (!isTimingFunctionHackable) console.log('isTimingFunctionHackable = false');
+            if (!isTimingFunctionHackable) console1.log('isTimingFunctionHackable = false');
             withTimerFn_ = isTimingFunctionHackable ? 2 : 1;
           } else {
             let flag = 0;
@@ -7824,7 +7526,7 @@
             if (typeof cProto.updateTimeout === 'function') flag |= 2;
             if (typeof cProto.isAnimationPausedChanged === 'function') flag |= 4;
 
-            console.log(`Skip Timing Function Modification: ${flag} / ${1 + 2 + 4}`, ` ${tag}`);
+            console1.log(`Skip Timing Function Modification[#${tagI}]: ${flag} / ${1 + 2 + 4}`, ` ${tag}`);
             // console.log(Object.getOwnPropertyNames(cProto))
             // continue;
           }
@@ -7863,21 +7565,21 @@
                 assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
               }
             } else {
-              if (withTimerFn_ > 0) console.log('Error for setting cProto.handlePauseReplay', tag)
+              if (withTimerFn_ > 0) console1.log('Error for setting cProto.handlePauseReplay', tag)
             }
 
             if (typeof cProto.handleResumeReplay === 'function' && !cProto.handleResumeReplay66 && cProto.handleResumeReplay.length === 0) {
               urt++;
               assertor(() => fnIntegrity(cProto.handleResumeReplay, '0.8.2'));
             } else {
-              if (withTimerFn_ > 0) console.log('Error for setting cProto.handleResumeReplay', tag)
+              if (withTimerFn_ > 0) console1.log('Error for setting cProto.handleResumeReplay', tag)
             }
 
             if (typeof cProto.handleReplayProgress === 'function' && !cProto.handleReplayProgress66 && cProto.handleReplayProgress.length === 1) {
               urt++;
               assertor(() => fnIntegrity(cProto.handleReplayProgress, '1.16.13'));
             } else {
-              if (withTimerFn_ > 0) console.log('Error for setting cProto.handleReplayProgress', tag)
+              if (withTimerFn_ > 0) console1.log('Error for setting cProto.handleReplayProgress', tag)
             }
 
 
@@ -7933,7 +7635,9 @@
 
           }
 
-          console.log(`FIX_MEMORY_LEAKAGE_TICKER_: ${flgLeakageFixApplied} / ${1 + 2 + 4 + 8 + 16 + 32}`, cProto.is);
+          const flgTotal = USE_ADVANCED_TICKING ?  1 + 2 + 32 : 1 + 2 + 4 + 8 + 16 + 32;
+
+          console1.log(`FIX_MEMORY_LEAKAGE_TICKER_[#${tagI}]: ${flgLeakageFixApplied} / ${flgTotal}`, cProto.is);
 
           // ------------- FIX_MEMORY_LEAKAGE_TICKER_TIMER -------------
 
@@ -7956,7 +7660,7 @@
             // live stream video -> 48117007 0 -> 48117007 YES
 
             document.documentElement.setAttribute('r6-advanced-ticking', '');
-            console.log(`USE_ADVANCED_TICKING[#${tagI}]::START`)
+            console1.log(`USE_ADVANCED_TICKING[#${tagI}]::START`)
 
             const wio2 = dProto.wio2 || (dProto.wio2 = new IntersectionObserver((mutations) => {
 
@@ -8279,10 +7983,10 @@
               });
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - OK`)
             } else {
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - NG`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::slideDown - NG`)
             }
 
 
@@ -8342,10 +8046,10 @@
 
               });
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - OK`)
             } else {
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - NG`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::collapse - NG`)
             }
 
 
@@ -8455,10 +8159,10 @@
               });
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - OK`)
             } else {
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - NG`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::requestRemoval - NG`)
             }
 
 
@@ -8472,10 +8176,10 @@
               });
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - OK`)
             } else {
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - NG`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::computeContainerStyle - NG`)
             }
 
 
@@ -8572,10 +8276,10 @@
               });
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - OK`)
             } else {
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - NG (acceptable)`)
+              DEBUG_skipLog001 || console1.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - NG (acceptable)`)
             }
 
 
@@ -8667,18 +8371,18 @@
 
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - OK`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - OK`)
             } else {
 
 
-              console.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - NG`)
+              console1.log(`USE_ADVANCED_TICKING[#${tagI}]::setContainerWidth - NG`)
             }
 
 
 
 
           } else if (USE_ADVANCED_TICKING) {
-            console.log(`USE_ADVANCED_TICKING[#${tagI}] is not injected.`);
+            console1.log(`USE_ADVANCED_TICKING[#${tagI}] is not injected.`);
           }
 
 
@@ -8695,8 +8399,8 @@
           }
         }
 
-        console.log("[End]");
-        console.groupEnd();
+        console1.log("[End]");
+        groupEnd();
 
 
       }).catch(console.warn);
@@ -8799,7 +8503,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-ticker-renderer hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
         (() => {
 
           /* pending!!
@@ -8823,7 +8527,7 @@
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
+            console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
 
@@ -8889,18 +8593,16 @@
 
             }
 
-            console.log("USE_ADVANCED_TICKING::handleLiveChatActions - OK");
+            console1.log("USE_ADVANCED_TICKING::handleLiveChatActions - OK");
 
           }else if(USE_ADVANCED_TICKING){
 
 
-            console.log("USE_ADVANCED_TICKING::handleLiveChatActions - NG");
+            console1.log("USE_ADVANCED_TICKING::handleLiveChatActions - NG");
 
           }
 
             // yt-live-chat-ticker-renderer hacks
-            // console.log('handleLiveChatActions', cProto.handleLiveChatActions, cProto.is);
-            // console.log('handleLiveChatAction', cProto.handleLiveChatAction, cProto.is);
 
 
           if (RAF_FIX_keepScrollClamped) {
@@ -8921,11 +8623,11 @@
                 cnt.maybeClampScroll()
               }
 
-              console.log('RAF_FIX: keepScrollClamped', tag, "OK")
+              console1.log('RAF_FIX: keepScrollClamped', tag, "OK")
             } else {
 
               assertor(() => fnIntegrity(cProto.keepScrollClamped, '0.17.10'));
-              console.log('RAF_FIX: keepScrollClamped', tag, "NG")
+              console1.log('RAF_FIX: keepScrollClamped', tag, "NG")
             }
 
           }
@@ -9049,13 +8751,13 @@
               0 < tickerBarQuery.scrollLeft || cnt.scrollRatePixelsPerSecond && 0 < cnt.scrollRatePixelsPerSecond ? cnt.asyncHandle = requestAnimationFrame(cnt._bound_scrollIncrementally) : cnt.stopScrolling()
             };
 
-            console.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
+            console1.log(`RAF_FIX: scrollIncrementally${RAF_FIX_scrollIncrementally}`, tag, "OK")
           } else {
             assertor(() => fnIntegrity(cProto.startScrolling, '1.43.31'))
               || logFn('cProto.startScrolling', cProto.startScrolling)();
             assertor(() => fnIntegrity(cProto.scrollIncrementally, '1.78.45'))
               || logFn('cProto.scrollIncrementally', cProto.scrollIncrementally)();
-            console.log('RAF_FIX: scrollIncrementally', tag, "NG")
+            console1.log('RAF_FIX: scrollIncrementally', tag, "NG")
           }
 
 
@@ -9136,18 +8838,18 @@
               }
             };
 
-            console.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - OK")
+            console1.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - OK")
 
           } else {
-            console.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - NG")
+            console1.log("CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED - NG")
           }
 
 
         })();
 
-        console.log("[End]");
+        console1.log("[End]");
 
-        console.groupEnd();
+        groupEnd();
 
       }).catch(console.warn);
 
@@ -9159,7 +8861,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-input-renderer hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
 
@@ -9169,7 +8871,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -9185,7 +8887,7 @@
 
                 doHack = fnIntegrity(cProto.handleTimeout, '1.27.16') && fnIntegrity(cProto.updateTimeout, '1.50.33');
 
-                if (!doHack) console.log('doHack = false')
+                if (!doHack) console1.log('doHack = false')
 
               }
               // doHack = false; // M55
@@ -9218,13 +8920,13 @@
                     rafHub.request(cnt.boundUpdateTimeout38_)) : cnt.lastTimeoutTimeMs = 0
                 };
 
-                console.log('RAF_HACK_INPUT_RENDERER', tag, "OK")
+                console1.log('RAF_HACK_INPUT_RENDERER', tag, "OK")
               } else {
 
-                console.log('typeof handleTimeout', typeof cProto.handleTimeout)
-                console.log('typeof updateTimeout', typeof cProto.updateTimeout)
+                console1.log('typeof handleTimeout', typeof cProto.handleTimeout)
+                console1.log('typeof updateTimeout', typeof cProto.updateTimeout)
 
-                console.log('RAF_HACK_INPUT_RENDERER', tag, "NG")
+                console1.log('RAF_HACK_INPUT_RENDERER', tag, "NG")
               }
 
 
@@ -9242,9 +8944,9 @@
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
 
         })
@@ -9258,7 +8960,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-picker-renderer hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-emoji-picker-renderer"
@@ -9266,7 +8968,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -9274,10 +8976,13 @@
             if (typeof cProto.animateScroll_ === 'function') {
 
               // not cancellable
-              console.log('animateScroll_', typeof cProto.animateScroll_)
+              console1.log('animateScroll_: function - OK')
 
               doHack = fnIntegrity(cProto.animateScroll_, '1.102.49')
 
+            } else {
+
+              console1.log('animateScroll_', typeof cProto.animateScroll_)
             }
 
             if (doHack) {
@@ -9304,17 +9009,17 @@
                 cnt.updateButtons_()
               }
 
-              console.log('ENABLE_RAF_HACK_EMOJI_PICKER', tag, "OK")
+              console1.log('ENABLE_RAF_HACK_EMOJI_PICKER', tag, "OK")
             } else {
 
-              console.log('ENABLE_RAF_HACK_EMOJI_PICKER', tag, "NG")
+              console1.log('ENABLE_RAF_HACK_EMOJI_PICKER', tag, "NG")
             }
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
         });
       }
 
@@ -9324,7 +9029,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-docked-message hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-live-chat-docked-message"
@@ -9332,7 +9037,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -9345,12 +9050,17 @@
               // onDockableMessagesChanged
               //  this.intersectRAF = window.requestAnimationFrame(this.boundCheckIntersections);
 
-              console.log('detached', typeof cProto.detached)
-              console.log('checkIntersections', typeof cProto.checkIntersections)
-              console.log('onDockableMessagesChanged', typeof cProto.onDockableMessagesChanged)
+              console1.log(`detached: function - OK`)
+              console1.log('checkIntersections: function - OK')
+              console1.log('onDockableMessagesChanged: function - OK')
 
               doHack = fnIntegrity(cProto.detached, '0.32.22') && fnIntegrity(cProto.checkIntersections, '0.128.85') && fnIntegrity(cProto.onDockableMessagesChanged, '0.20.11')
 
+            } else {
+
+              console1.log('detached', typeof cProto.detached, 'NG')
+              console1.log('checkIntersections', typeof cProto.checkIntersections, 'NG')
+              console1.log('onDockableMessagesChanged', typeof cProto.onDockableMessagesChanged, 'NG')
             }
 
             if (doHack) {
@@ -9415,17 +9125,17 @@
                 this.intersectRAF && rafHub.cancel(this.intersectRAF)
               }
 
-              console.log('ENABLE_RAF_HACK_DOCKED_MESSAGE', tag, "OK")
+              console1.log('ENABLE_RAF_HACK_DOCKED_MESSAGE', tag, "OK")
             } else {
 
-              console.log('ENABLE_RAF_HACK_DOCKED_MESSAGE', tag, "NG")
+              console1.log('ENABLE_RAF_HACK_DOCKED_MESSAGE', tag, "NG")
             }
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
         }).catch(console.warn);
 
@@ -9437,7 +9147,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-img-shadow hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-img-shadow"
@@ -9445,7 +9155,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -9460,10 +9170,10 @@
                 return this.thumbnailChanged66_.apply(this, arguments)
 
               }
-              console.log("cProto.thumbnailChanged_ - OK");
+              console1.log("cProto.thumbnailChanged_ - OK");
 
             } else {
-              console.log("cProto.thumbnailChanged_ - NG");
+              console1.log("cProto.thumbnailChanged_ - NG");
 
             }
             if (typeof cProto.setSrc_ === 'function' && !cProto.setSrc66_) {
@@ -9474,17 +9184,17 @@
                 return this.setSrc66_.apply(this, arguments)
               }
 
-              console.log("cProto.setSrc_ - OK");
+              console1.log("cProto.setSrc_ - OK");
             } else {
 
-              console.log("cProto.setSrc_ - NG");
+              console1.log("cProto.setSrc_ - NG");
             }
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
         }).catch(console.warn);
 
@@ -9496,7 +9206,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-author-badge-renderer hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-live-chat-author-badge-renderer"
@@ -9504,7 +9214,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -9578,7 +9288,7 @@
                 return this.dataChanged86.apply(this, arguments)
 
               }
-              console.log("cProto.dataChanged - OK");
+              console1.log("cProto.dataChanged - OK");
 
             } else if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
 
@@ -9668,19 +9378,19 @@
                 return this.dataChanged86.apply(this, arguments)
 
               }
-              console.log("cProto.dataChanged - OK");
+              console1.log("cProto.dataChanged - OK");
 
             } else {
               assertor(() => fnIntegrity(cProto.dataChanged, '0.169.106'));
-              console.log("cProto.dataChanged - NG");
+              console1.log("cProto.dataChanged - NG");
 
             }
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
         }).catch(console.warn);
 
@@ -10080,7 +9790,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | tp-yt-paper-tooltip hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "tp-yt-paper-tooltip"
@@ -10088,7 +9798,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -10103,10 +9813,10 @@
                 return r;
               }
 
-              console.log("_readyClients - OK");
+              console1.log("_readyClients - OK");
 
             } else {
-              console.log("_readyClients - NG");
+              console1.log("_readyClients - NG");
 
             }
 
@@ -10129,19 +9839,19 @@
                 return r;
               }
 
-              console.log("trim tooltip content - OK");
+              console1.log("trim tooltip content - OK");
 
             } else {
-              console.log("trim tooltip content - NG");
+              console1.log("trim tooltip content - NG");
 
             }
 
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
         }).catch(console.warn);
 
@@ -10345,7 +10055,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-message-renderer(s)... hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           let doMouseHook = false;
 
           const dProto = {
@@ -10367,7 +10077,7 @@
 
               const cProto = getProto(dummy);
               if (!cProto || !cProto.attached) {
-                console.warn(`proto.attached for ${tag} is unavailable.`);
+                console1.warn(`proto.attached for ${tag} is unavailable.`);
                 return;
               }
 
@@ -10382,11 +10092,11 @@
                   doMouseHook = true;
                 }
 
-                console.log("shouldSupportWholeItemClick Y", tag);
+                console1.log("shouldSupportWholeItemClick - OK", tag);
 
               } else {
 
-                console.log("shouldSupportWholeItemClick N", tag);
+                console1.log("shouldSupportWholeItemClick - NG", tag);
               }
 
 
@@ -10399,12 +10109,12 @@
 
             hookDocumentMouseDownSetupFn();
 
-            console.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent OK");
+            console1.log("FIX_CLICKING_MESSAGE_MENU_DISPLAY_ON_MOUSE_CLICK - Doc MouseEvent OK");
           }
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
 
         }).catch(console.warn);
@@ -10734,7 +10444,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | fixShowContextMenu");
-        console.log("[Begin]");
+        console1.log("[Begin]");
 
 
         const __showContextMenu_mutex__ = new Mutex();
@@ -10896,7 +10606,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -10910,19 +10620,19 @@
               cProto.__showCachedContextMenu__ = dProto.__showCachedContextMenu__
               cProto.showContextMenu = dProto.showContextMenuForCacheReopen;
               cProto.showContextMenu_ = dProto.showContextMenuForCacheReopen_;
-              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
+              console1.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - OK", tag);
             } else {
-              console.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - NG", tag);
+              console1.log("CACHE_SHOW_CONTEXT_MENU_FOR_REOPEN - NG", tag);
             }
 
             if (ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU && typeof cProto.showContextMenu === 'function' && typeof cProto.showContextMenu_ === 'function' && !cProto.showContextMenu48 && !cProto.showContextMenu48_ && cProto.showContextMenu.length === 1 && cProto.showContextMenu_.length === 1) {
               cProto.showContextMenu48 = cProto.showContextMenu;
               cProto.showContextMenu = dProto.showContextMenuWithDisableScroll;
-              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - OK", tag);
+              console1.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - OK", tag);
             } else if (!ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU) {
-              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - N/A", tag);
+              DEBUG_skipLog001 || console1.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - N/A", tag);
             } else {
-              console.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - NG", tag);
+              console1.log("ADVANCED_NOT_ALLOW_SCROLL_FOR_SHOW_CONTEXT_MENU - NG", tag);
             }
 
 
@@ -10933,18 +10643,18 @@
               cProto.__showContextMenu_assign_lock__ = dProto.__showContextMenu_assign_lock__;
               cProto.showContextMenu = dProto.showContextMenuWithMutex;
               cProto.showContextMenu_ = dProto.showContextMenuWithMutex_;
-              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - OK", tag);
+              console1.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - OK", tag);
             } else {
-              console.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - NG", tag);
+              console1.log("ENABLE_MUTEX_FOR_SHOW_CONTEXT_MENU - NG", tag);
             }
 
           })();
 
         }
 
-        console.log("[End]");
+        console1.log("[End]");
 
-        console.groupEnd();
+        groupEnd();
 
       }).catch(console.warn);
 
@@ -10958,7 +10668,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | tp-yt-paper-dialog hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "tp-yt-paper-dialog";
@@ -10966,7 +10676,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -11004,9 +10714,9 @@
           })();
 
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
 
         }).catch(console.warn);
@@ -11018,7 +10728,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | tp-yt-iron-dropdown hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
         (() => {
 
           const tag = "tp-yt-iron-dropdown";
@@ -11026,7 +10736,7 @@
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
+            console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
 
@@ -11049,9 +10759,9 @@
               null !== c[a] && cancelAnimationFrame(c[a]);
               c[a] = requestAnimationFrame(this.__deraf_hn__(a, b));
             };
-            console.log("USE_VANILLA_DEREF - OK");
+            console1.log("USE_VANILLA_DEREF - OK");
           } else {
-            console.log("USE_VANILLA_DEREF - NG");
+            console1.log("USE_VANILLA_DEREF - NG");
           }
 
           if (FIX_DROPDOWN_DERAF && typeof cProto.__deraf === 'function' && cProto.__deraf.length === 2 && !cProto.__deraf66) {
@@ -11066,9 +10776,9 @@
               let r = this.__deraf66.apply(this, arguments);
               return r;
             }
-            console.log("FIX_DROPDOWN_DERAF - OK");
+            console1.log("FIX_DROPDOWN_DERAF - OK");
           } else {
-            console.log("FIX_DROPDOWN_DERAF - NG");
+            console1.log("FIX_DROPDOWN_DERAF - NG");
           }
 
 
@@ -11251,11 +10961,11 @@
                 let r = cProto.position34.apply(this, arguments);
                 return r;
               }
-              console.log("FIX_MENU_POSITION_ON_SHOWN - OK");
+              console1.log("FIX_MENU_POSITION_ON_SHOWN - OK");
 
             } else {
 
-              console.log("FIX_MENU_POSITION_ON_SHOWN - NG");
+              console1.log("FIX_MENU_POSITION_ON_SHOWN - NG");
 
             }
 
@@ -11364,12 +11074,12 @@
               }
 
             }
-            console.log("BOOST_MENU_OPENCHANGED_RENDERING - OK");
+            console1.log("BOOST_MENU_OPENCHANGED_RENDERING - OK");
 
           } else {
 
             assertor(() => fnIntegrity(cProto.__openedChanged, '0.46.20'));
-            console.log("FIX_MENU_REOPEN_RENDER_PERFORMANC_1 - NG");
+            console1.log("FIX_MENU_REOPEN_RENDER_PERFORMANC_1 - NG");
 
           }
 
@@ -11389,9 +11099,9 @@
 
         })();
 
-        console.log("[End]");
+        console1.log("[End]");
 
-        console.groupEnd();
+        groupEnd();
 
       }).catch(console.warn);
 
@@ -11401,7 +11111,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-toggle-renderer hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
         (() => {
 
           const tag = "yt-live-chat-toggle-renderer";
@@ -11409,14 +11119,14 @@
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
+            console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
 
         })();
 
-        console.log("[End]");
-        console.groupEnd();
+        console1.log("[End]");
+        groupEnd();
 
       });
 
@@ -11485,173 +11195,153 @@
 
             done = 1;
             const onMouseOver37_ = cProto.onMouseOver37_ = cProto.onMouseOver_;
-            // let iwd = 0;
 
-            // const removeChild8573 = function(...args){
-            //   try{
-            //     return this.removeChild8572(...args)
-            //   }catch(e){
-            //     console.warn(e)
-            //     debugger;
-            //   }
-            // };
-
-            // let CS = null;
+            const checkMatch = (() => {
 
 
+              let accessList = [];
+              let withError = false;
+              try {
 
-            // const createElement5873 = function(a){
-            //   window.CS199= CS = document.createElement5872(a);
-            //   return CS;
-            // }
+                onMouseOver37_.call(lcrDummy, {
+                  type: 'mouseover',
+                  target: new Proxy({
+                    nodeName: 'DIV',
+                    tagName: 'DIV',
+                    getAttribute: function () { },
+                    parentNode: null
+                  }, {
+                    get(target, p) {
+                      accessList.push(`getter:${p}`);
+                      if (!(p in target)) throw Error(`getter ${p} is not found`);
+                    },
+                    set(target, p, v) {
+                      accessList.push(`setter:${p}`);
+                      throw Error(`setter ${p} is not found`);
+                    }
+                  })
+                });
+              } catch (e) {
+                withError = true;
+                // console.warn(e);
+              }
 
-            cProto.onMouseOver_ = function (evt) {
+              if (withError) return false;
+
+              if (accessList.join(',') !== 'getter:getAttribute,getter:parentNode') return false;
+
+              accessList.length = 0;
+
+              let parent;
+              try {
+
+                parent = new Proxy({
+                  nodeName: 'DIV',
+                  tagName: 'DIV',
+                  getAttribute: function (e) {
+
+                    accessList.push(`getter:getAttribute(${e})`);
+                    return e === 'shared-tooltip-text' ? ':cherry_blossom:' : null;
+
+                  },
+                  parentNode: null
+                }, {
+                  get(target, p) {
+                    accessList.push(`getter:${p}`);
+                    if (!(p in target)) throw Error(`getter ${p} is not found`);
+                    return target[p]
+                  },
+                  set(target, p, v) {
+                    accessList.push(`setter:${p}`);
+                    throw Error(`setter ${p} is not found`);
+                  }
+                });
+
+                onMouseOver37_.call(lcrDummy, {
+                  type: 'mouseover',
+                  target: new Proxy({
+                    nodeName: 'IMG',
+                    tagName: 'IMG',
+                    id: 'img',
+                    getAttribute: function (e) {
+
+                      accessList.push(`getter:getAttribute(${e})`);
+                      return e === 'shared-tooltip-text' ? ':cherry_blossom:' : null;
+
+                    },
+                    get parentNode() {
+                      return parent
+                    },
+                    get parentElement() {
+                      return parent
+                    }
+                  }, {
+                    get(target, p) {
+                      accessList.push(`getter:${p}`);
+                      if (!(p in target)) throw Error(`getter ${p} is not found`);
+                      return target[p]
+                    },
+                    set(target, p, v) {
+                      accessList.push(`setter:${p}`);
+                      throw Error(`setter ${p} is not found`);
+                    }
+                  })
+                });
+              } catch (e) {
+                withError = true;
+                // console.warn(e);
+              }
+              parent = null;
+
+              if (withError && accessList.join(',') === 'getter:getAttribute,getter:getAttribute,getter:getAttribute(shared-tooltip-text),getter:getAttribute,getter:getAttribute(shared-tooltip-text),getter:tagName,getter:parentElement,getter:id,getter:id,getter:$$') {
+                return true;
+              }
 
 
-              const p = (evt || 0).target || 0;
-              if (p.nodeType === 1 && wm.has(p)) {
 
+            })();
+            if (checkMatch) {
 
-                const ct = Date.now();
-                if (lastShow + 18 > ct) return;
-
-                const cnt = insp(this);
-                // console.log('12321', 1);
-                // console.log('onMouseOver_ OK', evt.target, iwd);
-
-                lastShow = ct;
-                // document.createElement5872 = document.createElement;
-                // document.createElement = createElement5873;
-                // cnt.createTooltipIfRequired_();
-                // document.createElement = document.createElement5872; 
-
-
-                // if(CS.__shady_parentNode){
-                //   __shady_native_appendChild.call(CS.__shady_parentNode, CS);
-                // }
-                // console.log(193, CS.parentNode, CS.__shady_parentNode)
-
-
-                // const y1 = document.createElement('img')
-                // y1.setAttribute('shared-tooltip-text', 'x')
-                // const y2 = document.createElement('div')
-                // y2.appendChild(y1);
-                // cnt.onMouseOver37_.call(this, {
-                //   target: y1
-                // });
-
-                // const a = p;
-                // const b = p.getAttribute("shared-tooltip-text");
-                // const c = p.parentNode;
-                // const d = p.id;
-
-                try {
-
-                  cnt.onMouseOver37_.call(this, evt);
-                } catch (e) {
-                  console.warn(e);
+              cProto.onMouseOver_ = function (evt) {
+                const p = (evt || 0).target || 0;
+                if (p.nodeType === 1 && wm.has(p)) {
+                  const ct = Date.now();
+                  if (lastShow + 18 > ct) return;
+                  const cnt = insp(this);
+                  lastShow = ct;
+                  try {
+                    cnt.onMouseOver37_.call(this, evt);
+                  } catch (e) {
+                    console.warn(e);
+                  }
                 }
+              };
 
-                //       CS.remove();
-                //       CS.root = null;
-                //       CS.for = null;
-                //       CS.data = {};
-                //       CS.offset = 8;
-                //       CS.fitToVisibleBounds = !0;
-
-                //       console.log('12321', 2);
-
-                // if(CS.parentElement!==p || CS.for !== d){
-                //   // let q = CS.parentNode;
-                //   // q && q.removeChild(CS);
-
-                //   // CS.textContent = b;
-                //   // c.appendChild(CS);
-                //   CS.for = d;
-                //   CS.animationDelay = cnt.sharedTooltipAnimationDelay;
-                //   CS.position = cnt.sharedTooltipPosition;
-
-
-                // }
-
-
-                //       console.log('12321', 3);
-
-
-
-                //       // HTMLElement.prototype.removeChild8572 = HTMLElement.prototype.removeChild;
-                // // HTMLElement.prototype.removeChild = removeChild8573
-                // // try{
-
-                // //   cnt.onMouseOver37_.call(this, evt);
-                // // }catch(e){
-                // //   if(e&&e.code === 8 && e.name==='NotFoundError'){
-
-                // //     console.warn(e)
-                // //     debugger;
-
-                // //   }else{
-                // //     throw e;
-                // //   }
-                // // }
-
-
-                //       let evt_ = {
-                //         target: p
-                //       }
-
-                //       if (CS._showing) CS.hide();
-                //       try {
-                //         CS.hide();
-                //       } catch (e) { }
-
-                //       console.log('12321', 4);
-                //       try{
-
-                //         cnt.onMouseOver37_.call(this, evt_);
-                //       }catch(e){}
-
-                //       setTimeout(() => {
-                //         console.log('12321', CS._showing);
-                //         if (!CS._showing) {
-
-                //           cnt.onMouseOver37_.call(this, evt_);
-
-                //         }
-                //       }, 100);
-
-
-
-                // HTMLElement.prototype.removeChild = HTMLElement.prototype.removeChild8572;
-
-                // cnt.onMouseOver37_.call(this, evt);
+              const lcrs = [...new Set([lcrDummy, ...document.querySelectorAll('yt-live-chat-renderer')])];
+              for (const lcr of lcrs) {
+                const cnt = insp(lcr);
+                const hostElement = cnt.hostElement;
+                if (hostElement && cnt.isAttached === true && cnt.onMouseOver37_ === cProto.onMouseOver37_ && typeof cProto.onMouseOver_ === 'function' && cProto.onMouseOver_ !== cProto.onMouseOver37_ && cnt.onMouseOver_ === cProto.onMouseOver_) {
+                  hostElement.removeEventListener("mouseover", cProto.onMouseOver37_, !0)
+                  hostElement.addEventListener("mouseover", cProto.onMouseOver_, !0)
+                }
               }
 
+              console.log('[yt-chat-lcr] FIX_MOUSEOVER_FN - OK')
 
-            };
+            } else {
 
-            const lcrs = [...new Set([lcrDummy, ...document.querySelectorAll('yt-live-chat-renderer')])];
-            for (const lcr of lcrs) {
-              const cnt = insp(lcr);
-              const hostElement = cnt.hostElement;
-              if (hostElement && cnt.isAttached === true && cnt.onMouseOver37_ === cProto.onMouseOver37_ && typeof cProto.onMouseOver_ === 'function' && cProto.onMouseOver_ !== cProto.onMouseOver37_ && cnt.onMouseOver_ === cProto.onMouseOver_) {
-                hostElement.removeEventListener("mouseover", cProto.onMouseOver37_, !0)
-                hostElement.addEventListener("mouseover", cProto.onMouseOver_, !0)
-              }
+              console.log('[yt-chat-lcr] FIX_MOUSEOVER_FN - NG')
+
             }
-
-
-
-
-            console.log('FIX_MOUSEOVER_FN - OK')
 
           } else if (done !== 1) {
             done = 2;
-            console.log('FIX_MOUSEOVER_FN - NG')
+            console.log('[yt-chat-lcr] FIX_MOUSEOVER_FN - NG')
           }
 
           // console.log("[End]");
-          // console.groupEnd();
+          // groupEnd();
 
 
         };
@@ -11748,7 +11438,7 @@
         mgrProto.unsubscribe16 = mgrProto.unsubscribe;
 
         groupCollapsed("YouTube Super Fast Chat", " | *live-chat-manager* hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
 
         const idMapper = new Map();
 
@@ -11900,16 +11590,16 @@
           }
 
 
-          console.log("CHANGE_MANAGER_UNSUBSCRIBE - OK")
+          console1.log("CHANGE_MANAGER_UNSUBSCRIBE - OK")
 
         } else {
 
-          console.log("CHANGE_MANAGER_UNSUBSCRIBE - NG")
+          console1.log("CHANGE_MANAGER_UNSUBSCRIBE - NG")
         }
 
-        console.log("[End]");
+        console1.log("[End]");
 
-        console.groupEnd();
+        groupEnd();
 
       }
 
@@ -11971,7 +11661,7 @@
 
         mightFirstCheckOnYtInit();
         groupCollapsed("YouTube Super Fast Chat", " | yt-invalidation-continuation hacks");
-        console.log("[Begin]");
+        console1.log("[Begin]");
         (() => {
 
           const tag = "yt-invalidation-continuation"
@@ -11979,7 +11669,7 @@
 
           const cProto = getProto(dummy);
           if (!cProto || !cProto.attached) {
-            console.warn(`proto.attached for ${tag} is unavailable.`);
+            console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
 
@@ -11989,9 +11679,9 @@
 
         })();
 
-        console.log("[End]");
+        console1.log("[End]");
 
-        console.groupEnd();
+        groupEnd();
 
 
 
@@ -12006,7 +11696,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-interactivity-component-background hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-live-interactivity-component-background"
@@ -12014,7 +11704,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -12066,18 +11756,18 @@
                 }
               }
 
-              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - OK`);
+              console1.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - OK`);
 
             } else {
-              console.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - NG`);
+              console1.log(`INTERACTIVITY_BACKGROUND_ANIMATION(${INTERACTIVITY_BACKGROUND_ANIMATION}) - NG`);
 
             }
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
 
         }).catch(console.warn);
@@ -12092,7 +11782,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-live-chat-text-input-field-renderer hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-live-chat-text-input-field-renderer"
@@ -12100,7 +11790,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -12115,9 +11805,9 @@
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
         });
 
@@ -12131,7 +11821,7 @@
 
           mightFirstCheckOnYtInit();
           groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-fountain-view-model hacks");
-          console.log("[Begin]");
+          console1.log("[Begin]");
           (() => {
 
             const tag = "yt-emoji-fountain-view-model"
@@ -12139,7 +11829,7 @@
 
             const cProto = getProto(dummy);
             if (!cProto || !cProto.attached) {
-              console.warn(`proto.attached for ${tag} is unavailable.`);
+              console1.warn(`proto.attached for ${tag} is unavailable.`);
               return;
             }
 
@@ -12219,11 +11909,19 @@
 
                 const fountainMap = new WeakMap();
 
+                const listOfRemove = [];
+
+                const listOfRemoveFn = () => {
+                  if (listOfRemove.length === 0) return;
+                  for (const elm of listOfRemove) elm.parentNode && elm.remove();
+                  listOfRemove.length = 0;
+                }
                 const animationendListener = (evt) => {
                   const p = evt.target;
                   if (p instanceof HTMLElement && p.nodeName === 'EMOJI' && p.__removeOnAnimationEnd381__) {
                     p.__removeOnAnimationEnd381__ = false;
-                    p.remove();
+                    listOfRemove.push(p);
+                    Promise.resolve().then(listOfRemoveFn);
                   }
                 };
 
@@ -12465,23 +12163,23 @@
                   createElement_fountain_model_enabled = false;
                   return r;
                 }
-                console.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
+                console1.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
               } else {
 
-                console.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+                console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
               }
 
             } else {
 
-              console.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+              console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
             }
 
 
           })();
 
-          console.log("[End]");
+          console1.log("[End]");
 
-          console.groupEnd();
+          groupEnd();
 
 
   
@@ -12527,124 +12225,6 @@
 
     if (CHECK_JSONPRUNE) {
       promiseForCustomYtElementsReady.then(fixJsonParse);
-    }
-
-    if(USE_ADVANCED_TICKING){ // if(END_ANIMATING_TICKERS){
-
-
-      // let lastElmW = null;
-
-      // document.addEventListener('transitionstart', (evt) => {
-
-      //   if (evt.propertyName === 'width' && !evt.pseudoElement) {
-
-      //     const elm = evt.target;
-      //     let act = false;
-      //     /*
-      //     switch(elm.nodeName.toLowerCase()){
-
-      //       case  'yt-live-chat-ticker-creator-goal-view-model':
-      //         case 'yt-live-chat-ticker-paid-message-item-renderer':
-      //           case 'yt-live-chat-ticker-paid-sticker-item-renderer':
-
-      //           case 'yt-live-chat-ticker-sponsor-item-renderer':
-      //             act =true;
-      //             break;
-
-
-      //     }
-      //     */
-      //     if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
-      //       act = true;
-      //     }
-      //     if (act) {
-      //       const lastElm = kRef(lastElmW);
-      //       if (elm !== lastElm) {
-
-      //         if (lastElm instanceof HTMLElement) {
-      //           lastElm.classList.add('ticker-no-transition-time');
-      //         }
-      //         lastElmW = mWeakRef(elm);
-
-      //       }
-
-
-      //     }
-      //   }
-
-      // }, true);
-
-
-
-
-      /*
-
-      document.addEventListener('transitionend', (evt) => {
-
-        if (evt.propertyName === 'width' && !evt.pseudoElement) {
-
-          const elm = evt.target;
-          let act = false;
-          /-*
-          switch(elm.nodeName.toLowerCase()){
-
-            case  'yt-live-chat-ticker-creator-goal-view-model':
-              case 'yt-live-chat-ticker-paid-message-item-renderer':
-                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
-
-                case 'yt-live-chat-ticker-sponsor-item-renderer':
-                  act =true;
-                  break;
-
-
-          }
-          *-/
-          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
-            act = true;
-          }
-          if (act) {
-            elm.style.transitionDuration = '0s';
-
-          }
-        }
-
-      }, true);
-
-
-      document.addEventListener('transitioncancel', (evt) => {
-
-        if (evt.propertyName === 'width' && !evt.pseudoElement) {
-
-          const elm = evt.target;
-          let act = false;
-          /-*
-          switch(elm.nodeName.toLowerCase()){
-
-            case  'yt-live-chat-ticker-creator-goal-view-model':
-              case 'yt-live-chat-ticker-paid-message-item-renderer':
-                case 'yt-live-chat-ticker-paid-sticker-item-renderer':
-
-                case 'yt-live-chat-ticker-sponsor-item-renderer':
-                  act =true;
-                  break;
-
-
-          }
-          *-/
-          if (elm instanceof HTMLElement && ((elm || 0).parentElement || 0).id === 'ticker-items' && elm.classList.contains('yt-live-chat-ticker-renderer')) {
-            act = true;
-          }
-          if (act) {
-            elm.style.transitionDuration = '0s';
-
-          }
-        }
-
-      }, true);
-
-      */
-
-
     }
 
   });
