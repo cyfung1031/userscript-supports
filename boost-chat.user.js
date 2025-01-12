@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.11
+// @version             0.2.12
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -5062,7 +5062,6 @@ SOFTWARE.
             // console.log(' ===== cA ====')
             // console.dir(prettyPrint(c))
             if (replaceObject(p, c)) {
-              W(p).aKey = fk;
               replaceExistingItem = true;
               // console.log('replaceObject(activeItems_)', p);
             }
