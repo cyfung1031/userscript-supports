@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.9
+// @version             0.2.10
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2824,7 +2824,7 @@ SOFTWARE.
 
     return html`
       <${Show} when=(${() => typeof R(profileCard).username === 'string'})>
-        <div classList=(${{ "bst-profile-card": true, "bst-profile-card-on-top": R(profileCard).showOnTop }}) style=(${() => ({ "--fTop": R(profileCard).fTop + "px", "--fBottom": R(profileCard).fBottom + "px" })})>
+        <div classList=(${() => ({ "bst-profile-card": true, "bst-profile-card-on-top": R(profileCard).showOnTop })}) style=(${() => ({ "--fTop": R(profileCard).fTop + "px", "--fBottom": R(profileCard).fBottom + "px" })})>
           <div class="bst-profile-card-overlay"></div>
           <div class="bst-profile-card-icon">
           <img class="bst-profile-card-icon-img" src="${() => R(profileCard).iconUrl}">
@@ -3050,9 +3050,9 @@ SOFTWARE.
     });
 
     return html`
-  <div classList="${()=>({'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid()})}" message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid()})}">
-  <div classList=${{ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": R(data).bst('hasMessageBody') }}>
+  <div classList="${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}" message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
+  <div classList="${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })}">
+  <div classList=${() => ({ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": R(data).bst('hasMessageBody') })}>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
