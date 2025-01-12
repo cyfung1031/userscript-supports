@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.6
+// @version             0.2.7
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -49,7 +49,6 @@ SOFTWARE.
 
   const USE_SHADOWROOT = false;
 
-  const DEBUG_visibleItems_trace = false;
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;
   // const RENDER_MESSAGES_ONE_BY_ONE = true;
   const LOGTIME_FLUSHITEMS = false;
@@ -73,7 +72,7 @@ SOFTWARE.
     const isScrollIntoViewIfNeededSupported = typeof Element.prototype.scrollIntoViewIfNeeded === 'function';
 
     if (isThisBrowserSupported && !isOverflowAnchorSupported && isScrollIntoViewIfNeededSupported) {
-      DO_scrollIntoViewIfNeeded = true;
+      DO_scrollIntoViewIfNeeded = true; // for webkit (Safari, Orion)
     } else if (isThisBrowserSupported && !isOverflowAnchorSupported && !isScrollIntoViewIfNeededSupported) {
       isThisBrowserSupported = false;
     }
@@ -125,7 +124,7 @@ SOFTWARE.
 
     HTMLElement.prototype.getAttribute23751 = HTMLElement.prototype.getAttribute;
     HTMLElement.prototype.getAttribute23752 = function (x) {
-      if (x === 'shared-tooltip-text') {
+      if (x === 'shared-tooltip-text' && arguments.length === 1) {
         return null;
       }
       return this.getAttribute23751(x)
@@ -215,57 +214,6 @@ SOFTWARE.
     //     return "";
     // }
     // return '\n' + callstack[0].trim();
-  }
-
-  if (DEBUG_visibleItems_trace) {
-
-
-    Array.prototype.push32 = Array.prototype.push;
-    Array.prototype.push = function () {
-      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[yt-bst] 399 push', new Error().stack)
-      }
-      return this.push32(...arguments)
-    }
-
-
-    Array.prototype.splice32 = Array.prototype.splice;
-    Array.prototype.splice = function () {
-      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        // 399 splice     at a.splice (https://www.youtube.com/s/desktop/a7b1ec23/jsbin/live_chat_polymer.vflset/live_chat_polymer.js:2405:190)
-        console.log('[yt-bst] 399 splice', new Error().stack)
-
-      }
-      return this.splice32(...arguments)
-    }
-
-
-    Array.prototype.unshift32 = Array.prototype.unshift;
-    Array.prototype.unshift = function () {
-      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[yt-bst] 399 unshift', new Error().stack)
-      }
-      return this.unshift32(...arguments)
-    }
-
-
-
-    Array.prototype.shift32 = Array.prototype.shift;
-    Array.prototype.shift = function () {
-      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[yt-bst] 399 shift', new Error().stack)
-      }
-      return this.shift32(...arguments)
-    }
-
-    Array.prototype.pop32 = Array.prototype.pop;
-    Array.prototype.pop = function () {
-      if (this === mme?.visibleItems && getCodeLocation() !== 'solid') {
-        console.log('[yt-bst] 399 pop', new Error().stack)
-      }
-      return this.pop32(...arguments)
-    }
-
   }
 
 
@@ -1975,42 +1923,38 @@ SOFTWARE.
 
           } else {
 
- 
+            let tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
 
-              let tooltipText = () => ek.tooltip || ek.accessibility?.accessibilityData?.label || '';
-              
-              let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
-              let elmWR = null;
-              let onYtIconCreated = (el) => {
-                const cnt = insp(el);
-                cnt.icon = "live-chat-badges:" + type;
-                _setAttribute.call(el, 'icon-type', type);
-                tooltipText = tooltipText();
-                _setAttribute.call(el, 'shared-tooltip-text', tooltipText);
-                tooltipDisplaySet(tooltipText);
-                if (el.getAttribute23752) {
-                  el.getAttribute = el.getAttribute23752;
-                }
-                elmWR = mWeakRef(el);
+            let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+            let elmWR = null;
+            let onYtIconCreated = (el) => {
+              const cnt = insp(el);
+              cnt.icon = "live-chat-badges:" + type;
+              _setAttribute.call(el, 'icon-type', type);
+              tooltipText = tooltipText();
+              _setAttribute.call(el, 'shared-tooltip-text', tooltipText);
+              tooltipDisplaySet(tooltipText);
+              if (el.getAttribute23752) {
+                el.getAttribute = el.getAttribute23752;
               }
-              onCleanup(() => {
-                elmWR = null;
-                tooltipDisplay = tooltipDisplaySet = onYtIconCreated = null;
-              })
-              return html`<yt-icon class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
- 
-
+              elmWR = mWeakRef(el);
+              onYtIconCreated = null;
+            }
+            onCleanup(() => {
+              elmWR = null;
+              tooltipDisplay = tooltipDisplaySet = null;
+            });
+            return html`<yt-icon class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`;
 
           }
 
-
-        } else if ( typeof (ek.customThumbnail||0) === 'object' ) {
+        } else if (typeof (ek.customThumbnail || 0) === 'object') {
 
           // const className = `style-scope yt-live-chat-author-badge-renderer bst-author-badge`
           const className = `bst-author-badge`;
           const src = () => getThumbnail(ek.customThumbnail.thumbnails, 32, 64); // 16, 32
           const alt = () => ek.accessibility?.accessibilityData?.label || '';
-    
+
 
 
 
@@ -2025,9 +1969,10 @@ SOFTWARE.
               el.getAttribute = el.getAttribute23752;
             }
             elmWR = mWeakRef(el);
+            onImgCreated = null;
           }
-          onCleanup(()=>{
-            tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+          onCleanup(() => {
+            tooltipDisplay = tooltipDisplaySet = null;
           });
           return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
 
@@ -2056,12 +2001,12 @@ SOFTWARE.
 
 
 
-      
+
     //   if (typeof message.emoji !== 'undefined' && typeof (message.emoji||0) === 'object') {
 
 
     //     try {
- 
+
     //         const emoji = message.emoji;
 
 
@@ -2093,8 +2038,8 @@ SOFTWARE.
     //           tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
     //         });
     //         return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
-  
-   
+
+
 
     //     } catch (e) {
     //       console.warn(e);
@@ -2102,9 +2047,9 @@ SOFTWARE.
 
     //   }
 
-      
+
     // }
-  }
+  };
 
   let sharedButtonViewModel = null;
   let sharedNoscript = null;
@@ -2196,8 +2141,7 @@ SOFTWARE.
   let popupKey302 = '';
   const onSolidMenuListCreated_ = async (items, div, ytLiveChatAppCnt) => {
 
-    if (createIdx > 1e9) createIdx = 9;
-    const createIdx_ = ++createIdx;
+    const createIdx_ = createIdx = (createIdx & 1073741823) + 1;
 
     let ux0 = null;
 
@@ -2421,7 +2365,7 @@ SOFTWARE.
   let fixMessages = null;
   const messageFlatten = (message) => {
 
-    // E${b1}${emojiId}${b2}T${b1}${text}${b2}E${b1}${emojiId}
+    // E${b1},${emojiId}${b1};T${b1},${text}${b1};E${b1},${emojiId}
 
     let runs = null;
 
@@ -2448,14 +2392,9 @@ SOFTWARE.
     const b1 = String.fromCharCode(0xE274);
 
     for (const run of runs) {
-
       const wKey = typeof run.text === 'string' ? 'text' : firstObjectKey(run);
-
       const wVal = wKey ? run[wKey] : null;
-
-
       if (wKey === 'emoji' && typeof wVal === 'object') {
-
         let emojiId = wVal[emojiIdSymbol] || wVal.emojiId;
         if (typeof (emojiId || 0) !== 'string') {
           emojiId = wVal[emojiIdSymbol] = `$$${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
@@ -2464,7 +2403,6 @@ SOFTWARE.
         if (!iconStored) {
           messageFlattenIcons.set(emojiId, iconStored = wVal);
         }
-
         if (emojiId.includes(b1)) {
           // invalid. just skip
           console.warn('Error 0481', run);
@@ -2472,18 +2410,14 @@ SOFTWARE.
           t = `E${b1},${emojiId}`;
           resultArr[i++] = t
         }
-
       } else if (wKey === 'text' && typeof wVal === 'string') {
-
         t = wVal;
         if (t.includes(b1)) {
           t = replaceAll(t, b1, `${b1}@`);
         }
-
         const urlEndpoint = run.navigationEndpoint?.urlEndpoint;
         const url = urlEndpoint?.url;
         if (url) {
-
           const { nofollow, target } = urlEndpoint;
           t = `T${b1},${t}${b1},A${b1},${url}${b1},${nofollow || ''}${b1},${target || ''}`;
         } else {
@@ -2838,9 +2772,12 @@ SOFTWARE.
 
     // rcSignalAdd(1);
     rcValue++;
-    onMount(async ()=>{
+    onMount(async () => {
       timelineResolve && (await timelineResolve());
       rcSignalAdd(0);
+    });
+    onCleanup(() => {
+      props = null;
     });
 
     const aKey = props.data().aKey;
@@ -2886,19 +2823,13 @@ SOFTWARE.
 
   const SolidMessageList = (sb) => {
 
-    onCleanup(()=>{
+    onCleanup(() => {
       // console.log('SolidMessageList cleanup 0001')
-      sb= null;
+      sb = null;
     });
- 
 
-      return html`
-      <${Show}
-        when=(${() => typeof R(profileCard).username === 'string'})
-        >
-        ${() => {
-  
-          return html`
+    return html`
+      <${Show} when=(${() => typeof R(profileCard).username === 'string'})>
         <div classList=(${{ "bst-profile-card": true, "bst-profile-card-on-top": R(profileCard).showOnTop }}) style=(${() => ({ "--fTop": R(profileCard).fTop + "px", "--fBottom": R(profileCard).fBottom + "px" })})>
           <div class="bst-profile-card-overlay"></div>
           <div class="bst-profile-card-icon">
@@ -2911,20 +2842,15 @@ SOFTWARE.
           X
           </div>
         </div>
-        `
-  
-        }}
       <//>
       <${For} each=(${() => R(sb)})>${(qItem) => {
 
-        
         const wKey = qItem ? firstObjectKey(qItem) : '';
         const wItem = wKey ? qItem[wKey] : null;
         let item = wItem ? R(wItem) : null;
 
-
         let eItem = item ? mutableWM.get(item) : null;
-        if(eItem){
+        if (eItem) {
 
           let itemWrapped = rwWrap(item);
           item = null;
@@ -2937,150 +2863,120 @@ SOFTWARE.
           });
 
           eItem.convert();
-
           eItem = null;
- 
-          
 
-
-          return html`<${SolidMessageListEntry} data=(${()=>itemWrapped}) />`;
+          return html`<${SolidMessageListEntry} data=(${() => itemWrapped}) />`;
 
         }
 
-
-
       }}<//>
   `
-
-  }
-
+  };
 
 
-  const SolidMessageRenderer = (props) =>{
+
+  const SolidMessageRenderer = (props) => {
 
     const data = props.entryData;
     const messageXT = R(data).bst('messageXM');
 
-    return html`<${For} each=(${() => messageXT()})>${(arr=>{
+    onCleanup(() => {
+      props = null;
+    });
+
+    return html`<${For} each=(${() => messageXT()})>${(arr => {
 
       // console.log(1338, arr)
-      const [p1, v1, p2,v2, ...args] = arr;
+      const [p1, v1, p2, v2, ...args] = arr;
 
       // console.log(21392, p1,v1,p2,v2, ...args)
-      if(p1 === 'T'){
-        
-        if(p2 === 'A' && v2){
-          
+      if (p1 === 'T') {
+
+        if (p2 === 'A' && v2) {
+
           const text = v1;
           const url = v2;
           const [nofollow, target] = args;
 
-          
-
-
-          return html`<a href="${() =>url}" rel="${() => nofollow === 'true' ? 'nofollow' : null}" target="${() => target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => text}</span>`
+          return html`<a href="${() => url}" rel="${() => nofollow === 'true' ? 'nofollow' : null}" target="${() => target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => text}</span>`
 
         }
-        
+
         return html`<span>${() => v1}</span>`;
 
-
-
-      }else if(p1 === 'E'){
+      } else if (p1 === 'E') {
         const emojiId = v1;
-  
+
         const emoji = messageFlattenIcons.get(emojiId);
-        if(emoji){
+        if (emoji) {
 
+          const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
 
-          try {
-  
- 
+          const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
+          const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
+          let tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
+          const emojiId = () => emoji.emojiId || '';
+          const isCustomEmoji = () => emoji.isCustomEmoji || false;
 
-              const className = `small-emoji emoji yt-formatted-string style-scope yt-live-chat-text-message-renderer`
-
-
-              const src = () => `${emoji.image.thumbnails[0].url}` // performance concern? (3.3ms)
-              const alt = () => emoji.image?.accessibility?.accessibilityData?.label || ''; // performance concern? (1.7ms)
-              let tooltipText = () => emoji.shortcuts?.[0] || ''; // performance concern? (1.7ms)
-              const emojiId = () => emoji.emojiId || '';
-              const isCustomEmoji = () => emoji.isCustomEmoji || false;
-
-
-
-
-              let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
-              let elmWR = null;
-              let onImgCreated = (el) => {
-                tooltipText = tooltipText();
-                tooltipDisplaySet(tooltipText);
-                if (el.getAttribute23752) {
-                  el.getAttribute = el.getAttribute23752;
-                }
-                elmWR = mWeakRef(el);
-              }
-              onCleanup(()=>{
-                tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
-              });
-              return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
-    
-     
-
-          } catch (e) {
-            console.warn(e);
+          let [tooltipDisplay, tooltipDisplaySet] = createSignal('');
+          let elmWR = null;
+          let onImgCreated = (el) => {
+            tooltipText = tooltipText();
+            tooltipDisplaySet(tooltipText);
+            if (el.getAttribute23752) {
+              el.getAttribute = el.getAttribute23752;
+            }
+            elmWR = mWeakRef(el);
           }
+          onCleanup(() => {
+            tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+          });
+          return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`;
+
         }
       }
-      
+
       return '';
 
     })}
     <//>`
 
-  }
+  };
 
   const SolidSystemMessage = (props) => {
     let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
-
     const dataMutable = mutableWM.get(data);
     if (!dataMutable) return '';
 
     let icon = data.icon;
-    let iconElementFn = null
+    let onYtIconCreated = null;
     if (icon) {
-
       const type = icon.iconType.toLowerCase();
-
-      const onYtIconCreated = (el) => {
+      onYtIconCreated = (el) => {
         const cnt = insp(el);
         cnt.icon = type;
         _setAttribute.call(el, 'icon-type', type);
+        onYtIconCreated = null;
       }
-      iconElementFn = () => html`<div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>`
-
-
     }
-
 
     onCleanup(() => {
       removeEntry(data)
       props = data = null; 
-      iconElementFn =null;
       icon = null;
     });
-
 
     return html`
   <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList="${()=>({'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid()})}">
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
-    <${Show} when=(${() => !!icon})>${() => {
-        return iconElementFn();
-      }}<//>
+    <${Show} when=(${() => typeof onYtIconCreated === 'function'})>
+    <div class="bst-system-message-icon-column"><yt-icon class="bst-system-message-yt-icon" ref="${onYtIconCreated}"></yt-icon></div>
+    <//>
     <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
     <${SolidBeforeContentButton0} entryData=(${()=>data}) />
     <//>
@@ -3096,7 +2992,7 @@ SOFTWARE.
   </div>
   </div>`
 
-  }
+  };
 
 
   const SolidPaidMessage = (props) => {
@@ -3106,7 +3002,6 @@ SOFTWARE.
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
-
 
     onCleanup(() => {
       removeEntry(data)
@@ -3155,7 +3050,6 @@ SOFTWARE.
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
 
-
     onCleanup(() => {
       removeEntry(data)
       props = data = null; 
@@ -3193,18 +3087,16 @@ SOFTWARE.
     <//>
     </div>
   </div>
-  <${Show} when=(${() => R(data).bst('hasMessageBody')})>${() => {
-        return html`
+  <${Show} when=(${() => R(data).bst('hasMessageBody')})>
     <div class="bst-message-entry-body">
       <div class="bst-message-entry-highlight"></div>
       <div class="bst-message-entry-line">
         <div class="bst-message-body">
-        <${SolidMessageRenderer} entryData=(${()=>data}) />
+        <${SolidMessageRenderer} entryData=(${() => data}) />
         </div>
       </div>
     </div>
-    `
-      }}<//>
+  <//>
   </div>
   </div>
 `;
@@ -3216,7 +3108,6 @@ SOFTWARE.
     let data = props.data();
 
     const { rendererFlag, authorName, messageXT } = MEMO(data);
-
 
     onCleanup(() => {
       removeEntry(data)
@@ -3243,10 +3134,10 @@ SOFTWARE.
       </div>
     </div>
     <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
-    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${() => data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -3297,10 +3188,10 @@ SOFTWARE.
       </div>
     </div>
     <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
-    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${() => data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -3372,8 +3263,6 @@ SOFTWARE.
 
 
     onCleanup(() => {
-
-      // console.log('SolidMessageText cleanup 2001', data.uid !== null)
       removeEntry(data)
       props = data = null; 
     });
@@ -3403,10 +3292,10 @@ SOFTWARE.
       <span class="bst-message-head-colon" aria-hidden="true"></span>
     </div>
     <${Show} when=(${() => R(data).beforeContentButtons?.length === 1})>
-    <${SolidBeforeContentButton0} entryData=(${()=>data}) />
+    <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${() => data}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
@@ -3786,6 +3675,14 @@ SOFTWARE.
     return (e1 && e2) || kRef(e3);
   });
 
+  const [atBottom0, atBottom0Set] = createSignal(true);
+  const [atBottom1, atBottom1Set] = createSignal(true);
+  const [bottomPauseAt, bottomPauseAtSet] = createSignal(0);
+  const [bottomKeepAt, bottomKeepAtSet] = createSignal(0);
+  createEffect(() => {
+    atBottom1Set(atBottom0() ? true : false);
+  });
+
   let lcRendererWR = null;
 
   const getLcRendererCnt = () => {
@@ -3869,18 +3766,18 @@ SOFTWARE.
         break;
       case 'img':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
-        text = el.getAttribute23751('shared-tooltip-text') || el.getAttribute23751('alt') || '';
+        text = el.getAttribute('shared-tooltip-text', 1) || el.getAttribute('alt') || '';
         break;
       case 'area':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
-        text = el.getAttribute23751('alt') || '';
+        text = el.getAttribute('alt') || '';
         break;
       case 'input':
         // If node is an element (1) and an img, input[type=image], or area element, return its alt text
         if (
-          (el.getAttribute23751('type') && el.getAttribute23751('type').toLowerCase() == 'image')
+          (el.getAttribute('type') && el.getAttribute('type').toLowerCase() == 'image')
         ) {
-          text = el.getAttribute23751('alt') || '';
+          text = el.getAttribute('alt') || '';
           break;
         }
       default:
@@ -3971,7 +3868,11 @@ SOFTWARE.
         }
         Promise.resolve().then(() => {
           if (!anchorVisible) {
-            this.setAtBottomFalse();
+            if (bottomKeepAt() + 80 > Date.now()) {
+              this.scrollToBottom_();
+            } else {
+              this.setAtBottomFalse();
+            }
           } else if (!hasAnySelection()) {
             this.setAtBottomTrue();
           }
@@ -4113,6 +4014,17 @@ SOFTWARE.
         bstMain.addEventListener('pointerenter', mListenerQ29, { passive: true, capture: false });
         // bstMain.addEventListener('mouseenter', mListenerQ28, { passive: true, capture: true });
         // bstMain.addEventListener('mouseleave', mListenerQ28, { passive: true, capture: true });
+
+        if (typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(() => {
+            const dt = bottomPauseAt();
+            if (!dt || dt + 60 > 0) {
+              bottomKeepAtSet(Date.now());
+            }
+          });
+          ro.observe(bstMain);
+        }
+
       }
       _bstMain = bstMain;
 
@@ -4291,6 +4203,7 @@ SOFTWARE.
 
             const cnt = getLcRendererCnt();
             const isAtBottom = cnt ? cnt.atBottom && cnt.canScrollToBottom_() : null;
+            if (isAtBottom) bottomKeepAtSet(Date.now());
 
             await input.focus();
 
@@ -4319,22 +4232,24 @@ SOFTWARE.
             selection.removeAllRanges();//remove any selections already made
             selection.addRange(range);//make the range you have just created the visible selection
 
-            if (isAtBottom) {
+            
+            // if (isAtBottom) {
 
-              const pcz = ++qcz7;
-              flushPE(async () => {
-                if (pcz !== qcz7) return;
-                setTimeout(() => {
-                  if (pcz !== qcz7) return;
-                  const cnt = getLcRendererCnt();
-                  if (cnt && (!cnt.atBottom || !cnt.canScrollToBottom_())) cnt.scrollToBottom_();
-                }, 80);
-              });
-            }
+            //   const pcz = qcz7 = (qcz7 & 1073741823) + 1;
+            //   flushPE(async () => {
+            //     if (pcz !== qcz7) return;
+            //     setTimeout(() => {
+            //       if (pcz !== qcz7) return;
+            //       const cnt = getLcRendererCnt();
+            //       if (cnt && (!cnt.atBottom || !cnt.canScrollToBottom_())) cnt.scrollToBottom_();
+            //     }, 80);
+            //   });
+            // }
+            if (isAtBottom) bottomKeepAtSet(Date.now());
 
-            setTimeout(()=>{
+            setTimeout(() => {
               input.scrollTop += 1e9;
-            },1)
+            }, 1);
 
           }
 
@@ -4946,6 +4861,8 @@ SOFTWARE.
       if (this.atBottom === false) {
         resetSelection();
         this.atBottom = true;
+        atBottom0Set(true);
+        bottomPauseAtSet(0);
         if (this.activeItems_.length > 0) this.flushActiveItems_();
       }
 
@@ -4955,6 +4872,8 @@ SOFTWARE.
 
       if (this.atBottom === true) {
         this.atBottom = false;
+        atBottom0Set(false);
+        bottomPauseAtSet(Date.now());
       }
 
     }
@@ -5304,10 +5223,10 @@ f.handleRemoveChatItemAction_ = function(a) {
         q.length = 0;
       }
     }
+    cProto.bstClearCount = 0;
     cProto.clearList = function () {
-      if (!this.clearCount) this.clearCount = 1;
-      this.clearCount++;
-      if (this.clearCount > 1e9) this.clearCount = 9;
+      
+      this.bstClearCount = (this.bstClearCount & 1073741823) + 1;
       const activeItems_ = this.activeItems_;
       if (activeItems_) activeItems_.length = 0;
       flushKeys.clear();
@@ -5381,11 +5300,11 @@ f.handleRemoveChatItemAction_ = function(a) {
     cProto.scrollToBottom_ = function () {
       // console.log(1882)
 
-      const pcz = ++qcz9;
+      const pcz = qcz9 = (qcz9 & 1073741823) + 1;
       flushPE(async () => {
-        if(pcz!==qcz9) return;
+        if (pcz !== qcz9) return;
+        resetSelection();
         scrollToEnd();
-
         this.setAtBottomTrue();
       })
 
@@ -5644,7 +5563,7 @@ f.handleRemoveChatItemAction_ = function(a) {
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
     cProto.flushActiveItems_ = function () {
-      const clearCount0 = this.clearCount;
+      const bstClearCount0 = this.bstClearCount;
       const items = (this.$ || 0).items;
       const hostElement = this.hostElement;
       if (!(items instanceof Element)) return;
@@ -5688,7 +5607,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         } else {
           if (_addLen > maxItemsToDisplay) {
             const visibleItems = this.visibleItems;
-            if (visibleItems && (visibleItems.length > 0)) { 
+            if (visibleItems && (visibleItems.length > 0)) {
               visibleItems.length = 0;
               if (messageList) {
                 const solidBuild = messageList.solidBuild;
@@ -5720,10 +5639,10 @@ f.handleRemoveChatItemAction_ = function(a) {
             if (!e) return null;
             if (typeof e === 'object') e = Object.values(e)[0] || 0;
             const r = e.id || null;
-            if (typeof r === 'string'){
+            if (typeof r === 'string') {
               fp[fpI++] = r;
               freqMap.set(r, freqMap.has(r) ? false : true);
-            } 
+            }
             return r;
           }); // e.id (non-empty) or null
 
@@ -5756,11 +5675,11 @@ f.handleRemoveChatItemAction_ = function(a) {
         }
         //  console.log(9192, 299, items);
         // activeItems_.length = 0;
-        // const crCount = this.clearCount;
+        // const crCount = this.bstClearCount;
         // const pEmpty = this.isEmpty;
 
 
-        if (clearCount0 !== this.clearCount) return;
+        if (bstClearCount0 !== this.bstClearCount) return;
         if (this.isAttached !== true) return;
         if (items.length === 0) return;
 
@@ -5781,8 +5700,8 @@ f.handleRemoveChatItemAction_ = function(a) {
           const uid = getUID(aObj);
           if (existingSet.has(id)) return null;
           existingSet.add(id);
-          // if (flushKeys.has(uid)) return null;
-          // flushKeys.add(uid);
+        // if (flushKeys.has(uid)) return null;
+        // flushKeys.add(uid);
 
 
 
@@ -5801,7 +5720,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         // await timelineResolve();
         await Promise.resolve();
 
-        if (clearCount0 !== this.clearCount) return;
+        if (bstClearCount0 !== this.bstClearCount) return;
         if (this.isAttached !== true) return;
 
         const mapToFlushItem = new Map();
@@ -5814,7 +5733,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           } = entry;
           // flushKeys.removeAdd(uid);
 
-          const bObj= aObj;
+          const bObj = aObj;
           let bObjWR = mWeakRef(aObj);
           let mutableWR;
           let createdPromise = new PromiseExternal();
@@ -5828,7 +5747,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
 
           const mutable = {
-            getDataObj(){
+            getDataObj() {
               return kRef(bObjWR);
             },
             convert() {
@@ -5878,7 +5797,7 @@ f.handleRemoveChatItemAction_ = function(a) {
               /** @type {HTMLElement} */
               messageEntryWR = mWeakRef(_messageEntry); 
 
-              if(!kRef(bObjWR) || !kRef(mutableWR)) {
+              if (!kRef(bObjWR) || !kRef(mutableWR)) {
                 console.warn('setupFn warning 02');
                 return;
               }
@@ -5897,28 +5816,19 @@ f.handleRemoveChatItemAction_ = function(a) {
               {
                 const messageEntry = _messageEntry;
                 let mutable = kRef(mutableWR);
-
                 mutable.viewVisible = viewVisible;
                 mutable.viewVisibleChange = viewVisibleChange;
                 mutable.viewVisibleIdx = viewVisibleIdx;
                 mutable.viewVisibleIdxChange = viewVisibleIdxChange;
                 mutable.interceptionRatioChange = interceptionRatioChange;
-
-
-
                 mutableWM.set(messageEntry, mutable);
-
-                messageEntry.showMenu = showMenu; 
-
+                messageEntry.showMenu = showMenu;
                 mutable.removeEntryFuncs.set('baseRemove', baseRemoveFn);
-
                 mutable = null;
-  
-
               }
 
 
-              const polymerController= {
+              const polymerController = {
                 set(prop, val) {
                   if (prop === 'data') {
                     bObjChange(val);
@@ -5933,23 +5843,20 @@ f.handleRemoveChatItemAction_ = function(a) {
                 get dataRaw() {
                   return kRef(bObjWR);
                 },
-                get dataMutable(){
+                get dataMutable() {
                   return kRef(mutableWR);
                 },
                 get authorType() {
                   const bObj = kRef(bObjWR);
-                  return getAuthorBadgeType( bObj.authorBadges);
+                  return getAuthorBadgeType(bObj.authorBadges);
                 }
               };
 
 
               {
 
-
                 const messageEntry = _messageEntry;
-
                 messageEntry.polymerController =polymerController;
-
 
               }
 
@@ -5959,11 +5866,9 @@ f.handleRemoveChatItemAction_ = function(a) {
 
                 if (!!(bObj.aKey && bObj.aKey !== 'liveChatTextMessageRenderer')) {
 
-
                   const messageEntry = kRef(messageEntryWR);
                   const a = bObj;
                   const entries = Object.entries({
-
 
                     "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
                     "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
@@ -5996,11 +5901,9 @@ f.handleRemoveChatItemAction_ = function(a) {
                     }
                   }
 
-
                 }
 
               }
- 
 
               // change on state
               createEffect(() => {
@@ -6039,26 +5942,14 @@ f.handleRemoveChatItemAction_ = function(a) {
                 }
               });
 
-
-
               {
-
-
                 const messageEntry = _messageEntry;
-              
                 let mutable = kRef(mutableWR);
                 mutable.viewVisiblePos = viewVisiblePos;
-
                 ioMessageList && ioMessageList.observe(messageEntry);
-
                 createdPromise && createdPromise.resolve(messageEntry);
-
                 createdPromise = null;
-
               }
-
-
-
               rcSignalAdd(1);
 
             }
@@ -6073,37 +5964,32 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         const visibleItems = this.visibleItems;
         let wasEmpty = false;
-        let needScrollToEnd = false;
+        // let needScrollToEnd = false;
         if (visibleItems.length === 0) {
-          needScrollToEnd = true;
+          // needScrollToEnd = true;
           wasEmpty = true;
-        } else if (this.canScrollToBottom_() === true) {
+        } 
+        // else if (this.canScrollToBottom_() === true) {
 
-          // try to avoid call offsetHeight or offsetTop directly
-          const list = messageList.solidBuild;
-          const bObj = list && list.length ? list[0] : null;
-          if (bObj) {
-            const dataMutable = mutableWM.get(bObj);
-            if (dataMutable && typeof dataMutable.viewVisiblePos === 'function' && typeof dataMutable.viewVisiblePos() === 'string') { // down or up
-              needScrollToEnd = true;
-            }
-          }
+        // // try to avoid call offsetHeight or offsetTop directly
+        // const list = messageList.solidBuild;
+        // const bObj = list && list.length ? list[0] : null;
+        // if (bObj) {
+        //   const dataMutable = mutableWM.get(bObj);
+        //   if (dataMutable && typeof dataMutable.viewVisiblePos === 'function' && typeof dataMutable.viewVisiblePos() === 'string') { // down or up
+        //     needScrollToEnd = true;
+        //   }
+        // }
 
-          if (!needScrollToEnd && _messageOverflowAnchor && typeof _messageOverflowAnchor.scrollIntoViewIfNeeded === 'function') {
-            _messageOverflowAnchor.scrollIntoViewIfNeeded(false);
-            // unknown reason
-            // example https://www.youtube.com/watch?v=18tiVN9sxMc&t=14m15s -> 14m21s
-            // example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
-            // guess: ticker added -> yt-live-chat-ticker-renderer appears -> height changed -> overflow-anchor not working
-          }
+        // if (!needScrollToEnd && _messageOverflowAnchor && typeof _messageOverflowAnchor.scrollIntoViewIfNeeded === 'function') {
+        //   _messageOverflowAnchor.scrollIntoViewIfNeeded(false);
+        //   // unknown reason
+        //   // example https://www.youtube.com/watch?v=18tiVN9sxMc&t=14m15s -> 14m21s
+        //   // example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
+        //   // guess: ticker added -> yt-live-chat-ticker-renderer appears -> height changed -> overflow-anchor not working
+        // }
 
-        }
-
-
-
-
-        let rJ = 0;
-        let bObjX = null;
+        // }
 
         const removeFromActiveItems = (flushItem) => {
           if (activeItems_.length > 0) {
@@ -6120,11 +6006,13 @@ f.handleRemoveChatItemAction_ = function(a) {
           return false;
         }
 
-        const loopFunc = (list) => {
 
+        const solidBuild = messageList.solidBuild;
+
+        const loopFunc = (bObjX) => {
           const bObj = bObjX;
           const flushItem = mapToFlushItem.get(bObj);
-          const n = list.length - maxItemsToDisplay + 1;
+          const n = solidBuild.getLength() - maxItemsToDisplay + 1;
           if (n >= 1) {
             if (n > 1) {
               visibleItems.splice(0, n);
@@ -6138,27 +6026,26 @@ f.handleRemoveChatItemAction_ = function(a) {
           visibleItems.push(flushItem);
         }
 
+        
+
         let awaitTime = 0;
 
         // console.log('[yt-bst] XX', '000000')
-
+        bottomKeepAtSet(Date.now() + 86400000);
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let mg = 0;
-        let listChangeCount = 0;
         rcValue = rcSignal();
         const t1 = performance.now();
         let a2 = t1;
         let b2 = 0;
-        for (; rJ < nd; rJ++) {
-          if (clearCount0 !== this.clearCount || this.isAttached !== true) {
+        for (let rJ = 0; rJ < nd; rJ++) {
+          if (bstClearCount0 !== this.bstClearCount || this.isAttached !== true) {
             flushKeys.clear();
             break;
           }
-          const j = rJ;
-          bObjX = rearrangedFn(rearrangedW[j]);
+          const bObjX = rearrangedFn(rearrangedW[rJ]);
           rcSignalAdd(1);
-          loopFunc(messageList.solidBuild);
-          listChangeCount++;
+          loopFunc(bObjX, solidBuild);
           const c2 = performance.now();
           // console.log('[yt-bst] XX', c2, mg, rcSignal(), rcValue )
           b2++;
@@ -6180,7 +6067,6 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         // console.log('[yt-bst] XX', '111111')
         
-
         const rcPromise_ = rcPromise = new PromiseExternal();
         // rcSignalAdd(1);
         rcValue++;
@@ -6188,13 +6074,14 @@ f.handleRemoveChatItemAction_ = function(a) {
         rcSignalAdd(0);
         await rcPromise_.then();
         if (rcPromise_ === rcPromise) rcPromise = null;
+        resetSelection();
 
         if (DO_scrollIntoViewIfNeeded) {
-          document.querySelector('.bst-overflow-anchor').scrollIntoViewIfNeeded();
+          _messageOverflowAnchor && _messageOverflowAnchor.scrollIntoViewIfNeeded();
         }
 
         if (DEBUG_windowVars) window.__bstFlush05__ = Date.now();
-        if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
+        // if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
         
         await Promise.resolve();
         if (wasEmpty) messageList.classList.add('bst-listloaded');
@@ -6219,6 +6106,8 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         if (DEBUG_windowVars) window.__bstFlush06__ = Date.now();
 
+
+        bottomKeepAtSet(Date.now());
 
 
       });
