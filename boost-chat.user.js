@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.7
+// @version             0.2.8
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -802,39 +802,12 @@ SOFTWARE.
       */
 
 
-      .bst-message-list {
-        --bst-default-text-color: #000;
-        --yt-live-chat-sponsor-color-ori: var(--yt-live-chat-sponsor-color);
-        --yt-live-chat-moderator-color-ori: var(--yt-live-chat-moderator-color);
-        --yt-live-chat-author-chip-owner-background-color-ori: var(--yt-live-chat-author-chip-owner-background-color);
-      }
-      .bst-message-list[dark] {
-        --bst-default-text-color: #fff;
-      }
-      .bst-message-list[dark] .bst-message-entry:not(.bst-membership-message) {
-        --yt-live-chat-sponsor-color: #71ff8c;
-        --yt-live-chat-moderator-color: #70a7ff;
-        --yt-live-chat-author-chip-owner-background-color: #ffff3c;
-      }
 
       .bst-message-list {
+
+        --bst-default-text-color: #000;
         --bst-username-color: var(--yt-live-chat-secondary-text-color);
         --bst-name-field-background-default: rgba(127, 127, 127, 0.15);
-      }
-
-      .bst-message-list[dark] {
-        --bst-username-color: #a3e3e3;
-        --bst-name-field-background-default: rgba(255, 255, 255, 0.15);
-      }
-
-      .bst-message-username {
-        box-sizing: border-box;
-        border-radius: 2px;
-        color: var(--bst-username-color);
-        font-weight: 500;
-      }
-
-      .bst-message-list {
 
         --yt-live-chat-first-line-height: calc( var(--yt-live-chat-emoji-size) + 2px );
         --yt-live-chat-profile-icon-size: 20px;
@@ -860,15 +833,68 @@ SOFTWARE.
         display: flex;
         gap: var(--bst-list-gap);
         flex-direction: column;
-        background: var(--yt-live-chat-background-color);
+        background-color: var(--yt-live-chat-background-color);
 
+
+        --yt-live-chat-sponsor-color-ori: var(--yt-live-chat-sponsor-color);
+        --yt-live-chat-moderator-color-ori: var(--yt-live-chat-moderator-color);
+        --yt-live-chat-author-chip-owner-background-color-ori: var(--yt-live-chat-author-chip-owner-background-color);
+
+
+        overflow-anchor: none;
+
+      }
+
+      .bst-message-list[dark] {
+        --bst-default-text-color: #fff;
+        --bst-username-color: #a3e3e3;
+        --bst-name-field-background-default: rgba(255, 255, 255, 0.15);
+      }
+
+      .bst-message-list[dark] .bst-message-entry:not(.bst-membership-message) {
+        --yt-live-chat-sponsor-color: #71ff8c;
+        --yt-live-chat-moderator-color: #70a7ff;
+        --yt-live-chat-author-chip-owner-background-color: #ffff3c;
+      }
+
+      .bst-overflow-anchor{
+        contain: strict;
+        display:block;
+        background: transparent;
+        position: relative;
+        flex-shrink: 0;
+        top:-4px;
+        border: 1px solid transparent;
+        z-index: -1;
+        visibility: collapse;
+        overflow-anchor: auto;
+      }
+
+      @keyframes bstMessageListIssueBackground {
+        0% {
+            background-color: var(--yt-spec-menu-background);
+        }
+        100% {
+            background-color: var(--yt-live-chat-background-color);
+        }
+      }
+        
+      .bst-message-list.bst-message-list-issue {
+        animation: bstMessageListIssueBackground ease-in 1.74s infinite alternate;
+      }
+
+      .bst-message-username {
+        box-sizing: border-box;
+        border-radius: 2px;
+        color: var(--bst-username-color);
+        font-weight: 500;
       }
 
       yt-live-chat-renderer[hide-timestamps] {
-          --yt-live-chat-item-timestamp-display: none;
+        --yt-live-chat-item-timestamp-display: none;
       }
       .bst-message-time:empty {
-          --yt-live-chat-item-timestamp-display: none;
+        --yt-live-chat-item-timestamp-display: none;
       }
 
       .bst-message-time {
@@ -1115,38 +1141,6 @@ SOFTWARE.
         height:1rem;
         z-index: 1;
       }
-
-
-
-
-
-
-
-      .bst-overflow-anchor{
-        contain: strict;
-        display:block;
-        background: transparent;
-        position: relative;
-        flex-shrink: 0;
-        top:-4px;
-        border: 1px solid transparent;
-        z-index: -1;
-        visibility: collapse;
-      }
-
-
-      .bst-message-list {
-        overflow-anchor: none;
-
-      }
-      .bst-overflow-anchor{
-          overflow-anchor: auto;
-      }
-
-
-
-
-
 
       .bst-message-body .emoji {
         contain: strict;
@@ -5559,6 +5553,12 @@ f.handleRemoveChatItemAction_ = function(a) {
       }
     }
 
+    const [lastFpError, lastFpErrorSet] = createSignal(false);
+    createEffect(() => {
+      const b = lastFpError();
+      messageList?.classList?.toggle('bst-message-list-issue', b);
+    });
+
     const freqMap = new Map(); // for temp use.
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
@@ -5578,6 +5578,10 @@ f.handleRemoveChatItemAction_ = function(a) {
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
+
+        if (bstClearCount0 !== this.bstClearCount) return;
+
+        let tmpError = false;
 
         while (noFlushTP) {
           mouseActionP = mouseActionP || new PromiseExternal();
@@ -5626,6 +5630,8 @@ f.handleRemoveChatItemAction_ = function(a) {
         _flushed = 1;
         const items = activeItems_.slice(0);
 
+        let tmpFpError = 0;
+
         const generatePFC = () => {
 
           freqMap.clear();
@@ -5668,8 +5674,13 @@ f.handleRemoveChatItemAction_ = function(a) {
           if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
 
             console.log(`[yt-bst] flushItems; length mismatched (01); pp=${pp.length}, fp=${fp.length}, cp=${cp.length}`);
+            lastFpErrorSet(true);
+            tmpError = true;
 
             // stuck in here.  cannot flush more items
+          } else {
+
+            lastFpErrorSet(tmpError);
           }
 
         }
@@ -6100,6 +6111,10 @@ f.handleRemoveChatItemAction_ = function(a) {
           if (pp.length !== fp.length || fp.length !== cp.length || pp.length !== cp.length) {
 
             console.log(`[yt-bst] flushItems; length mismatched (02); pp=${pp.length}, fp=${fp.length}, cp=${cp.length}`);
+            lastFpErrorSet(true);
+            tmpError = true;
+          } else {
+            lastFpErrorSet(tmpError);
           }
 
         }
