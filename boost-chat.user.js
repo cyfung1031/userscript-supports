@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.8
+// @version             0.2.9
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -5051,7 +5051,7 @@ SOFTWARE.
               // console.log(' ===== cV ====')
               // console.dir(prettyPrint(c))
               if (replaceObject(p, c)) {
-                dataMutable.bObjChange(e);
+                dataMutable.bObjChange(e, fk);
                 replaceExistingItem = true; // to be added if not matched
                 // console.log('replaceObject(visibleItems)', p);
               }
@@ -5062,6 +5062,7 @@ SOFTWARE.
             // console.log(' ===== cA ====')
             // console.dir(prettyPrint(c))
             if (replaceObject(p, c)) {
+              W(p).aKey = fk;
               replaceExistingItem = true;
               // console.log('replaceObject(activeItems_)', p);
             }
@@ -5150,7 +5151,7 @@ SOFTWARE.
 
               if (typeof dataMutable.bObjChange === 'function') {
                 if (replaceObject(p, aReplacementItem)) {
-                  dataMutable.bObjChange(rendererItem);
+                  dataMutable.bObjChange(rendererItem, itemKey);
                   // replaceExistingItem = true; 
 
                   this.resetSmoothScroll_();
@@ -5365,12 +5366,14 @@ f.handleRemoveChatItemAction_ = function(a) {
 
       if (aKey && typeof aKey === 'string') W(aObj).aKey = aKey;
 
-      const rendererFlag = MEMO(aObj, 'rendererFlag', ()=>{
+      const memo_ = MEMO(aObj);
+
+      const rendererFlag = memo_?.rendererFlag || MEMO(aObj, 'rendererFlag', ()=>{
         if(R(aObj).aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
         return 0;
       });
 
-      MEMO(aObj, 'authorName', () => {
+      memo_?.authorName || MEMO(aObj, 'authorName', () => {
         const dx = R(aObj) && rendererFlag() === 1 ? aObj.header?.liveChatSponsorshipsHeaderRenderer : aObj
         return convertYTtext(dx.authorName);
       });
@@ -5379,16 +5382,21 @@ f.handleRemoveChatItemAction_ = function(a) {
       aObj.getStickerURL = getStickerURL;
       aObj.bst = bst;
 
-      const messageXT = createMemo(()=>{
-        const data = R(aObj);
-        const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
-        return messageFlatten(m1);
-      })
+      if(!memo_?.messageXM){
 
-      MEMO(aObj, 'messageXM', () =>{
-        const str = messageXT();
-        return messageUnflatten(str);
-      })
+        const messageXT = createMemo(()=>{
+          const data = R(aObj);
+          const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
+          return messageFlatten(m1);
+        })
+  
+        MEMO(aObj, 'messageXM', () =>{
+          const str = messageXT();
+          return messageUnflatten(str);
+        })
+
+      }
+
 
 
     }
@@ -5786,7 +5794,7 @@ f.handleRemoveChatItemAction_ = function(a) {
               this.bObjChange = null;
 
             },
-            bObjChange(val) {
+            bObjChange(val, aKey) {
               let bObj = kRef(bObjWR);
               if (!bObj) return;
               if (typeof (val || 0) === 'object') {
@@ -5795,7 +5803,7 @@ f.handleRemoveChatItemAction_ = function(a) {
                   Reflect.has(val, s) || (val[s] = undefined);
                 }
               }
-              convertAObj(val, val.aKey || undefined);
+              convertAObj(val, aKey || val.aKey || undefined);
               Object.assign(W(bObj), val);
             },
             setupFn(_messageEntry) {
