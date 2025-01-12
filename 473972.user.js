@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.5
+// @version     0.17.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -141,7 +141,7 @@
   const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
   const FIX_DOM_IF_TEMPLATE = true;
   // const FIX_DOM_REPEAT_TEMPLATE = true; // to be implemented
-  const FIX_DOM_IFREPEAT_RenderDebouncerChange = true; // semi-experimental (added in 0.17.0)
+  const FIX_DOM_IFREPEAT_RenderDebouncerChange = false; // semi-experimental (added in 0.17.0) // found buggy for chat ticker sizing
   const DEBUG_DBR847 = false;
   const DEBUG_xx847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
@@ -4323,6 +4323,7 @@
     window.requestIdleCallback = function (f, ...args) {
       return (this || window).requestIdleCallback471(async function () {
         await pLoad.then();
+        // await new Promise(nextBrowserTick_);
         f.call(this, ...arguments)
       }, ...args);
     }
@@ -7948,8 +7949,7 @@
                 // allowNoDelay322 = false;
               } else if (typeof lztContinuation === 'string' && mtzlastAllowedContinuation && mtzlastAllowedContinuation === lztContinuation) {
                 // repeated
-                if (mtzCount > 1e9) mtzCount = 1e4;
-                ++mtzCount;
+                if (++mtzCount > 1e9) mtzCount = 1e4;
                 LOG_FETCHMETA_UPDATE && continuationLog(lztContinuation, '5386 Same Continuation\t\t', lztContinuation, `C${mtzCount}.R${mfvContinuationRecorded.size}.I${mfyContinuationIgnored.size}`);
 
                 // if (mtzCount >= 3) allowNoDelay322 = true;
