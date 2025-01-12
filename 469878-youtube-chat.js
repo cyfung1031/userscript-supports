@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.67.13
+// @version             0.67.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2987,8 +2987,7 @@
       }
       /** @param {FrameRequestCallback} f */
       request(f) {
-        if (this.counter > 1e9) this.counter = 9;
-        let cid = this.startAt + (++this.counter);
+        const cid = this.startAt + (this.counter = (this.counter & 1073741823) + 1);
         this.funcs.set(cid, f);
         if (this.rid === 0) this.rid = requestAnimationFrame(this.bCallback);
         return cid;
@@ -3301,33 +3300,33 @@
 
             if (!participants00.r94dm) {
               participants00.r94dm = 1;
-              if (++r95dm > 1e9) r95dm = 9;
+              r95dm = (r95dm & 1073741823) + 1;
               participants00.push = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.push.apply(this, arguments);
               }
               participants00.pop = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.pop.apply(this, arguments);
               }
               participants00.shift = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.shift.apply(this, arguments);
               }
               participants00.unshift = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.unshift.apply(this, arguments);
               }
               participants00.splice = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.splice.apply(this, arguments);
               }
               participants00.sort = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.sort.apply(this, arguments);
               }
               participants00.reverse = function () {
-                if (++r95dm > 1e9) r95dm = 9;
+                r95dm = (r95dm & 1073741823) + 1;
                 return Array.prototype.reverse.apply(this, arguments);
               }
             }
@@ -4478,7 +4477,7 @@
       document.addEventListener('scroll', (evt) => {
         if (!evt || !evt.isTrusted) return;
         // lastScroll = dateNow();
-        if (++scrollCount > 1e9) scrollCount = 9;
+        scrollCount = (scrollCount & 1073741823) + 1;
       }, passiveCapture); // support contain => support passive
 
       let lastScrollCount = -1;
@@ -5942,12 +5941,12 @@
 
         mclp.__intermediate_delay__ = null;
 
-        let myk = 0;
-        let mlf = 0;
-        let myw = 0;
-        let mzt = 0;
+        let myk = 0; // showNewItems77_
+        let mlf = 0; // flushActiveItems77_
+        let myw = 0; // onScrollItems77_
+        let mzt = 0; // handleLiveChatActions77_
+        let mlg = 0; // delayFlushActiveItemsAfterUserAction11_
         let zarr = null;
-        let mlg = 0;
 
         if ((_flag0281_ & 0x2000) == 0) {
 
@@ -5955,11 +5954,11 @@
             (_flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
             mclp.clearList66 = mclp.clearList;
             mclp.clearList = function () {
-              myk++;
-              mlf++;
-              myw++;
-              mzt++;
-              mlg++;
+              myk = (myk & 1073741823) + 1;
+              mlf = (mlf & 1073741823) + 1;
+              myw = (myw & 1073741823) + 1;
+              mzt = (mzt & 1073741823) + 1;
+              mlg = (mlg & 1073741823) + 1;
               zarr = null;
               this.__intermediate_delay__ = null;
               this.clearList66();
@@ -6138,8 +6137,7 @@
             mclp.showNewItems66_ = mclp.showNewItems_;
 
             mclp.showNewItems77_ = async function () {
-              if (myk > 1e9) myk = 9;
-              let tid = ++myk;
+              let tid = myk = (myk & 1073741823) + 1;
 
               await iAFP(this.hostElement).then();
               // await new Promise(requestAnimationFrame);
@@ -6372,9 +6370,8 @@
                   const acItems = cnt.activeItems_;
                   if (!acItems || acItems.length === 0) return;
 
-                  mlf++;
-                  if (mlg > 1e9) mlg = 9;
-                  ++mlg;
+                  mlf = (mlf & 1073741823) + 1;
+                  mlg = (mlg & 1073741823) + 1;
                   if (acItems.length < MAX_ITEMS_FOR_FULL_FLUSH) {
                     const pn = preloadFn(acItems);
                     await pn();
@@ -6394,9 +6391,8 @@
                 if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
                 if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
 
-                mlf++;
-                if (mlg > 1e9) mlg = 9;
-                ++mlg;
+                mlf = (mlf & 1073741823) + 1;
+                mlg = (mlg & 1073741823) + 1;
 
                 const tmpMaxItemsCount = this.data.maxItemsToDisplay;
                 const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
@@ -6539,8 +6535,7 @@
               return new Promise(resResolve => {
                 try {
                   const cnt = this;
-                  if (mlf > 1e9) mlf = 9;
-                  let tid = ++mlf;
+                  let tid = mlf = (mlf & 1073741823) + 1;
                   const hostElement = cnt.hostElement || cnt;
                   if (tid !== mlf || cnt.isAttached === false || hostElement.isConnected === false) return resResolve();
                   if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return resResolve();
@@ -6647,8 +6642,7 @@
         if ((_flag0281_ & 0x80) == 0) {
           mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
             try {
-              if (mlg > 1e9) mlg = 9;
-              const tid = ++mlg;
+              const tid = mlg = (mlg & 1073741823) + 1;
               const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
               const runCond = () => this.canScrollToBottom_();
               if (!keepTrialCond()) return;
@@ -6669,10 +6663,6 @@
 
           if( (mclp.atBottomChanged_ || 0).length === 0) {
             // note: if the scrolling is too frequent, the show more visibility might get wrong.
-
-
-
-
 
             const sfi = fnIntegrity(mclp.atBottomChanged_);
 
@@ -6896,8 +6886,7 @@
             assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
             mclp.onScrollItems66_ = mclp.onScrollItems_;
             mclp.onScrollItems77_ = async function (evt) {
-              if (myw > 1e9) myw = 9;
-              let tid = ++myw;
+              let tid = myw = (myw & 1073741823) + 1;
 
               await iAFP(this.hostElement).then();
               // await new Promise(requestAnimationFrame);
@@ -7006,8 +6995,7 @@
                 this.handleLiveChatActions66_(arr);
                 return;
               }
-              if (mzt > 1e9) mzt = 9;
-              let tid = ++mzt;
+              let tid = mzt = (mzt & 1073741823) + 1;
 
               if (zarr === null) zarr = arr;
               else Array.prototype.push.apply(zarr, arr);
@@ -7065,8 +7053,12 @@
 
         if ((mclp.canScrollToBottom_ || 0).length === 0 && !mclp.canScrollToBottom157_) {
 
-          assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.9.5'));
-
+          if (typeof mclp.pointerHolding581 === 'boolean') {
+            // Boost Chat
+            assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.40.5'));
+          } else {
+            assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.9.5'));
+          }
 
           mclp.canScrollToBottom157_ = mclp.canScrollToBottom_;
           mclp.canScrollToBottom_ = function () {
@@ -7597,8 +7589,7 @@
           },
 
           attachedForTickerInit: function () {
-            if (tickerAttachmentId > 1e9) tickerAttachmentId = 9;
-            this.__ticker_attachmentId__ = ++tickerAttachmentId;
+            this.__ticker_attachmentId__ = tickerAttachmentId = (tickerAttachmentId & 1073741823) + 1;
 
             const hostElement = (this || 0).hostElement;
             if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
@@ -7685,14 +7676,13 @@
 
             if (onPlayStateChangePromise) {
 
-              if (this.rtu > 1e9) this.rtu = this.rtu % 1e4;
-              const tid = ++this.rtu;
+              const tid = this._Y7rtu = (this._Y7rtu & 1073741823) + 1;
 
               onPlayStateChangePromise.then(() => {
-                const cnt = kRef(jr);
-                if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
+                const cnt = kRef(jr) || 0;
+                if (attachementId !== cnt.__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
-                  if (tid === cnt.rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
+                  if (tid === cnt._Y7rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
                   // this.handlePauseReplay can be undefined if it is memory cleaned
                 }
               });
@@ -7702,19 +7692,16 @@
 
             if (playerState !== 2) return;
             if (this.isAttached) {
-              if (this.rtk > 1e9) this.rtk = this.rtk % 1e4;
-              const tid = ++this.rtk;
+              const tid = this._Y7rtk = (this._Y7rtk & 1073741823) + 1;
               const tc = relayCount;
-
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
                 if (attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
-                  if (tid === cnt.rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
+                  if (tid === cnt._Y7rtk && tc === relayCount && playerState === 2 && _playerState === playerState && cnt.hostElement) {
                     cnt.handlePauseReplay66();
                   }
                 }
-
               })
             }
           },
@@ -7729,13 +7716,12 @@
             const jr = mWeakRef(this);
             if (onPlayStateChangePromise) {
 
-              if (this.rtv > 1e9) this.rtv = this.rtv % 1e4;
-              const tid = ++this.rtv;
+              const tid = this._Y7rtv = (this._Y7rtv & 1073741823) + 1;
 
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
                 if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
-                if (tid === cnt.rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
+                if (tid === cnt._Y7rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
                 // this.handleResumeReplay can be undefined if it is memory cleaned
               });
 
@@ -7763,13 +7749,13 @@
             if (this.isAttached) {
               const attachementId = this.__ticker_attachmentId__;
               if(!attachementId) return;
-              const tid = ++this.rtk;
+              const tid = this._Y7rtk = (this._Y7rtk & 1073741823) + 1;
               const jr = mWeakRef(kRef(this));
               foregroundPromiseFn().then(() => {
                 const cnt = kRef(jr);
                 if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
-                  if (tid === cnt.rtk && cnt.hostElement) {
+                  if (tid === cnt._Y7rtk && cnt.hostElement) {
                     cnt.handleReplayProgress66(a);
                   }
                 }
@@ -7903,9 +7889,9 @@
 
           if (ENABLE_VIDEO_PROGRESS_STATE_FIX_AND_URT_PASSED) {
 
-            cProto.rtk = 0;
-            cProto.rtu = 0;
-            cProto.rtv = 0;
+            cProto._Y7rtk = 0;
+            cProto._Y7rtu = 0;
+            cProto._Y7rtv = 0;
 
             cProto.handlePauseReplay66 = cProto.handlePauseReplay;
             cProto.handlePauseReplay = dProto.handlePauseReplayForPlaybackProgressState;
@@ -9091,8 +9077,7 @@
                 if (!ironPage) return;
 
                 if (cnt.__naohzId__) removeEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
-                if (naohzId > 1e9) naohzId = naohzId % 1e4;
-                cnt.__naohzId__ = ++naohzId;
+                cnt.__naohzId__ = naohzId = (naohzId & 1073741823) + 1;
                 ironPage.setAttribute('naohz', `${+cnt.__naohzId__}`);
 
                 addEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
@@ -11879,9 +11864,8 @@
 
             if (callbackObj && (delete callbackObj[d], isEmptyObject(callbackObj))) {
               const w = ct_clients_[objectId];
-              --lza;
-              if (lza < -1e9) lza = -1;
-              const qta = lza;
+              lza = (lza & 1073741823) + 1;
+              const qta = -lza;
               rafHandleHolder.push(() => {
                 if (qta === ct_handles_[objectId]) {
                   const o = {
