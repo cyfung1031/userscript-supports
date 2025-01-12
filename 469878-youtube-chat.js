@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.68.0
+// @version             0.68.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -569,6 +569,11 @@
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
   if (typeof WebAssembly !== 'object') return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for passive and once
+
+  if (typeof CSS === 'undefined' || typeof (CSS || 0).supports !== 'function' || !CSS.supports('left', 'clamp(-100%, calc( -100% * 0.5 ), 0%)')) {
+    return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for advanced tickering
+  }
+
 
   // necessity of cssText3_smooth_transform_position to be checked.
   const cssText3_smooth_transform_position = ENABLE_NO_SMOOTH_TRANSFORM ? `
@@ -2749,20 +2754,25 @@
     }
   };
 
-
   let xoIcjPr = null;
+  const xoIcjId = `xoIcj${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+  const xoIcjPost = window.postMessage.bind(window, xoIcjId);
   window.addEventListener('message', (evt) => {
-    if ((evt || 0).data === 'xoIcj' && xoIcjPr !== null) xoIcjPr.resolve();
+    if ((evt || 0).data === xoIcjId) {
+      const t = xoIcjPr;
+      if (t !== null) {
+        xoIcjPr = null;
+        t.resolve();
+      }
+    }
   });
   const timelineResolve = async () => {
-    if (xoIcjPr !== null) {
-      await xoIcjPr.then();
-      return;
+    let t = xoIcjPr;
+    if (t === null) {
+      t = xoIcjPr = new PromiseExternal();
+      xoIcjPost();
     }
-    xoIcjPr = new PromiseExternal();
-    window.postMessage('xoIcj');
-    await xoIcjPr.then();
-    xoIcjPr = null;
+    await t.then();
   }
 
   cleanContext(win).then(__CONTEXT__ => {
@@ -8055,6 +8065,22 @@
 
 
             if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
+              const removalList = [];
+              let removalRes = false;
+              const removalFn = () => {
+                if (removalList.length === 0) return;
+                for (const cnt of removalList) {
+                  let r;
+                  try {
+                    r = cnt?.requestRemoval49();
+                  } catch (e) { }
+                  if (r !== undefined && removalRes === false) {
+                    removalRes = true;
+                    console.log(`[yt-chat-ticker] requestRemoval49 returns ${r}`);
+                  }
+                }
+                removalList.length = 0;
+              };
               cProto.requestRemoval49 = cProto.requestRemoval;
               cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
                 
@@ -8154,7 +8180,8 @@
                   //   setTimeout(wf, 8000);
                   // }
 
-                  return this.requestRemoval49();
+                  removalList.push(this);
+                  timelineResolve().then(removalFn);
                 }
               });
 
