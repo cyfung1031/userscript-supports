@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.68.1
+// @version             0.68.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2919,7 +2919,6 @@
     // let lastScroll = 0;
     // let lastLShow = 0;
     let lastWheel = 0;
-    let lastMouseDown = 0;
     let lastMouseUp = 0;
     let currentMouseDown = false;
     let lastTouchDown = 0;
@@ -4226,12 +4225,15 @@
     })();
 
     const setupEvents = () => {
+      // not called when boost chat is enabled
 
+      // global - currentMouseDown, lastUserInteraction
 
       let scrollCount = 0;
+      let lastScrollCount = -1;
+      let lastMouseDown = 0;
 
       const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
-
 
       const delayFlushActiveItemsAfterUserActionK_ = () => {
 
@@ -4252,7 +4254,6 @@
         scrollCount = (scrollCount & 1073741823) + 1;
       }, passiveCapture); // support contain => support passive
 
-      let lastScrollCount = -1;
       document.addEventListener('wheel', (evt) => {
         if (!evt || !evt.isTrusted) return;
         if (lastScrollCount === scrollCount) return;
@@ -5754,7 +5755,9 @@
             onListRendererAttachedDone = true;
             Promise.resolve().then(watchUserCSS);
             addCssManaged();
-            setupEvents();
+
+            const isBoostChatEnabled = (window._flag0281_ & 0x40000) === 0x40000;
+            if (!isBoostChatEnabled) setupEvents();
           }
 
           setupStyle(itemOffset, items);
@@ -6737,19 +6740,19 @@
 
             const sfi = fnIntegrity(mclp.handleLiveChatActions_);
             // handleLiveChatActions66_
-            if(sfi === '1.40.20') {
+            if (sfi === '1.40.20') {
               // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
 
-                  // f.handleLiveChatActions_ = function(a) {
-                  //     var b = this;
-                  //     a.length && (a.forEach(this.handleLiveChatAction_, this),
-                  //     this.maybeResizeScrollContainer_(a),
-                  //     this.flushActiveItems_(),
-                  //     $u(function() {
-                  //         b.maybeScrollToBottom_()
-                  //     }))
-                  // }
+              // f.handleLiveChatActions_ = function(a) {
+              //     var b = this;
+              //     a.length && (a.forEach(this.handleLiveChatAction_, this),
+              //     this.maybeResizeScrollContainer_(a),
+              //     this.flushActiveItems_(),
+              //     $u(function() {
+              //         b.maybeScrollToBottom_()
+              //     }))
+              // }
 
             } else if (sfi === '1.39.20') {
               // TBC
@@ -6792,9 +6795,9 @@
             mclp.handleLiveChatActions_ = function (arr) {
 
 
-              try{
+              try {
                 preprocessChatLiveActions(arr);
-              }catch(e){
+              } catch (e) {
                 console.warn(e);
               }
 
@@ -6818,28 +6821,32 @@
           }
         }
 
-        mclp.hasUserJustInteracted11_ = () => {
-          const t = dateNow();
-          return (t - lastWheel < 80) || currentMouseDown || currentTouchDown || (t - lastUserInteraction < 80);
-        }
+        // we do not need to do user interaction check for Boost Chat (0x40000)
+        const noScrollToBottomCheckForBoostChat = (_flag0281_ & 0x40000) === 0x40000;
 
-        if ((mclp.canScrollToBottom_ || 0).length === 0 && !mclp.canScrollToBottom157_) {
+        if (noScrollToBottomCheckForBoostChat === false) {
 
-          if (typeof mclp.pointerHolding581 === 'boolean') {
-            // Boost Chat
-            assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.40.5'));
-          } else {
+          mclp.hasUserJustInteracted11_ = () => {
+            const t = dateNow();
+            return (t - lastWheel < 80) || currentMouseDown || currentTouchDown || (t - lastUserInteraction < 80);
+          }
+
+          if ((mclp.canScrollToBottom_ || 0).length === 0 && !mclp.canScrollToBottom157_) {
+
             assertor(() => fnIntegrity(mclp.canScrollToBottom_, '0.9.5'));
+
+            mclp.canScrollToBottom157_ = mclp.canScrollToBottom_;
+            mclp.canScrollToBottom_ = function () {
+              return this.canScrollToBottom157_() && !this.hasUserJustInteracted11_();
+            }
+
+            console1.log("canScrollToBottom_", "OK");
+
+
+          } else {
+            console1.log("canScrollToBottom_", "NG");
           }
 
-          mclp.canScrollToBottom157_ = mclp.canScrollToBottom_;
-          mclp.canScrollToBottom_ = function () {
-            return this.canScrollToBottom157_() && !this.hasUserJustInteracted11_();
-          }
-
-          console1.log("canScrollToBottom_", "OK");
-        } else {
-          console1.log("canScrollToBottom_", "NG");
         }
 
         if (ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -9541,6 +9548,7 @@
 
 
           if ((_flag0281_ & 0x40000) === 0x40000 && cProto && typeof cProto.preprocessActions_ === 'function' && cProto.preprocessActions_.length === 1 && !cProto.preprocessActions92_) {
+            // we can disable smooth message emitting if boost chat is enabled (0x40000)
             let byPass = false;
             let q33 = false;
             let key_estimatedUpdateInterval = '';
