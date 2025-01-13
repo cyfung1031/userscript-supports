@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.0
+// @version             0.3.1
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4283,6 +4283,12 @@ SOFTWARE.
         bstMain
       });
       bstMain.classList.add('bst-yt-main');
+      bstMain.addEventListener('wheel', () => {
+        bottomKeepAtSet(0);
+      });
+      bstMain.addEventListener('touchmove', () => {
+        bottomKeepAtSet(0);
+      });
       bstMain.addEventListener('scroll', (a) => {
         // bstMainScrollCount++;
         this.onScrollItems_(a);
@@ -5284,6 +5290,7 @@ SOFTWARE.
     // }
 
     const replaceObject = (dist, src) => {
+      if (!dist || !src) return;
       const flushItem = dist;
       if (flushItem) {
         for (const k of Object.keys(flushItem)) {
@@ -5421,6 +5428,7 @@ SOFTWARE.
 
             if ("visibleItems" === tag) {
 
+              e.__flushDiscarded__ = false;
               sb.splice(idx, 1, c);
               this.resetSmoothScroll_();
               replaceExistingItem = true;
@@ -5451,8 +5459,11 @@ SOFTWARE.
               // console.dir(prettyPrint(p))
               // console.log(' ===== cA ====')
               // console.dir(prettyPrint(c))
+
+              e.__flushDiscarded__ = false;
               if (_flushed === 2) {
                 replaceObject(p, c);
+                if (typeof (p[fk] || 0) === 'object') p[fk].__flushDiscarded__ = false;
                 replaceExistingItem = true;
               } else {
                 this.activeItems_.splice(tag, idx, 1, c);
@@ -5500,6 +5511,7 @@ SOFTWARE.
             const [tag, p, idx] = entry;
             if (tag === "visibleItems") {
 
+              rendererItem.__flushDiscarded__ = false;
               sb.splice(idx, 1, aReplacementItem);
               this.resetSmoothScroll_();
 
@@ -5524,8 +5536,11 @@ SOFTWARE.
 
             } else if (tag === "activeItems_") { // activeItems_
               // this.activeItems_[idx] = aReplacementItem;
+
+              rendererItem.__flushDiscarded__ = false;
               if (_flushed === 2) {
                 replaceObject(p, aReplacementItem);
+                if (typeof (p[itemKey] || 0) === 'object') p[itemKey].__flushDiscarded__ = false;
               } else {
                 this.activeItems_.splice(idx, 1, aReplacementItem);
               }
@@ -6089,25 +6104,50 @@ f.handleRemoveChatItemAction_ = function(a) {
           p && p.id && existingSet.add(p.id);
         }
 
+        let withFlushDiscarded = 0;
+
         let rearrangedW = activeItems_.map(flushItem => {
 
           const aKey = flushItem ? firstObjectKey(flushItem) : null;
           const aObj = aKey ? flushItem[aKey] : null;
-          if (!aObj) return null;
+          if (!aObj || aObj.__flushDiscarded__) return null;
 
           const id = aObj.id
           const uid = getUID(aObj);
-          if (existingSet.has(id)) return null;
+          if (existingSet.has(id)) {
+            aObj.__flushDiscarded__ = true;
+            withFlushDiscarded++;
+            return {
+              flushItem,
+              aKey, aObj, uid,
+              alreadyExist: true
+            };
+          }
           existingSet.add(id);
 
           return {
             flushItem,
-            aKey, aObj, uid
+            aKey, aObj, uid,
+            alreadyExist: false
           };
 
-        }).filter(e => !!e);
+        });
         existingSet.clear();
         existingSet = null;
+
+        if (withFlushDiscarded > 0) {
+          for (let i = rearrangedW.length; i--;) {
+            const entry = rearrangedW[i];
+            if (!entry || entry.alreadyExist !== true) continue;
+            if (entry.flushItem === activeItems_[i]) {
+              activeItems_.splice(i, 1);
+              withFlushDiscarded--;
+              if (!withFlushDiscarded) break;
+            }
+          }
+        }
+
+        rearrangedW = rearrangedW.filter(e => e && e.alreadyExist === false);
 
         const nd = rearrangedW.length;
         if (nd === 0) return;
@@ -6119,7 +6159,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (visibleItems.length === 0) {
           // needScrollToEnd = true;
           wasEmpty = true;
-        } 
+        }
 
         // ---- ticker row appearance ----
         // ensure atBottom keeps as true
@@ -6127,7 +6167,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         // - example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
         // ---- ticker row appearance ----
 
-        
+
 
         let awaitTime = 0;
 
