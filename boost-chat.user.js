@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.1
+// @version             0.3.2
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4034,8 +4034,8 @@ SOFTWARE.
   const [entryHolding, entryHoldingChange] = createSignal("");
   const [mf, mfChange] = createSignal("");
   const [tooltipTarget, tooltipTargetChange] = createSignal(null);
-  let mouseActionP = null;
-  let noFlushTP = false;
+  // let mouseActionP = null;
+  // let noFlushTP = false;
 
   const delayPn = delay => new Promise((fn => setTimeout(fn, delay)));
 
@@ -4294,33 +4294,33 @@ SOFTWARE.
         this.onScrollItems_(a);
       }, false);
       {
-        const mListenerQ27 = async () => {
-          noFlushTP = true;
-        }
-        const mListenerQ28 = () => {
-          noFlushTP = false;
-          const p = mouseActionP;
-          if (p) {
-            mouseActionP = null;
-            p.resolve();
-          }
-        };
+        // const mListenerQ27 = async () => {
+        //   // noFlushTP = true;
+        // }
+        // const mListenerQ28 = () => {
+        //   // noFlushTP = false;
+        //   const p = mouseActionP;
+        //   if (p) {
+        //     mouseActionP = null;
+        //     p.resolve();
+        //   }
+        // };
 
-        const mListenerQ29 = (evt) => {
-          if (evt.target === bstMain) {
-            noFlushTP = false;
-            const p = mouseActionP;
-            if (p) {
-              mouseActionP = null;
-              p.resolve();
-            }
-          }
-        };
-        bstMain.addEventListener('pointerdown', mListenerQ27, { passive: true, capture: true });
-        bstMain.addEventListener('pointerup', mListenerQ28, { passive: true, capture: true });
-        bstMain.addEventListener('pointercancel', mListenerQ28, { passive: true, capture: true });
-        bstMain.addEventListener('pointerleave', mListenerQ29, { passive: true, capture: false });
-        bstMain.addEventListener('pointerenter', mListenerQ29, { passive: true, capture: false });
+        // const mListenerQ29 = (evt) => {
+        //   if (evt.target === bstMain) {
+        //     // noFlushTP = false;
+        //     const p = mouseActionP;
+        //     if (p) {
+        //       mouseActionP = null;
+        //       p.resolve();
+        //     }
+        //   }
+        // };
+        // bstMain.addEventListener('pointerdown', mListenerQ27, { passive: true, capture: true });
+        // bstMain.addEventListener('pointerup', mListenerQ28, { passive: true, capture: true });
+        // bstMain.addEventListener('pointercancel', mListenerQ28, { passive: true, capture: true });
+        // bstMain.addEventListener('pointerleave', mListenerQ29, { passive: true, capture: false });
+        // bstMain.addEventListener('pointerenter', mListenerQ29, { passive: true, capture: false });
         // bstMain.addEventListener('mouseenter', mListenerQ28, { passive: true, capture: true });
         // bstMain.addEventListener('mouseleave', mListenerQ28, { passive: true, capture: true });
 
@@ -6012,10 +6012,10 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         let tmpError = false;
 
-        while (noFlushTP) {
-          mouseActionP = mouseActionP || new PromiseExternal();
-          await mouseActionP.then();
-        }
+        // while (noFlushTP) {
+        //   mouseActionP = mouseActionP || new PromiseExternal();
+        //   await mouseActionP.then();
+        // }
 
         // add activeItems_ to visibleItems
 
