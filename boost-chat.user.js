@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.2
+// @version             0.3.3
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -137,6 +137,8 @@ SOFTWARE.
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
+
+  const [setIntervalX0, clearTimeoutX0] = [setTimeout, clearTimeout];
 
   class VisibleItemList extends Array {
     constructor(...args) {
@@ -1754,6 +1756,9 @@ SOFTWARE.
   const memoStore = new WeakMap();
 
 
+  // -------------------------------------------------------------------------------------------
+  let rcKt = 0; // without rcKt, rcSignal() > rcValue => deadlock
+
   let rcPromise = null;
   const [rcSignal ,rcSignalSet]=createSignal(1);
   let rcValue = 1;
@@ -1762,7 +1767,11 @@ SOFTWARE.
     if (p) {
       rcValue = (rcValue & 1073741823) + 1;
     }
-    rcSignalSet(r => (r & 1073741823) + 1);
+    const t = rcKt;
+    rcSignalSet(r => {
+      if (t !== rcKt) return r;
+      return (r & 1073741823) + 1;
+    });
   };
 
 
@@ -1770,9 +1779,38 @@ SOFTWARE.
     const m = rcSignal();
     if (rcValue === m) {
       rcPromise && rcPromise.resolve();
-      rcPromise= null;
+      rcPromise = null;
+      rcKt = (rcKt & 1073741823) + 1;
     }
   });
+
+  // --- to avoid dead lock ---
+
+  let rcPromiseN = 0;
+  let rcPromiseT = null;
+  const rcPromiseUnlockFn = () => {
+    if (!rcPromise) { // rcPromise null
+      rcPromiseN = 0;
+      rcPromiseT = null;
+    } else if (rcPromiseT !== rcPromise) { // rcPromise not null and rcPromise!==rcPromiseT; rcPromiseT can be not null
+      if (rcPromiseT) rcPromiseT.resolve();
+      rcPromiseT = rcPromise;
+      rcPromiseN = 1;
+    } else { // rcPromise not null and rcPromise===rcPromiseT
+      console.log('[yt-bst] ERROR 0xFE02 - rcPromise deadlock', rcPromiseN);
+      if (rcPromiseN < 8) rcPromiseN++;
+      rcPromise.resolve();
+      rcPromise = null;
+      rcPromiseT = null;
+      rcKt = (rcKt & 1073741823) + 1;
+    }
+  };
+
+
+  // --- to avoid dead lock ---
+
+  // -------------------------------------------------------------------------------------------
+
 
 
   const MEMO = (obj, key, val) => {
@@ -2994,7 +3032,6 @@ SOFTWARE.
 
   let SolidMessageElementTagsSizeCached = 0;
 
-
   const SolidMessageListEntry = (props) =>{
 
     // rcSignalAdd(1);
@@ -4170,7 +4207,7 @@ SOFTWARE.
       const iooa = new IntersectionObserver((entries) => {
         if (!_flushed) return; // avoid initial check (not yet flushed)
         anchorVisible = entries[entries.length - 1].isIntersecting === true;
-        const tct = rct = (rct % 1073741823) + 1;
+        const tct = rct = (rct & 1073741823) + 1;
         Promise.resolve(tct).then(ioof);
       }, { root: null, threshold: [0.05, 0.95], rootMargin: '0px' });
       iooa.observe(messageOverflowAnchor);
@@ -4983,6 +5020,10 @@ SOFTWARE.
 
 
       });
+
+
+      setIntervalX0(rcPromiseUnlockFn, 145); // 145ms ~ 290ms -> clear
+      console.log('[yt-bst] loaded')
 
     }
 
@@ -5952,6 +5993,7 @@ f.handleRemoveChatItemAction_ = function(a) {
       messageList?.classList?.toggle('bst-message-list-issue', b);
     });
 
+
     const freqMap = new Map(); // for temp use.
     // const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
     cProto.flushActiveItems37_ = cProto.flushActiveItems_;
@@ -6175,6 +6217,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         bottomKeepAtSet(Date.now() + 86400000);
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let mg = 0;
+        rcKt = (rcKt & 1073741823) + 1;
         rcValue = rcSignal();
         const t1 = performance.now();
         let a2 = t1;
@@ -6229,8 +6272,14 @@ f.handleRemoveChatItemAction_ = function(a) {
         rcValue++;
         await timelineResolve();
         rcSignalAdd(0);
-        await rcPromise_.then();
+        await rcPromise_.then(); // deadlock cleared by setInterval
         if (rcPromise_ === rcPromise) rcPromise = null;
+        if (rcSignal() !== rcValue) {
+          console.log('[yt-bst] ERROR 0xFE01 - rcValue mismatched', rcValue, rcSignal());
+          rcKt = (rcKt & 1073741823) + 1;
+          rcSignalSet(rcValue);
+        }
+        rcKt = (rcKt & 1073741823) + 1;
         resetSelection();
         if (wasEmpty) messageList.classList.add('bst-listloaded');
 
