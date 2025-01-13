@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.3
+// @version             0.3.4
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -138,7 +138,7 @@ SOFTWARE.
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
 
-  const [setIntervalX0, clearTimeoutX0] = [setTimeout, clearTimeout];
+  const [setIntervalX0, clearIntervalX0] = [setInterval, clearInterval];
 
   class VisibleItemList extends Array {
     constructor(...args) {
