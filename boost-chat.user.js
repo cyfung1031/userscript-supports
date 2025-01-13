@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.4
+// @version             0.3.5
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -137,6 +137,11 @@ SOFTWARE.
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
+
+  const nullSet = (e) => { }
+  const nullGet = () => { }
+  const nullFn = () => { }
+  const nullMemo = () => { }
 
   const [setIntervalX0, clearIntervalX0] = [setInterval, clearInterval];
 
@@ -1767,9 +1772,9 @@ SOFTWARE.
     if (p) {
       rcValue = (rcValue & 1073741823) + 1;
     }
-    const t = rcKt;
+    const tkt = rcKt;
     rcSignalSet(r => {
-      if (t !== rcKt) return r;
+      if (tkt !== rcKt) return r;
       return (r & 1073741823) + 1;
     });
   };
@@ -1973,7 +1978,8 @@ SOFTWARE.
             }
             onCleanup(() => {
               elmWR = null;
-              tooltipDisplay = tooltipDisplaySet = null;
+              tooltipDisplay = nullGet;
+              tooltipDisplaySet = nullSet;
             });
             return html`<yt-icon class="bst-message-badge-yt-icon" ref="${onYtIconCreated}"></yt-icon><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`;
 
@@ -2003,7 +2009,9 @@ SOFTWARE.
             onImgCreated = null;
           }
           onCleanup(() => {
-            tooltipDisplay = tooltipDisplaySet = null;
+            elmWR = null;
+            tooltipDisplay = nullGet;
+            tooltipDisplaySet = nullSet;
           });
           return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`
 
@@ -3036,8 +3044,11 @@ SOFTWARE.
 
     // rcSignalAdd(1);
     rcValue++;
+    const tkt = rcKt;
     onMount(async () => {
+      if (tkt !== rcKt) return;
       timelineResolve && (await timelineResolve());
+      if (tkt !== rcKt) return;
       rcSignalAdd(0);
     });
     onCleanup(() => {
@@ -3130,8 +3141,8 @@ SOFTWARE.
         onCleanup(() => {
           removeEntry(itemMemo())
           qItem = null;
-          aKeyMemo = null;
-          itemMemo = null;
+          aKeyMemo = nullMemo;
+          itemMemo = nullMemo;
         });
 
         return html`<${SolidMessageListEntry} data=(${()=>rwWrap(itemMemo())}) aKey=(${()=>aKeyMemo}) />`;
@@ -3196,7 +3207,9 @@ SOFTWARE.
             elmWR = mWeakRef(el);
           }
           onCleanup(() => {
-            tooltipDisplay = tooltipDisplaySet = onImgCreated = null;
+            tooltipDisplay = nullGet;
+            tooltipDisplaySet = nullSet;
+            onImgCreated = nullFn;
           });
           return html`<img ref="${onImgCreated}" class="${className}" src="${src}" alt="${alt}" shared-tooltip-text="${tooltipText}" data-emoji-id="${emojiId}" is-custom-emoji="${isCustomEmoji}" /><bst-tooltip>${() => (kRef(tooltipTarget()) || 1) === (kRef(elmWR) || 2) ? tooltipDisplay() : ''}</bst-tooltip>`;
 
@@ -3264,15 +3277,17 @@ SOFTWARE.
   const SolidProfileImg = (props) => {
 
     let profileUrl = props.profileImgSrc;
+    let cleaned = false;
 
     // either createMemo or createEffect can be used.
     // fasten flushing -> createEffect
     let [mImg, mImgSet] = createSignal(null); // updated in createMemo (pre-caching)
     let [sImg, sImgSet] = createSignal(null); // updated in createEffect (after mounting)
     let f = function () {
-      mImgSet(this);
+      mImgSet(this); // cleanup -> img load finished -> error => nullSet
     }
     createMemo(() => {
+      if (cleaned) return;
       const img = document.createElement('IMG');
       img.src = profileUrl();
       if (img.complete) {
@@ -3282,6 +3297,7 @@ SOFTWARE.
       }
     });
     createEffect(() => {
+      if (cleaned) return;
       const img = mImg();
       if (img) {
         img.classList.add('bst-profile-img');
@@ -3289,12 +3305,13 @@ SOFTWARE.
       }
     });
     onCleanup(() => {
-      profileUrl = null;
-      mImg = null;
-      mImgSet = null;
-      sImg = null;
-      sImgSet = null;
-      f = null;
+      cleaned = true;
+      profileUrl = nullGet;
+      mImg = nullGet;
+      mImgSet = nullSet;
+      sImg = nullGet;
+      sImgSet = nullSet;
+      f = nullFn;
     });
     return sImg;
   }
