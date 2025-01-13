@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.2.12
+// @version             0.3.0
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -362,7 +362,6 @@ SOFTWARE.
 
   }
 
-  const flushKeys = new LimitedSizeSet(64);
   const mutableWM = new WeakMap();
 
   const canScrollIntoViewWithOptions = (() => {
@@ -2758,9 +2757,243 @@ SOFTWARE.
     return typeof obj === 'function' ? obj() : obj;
   });
 
+  let convertAObj, showMenu, messageListWR_;
+
+  /** @type {IntersectionObserver} */
+  let ioMessageList = null;
+
+  const setupMutable = (bObj_) =>{
+
+    const bObj = bObj_;
+    if(mutableWM.has(bObj)) return;
+
+    let bObjWR = mWeakRef(bObj);
+    let mutableWR;
+    let createdPromise = new PromiseExternal();
+
+    let messageEntryWR = null;
+
+
+    const bObjChange = (val) => {
+      const f = kRef(mutableWR)?.bObjChange
+      if (f) f(val);
+    }
+
+    const mutable = {
+      getDataObj() {
+        return kRef(bObjWR);
+      },
+      removeEntryFuncs: new Map(),
+      tooltips: new Map(),
+      createdPromise: createdPromise,
+      removeEntry() {
+
+        this.removeEntryFuncs.forEach((f) => {
+          f.call(this);
+        });
+        this.removeEntryFuncs.clear();
+        this.tooltips.clear();
+
+        this.createdPromise = null;
+        this.removeEntryFuncs = null;
+        this.tooltips = null;
+        this.removeEntry = null;
+        this.setupFn = null;
+        this.bObjChange = null;
+
+      },
+      bObjChange(val, aKey) {
+        let bObj = kRef(bObjWR);
+        if (!bObj) return;
+        if (typeof (val || 0) === 'object') {
+          for (const s of ['authorBadges', 'message']) {
+            Reflect.has(val, s) || (val[s] = undefined);
+            Reflect.has(val, s) || (val[s] = undefined);
+          }
+        }
+        convertAObj(val, aKey || val.aKey || undefined);
+        Object.assign(W(bObj), val);
+      },
+      setupFn(_messageEntry) {
+
+        if (messageEntryWR) {
+          console.warn('setupFn warning 01');
+          return;
+        }
+
+        /** @type {HTMLElement} */
+        messageEntryWR = mWeakRef(_messageEntry); 
+        const messageListWR__ = messageListWR_;
+
+        if (!kRef(bObjWR) || !kRef(mutableWR)) {
+          console.warn('setupFn warning 02');
+          return;
+        }
+
+        const [interceptionRatio, interceptionRatioChange] = createSignal(null);
+        const [viewVisible, viewVisibleChange] = createSignal(null);
+        const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
+
+        const baseRemoveFn = () => {
+          const bObj = kRef(bObjWR);
+          const messageEntry = kRef(messageEntryWR);
+          mutableWM.delete(bObj);
+          mutableWM.delete(messageEntry);
+        };
+
+        {
+          const messageEntry = _messageEntry;
+          let mutable = kRef(mutableWR);
+          mutable.viewVisible = viewVisible;
+          mutable.viewVisibleChange = viewVisibleChange;
+          mutable.viewVisibleIdx = viewVisibleIdx;
+          mutable.viewVisibleIdxChange = viewVisibleIdxChange;
+          mutable.interceptionRatioChange = interceptionRatioChange;
+          mutableWM.set(messageEntry, mutable);
+          messageEntry.showMenu = showMenu;
+          mutable.removeEntryFuncs.set('baseRemove', baseRemoveFn);
+          mutable = null;
+        }
+
+
+        const polymerController = {
+          set(prop, val) {
+            if (prop === 'data') {
+              bObjChange(val);
+            }
+          },
+          get data() {
+            return kRef(bObjWR);
+          },
+          set data(val) {
+            bObjChange(val);
+          },
+          get dataRaw() {
+            return kRef(bObjWR);
+          },
+          get dataMutable() {
+            return kRef(mutableWR);
+          },
+          get authorType() {
+            const bObj = kRef(bObjWR);
+            return getAuthorBadgeType(bObj.authorBadges);
+          }
+        };
+
+
+        {
+
+          const messageEntry = _messageEntry;
+          messageEntry.polymerController =polymerController;
+
+        }
+
+        {
+
+          let bObj = kRef(bObjWR);
+
+          if (!!(bObj.aKey && bObj.aKey !== 'liveChatTextMessageRenderer')) {
+
+            const messageEntry = kRef(messageEntryWR);
+            const a = bObj;
+            const entries = Object.entries({
+
+              "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
+              "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
+
+              ...(a.aKey === "liveChatPaidMessageRenderer" ? {
+
+                "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
+                "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
+                "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
+                "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
+                "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
+              } : {
+
+              }),
+
+              ...(a.aKey === "liveChatPaidStickerRenderer" ? {
+                "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
+                "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
+                "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
+              } : {
+
+              })
+
+
+            });
+
+            if (entries.length >= 1) {
+              for (const [key, value] of entries) {
+                if (value) messageEntry.style.setProperty(key, value);
+              }
+            }
+
+          }
+
+        }
+
+        // change on state
+        createEffect(() => {
+
+          const visible = interceptionRatio();
+          if (visible > 0.9) {
+            viewVisibleChange(1);
+          } else if (visible < 0.1) {
+            viewVisibleChange(0);
+          }
+
+        });
+
+        // change on state
+        const viewVisiblePos = createMemo(() => {
+          const messageList = kRef(messageListWR__);
+          if (!messageList) return;
+          const viewCount = messageList.visibleCount();
+          const num = viewVisibleIdx();
+          if (num >= 1 && viewCount >= 1) {
+            return (num > (viewCount / 2)) ? 'down' : 'up';
+            // messageEntry.setAttribute('view-pos', (num > (viewCount / 2)) ? 'down' : 'up');
+          } else {
+            return null;
+            // messageEntry.removeAttribute('view-pos');
+          }
+        });
+
+        // change on state -> change on DOM
+        createEffect(() => {
+          const v = viewVisiblePos();
+          const messageEntry = kRef(messageEntryWR);
+          if (v === null) {
+            _removeAttribute.call(messageEntry, 'view-pos');
+          } else {
+            _setAttribute.call(messageEntry, 'view-pos', v);
+          }
+        });
+
+        {
+          const messageEntry = _messageEntry;
+          let mutable = kRef(mutableWR);
+          mutable.viewVisiblePos = viewVisiblePos;
+          ioMessageList && ioMessageList.observe(messageEntry);
+          createdPromise && createdPromise.resolve(messageEntry);
+          createdPromise = null;
+        }
+        rcSignalAdd(1);
+
+      }
+    }
+    mutableWR = mWeakRef(mutable);
+    mutableWM.set(bObj, mutable);
+    
+
+
+  };
+
   const SolidMessageElementTags = window.SolidMessageElementTags = new Set();
 
   let SolidMessageElementTagsSizeCached = 0;
+
 
   const SolidMessageListEntry = (props) =>{
 
@@ -2774,7 +3007,13 @@ SOFTWARE.
       props = null;
     });
 
-    const aKey = props.data().aKey;
+    const data = props.data();
+    const aKey = props.aKey();
+
+    setupMutable(data);
+
+    convertAObj && convertAObj(data, aKey);
+
     switch (aKey) { // performance concern? (1.5ms)
       case 'liveChatViewerEngagementMessageRenderer':
         return SolidSystemMessage(props);
@@ -2839,29 +3078,26 @@ SOFTWARE.
       <//>
       <${For} each=(${() => R(sb)})>${(qItem) => {
 
-        const wKey = qItem ? firstObjectKey(qItem) : '';
-        const wItem = wKey ? qItem[wKey] : null;
-        let item = wItem ? R(wItem) : null;
 
-        let eItem = item ? mutableWM.get(item) : null;
-        if (eItem) {
+        let aKeyMemo = createMemo(() => {
+          const wKey = qItem ? firstObjectKey(qItem) : '';
+          const wItem = wKey ? qItem[wKey] : null;
+          let item = wItem ? R(wItem) : null;
+          return item.aKey_ = wKey;
+        });
+        let itemMemo = createMemo(()=>{
+          return qItem[aKeyMemo()];
+        });
 
-          let itemWrapped = rwWrap(item);
-          item = null;
-          // let uww = false;
-          onCleanup(() => {
 
-            // if(uww) console.log('SolidMessageListItem cleanup 1001', item.uid !== null)
-            removeEntry(itemWrapped())
-            itemWrapped = null;
-          });
+        onCleanup(() => {
+          removeEntry(itemMemo())
+          qItem = null;
+          aKeyMemo = null;
+          itemMemo = null;
+        });
 
-          eItem.convert();
-          eItem = null;
-
-          return html`<${SolidMessageListEntry} data=(${() => itemWrapped}) />`;
-
-        }
+        return html`<${SolidMessageListEntry} data=(${()=>rwWrap(itemMemo())}) aKey=(${()=>aKeyMemo}) />`;
 
       }}<//>
   `
@@ -2988,6 +3224,43 @@ SOFTWARE.
 
   };
 
+  const SolidProfileImg = (props) => {
+
+    let profileUrl = props.profileImgSrc;
+
+    // either createMemo or createEffect can be used.
+    // fasten flushing -> createEffect
+    let [mImg, mImgSet] = createSignal(null); // updated in createMemo (pre-caching)
+    let [sImg, sImgSet] = createSignal(null); // updated in createEffect (after mounting)
+    let f = function () {
+      mImgSet(this);
+    }
+    createMemo(() => {
+      const img = document.createElement('IMG');
+      img.src = profileUrl();
+      if (img.complete) {
+        mImgSet(img);
+      } else {
+        img.addEventListener('load', f);
+      }
+    });
+    createEffect(() => {
+      const img = mImg();
+      if (img) {
+        img.classList.add('bst-profile-img');
+        sImgSet(img);
+      }
+    });
+    onCleanup(() => {
+      profileUrl = null;
+      mImg = null;
+      mImgSet = null;
+      sImg = null;
+      sImgSet = null;
+      f = null;
+    });
+    return sImg;
+  }
 
   const SolidPaidMessage = (props) => {
 
@@ -2999,13 +3272,20 @@ SOFTWARE.
 
     onCleanup(() => {
       removeEntry(data)
-      props = data = null; 
+      props = data = null;
     });
+
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
+
+
 
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
@@ -3049,11 +3329,15 @@ SOFTWARE.
       props = data = null; 
     });
 
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
   <div classList=(${() => ({ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": R(data).bst('hasMessageBody') })})>
-    <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+    <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
       <div class="bst-message-head">
@@ -3108,10 +3392,14 @@ SOFTWARE.
       props = data = null; 
     });
 
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
@@ -3162,10 +3450,14 @@ SOFTWARE.
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
 
 
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
@@ -3209,10 +3501,14 @@ SOFTWARE.
     });
 
 
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${R(data).getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
@@ -3260,11 +3556,15 @@ SOFTWARE.
       removeEntry(data)
       props = data = null; 
     });
+    const profileUrl = createMemo(() => {
+      return R(data).getProfilePic(64, -1)
+    });
+
 
     return html`
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-${R(data).aKey}`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><img class="bst-profile-img" src="${() => R(data).getProfilePic(64, -1)}" /></a></span>
+  <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
@@ -3671,7 +3971,7 @@ SOFTWARE.
 
   const [atBottom0, atBottom0Set] = createSignal(true);
   const [atBottom1, atBottom1Set] = createSignal(true);
-  const [bottomPauseAt, bottomPauseAtSet] = createSignal(0);
+  const [bottomPauseAt, bottomPauseAtSet] = createSignal(0); // solely by the atBottom change
   const [bottomKeepAt, bottomKeepAtSet] = createSignal(0);
   createEffect(() => {
     atBottom1Set(atBottom0() ? true : false);
@@ -3816,15 +4116,14 @@ SOFTWARE.
 
     /** @type {HTMLElement} */
     let messageList;
-    /** @type {IntersectionObserver} */
-    let ioMessageList = null;
     /** @type {HTMLElement} */
     let _messageOverflowAnchor = null;
     /** @type {HTMLElement} */
     let _bstMain = null;
     const wAttachRoot = new WeakMap();
-    let _flushed = 0;
+    let _flushed = 0; // 0 no flushed; 1 flushed; 2 flushing
     // let bstMainScrollCount = 0;
+    let pointerHolding580 = false;
 
     const ioMessageListCallback = (entries) => { // performance concern? (6.1ms)
       for (const entry of entries) { // performance concern? (1.1ms)
@@ -3855,22 +4154,24 @@ SOFTWARE.
       attachRoot.appendChild(messageOverflowAnchor);
 
       let anchorVisible = false;
-
-      const iooa = new IntersectionObserver((entries) => {
-        if (_flushed) { // avoid initial check (not yet flushed)
-          anchorVisible = entries[entries.length - 1].isIntersecting === true;
-        }
-        Promise.resolve().then(() => {
-          if (!anchorVisible) {
-            if (bottomKeepAt() + 80 > Date.now()) {
-              this.scrollToBottom_();
-            } else {
-              this.setAtBottomFalse();
-            }
-          } else if (!hasAnySelection()) {
-            this.setAtBottomTrue();
+      let rct = 0;
+      const ioof = (tct) => {
+        if (tct !== rct) return;
+        if (!anchorVisible) {
+          if (bottomKeepAt() + 80 > Date.now()) {
+            this.scrollToBottom_();
+          } else {
+            this.setAtBottomFalse();
           }
-        });
+        } else if (!hasAnySelection()) {
+          this.setAtBottomTrue();
+        }
+      };
+      const iooa = new IntersectionObserver((entries) => {
+        if (!_flushed) return; // avoid initial check (not yet flushed)
+        anchorVisible = entries[entries.length - 1].isIntersecting === true;
+        const tct = rct = (rct % 1073741823) + 1;
+        Promise.resolve(tct).then(ioof);
       }, { root: null, threshold: [0.05, 0.95], rootMargin: '0px' });
       iooa.observe(messageOverflowAnchor);
 
@@ -3881,12 +4182,20 @@ SOFTWARE.
 
 
       cProto.pointerHolding581 = false;
+      cProto.pointerHolding582 = 0;
 
       cProto.canScrollToBottom581_ = cProto.canScrollToBottom_;
 
-      cProto.canScrollToBottom_ = function () {
-        return this.canScrollToBottom581_() && !this.pointerHolding581;
-      }
+      cProto.canScrollToBottom_ = function () {    
+        if (this.pointerHolding581) return false;    
+        if (this.pointerHolding582 > 0) {
+          if (this.pointerHolding582 + 800 > Date.now() && hasAnySelection()) {
+            return false;
+          }
+          this.pointerHolding582 = 0;
+        }
+        return this.canScrollToBottom581_();
+      };
 
     }
 
@@ -4012,8 +4321,9 @@ SOFTWARE.
         if (typeof ResizeObserver !== 'undefined') {
           const ro = new ResizeObserver(() => {
             const dt = bottomPauseAt();
-            if (!dt || dt + 60 > 0) {
-              bottomKeepAtSet(Date.now());
+            let ct;
+            if (!dt || dt + 60 < (ct = Date.now())) {
+              bottomKeepAtSet(ct || Date.now());
             }
           });
           ro.observe(bstMain);
@@ -4028,6 +4338,7 @@ SOFTWARE.
       messageList = document.createElement('div')
       messageList.className = 'bst-message-list';
       attachRoot.appendChild(messageList);
+      messageListWR_ = mWeakRef(messageList);
 
       messageList.getListRendererCnt = () => {
 
@@ -4274,18 +4585,39 @@ SOFTWARE.
 
       });
 
+
+      let rht = 0;
+      const cancelPointerHolderFn = async (tht) => {
+        if (tht !== rht || !pointerHolding580) return;
+        const lcrCnt = getLcRendererCnt();
+        if (!lcrCnt || !lcrCnt.pointerHolding581) return;
+        await timelineResolve();
+        if (tht !== rht || !pointerHolding580) return;
+        if (!lcrCnt || !lcrCnt.pointerHolding581) return;
+        if (!(`${window.getSelection()}`)) {
+          lcrCnt.pointerHolding581 = pointerHolding580 = false;
+          lcrCnt.pointerHolding582 = Date.now();
+        }
+      }
+
       messageList.addEventListener('pointerdown', function (evt) {
-        if (evt.button || pointerDown >= 0) return;
+        rht = (rht & 1073741823) + 1;
+        if (evt.button || pointerDown >= 0) {
+          return;
+        }
         pointerDown = -1;
 
 
         dblClickDT = Date.now();
         promiseForDblclick && promiseForDblclick.resolve();
-        if (promiseForDblclick) return;
+        if (promiseForDblclick) {
+          return;
+        }
 
         const lcrCnt = getLcRendererCnt();
         if (lcrCnt) {
-          lcrCnt.pointerHolding581 = true;
+          lcrCnt.pointerHolding581 = pointerHolding580 = true;
+          lcrCnt.pointerHolding582 = 0;
         }
 
         const target = evt?.target;
@@ -4416,18 +4748,13 @@ SOFTWARE.
       });
 
 
-
       messageList.addEventListener('pointerup', function (evt) {
 
 
+        pointerHolding580 && Promise.resolve(rht = (rht & 1073741823) + 1).then(cancelPointerHolderFn);
         if (pointerDown >= 0) return;
 
         pointerDown = -1;
-
-        const lcrCnt = getLcRendererCnt();
-        if (lcrCnt && !`${window.getSelection()}`) {
-          lcrCnt.pointerHolding581 = false;
-        }
 
 
 
@@ -4436,11 +4763,12 @@ SOFTWARE.
 
       messageList.addEventListener('pointercancel', function (evt) {
 
-
+        pointerHolding580 && Promise.resolve(rht = (rht & 1073741823) + 1).then(cancelPointerHolderFn);
+        
         if (pointerDown >= 0) return;
 
         pointerDown = -1;
-
+        
 
 
       });
@@ -4943,15 +5271,17 @@ SOFTWARE.
       }
     }
 
-    cProto.computeVisibleItems17 = cProto.computeVisibleItems;
-    cProto.computeVisibleItems = function (a, b) {
+    // if (!cProto.computeVisibleItems17 && typeof cProto.computeVisibleItems === 'function') {
+    //   cProto.computeVisibleItems17 = cProto.computeVisibleItems;
+    //   cProto.computeVisibleItems = function (a, b) {
 
-      console.log('[yt-bst] computeVisibleItems', 791, a, b)
-      // if(!this.visibleItems__) this.visibleItems__ = [];
-      // return this.visibleItems__;
-      return this.computeVisibleItems17(a, b);
+    //     console.log('[yt-bst] computeVisibleItems', 791, a, b)
+    //     // if(!this.visibleItems__) this.visibleItems__ = [];
+    //     // return this.visibleItems__;
+    //     return this.computeVisibleItems17(a, b);
 
-    }
+    //   }
+    // }
 
     const replaceObject = (dist, src) => {
       const flushItem = dist;
@@ -5006,78 +5336,8 @@ SOFTWARE.
       return stringify(obj);
     }
 
-    cProto.handleAddChatItemAction_ = function (a) {
-      let c = a.item
-        , fk = (firstObjectKey(c) || '');
-      let e = c[fk]
-        , replaceExistingItem = false;
-
-      if (a && e && a.clientId && !e.__clientId__) e.__clientId__ = a.clientId;
-      if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
-
-      // to be reviewed for performance issue // TODO
-      const aClientId = a.clientId || ''; // for user client request
-      const eId = e.id || ''; // for network content update
-      const replacementTo = [];　// expected number of entries - less than or equal to 1
-
-      this.forEachItem_(function (tag, p, idx) {
-        const aObjId = (p[fk] || 0).id || undefined;
-        if (aObjId === aClientId || aObjId === eId) {
-          replacementTo.push([tag, p, idx]);
-        }
-      });
 
 
-      if (replacementTo.length > 0) {
-
-        if (replacementTo.length > 1) {
-          console.error('[yt-bst] replacementTo.length > 1', replacementTo.slice(0));
-          // replacementTo.splice(0, replacementTo.length - 1);
-        }
-
-        for (const entry of replacementTo) {
-          const [tag, p, idx] = entry;
-          // const aObj = p[fk];
-
-          if ("visibleItems" === tag) {
-
-            const list = messageList.solidBuild;
-            const bObj = solidBuildAt(list, idx);
-            const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
-
-            if (typeof dataMutable.bObjChange === 'function') {
-              // console.log(' ===== pV ====')
-              // console.dir(prettyPrint(p))
-              // console.log(' ===== cV ====')
-              // console.dir(prettyPrint(c))
-              if (replaceObject(p, c)) {
-                dataMutable.bObjChange(e, fk);
-                replaceExistingItem = true; // to be added if not matched
-                // console.log('replaceObject(visibleItems)', p);
-              }
-            }
-          } else { // activeItems_
-            // console.log(' ===== pA ====')
-            // console.dir(prettyPrint(p))
-            // console.log(' ===== cA ====')
-            // console.dir(prettyPrint(c))
-            if (replaceObject(p, c)) {
-              replaceExistingItem = true;
-              // console.log('replaceObject(activeItems_)', p);
-            }
-          }
-
-        }
-        replacementTo.length = 0;
-      }
-
-      const d = this.get("stickinessParams.dockAtTopDurationMs", a) || 0;
-      if (d) {
-        const k = messageList ? messageList.querySelector(`[message-id="${e.id}"]`) : null;
-        k ? this.maybeAddDockableMessage_(k) : (this.itemIdToDockDurationMap[e.id] = d);
-      }
-      replaceExistingItem || this.activeItems_.push(c);
-    }
 
     cProto.handleLiveChatActions_ = function (a) {
       // console.log(883,a) // TODO
@@ -5093,9 +5353,7 @@ SOFTWARE.
       }
     }
 
-
     if (!cProto.handleRemoveChatItemAction72_ && typeof cProto.handleRemoveChatItemAction_ === 'function' && cProto.handleRemoveChatItemAction_.length === 1) {
-
       cProto.handleRemoveChatItemAction72_ = cProto.handleRemoveChatItemAction_;
       cProto.handleRemoveChatItemAction_ = function (a) {
         const aTargetItemId = a.targetItemId;
@@ -5118,14 +5376,112 @@ SOFTWARE.
         }
       }
     }
+    if (!cProto.handleAddChatItemAction72_ && typeof cProto.handleAddChatItemAction_ === 'function' && cProto.handleAddChatItemAction_.length === 1) {
 
+      cProto.handleAddChatItemAction72_ = cProto.handleAddChatItemAction_;
+      cProto.handleAddChatItemAction_ = function (a) {
+
+        const sb = messageList?.solidBuild;
+        if (!sb || !a) return this.handleAddChatItemAction72_(...arguments);
+
+        let c = a ? a.item : null
+          , fk = c ? (firstObjectKey(c) || '') : '';
+        let e = fk ? c[fk] : null
+          , replaceExistingItem = false;
+
+
+        if (!e) return this.handleAddChatItemAction72_(...arguments);
+
+        if (a && e && a.clientId && !e.__clientId__) e.__clientId__ = a.clientId;
+        if (a && e && a.clientMessageId && !e.__clientMessageId__) e.__clientMessageId__ = a.clientMessageId;
+
+        // to be reviewed for performance issue // TODO
+        const aClientId = a.clientId || ''; // for user client request
+        const eId = e.id || ''; // for network content update
+        const replacementTo = [];　// expected number of entries - less than or equal to 1
+
+        this.forEachItem_(function (tag, p, idx) {
+          const aObjId = (p[fk] || 0).id || undefined;
+          if (aObjId === aClientId || aObjId === eId) {
+            replacementTo.push([tag, p, idx]);
+          }
+        });
+
+
+        if (replacementTo.length > 0) {
+
+          if (replacementTo.length > 1) {
+            console.error('[yt-bst] replacementTo.length > 1', replacementTo.slice(0));
+            // replacementTo.splice(0, replacementTo.length - 1);
+          }
+
+          for (const entry of replacementTo) {
+            const [tag, p, idx] = entry;
+            // const aObj = p[fk];
+
+            if ("visibleItems" === tag) {
+
+              sb.splice(idx, 1, c);
+              this.resetSmoothScroll_();
+              replaceExistingItem = true;
+
+
+              // ---------- do a full replacement ----------
+
+              // const list = messageList.solidBuild;
+              // const bObj = solidBuildAt(list, idx);
+              // const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
+
+              // if (typeof dataMutable.bObjChange === 'function') {
+              //   // console.log(' ===== pV ====')
+              //   // console.dir(prettyPrint(p))
+              //   // console.log(' ===== cV ====')
+              //   // console.dir(prettyPrint(c))
+              //   if (replaceObject(p, c)) {
+              //     dataMutable.bObjChange(e, fk);
+              //     replaceExistingItem = true; // to be added if not matched
+              //     // console.log('replaceObject(visibleItems)', p);
+              //   }
+              // }
+
+              // ---------- do a full replacement ----------
+
+            } else if (tag === "activeItems_") { // activeItems_
+              // console.log(' ===== pA ====')
+              // console.dir(prettyPrint(p))
+              // console.log(' ===== cA ====')
+              // console.dir(prettyPrint(c))
+              if (_flushed === 2) {
+                replaceObject(p, c);
+                replaceExistingItem = true;
+              } else {
+                this.activeItems_.splice(tag, idx, 1, c);
+                replaceExistingItem = true;
+              }
+            } else {
+              console.warn('[yt-bst] unexpected tag in replacementTo', `tag=${tag}`);
+            }
+
+          }
+          replacementTo.length = 0;
+        }
+
+        const d = this.get("stickinessParams.dockAtTopDurationMs", a) || 0;
+        if (d) {
+          const k = messageList ? messageList.querySelector(`[message-id="${e.id}"]`) : null;
+          k ? this.maybeAddDockableMessage_(k) : (this.itemIdToDockDurationMap[e.id] = d);
+        }
+        replaceExistingItem || this.activeItems_.push(c);
+      };
+
+    }
     if (!cProto.handleReplaceChatItemAction72_ && typeof cProto.handleReplaceChatItemAction_ === 'function' && cProto.handleReplaceChatItemAction_.length === 1) {
       cProto.handleReplaceChatItemAction72_ = cProto.handleReplaceChatItemAction_;
       cProto.handleReplaceChatItemAction_ = function (a) {
-
-
-        const aTargetItemId = a.targetItemId;
-        const aReplacementItem = a.replacementItem;
+        const sb = messageList?.solidBuild;
+        if (!sb || !a) return this.handleReplaceChatItemAction72_(...arguments);
+        const aTargetItemId = a ? a.targetItemId : null;
+        const aReplacementItem = a ? a.replacementItem : null;
         if (!aTargetItemId || !aReplacementItem) return this.handleReplaceChatItemAction72_(a)
         const itemKey = firstObjectKey(aReplacementItem);
         const rendererItem = itemKey ? aReplacementItem[itemKey] : null;
@@ -5143,25 +5499,39 @@ SOFTWARE.
           for (const entry of entries) {
             const [tag, p, idx] = entry;
             if (tag === "visibleItems") {
-              // this.splice(tag, idx, 1, aReplacementItem)
-              const list = messageList.solidBuild;
-              const bObj = solidBuildAt(list, idx);
-              const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
 
-              if (typeof dataMutable.bObjChange === 'function') {
-                if (replaceObject(p, aReplacementItem)) {
-                  dataMutable.bObjChange(rendererItem, itemKey);
-                  // replaceExistingItem = true; 
+              sb.splice(idx, 1, aReplacementItem);
+              this.resetSmoothScroll_();
 
-                  this.resetSmoothScroll_();
-                }
+
+              // ---------- do a full replacement ----------
+
+              // const list = messageList.solidBuild;
+              // const bObj = solidBuildAt(list, idx);
+
+              // const dataMutable = (bObj ? mutableWM.get(bObj) : null) || 0;
+
+              // if (typeof dataMutable.bObjChange === 'function') {
+              //   if (replaceObject(p, aReplacementItem)) {
+              //     dataMutable.bObjChange(rendererItem, itemKey);
+              //     // replaceExistingItem = true; 
+
+              //     this.resetSmoothScroll_();
+              //   }
+              // }
+
+              // ---------- do a full replacement ----------
+
+            } else if (tag === "activeItems_") { // activeItems_
+              // this.activeItems_[idx] = aReplacementItem;
+              if (_flushed === 2) {
+                replaceObject(p, aReplacementItem);
+              } else {
+                this.activeItems_.splice(idx, 1, aReplacementItem);
               }
 
             } else {
-              // this.activeItems_[idx] = aReplacementItem;
-              if (replaceObject(p, aReplacementItem)) {
-                // replaceExistingItem = true; 
-              }
+              console.warn('[yt-bst] unexpected tag in entries', `tag=${tag}`);
             }
           }
         }
@@ -5219,11 +5589,11 @@ f.handleRemoveChatItemAction_ = function(a) {
     }
     cProto.bstClearCount = 0;
     cProto.clearList = function () {
+      _flushed = 0;
       
       this.bstClearCount = (this.bstClearCount & 1073741823) + 1;
       const activeItems_ = this.activeItems_;
       if (activeItems_) activeItems_.length = 0;
-      flushKeys.clear();
       // this.setupVisibleItemsList();
       const visibleItems = this.visibleItems;
       if (visibleItems && (visibleItems.length > 0)) { 
@@ -5300,6 +5670,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         resetSelection();
         scrollToEnd();
         this.setAtBottomTrue();
+        await timelineResolve();
       })
 
       // this.itemScroller.scrollTop = Math.pow(2, 24);
@@ -5353,7 +5724,7 @@ f.handleRemoveChatItemAction_ = function(a) {
     function getUID(aObj) {
       return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
     }
-    function convertAObj(aObj, aKey) {
+    convertAObj = (aObj, aKey) => {
 
       if(!aObj || aObj.uid) {
         console.warn('convertAObj warning')
@@ -5482,7 +5853,7 @@ f.handleRemoveChatItemAction_ = function(a) {
       return null;
     }
 
-    const showMenu = function (messageEntry_) {
+    showMenu = function (messageEntry_) {
       const messageEntry = messageEntry_ || this;
       const messageUid = (messageEntry.getAttribute('message-uid') || '');
       if (messageUid) {
@@ -5583,6 +5954,42 @@ f.handleRemoveChatItemAction_ = function(a) {
       if (!messageList) return;
       if (DEBUG_windowVars) window.__bstFlush01__ = Date.now();
 
+
+      const generatePFC = () => {
+
+        freqMap.clear();
+
+        const visibleItems = this.visibleItems;
+
+        const fp = new Array(visibleItems.length);
+        let fpI = 0;
+
+        const pp = visibleItems.map(e => {
+          if (!e) return null;
+          if (typeof e === 'object') e = Object.values(e)[0] || 0;
+          const r = e.id || null;
+          if (typeof r === 'string') {
+            fp[fpI++] = r;
+            freqMap.set(r, freqMap.has(r) ? false : true);
+          }
+          return r;
+        }); // e.id (non-empty) or null
+
+        fp.length = fpI;
+
+        const cp = new Array(fpI);
+        let cpI = 0;
+        for (const [key, isUnique] of freqMap.entries()) {
+          if (isUnique) {
+            cp[cpI++] = key;
+          }
+        }
+        cp.length = cpI;
+
+        return { pp, fp, cp };
+
+      }
+
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
 
@@ -5599,8 +6006,6 @@ f.handleRemoveChatItemAction_ = function(a) {
 
         // activeItems_ -> clear -> add to visibleItems
 
-        // this.setupVisibleItemsList();
-
 
         if (DEBUG_windowVars) window.__bstFlush02__ = Date.now();
         const activeItems_ = this.activeItems_;
@@ -5615,64 +6020,21 @@ f.handleRemoveChatItemAction_ = function(a) {
 
           _addLen > maxItemsToDisplay * 2 && activeItems_.splice(0, _addLen - maxItemsToDisplay)
           return;
-        } else {
-          if (_addLen > maxItemsToDisplay) {
-            const visibleItems = this.visibleItems;
-            if (visibleItems && (visibleItems.length > 0)) {
-              visibleItems.length = 0;
-              if (messageList) {
-                const solidBuild = messageList.solidBuild;
-                solidBuild.setLength(0);
-              }
+        } else if (_addLen > maxItemsToDisplay) {
+          const visibleItems = this.visibleItems;
+          if (visibleItems && (visibleItems.length > 0)) {
+            visibleItems.length = 0;
+            if (messageList) {
+              const solidBuild = messageList.solidBuild;
+              solidBuild.setLength(0);
             }
-            activeItems_.splice(0, _addLen - maxItemsToDisplay);
           }
+          activeItems_.splice(0, _addLen - maxItemsToDisplay);
 
         }
 
         if (DEBUG_windowVars) window.__bstFlush03__ = Date.now();
 
-
-
-        _flushed = 1;
-        const items = activeItems_.slice(0);
-
-        let tmpFpError = 0;
-
-        const generatePFC = () => {
-
-          freqMap.clear();
-
-          const visibleItems = this.visibleItems;
-
-          const fp = new Array(visibleItems.length);
-          let fpI = 0;
-
-          const pp = visibleItems.map(e => {
-            if (!e) return null;
-            if (typeof e === 'object') e = Object.values(e)[0] || 0;
-            const r = e.id || null;
-            if (typeof r === 'string') {
-              fp[fpI++] = r;
-              freqMap.set(r, freqMap.has(r) ? false : true);
-            }
-            return r;
-          }); // e.id (non-empty) or null
-
-          fp.length = fpI;
-
-          const cp = new Array(fpI);
-          let cpI = 0;
-          for (const [key, isUnique] of freqMap.entries()) {
-            if (isUnique) {
-              cp[cpI++] = key;
-            }
-          }
-          cp.length = cpI;
-
-          return { pp, fp, cp };
-
-        }
 
         {
 
@@ -5691,323 +6053,13 @@ f.handleRemoveChatItemAction_ = function(a) {
           }
 
         }
-        //  console.log(9192, 299, items);
-        // activeItems_.length = 0;
-        // const crCount = this.bstClearCount;
-        // const pEmpty = this.isEmpty;
 
-
-        if (bstClearCount0 !== this.bstClearCount) return;
-        if (this.isAttached !== true) return;
-        if (items.length === 0) return;
-
-        let existingSet = new Set();
-        for (const entry of this.visibleItems) {
-          let k = entry ? firstObjectKey(entry) : null;
-          let p = k ? entry[k] : null;
-          p && p.id && existingSet.add(p.id);
-        }
-
-        let rearrangedW = items.map(flushItem => {
-
-          const aKey = flushItem ? firstObjectKey(flushItem) : null;
-          const aObj = aKey ? flushItem[aKey] : null;
-          if (!aObj) return null;
-
-          const id = aObj.id
-          const uid = getUID(aObj);
-          if (existingSet.has(id)) return null;
-          existingSet.add(id);
-        // if (flushKeys.has(uid)) return null;
-        // flushKeys.add(uid);
-
-
-
-          return {
-            flushItem,
-            aKey, aObj, uid
-          };
-
-        }).filter(e => !!e);
-        existingSet.clear();
-        existingSet = null;
-
-        const nd = rearrangedW.length;
-        if (nd === 0) return;
-
-        // await timelineResolve();
         await Promise.resolve();
 
         if (bstClearCount0 !== this.bstClearCount) return;
         if (this.isAttached !== true) return;
+        if (activeItems_.length === 0) return;
 
-        const mapToFlushItem = new Map();
-        // no filtering
-        const rearrangedFn = entry => {
-
-          const {
-            flushItem,  // flushItem is object so it content can be replaced since rearrangedW
-            aKey, aObj, uid
-          } = entry;
-          // flushKeys.removeAdd(uid);
-
-          const bObj = aObj;
-          let bObjWR = mWeakRef(aObj);
-          let mutableWR;
-          let createdPromise = new PromiseExternal();
-
-          let messageEntryWR = null;
-
-
-          const bObjChange = (val) => {
-            const f = kRef(mutableWR)?.bObjChange
-            if (f) f(val);
-          }
-
-          const mutable = {
-            getDataObj() {
-              return kRef(bObjWR);
-            },
-            convert() {
-              let aObj = kRef(bObjWR);
-              if (!aObj) return;
-              if (!aObj.uid) convertAObj(aObj, aKey);
-            },
-            removeEntryFuncs: new Map(),
-            tooltips: new Map(),
-            createdPromise: createdPromise,
-            removeEntry() {
-              this.convert = null;
-
-              this.removeEntryFuncs.forEach((f) => {
-                f.call(this);
-              });
-              this.removeEntryFuncs.clear();
-              this.tooltips.clear();
-
-              this.createdPromise = null;
-              this.removeEntryFuncs = null;
-              this.tooltips = null;
-              this.removeEntry = null;
-              this.setupFn = null;
-              this.bObjChange = null;
-
-            },
-            bObjChange(val, aKey) {
-              let bObj = kRef(bObjWR);
-              if (!bObj) return;
-              if (typeof (val || 0) === 'object') {
-                for (const s of ['authorBadges', 'message']) {
-                  Reflect.has(val, s) || (val[s] = undefined);
-                  Reflect.has(val, s) || (val[s] = undefined);
-                }
-              }
-              convertAObj(val, aKey || val.aKey || undefined);
-              Object.assign(W(bObj), val);
-            },
-            setupFn(_messageEntry) {
-
-              if (messageEntryWR) {
-                console.warn('setupFn warning 01');
-                return;
-              }
-
-              /** @type {HTMLElement} */
-              messageEntryWR = mWeakRef(_messageEntry); 
-
-              if (!kRef(bObjWR) || !kRef(mutableWR)) {
-                console.warn('setupFn warning 02');
-                return;
-              }
-
-              const [interceptionRatio, interceptionRatioChange] = createSignal(null);
-              const [viewVisible, viewVisibleChange] = createSignal(null);
-              const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
-
-              const baseRemoveFn = () => {
-                const bObj = kRef(bObjWR);
-                const messageEntry = kRef(messageEntryWR);
-                mutableWM.delete(bObj);
-                mutableWM.delete(messageEntry);
-              };
-
-              {
-                const messageEntry = _messageEntry;
-                let mutable = kRef(mutableWR);
-                mutable.viewVisible = viewVisible;
-                mutable.viewVisibleChange = viewVisibleChange;
-                mutable.viewVisibleIdx = viewVisibleIdx;
-                mutable.viewVisibleIdxChange = viewVisibleIdxChange;
-                mutable.interceptionRatioChange = interceptionRatioChange;
-                mutableWM.set(messageEntry, mutable);
-                messageEntry.showMenu = showMenu;
-                mutable.removeEntryFuncs.set('baseRemove', baseRemoveFn);
-                mutable = null;
-              }
-
-
-              const polymerController = {
-                set(prop, val) {
-                  if (prop === 'data') {
-                    bObjChange(val);
-                  }
-                },
-                get data() {
-                  return kRef(bObjWR);
-                },
-                set data(val) {
-                  bObjChange(val);
-                },
-                get dataRaw() {
-                  return kRef(bObjWR);
-                },
-                get dataMutable() {
-                  return kRef(mutableWR);
-                },
-                get authorType() {
-                  const bObj = kRef(bObjWR);
-                  return getAuthorBadgeType(bObj.authorBadges);
-                }
-              };
-
-
-              {
-
-                const messageEntry = _messageEntry;
-                messageEntry.polymerController =polymerController;
-
-              }
-
-              {
-
-                let bObj = kRef(bObjWR);
-
-                if (!!(bObj.aKey && bObj.aKey !== 'liveChatTextMessageRenderer')) {
-
-                  const messageEntry = kRef(messageEntryWR);
-                  const a = bObj;
-                  const entries = Object.entries({
-
-                    "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
-                    "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
-
-                    ...(a.aKey === "liveChatPaidMessageRenderer" ? {
-
-                      "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
-                      "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
-                      "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
-                      "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
-                      "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
-                    } : {
-
-                    }),
-
-                    ...(a.aKey === "liveChatPaidStickerRenderer" ? {
-                      "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
-                      "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
-                      "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
-                    } : {
-
-                    })
-
-
-                  });
-
-                  if (entries.length >= 1) {
-                    for (const [key, value] of entries) {
-                      if (value) messageEntry.style.setProperty(key, value);
-                    }
-                  }
-
-                }
-
-              }
-
-              // change on state
-              createEffect(() => {
-
-                const visible = interceptionRatio();
-                if (visible > 0.9) {
-                  viewVisibleChange(1);
-                } else if (visible < 0.1) {
-                  viewVisibleChange(0);
-                }
-
-              });
- 
-              // change on state
-              const viewVisiblePos = createMemo(() => {
-                if (!messageList) return;
-                const viewCount = messageList.visibleCount();
-                const num = viewVisibleIdx();
-                if (num >= 1 && viewCount >= 1) {
-                  return (num > (viewCount / 2)) ? 'down' : 'up';
-                  // messageEntry.setAttribute('view-pos', (num > (viewCount / 2)) ? 'down' : 'up');
-                } else {
-                  return null;
-                  // messageEntry.removeAttribute('view-pos');
-                }
-              });
-
-              // change on state -> change on DOM
-              createEffect(() => {
-                const v = viewVisiblePos();
-                const messageEntry = kRef(messageEntryWR);
-                if (v === null) {
-                  _removeAttribute.call(messageEntry, 'view-pos');
-                } else {
-                  _setAttribute.call(messageEntry, 'view-pos', v);
-                }
-              });
-
-              {
-                const messageEntry = _messageEntry;
-                let mutable = kRef(mutableWR);
-                mutable.viewVisiblePos = viewVisiblePos;
-                ioMessageList && ioMessageList.observe(messageEntry);
-                createdPromise && createdPromise.resolve(messageEntry);
-                createdPromise = null;
-              }
-              rcSignalAdd(1);
-
-            }
-          }
-          mutableWR = mWeakRef(mutable);
-          mutableWM.set(bObj, mutable);
-
-          mapToFlushItem.set(bObj, flushItem);
-
-          return bObj;
-        };
-
-        const visibleItems = this.visibleItems;
-        let wasEmpty = false;
-        // let needScrollToEnd = false;
-        if (visibleItems.length === 0) {
-          // needScrollToEnd = true;
-          wasEmpty = true;
-        } 
-        // else if (this.canScrollToBottom_() === true) {
-
-        // // try to avoid call offsetHeight or offsetTop directly
-        // const list = messageList.solidBuild;
-        // const bObj = list && list.length ? list[0] : null;
-        // if (bObj) {
-        //   const dataMutable = mutableWM.get(bObj);
-        //   if (dataMutable && typeof dataMutable.viewVisiblePos === 'function' && typeof dataMutable.viewVisiblePos() === 'string') { // down or up
-        //     needScrollToEnd = true;
-        //   }
-        // }
-
-        // if (!needScrollToEnd && _messageOverflowAnchor && typeof _messageOverflowAnchor.scrollIntoViewIfNeeded === 'function') {
-        //   _messageOverflowAnchor.scrollIntoViewIfNeeded(false);
-        //   // unknown reason
-        //   // example https://www.youtube.com/watch?v=18tiVN9sxMc&t=14m15s -> 14m21s
-        //   // example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
-        //   // guess: ticker added -> yt-live-chat-ticker-renderer appears -> height changed -> overflow-anchor not working
-        // }
-
-        // }
 
         const removeFromActiveItems = (flushItem) => {
           if (activeItems_.length > 0) {
@@ -6025,24 +6077,55 @@ f.handleRemoveChatItemAction_ = function(a) {
         }
 
 
+        _flushed = 2;
+        
+
         const solidBuild = messageList.solidBuild;
 
-        const loopFunc = (bObjX) => {
-          const bObj = bObjX;
-          const flushItem = mapToFlushItem.get(bObj);
-          const n = solidBuild.getLength() - maxItemsToDisplay + 1;
-          if (n >= 1) {
-            if (n > 1) {
-              visibleItems.splice(0, n);
-            } else {
-              visibleItems.shift();
-            }
-          }
-          removeFromActiveItems(flushItem);
-          const uid = getUID(bObj);
-          mfChange(uid);
-          visibleItems.push(flushItem);
+        let existingSet = new Set();
+        for (const entry of this.visibleItems) {
+          let k = entry ? firstObjectKey(entry) : null;
+          let p = k ? entry[k] : null;
+          p && p.id && existingSet.add(p.id);
         }
+
+        let rearrangedW = activeItems_.map(flushItem => {
+
+          const aKey = flushItem ? firstObjectKey(flushItem) : null;
+          const aObj = aKey ? flushItem[aKey] : null;
+          if (!aObj) return null;
+
+          const id = aObj.id
+          const uid = getUID(aObj);
+          if (existingSet.has(id)) return null;
+          existingSet.add(id);
+
+          return {
+            flushItem,
+            aKey, aObj, uid
+          };
+
+        }).filter(e => !!e);
+        existingSet.clear();
+        existingSet = null;
+
+        const nd = rearrangedW.length;
+        if (nd === 0) return;
+
+
+        const visibleItems = this.visibleItems;
+        let wasEmpty = false;
+        // let needScrollToEnd = false;
+        if (visibleItems.length === 0) {
+          // needScrollToEnd = true;
+          wasEmpty = true;
+        } 
+
+        // ---- ticker row appearance ----
+        // ensure atBottom keeps as true
+        // - example https://www.youtube.com/watch?v=18tiVN9sxMc&t=14m15s -> 14m21s
+        // - example https://www.youtube.com/watch?v=czgZWwziG9Y&t=48m5s -> 48m12s
+        // ---- ticker row appearance ----
 
         
 
@@ -6058,12 +6141,29 @@ f.handleRemoveChatItemAction_ = function(a) {
         let b2 = 0;
         for (let rJ = 0; rJ < nd; rJ++) {
           if (bstClearCount0 !== this.bstClearCount || this.isAttached !== true) {
-            flushKeys.clear();
             break;
           }
-          const bObjX = rearrangedFn(rearrangedW[rJ]);
+
           rcSignalAdd(1);
-          loopFunc(bObjX, solidBuild);
+          const entry = rearrangedW[rJ];
+          {
+            const {
+              flushItem,  // flushItem is object so it content can be replaced since rearrangedW
+              aKey, aObj, uid
+            } = entry;
+            const n = solidBuild.getLength() - maxItemsToDisplay + 1;
+            if (n >= 1) {
+              if (n > 1) {
+                visibleItems.splice(0, n);
+              } else {
+                visibleItems.shift();
+              }
+            }
+            removeFromActiveItems(flushItem);
+            mfChange(uid);
+            visibleItems.push(flushItem);
+          }
+
           const c2 = performance.now();
           // console.log('[yt-bst] XX', c2, mg, rcSignal(), rcValue )
           b2++;
@@ -6079,7 +6179,6 @@ f.handleRemoveChatItemAction_ = function(a) {
             await Promise.resolve();
           }
         }
-        mapToFlushItem.clear();
         rearrangedW.length = 0;
         rearrangedW = null;
 
@@ -6093,16 +6192,18 @@ f.handleRemoveChatItemAction_ = function(a) {
         await rcPromise_.then();
         if (rcPromise_ === rcPromise) rcPromise = null;
         resetSelection();
+        if (wasEmpty) messageList.classList.add('bst-listloaded');
 
         if (DO_scrollIntoViewIfNeeded) {
           _messageOverflowAnchor && _messageOverflowAnchor.scrollIntoViewIfNeeded();
+          await timelineResolve(); // play safe
+        } else {
+          await Promise.resolve();
         }
+        _flushed = 1;
 
         if (DEBUG_windowVars) window.__bstFlush05__ = Date.now();
-        // if (needScrollToEnd) scrollToEnd(); // before the last timelineResolve
-        
-        await Promise.resolve();
-        if (wasEmpty) messageList.classList.add('bst-listloaded');
+
         const t2 = performance.now();
 
         if (LOGTIME_FLUSHITEMS && t2 - t1 > 100) {
