@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.7
+// @version     0.17.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -865,9 +865,8 @@
       const ct = Date.now();
       if (pv + 1200 > ct) { // avoid setTimeout delay too long without execution
         pf && pf();
-      } else {
-        pf = null; // rare case
       }
+      pf = null;
     };
     let cid = 0;
     let mouseoverFn = null;
@@ -901,7 +900,6 @@
                 const executeNow = pf === null;
                 const f = pf = () => {
                   if (f !== pf) return;
-                  pf = null;
                   this[`__$$${a}$$1938__`](evt_);
                 };
                 pv = Date.now();
