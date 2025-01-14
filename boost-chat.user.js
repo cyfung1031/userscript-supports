@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.5
+// @version             0.3.6
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -194,6 +194,42 @@ SOFTWARE.
 
     getLength(){
       return this.length;
+    }
+
+    filter(...args) {
+      
+/*
+
+    f.handleRemoveChatItemByAuthorAction = function(a) {
+        var b = function(d) {
+            var e = Object.keys(d)[0];
+            return (d = d[e]) && d.authorExternalChannelId ? d.authorExternalChannelId !== a.externalChannelId : !0
+        }
+          , c = this.visibleItems.filter(b);
+        this.activeItems_ = this.activeItems_.filter(b);
+        this.visibleItems = c;
+        this.resetSmoothScroll_();
+        this.setAtBottom();
+        this.maybeScrollToBottom_()
+    }
+
+    */
+
+      const r = super.filter(...args);
+      Promise.resolve().then(() => this.checkIntegrity());
+      return r;
+    }
+
+    checkIntegrity() {
+      const cnt = this?.listController;
+      if (cnt?.bstVisibleItemList !== cnt.visibleItems && cnt?.bstVisibleItemList === this) {
+        const newList = cnt.visibleItems;
+        this.length = 0;
+        inPlaceArrayPush(this, newList);
+        cnt.visibleItems = this;
+        cnt.bstVisibleItemList = this;
+        this.setLength(newList.length);
+      }
     }
 
 
@@ -3102,11 +3138,10 @@ SOFTWARE.
 
   }
 
-  const SolidMessageList = (sb) => {
-
+  const SolidMessageList = (props) => {
+    
     onCleanup(() => {
-      // console.log('SolidMessageList cleanup 0001')
-      sb = null;
+      console.log('SolidMessageList cleanup 0001')
     });
 
     return html`
@@ -3124,7 +3159,7 @@ SOFTWARE.
           </div>
         </div>
       <//>
-      <${For} each=(${() => R(sb)})>${(qItem) => {
+      <${For} each=(${() => R(sbSignal())})>${(qItem) => {
 
 
         let aKeyMemo = createMemo(() => {
@@ -4151,6 +4186,8 @@ SOFTWARE.
     
   }
 
+  const [sbSignal, sbSignalSet] = createSignal(null);
+
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
     let cProto;
@@ -4454,7 +4491,8 @@ SOFTWARE.
 
 
       messageList.profileCard = profileCard;
-      render(SolidMessageList.bind(null, solidBuild), messageList);
+      sbSignalSet(solidBuild);
+      render(SolidMessageList, messageList);
 
       addMessageOverflowAnchorToShadow.call(this, attachRoot);
 
@@ -5267,6 +5305,8 @@ SOFTWARE.
     cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 256;
     cProto.setAtBottom = (...args) => {
 
+      this?.bstVisibleItemList?.checkIntegrity();
+
       console.log('[yt-bst] setAtBottom', 583, ...args)
 
     }
@@ -5295,6 +5335,7 @@ SOFTWARE.
     }
 
     cProto.resetSmoothScroll_ = function () {
+      this?.bstVisibleItemList?.checkIntegrity();
       this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
       this.lastSmoothScrollUpdate_ = null;
       this.smoothScrollRafHandle_ && window.cancelAnimationFrame(this.smoothScrollRafHandle_);
@@ -5659,6 +5700,8 @@ f.handleRemoveChatItemAction_ = function(a) {
         p.length = 0;
         q.length = 0;
       }
+      this.bstVisibleItemList = solidBuild;
+      solidBuild.listController = this;
     }
     cProto.bstClearCount = 0;
     cProto.clearList = function () {
