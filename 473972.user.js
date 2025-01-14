@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.6
+// @version     0.17.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -863,27 +863,18 @@
     const cif = () => {
       if (!pf) return;
       const ct = Date.now();
-      if (pv + 400 > ct) {
-        if (pf.lastTrigger) return;
-        pf.lastTrigger = ct;
-        mouseoverFn_();
-        pf();
+      if (pv + 1200 > ct) { // avoid setTimeout delay too long without execution
+        pf && pf();
+      } else {
+        pf = null; // rare case
       }
     };
     let cid = 0;
     let mouseoverFn = null;
-    const mouseoverFn_ = ()=>{
-      mouseoverFn && mouseoverFn();
-      mouseoverFn = null;
-    }
-
-    // let mq = 0;
     HTMLElement.prototype.addEventListener4882 = HTMLElement.prototype.addEventListener;
     HTMLElement.prototype.addEventListener = function (a, b, c) {
       if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
-
         const bt = `${b}`;
-
         if (bt.length >= 61 && bt.length <= 71 && bt.startsWith('function(){try{return ') && bt.includes('.apply(this,arguments)}catch(')) {
           b[`__$$${a}$$1926__`] = true;
           this[`__$$${a}$$1937__`] = (this[`__$$${a}$$1937__`] || 0) + 1;
@@ -891,68 +882,46 @@
           // console.log(3928, a, this[`__$$${a}$$1937__`])
           if (!this[`__$$${a}$$1938__`]) {
             this[`__$$${a}$$1938__`] = b;
-
-            // if(a === 'mousemove'){
-
-            //   this.addEventListener4882('mouseover', function(evt){
-
-            //       qv =  evt.target instanceof HTMLMediaElement
-            //   });
-            // }
-
             if (a === 'mousemove') {
-
               this.addEventListener4882('mouseenter', (evt) => {
                 if (cid) return;
-                cid = setIntervalX0(cif, 100);
+                cid = setIntervalX0(cif, 380);
               });
               this.addEventListener4882('mouseleave', (evt) => {
                 clearIntervalX0(cid);
                 cid = 0;
-                pf && (pf.lastTrigger = 1);
               });
-
             }
-
             this.addEventListener4882(a, (evt) => {
-
-
-
               const evt_ = evt;
               if (!this[`__$$${a}$$1937__`]) return;
-
-              // if (a === 'mousemove' || a === 'mouseover' || a === 'mouseenter') {
-              //   mq = Date.now();
-              // }
-
+              if (!this[`__$$${a}$$1938__`]) return;
               if (a === 'mousemove') {
-                pf = () => {
-                  this[`__$$${a}$$1938__`](evt_); // new X & Y in each dispatchEvent
-                  // console.log(1237);
-                }
-                pv = Date.now();
-              } else {
-
-                if (a === 'mouseout' || a === 'mouseleave') {
-                  cid && pf && !pf.lastTrigger && pf(); // mousemove before mouseout
-                  pf && (pf.lastTrigger = 1);
-                  pv = 0;
-                  // let tq = Date.now();
+                mouseoverFn && mouseoverFn();
+                const executeNow = pf === null;
+                const f = pf = () => {
+                  if (f !== pf) return;
+                  pf = null;
                   this[`__$$${a}$$1938__`](evt_);
-                  mouseoverFn_();
-                } else if (a === 'mouseover' || a === 'mouseenter') {
-                  pf && (pf.lastTrigger = 1);
-                  pv = 0;
-                  mouseoverFn = () => {
+                };
+                pv = Date.now();
+                if (executeNow) cif();
+              } else {
+                if (a === 'mouseout' || a === 'mouseleave') {
+                  pf = null; 
+                  this[`__$$${a}$$1938__`](evt_);
+                  mouseoverFn && mouseoverFn();
+                } else {
+                  pf = null;
+                  mouseoverFn && mouseoverFn();
+                  const f = mouseoverFn = () => {
+                    if (f !== mouseoverFn) return;
+                    mouseoverFn = null;
                     this[`__$$${a}$$1938__`](evt_);
-                  };
-                  nextBrowserTick(mouseoverFn_); // mouseout first -> mouseover
+                  }
+                  nextBrowserTick(mouseoverFn);
                 }
-
               }
-
-
-
             }, c);
 
 
