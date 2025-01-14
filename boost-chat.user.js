@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.6
+// @version             0.3.7
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -222,7 +222,7 @@ SOFTWARE.
 
     checkIntegrity() {
       const cnt = this?.listController;
-      if (cnt?.bstVisibleItemList !== cnt.visibleItems && cnt?.bstVisibleItemList === this) {
+      if (cnt?.bstVisibleItemList !== cnt?.visibleItems && cnt?.bstVisibleItemList === this) {
         const newList = cnt.visibleItems;
         this.length = 0;
         inPlaceArrayPush(this, newList);
