@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.8
+// @version     0.17.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -857,18 +857,20 @@
 
     // let cid = 0;
 
-    let pf = null;
-    let pv = 0;
+    let mousemoveFn = null;
+    let mousemoveDT = 0;
+    let mousemoveCount = 0;
     // let qv = false;
     const cif = () => {
-      if (!pf) return;
+      mousemoveCount = 0;
+      if (!mousemoveFn) return;
       const ct = Date.now();
-      if (pv + 1200 > ct) { // avoid setTimeout delay too long without execution
-        pf && pf();
+      if (mousemoveDT + 1200 > ct) { // avoid setTimeout delay too long without execution
+        mousemoveFn && mousemoveFn();
       }
-      pf = null;
+      mousemoveFn = null; // rare case
     };
-    let cid = 0;
+    let mousemoveCId = 0;
     let mouseoverFn = null;
     HTMLElement.prototype.addEventListener4882 = HTMLElement.prototype.addEventListener;
     HTMLElement.prototype.addEventListener = function (a, b, c) {
@@ -883,12 +885,12 @@
             this[`__$$${a}$$1938__`] = b;
             if (a === 'mousemove') {
               this.addEventListener4882('mouseenter', (evt) => {
-                if (cid) return;
-                cid = setIntervalX0(cif, 380);
+                if (mousemoveCId) return;
+                mousemoveCId = setIntervalX0(cif, 380);
               });
               this.addEventListener4882('mouseleave', (evt) => {
-                clearIntervalX0(cid);
-                cid = 0;
+                clearIntervalX0(mousemoveCId);
+                mousemoveCId = 0;
               });
             }
             this.addEventListener4882(a, (evt) => {
@@ -897,21 +899,26 @@
               if (!this[`__$$${a}$$1938__`]) return;
               if (a === 'mousemove') {
                 mouseoverFn && mouseoverFn();
-                const executeNow = pf === null;
-                const f = pf = () => {
-                  if (f !== pf) return;
+                const f = mousemoveFn = () => {
+                  if (f !== mousemoveFn) return;
+                  mousemoveFn = null;
                   this[`__$$${a}$$1938__`](evt_);
                 };
-                pv = Date.now();
-                if (executeNow) cif();
+                mousemoveDT = Date.now();
+                if (mousemoveCount < 9) mousemoveCount++;
+                if (mousemoveCount <= 1) cif();
               } else {
                 if (a === 'mouseout' || a === 'mouseleave') {
-                  pf = null; 
+                  mousemoveFn = null; 
+                  mousemoveDT = 0;
+                  mousemoveCount = 0;
                   this[`__$$${a}$$1938__`](evt_);
                   mouseoverFn && mouseoverFn();
-                } else {
-                  pf = null;
-                  mouseoverFn && mouseoverFn();
+                } else { // mouseover, mouseenter
+                  mousemoveFn = null;
+                  mousemoveDT = 0;
+                  mousemoveCount = 0;
+                  mouseoverFn && mouseoverFn(); // just in case
                   const f = mouseoverFn = () => {
                     if (f !== mouseoverFn) return;
                     mouseoverFn = null;
