@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.9
+// @version     0.17.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -862,13 +862,12 @@
     let mousemoveCount = 0;
     // let qv = false;
     const cif = () => {
-      mousemoveCount = 0;
       if (!mousemoveFn) return;
       const ct = Date.now();
       if (mousemoveDT + 1200 > ct) { // avoid setTimeout delay too long without execution
         mousemoveFn && mousemoveFn();
       }
-      mousemoveFn = null; // rare case
+      mousemoveFn = null;
     };
     let mousemoveCId = 0;
     let mouseoverFn = null;
@@ -899,14 +898,17 @@
               if (!this[`__$$${a}$$1938__`]) return;
               if (a === 'mousemove') {
                 mouseoverFn && mouseoverFn();
+                if (mousemoveDT + 350 > (mousemoveDT = Date.now())) {
+                  (++mousemoveCount > 1e9) && (mousemoveCount = 9);
+                } else {
+                  mousemoveCount = 0;
+                }
                 const f = mousemoveFn = () => {
                   if (f !== mousemoveFn) return;
                   mousemoveFn = null;
                   this[`__$$${a}$$1938__`](evt_);
                 };
-                mousemoveDT = Date.now();
-                if (mousemoveCount < 9) mousemoveCount++;
-                if (mousemoveCount <= 1) cif();
+                if (mousemoveCount <= 1) mousemoveFn();
               } else {
                 if (a === 'mouseout' || a === 'mouseleave') {
                   mousemoveFn = null; 
