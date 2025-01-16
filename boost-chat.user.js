@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.8
+// @version             0.3.9
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3788,6 +3788,85 @@ SOFTWARE.
 
   };
 
+  /*
+
+
+  // yt-live-chat-mode-change-message-renderer
+  // https://www.youtube.com/watch?v=jVvqOgUqBjY
+
+  {
+    "id": "ChwJHgMWEss0OPd6QXlvREYeFG2H9VeKKMMEGeC",
+    "timestampUsec": "1737004399054300",
+    "icon": {
+        "iconType": "TAB_SUBSCRIPTIONS"
+    },
+    "text": {
+        "runs": [
+            {
+                "text": "御神楽すずめ / Mikagura Suzume",
+                "bold": true
+            },
+            {
+                "text": " さんは、チャンネル登録者のみモードをオンにしました",
+                "bold": true
+            }
+        ]
+    },
+    "subtext": {
+        "runs": [
+            {
+                "text": "チャンネル登録者のみがメッセージを送信できます",
+                "italics": true
+            }
+        ]
+    },
+    "__timestampActionRequest__": 1737020610950,
+    "aKey_": "liveChatModeChangeMessageRenderer",
+    "aKey": "liveChatModeChangeMessageRenderer"
+}
+
+*/
+
+/*
+
+// yt-live-chat-mode-change-message-renderer
+// https://www.youtube.com/watch?v=jVvqOgUqBjY
+
+
+{
+    "id": "ChwJHgMWEss0OPd6QXlvREYeFG2H9VeKKMMEGeC",
+    "timestampUsec": "1737004399053988",
+    "icon": {
+        "iconType": "SLOW_MODE"
+    },
+    "text": {
+        "runs": [
+            {
+                "text": "低速モードが有効です",
+                "bold": true
+            }
+        ]
+    },
+    "subtext": {
+        "runs": [
+            {
+                "text": "5 秒",
+                "italics": true
+            },
+            {
+                "text": "ごとにメッセージを送信します",
+                "italics": true
+            }
+        ]
+    },
+    "__timestampActionRequest__": 1737020610950,
+    "aKey_": "liveChatModeChangeMessageRenderer",
+    "aKey": "liveChatModeChangeMessageRenderer"
+}
+
+*/
+
+
   const mapToElementTag = new Map(Object.entries({
     liveChatAutoModMessageRenderer: "yt-live-chat-auto-mod-message-renderer",
     liveChatPaidMessageRenderer: "yt-live-chat-paid-message-renderer",
@@ -4700,6 +4779,31 @@ SOFTWARE.
           }
         }
       };
+
+      messageList.addEventListener('mouseover', function(evt){
+        if(pointerHoldingAt > 0 && evt.buttons === 0) {
+          pointerReleaseProcess();
+        }
+
+      }, true);
+      messageList.addEventListener('mouseout', function(evt){
+        if(pointerHoldingAt > 0 && evt.buttons === 0) {
+          pointerReleaseProcess();
+        }
+      }, true);
+
+      messageList.addEventListener('mouseenter', function(evt){
+        if(pointerHoldingAt > 0 && evt.buttons === 0) {
+          pointerReleaseProcess();
+        }
+        pointerReleasedWithSelection = false;
+      }, false);
+      messageList.addEventListener('mouseleave', function(evt){
+        if(pointerHoldingAt > 0 && evt.buttons === 0) {
+          pointerReleaseProcess();
+        }
+        pointerReleasedWithSelection = false;
+      }, false);
 
       messageList.addEventListener('pointermove', function (evt) {
 
