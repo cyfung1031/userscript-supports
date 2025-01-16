@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.7
+// @version             0.3.8
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -235,8 +235,6 @@ SOFTWARE.
 
 
   }
-
-  let mme = null;
 
 
 
@@ -4214,7 +4212,13 @@ SOFTWARE.
     const wAttachRoot = new WeakMap();
     let _flushed = 0; // 0 no flushed; 1 flushed; 2 flushing
     // let bstMainScrollCount = 0;
-    let pointerHolding580 = false;
+
+    let pointerHoldingAt = 0; // DateTiem for the pointer holding
+    let pointerReleasedAt = 0; // DateTime for the pointer release
+    let pointerReleasedWithSelection = false; // checked result of the selection existence
+    let pointerReleaseNotReady = false; // avoid canScrollToBottom_ when the selection is checking
+    let flushPEHoldingUntil = 0; // limit the flushPE holding time (avoid conflict with user action)
+    let flushPEHoldingMaxTimelineResolve = 0; // limit the number of `await timelineResolve()`
 
     const ioMessageListCallback = (entries) => { // performance concern? (6.1ms)
       for (const entry of entries) { // performance concern? (1.1ms)
@@ -4272,26 +4276,19 @@ SOFTWARE.
     if (!cProto.canScrollToBottom581_ && typeof cProto.canScrollToBottom_ === 'function' && cProto.canScrollToBottom_.length === 0) {
 
 
-      cProto.pointerHolding581 = false;
-      cProto.pointerHolding582 = 0;
-
       cProto.canScrollToBottom581_ = cProto.canScrollToBottom_;
 
-      cProto.canScrollToBottom_ = function () {    
-        if (this.pointerHolding581) return false;    
-        if (this.pointerHolding582 > 0) {
-          if (this.pointerHolding582 + 800 > Date.now() && hasAnySelection()) {
-            return false;
-          }
-          this.pointerHolding582 = 0;
-        }
+      cProto.canScrollToBottom_ = function () {
+        if (pointerHoldingAt > 0 || pointerReleasedWithSelection || pointerReleaseNotReady) return false;
+        if (hasAnySelection()) return false; // rely on ".allowScroll"
+        // if (pointerReleasedAt > 0 && pointerReleasedAt + 800 > Date.now() && hasAnySelection()) return false; // allowScroll will become false after menu is shown
+        // if (hasAnySelection()) return false; // rely on ".allowScroll"
         return this.canScrollToBottom581_();
       };
 
     }
 
     cProto.computeIsEmpty_ = function () {
-      mme = this;
       return !(this.visibleItems?.length || 0);
     }
     // cProto._flag0281_ = _flag0281_;
@@ -4572,7 +4569,7 @@ SOFTWARE.
       let pointerDown = -1;
       let waitingToShowMenu = null;
       let waitingToCloseMenu = null;
-      let qcz7 = 0;
+      // let qcz7 = 0;
 
       const dblClickMessage = async (messageEntry, target) => {
 
@@ -4684,22 +4681,35 @@ SOFTWARE.
       });
 
 
-      let rht = 0;
-      const cancelPointerHolderFn = async (tht) => {
-        if (tht !== rht || !pointerHolding580) return;
-        const lcrCnt = getLcRendererCnt();
-        if (!lcrCnt || !lcrCnt.pointerHolding581) return;
-        await timelineResolve();
-        if (tht !== rht || !pointerHolding580) return;
-        if (!lcrCnt || !lcrCnt.pointerHolding581) return;
-        if (!(`${window.getSelection()}`)) {
-          lcrCnt.pointerHolding581 = pointerHolding580 = false;
-          lcrCnt.pointerHolding582 = Date.now();
+      let cancelPointerHolderFnBusy = false;
+      const pointerReleaseProcess = async () => {
+        pointerReleasedAt = Date.now();
+        flushPEHoldingUntil = Date.now() + 400;
+        if (flushPEHoldingMaxTimelineResolve < 4) flushPEHoldingMaxTimelineResolve = 4;
+        pointerHoldingAt = 0;
+        pointerReleaseNotReady = true;
+        if (pointerReleasedAt > 0 && !cancelPointerHolderFnBusy) {
+          cancelPointerHolderFnBusy = true;
+          await timelineResolve();
+          cancelPointerHolderFnBusy = false;
+          pointerReleaseNotReady = false;
+          if (pointerReleasedAt > 0 && `${window.getSelection()}`) {
+            pointerReleasedWithSelection = true;
+          } else {
+            pointerReleasedWithSelection = false;
+          }
         }
-      }
+      };
+
+      messageList.addEventListener('pointermove', function (evt) {
+
+        if (evt.buttons === 0 && pointerHoldingAt > 0) {
+          pointerReleaseProcess();
+        }
+
+      });
 
       messageList.addEventListener('pointerdown', function (evt) {
-        rht = (rht & 1073741823) + 1;
         if (evt.button || pointerDown >= 0) {
           return;
         }
@@ -4712,11 +4722,11 @@ SOFTWARE.
           return;
         }
 
-        const lcrCnt = getLcRendererCnt();
-        if (lcrCnt) {
-          lcrCnt.pointerHolding581 = pointerHolding580 = true;
-          lcrCnt.pointerHolding582 = 0;
-        }
+        pointerHoldingAt = Date.now();
+        pointerReleasedAt = 0;
+        pointerReleasedWithSelection = false;
+        flushPEHoldingUntil = Date.now() + 400;
+        if (flushPEHoldingMaxTimelineResolve < 4) flushPEHoldingMaxTimelineResolve = 4;
 
         const target = evt?.target;
         waitingToShowMenu = null;
@@ -4736,92 +4746,92 @@ SOFTWARE.
           if (messageUid) {
 
 
-              const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
-              if (testElement?.classList?.contains('bst-message-menu-container')) {
-                menuMenuCache.delete(messageUid); // menu action will change menu items
-              } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
-  
-                const shouldShowMenuAction = isCtrl(evt) || isAlt(evt);
- 
-                if (shouldShowMenuAction) {
-                  if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+            const testElement = target.closest('.bst-message-entry, .bst-message-head, .bst-message-profile-holder, .bst-message-menu-container');
+            if (testElement?.classList?.contains('bst-message-menu-container')) {
+              menuMenuCache.delete(messageUid); // menu action will change menu items
+            } else if (menuRenderObj.messageUid !== messageUid && testElement && testElement === messageEntry0) {
 
-                  if (menuRenderObj.messageUid) {
+              const shouldShowMenuAction = isCtrl(evt) || isAlt(evt);
 
-                    Object.assign(W(menuRenderObj),{
-                      menuListXp: '',
-                      messageUid: '',
-                      loading: false,
-                    });
+              if (shouldShowMenuAction) {
+                if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
 
-                  }
-
-                  waitingToShowMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
-                  preShowMenu(messageEntry0);
-                } else {
-                  if (entryHolding()) entryHoldingChange('');
-
-
-                  if (menuRenderObj.messageUid) {
-
-                    Object.assign(W(menuRenderObj),{
-                      menuListXp: '',
-                      messageUid: '',
-                      loading: false,
-                    });
-
-                  }
-
-                }
-  
-              } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
-  
-  
-  
-                // console.log(389588, 3, messageUid);
-                // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
-  
                 if (menuRenderObj.messageUid) {
-                  Object.assign(W(menuRenderObj),{
+
+                  Object.assign(W(menuRenderObj), {
                     menuListXp: '',
                     messageUid: '',
                     loading: false,
                   });
-  
+
                 }
-                entryHoldingChange('');
-  
-  
-              } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
-  
-                // console.log(389588, 4, messageUid);
-                waitingToCloseMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
-  
-  
-  
-              } else if (entryHolding() !== messageUid) {
-  
-                // console.log(389588, 5, messageUid);
-                // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
-  
-                if (menuRenderObj.messageUid) {
-                  Object.assign(W(menuRenderObj),{
-                    menuListXp: '',
-                    messageUid: '',
-                    loading: false,
-                  });
-                }
-  
-                entryHoldingChange('');
-  
-  
+
+                waitingToShowMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+                preShowMenu(messageEntry0);
               } else {
-  
-                // console.log(389588, 6, messageUid);
-                entryHoldingChange('');
+                if (entryHolding()) entryHoldingChange('');
+
+
+                if (menuRenderObj.messageUid) {
+
+                  Object.assign(W(menuRenderObj), {
+                    menuListXp: '',
+                    messageUid: '',
+                    loading: false,
+                  });
+
+                }
+
               }
 
-             
+            } else if (menuRenderObj.messageUid && testElement && testElement !== messageEntry0) {
+
+
+
+              // console.log(389588, 3, messageUid);
+              // if (entryHolding() !== messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+              if (menuRenderObj.messageUid) {
+                Object.assign(W(menuRenderObj), {
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+
+              }
+              entryHoldingChange('');
+
+
+            } else if (menuRenderObj.messageUid && target.closest('.bst-message-entry, .bst-message-menu-container')?.classList?.contains('bst-message-entry')) {
+
+              // console.log(389588, 4, messageUid);
+              waitingToCloseMenu = { pageX0: evt.pageX, pageY0: evt.pageY };
+
+
+
+            } else if (entryHolding() !== messageUid) {
+
+              // console.log(389588, 5, messageUid);
+              // if(entryHolding()!==messageUid) entryHoldingChange(messageUid ? messageUid : '');
+
+              if (menuRenderObj.messageUid) {
+                Object.assign(W(menuRenderObj), {
+                  menuListXp: '',
+                  messageUid: '',
+                  loading: false,
+                });
+              }
+
+              entryHoldingChange('');
+
+
+            } else {
+
+              // console.log(389588, 6, messageUid);
+              entryHoldingChange('');
+            }
+
+
 
 
           } else if (entryHolding()) {
@@ -4831,7 +4841,7 @@ SOFTWARE.
 
             if (menuRenderObj.messageUid) {
 
-              Object.assign(W(menuRenderObj),{
+              Object.assign(W(menuRenderObj), {
                 menuListXp: '',
                 messageUid: '',
                 loading: false,
@@ -4848,8 +4858,9 @@ SOFTWARE.
 
       messageList.addEventListener('pointerup', function (evt) {
 
-
-        pointerHolding580 && Promise.resolve(rht = (rht & 1073741823) + 1).then(cancelPointerHolderFn);
+        if (pointerHoldingAt > 0) {
+          pointerReleaseProcess();
+        }
         if (pointerDown >= 0) return;
 
         pointerDown = -1;
@@ -4861,12 +4872,14 @@ SOFTWARE.
 
       messageList.addEventListener('pointercancel', function (evt) {
 
-        pointerHolding580 && Promise.resolve(rht = (rht & 1073741823) + 1).then(cancelPointerHolderFn);
-        
+        if (pointerHoldingAt > 0) {
+          pointerReleaseProcess();
+        }
+
         if (pointerDown >= 0) return;
 
         pointerDown = -1;
-        
+
 
 
       });
@@ -5355,7 +5368,6 @@ SOFTWARE.
     }
 
     cProto.forEachItem_ = function (a) {
-      // mme = this
       let status = 0;
       let i;
       try {
@@ -5786,7 +5798,8 @@ f.handleRemoveChatItemAction_ = function(a) {
         resetSelection();
         scrollToEnd();
         this.setAtBottomTrue();
-        await timelineResolve();
+        flushPEHoldingUntil = Date.now() + 200;
+        if (flushPEHoldingMaxTimelineResolve < 1) flushPEHoldingMaxTimelineResolve = 1;
       })
 
       // this.itemScroller.scrollTop = Math.pow(2, 24);
@@ -6109,6 +6122,15 @@ f.handleRemoveChatItemAction_ = function(a) {
 
       // if(this.hostElement.querySelectorAll('*').length > 40) return;
       flushPE(async () => {
+        // let cd = 0;
+
+        while (flushPEHoldingUntil > 0 && flushPEHoldingMaxTimelineResolve-- > 0 && flushPEHoldingUntil > Date.now()) {
+          await timelineResolve(); // avoid rendering time warning in Chrome
+          // console.log(9593, ++cd);
+        }
+        // cd = 0;
+        flushPEHoldingMaxTimelineResolve = 0;
+        flushPEHoldingUntil = 0;
 
         if (bstClearCount0 !== this.bstClearCount) return;
 
@@ -6134,10 +6156,11 @@ f.handleRemoveChatItemAction_ = function(a) {
         const maxItemsToDisplay = this.data.maxItemsToDisplay;
 
         if (!this.canScrollToBottom_()) {
-
           _addLen > maxItemsToDisplay * 2 && activeItems_.splice(0, _addLen - maxItemsToDisplay)
           return;
-        } else if (_addLen > maxItemsToDisplay) {
+        }
+
+        if (_addLen > maxItemsToDisplay) {
           const visibleItems = this.visibleItems;
           if (visibleItems && (visibleItems.length > 0)) {
             visibleItems.length = 0;
@@ -6147,7 +6170,6 @@ f.handleRemoveChatItemAction_ = function(a) {
             }
           }
           activeItems_.splice(0, _addLen - maxItemsToDisplay);
-
         }
 
         if (DEBUG_windowVars) window.__bstFlush03__ = Date.now();
