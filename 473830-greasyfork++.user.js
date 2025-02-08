@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.57
+// @version            3.2.58
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1324,13 +1324,15 @@ const mWindow = (() => {
 
     let mutexC = Promise.resolve();
     const getScriptDataAN = (noCache)=>{
+
+        const DO_CORS = 'api.greasyfork.org';
         mutexC = mutexC.then(async ()=>{
 
             const [id, req] = getOldestEntry(noCache);
     
             if (!(id > 0)) return;
 
-            const url = `https://${window.location.hostname}/scripts/${id}.json`;
+            const url = `https://${DO_CORS || window.location.hostname}/scripts/${id}.json`;
             
             const onPageElement = document.querySelector(`[data-script-namespace][data-script-id="${id || 'null'}"][data-script-name][data-script-version][href]`)
             if (onPageElement && /^https\:\/\/update\.\w+\.org\/scripts\/\d+\/[^.?\/]+\.user\.js$/.test(onPageElement.getAttribute('href') || '')) {
@@ -1375,25 +1377,31 @@ const mWindow = (() => {
                 const maxAgeInSeconds = 900;
                 const rd = previousIsCache ? 1 : Math.floor(Math.random() * 80 + 80);
                 let fetchStart = 0;
+
+                const fetchOptions = DO_CORS ? {
+                    method: 'GET',
+                    credentials: 'omit'
+                } : noCache ? {
+                    method: 'GET',
+                    cache: 'reload',
+                    credentials: 'omit',
+                    headers: new Headers({
+                        'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                    })
+                } : {
+                    method: 'GET',
+                    cache: 'force-cache',
+                    credentials: 'omit',
+                    headers: new Headers({
+                        'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                    })
+                };
+
                 new Promise(r => setTimeout(r, rd))
                     .then(() => {
                         fetchStart = Date.now();
                     })
-                    .then(() => fetch(url, noCache ? {
-                        method: 'GET',
-                        cache: 'reload',
-                        credentials: 'omit',
-                        headers: new Headers({
-                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                        })
-                    } : {
-                        method: 'GET',
-                        cache: 'force-cache',
-                        credentials: 'omit',
-                        headers: new Headers({
-                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                        }),
-                    }))
+                    .then(() => fetch(url, fetchOptions))
                     .then((response) => {
     
                         let fetchStop = Date.now();
