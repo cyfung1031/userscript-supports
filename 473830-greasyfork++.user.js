@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.58
+// @version            3.2.59
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -21,6 +21,8 @@
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
+// @match              *://api.greasyfork.org/*
+// @match              *://api.sleazyfork.org/*
 // @connect            greasyfork.org
 // @compatible         chrome
 // @compatible         edge
@@ -39,6 +41,8 @@
 
 /* global GM_config, VM, GM, WinComm */
 
+const isInIframe = window !== top;
+
 /**
  * @typedef { typeof import("./library/WinComm.js")  } WinComm
  */
@@ -50,7 +54,7 @@ const WinComm = this.WinComm;
 
 //  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
 // optimized by CY Fung to remove $ dependency and observe creation
-const UU = (function () {
+const UU = isInIframe || (function () {
     const scriptName = GM.info.script.name; // not name_i18n
     const scriptVersion = GM.info.script.version;
     const authorMatch = /^(.*?)\s<\S[^\s@]*@\S[^\s.]*\.\S+>$/.exec(GM.info.script.author);
@@ -116,7 +120,7 @@ const UU = (function () {
 //  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
 
 
-const mWindow = (() => {
+const mWindow = isInIframe || (() => {
 
 
     const fields = {
@@ -867,7 +871,60 @@ const mWindow = (() => {
 
 })();
 
-(async () => {
+const inIframeFn = isInIframe ? async () => {
+    if (window.name) {
+        const uo = new URL(location.href);
+        const id38 = uo.searchParams.get('id38');
+        if (id38 && `iframe-${id38}` === window.name) {
+
+            const p38 = uo.searchParams.get('p38');
+            const h38 = uo.searchParams.get('h38');
+
+            if (`${p38}:` === uo.protocol && `${h38}` === uo.hostname) {
+                window.addEventListener('message', (evt)=>{
+                    if(evt && evt.data){
+                        const {id38: id38_, msg, args, fetchId} = evt.data;
+                        if(id38_ === id38){
+                            if(msg === 'fetch' && fetchId){
+                                const [url, options] = args;
+                                if(options && options.headers){
+                                    options.headers = new Headers(options.headers);
+                                }
+                                fetch(url, options).then(async (response) => {
+                                    let json = null;
+                                    if (response.ok === true) {
+                                        try {
+                                            json = await response.json();
+                                        } catch (e) { }
+                                    }
+                                    const res = {
+                                        status: response.status,
+                                        url: response.url,
+                                        ok: response.ok,
+                                        json
+                                    };
+                                    evt.source.postMessage({
+                                        id38,
+                                        fetchId,
+                                        msg: 'fetchResponse',
+                                        args: [res]
+                                    }, '*')
+                                })
+                            }
+                        }
+                    }
+                });
+                top.postMessage({
+                    id38: id38,
+                    msg: 'ready'
+                }, '*');
+            }
+        }
+    }
+
+} : () => { };
+
+inIframeFn() || (async () => {
 
     let rafPromise = null;
 
@@ -1294,6 +1351,91 @@ const mWindow = (() => {
         };
     })();
 
+    const corsFetchMap = new Map();
+
+    const corsFetch = async (url, options) => {
+        if (top !== window) return;
+        const uo = new URL(url);
+        const protocol = uo.protocol.replace(/[^\w]+/g, '');
+        const hostname = uo.hostname;
+        const origin0 = `${protocol}://${hostname}`;
+        let prFn = corsFetchMap.get(origin0);
+        if (!prFn) {
+            prFn = new Promise((resolve) => {
+                let iframe = document.createElement('iframe');
+                const rid = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                iframe.id = `iframe-${rid}`;
+                iframe.name = `iframe-${rid}`;
+                window.addEventListener('message', (evt) => {
+                    if (evt && evt.origin === origin0) {
+                        const data = evt.data;
+                        if (data && data.id38) {
+                            const { id38, msg, fetchId: fetchId_, args } = data;
+                            if (msg === 'ready') {
+                                const iframeWindow = evt.source;
+                                resolve((...args) => {
+                                    const fetchId = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                                    const promise = new PromiseExternal();
+                                    corsFetchMap.set(`${id38}-${fetchId}`, promise);
+                                    iframeWindow.postMessage({
+                                        id38,
+                                        msg: 'fetch',
+                                        fetchId,
+                                        args
+                                    }, '*');
+                                    return promise;
+                                });
+                            } else if (msg === 'fetchResponse') {
+                                const promise = corsFetchMap.get(`${id38}-${fetchId_}`);
+                                if (promise) {
+                                    corsFetchMap.delete(`${id38}-${fetchId_}`);
+                                    promise.resolve(args[0]);
+                                }
+                            }
+                        }
+                    }
+                });
+                iframe.src = `${protocol}://${hostname}/robots.txt?id38=${rid}&p38=${protocol}&h38=${hostname}`;
+                Object.assign(iframe.style, {
+                    'position': 'fixed',
+                    'left': '-300px',
+                    'top': '-300px',
+                    'width': '30px',
+                    'height': '30px',
+                    'pointerEvents': 'none',
+                    'zIndex': '-1',
+                    'contain': 'strict'
+                });
+                document.body.appendChild(iframe);
+            });
+            corsFetchMap.set(origin0, prFn);
+        }
+        const fetchFn = await prFn.then();
+        const promise = fetchFn(url, options);
+        const promiseResult = await promise.then();
+        return promiseResult;
+    };
+
+    const standardFetch = async (url, options) => {
+        if (options && options.headers) {
+            options.headers = new Headers(options.headers);
+        }
+        const response = await fetch(url, options);
+        let json = null;
+        if (response.ok === true) {
+            try {
+                json = await response.json();
+            } catch (e) { }
+        }
+        const res = {
+            status: response.status,
+            url: response.url,
+            ok: response.ok,
+            json
+        };
+        return res;
+    }
+
     /**
      * Get script data from Greasy Fork API
      *
@@ -1325,15 +1467,16 @@ const mWindow = (() => {
     let mutexC = Promise.resolve();
     const getScriptDataAN = (noCache)=>{
 
-        const DO_CORS = 'api.greasyfork.org';
-        mutexC = mutexC.then(async ()=>{
+        mutexC = mutexC.then(async () => {
 
             const [id, req] = getOldestEntry(noCache);
-    
+
             if (!(id > 0)) return;
 
+            const DO_CORS = /^(greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
             const url = `https://${DO_CORS || window.location.hostname}/scripts/${id}.json`;
-            
+            const fetchUrl = sessionStorage.getItem(`redirect41-${url}`) || url;
+
             const onPageElement = document.querySelector(`[data-script-namespace][data-script-id="${id || 'null'}"][data-script-name][data-script-version][href]`)
             if (onPageElement && /^https\:\/\/update\.\w+\.org\/scripts\/\d+\/[^.?\/]+\.user\.js$/.test(onPageElement.getAttribute('href') || '')) {
     
@@ -1378,31 +1521,33 @@ const mWindow = (() => {
                 const rd = previousIsCache ? 1 : Math.floor(Math.random() * 80 + 80);
                 let fetchStart = 0;
 
-                const fetchOptions = DO_CORS ? {
-                    method: 'GET',
-                    credentials: 'omit'
-                } : noCache ? {
+                const fetchOptions = noCache ? {
                     method: 'GET',
                     cache: 'reload',
                     credentials: 'omit',
-                    headers: new Headers({
+                    headers: {
                         'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                    })
+                    }
                 } : {
                     method: 'GET',
                     cache: 'force-cache',
                     credentials: 'omit',
-                    headers: new Headers({
+                    headers: {
                         'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                    })
+                    }
                 };
 
                 new Promise(r => setTimeout(r, rd))
                     .then(() => {
                         fetchStart = Date.now();
                     })
-                    .then(() => fetch(url, fetchOptions))
+                    .then(() => DO_CORS ? corsFetch(fetchUrl, fetchOptions): standardFetch(fetchUrl, fetchOptions))
                     .then((response) => {
+
+                        if (fetchUrl !== response.url) {
+                            sessionStorage.setItem(`redirect41-${url}`, response.url);
+                            sessionStorage.setItem(`redirect41-${fetchUrl}`, response.url);
+                        }
     
                         let fetchStop = Date.now();
                         // const dd = fetchStop - fetchStart;
@@ -1420,7 +1565,7 @@ const mWindow = (() => {
                         // UU.log(response)
                         if (response.ok === true) {
                             unlock();
-                            return response.json()
+                            return response.json;
                         }
                         if (response.status === 503) {
                             return new Promise(r => setTimeout(r, 270 + rd)).then(() => {
@@ -1468,11 +1613,11 @@ const mWindow = (() => {
      * @returns {Promise} User data
      */
     const getUserData = (userID, noCache) => {
-        const DO_CORS = 'api.greasyfork.org';
-
         if (!(userID >= 0)) return Promise.resolve()
 
+        const DO_CORS = /^(greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
         const url = `https://${DO_CORS || window.location.hostname}/users/${userID}.json`;
+        const fetchUrl = sessionStorage.getItem(`redirect41-${url}`) || url;
         return new Promise((resolve, reject) => {
 
 
@@ -1480,33 +1625,38 @@ const mWindow = (() => {
 
                 const maxAgeInSeconds = 900;
                 const rd = Math.floor(Math.random() * 80 + 80);
+                console.log(199, noCache)
 
-                const fetchOptions = DO_CORS ? {
-                    method: 'GET',
-                    credentials: 'omit'
-                } : noCache ? {
+                const fetchOptions = noCache && 0 ? {
                     method: 'GET',
                     cache: 'reload',
                     credentials: 'omit',
-                    headers: new Headers({
+                    headers: {
                         'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                    })
+                    }
                 } : {
                     method: 'GET',
                     cache: 'force-cache',
                     credentials: 'omit',
-                    headers: new Headers({
+                    headers: {
                         'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                    })
+                    }
                 };
 
                 new Promise(r => setTimeout(r, rd))
-                    .then(() => fetch(url, fetchOptions))
+
+                    .then(() => DO_CORS ? corsFetch(fetchUrl, fetchOptions) : standardFetch(fetchUrl, fetchOptions))
                     .then((response) => {
+
+                        if (fetchUrl !== response.url) {
+                            sessionStorage.setItem(`redirect41-${url}`, response.url);
+                            sessionStorage.setItem(`redirect41-${fetchUrl}`, response.url);
+                        }
+
                         UU.log(`${response.status}: ${response.url}`)
                         if (response.ok === true) {
                             unlock();
-                            return response.json()
+                            return response.json;
                         }
                         if (response.status === 503) {
                             return new Promise(r => setTimeout(r, 270 + rd)).then(() => {
