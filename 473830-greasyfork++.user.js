@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.59
+// @version            3.2.60
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1625,9 +1625,8 @@ inIframeFn() || (async () => {
 
                 const maxAgeInSeconds = 900;
                 const rd = Math.floor(Math.random() * 80 + 80);
-                console.log(199, noCache)
 
-                const fetchOptions = noCache && 0 ? {
+                const fetchOptions = noCache ? {
                     method: 'GET',
                     cache: 'reload',
                     credentials: 'omit',
