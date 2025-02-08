@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.60
+// @version            3.2.61
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1359,60 +1359,74 @@ inIframeFn() || (async () => {
         const protocol = uo.protocol.replace(/[^\w]+/g, '');
         const hostname = uo.hostname;
         const origin0 = `${protocol}://${hostname}`;
+        let promiseF = null;
         let prFn = corsFetchMap.get(origin0);
-        if (!prFn) {
-            prFn = new Promise((resolve) => {
-                let iframe = document.createElement('iframe');
-                const rid = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-                iframe.id = `iframe-${rid}`;
-                iframe.name = `iframe-${rid}`;
-                window.addEventListener('message', (evt) => {
-                    if (evt && evt.origin === origin0) {
-                        const data = evt.data;
-                        if (data && data.id38) {
-                            const { id38, msg, fetchId: fetchId_, args } = data;
-                            if (msg === 'ready') {
-                                const iframeWindow = evt.source;
-                                resolve((...args) => {
-                                    const fetchId = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-                                    const promise = new PromiseExternal();
-                                    corsFetchMap.set(`${id38}-${fetchId}`, promise);
-                                    iframeWindow.postMessage({
-                                        id38,
-                                        msg: 'fetch',
-                                        fetchId,
-                                        args
-                                    }, '*');
-                                    return promise;
-                                });
-                            } else if (msg === 'fetchResponse') {
-                                const promise = corsFetchMap.get(`${id38}-${fetchId_}`);
-                                if (promise) {
-                                    corsFetchMap.delete(`${id38}-${fetchId_}`);
-                                    promise.resolve(args[0]);
+        for (let i = 0; i < 2; i++) {
+            if (!prFn) {
+                prFn = new Promise((resolve) => {
+                    let iframe = document.createElement('iframe');
+                    const rid = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                    iframe.id = `iframe-${rid}`;
+                    iframe.name = `iframe-${rid}`;
+                    window.addEventListener('message', (evt) => {
+                        if (evt && evt.origin === origin0) {
+                            const data = evt.data;
+                            if (data && data.id38) {
+                                const { id38, msg, fetchId: fetchId_, args } = data;
+                                if (msg === 'ready') {
+                                    const iframeWindow = evt.source;
+                                    resolve((...args) => {
+                                        if (!iframe.isConnected) return -1;
+                                        const fetchId = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+                                        const promise = new PromiseExternal();
+                                        corsFetchMap.set(`${id38}-${fetchId}`, promise);
+                                        iframeWindow.postMessage({
+                                            id38,
+                                            msg: 'fetch',
+                                            fetchId,
+                                            args
+                                        }, '*');
+                                        return promise;
+                                    });
+                                } else if (msg === 'fetchResponse') {
+                                    const promise = corsFetchMap.get(`${id38}-${fetchId_}`);
+                                    if (promise) {
+                                        corsFetchMap.delete(`${id38}-${fetchId_}`);
+                                        promise.resolve(args[0]);
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
+                    iframe.src = `${protocol}://${hostname}/robots.txt?id38=${rid}&p38=${protocol}&h38=${hostname}`;
+                    Object.assign(iframe.style, {
+                        'position': 'fixed',
+                        'left': '-300px',
+                        'top': '-300px',
+                        'width': '30px',
+                        'height': '30px',
+                        'pointerEvents': 'none',
+                        'zIndex': '-1',
+                        'contain': 'strict'
+                    });
+                    (document.body || document.documentElement).appendChild(iframe);
                 });
-                iframe.src = `${protocol}://${hostname}/robots.txt?id38=${rid}&p38=${protocol}&h38=${hostname}`;
-                Object.assign(iframe.style, {
-                    'position': 'fixed',
-                    'left': '-300px',
-                    'top': '-300px',
-                    'width': '30px',
-                    'height': '30px',
-                    'pointerEvents': 'none',
-                    'zIndex': '-1',
-                    'contain': 'strict'
-                });
-                document.body.appendChild(iframe);
-            });
-            corsFetchMap.set(origin0, prFn);
+                corsFetchMap.set(origin0, prFn);
+            }
+            const fetchFn = await prFn.then();
+            const promise = fetchFn(url, options);
+            if (promise === -1) {
+                corsFetchMap.delete(origin0);
+                prFn = null;
+                continue;
+            }
+            if (promise && typeof promise.then === 'function') {
+                promiseF = promise;
+                break;
+            }
         }
-        const fetchFn = await prFn.then();
-        const promise = fetchFn(url, options);
-        const promiseResult = await promise.then();
+        if (!promiseF) return null;
+        const promiseResult = await promiseF.then();
         return promiseResult;
     };
 
