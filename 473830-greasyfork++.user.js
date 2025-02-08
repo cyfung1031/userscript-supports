@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.56
+// @version            3.2.57
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1460,10 +1460,11 @@ const mWindow = (() => {
      * @returns {Promise} User data
      */
     const getUserData = (userID, noCache) => {
+        const DO_CORS = 'api.greasyfork.org';
 
         if (!(userID >= 0)) return Promise.resolve()
 
-        const url = `https://${window.location.hostname}/users/${userID}.json`;
+        const url = `https://${DO_CORS || window.location.hostname}/users/${userID}.json`;
         return new Promise((resolve, reject) => {
 
 
@@ -1472,22 +1473,27 @@ const mWindow = (() => {
                 const maxAgeInSeconds = 900;
                 const rd = Math.floor(Math.random() * 80 + 80);
 
+                const fetchOptions = DO_CORS ? {
+                    method: 'GET',
+                    credentials: 'omit'
+                } : noCache ? {
+                    method: 'GET',
+                    cache: 'reload',
+                    credentials: 'omit',
+                    headers: new Headers({
+                        'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                    })
+                } : {
+                    method: 'GET',
+                    cache: 'force-cache',
+                    credentials: 'omit',
+                    headers: new Headers({
+                        'Cache-Control': `max-age=${maxAgeInSeconds}`,
+                    })
+                };
+
                 new Promise(r => setTimeout(r, rd))
-                    .then(() => fetch(url, noCache ? {
-                        method: 'GET',
-                        cache: 'reload',
-                        credentials: 'omit',
-                        headers: new Headers({
-                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                        })
-                    } : {
-                        method: 'GET',
-                        cache: 'force-cache',
-                        credentials: 'omit',
-                        headers: new Headers({
-                            'Cache-Control': `max-age=${maxAgeInSeconds}`,
-                        }),
-                    }))
+                    .then(() => fetch(url, fetchOptions))
                     .then((response) => {
                         UU.log(`${response.status}: ${response.url}`)
                         if (response.ok === true) {
