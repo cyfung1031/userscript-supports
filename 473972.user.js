@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.11
+// @version     0.17.12
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -385,13 +385,15 @@
       let res = snCache.get(str);
       if (res === undefined) {
         let b = false;
-        res = str.replace(/\s*[\u200b\xA0\x20\n]+\s*/g, (m) => {
+        res = str.replace(/[\s\u3000\u200b]*[\u200b\xA0\x20\n]+[\s\u3000\u200b]*/g, (m) => {
           b = true;
-          if (m.includes('\n')) return m.replace(/\s*\n\s*/, '\n');
-          return m.replace(/\u200b/g, '').replace(/[\xA0\x20]+/g, ' ');
+          return m.includes('\n') ? '\n' : m.replace(/\u200b/g, '').replace(/[\xA0\x20]+/g, ' ');
+        });
+        res = res.replace(/^[\s\u3000]+|[\u3000\s]+$/g, () => {
+          b = true;
+          return '';
         });
         if (b) {
-          res = str.trim();
           snCache.set(str, res);
           snCache.set(res, null);
         } else {
