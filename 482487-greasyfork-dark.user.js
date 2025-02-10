@@ -1,17 +1,24 @@
 // ==UserScript==
-// @name        GreasyFork Dark
-// @namespace   Violentmonkey Scripts
-// @match       https://greasyfork.org/*
-// @match       https://sleazyfork.org/*
-// @grant       none
-// @version     0.3.20
-// @author      CY Fung
-// @description 12/17/2023, 6:12:59 PM
-// @run-at document-start
+// @name                GreasyFork Dark
+// @version             0.3.21
+// @license             MIT
+// @author              CY Fung
+// @name:ja             GreasyFork Dark ダークモード
+// @name:zh-TW          GreasyFork Dark 深色模式
+// @name:zh-CN          GreasyFork Dark 深色模式
+// @namespace           Violentmonkey Scripts
+// @match               https://greasyfork.org/*
+// @match               https://sleazyfork.org/*
+// @match               https://cn-greasyfork.org/*
+// @grant               none
+// @description         GreasyFork Dark Theme (adapative css)
+// @description:ja      GreasyFork Dark Theme (adapative css)
+// @description:zh-TW   GreasyFork Dark Theme (adapative css)
+// @description:zh-CN   GreasyFork Dark Theme (adapative css)
+// @run-at              document-start
 // @unwrap
-// @inject-into page
-// @license MIT
-// @require     https://cdn.jsdelivr.net/npm/stylis@4.3.4/dist/umd/stylis.min.js
+// @inject-into         page
+// @require             https://cdn.jsdelivr.net/npm/stylis@4.3.4/dist/umd/stylis.min.js
 // ==/UserScript==
 
 
