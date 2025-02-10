@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.12
+// @version     0.17.13
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -341,6 +341,8 @@
     };
   })();
 
+  const HTMLElement_ = HTMLElement;
+
   /**
     @param {number} x
     @param {number} d */
@@ -365,7 +367,7 @@
       nonce = nonce ? nonce.getAttribute('nonce') : null;
       const st = document.createElement('style');
       if (typeof nonce === 'string') st.setAttribute('nonce', nonce);
-      st.textContent = "yt-formatted-string.segment-text.style-scope.ytd-transcript-segment-renderer>span{display:block}";
+      st.textContent = ".yt-formatted-string-block-line{display:block;}";
       let parent;
       if (parent = document.head) parent.appendChild(st);
       else if (parent = (document.body || document.documentElement)) parent.insertBefore(st, parent.firstChild);
@@ -435,7 +437,7 @@
         let bi = 0;
         runs.length = s.length;
         for (const text of s) {
-          runs[bi++] = { ...runs[0], text };
+          runs[bi++] = { ...runs[0], text, ...{blockLine: true} };
         }
       }
       for (const s of runs) {
@@ -675,7 +677,8 @@
               const rgB = rg[1][0];
               const isDiff = rgB.replace(/\s/g, '') !== rgA.replace(/\s/g, '');
               if (isDiff && rgA === _snippetText(runs[0].text)) {
-                runs.push({ text: rgB });
+                if (runs[0] && runs[0].text) runs[0].blockLine = true;
+                runs.push({ text: rgB, blockLine: true });
               }
             }
           }
@@ -8632,6 +8635,27 @@
 
       // });
 
+
+      FIX_TRANSCRIPT_SEGMENTS && !isChatRoomURL && whenCEDefined('yt-formatted-string').then(async () => {
+
+        let dummy;
+        let cProto;
+        dummy = document.createElement('yt-formatted-string');
+        cProto = insp(dummy).constructor.prototype;
+
+        if (!cProto || typeof cProto.setNodeStyle_ !== 'function' || cProto.setNodeStyle17_ || cProto.setNodeStyle_.length !== 2) {
+          console.log('FIX_TRANSCRIPT_SEGMENTS(2) NG');
+          return;
+        }
+
+        cProto.setNodeStyle17_ = cProto.setNodeStyle_;
+        cProto.setNodeStyle_ = function (a, b) {
+          if (b instanceof HTMLElement_ && typeof (a || 0) === 'object') b.classList.toggle('yt-formatted-string-block-line', !!a.blockLine);
+          return this.setNodeStyle17_(a, b);
+        }
+
+        console.log('FIX_TRANSCRIPT_SEGMENTS(2) OK');
+      });
 
     });
 
