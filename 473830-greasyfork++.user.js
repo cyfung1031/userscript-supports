@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.61
+// @version            3.2.62
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -21,9 +21,13 @@
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
+// @match              *://cn-greasyfork.org/*
 // @match              *://api.greasyfork.org/*
 // @match              *://api.sleazyfork.org/*
+// @match              *://api.cn-greasyfork.org/*
 // @connect            greasyfork.org
+// @connect            sleazyfork.org
+// @connect            cn-greasyfork.org
 // @compatible         chrome
 // @compatible         edge
 // @compatible         firefox
@@ -965,7 +969,7 @@ inIframeFn() || (async () => {
             }).catch((e) => {
                 console.debug(e);
             });
-            const m = /^(https\:\/\/(greasyfork|sleazyfork)\.org\/[_-\w\/]*scripts\/(\d+)[-\w%]*)(\/|$)/.exec(location.href)
+            const m = /^(https\:\/\/(cn-greasyfork|greasyfork|sleazyfork)\.org\/[_-\w\/]*scripts\/(\d+)[-\w%]*)(\/|$)/.exec(location.href)
             if (m && m[1]) {
                 const href = `${m[1]}/code`
                 0 && fetch(href, {
@@ -1487,7 +1491,7 @@ inIframeFn() || (async () => {
 
             if (!(id > 0)) return;
 
-            const DO_CORS = /^(greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
+            const DO_CORS = /^(cn-greasyfork|greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
             const url = `https://${DO_CORS || window.location.hostname}/scripts/${id}.json`;
             const fetchUrl = sessionStorage.getItem(`redirect41-${url}`) || url;
 
@@ -1629,7 +1633,7 @@ inIframeFn() || (async () => {
     const getUserData = (userID, noCache) => {
         if (!(userID >= 0)) return Promise.resolve()
 
-        const DO_CORS = /^(greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
+        const DO_CORS = /^(cn-greasyfork|greasyfork|sleazyfork)\.org$/.test(window.location.hostname) ? `api.${window.location.hostname}` : '';
         const url = `https://${DO_CORS || window.location.hostname}/users/${userID}.json`;
         const fetchUrl = sessionStorage.getItem(`redirect41-${url}`) || url;
         return new Promise((resolve, reject) => {
@@ -2530,13 +2534,13 @@ inIframeFn() || (async () => {
             if (fixLibraryScriptCodeLink) {
 
 
-                let xpath = "//code[contains(text(), '.js?version=') or contains(text(), '// @require https://update.greasyfork.org/scripts/')]";
+                let xpath = "//code[contains(text(), '.js?version=') or contains(text(), '// @require https://')]";
                 let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
                 for (let i = 0; i < snapshot.snapshotLength; i++) {
                     let element = snapshot.snapshotItem(i);
                     if (element.firstElementChild) continue;
-                    element.textContent = element.textContent.replace(/\bhttps:\/\/(greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
+                    element.textContent = element.textContent.replace(/\bhttps:\/\/(cn-greasyfork|greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
                         return fixLibraryCodeURL(_);
                     });
                     element.parentNode.insertBefore(document.createTextNode('\u200B'), element);
