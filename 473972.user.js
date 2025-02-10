@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.17.10
+// @version     0.17.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -98,6 +98,8 @@
 
   const HOOK_CSSPD_LEFT = true; // global css hack for style.left
   const FORCE_NO_REUSEABLE_ELEMENT_POOL = true;
+
+  const FIX_TRANSCRIPT_SEGMENTS = true; // Based on Tabview Youtube's implementation
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
 
@@ -310,7 +312,7 @@
   win[hkey_script] = true;
 
 
-  const [setTimeoutX0, clearTimeoutX0] = [setTimeout, clearTimeout];
+  // const [setTimeoutX0, clearTimeoutX0] = [setTimeout, clearTimeout];
 
   let BY_PASS_KEYBOARD_CONTROL = false;
 
@@ -347,6 +349,409 @@
     let y = `${+t}`;
     return y.length > t.length ? t : y;
   }
+
+
+  const isChatRoomURL = location.pathname.startsWith('/live_chat');
+
+
+  const TRANSLATE_DEBUG = false;
+
+
+  function getTranslate() {
+
+    pLoad.then(() => {
+
+      let nonce = document.querySelector('style[nonce]');
+      nonce = nonce ? nonce.getAttribute('nonce') : null;
+      const st = document.createElement('style');
+      if (typeof nonce === 'string') st.setAttribute('nonce', nonce);
+      st.textContent = "yt-formatted-string.segment-text.style-scope.ytd-transcript-segment-renderer>span{display:block}";
+      let parent;
+      if (parent = document.head) parent.appendChild(st);
+      else if (parent = (document.body || document.documentElement)) parent.insertBefore(st, parent.firstChild);
+
+    });
+
+    const snCache = new Map();
+
+    if (TRANSLATE_DEBUG) {
+      console.log(11)
+    }
+
+    /** @type {(str: string?) => string} */
+    function _snippetText(str) {
+      // str can be underfinded
+      if (!str || typeof str !== 'string') return '';
+      let res = snCache.get(str);
+      if (res === undefined) {
+        let b = false;
+        res = str.replace(/\s*[\u200b\xA0\x20\n]+\s*/g, (m) => {
+          b = true;
+          if (m.includes('\n')) return m.replace(/\s*\n\s*/, '\n');
+          return m.replace(/\u200b/g, '').replace(/[\xA0\x20]+/g, ' ');
+        });
+        if (b) {
+          res = str.trim();
+          snCache.set(str, res);
+          snCache.set(res, null);
+        } else {
+          res = null;
+          snCache.set(str, null);
+        }
+      }
+      return res === null ? str : res;
+    }
+
+    /** @type {(snippet: Object) => string} */
+    function snippetText(snippet) {
+      let runs = snippet.runs;
+      const n = runs.length;
+      if (n === 1) return _snippetText(runs[0].text);
+      let res = new Array(n);
+      let ci = 0;
+      for (const s of runs) {
+        res[ci++] = _snippetText(s.text);
+      }
+      return res.join('\n');
+    }
+
+    const _DEBUG_szz = (t) => t.map(x => {
+      const tsr = x.transcriptSegmentRenderer;
+      return ({
+        t: tsr.snippet.runs.map(x => x.text).join('//'),
+        a: tsr.startMs,
+        b: tsr.endMs
+      });
+    });
+
+    const fixRuns = (runs) => {
+      if (runs.length === 1 && runs[0]?.text?.includes('\n')) {
+        // https://www.youtube.com/watch?v=dmHJJ5k_G-A
+        const text = runs[0].text;
+        const nlc = text.includes('\r\n') ? '\r\n' : text.includes('\n\r') ? '\n\r' : text.includes('\r') ? '\r' : '\n';
+        const s = text.split(nlc);
+        let bi = 0;
+        runs.length = s.length;
+        for (const text of s) {
+          runs[bi++] = { ...runs[0], text };
+        }
+      }
+      for (const s of runs) {
+        s.text = _snippetText(s.text);
+      }
+    }
+
+    function translate(initialSegments) {
+      // 2023.07.13 - fix initialSegments with transcriptSectionHeaderRenderer
+
+      if (!initialSegments) return initialSegments;
+
+      if (TRANSLATE_DEBUG) {
+        console.log(12);
+        Promise.resolve(JSON.stringify(initialSegments)).then((r) => {
+          let obj = JSON.parse(r);
+          console.log(7558, 1, obj)
+          return obj;
+        }).then(p => {
+          let obj = _DEBUG_szz(p)
+          console.log(7558, 2, obj)
+        })
+      }
+
+
+      //let mapRej = new WeakSet();
+
+      const n1 = initialSegments.length;
+      if (!n1) return fRes;
+      let n2 = 0;
+
+
+      const fRes = new Array(n1);
+      // -----------------------------------------------------------------------------------------
+
+      const s8 = Symbol();
+
+      {
+
+        /** @type {Map<String, Object>} */
+        let cacheTexts = new Map(); // avoid duplicate with javascript object properties
+
+        // /-* * @type {Map<String, number>} *-/
+        // let mh1 = new Map(); // avoid duplicate with javascript object properties
+        // 1: ok
+        // 2: abandoned effect text
+
+        for (const initialSegment of initialSegments) {
+          const transcript = (initialSegment || 0).transcriptSegmentRenderer;
+          if (!transcript) {
+            // https://www.youtube.com/watch?v=dmHJJ5k_G-A - transcriptSectionHeaderRenderer
+            fRes[n2++] = initialSegment;
+            continue;
+          }
+  
+          const runs = transcript.snippet.runs
+          if (!runs || runs.length === 0) {
+            initialSegment[s8] = true;
+            continue;
+          }
+  
+  
+          let startMs = (+transcript.startMs || 0); //integer
+          let endMs = (+transcript.endMs || 0); //integer
+  
+          if (startMs === endMs) {
+            // effect text
+            // https://www.youtube.com/watch?v=Ud73fm4Uoq0
+            //mapRej.add(initialSegment)
+            continue;
+          }
+          if (endMs - startMs < 30) {
+            continue;
+          }
+  
+          const text = snippetText(transcript.snippet);
+          const hEntry = cacheTexts.get(text);
+          const mh1e = hEntry === undefined ? 0 : hEntry === null ? 2 : 1;
+          if (mh1e === 2) continue;
+  
+          const entry = {
+            startMs,
+            endMs,
+            initialSegment,
+            text
+          };
+  
+          if (mh1e === 0) {
+  
+            if (/^[,.\x60\x27\x22\u200b\xA0\x20;-]*$/.test(text)) {
+              initialSegment[s8] = true;
+              cacheTexts.set(text, null);
+              //effect only
+              // https://www.youtube.com/watch?v=zLak0dxBKpM
+              //mapRej.add(initialSegment)
+              continue;
+            }
+          } else if (hEntry) {
+
+            const timeDiff = entry.startMs - hEntry.endMs;
+            let shouldMerge = false;
+
+            if (timeDiff >= 0) {
+
+              if (timeDiff < 25) {
+                shouldMerge = true;
+              } else if (timeDiff < 450 && entry.endMs - entry.startMs < 900) {
+                shouldMerge = true;
+              } else if (timeDiff < 150 && entry.endMs - entry.startMs > 800) {
+                shouldMerge = true;
+              }
+
+              if (shouldMerge && hEntry.endMs <= endMs && startMs <= endMs) {
+                // abandon the current entry.
+                // absorbed by previous entry
+                hEntry.endMs = entry.endMs;
+                hEntry.initialSegment.transcriptSegmentRenderer.endMs = entry.initialSegment.transcriptSegmentRenderer.endMs; // update fRes & initialSegments as well using object reference
+                //mapRej.add(entry.initialSegment);
+                continue;
+              }
+
+            } else if (entry.startMs < hEntry.startMs && hEntry.startMs < entry.endMs) {
+
+              // abandon the current entry.
+              // absorbed by previous entry
+              if (entry.endMs > hEntry.endMs) {
+                hEntry.endMs = entry.endMs;
+                hEntry.initialSegment.transcriptSegmentRenderer.endMs = entry.initialSegment.transcriptSegmentRenderer.endMs; // update fRes & initialSegments as well using object reference
+              }
+              //mapRej.add(entry.initialSegment);
+              continue;
+
+            }
+
+          }
+  
+          //if not abandoned
+          cacheTexts.set(text, entry); //replace the previous valid entry object if any
+  
+          // for (const s of runs) {
+          //   s.text = _snippetText(s.text);
+          // }
+          fixRuns(runs);
+  
+          fRes[n2++] = initialSegment;
+  
+        }
+
+        // cacheTexts.clear(); // let GC do it.
+        cacheTexts = null;
+        // mh1.clear(); // let GC do it.
+        // mh1 = null;
+
+      }
+
+      const si_length = fRes.length = n2;
+      const sj_length = n1;
+
+      if (si_length !== sj_length) { // for equal length, no fix is required & ignore spacing fix
+       
+        // collect the abandon text to become second subtitle
+
+        let sj_start = 0;
+        let invalid_sj = -1;
+        for (let si = 0; si < si_length; si++) {
+          const segment = fRes[si];
+          let transcript = segment.transcriptSegmentRenderer;
+          if (!transcript) continue; // e.g. transcriptSectionHeaderRenderer
+          const runs = transcript.snippet.runs;
+          // fixRuns(runs);
+          if (runs.length > 1 || runs[0].text.includes('\n')) continue; // skip multi lines
+          const main_startMs = (+transcript.startMs || 0);
+          const main_endMs = (+transcript.endMs || 0);
+          transcript = null;
+
+          /** @type {Map<string, number>} */
+          let tMap = new Map(); // avoid duplicate with javascript object properties
+
+          // assume that it is asc-ordered array of key startMs;
+          for (let sj = sj_start; sj < sj_length; sj++) {
+            const initialSegment = initialSegments[sj];
+
+            if (!initialSegment || initialSegment[s8]) continue; // should invalid_sj be set ?
+
+            const tSegment = initialSegment.transcriptSegmentRenderer;
+
+            if (!tSegment) {
+              // https://www.youtube.com/watch?v=dmHJJ5k_G-A - transcriptSectionHeaderRenderer
+              invalid_sj = sj; // should invalid_sj be set ?
+              continue;
+            }
+
+            const startMs = (+tSegment.startMs || 0)
+            const isStartValid = startMs >= main_startMs;
+            if (!isStartValid) {
+              invalid_sj = sj;
+              continue;
+            }
+            // isStartValid must be true
+            if (startMs > main_endMs) {
+              sj_start = invalid_sj + 1;
+              break;
+            }
+
+            const endMs = (+tSegment.endMs || 0)
+            if (endMs <= main_endMs) {
+              const mt = snippetText(tSegment.snippet);
+              const prev = tMap.get(mt);
+              if (endMs >= startMs) {
+                tMap.set(mt, (prev || 0) + 1 + (endMs - startMs));
+              }
+            }
+
+          }
+
+          if (tMap.size <= 1) continue; // no second line
+          let rg = [...tMap.entries()]; // N x 2 2D-array [string,number][]
+          tMap = null;
+
+          // https://www.youtube.com/watch?v=Ud73fm4Uoq0
+
+          rg.sort((a, b) => b[1] - a[1]); //descending order of number
+
+          let targetZ = rg[1][1];
+          if (targetZ > 4) {
+            let az = 0;
+            let fail = false;
+            for (let idx = 2, rgl = rg.length; idx < rgl; idx++) {
+              az += rg[idx][1];
+              if (az >= targetZ) {
+                fail = true;
+                break;
+              }
+            }
+            if (!fail) {
+              const rgA = rg[0][0];
+              const rgB = rg[1][0];
+              const isDiff = rgB.replace(/\s/g, '') !== rgA.replace(/\s/g, '');
+              if (isDiff && rgA === _snippetText(runs[0].text)) {
+                runs.push({ text: rgB });
+              }
+            }
+          }
+          rg = null;
+        }
+
+        TRANSLATE_DEBUG && Promise.resolve(fRes).then((r) => {
+
+          let obj = r;
+          console.log(7559, 1, obj)
+          return obj;
+        }).then(p => {
+          let obj = _DEBUG_szz(p)
+          console.log(7559, 2, obj)
+
+        });
+      }
+
+      // -----------------------------------------------------------------------------------------
+      snCache.clear();
+      return fRes;
+
+    }
+
+
+    return translate
+
+  }
+
+
+  let translateFn = null;
+
+  FIX_TRANSCRIPT_SEGMENTS && !isChatRoomURL && (() => {
+
+    const wmx = new WeakMap();
+
+    function fixSegments(ytObj) {
+      let a, b;
+      let seg = ((a = ytObj.data) == null ? void 0 : a[b = 'searchResultSegments']) || ((a = ytObj.data) == null ? void 0 : a[b = 'initialSegments']) || [];
+      if (!seg || !a || !b || typeof (seg || 0) !== 'object' || !Number.isFinite(seg.length * 1)) return;
+      translateFn = translateFn || getTranslate();
+      let cSeg;
+      cSeg = wmx.get(seg);
+      if (!cSeg) {
+        let vSeg = null;
+        try {
+          vSeg = translateFn(seg);
+        } catch (e) {
+        }
+        if (seg && typeof seg === 'object' && seg.length >= 1 && vSeg && typeof vSeg === 'object' && vSeg.length >= 1) {
+          // console.log('translated', vSeg);
+          cSeg = vSeg;
+          wmx.set(seg, cSeg);
+          wmx.set(cSeg, cSeg);
+        }
+      }
+      if (cSeg && cSeg !== seg) {
+        a[b] = cSeg;
+      }
+    }
+
+    const dfn = Symbol();
+    const Object_ = Object;
+    Object_[dfn] = Object_.defineProperties;
+    let activation = true;
+    Object_.defineProperties = function (obj, pds) {
+      let segments, get_;
+      if (activation && pds && (segments = pds.segments) && (get_ = segments.get)) {
+        activation = false;
+        segments.get = function () {
+          fixSegments(this);
+          return get_.call(this);
+        };
+      }
+      return Object_[dfn](obj, pds);
+    };
+
+  })();
 
 
   let pf31 = new PromiseExternal();
@@ -851,7 +1256,7 @@
   })();
 
 
-  FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS && (() => {
+  FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS && !isChatRoomURL && (() => {
 
     const [setIntervalX0, clearIntervalX0] = [setInterval, clearInterval];
 
@@ -3051,135 +3456,7 @@
   const ump3 = new WeakMap();
 
   const stp = document.createElement('noscript');
-  stp.id = 'weakref-placeholder'
-
-
-  const handlerWFs = {};
-
-  const createHandlerWF = (z, usePlaceholder) => {
-
-    return {
-      get() {
-        const elm = this;
-        const wr = elm[z];
-        if (!wr) return null;
-        const m = kRef(wr);
-        if (!m && usePlaceholder) {
-          if (typeof usePlaceholder === 'function') usePlaceholder(elm);
-          return stp;
-        }
-        return m;
-      },
-      set(nv) {
-        const elm = this;
-        elm[z] = nv ? mWeakRef(nv) : null;
-        return true;
-      },
-      configurable: true,
-      enumerable: true
-
-    }
-  }
-
-  const setupWF = typeof WeakRef !== 'undefined' ? (elm, s, usePlaceholder) => {
-    const z = `${s}72`;
-    if (z in elm) return;
-    const pd = Object.getOwnPropertyDescriptor(elm, s);
-    if (pd && pd.configurable && !pd.get && !pd.set) {
-      const p = pd.value;
-      delete elm[s];
-      const handlerWF = handlerWFs[s] || (handlerWFs[s] = createHandlerWF(z, usePlaceholder));
-      Object.defineProperty(elm, s, handlerWF);
-      elm[s] = p;
-      elm = null;
-    }
-  } : null;
-
-  const mxMapPD = new WeakMap();
-
-  const identifierWD = Symbol();
-  const handlerWD = {
-    get(obj, prop) {
-      if (prop === identifierWD) return true;
-      const val = obj[prop];
-      if (typeof (val || 0).deref === 'function') {
-        return val.deref();
-      }
-      return val;
-    },
-    set(obj, prop, val) {
-      if (val instanceof Node) {
-        obj[prop] = mWeakRef(val);
-      } else {
-        obj[prop] = val;
-      }
-      return true;
-    }
-  };
-
-
-  const configureVisibilityObserverT_ = function () {
-    const hostElement = this.hostElement;
-    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      this.unobserve_();
-    } else {
-      return this.configureVisibilityObserver27_();
-    }
-  };
-  const getParentRendererT = function () {
-    const hostElement = this.hostElement;
-    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      return null;
-    } else {
-      return this.getParentRenderer27();
-    }
-  }
-
-  const attachedT = function () {
-    const hostElement = this.hostElement;
-    if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-      if (this.isAttached === true) this.isAttached = false;
-      return void 0;
-    } else {
-      return this.attached27();
-    }
-  }
-
-  const hostElementCleanUp = (dh) => {
-    if (typeof dh.dispose === 'function') {
-      try {
-        if (dh.visibilityMonitor || dh.visibilityObserver) {
-          dh.dispose();
-          dh.visibilityMonitor = null;
-          dh.visibilityObserver = null;
-        }
-      } catch (e) { }
-    }
-    if (typeof dh.detached === 'function') {
-      try {
-        if (dh.visibilityObserverForChild_ || dh.localVisibilityObserver_) {
-          dh.detached();
-          dh.visibilityObserverForChild_ = null;
-          dh.localVisibilityObserver_ = null;
-        }
-      } catch (e) { }
-    }
-  };
-
-  const setupDataHost_ = (eh) => {
-    if (typeof eh.configureVisibilityObserver_ === 'function' && !eh.configureVisibilityObserver27_) {
-      eh.configureVisibilityObserver27_ = eh.configureVisibilityObserver_;
-      eh.configureVisibilityObserver_ = configureVisibilityObserverT_;
-    }
-    if (typeof eh.getParentRenderer === 'function' && !eh.getParentRenderer27) {
-      eh.getParentRenderer27 = eh.getParentRenderer;
-      eh.getParentRenderer = getParentRendererT;
-    }
-    if (typeof eh.attached === 'function' && !eh.attached27) {
-      eh.attached27 = eh.attached;
-      eh.attached = attachedT;
-    }
-  }
+  stp.id = 'weakref-placeholder';
 
   PROP_OverReInclusion_AVOID && (() => {
 
@@ -4330,7 +4607,7 @@
 
   if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
 
-  ; FIX_Iframe_NULL_SRC && typeof kagi === 'undefined' && (() => {
+  ; FIX_Iframe_NULL_SRC && !isChatRoomURL && typeof kagi === 'undefined' && (() => {
 
     const emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
     const lcOpt = { sensitivity: 'base' };
@@ -5181,7 +5458,7 @@
 
   const promiseForYtActionCalled = new Promise(resolve => {
 
-      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-app';
+    const appTag = isChatRoomURL ? 'yt-live-chat-app' : 'ytd-app';
     if (typeof AbortSignal !== 'undefined') {
       let hn = () => {
         if (!hn) return;
@@ -5346,7 +5623,7 @@
 
     FIX_ytAction_ && (async () => {
 
-      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-app';
+      const appTag = isChatRoomURL ? 'yt-live-chat-app' : 'ytd-app';
 
       const ytdApp = await new Promise(resolve => {
 
@@ -5430,7 +5707,7 @@
 
     FORCE_NO_REUSEABLE_ELEMENT_POOL && promiseForYtActionCalled.then(async () => {
 
-      const appTag = location.pathname.startsWith('/live_chat') ? 'yt-live-chat-app':'ytd-watch-flexy';
+      const appTag = isChatRoomURL ? 'yt-live-chat-app' : 'ytd-watch-flexy';
 
       const app = await observablePromise(() => {
 
@@ -5788,37 +6065,42 @@
 
     }
 
-    FIX_onVideoDataChange && generalEvtHandler('onVideoDataChange', 'onVideoDataChange57');
-    // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
-    FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
-    FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
-    if (FIX_VideoEVENTS_v2) {
-      const FIX_VideoEVENTS_DEBUG = 0;
-      generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG); // --
-      // generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
-      // generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG); // << CAUSE ISSUE >>
-      generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG); // --
-      // generalEvtHandler('onLoadedMetadata', 'onLoadedMetadata57', FIX_VideoEVENTS_DEBUG);
-      // generalEvtHandler('onDrmOutputRestricted', 'onDrmOutputRestricted57', FIX_VideoEVENTS_DEBUG);
-      // generalEvtHandler('onAirPlayActiveChange', 'onAirPlayActiveChange57', FIX_VideoEVENTS_DEBUG);
-      // generalEvtHandler('onAirPlayAvailabilityChange', 'onAirPlayAvailabilityChange57', FIX_VideoEVENTS_DEBUG);
-      // generalEvtHandler('onApiChange', 'onApiChange57', FIX_VideoEVENTS_DEBUG);
+    if (!isChatRoomURL) {
+
+      FIX_onVideoDataChange && generalEvtHandler('onVideoDataChange', 'onVideoDataChange57');
+      // FIX_onClick && generalEvtHandler('onClick', 'onClick57');
+      FIX_onStateChange && generalEvtHandler('onStateChange', 'onStateChange57');
+      FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
+      if (FIX_VideoEVENTS_v2) {
+        const FIX_VideoEVENTS_DEBUG = 0;
+        generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG); // --
+        // generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
+        // generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG); // << CAUSE ISSUE >>
+        generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG); // --
+        // generalEvtHandler('onLoadedMetadata', 'onLoadedMetadata57', FIX_VideoEVENTS_DEBUG);
+        // generalEvtHandler('onDrmOutputRestricted', 'onDrmOutputRestricted57', FIX_VideoEVENTS_DEBUG);
+        // generalEvtHandler('onAirPlayActiveChange', 'onAirPlayActiveChange57', FIX_VideoEVENTS_DEBUG);
+        // generalEvtHandler('onAirPlayAvailabilityChange', 'onAirPlayAvailabilityChange57', FIX_VideoEVENTS_DEBUG);
+        // generalEvtHandler('onApiChange', 'onApiChange57', FIX_VideoEVENTS_DEBUG);
+
+      }
+      // onMutedAutoplayChange
+      // onVolumeChange
+      // onPlaybackRateChange
+
+      // onAirPlayActiveChange
+      // onAirPlayAvailabilityChange
+      // onApiChange
+      // onAutoplayBlocked
+      // onDrmOutputRestricted
+      // onFullscreenChange
+      // onLoadProgress
+      // onLoadedMetadata
+      // onVideoDataChange
+      // onVideoProgress
 
     }
-    // onMutedAutoplayChange
-    // onVolumeChange
-    // onPlaybackRateChange
 
-    // onAirPlayActiveChange
-    // onAirPlayAvailabilityChange
-    // onApiChange
-    // onAutoplayBlocked
-    // onDrmOutputRestricted
-    // onFullscreenChange
-    // onLoadProgress
-    // onLoadedMetadata
-    // onVideoDataChange
-    // onVideoProgress
 
 
     (ENABLE_discreteTasking || FIX_Polymer_dom) && (async () => {
@@ -6230,7 +6512,7 @@
       }
     })();
 
-    FIX_yt_player && (async () => {
+    FIX_yt_player && !isChatRoomURL && (async () => {
 
       const fOption = 1 | 2 | 4;
 
@@ -6707,7 +6989,7 @@
     })();
 
 
-    FIX_yt_player && FIX_SHORTCUTKEYS > 0 && (async () => {
+    FIX_yt_player && !isChatRoomURL && FIX_SHORTCUTKEYS > 0 && (async () => {
       // keyboard shortcut keys controller
 
       const _yt_player = await _yt_player_observable.obtain();
@@ -6718,7 +7000,7 @@
 
     })();
 
-    FIX_yt_player && (async () => {
+    FIX_yt_player && !isChatRoomURL && (async () => {
       // timer scheduling
 
       const _yt_player = await _yt_player_observable.obtain();
@@ -7501,7 +7783,7 @@
       }
 
 
-      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && isPrepareCachedV && check_for_set_key_order;
+      const FIX_avoid_incorrect_video_meta_bool = FIX_avoid_incorrect_video_meta && isPrepareCachedV && check_for_set_key_order && !isChatRoomURL;
 
 
       FIX_avoid_incorrect_video_meta_bool && whenCEDefined('ytd-video-primary-info-renderer').then(() => {
@@ -7965,7 +8247,7 @@
       // ==================================== FIX_avoid_incorrect_video_meta ====================================
 
 
-      FIX_ytdExpander_childrenChanged && whenCEDefined('ytd-expander').then(() => {
+      FIX_ytdExpander_childrenChanged && !isChatRoomURL && whenCEDefined('ytd-expander').then(() => {
 
         let dummy;
         let cProto;
@@ -8278,7 +8560,75 @@
         console.log('FIX_POPUP_UNIQUE_ID OK')
 
 
-      })
+      });
+
+
+      // FIX_TRANSCRIPT_SEGMENTS && (async ()=>{
+
+
+      // })();
+
+      // FIX_TRANSCRIPT_SEGMENTS && whenCEDefined('ytd-transcript-search-panel-renderer').then(async () => {
+
+
+      //   let dummy;
+      //   let cProto;
+      //   dummy = document.createElement('ytd-transcript-search-panel-renderer');
+      //   cProto = insp(dummy).constructor.prototype;
+
+
+      //   if (!cProto || typeof cProto.bodyChanged !== 'function' || cProto.bodyChanged1848 || cProto.bodyChanged.length !== 0) {
+      //     console.log('FIX_TRANSCRIPT_SEGMENTS NG')
+      //     return;
+      //   }
+      //   cProto.bodyChanged1848 = cProto.bodyChanged;
+
+      //   const wmx = new WeakMap();
+
+      //   const sb35 = Symbol();
+      //   cProto.bodyChanged = function () {
+      //     let a = null;
+      //     try {
+      //       a = this.getBodyRenderer();
+      //     } catch (e) { }
+      //     if (!a || !a.initialSegments) {
+      //       a = this.data;
+      //       if (a.body) a = a.body;
+      //       if (a.transcriptSegmentListRenderer) a = a.transcriptSegmentListRenderer;
+      //     }
+      //     const a_ = a;
+      //     const initialSegments = (a_ || 0).initialSegments;
+      //     if (typeof (initialSegments || 0) === 'object' && initialSegments.length >= 1){
+      //       ((async () => { })()).then(() => {
+
+      //         const c = wmx.get(initialSegments);
+      //         if (!c) {
+      //           const d = translateFn(initialSegments);
+      //           wmx.set(initialSegments, d);
+      //           console.log('translated', d);
+      //           wmx.set(d, d);
+      //           a_.initialSegments = d;
+      //         } else {
+      //           a_.initialSegments = c;
+      //         }
+
+
+      //       }).then(() => {
+      //         // this.bodyChanged1848();
+      //       });
+
+      //     }else{
+
+      //       // return this.bodyChanged1848();
+      //     }
+      //   }
+
+      //   console.log('FIX_TRANSCRIPT_SEGMENTS OK')
+
+
+
+
+      // });
 
 
     });
