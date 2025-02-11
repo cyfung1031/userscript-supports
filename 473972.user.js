@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.1
+// @version     0.18.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -103,6 +103,7 @@
   const FIX_TRANSCRIPT_SEGMENTS = true; // Based on Tabview Youtube's implementation
   const DO_createStampDomArrayFnE1_ = true; // added in 2025.02.11 - to improve stampDom responsiveness
   const DO_createStampDomArrayFnE1_noConstraintE = true;
+  const DO_createStampDomArrayFnE1_nativeAppendD = true;
   
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
@@ -346,6 +347,10 @@
   })();
 
   const HTMLElement_ = HTMLElement;
+  const nativeAppendE = HTMLElement_.prototype.append;
+  const nativeRemoveE = HTMLElement_.prototype.remove;
+  const DocumentFragment_ = DocumentFragment;
+  const nativeAppendD = DocumentFragment_.prototype.append;
 
   /**
     @param {number} x
@@ -3622,8 +3627,6 @@
       nextBrowserTick_(() => {
         a_.some((u, i) => {
 
-
-
             const x = csb(c, u);
             if (!x) {
               fns[i] = nofn;
@@ -3647,8 +3650,6 @@
               };
   
             }
-          
-
 
         });
       });
@@ -3672,9 +3673,16 @@
         return;
       }
 
-      let elm;
-      while (elm = noscript.firstChild) {
-        gFragment.appendChild(elm);
+      if (DO_createStampDomArrayFnE1_nativeAppendD) {
+        let elm;
+        while (elm = noscript.firstChild) {
+          nativeAppendD.call(gFragment, elm); // no attached / detached
+        }
+      } else {
+        let elm;
+        while (elm = noscript.firstChild) {
+          gFragment.appendChild(elm);
+        }
       }
     }).then(() => {
 
