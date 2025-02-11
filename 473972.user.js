@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.8
+// @version     0.18.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3927,7 +3927,9 @@
   const stampIdxSb = Symbol();
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
-  const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
+  const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', 'ytd-unified-share-panel-renderer']);
+  // const byPassB55 = new Set(['continuations']);
+  const byPassB55 = new Set([]);
   const createStampDomArrayFn_ = (fn) => {
     if (val_kevlar_should_maintain_stable_list === null) {
       const config_ = ((window.yt || 0).config_ || 0);
@@ -3953,11 +3955,10 @@
         // !!c <=> typeof c should be always object
 
         const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
-        if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is)) {
+        if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is) && !byPassB55.has(b)) {
           // h (stamperStableList) = true
           // d (reuseComponents) = false
           // a.length > 1 to avoid chatroom display issue
-
 
           const container = this.getStampContainer_(b);
 
