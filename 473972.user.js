@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.6
+// @version     0.18.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3885,6 +3885,7 @@
 
   const stampIdxSb = Symbol();
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
+  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
   const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
   const createStampDomArrayFn_ = (fn) => {
     if (val_kevlar_should_maintain_stable_list === null) {
@@ -3904,26 +3905,30 @@
           h = true;
         }
       }
-      
-      if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && isNonEmptyArray && typeof (b || 0) === 'string' && typeof (c||0) === 'object'){
+
+      if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && isNonEmptyArray && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
         // !!c <=> typeof c should be always object
+
         const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
-        if(!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is)) {
+        if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is)) {
           // h (stamperStableList) = true
           // d (reuseComponents) = false
           // a.length > 1 to avoid chatroom display issue
-  
-  
+
+
           const container = this.getStampContainer_(b);
-  
+
           if (container) {
-  
+
+            this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
             let domShell = (container && container.__domApi);
 
             if (!domShell) {
               fn.call(this, undefined, b, undefined, d);
               domShell = container && container.__domApi;
             }
+
 
 
             if (domShell && domShell.appendChild) {
@@ -3957,14 +3962,14 @@
 
 
           }
-  
-  
-   
+
+
+
         }
 
 
       }
-       
+
       // console.log(2949, a,b,c,d,e,h)
       return fn.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h)
     }
