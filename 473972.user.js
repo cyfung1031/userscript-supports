@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.16
+// @version     0.18.17
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -105,6 +105,7 @@
   const DO_createStampDomArrayFnE1_noConstraintE = true;
   const DO_createStampDomArrayFnE1_nativeAppendD = true;
   const DO_createStampDomArrayFnF1_ = true;
+  const DO_createStampDomArray_STRICT_FULFILLMENT = true; // avoid issues; can be changed to false
   
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
@@ -3994,6 +3995,9 @@
     const gn = function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
       // this.__$$StampDomCounter$$__ = (this.__$$StampDomCounter$$__ || 0) + 1;
       // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      // if (a.length > 10) {
+      //   console.log(58691, this.is, b, c);
+      // }
 
       if ((this.hostElement || 0).isConnected) this[`__0fs892::${b}__`] = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
       let n = (a || 0).length, t;
@@ -4009,10 +4013,20 @@
         if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
           // !!c <=> typeof c should be always object
 
+          let fulfillment = false;
+          if (DO_createStampDomArray_STRICT_FULFILLMENT) {
+            const isPlaylistRendering = this.is === 'ytd-playlist-panel-renderer' && b === 'items' && (c || 0).playlistPanelVideoRenderer;
+            const isTranscriptRendering = this.is === 'ytd-transcript-segment-list-renderer' && b === 'segments-container' && (c || 0).transcriptSegmentRenderer;
+            const isProductListRendering = this.is === 'ytd-product-list-renderer' && b === 'contents' && (c || 0).productListItemRenderer;
+            const isGuideSectionItemRendering = this.is === 'ytd-guide-section-renderer' && b === 'items' && ((c || 0).guideCollapsibleEntryRenderer || (c || 0).guideCollapsibleSectionEntryRenderer || (c || 0).guideEntryRenderer);
+            fulfillment = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering); // strict fulfillment; avoid issues
+          } else {
+            fulfillment = true;
+          }
           const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
           const dk55 = (window.dk55 || (window.dk55 = new Set()));
           dk55.add(`(is=${this.is}, b=${b})`);
-          if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is) && !byPassB55.has(b)) {
+          if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is) && !byPassB55.has(b) && fulfillment) {
             // h (stamperStableList) = true
             // d (reuseComponents) = false
             // a.length > 1 to avoid chatroom display issue
