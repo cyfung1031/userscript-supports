@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.13
+// @version     0.18.14
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3933,7 +3933,7 @@
     'ytd-continuation-item-renderer', 'tp-yt-paper-spinner'
   ]);
   // const byPassB55 = new Set(['continuations']);
-  const byPassB55 = new Set([]);
+  const byPassB55 = new Set(['flexible-item-buttons', 'continuations']);
   const createStampDomArrayFn_ = (fn) => {
     if (val_kevlar_should_maintain_stable_list === null) {
       const config_ = ((window.yt || 0).config_ || 0);
@@ -4014,6 +4014,8 @@
 
             if (domShell && domShell.appendChild) {
 
+              
+              // console.log(5882, this.is, b)
               if (domShell.firstElementChild === null) {
                 createStampDomArrayFnE1_.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h);
                 return;
