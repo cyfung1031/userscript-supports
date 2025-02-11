@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.12
+// @version     0.18.13
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3929,7 +3929,8 @@
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
   const byPassIs55 = new Set([
     'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', // avoid disappearing of video/short entries
-    'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer', 'ytd-add-to-playlist-renderer' // avoid share-panel being non-central
+    'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer', 'ytd-add-to-playlist-renderer', // avoid share-panel being non-central
+    'ytd-continuation-item-renderer', 'tp-yt-paper-spinner'
   ]);
   // const byPassB55 = new Set(['continuations']);
   const byPassB55 = new Set([]);
