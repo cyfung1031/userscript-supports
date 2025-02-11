@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.0
+// @version     0.18.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -15,6 +15,7 @@
 // @unwrap
 // @inject-into page
 // @allFrames   true
+// @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // ==/UserScript==
 
 (() => {
@@ -3732,9 +3733,10 @@
         // !!c <=> typeof c should be always object
         const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
         
-        if(!d && constraintE && h) {
+        if(!d && constraintE && h && a.length > 1) {
           // h (stamperStableList) = true
           // d (reuseComponents) = false
+          // a.length > 1 to avoid chatroom display issue
   
   
           const container = this.getStampContainer_(b);
