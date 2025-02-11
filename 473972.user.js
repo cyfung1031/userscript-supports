@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.7
+// @version     0.18.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3580,131 +3580,90 @@
   const csb = (a, b) => { for (const c in a) if (a.hasOwnProperty(c) && b[c]) return c; return null }
   const createStampDomArrayFnE1_ = async function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
 
-    const t892 = this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-    // c - mapping
-    // d - reuseComponents
-    // e - events (shouldTriggerRendererStamperFinished)
-    // h - stamperStableList
 
-    // this is for flushing the new elements to a blank container. (without reusing)
+    // this.__$$fs894$$__ = this.__$$fs894$$__  ||  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+    if (!this.__$$p892$$__) this.__$$p892$$__ = Promise.resolve(0);
+    // console.log(1880, this.__$$fs894$$__)
+    this.__$$p892$$__ = this.__$$p892$$__.then(async () => {
 
-    // const sdc01 = this.__$$StampDomCounter$$__;
-    // console.log('createStampDomArrayFnE1_', a, c)
-    const b_ = b;
-    const c_ = c;
-    const a_ = a;
+      try{
 
-    const {data, __data} = this; // for data integrity check
+        // console.log(1882 , this.__$$fs894$$__)
 
-    const doDeferRenderStamperBinding_ = async (cp) => {
-      const i = cp[stampIdxSb];
-      const u = a_[i];
-      const c = c_;
-      const x = csb(c, u);
-      this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
-    };
-
-    const container = this.getStampContainer_(b_);
-
-    const domShell = container.__domApi;
-    if (!domShell || !domShell.appendChild) throw new Error();
-    const hasElement = !!domShell.firstElementChild;
-    const noscript = document.createElement('noscript');
-    // document.body.appendChild(noscript); 
-
-    let doc = document;
-    // ---------- doc ----------
-    // let docHTML = '<html></html>';
-    // try {
-    //   docHTML = trustedTypes.defaultPolicy.createHTML(docHTML) || docHTML;
-    // } catch (e) { }
-    // try {
-    //   const parser = new DOMParser();
-    //   doc = parser.parseFromString(docHTML, "text/html");
-    // } catch (e) { }
-    // ---------- doc ----------
-
-    // document.documentElement.appendChild.call(doc.documentElement, noscript);
-    // nativeRemoveE.call(noscript);
-    // doc = null;
-    parser = null;
-    // console.log(doc,38);
-
-    const nofn = () => true;
-    const n = a_.length;
-    const fns = new Array(n);
-    let cxt = 0;
-
-    let qxd = hasElement ? new WeakSet() : null;
-    const nextTickFnE1 = () => {
-      a_.some((u, i) => {
-
+        // const t892 = this.__$$fs892$$__;
+        // const t892 = this.__$$fs892$$__ = 1;
+        // const t892 = this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+        // c - mapping
+        // d - reuseComponents
+        // e - events (shouldTriggerRendererStamperFinished)
+        // h - stamperStableList
+    
+        // this is for flushing the new elements to a blank container. (without reusing)
+    
+        // const sdc01 = this.__$$StampDomCounter$$__;
+        // console.log('createStampDomArrayFnE1_', a, c)
+        const b_ = b;
+        const c_ = c;
+        const a_ = a;
+    
+        const {data, __data} = this; // for data integrity check
+    
+        const doDeferRenderStamperBinding_ = async (cp) => {
+          const i = cp[stampIdxSb];
+          const u = a_[i];
+          const c = c_;
           const x = csb(c, u);
-          if (!x) {
-            fns[i] = nofn;
-            cxt++;
-          } else {
-
-            const cp = this.createComponent_(c[x], u[x], d);
-            cp[stampIdxSb] = i;
-            doDeferRenderStamperBinding_(cp);
-            // mutex = mutex.then(() => {
-              noscript.appendChild(cp);
-            // });
-
-            // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
-            let q = cp;
-            fns[i] = () => {
-              if (q && q.parentNode === noscript) {
-                const cp = q;
-                q = null;
-              }
-              if (!q) return true;
-            };
-
-          }
-
-      });
-      noscript.setAttribute('ylul8gr', `${Date.now()}`);
-    };
-
-    const nextTickFnF1 = ()=>{
-
-        a_.some((u, i) => {
-
-            const x = csb(c, u);
-            if (!x) {
-              fns[i] = nofn;
-              cxt++;
-            } else {
-  
-              const is = this.getComponentName_(c[x], u[x]);
-              let np = domShell.firstElementChild;
-              let chosenNode = null;
-              while (np) {
-                if (np instanceof Node_ && np.is === is && !qxd.has(np)) {
-                  qxd.add(np);
-                  chosenNode = np;
-                  break;
-                }
-                np = np.nextElementSibling;
-              }
-
-              const cp = chosenNode || this.createComponent_(c[x], u[x], d);
-              let oldIdx = cp[stampIdxSb];
-              if(chosenNode !== null && cp === chosenNode){
-
-                cp[stampIdxSb] = i;
-                doDeferRenderStamperBinding_(cp);
+          this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
+        };
+    
+        const container = this.getStampContainer_(b_);
+    
+        const domShell = container.__domApi;
+        if (!domShell || !domShell.appendChild) throw new Error();
+        const hasElement = !!domShell.firstElementChild;
+        const noscript = document.createElement('noscript');
+        // document.body.appendChild(noscript); 
+    
+        let doc = document;
+        // ---------- doc ----------
+        // let docHTML = '<html></html>';
+        // try {
+        //   docHTML = trustedTypes.defaultPolicy.createHTML(docHTML) || docHTML;
+        // } catch (e) { }
+        // try {
+        //   const parser = new DOMParser();
+        //   doc = parser.parseFromString(docHTML, "text/html");
+        // } catch (e) { }
+        // ---------- doc ----------
+    
+        // document.documentElement.appendChild.call(doc.documentElement, noscript);
+        // nativeRemoveE.call(noscript);
+        // doc = null;
+        // parser = null;
+        // console.log(doc,38);
+    
+        const nofn = () => true;
+        const n = a_.length;
+        const fns = new Array(n);
+        let cxt = 0;
+    
+        let qxd = hasElement ? new WeakSet() : null;
+        const nextTickFnE1 = () => {
+          a_.some((u, i) => {
+    
+              const x = csb(c, u);
+              if (!x) {
                 fns[i] = nofn;
-              }else{
-
+                cxt++;
+              } else {
+    
+                const cp = this.createComponent_(c[x], u[x], d);
                 cp[stampIdxSb] = i;
                 doDeferRenderStamperBinding_(cp);
                 // mutex = mutex.then(() => {
-                  noscript.appendChild(cp); // ui formation
+                  noscript.appendChild(cp);
                 // });
-  
+    
                 // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
                 let q = cp;
                 fns[i] = () => {
@@ -3714,171 +3673,253 @@
                   }
                   if (!q) return true;
                 };
-
+    
               }
-  
+    
+          });
+          noscript.setAttribute('ylul8gr', `${Date.now()}`);
+        };
+    
+        const nextTickFnF1 = ()=>{
+    
+            a_.some((u, i) => {
+    
+                const x = csb(c, u);
+                if (!x) {
+                  fns[i] = nofn;
+                  cxt++;
+                } else {
+      
+                  const is = this.getComponentName_(c[x], u[x]);
+                  let np = domShell.firstElementChild;
+                  let chosenNode = null;
+                  while (np) {
+                    if (np instanceof Node_ && np.is === is && !qxd.has(np)) {
+                      qxd.add(np);
+                      chosenNode = np;
+                      break;
+                    }
+                    np = np.nextElementSibling;
+                  }
+    
+                  const cp = chosenNode || this.createComponent_(c[x], u[x], d);
+                  let oldIdx = cp[stampIdxSb];
+                  if(chosenNode !== null && cp === chosenNode){
+    
+                    cp[stampIdxSb] = i;
+                    doDeferRenderStamperBinding_(cp);
+                    fns[i] = nofn;
+                  }else{
+    
+                    cp[stampIdxSb] = i;
+                    doDeferRenderStamperBinding_(cp);
+                    // mutex = mutex.then(() => {
+                      noscript.appendChild(cp); // ui formation
+                    // });
+      
+                    // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
+                    let q = cp;
+                    fns[i] = () => {
+                      if (q && q.parentNode === noscript) {
+                        const cp = q;
+                        q = null;
+                      }
+                      if (!q) return true;
+                    };
+    
+                  }
+      
+                }
+    
+            });
+            noscript.setAttribute('ylul8gr', `${Date.now()}`);
+        }
+    
+        const pr = new Promise(resolvePR => {
+    
+          let mo = new MutationObserver(() => {
+            if (typeof fns[n - 1] !== 'function') return;
+            const everyTrue = fns.every(fn => fn() === true);
+            if (everyTrue) {
+              if (mo) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+              }
+              resolvePR();
             }
-
-        });
-        noscript.setAttribute('ylul8gr', `${Date.now()}`);
-    }
-
-    const pr = new Promise(resolvePR => {
-
-      let mo = new MutationObserver(() => {
-        if (typeof fns[n - 1] !== 'function') return;
-        const everyTrue = fns.every(fn => fn() === true);
-        if (everyTrue) {
-          if (mo) {
-            mo.disconnect();
-            mo.takeRecords();
-            mo = null;
+          });
+          mo.observe(noscript, { subtree: false, childList: true, attributes:['ylul8gr'] });
+    
+          if(hasElement){
+            nextBrowserTick_(nextTickFnF1);
+          }else{
+            nextBrowserTick_(nextTickFnE1);
+    
           }
-          resolvePR();
-        }
-      });
-      mo.observe(noscript, { subtree: false, childList: true, attributes:['ylul8gr'] });
+    
+    
+        });
+        await pr.then();
+        fns.length = 0;
+        qxd = null;
 
-      if(hasElement){
-        nextBrowserTick_(nextTickFnF1);
-      }else{
-        nextBrowserTick_(nextTickFnE1);
-
-      }
-
-
-    });
-    await pr.then();
-    fns.length = 0;
-    qxd = null;
-
-
-
-    // document.documentElement.appendChild.call(doc.documentElement, noscript);
-    // nativeRemoveE.call(noscript);
-
-    // nativeRemoveE.call(noscript);
-    noscript.remove(); // trigger isAttached change
-    const hostElement = this.hostElement;
-
-    // console.log('em77', hasElement, noscript.childElementCount, domShell.childElementCount, cxt, a_.length);
-    // if(a_.length !== noscript.childElementCount+ domShell.childElementCount+ cxt){
-    //   const pd =  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-      
-    //   console.log('em77b', pd, [...a_], [...noscript.childNodes], [...domShell.childNodes])
-    //   setTimeout(()=>{
-    //     console.log('em77c', pd,  [...domShell.childNodes])
-    //   }, 1000)
-    // }
-
-    // const sdc02 = this.__$$StampDomCounter$$__;
-
-
-    /** @type {DocumentFragment} */
-    // const gFragment = document.createDocumentFragment();
-    const gFragment = doc.createDocumentFragment();
-
-    const fnE = () => {
-      const evt = new CustomEvent("yt-rendererstamper-finished", {
-        bubbles: !0,
-        cancelable: !1,
-        composed: !0,
-        detail: {
-          container
-        }
-      });
-      hostElement.dispatchEvent(evt);
-    };
-
-    let f1, f2;
-    f1 = async() => {
-
-      // await new Promise(r=>setTimeout(r, 1000));
-
-      if (t892 !== this.__$$fs892$$__ || this.data !== data || this.__data !== __data) return;
-
-      if (!hasElement && !!domShell.firstElementChild) return;
-      if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
-        return;
-      }
-      // const t1 = performance.now();
-
-      if (DO_createStampDomArrayFnE1_nativeAppendD) {
-        let elm;
-        while (elm = noscript.firstChild) {
-          nativeAppendD.call(gFragment, elm); // no attached / detached
-        }
-      } else {
-        let elm;
-        while (elm = noscript.firstChild) {
-          gFragment.appendChild(elm);
-        }
-      }
-      // const t2 = performance.now();
-
-      // console.log('createStampDomArrayFn_{T2}', t2-t1);
-
-      nextBrowserTick_(f2);
-    };
-
-    f2 = async () => {
-
-      if (t892 !== this.__$$fs892$$__ || this.data !== data || this.__data !== __data) return;
-
-      if (!hasElement && !!domShell.firstElementChild) return;
-      if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
-        return;
-      }
-
-      // const t1 = performance.now();
-      // const arr = [...noscript.childNodes];
-      // g.append(...arr);
-
-      // if(gFragment.childElementCount>10){
-
-        // for(const p of gFragment.childNodes){
-
-        //   const w = document.createDocumentFragment();
-        //   w.append(p);
+        // console.log(3025)
+    
+    
+    
+        // document.documentElement.appendChild.call(doc.documentElement, noscript);
+        // nativeRemoveE.call(noscript);
+    
+        // nativeRemoveE.call(noscript);
+        noscript.remove(); // trigger isAttached change
+        const hostElement = this.hostElement;
+    
+        // console.log('em77', hasElement, noscript.childElementCount, domShell.childElementCount, cxt, a_.length);
+        // if(a_.length !== noscript.childElementCount+ domShell.childElementCount+ cxt){
+        //   const pd =  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
           
-        //   domShell.appendChild(w);
-        //   await Promise.resolve(0);
-  
+        //   console.log('em77b', pd, [...a_], [...noscript.childNodes], [...domShell.childNodes])
+        //   setTimeout(()=>{
+        //     console.log('em77c', pd,  [...domShell.childNodes])
+        //   }, 1000)
         // }
-        
-      // }else{
-
-        domShell.appendChild(gFragment);
-      // }
-
-
-
-      // for (const cp of arr) {
-      //   const i = cp[stampIdxSb];
-      //   const u = a_[i];
-      //   const c = c_;
-      //   const x = csb(c, u);
-      //   this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
-      // }
+    
+        // const sdc02 = this.__$$StampDomCounter$$__;
+    
+    
+        /** @type {DocumentFragment} */
+        // const gFragment = document.createDocumentFragment();
+        const gFragment = doc.createDocumentFragment();
+    
+        const fnE = () => {
+          const evt = new CustomEvent("yt-rendererstamper-finished", {
+            bubbles: !0,
+            cancelable: !1,
+            composed: !0,
+            detail: {
+              container
+            }
+          });
+          hostElement.dispatchEvent(evt);
+        };
+    
+        let f1, f2;
+        f1 = async() => {
+          await new Promise(r => nextBrowserTick_(r));
+          // if (t892 !== this.__$$fs892$$__) return;
+          // await new Promise(r=>setTimeout(r, 1000));
+    
+          if (this.data !== data || this.__data !== __data) return;
+    
+          if (!hasElement && !!domShell.firstElementChild) return;
+          if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
+            return;
+          }
+          // const t1 = performance.now();
+    
+          if (DO_createStampDomArrayFnE1_nativeAppendD) {
+            let elm;
+            while (elm = noscript.firstChild) {
+              nativeAppendD.call(gFragment, elm); // no attached / detached
+            }
+          } else {
+            let elm;
+            while (elm = noscript.firstChild) {
+              gFragment.appendChild(elm);
+            }
+          }
+          // const t2 = performance.now();
+    
+          // console.log('createStampDomArrayFn_{T2}', t2-t1);
+    
+          // nextBrowserTick_(f2);
+          return true;
+        };
+    
+        f2 = async () => {
+          await new Promise(r => nextBrowserTick_(r));
+          // if (t892 !== this.__$$fs892$$__) return;
+          if (this.data !== data || this.__data !== __data) return;
+    
+          if (!hasElement && !!domShell.firstElementChild) return;
+          if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
+            return;
+          }
+    
+          // const t1 = performance.now();
+          // const arr = [...noscript.childNodes];
+          // g.append(...arr);
+    
+          // if(gFragment.childElementCount>10){
+    
+            // for(const p of gFragment.childNodes){
+    
+            //   const w = document.createDocumentFragment();
+            //   w.append(p);
+              
+            //   domShell.appendChild(w);
+            //   await Promise.resolve(0);
       
-      this.flushRenderStamperComponentBindings_();
-      this.markDirty && this.markDirty();
-        // const t2 = performance.now();
+            // }
+            
+          // }else{
+    
+            domShell.appendChild(gFragment);
+          // }
+    
+    
+    
+          // for (const cp of arr) {
+          //   const i = cp[stampIdxSb];
+          //   const u = a_[i];
+          //   const c = c_;
+          //   const x = csb(c, u);
+          //   this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
+          // }
+          
+          this.flushRenderStamperComponentBindings_();
+          this.markDirty && this.markDirty();
+            // const t2 = performance.now();
+    
+          // console.log('createStampDomArrayFn_{T3}', t2-t1); // time consuming
+    
+            if (shouldTriggerRendererStamperFinished) {
+              nextBrowserTick_(fnE);
+            }
+            
+    
+          // this.flushRenderStamperComponentBindings_();
+    
+    
+    
+          return true;
+    
+        };
 
-      // console.log('createStampDomArrayFn_{T3}', t2-t1); // time consuming
+        const r1 = await f1();
+        if(r1 === true){
 
-        if (shouldTriggerRendererStamperFinished) {
-          nextBrowserTick_(fnE);
+          
+          const r2 = await f2();
+          // p892R();
         }
 
-      // this.flushRenderStamperComponentBindings_();
+        // console.log(1883 , this.__$$fs894$$__)
+  
+  
 
+        
+      }catch(err){
 
+        console.warn(err);
 
+      } finally {
+        //
+      }
 
-    };
+    }).catch(()=>0);
 
-    nextBrowserTick_(f1);
      
   };
 
@@ -3894,6 +3935,8 @@
     }
     const gn = function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
       // this.__$$StampDomCounter$$__ = (this.__$$StampDomCounter$$__ || 0) + 1;
+      // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
       if (a.length === 1 && Object.keys(a[0]).length === 0) a.length = 0;
       const isNonEmptyArray = (a || 0).length >= 1;
       if (!isNonEmptyArray) {
@@ -3920,7 +3963,7 @@
 
           if (container) {
 
-            this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+            // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
             let domShell = (container && container.__domApi);
 
