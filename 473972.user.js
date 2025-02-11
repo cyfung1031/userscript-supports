@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.9
+// @version     0.18.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3578,7 +3578,7 @@
   let val_kevlar_should_maintain_stable_list = null;
 
   const csb = (a, b) => { for (const c in a) if (a.hasOwnProperty(c) && b[c]) return c; return null }
-  const createStampDomArrayFnE1_ = async function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
+  const createStampDomArrayFnE1_ = function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
 
 
     // this.__$$fs894$$__ = this.__$$fs894$$__  ||  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
@@ -3770,28 +3770,28 @@
     
         // document.documentElement.appendChild.call(doc.documentElement, noscript);
         // nativeRemoveE.call(noscript);
-    
+
         // nativeRemoveE.call(noscript);
         noscript.remove(); // trigger isAttached change
         const hostElement = this.hostElement;
-    
+
         // console.log('em77', hasElement, noscript.childElementCount, domShell.childElementCount, cxt, a_.length);
         // if(a_.length !== noscript.childElementCount+ domShell.childElementCount+ cxt){
         //   const pd =  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-          
+
         //   console.log('em77b', pd, [...a_], [...noscript.childNodes], [...domShell.childNodes])
         //   setTimeout(()=>{
         //     console.log('em77c', pd,  [...domShell.childNodes])
         //   }, 1000)
         // }
-    
+
         // const sdc02 = this.__$$StampDomCounter$$__;
-    
-    
+
+
         /** @type {DocumentFragment} */
         // const gFragment = document.createDocumentFragment();
         const gFragment = doc.createDocumentFragment();
-    
+
         const fnE = () => {
           const evt = new CustomEvent("yt-rendererstamper-finished", {
             bubbles: !0,
@@ -3803,21 +3803,21 @@
           });
           hostElement.dispatchEvent(evt);
         };
-    
+
         let f1, f2;
-        f1 = async() => {
+        f1 = async () => {
           await new Promise(r => nextBrowserTick_(r));
           // if (t892 !== this.__$$fs892$$__) return;
           // await new Promise(r=>setTimeout(r, 1000));
-    
+
           if (this.data !== data || this.__data !== __data) return;
-    
+
           if (!hasElement && !!domShell.firstElementChild) return;
           if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
             return;
           }
           // const t1 = performance.now();
-    
+
           if (DO_createStampDomArrayFnE1_nativeAppendD) {
             let elm;
             while (elm = noscript.firstChild) {
@@ -3830,46 +3830,46 @@
             }
           }
           // const t2 = performance.now();
-    
+
           // console.log('createStampDomArrayFn_{T2}', t2-t1);
-    
+
           // nextBrowserTick_(f2);
           return true;
         };
-    
+
         f2 = async () => {
           await new Promise(r => nextBrowserTick_(r));
           // if (t892 !== this.__$$fs892$$__) return;
           if (this.data !== data || this.__data !== __data) return;
-    
+
           if (!hasElement && !!domShell.firstElementChild) return;
           if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
             return;
           }
-    
+
           // const t1 = performance.now();
           // const arr = [...noscript.childNodes];
           // g.append(...arr);
-    
+
           // if(gFragment.childElementCount>10){
-    
-            // for(const p of gFragment.childNodes){
-    
-            //   const w = document.createDocumentFragment();
-            //   w.append(p);
-              
-            //   domShell.appendChild(w);
-            //   await Promise.resolve(0);
-      
-            // }
-            
-          // }else{
-    
-            domShell.appendChild(gFragment);
+
+          // for(const p of gFragment.childNodes){
+
+          //   const w = document.createDocumentFragment();
+          //   w.append(p);
+
+          //   domShell.appendChild(w);
+          //   await Promise.resolve(0);
+
           // }
-    
-    
-    
+
+          // }else{
+
+          domShell.appendChild(gFragment);
+        // }
+
+
+
           // for (const cp of arr) {
           //   const i = cp[stampIdxSb];
           //   const u = a_[i];
@@ -3877,37 +3877,37 @@
           //   const x = csb(c, u);
           //   this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
           // }
-          
+
           this.flushRenderStamperComponentBindings_();
           this.markDirty && this.markDirty();
-            // const t2 = performance.now();
-    
+          // const t2 = performance.now();
+
           // console.log('createStampDomArrayFn_{T3}', t2-t1); // time consuming
-    
-            if (shouldTriggerRendererStamperFinished) {
-              nextBrowserTick_(fnE);
-            }
-            
-    
+
+          if (shouldTriggerRendererStamperFinished) {
+            nextBrowserTick_(fnE);
+          }
+
+
           // this.flushRenderStamperComponentBindings_();
-    
-    
-    
+
+
+
           return true;
-    
+
         };
 
         const r1 = await f1();
-        if(r1 === true){
+        if (r1 === true) {
 
-          
+
           const r2 = await f2();
           // p892R();
         }
 
         // console.log(1883 , this.__$$fs894$$__)
-  
-  
+
+
 
         
       }catch(err){
@@ -3918,9 +3918,9 @@
         //
       }
 
-    }).catch(()=>0);
+    }).catch(() => 0);
 
-     
+
   };
 
 
@@ -3939,11 +3939,13 @@
       // this.__$$StampDomCounter$$__ = (this.__$$StampDomCounter$$__ || 0) + 1;
       // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
-      if (a.length === 1 && Object.keys(a[0]).length === 0) a.length = 0;
-      const isNonEmptyArray = (a || 0).length >= 1;
-      if (!isNonEmptyArray) {
-        return fn.call(this, undefined, b, undefined, d);
-      } else if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && this.is && val_kevlar_should_maintain_stable_list) {
+      let t;
+      let n = (a || 0).length;
+      if (n === 1 && typeof (t = (a[0] || {})) === 'object' && Object.keys(t).length === 0) n = 0;
+      const isEmptyArray = !(n >= 1);
+      if (isEmptyArray) return fn.call(this, undefined, b, undefined, d);
+
+      if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && this.is && val_kevlar_should_maintain_stable_list) {
         if (c.clientSideToggleMenuItemRenderer) {
           h = false;
         } else {
@@ -3951,7 +3953,7 @@
         }
       }
 
-      if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && isNonEmptyArray && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
+      if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
         // !!c <=> typeof c should be always object
 
         const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
@@ -3966,11 +3968,42 @@
 
             // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
-            let domShell = (container && container.__domApi);
+            let domShell = container.__domApi;
 
             if (!domShell) {
-              fn.call(this, undefined, b, undefined, d);
-              domShell = container && container.__domApi;
+              // -- request __domApi --
+              const o = {
+                getStampContainer_: this.getStampContainer_.bind(this),
+                get is() {
+                  throw new Error();
+                },
+                get isAttached() {
+                  throw new Error();
+                },
+                get hostElement() {
+                  throw new Error();
+                }
+                // isAttached: false,
+                // hostElement: null
+              };
+              const d = {};
+              d.valueOf = () => {
+                throw new Error();
+              };
+              try {
+                fn.call(o, undefined, b, undefined, d);
+              } catch (e) {
+              }
+              // -- request __domApi --
+
+              // fn.call(this, undefined, b, undefined, d); // erase the contents. so byPass is required.
+              domShell = container.__domApi;
+              if (!domShell) {
+                try {
+                  fn.call(this, undefined, b, undefined, d);
+                  domShell = container.__domApi;
+                } catch (e) { }
+              }
             }
 
 
