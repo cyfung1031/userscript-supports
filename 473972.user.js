@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.15
+// @version     0.18.16
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3969,10 +3969,11 @@
   const byPassIs55 = new Set([
     'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', // avoid disappearing of video/short entries
     'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer', 'ytd-add-to-playlist-renderer', // avoid share-panel being non-central
-    'ytd-continuation-item-renderer', 'tp-yt-paper-spinner'
+    'ytd-continuation-item-renderer', 'tp-yt-paper-spinner',
+    'ytd-multi-page-menu-renderer', 'yt-multi-page-menu-section-renderer'
   ]);
   // const byPassB55 = new Set(['continuations']);
-  const byPassB55 = new Set(['flexible-item-buttons', 'continuations']);
+  const byPassB55 = new Set(['flexible-item-buttons', 'continuations', 'header', 'sections']);
 
   let stampContainer = null;
   const requestDomApiObject = { getStampContainer_: () => stampContainer };
