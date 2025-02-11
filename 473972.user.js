@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.17
+// @version     0.18.18
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4019,7 +4019,9 @@
             const isTranscriptRendering = this.is === 'ytd-transcript-segment-list-renderer' && b === 'segments-container' && (c || 0).transcriptSegmentRenderer;
             const isProductListRendering = this.is === 'ytd-product-list-renderer' && b === 'contents' && (c || 0).productListItemRenderer;
             const isGuideSectionItemRendering = this.is === 'ytd-guide-section-renderer' && b === 'items' && ((c || 0).guideCollapsibleEntryRenderer || (c || 0).guideCollapsibleSectionEntryRenderer || (c || 0).guideEntryRenderer);
-            fulfillment = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering); // strict fulfillment; avoid issues
+            const isPlaylistVideosRendering = this.is === 'ytd-playlist-video-list-renderer' && b === 'contents' && (c || 0).playlistVideoRenderer;
+            const isShareTargetItemRendering = this.is === 'yt-third-party-share-target-section-renderer' && b === 'contents' && (c || 0).shareTargetRenderer;
+            fulfillment = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering || isPlaylistVideosRendering || isShareTargetItemRendering); // strict fulfillment; avoid issues
           } else {
             fulfillment = true;
           }
