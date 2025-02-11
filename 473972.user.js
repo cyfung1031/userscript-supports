@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.5
+// @version     0.18.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3579,6 +3579,8 @@
 
   const csb = (a, b) => { for (const c in a) if (a.hasOwnProperty(c) && b[c]) return c; return null }
   const createStampDomArrayFnE1_ = async function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
+
+    const t892 = this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
     // c - mapping
     // d - reuseComponents
     // e - events (shouldTriggerRendererStamperFinished)
@@ -3591,6 +3593,8 @@
     const b_ = b;
     const c_ = c;
     const a_ = a;
+
+    const {data, __data} = this; // for data integrity check
 
     const doDeferRenderStamperBinding_ = async (cp) => {
       const i = cp[stampIdxSb];
@@ -3607,12 +3611,30 @@
     const hasElement = !!domShell.firstElementChild;
     const noscript = document.createElement('noscript');
     // document.body.appendChild(noscript); 
+
+    let doc = document;
+    // ---------- doc ----------
+    // let docHTML = '<html></html>';
+    // try {
+    //   docHTML = trustedTypes.defaultPolicy.createHTML(docHTML) || docHTML;
+    // } catch (e) { }
+    // try {
+    //   const parser = new DOMParser();
+    //   doc = parser.parseFromString(docHTML, "text/html");
+    // } catch (e) { }
+    // ---------- doc ----------
+
+    // document.documentElement.appendChild.call(doc.documentElement, noscript);
+    // nativeRemoveE.call(noscript);
+    // doc = null;
+    parser = null;
+    // console.log(doc,38);
+
     const nofn = () => true;
     const n = a_.length;
     const fns = new Array(n);
     let cxt = 0;
 
-    let mutex = Promise.resolve(0);
     let qxd = hasElement ? new WeakSet() : null;
     const nextTickFnE1 = () => {
       a_.some((u, i) => {
@@ -3626,9 +3648,9 @@
             const cp = this.createComponent_(c[x], u[x], d);
             cp[stampIdxSb] = i;
             doDeferRenderStamperBinding_(cp);
-            mutex = mutex.then(() => {
+            // mutex = mutex.then(() => {
               noscript.appendChild(cp);
-            });
+            // });
 
             // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
             let q = cp;
@@ -3679,9 +3701,9 @@
 
                 cp[stampIdxSb] = i;
                 doDeferRenderStamperBinding_(cp);
-                mutex = mutex.then(() => {
+                // mutex = mutex.then(() => {
                   noscript.appendChild(cp); // ui formation
-                });
+                // });
   
                 // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
                 let q = cp;
@@ -3730,6 +3752,11 @@
     fns.length = 0;
     qxd = null;
 
+
+
+    // document.documentElement.appendChild.call(doc.documentElement, noscript);
+    // nativeRemoveE.call(noscript);
+
     // nativeRemoveE.call(noscript);
     noscript.remove(); // trigger isAttached change
     const hostElement = this.hostElement;
@@ -3748,12 +3775,27 @@
 
 
     /** @type {DocumentFragment} */
-    const gFragment = document.createDocumentFragment();
+    // const gFragment = document.createDocumentFragment();
+    const gFragment = doc.createDocumentFragment();
 
-    mutex = mutex.then(async() => {
+    const fnE = () => {
+      const evt = new CustomEvent("yt-rendererstamper-finished", {
+        bubbles: !0,
+        cancelable: !1,
+        composed: !0,
+        detail: {
+          container
+        }
+      });
+      hostElement.dispatchEvent(evt);
+    };
+
+    let f1, f2;
+    f1 = async() => {
 
       // await new Promise(r=>setTimeout(r, 1000));
 
+      if (t892 !== this.__$$fs892$$__ || this.data !== data || this.__data !== __data) return;
 
       if (!hasElement && !!domShell.firstElementChild) return;
       if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
@@ -3775,7 +3817,13 @@
       // const t2 = performance.now();
 
       // console.log('createStampDomArrayFn_{T2}', t2-t1);
-    }).then(async () => {
+
+      nextBrowserTick_(f2);
+    };
+
+    f2 = async () => {
+
+      if (t892 !== this.__$$fs892$$__ || this.data !== data || this.__data !== __data) return;
 
       if (!hasElement && !!domShell.firstElementChild) return;
       if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
@@ -3820,17 +3868,7 @@
       // console.log('createStampDomArrayFn_{T3}', t2-t1); // time consuming
 
         if (shouldTriggerRendererStamperFinished) {
-          nextBrowserTick_(() => {
-            const evt = new CustomEvent("yt-rendererstamper-finished", {
-              bubbles: !0,
-              cancelable: !1,
-              composed: !0,
-              detail: {
-                container
-              }
-            });
-            hostElement.dispatchEvent(evt);
-          })();
+          nextBrowserTick_(fnE);
         }
 
       // this.flushRenderStamperComponentBindings_();
@@ -3838,12 +3876,16 @@
 
 
 
-    });
+    };
+
+    nextBrowserTick_(f1);
+     
   };
 
 
   const stampIdxSb = Symbol();
-  const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
+  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
+  const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
   const createStampDomArrayFn_ = (fn) => {
     if (val_kevlar_should_maintain_stable_list === null) {
       const config_ = ((window.yt || 0).config_ || 0);
