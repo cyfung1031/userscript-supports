@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.10
+// @version     0.18.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3927,7 +3927,10 @@
   const stampIdxSb = Symbol();
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
-  const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', 'ytd-unified-share-panel-renderer']);
+  const byPassIs55 = new Set([
+    'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer',
+    'yt-third-party-share-target-section-renderer'
+  ]);
   // const byPassB55 = new Set(['continuations']);
   const byPassB55 = new Set([]);
   const createStampDomArrayFn_ = (fn) => {
