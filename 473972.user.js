@@ -3928,8 +3928,8 @@
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
   // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
   const byPassIs55 = new Set([
-    'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer',
-    'yt-third-party-share-target-section-renderer'
+    'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', // avoid disappearing of video/short entries
+    'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer' // avoid share-panel being non-central
   ]);
   // const byPassB55 = new Set(['continuations']);
   const byPassB55 = new Set([]);
