@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.3
+// @version     0.18.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3755,6 +3755,7 @@
       // await new Promise(r=>setTimeout(r, 1000));
 
 
+      if (!hasElement && !!domShell.firstElementChild) return;
       if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
         return;
       }
@@ -3776,6 +3777,7 @@
       // console.log('createStampDomArrayFn_{T2}', t2-t1);
     }).then(async () => {
 
+      if (!hasElement && !!domShell.firstElementChild) return;
       if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
         return;
       }
