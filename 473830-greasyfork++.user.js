@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.2.62
+// @version            3.3.0
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -190,6 +190,14 @@ const mWindow = isInIframe || (() => {
             default: '',
             save: false
         },
+        hideRecentUsersWithin: {
+            label: 'Hide Recent Users:<br><span>Hide new regeistered users within the last N hours - to avoid seeing comments from spam accounts</span>',
+            labelPos: 'left',
+            type: 'text',
+            title: 'Number only. 0 means disabled. maximum is 168. (Suggested value: 48)',
+            default: '0',
+            size: 150
+        },
         logging: {
             label: 'Logging',
             section: ['Developer options'],
@@ -374,14 +382,16 @@ const mWindow = isInIframe || (() => {
         }
         #greasyfork-plus_customBlacklist_var[class],
         #greasyfork-plus_hiddenList_var[class],
-        #greasyfork-plus_milestoneNotification_var[class]{
+        #greasyfork-plus_milestoneNotification_var[class],
+        #greasyfork-plus_hideRecentUsersWithin_var[class]{
             flex-direction:column;
             margin-left:21px;
         }
 
         #greasyfork-plus_customBlacklist_var[class]::before,
         #greasyfork-plus_hiddenList_var[class]::before,
-        #greasyfork-plus_milestoneNotification_var[class]::before{
+        #greasyfork-plus_milestoneNotification_var[class]::before,
+        #greasyfork-plus_hideRecentUsersWithin_var[class]::before{
             /* content: "◉"; */
             content: "◎";
             position: absolute;
@@ -634,6 +644,10 @@ const mWindow = isInIframe || (() => {
          /* Greasy Fork Empty Ad Block */
         .ethical-ads-text[class]:empty {
             min-height: unset;
+        }
+
+        .discussion-item-by-recent-user{
+            opacity: 0.2;
         }
 
 
@@ -1130,6 +1144,184 @@ inIframeFn() || (async () => {
     gmc.initialized = new Promise(r => (gmc.initializedResolve = r));
     await gmc.initialized.then();
     const customBlacklistRE = createRE((gmc.get('customBlacklist') || '').replace(/\s/g, '').split(',').join('|'), 'giu');
+
+    const valHideRecentUsersWithin_ = Math.floor(+gmc.get('hideRecentUsersWithin'));
+    const valHideRecentUsersWithin = valHideRecentUsersWithin_ > 168 ? 168 : valHideRecentUsersWithin_ > 0 ? valHideRecentUsersWithin_ : 0;
+
+    /**
+     * Inserts an element into a sorted array using the given comparator function.
+     *
+     * @param {Array} arr - The sorted array.
+     * @param {*} element - The new element to insert.
+     * @param {Function} comparator - A function that takes two arguments (a, b)
+     *                                and returns a negative number if a < b,
+     *                                zero if a === b, or a positive number if a > b.
+     */
+    function insertSorted(arr, element, comparator) {
+        let left = 0;
+        let right = arr.length;
+
+        // Use binary search to find the correct index for insertion.
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (comparator(element, arr[mid]) < 0) {
+                right = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+
+        // Insert the element at the found index.
+        arr.splice(left, 0, element);
+        return arr;
+    }
+
+    function findIndexSorted(arr, element, comparator) {
+        let left = 0;
+        let right = arr.length;
+
+        // Use binary search to find the correct index for insertion.
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (comparator(element, arr[mid]) < 0) {
+                right = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+
+        return left; // arr_j > target [ arr_(j-1) <= target ]
+
+    }
+
+    let targetHiddenRecentDateTime = 0;
+    let userCreations = [];
+    let recentUserMP = Promise.resolve(0);
+    const fetchUserCreations = () => {
+        if (sessionStorage.__TMP_userCreations682__) {
+            try {
+                return JSON.parse(sessionStorage.__TMP_userCreations682__);
+                // console.log(388, userCreations);
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+        return [];
+    }
+    userCreations = fetchUserCreations();
+    const cleanupUserCreations = () => {
+
+        // in case the record in sessionStorage is modified by other instances as well.
+        {
+            let storedUserCreations = fetchUserCreations();
+            let encodedArrS = storedUserCreations.map(e => e.join(','));
+            let encodedArrC = userCreations.map(e => e.join(','));
+            let encodedSetC = new Set(encodedArrC);
+            let encodedArrSFiltered = encodedArrS.filter(e => !encodedSetC.has(e));
+            let elementsMissing = encodedArrSFiltered.map(e => e.split(',').map(d => +d));
+            for (const element of elementsMissing) {
+                insertSorted(userCreations, element, (a, b) => a[1] - b[1]);
+            }
+        }
+
+        // since targetHiddenRecentDateTime is expected monotonic increasing, small values are useless in checking.
+        let deleteCount = 0;
+        for (let i = 0; i < userCreations.length - 1; i++) {
+            if (userCreations[i][1] < targetHiddenRecentDateTime && userCreations[i + 1][1] < targetHiddenRecentDateTime) {
+                deleteCount++;
+            } else {
+                break;
+            }
+        }
+        if (deleteCount > 0) {
+            deleteCount === 1 ? userCreations.shift() : userCreations.splice(0, deleteCount);
+        }
+
+        // trim the cache array to "8 + HALF" element size
+        while (userCreations.length > 32) {
+            // remove idx 8, 10, 12, ... 32, etc.   
+            //  33 -> 20; 34 -> 21; 35 -> 21 , 36 -> 22, ...
+            // len2 = Math.floor(len1 / 2) + 4
+            // 58 -> 33 -> 20
+            userCreations = userCreations.filter((e, idx) => {
+                if (idx < 8) return true;
+                return (idx % 2) === 1;
+            });
+        }
+
+        sessionStorage.__TMP_userCreations682__ = JSON.stringify(userCreations);
+        // console.log(1238, userCreations);
+
+    };
+    const mightHideDiscussionByRecentlyNewUser = async (userId) => {
+
+        let result = null;
+
+        const tryBeforeNetworkRequest = () => {
+
+            let idxJ = findIndexSorted(userCreations, [null, targetHiddenRecentDateTime], (a, b) => a[1] - b[1]);
+
+            // findIndexSorted's result is arr_j[1] > targetHiddenRecentDateTime; reduce index for equality case
+            while (idxJ > 0 && userCreations[idxJ - 1][1] >= targetHiddenRecentDateTime) {
+                idxJ--;
+            }
+
+            let newFrom = 0, oldFrom = 0;
+
+            if (idxJ >= 0 && idxJ < userCreations.length && userCreations[idxJ][1] >= targetHiddenRecentDateTime) {
+                newFrom = userCreations[idxJ][0];
+            }
+
+            if (newFrom > 0 && userId >= newFrom) {
+                // console.log('newForm -> isRecent', userId, userCreations[idxJ][0], userCreations[idxJ][1], 'target', targetHiddenRecentDateTime)
+                return (result = true);
+            }
+
+            if (idxJ > 0 && idxJ - 1 < userCreations.length && userCreations[idxJ - 1][1] < targetHiddenRecentDateTime) {
+                oldFrom = userCreations[idxJ - 1][0];
+            }
+
+            if (oldFrom > 0 && userId <= oldFrom) {
+                // console.log('oldFrom -> notRecent', userId, userCreations[idxJ-1][0], userCreations[idxJ-1][1], 'target', targetHiddenRecentDateTime)
+                return (result = false);
+            }
+
+            return { newFrom, oldFrom };
+
+        }
+
+        tryBeforeNetworkRequest();
+        if (result !== null) return result;
+
+        recentUserMP = recentUserMP.then(async () => {
+
+            try {
+
+                const { newFrom, oldFrom } = tryBeforeNetworkRequest();
+                if (result !== null) return result;
+
+                // console.log(505, newFrom, oldFrom, userId);
+
+                const userData = await getUserData(userId, false);
+                if (userData.id !== userId) return (result = false);
+                const insertData = [userId, +(new Date(userData.created_at))];
+                insertSorted(userCreations, insertData, (a, b) => a[1] - b[1]);
+
+                // console.log('regDate', insertData);
+
+                result = insertData[1] >= targetHiddenRecentDateTime;
+                cleanupUserCreations();
+
+            } catch (e) {
+                console.warn(e);
+            }
+
+        });
+
+        await recentUserMP.then();
+        return result;
+
+    }
 
     if (typeof GM.registerMenuCommand === 'function') {
         GM.registerMenuCommand('Configure', () => gmc.open());
@@ -2217,6 +2409,7 @@ inIframeFn() || (async () => {
     }
 
     const foundDiscussionList = (discussionsList) => {
+        targetHiddenRecentDateTime = Date.now() - valHideRecentUsersWithin * 3600000;
 
         let rid = 0;
         let g = () => {
@@ -2242,6 +2435,17 @@ inIframeFn() || (async () => {
                 // if (gmc.get('showInstallButton')) {
                 //     showInstallButton(scriptID, element)
                 // }
+                let t;
+                if (t = element.querySelector('a.user-link[href*="/users/"]')) {
+                    const m = /\/users\/(\d+)/.exec(`${t.getAttribute('href')}`);
+                    if (m) {
+                        const userId = +m[1];
+                        mightHideDiscussionByRecentlyNewUser(userId).then((isNewUser)=>{
+                            element.classList.toggle('discussion-item-by-recent-user', isNewUser);
+                        });
+                    }
+                }
+
             }
 
         }
