@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.1
+// @version            3.3.2
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1202,54 +1202,62 @@ inIframeFn() || (async () => {
     const valHideRecentUsersWithin_ = Math.floor(+gmc.get('hideRecentUsersWithin'));
     const valHideRecentUsersWithin = valHideRecentUsersWithin_ > 168 ? 168 : valHideRecentUsersWithin_ > 0 ? valHideRecentUsersWithin_ : 0;
 
+
+
     /**
-     * Inserts an element into a sorted array using the given comparator function.
+     * 
+     * Inserts element into the sorted array arr while maintaining order based on a comparator.
+     * Uses binary search to find the insertion point and then splices the element into the array.
      *
-     * @param {Array} arr - The sorted array.
-     * @param {*} element - The new element to insert.
-     * @param {Function} comparator - A function that takes two arguments (a, b)
-     *                                and returns a negative number if a < b,
-     *                                zero if a === b, or a positive number if a > b.
+     * @param {Array} arr - The sorted array. (ascending order)
+     * @param {number} value - The number to compare.
+     * @param {Function} keyFn - Obtain the comparable value of the element.
      */
-    function insertSorted(arr, element, comparator) {
+    function binarySearchLeft(arr, value, keyFn) {
         let left = 0;
         let right = arr.length;
-
-        // Use binary search to find the correct index for insertion.
         while (left < right) {
             const mid = Math.floor((left + right) / 2);
-            if (comparator(element, arr[mid]) < 0) {
-                right = mid;
-            } else {
+            if (keyFn(arr[mid]) < value) {
                 left = mid + 1;
+            } else {
+                right = mid;
             }
         }
+        return left;
+    }
 
-        // Insert the element at the found index.
-        arr.splice(left, 0, element);
+    /**
+     * Finds the smallest index i such that arr[i][1] >= targetTime.
+     * Used to locate the first user in userCreations whose creation time is recent enough.
+     *
+     * @param {Array} arr - The sorted array. (ascending order)
+     * @param {number} targetTime - targetTime
+     */
+    function findFirstIndex(arr, targetTime) {
+        return binarySearchLeft(arr, targetTime, e => e[1]);
+    }
+
+    
+
+    /**
+     * Finds the insertion point for element in arr to maintain sorted order.
+     * Used to find the range of uncertain requests in networkRequestsRCTake.
+     *
+     * @param {Array} arr - The sorted array. (ascending order)
+     * @param {*} element - The element to be inserted.
+     * @param {Function} keyFn - Obtain the comparable value of the element.
+     */
+    function insertSorted(arr, element, keyFn) {
+        const idx = binarySearchLeft(arr, keyFn(element), keyFn);
+        arr.splice(idx, 0, element);
         return arr;
     }
 
-    function findIndexSorted(arr, element, comparator) {
-        let left = 0;
-        let right = arr.length;
-
-        // Use binary search to find the correct index for insertion.
-        while (left < right) {
-            const mid = Math.floor((left + right) / 2);
-            if (comparator(element, arr[mid]) < 0) {
-                right = mid;
-            } else {
-                left = mid + 1;
-            }
-        }
-
-        return left; // arr_j > target [ arr_(j-1) <= target ]
-
-    }
-
+    // Assume targetHiddenRecentDateTime is set as Date.now() - valHideRecentUsersWithin * 3600000
     let targetHiddenRecentDateTime = 0;
-    let userCreations = [];
+    let userCreations = [];// [userId, creationTime] sorted by creationTime
+    let networkRequestsRC = [];// [userId, processFn, result] sorted by userId
     let recentUserMP = Promise.resolve(0);
     const fetchUserCreations = () => {
         if (sessionStorage.__TMP_userCreations682__) {
@@ -1263,21 +1271,20 @@ inIframeFn() || (async () => {
         return [];
     }
     userCreations = fetchUserCreations();
+    
+    // Clean up userCreations: merge with sessionStorage and trim
     const cleanupUserCreations = () => {
 
+        // Merge with sessionStorage data
         // in case the record in sessionStorage is modified by other instances as well.
-        {
-            let storedUserCreations = fetchUserCreations();
-            let encodedArrS = storedUserCreations.map(e => e.join(','));
-            let encodedArrC = userCreations.map(e => e.join(','));
-            let encodedSetC = new Set(encodedArrC);
-            let encodedArrSFiltered = encodedArrS.filter(e => !encodedSetC.has(e));
-            let elementsMissing = encodedArrSFiltered.map(e => e.split(',').map(d => +d));
-            for (const element of elementsMissing) {
-                insertSorted(userCreations, element, (a, b) => a[1] - b[1]);
-            }
+        const stored = fetchUserCreations();
+        const currentSet = new Set(userCreations.map(e => e.join(',')));
+        const missing = stored.filter(e => !currentSet.has(e.join(',')));
+        for (const element of missing) {
+            insertSorted(userCreations, element, e => e[1]);
         }
 
+        // Remove redundant old entries
         // since targetHiddenRecentDateTime is expected monotonic increasing, small values are useless in checking.
         let deleteCount = 0;
         for (let i = 0; i < userCreations.length - 1; i++) {
@@ -1291,90 +1298,95 @@ inIframeFn() || (async () => {
             deleteCount === 1 ? userCreations.shift() : userCreations.splice(0, deleteCount);
         }
 
-        // trim the cache array to "8 + HALF" element size
+        // Trim to max 32 elements, keeping boundary-relevant entries
         while (userCreations.length > 32) {
-            // remove idx 8, 10, 12, ... 32, etc.   
-            //  33 -> 20; 34 -> 21; 35 -> 21 , 36 -> 22, ...
-            // len2 = Math.floor(len1 / 2) + 4
-            // 58 -> 33 -> 20
-            userCreations = userCreations.filter((e, idx) => {
-                if (idx < 8) return true;
-                return (idx % 2) === 1;
-            });
+            userCreations = userCreations.filter((e, idx) => ((idx < 8) || ((idx % 2) === 1)));
         }
 
         sessionStorage.__TMP_userCreations682__ = JSON.stringify(userCreations);
-        // console.log(1238, userCreations);
 
     };
-    const mightHideDiscussionByRecentlyNewUser = async (userId) => {
 
-        let result = null;
+    // Test if a user is recent using cached data
+    const testByUserCreations = (userId, targetTime)=>{
+        const idxJ = findFirstIndex(userCreations, targetTime);
+        let newFrom = Infinity, oldFrom = 0;
+        if (idxJ < userCreations.length) {
+            newFrom = userCreations[idxJ][0];
+            if (userId >= newFrom) return true; // User is recent
+        }
+        if (idxJ > 0) {
+            oldFrom = userCreations[idxJ - 1][0];
+            if (userId <= oldFrom) return false; // User is not recent
+        }
+        return { newFrom, oldFrom }; // Uncertain, need network request
+    }
+    
+    
+    // Select the next network request from the uncertain range
+    /** @returns {Promise | null} */
+    function networkRequestsRCTake() {
+        if (networkRequestsRC.length === 0) return null;
 
-        const tryBeforeNetworkRequest = () => {
-
-            let idxJ = findIndexSorted(userCreations, [null, targetHiddenRecentDateTime], (a, b) => a[1] - b[1]);
-
-            // findIndexSorted's result is arr_j[1] > targetHiddenRecentDateTime; reduce index for equality case
-            while (idxJ > 0 && userCreations[idxJ - 1][1] >= targetHiddenRecentDateTime) {
-                idxJ--;
-            }
-
-            let newFrom = 0, oldFrom = 0;
-
-            if (idxJ >= 0 && idxJ < userCreations.length && userCreations[idxJ][1] >= targetHiddenRecentDateTime) {
-                newFrom = userCreations[idxJ][0];
-            }
-
-            if (newFrom > 0 && userId >= newFrom) {
-                // console.log('newForm -> isRecent', userId, userCreations[idxJ][0], userCreations[idxJ][1], 'target', targetHiddenRecentDateTime)
-                return (result = true);
-            }
-
-            if (idxJ > 0 && idxJ - 1 < userCreations.length && userCreations[idxJ - 1][1] < targetHiddenRecentDateTime) {
-                oldFrom = userCreations[idxJ - 1][0];
-            }
-
-            if (oldFrom > 0 && userId <= oldFrom) {
-                // console.log('oldFrom -> notRecent', userId, userCreations[idxJ-1][0], userCreations[idxJ-1][1], 'target', targetHiddenRecentDateTime)
-                return (result = false);
-            }
-
-            return { newFrom, oldFrom };
-
+        let oldFrom = 0;
+        let newFrom = Infinity;
+        if (userCreations.length > 0) {
+            const idx = findFirstIndex(userCreations, targetHiddenRecentDateTime);
+            if (idx < userCreations.length) newFrom = userCreations[idx][0];
+            if (idx > 0) oldFrom = userCreations[idx - 1][0];
         }
 
-        tryBeforeNetworkRequest();
-        if (result !== null) return result;
+        // Find range of requests in uncertain zone (oldFrom < userId < newFrom)
 
-        recentUserMP = recentUserMP.then(async () => {
+        const left = binarySearchLeft(networkRequestsRC, oldFrom + 1, e => e[0]);
+        // Prioritize certain not recent requests (at the beginning)
+        if (left > 0) {
+            return networkRequestsRC.shift(); // Take the first request (userId <= oldFrom)
+        }
 
-            try {
+        const right = binarySearchLeft(networkRequestsRC, newFrom, e => e[0]);
+        // Prioritize certain recent requests (at the end)
+        if (right < networkRequestsRC.length) {
+            return networkRequestsRC.pop(); // Take the last request (userId >= newFrom)
+        }
 
-                const { newFrom, oldFrom } = tryBeforeNetworkRequest();
-                if (result !== null) return result;
+        // No certain requests left, process an uncertain one
+        // The entire remaining array is uncertain (left == 0, right == length)
+        const midIdx = Math.floor(networkRequestsRC.length / 2);
+        return networkRequestsRC.splice(midIdx, 1)[0];
 
-                // console.log(505, newFrom, oldFrom, userId);
+    }
 
-                const userData = await getUserData(userId, false);
-                if (userData.id !== userId) return (result = false);
-                const insertData = [userId, +(new Date(userData.created_at))];
-                insertSorted(userCreations, insertData, (a, b) => a[1] - b[1]);
+    // Main function to check if a user is recent
+    function determineRecentUserAsync(userId) {
+        return new Promise(resolve => {
+            // Check cache first
+            const initialCheck = testByUserCreations(userId, targetHiddenRecentDateTime);
+            if (typeof initialCheck === 'boolean') return resolve(initialCheck);
 
-                // console.log('regDate', insertData);
-
-                result = insertData[1] >= targetHiddenRecentDateTime;
+            // Schedule network request
+            const processAsyncFn = async () => {
+                const check = testByUserCreations(userId, targetHiddenRecentDateTime);
+                // console.log('processAsyncFn', userId, targetHiddenRecentDateTime, check)
+                if (typeof check === 'boolean') return resolve(check);
+                // console.log('network request', userId)
+                const userData = await getUserData(userId, false); // Assume this exists
+                if (userData.id !== userId) return resolve(false);
+                const creationTime = +new Date(userData.created_at);
+                insertSorted(userCreations, [userId, creationTime], e => e[1]);
+                resolve(creationTime >= targetHiddenRecentDateTime);
                 cleanupUserCreations();
+            };
 
-            } catch (e) {
-                console.warn(e);
-            }
+            const request = [userId, processAsyncFn, null];
+            insertSorted(networkRequestsRC, request, e => e[0]);
 
+            // Process requests sequentially
+            recentUserMP = recentUserMP.then(async () => {
+                const entity = networkRequestsRCTake();
+                if (entity) await entity[1]();
+            });
         });
-
-        await recentUserMP.then();
-        return result;
-
     }
 
     if (typeof GM.registerMenuCommand === 'function') {
@@ -2494,7 +2506,7 @@ inIframeFn() || (async () => {
                     const m = /\/users\/(\d+)/.exec(`${t.getAttribute('href')}`);
                     if (m) {
                         const userId = +m[1];
-                        mightHideDiscussionByRecentlyNewUser(userId).then((isNewUser)=>{
+                        determineRecentUserAsync(userId).then((isNewUser)=>{
                             element.classList.toggle('discussion-item-by-recent-user', isNewUser);
                         });
                     }
