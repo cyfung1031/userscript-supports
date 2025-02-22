@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.22
+// @version             0.3.23
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -48,6 +48,12 @@ if (!localStorage.darkMode) localStorage.darkMode = 'true';
         [dark] .user-content[class] code  {
             color: #b3f6d1;
         }
+
+        /*
+            .comment-meta a.self-link,a.self-link:visited {
+                opacity: 0.4;
+            }
+        */
 
     `;
 
@@ -569,7 +575,7 @@ td.numeric,th.numeric {
 
 a.self-link,a.self-link:visited {
     text-decoration: none;
-    color: #000;
+    color: #fff; /* #000; */
     opacity: .2
 }
 
@@ -2175,12 +2181,12 @@ body:lang(he) #main-header,body:lang(ar) #main-header,body:lang(ug) #main-header
 }
 
 .checkup-list {
-    padding-inline-start:1em
+    padding-inline-start: 1em
 }
 
 .checkup-list li {
     list-style-type: "✗";
-    padding-inline-start:.5em
+    padding-inline-start: .5em
 }
 
 .checkup-list li::marker {
