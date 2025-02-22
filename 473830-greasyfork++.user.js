@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.2
+// @version            3.3.3
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1298,9 +1298,11 @@ inIframeFn() || (async () => {
             deleteCount === 1 ? userCreations.shift() : userCreations.splice(0, deleteCount);
         }
 
-        // Trim to max 32 elements, keeping boundary-relevant entries
-        while (userCreations.length > 32) {
-            userCreations = userCreations.filter((e, idx) => ((idx < 8) || ((idx % 2) === 1)));
+        // Trim to max 16 elements, keeping boundary-relevant entries
+        while (userCreations.length > 16) {
+            const leftIdx = 1;
+            const rightIdx = userCreations.length - 2;
+            userCreations = userCreations.filter((e, idx) => ((idx <= leftIdx) || (idx >= rightIdx) || ((idx % 2) === 1)));
         }
 
         sessionStorage.__TMP_userCreations682__ = JSON.stringify(userCreations);
