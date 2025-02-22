@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.9
+// @version             0.3.10
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -145,10 +145,12 @@ SOFTWARE.
 
   const [setIntervalX0, clearIntervalX0] = [setInterval, clearInterval];
 
+  let chkVisibleItemList = () => { };
   class VisibleItemList extends Array {
     constructor(...args) {
       super(...args);
       R(this);
+      Promise.resolve().then(chkVisibleItemList);
     }
 
     reverse() {
@@ -198,37 +200,39 @@ SOFTWARE.
 
     filter(...args) {
       
-/*
+      /*
 
-    f.handleRemoveChatItemByAuthorAction = function(a) {
-        var b = function(d) {
-            var e = Object.keys(d)[0];
-            return (d = d[e]) && d.authorExternalChannelId ? d.authorExternalChannelId !== a.externalChannelId : !0
+        f.handleRemoveChatItemByAuthorAction = function(a) {
+            var b = function(d) {
+                var e = Object.keys(d)[0];
+                return (d = d[e]) && d.authorExternalChannelId ? d.authorExternalChannelId !== a.externalChannelId : !0
+            }
+              , c = this.visibleItems.filter(b);
+            this.activeItems_ = this.activeItems_.filter(b);
+            this.visibleItems = c;
+            this.resetSmoothScroll_();
+            this.setAtBottom();
+            this.maybeScrollToBottom_()
         }
-          , c = this.visibleItems.filter(b);
-        this.activeItems_ = this.activeItems_.filter(b);
-        this.visibleItems = c;
-        this.resetSmoothScroll_();
-        this.setAtBottom();
-        this.maybeScrollToBottom_()
-    }
 
-    */
+      */
 
       const r = super.filter(...args);
-      Promise.resolve().then(() => this.checkIntegrity());
+      Promise.resolve().then(chkVisibleItemList); // just in case
       return r;
     }
 
-    checkIntegrity() {
-      const cnt = this?.listController;
-      if (cnt?.bstVisibleItemList !== cnt?.visibleItems && cnt?.bstVisibleItemList === this) {
-        const newList = cnt.visibleItems;
+    checkIntegrity(listControllerWR) {
+      const cnt = kRef(listControllerWR);
+      const bstVisibleItemList = cnt?.bstVisibleItemList;
+      const visibleItems_ = cnt?.visibleItems;
+      if (bstVisibleItemList !== visibleItems_ && bstVisibleItemList === this) {
         this.length = 0;
-        inPlaceArrayPush(this, newList);
+        const n = visibleItems_.length;
+        if (n > 0) inPlaceArrayPush(this, visibleItems_);
         cnt.visibleItems = this;
         cnt.bstVisibleItemList = this;
-        this.setLength(newList.length);
+        this.setLength(n);
       }
     }
 
@@ -374,34 +378,6 @@ SOFTWARE.
   }
 
   const flushPE = createPipeline();
-
-
-  class LimitedSizeSet extends Set {
-    constructor(n) {
-      super();
-      this.limit = n;
-    }
-
-    add(key) {
-      if (!super.has(key)) {
-        super.add(key);
-        let n = super.size - this.limit;
-        if (n > 0) {
-          const iterator = super.values();
-          do {
-            const firstKey = iterator.next().value; // Get the first (oldest) key
-            super.delete(firstKey); // Delete the oldest key
-          } while (--n > 0)
-        }
-      }
-    }
-
-    removeAdd(key) {
-      super.delete(key);
-      this.add(key);
-    }
-
-  }
 
   const mutableWM = new WeakMap();
 
@@ -4761,6 +4737,9 @@ SOFTWARE.
 
 
       let cancelPointerHolderFnBusy = false;
+
+
+      /*
       const pointerReleaseProcess = async () => {
         pointerReleasedAt = Date.now();
         flushPEHoldingUntil = Date.now() + 400;
@@ -4768,15 +4747,41 @@ SOFTWARE.
         pointerHoldingAt = 0;
         pointerReleaseNotReady = true;
         if (pointerReleasedAt > 0 && !cancelPointerHolderFnBusy) {
-          cancelPointerHolderFnBusy = true;
-          await timelineResolve();
-          cancelPointerHolderFnBusy = false;
-          pointerReleaseNotReady = false;
+        cancelPointerHolderFnBusy = true;
+        await timelineResolve();
+        cancelPointerHolderFnBusy = false;
+        pointerReleaseNotReady = false;
           if (pointerReleasedAt > 0 && `${window.getSelection()}`) {
             pointerReleasedWithSelection = true;
-          } else {
-            pointerReleasedWithSelection = false;
-          }
+        } else {
+          pointerReleasedWithSelection = false;
+        }
+        }
+      };
+      */
+
+      const pointerReleaseProcess = async () => {
+        if (!pointerHoldingAt) return;
+        pointerReleasedAt = Date.now();
+        flushPEHoldingUntil = Date.now() + 400;
+        if (flushPEHoldingMaxTimelineResolve < 4) flushPEHoldingMaxTimelineResolve = 4;
+        pointerHoldingAt = 0;
+        if (atBottom0() !== true) return;
+        pointerReleaseNotReady = true;
+        if (cancelPointerHolderFnBusy) return;
+        cancelPointerHolderFnBusy = true;
+        await timelineResolve();
+        cancelPointerHolderFnBusy = false;
+        pointerReleaseNotReady = false;
+        if (pointerReleasedAt > 0 && !pointerHoldingAt) {
+          pointerReleasedWithSelection = `${window.getSelection()}`.length > 0;
+        } else {
+          pointerReleasedWithSelection = false;
+        }
+        if (atBottom0() !== true) return;
+        const lcrCnt = getLcRendererCnt();
+        if (lcrCnt?.activeItems_?.length > 0 && lcrCnt.canScrollToBottom_()) {
+          lcrCnt.flushActiveItems_();
         }
       };
 
@@ -4807,7 +4812,7 @@ SOFTWARE.
 
       messageList.addEventListener('pointermove', function (evt) {
 
-        if (evt.buttons === 0 && pointerHoldingAt > 0) {
+        if (pointerHoldingAt > 0 && evt.buttons === 0) {
           pointerReleaseProcess();
         }
 
@@ -5159,7 +5164,7 @@ SOFTWARE.
 
 
       Promise.resolve().then(() => {
-        
+
         let qcz4 = 0;
         document.addEventListener('keydown', (evt) => {
           const target = (evt?.target || 0);
@@ -5175,10 +5180,10 @@ SOFTWARE.
           if (isAtBottom__) {
             target.__ah46n__ = null;
             const pcz = ++qcz4;
-            flushPE(()=>{
-              if(pcz !== qcz4) return;
+            flushPE(() => {
+              if (pcz !== qcz4) return;
               setTimeout(() => {
-                if(pcz !== qcz4) return;
+                if (pcz !== qcz4) return;
                 const cnt = getLcRendererCnt();
                 if (!cnt) return;
                 if (cnt.atBottom && cnt.canScrollToBottom_()) {
@@ -5422,7 +5427,7 @@ SOFTWARE.
     cProto.__notRequired__ = (cProto.__notRequired__ || 0) | 256;
     cProto.setAtBottom = (...args) => {
 
-      this?.bstVisibleItemList?.checkIntegrity();
+      chkVisibleItemList();
 
       console.log('[yt-bst] setAtBottom', 583, ...args)
 
@@ -5452,7 +5457,7 @@ SOFTWARE.
     }
 
     cProto.resetSmoothScroll_ = function () {
-      this?.bstVisibleItemList?.checkIntegrity();
+      chkVisibleItemList();
       this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
       this.lastSmoothScrollUpdate_ = null;
       this.smoothScrollRafHandle_ && window.cancelAnimationFrame(this.smoothScrollRafHandle_);
@@ -5817,7 +5822,13 @@ f.handleRemoveChatItemAction_ = function(a) {
         q.length = 0;
       }
       this.bstVisibleItemList = solidBuild;
-      solidBuild.listController = this;
+      const listControllerWR = mWeakRef(this);
+      const visibleItems_ = this.visibleItems;
+      if (visibleItems_ instanceof VisibleItemList && visibleItems_ === solidBuild) {
+        chkVisibleItemList = () => {
+          visibleItems_.checkIntegrity(listControllerWR);
+        }
+      }
     }
     cProto.bstClearCount = 0;
     cProto.clearList = function () {
@@ -5904,7 +5915,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         this.setAtBottomTrue();
         flushPEHoldingUntil = Date.now() + 200;
         if (flushPEHoldingMaxTimelineResolve < 1) flushPEHoldingMaxTimelineResolve = 1;
-      })
+      });
 
       // this.itemScroller.scrollTop = Math.pow(2, 24);
       // this.atBottom = !0
@@ -6237,6 +6248,8 @@ f.handleRemoveChatItemAction_ = function(a) {
         flushPEHoldingUntil = 0;
 
         if (bstClearCount0 !== this.bstClearCount) return;
+
+        chkVisibleItemList();
 
         let tmpError = false;
 
