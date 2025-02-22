@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.0
+// @version            3.3.1
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1046,6 +1046,60 @@ inIframeFn() || (async () => {
         return null;
     }
 
+    const ruleFn = function (text) {
+        /** @type {String[]} */
+        const { rules, regExpArr } = this;
+        let text0 = text.replace(/\uE084/g, '\uE084x');
+        let j = 0;
+        for (const rule of rules) {
+            let r = false;
+            if (!rule.includes('\uE084')) {
+                r = (text.toLocaleLowerCase("en-US").includes(rule.toLocaleLowerCase("en-US")));
+            } else {
+                const s = rule.split(/\uE084(\d+)r/);
+                r = s.every((t, i) => {
+                    if (t === undefined || t.length === 0) return true;
+                    if (i % 2) {
+                        return regExpArr[+t].test(text0);
+                    } else {
+                        return text0.includes(t.trim());
+                    }
+                });
+            }
+            if (r) return j;
+            j++;
+        }
+    }
+
+    /** @param {String} txtRule */
+    const preprocessRule = (txtRule) => {
+        const regExpArr = [];
+        txtRule = txtRule.replace(/\uE084/g, '\uE084x');
+        let maxCount = 800; // avoid deadloop
+        while (maxCount--) {
+            const idx1 = txtRule.search(/\bre\//);
+            if (idx1 < 0) break;
+            const str = txtRule.substring(idx1 + 3);
+            let idx2 = -1;
+            const searcher = /(.?)\//g;
+            let m;
+            while (m = searcher.exec(str)) {
+                if (m[1] === '\\') continue;
+                idx2 = searcher.lastIndex + idx1 + 3;
+                break;
+            }
+            if (idx2 < 0) break;
+            const optionStr = txtRule.substring(idx2);
+            const optionM = /^[a-z]+/.exec(optionStr);
+            const option = optionM ? optionM[0] : '';
+            const regexContent = txtRule.substring(idx1 + 2 + 1, idx2 - 1);
+            txtRule = `${txtRule.substring(0, idx1)}${('\uE084' + regExpArr.length + 'r')}${txtRule.substring(idx2 + option.length)}`;
+            regExpArr.push(new RegExp(regexContent, option));
+        }
+        const rules = txtRule.split(',').map(e => e.trim());
+        return ruleFn.bind({ rules, regExpArr });
+    }
+
     const useHashedScriptName = true;
     const fixLibraryScriptCodeLink = true;
     const addAdditionInfoLengthHint = true;
@@ -1143,7 +1197,7 @@ inIframeFn() || (async () => {
     });
     gmc.initialized = new Promise(r => (gmc.initializedResolve = r));
     await gmc.initialized.then();
-    const customBlacklistRE = createRE((gmc.get('customBlacklist') || '').replace(/\s/g, '').split(',').join('|'), 'giu');
+    const customBlacklistRF = preprocessRule(gmc.get('customBlacklist') || '');
 
     const valHideRecentUsersWithin_ = Math.floor(+gmc.get('hideRecentUsersWithin'));
     const valHideRecentUsersWithin = valHideRecentUsersWithin_ > 168 ? 168 : valHideRecentUsersWithin_ > 0 ? valHideRecentUsersWithin_ : 0;
@@ -2099,8 +2153,8 @@ inIframeFn() || (async () => {
                 }
                 break;
             case 'customBlacklist': {
-                const customBlacklist = customBlacklistRE;
-                if (customBlacklist && (customBlacklist.test(name) || customBlacklist.test(description)) && !element.classList.contains('blacklisted')) {
+                const customBlacklist = customBlacklistRF;
+                if (customBlacklist && (customBlacklist(name) >= 0 || customBlacklist(description) >= 0) && !element.classList.contains('blacklisted')) {
                     element.classList.add('blacklisted', 'custom-blacklist');
                     if (gmc.get('hideBlacklistedScripts') && gmc.get('debugging')) {
                         let scriptLink = element.querySelector('.script-link');
