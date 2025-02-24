@@ -3,7 +3,7 @@
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2024.05.13.0
+// @version             2025.02.24.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -303,8 +303,7 @@ SOFTWARE.
       const afResolve = async (rX) => {
         await new Promise(rafPN);
         rX.resolved = true;
-        const t = ++afix;
-        if (t > 9e9) afix = 9;
+        const t = afix = (afix & 1073741823) + 1;
         return rX.resolve(t), t;
       };
       const eFunc = async () => {
@@ -314,7 +313,7 @@ SOFTWARE.
         if (uP && uQ) {
           const t1 = await uP;
           const t2 = await uQ;
-          t = t1 > t2 && t1 - t2 < 8e9 ? t1 : t2;
+          t = ((t1 - t2) & 536870912) === 0 ? t1 : t2; // = 0 for t1 - t2 = [0, 536870911], [–1073741824, -536870913]
         } else {
           const vP = !uP ? (afPromiseP = new PromiseExternal()) : null;
           const vQ = !uQ ? (afPromiseQ = new PromiseExternal()) : null;

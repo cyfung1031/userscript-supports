@@ -1,34 +1,9 @@
-/*
-
-MIT License
-
-Copyright 2024 CY Fung
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-*/
 // ==UserScript==
 // @name                YouTube CPU Tamer by DOMMutation
 // @name:ja             YouTube CPU Tamer by DOMMutation
 // @name:zh-TW          YouTube CPU Tamer by DOMMutation
 // @namespace           http://tampermonkey.net/
-// @version             2024.11.02.0
+// @version             2025.02.24.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -123,6 +98,32 @@ SOFTWARE.
 // @description:km      បង្កើតការធ្វើបរិមាណលំអិតរបស់ការកំណត់ការដាក់នៅលើសម្ពាធរបស់ប្រព័ន្ធបញ្ចូលបន្ទាត់ YouTube
 // ==/UserScript==
 
+/*
+
+MIT License
+
+Copyright 2024-2025 CY Fung
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
 /* jshint esversion:8 */
 
 ((__CONTEXT__) => {
@@ -154,24 +155,24 @@ SOFTWARE.
 
   // for future use
   /*
-  const timeupdateDT = (()=>{
- 
+  const timeupdateDT = (() => {
+
     window.__j6YiAc__ = 1;
- 
+
     document.addEventListener('timeupdate', () => {
-        window.__j6YiAc__ = Date.now();
+      window.__j6YiAc__ = Date.now();
     }, true);
- 
+
     let kz = -1;
     try {
-        kz = top.__j6YiAc__;
+      kz = top.__j6YiAc__;
     } catch (e) {
- 
+
     }
- 
-  return kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
- 
-  })();
+
+    return kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
+
+  })(); 
   */
 
   const cleanContext = async (win) => {
@@ -295,8 +296,7 @@ SOFTWARE.
       const dmResolve = async (rX) => {
         await dmSN();
         rX.resolved = true;
-        const t = ++dmix;
-        if (t > 9e9) dmix = 9;
+        const t = dmix = (dmix & 1073741823) + 1;
         return rX.resolve(t), t;
       };
       const eFunc = async () => {
@@ -306,7 +306,7 @@ SOFTWARE.
         if (uP && uQ) {
           const t1 = await uP;
           const t2 = await uQ;
-          t = t1 > t2 && t1 - t2 < 8e9 ? t1 : t2;
+          t = ((t1 - t2) & 536870912) === 0 ? t1 : t2; // = 0 for t1 - t2 = [0, 536870911], [–1073741824, -536870913]
         } else {
           const vP = !uP ? (dmPromiseP = new PromiseExternal()) : null;
           const vQ = !uQ ? (dmPromiseQ = new PromiseExternal()) : null;
