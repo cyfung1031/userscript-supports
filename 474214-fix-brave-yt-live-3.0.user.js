@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.35
+// @version      3.36
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
@@ -44,6 +44,7 @@
                     if (t !== ath) return;
                 }
                 await new Promise(resolve => setTimeout_(resolve, 1)).catch(console.warn); // neccessary for Brave
+                if (t !== ath) return;
                 const isBlankPage = !this.data || this.collapsed;
                 const p1 = new Promise(resolve => setTimeout_(resolve, 706)).catch(console.warn);
                 const p2 = new Promise(resolve => {
