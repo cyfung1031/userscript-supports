@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.3
+// @version            3.3.4
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -646,10 +646,89 @@ const mWindow = isInIframe || (() => {
             min-height: unset;
         }
 
+
+        /* additional css */
+
         .discussion-item-by-recent-user{
             opacity: 0.2;
         }
 
+        .discussion-list-item {
+            position: relative;
+        }
+
+        .discussion-list-item .discussion-meta .discussion-meta-item{
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 4px;
+
+        }
+
+        .discussion-list-item .discussion-meta .discussion-meta-item:last-of-type .discussion-meta-item{
+            justify-content: end;
+        }
+
+        .discussion-list-item .discussion-title{
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+
+        }
+        a.discussion-list-item-report-comment[class] {
+            all: reset;
+            position: relative;
+            margin: 0 0 0 0;
+            background: inherit;
+            color: inherit;
+            border: 0;
+            opacity: 0.8;
+            text-decoration: none;
+            font-size: 100%;
+        }
+        a.discussion-list-item-report-comment[class]:hover {
+            opacity: 1.0;
+            text-decoration: underline;
+        }
+
+        .discussion-meta-item-script-name + .discussion-meta-item {
+            display: inline-flex;
+            flex-direction: row;
+            gap: 4px;
+            align-items: center;
+            justify-content: flex-start;
+            justify-items: center;
+        }
+
+        li[data-script-id] .install-link[class] {
+            border-radius: 0;
+            opacity: 0.8;
+            cursor: pointer;
+            display: inline-flex;
+            white-space: nowrap;
+            position: relative;
+            z-index: 99;
+        }
+
+        li[data-script-id] .install-link[class]:hover {
+            opacity: 1.0;
+            cursor: pointer;
+            display: inline-flex;
+            white-space: nowrap;
+        }
+
+        .discussion-list-item span.discussion-snippet[class] {
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        div#script-list-cd[id]{
+            /* all: revert; */
+            padding: initial;
+            width: initial;
+            margin: initial;
+        }
 
     `
 
@@ -1415,6 +1494,35 @@ inIframeFn() || (async () => {
         }
     };
 
+    const isGPUAccelerationAvailable = (() => {
+        // https://gist.github.com/cvan/042b2448fcecefafbb6a91469484cdf8
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+        } catch (e) {
+            return false;
+        }
+    })();
+
+    const runLater = isGPUAccelerationAvailable ? (f) => {
+        requestAnimationFrame(f);
+    } : (f) => {
+        setTimeout(f, 100);
+    };
+
+    const mutationRunner = (gn, elm, options) => {
+        let rid = 0;
+        (new MutationObserver((entries) => {
+            if (entries && entries.length >= 1) {
+                const tid = rid = (rid & 1073741823) + 1;
+                runLater(() => {
+                    if (tid === rid) gn();
+                });
+            }
+        })).observe(elm, options);
+        gn();
+    }
+
 
     function fixLibraryCodeURL(code_url) {
         if (/\/scripts\/(\d+)(\-[^\/]+)\/code\//.test(code_url)) {
@@ -1565,38 +1673,16 @@ inIframeFn() || (async () => {
 
     }
 
-    const addOptions = () => {
-
-        const gn = () => {
-
+    const addOptions = (scriptList) => {
+        if (!scriptList) return;
+        createListOptionGroup();
+        mutationRunner(() => {
             let aBlackList = document.querySelector('#hyperlink-35389');
             let aHidden = document.querySelector('#hyperlink-40361');
             if (!aBlackList || !aHidden) return;
             aBlackList.textContent = `Blacklisted scripts (${document.querySelectorAll('.script-list li.blacklisted').length})`;
-            aHidden.textContent = `Hidden scripts (${document.querySelectorAll('.script-list li.hidden').length})`
-
-        }
-        const callback = (entries) => {
-            if (entries && entries.length >= 1) requestAnimationFrame(gn);
-        }
-
-        const setupScriptList = async () => {
-            let scriptList;
-            let i = 8;
-            while (i-- > 0) {
-                scriptList = document.querySelector('.script-list li')
-                if (scriptList) scriptList = scriptList.closest('.script-list')
-                if (scriptList) break;
-                await new Promise(r => requestAnimationFrame(r))
-            }
-            if (!scriptList) return;
-            createListOptionGroup();
-            const mo = new MutationObserver(callback);
-            mo.observe(scriptList, { childList: true, subtree: true });
-            gn();
-        }
-        setupScriptList();
-
+            aHidden.textContent = `Hidden scripts (${document.querySelectorAll('.script-list li.hidden').length})`;
+        }, scriptList, { childList: true, subtree: true });
     };
 
 
@@ -2429,12 +2515,14 @@ inIframeFn() || (async () => {
 
     const foundScriptList = async (scriptList) => {
 
-        let rid = 0;
-        let g = () => {
+        // add options and style for blacklisted/hidden scripts
+        if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
+            addOptions(scriptList);
+        }
+
+        mutationRunner(() => {
             if (!scriptList || scriptList.isConnected !== true) return;
-
             const scriptElements = scriptList.querySelectorAll('li[data-script-id]:not([e8kk])');
-
             for (const element of scriptElements) {
                 element.setAttribute('e8kk', '1');
 
@@ -2453,6 +2541,7 @@ inIframeFn() || (async () => {
                 if (gmc.get('showInstallButton')) {
                     showInstallButton(scriptID, element)
                 }
+
             }
 
             const idArr = [...scriptList.querySelectorAll('li[data-script-id]')].map(e => +e.getAttribute('data-script-id'));
@@ -2462,72 +2551,110 @@ inIframeFn() || (async () => {
                 updateReqStoresWithElementsOrder(idArr);
             }
 
-        }
-        let f = (entries) => {
-            const tid = ++rid
-            if (entries && entries.length) requestAnimationFrame(() => {
-                if (tid === rid) g();
-            });
-        }
-        let mo = new MutationObserver(f);
-        mo.observe(scriptList, { subtree: true, childList: true });
-
-        g();
+        }, scriptList, { subtree: true, childList: true });
 
     }
 
     const foundDiscussionList = (discussionsList) => {
         targetHiddenRecentDateTime = Date.now() - valHideRecentUsersWithin * 3600000;
-
-        let rid = 0;
-        let g = () => {
+        mutationRunner(() => {
             if (!discussionsList || discussionsList.isConnected !== true) return;
-
             const scriptElements = discussionsList.querySelectorAll('.discussion-list-item:not([e8kk])');
-
             for (const element of scriptElements) {
                 element.setAttribute('e8kk', '1');
-                // const scriptID = +element.getAttribute('data-script-id');
-                // if (!(scriptID > 0)) continue;
-
 
                 // blacklisted scripts
-                // if (gmc.get('nonLatins')) hideBlacklistedDiscussion(element, 'nonLatins');
-                // if (gmc.get('blacklist')) hideBlacklistedDiscussion(element, 'blacklist');
                 if (gmc.get('hideHiddenScript')) hideBlacklistedDiscussion(element, 'hiddenList');
 
-                // // hidden scripts
-                // if (gmc.get('hideHiddenScript')) hideBlacklistedDiscussion(element, scriptID, true);
-
-                // // install button
-                // if (gmc.get('showInstallButton')) {
-                //     showInstallButton(scriptID, element)
-                // }
                 let t;
+                let userId = 0;
                 if (t = element.querySelector('a.user-link[href*="/users/"]')) {
                     const m = /\/users\/(\d+)/.exec(`${t.getAttribute('href')}`);
                     if (m) {
-                        const userId = +m[1];
-                        determineRecentUserAsync(userId).then((isNewUser)=>{
-                            element.classList.toggle('discussion-item-by-recent-user', isNewUser);
-                        });
+                        userId = +m[1];
                     }
                 }
-
+                if (userId > 0) {
+                    determineRecentUserAsync(userId).then((isNewUser) => {
+                        element.classList.toggle('discussion-item-by-recent-user', isNewUser);
+                    });
+                }
+                let discussionId = 0;
+                if (t = element.querySelector('a.discussion-title[href*="/discussions/')) {
+                    const m = /\/\w+\/(\d+)/.exec(`${t.getAttribute('href')}`);
+                    if (m) {
+                        discussionId = +m[1];
+                    }
+                }
+                let btnContainer = null;
+                const meta = element.querySelector('div.discussion-meta');
+                if (meta) {
+                    btnContainer = document.createElement('additional-buttons');
+                    meta.appendChild(btnContainer);
+                }
+                if (btnContainer) {
+                    if (discussionId > 0) {
+                        const btn = document.createElement('a');
+                        btn.classList = 'discussion-list-item-report-comment'
+                        btn.textContent = 'Report Comment';
+                        btnContainer.appendChild(btn);
+                        const m = /^(https?:\/\/[a-z-]{10,15}\.org\/(([a-z]{2,3}(-[a-zA-Z0-9]{2,3})?)\/)?)\w+/.exec(location.href);
+                        if (m) {
+                            btn.href = `${m[1]}reports/new?item_class=discussion&item_id=${discussionId}`;
+                        }
+                    }
+                }
             }
+        }, discussionsList, { subtree: true, childList: true });
+    }
 
-        }
-        let f = (entries) => {
-            const tid = ++rid
-            if (entries && entries.length) requestAnimationFrame(() => {
-                if (tid === rid) g();
-            });
-        }
-        let mo = new MutationObserver(f);
-        mo.observe(discussionsList, { subtree: true, childList: true });
-
-        g();
-
+    const foundScriptDiscussionList = (discussionsList) => {
+        targetHiddenRecentDateTime = Date.now() - valHideRecentUsersWithin * 3600000;
+        mutationRunner(() => {
+            if (!discussionsList || discussionsList.isConnected !== true) return;
+            const scriptElements = discussionsList.querySelectorAll('.discussion-list-item:not([e8kk])');
+            for (const element of scriptElements) {
+                element.setAttribute('e8kk', '1');
+                let t;
+                let userId = 0;
+                if (t = element.querySelector('a.user-link[href*="/users/"]')) {
+                    const m = /\/users\/(\d+)/.exec(`${t.getAttribute('href')}`);
+                    if (m) {
+                        userId = +m[1];
+                    }
+                }
+                if (userId > 0) {
+                    determineRecentUserAsync(userId).then((isNewUser) => {
+                        element.classList.toggle('discussion-item-by-recent-user', isNewUser);
+                    });
+                }
+                let discussionId = 0;
+                if (t = element.querySelector('a.discussion-title[href*="/discussions/')) {
+                    const m = /\/\w+\/(\d+)/.exec(`${t.getAttribute('href')}`);
+                    if (m) {
+                        discussionId = +m[1];
+                    }
+                }
+                let btnContainer = null;
+                const meta = element.querySelector('div.discussion-meta');
+                if(meta){
+                    btnContainer = document.createElement('additional-buttons');
+                    meta.appendChild(btnContainer);
+                }
+                if (btnContainer) {
+                    if (discussionId > 0) {
+                        const btn = document.createElement('a');
+                        btn.classList = 'discussion-list-item-report-comment'
+                        btn.textContent = 'Report Comment';
+                        btnContainer.appendChild(btn);
+                        const m = /^(https?:\/\/[a-z-]{10,15}\.org\/(([a-z]{2,3}(-[a-zA-Z0-9]{2,3})?)\/)?)\w+/.exec(location.href);
+                        if (m) {
+                            btn.href = `${m[1]}reports/new?item_class=discussion&item_id=${discussionId}`;
+                        }
+                    }
+                }
+            }
+        }, discussionsList, { subtree: true, childList: true });
     }
 
     let promiseScriptCheckResolve = null;
@@ -2668,92 +2795,74 @@ inIframeFn() || (async () => {
             }
 
             UU.addStyle(mWindow.pageCSS);
+
+
+            const elementLookup = (selector, fn) => {
+                const elm0 = document.querySelector(selector);
+                if (elm0) {
+                    fn(elm0);
+                } else {
+                    const timeout = Date.now() + 3000;
+                    (new MutationObserver((_, observer) => {
+                        const elm = document.querySelector(selector);
+                        if (elm && elm.childElementCount >= 1) {
+                            observer.disconnect();
+                            observer.takeRecords();
+                            fn(elm);
+                        } else if (Date.now() > timeout) {
+                            observer.disconnect();
+                            observer.takeRecords();
+                        }
+                    })).observe(document, { subtree: true, childList: true });
+                }
+            };
+
             // blacklisted scripts / hidden scripts / install button
-            if (!urlMatch(window.location.pathname, userID) && !/discussions/.test(window.location.pathname) && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
 
-                const scriptList = document.querySelector('.script-list');
-                if (scriptList) {
-                    foundScriptList(scriptList);
-                } else {
-                    const timeout = Date.now() + 3000;
-                    /** @type {MutationObserver | null} */
-                    let mo = null;
-                    const mutationCallbackForScriptList = () => {
-                        if (!mo) return;
-                        const scriptList = document.querySelector('.script-list');
-                        if (scriptList) {
-                            mo.disconnect();
-                            mo.takeRecords();
-                            mo = null;
-                            foundScriptList(scriptList);
-                        } else if (Date.now() > timeout) {
-                            mo.disconnect();
-                            mo.takeRecords();
-                            mo = null;
+            const isPageUnderScript = location.pathname.includes('/scripts/');
+            const pageType_ = /\/([a-z-]+)$/.exec(window.location.pathname);
+            const pageType = pageType_ ? pageType_[1] : '';
+            const isDiscussionListPage = !isPageUnderScript && (pageType === 'discussions' || (pageType_ && /\/discussions\/[a-z-]+$/.test(location.pathname)));
+            const isFeedbackListPage = isPageUnderScript && pageType === 'feedback';
+            const isScriptListPage = !isPageUnderScript && pageType === 'scripts';
+            const isUserIDPage = !isPageUnderScript && urlMatch(window.location.pathname, userID);
+            if (!isUserIDPage && !isDiscussionListPage && !isFeedbackListPage && (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript') || gmc.get('showInstallButton'))) {
+
+                if (isScriptListPage) {
+                    elementLookup('.script-list', foundScriptList);
+                } else if (isPageUnderScript) {
+
+                    // hidden scripts on details page
+                    const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
+
+                    if (installLinkElement) {
+                        setupInstallLink(installLinkElement);
+                        if (gmc.get('hideHiddenScript')) {
+                            const id = +installLinkElement.getAttribute('data-script-id');
+                            hideHiddenScript(document.querySelector('#script-info'), id, false);
                         }
+                        installLinkElement.addEventListener('click', async function (e) {
+                            if (e && e.isTrusted && location.pathname.includes('/scripts/')) {
+
+                                await new Promise(r => setTimeout(r, 800));
+                                await new Promise(r => window.requestAnimationFrame(r));
+                                await new Promise(r => setTimeout(r, 100));
+                                // let ethicalads497 = 'ethicalads' in window ? window.ethicalads : undefined;
+                                // window.ethicalads = { wait: new Promise() }
+                                document.dispatchEvent(new Event("DOMContentLoaded"));
+                                document.documentElement.dispatchEvent(new Event("turbo:load"));
+                                // if (ethicalads497 === undefined) delete window.ethicalads; else window.ethicalads = ethicalads497;
+                            }
+                        })
                     }
-                    mo = new MutationObserver(mutationCallbackForScriptList);
-                    mo.observe(document, { subtree: true, childList: true });
+
+
                 }
 
-
-                // hidden scripts on details page
-                const installLinkElement = document.querySelector('#script-info .install-link[data-script-id]');
-                setupInstallLink(installLinkElement);
-                if (gmc.get('hideHiddenScript') && installLinkElement) {
-                    const id = +installLinkElement.getAttribute('data-script-id');
-                    hideHiddenScript(document.querySelector('#script-info'), id, false);
-                }
-
-                // add options and style for blacklisted/hidden scripts
-                if (gmc.get('hideBlacklistedScripts') || gmc.get('hideHiddenScript')) {
-                    addOptions();
-                }
-
-                if (installLinkElement && location.pathname.includes('/scripts/')) {
-
-                    installLinkElement.addEventListener('click', async function (e) {
-                        if (e && e.isTrusted && location.pathname.includes('/scripts/')) {
-
-                            await new Promise(r => setTimeout(r, 800));
-                            await new Promise(r => window.requestAnimationFrame(r));
-                            await new Promise(r => setTimeout(r, 100));
-                            // let ethicalads497 = 'ethicalads' in window ? window.ethicalads : undefined;
-                            // window.ethicalads = { wait: new Promise() }
-                            document.dispatchEvent(new Event("DOMContentLoaded"));
-                            document.documentElement.dispatchEvent(new Event("turbo:load"));
-                            // if (ethicalads497 === undefined) delete window.ethicalads; else window.ethicalads = ethicalads497;
-                        }
-                    })
-                }
-            } else if (/\/discussions/.test(window.location.pathname)) {
-
-                const discussionsList = document.querySelector('.discussion-list');
-
-
-                if (discussionsList) {
-                    foundDiscussionList(discussionsList);
-                } else {
-                    const timeout = Date.now() + 3000;
-                    /** @type {MutationObserver | null} */
-                    let mo = null;
-                    const mutationCallbackForScriptList = () => {
-                        if (!mo) return;
-                        const discussionsList = document.querySelector('.script-list');
-                        if (discussionsList) {
-                            mo.disconnect();
-                            mo.takeRecords();
-                            mo = null;
-                            foundDiscussionList(discussionsList);
-                        } else if (Date.now() > timeout) {
-                            mo.disconnect();
-                            mo.takeRecords();
-                            mo = null;
-                        }
-                    }
-                    mo = new MutationObserver(mutationCallbackForScriptList);
-                    mo.observe(document, { subtree: true, childList: true });
-                }
+            } else if (isDiscussionListPage) {
+                elementLookup('.discussion-list', foundDiscussionList);
+            } else if (isFeedbackListPage) {
+                elementLookup('.script-discussion-list', foundScriptDiscussionList);
             }
 
             // total installs
@@ -2775,13 +2884,10 @@ inIframeFn() || (async () => {
                 const totalInstallsSum = totalInstalls.reduce((a, b) => a + b, 0);
 
                 const convertLi = (li) => {
-
                     if (!li) return null;
                     const a = li.firstElementChild
                     if (a === null) return li;
                     if (a === li.lastElementChild && a.nodeName === 'A') return a;
-
-
                     return null;
                 }
 
