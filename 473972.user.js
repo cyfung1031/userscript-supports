@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.18
+// @version     0.18.19
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -106,7 +106,7 @@
   const DO_createStampDomArrayFnE1_nativeAppendD = true;
   const DO_createStampDomArrayFnF1_ = true;
   const DO_createStampDomArray_STRICT_FULFILLMENT = true; // avoid issues; can be changed to false
-  
+  const DO_createStampDomArray_DEBUG = false;
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
 
@@ -3987,12 +3987,50 @@
       throw new Error("requestDomApiProxySet");
     }
   });
+  const fulfillment2Set = new Set([
+    'ytd-watch-next-secondary-results-renderer.items',
+    'yt-related-chip-cloud-renderer.content',
+    'yt-chip-cloud-renderer.chips',
+    'ytd-section-list-renderer.contents',
+    'ytd-engagement-panel-section-list-renderer.content',
+    'ytd-engagement-panel-section-list-renderer.header',
+    'ytd-video-description-infocards-section-renderer.items',
+    'yt-clip-creation-renderer.title-input',
+    'yt-clip-creation-renderer.scrubber',
+    'ytd-watch-flexy.info-contents',
+    'ytd-video-primary-info-renderer.menu',
+    'ytd-menu-renderer.flexible-item-buttons',
+    'ytd-metadata-row-container-renderer.always-shown',
+    'ytd-subscribe-button-renderer.notification-preference-button',
+    'ytd-watch-metadata.subscribe-button',
+    'ytd-watch-metadata.teaser-carousel',
+    'ytd-structured-description-content-renderer.items',
+    'ytd-video-description-infocards-section-renderer.infocard-videos-button',
+    'ytd-video-description-infocards-section-renderer.infocard-channel-button',
+    'ytd-rich-metadata-row-renderer.contents',
+    'ytd-subscribe-button-renderer.notification-preference-button',
+    'ytd-watch-flexy.panels',
+    // yt-live-chat
+    'yt-live-chat-renderer.input-panel',
+    'yt-live-chat-app.contents',
+    'yt-live-chat-message-input-renderer.picker-buttons',
+    'yt-live-chat-message-input-renderer.pickers',
+    'yt-live-chat-message-input-renderer.emoji-picker-button',
+    'yt-live-chat-product-picker-panel-view-model.items',
+    'yt-live-chat-message-input-renderer.send-button',
+    'yt-live-chat-renderer.continuations',
+    // 'yt-live-chat-renderer.item-list',
+    'yt-live-chat-renderer.ticker'
+  ]);
   const createStampDomArrayFn_ = (fn) => {
     if (val_kevlar_should_maintain_stable_list === null) {
       const config_ = ((window.yt || 0).config_ || 0);
       val_kevlar_should_maintain_stable_list = ((config_ || 0).EXPERIMENT_FLAGS || 0).kevlar_should_maintain_stable_list === true;
     }
-    const gn = function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
+    const gn = function (a, b, c, d, bv, h) {
+
+      // bv = shouldTriggerRendererStamperFinished
+
       // this.__$$StampDomCounter$$__ = (this.__$$StampDomCounter$$__ || 0) + 1;
       // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
       // if (a.length > 10) {
@@ -4003,32 +4041,48 @@
       let n = (a || 0).length, t;
       if (n === 1 && typeof (t = (a[0] || {})) === 'object' && Object.keys(t).length === 0) n = 0;
       if (n >= 1) {
-        if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && this.is && val_kevlar_should_maintain_stable_list) {
+        const instanceIs = this.is;
+        if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && instanceIs && val_kevlar_should_maintain_stable_list) {
           if (c.clientSideToggleMenuItemRenderer) {
             h = false;
           } else {
             h = true;
           }
         }
-        if (DO_createStampDomArrayFnE1_ && typeof (this.is || 0) === 'string' && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
+        if (DO_createStampDomArrayFnE1_ && typeof (instanceIs || 0) === 'string' && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
           // !!c <=> typeof c should be always object
 
           let fulfillment = false;
           if (DO_createStampDomArray_STRICT_FULFILLMENT) {
-            const isPlaylistRendering = this.is === 'ytd-playlist-panel-renderer' && b === 'items' && (c || 0).playlistPanelVideoRenderer;
-            const isTranscriptRendering = this.is === 'ytd-transcript-segment-list-renderer' && b === 'segments-container' && (c || 0).transcriptSegmentRenderer;
-            const isProductListRendering = this.is === 'ytd-product-list-renderer' && b === 'contents' && (c || 0).productListItemRenderer;
-            const isGuideSectionItemRendering = this.is === 'ytd-guide-section-renderer' && b === 'items' && ((c || 0).guideCollapsibleEntryRenderer || (c || 0).guideCollapsibleSectionEntryRenderer || (c || 0).guideEntryRenderer);
-            const isPlaylistVideosRendering = this.is === 'ytd-playlist-video-list-renderer' && b === 'contents' && (c || 0).playlistVideoRenderer;
-            const isShareTargetItemRendering = this.is === 'yt-third-party-share-target-section-renderer' && b === 'contents' && (c || 0).shareTargetRenderer;
-            fulfillment = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering || isPlaylistVideosRendering || isShareTargetItemRendering); // strict fulfillment; avoid issues
+            const isPlaylistRendering = instanceIs === 'ytd-playlist-panel-renderer' && b === 'items' && (c || 0).playlistPanelVideoRenderer;
+            const isTranscriptRendering = instanceIs === 'ytd-transcript-segment-list-renderer' && b === 'segments-container' && (c || 0).transcriptSegmentRenderer;
+            const isProductListRendering = instanceIs === 'ytd-product-list-renderer' && b === 'contents' && (c || 0).productListItemRenderer;
+            const isGuideSectionItemRendering = instanceIs === 'ytd-guide-section-renderer' && b === 'items' && ((c || 0).guideCollapsibleEntryRenderer || (c || 0).guideCollapsibleSectionEntryRenderer || (c || 0).guideEntryRenderer);
+            const isPlaylistVideosRendering = instanceIs === 'ytd-playlist-video-list-renderer' && b === 'contents' && (c || 0).playlistVideoRenderer;
+            const isShareTargetItemRendering = instanceIs === 'yt-third-party-share-target-section-renderer' && b === 'contents' && (c || 0).shareTargetRenderer;
+
+            const fulfillment1 = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering || isPlaylistVideosRendering || isShareTargetItemRendering);
+
+            fulfillment = (fulfillment1 && a.length > 1); // strict fulfillment; avoid issues
           } else {
-            fulfillment = true;
+            fulfillment = true && a.length > 1;
           }
-          const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !shouldTriggerRendererStamperFinished;
+
+          if (!fulfillment) {
+            if (
+              typeof (a || 0) === 'object' &&
+              // typeof (b || 0) === 'string' && typeof (c || 0) === 'object' &&
+              d === undefined && bv === undefined && h === true) {
+              if (fulfillment2Set.has(`${this.is}.${b}`)) {
+                fulfillment = true;
+              }
+            }
+          }
+
+          const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !bv;
           const dk55 = (window.dk55 || (window.dk55 = new Set()));
           dk55.add(`(is=${this.is}, b=${b})`);
-          if (!d && constraintE && h && a.length > 1 && !byPassIs55.has(this.is) && !byPassB55.has(b) && fulfillment) {
+          if (!d && constraintE && h && !byPassIs55.has(this.is) && !byPassB55.has(b) && fulfillment) {
             // h (stamperStableList) = true
             // d (reuseComponents) = false
             // a.length > 1 to avoid chatroom display issue
@@ -4065,11 +4119,10 @@
 
               if (domShell && domShell.appendChild) {
 
-
+                let doNew = false;
                 // console.log(5882, this.is, b)
                 if (domShell.firstElementChild === null) {
-                  createStampDomArrayFnE1_.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h);
-                  return;
+                  doNew = true;
                 } else if (DO_createStampDomArrayFnF1_ && domShell.firstElementChild instanceof Node_) {
                   // let t1 = performance.now();
                   let error = 0;
@@ -4079,7 +4132,7 @@
                   }
                   let r;
                   try {
-                    r = fn.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h);
+                    r = fn.call(this, a, b, c, d, bv, h);
                   } catch (e) {
                     error = (e.message === 'DN96IZkGLTY6') ? 1 : e;
                   }
@@ -4088,7 +4141,14 @@
                   if (error !== 1) throw e;
                   // let t2 = performance.now();
                   // console.log('createStampDomArrayFnF1_', t2-t1);
-                  createStampDomArrayFnE1_.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h);
+
+                  doNew = true;
+                }
+
+                if (doNew) {
+                  DO_createStampDomArray_DEBUG && console.time(`createStampDomArrayFn_NEW@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
+                  createStampDomArrayFnE1_.call(this, a, b, c, d, bv, h);
+                  DO_createStampDomArray_DEBUG && console.timeEnd(`createStampDomArrayFn_NEW@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
                   return;
                 }
 
@@ -4104,13 +4164,16 @@
 
         }
       }
+      DO_createStampDomArray_DEBUG && console.time(`createStampDomArrayFn_ORI@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
+      const r = fn.call(this, a, b, c, d, bv, h);
+      DO_createStampDomArray_DEBUG && console.timeEnd(`createStampDomArrayFn_ORI@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
       // console.log(2949, a,b,c,d,e,h)
-      return fn.call(this, a, b, c, d, shouldTriggerRendererStamperFinished, h)
+      return r;
     }
     gn.originalFn = fn;
     convertionFuncMap.set(fn, gn);
     return gn;
-  }
+  };
 
   const fixStampDomArrayStableList = (h) => {
     if (!h.stampDomArray_) return;
