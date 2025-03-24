@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.19
+// @version     0.18.20
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3991,7 +3991,7 @@
     'ytd-watch-next-secondary-results-renderer.items',
     'yt-related-chip-cloud-renderer.content',
     'yt-chip-cloud-renderer.chips',
-    'ytd-section-list-renderer.contents',
+    // 'ytd-section-list-renderer.contents', // affect loading of https://www.youtube.com/feed/history
     'ytd-engagement-panel-section-list-renderer.content',
     'ytd-engagement-panel-section-list-renderer.header',
     'ytd-video-description-infocards-section-renderer.items',
@@ -4019,7 +4019,7 @@
     'yt-live-chat-product-picker-panel-view-model.items',
     'yt-live-chat-message-input-renderer.send-button',
     'yt-live-chat-renderer.continuations',
-    // 'yt-live-chat-renderer.item-list',
+    // 'yt-live-chat-renderer.item-list', // affect yt live chat message init
     'yt-live-chat-renderer.ticker'
   ]);
   const createStampDomArrayFn_ = (fn) => {
