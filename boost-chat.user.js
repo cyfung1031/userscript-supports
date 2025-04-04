@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.10
+// @version             0.3.11
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -65,7 +65,10 @@ SOFTWARE.
   let isThisBrowserSupported = true;
   let DO_scrollIntoViewIfNeeded = false;
 
-  if (isThisBrowserSupported && (typeof Element.prototype.attachShadow !== 'function' || typeof IntersectionObserver === 'undefined' || typeof CSS === 'undefined' || typeof CSS.supports === 'undefined')) {
+  const CAN_USE_SHADOWROOT = typeof Element.prototype.attachShadow !== 'function';
+  const SHOULD_USE_SHADOWROOT = USE_SHADOWROOT && CAN_USE_SHADOWROOT;
+
+  if (isThisBrowserSupported && (typeof IntersectionObserver === 'undefined' || typeof CSS === 'undefined' || typeof CSS.supports === 'undefined')) {
     isThisBrowserSupported = false;
   } else {
     const isOverflowAnchorSupported = CSS.supports("overflow-anchor", "auto") && CSS.supports("overflow-anchor", "none");
@@ -4396,9 +4399,10 @@ SOFTWARE.
         const div0 = document.createElement('div');
         div0.id = 'bst-noscript-div';
         appendChild.call(noscript, div0);
-        const shadowDiv0 = div0.attachShadow({ mode: "open" });
-        shadowDiv0.appendChild(wliveChatTextMessageRenderer);
-        shadowDiv0.appendChild(wliveChatTextInputRenderer);
+        const shadowDiv0 = CAN_USE_SHADOWROOT ? div0.attachShadow({ mode: "open" }) : null;
+        const attachDiv0 = CAN_USE_SHADOWROOT ? shadowDiv0 : div0;
+        attachDiv0.appendChild(wliveChatTextMessageRenderer);
+        attachDiv0.appendChild(wliveChatTextInputRenderer);
 
         fragmentAppendChild.call(fragment, noscript);
         fragmentAppendChild.call(fragment, bstMain);
@@ -4418,8 +4422,8 @@ SOFTWARE.
         sharedNoscript = noscript;
       }
 
-      const shadowRoot = USE_SHADOWROOT ? bstMain.attachShadow({ mode: "open" }) : null;
-      const attachRoot = (USE_SHADOWROOT ? shadowRoot : bstMain);
+      const shadowRoot = SHOULD_USE_SHADOWROOT ? bstMain.attachShadow({ mode: "open" }) : null;
+      const attachRoot = (SHOULD_USE_SHADOWROOT ? shadowRoot : bstMain);
       const intersectionObserver = new IntersectionObserver(ioMessageListCallback, { root: bstMain, threshold: [0.05, 0.95] });
       wAttachRoot.set(hostElement, {
         shadowRoot,
