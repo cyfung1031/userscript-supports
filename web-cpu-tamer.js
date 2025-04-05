@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.1
+// @version             2025.100.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -125,7 +125,7 @@ SOFTWARE.
 ((o) => {
   'use strict';
 
-  const [setTimeout_, setInterval_, requestAnimationFrame_, clearTimeout_, clearInterval_, cancelAnimationFrame_, Animation_] = o;
+  const [setTimeout_, setInterval_, requestAnimationFrame_, clearTimeout_, clearInterval_, cancelAnimationFrame_] = o;
   const queueMicrotask_ = queueMicrotask;
   const win = this instanceof Window ? this : window;
 
@@ -147,7 +147,6 @@ SOFTWARE.
   };
 
   let pr = getExternalPromise();
-
 
   const cme = document.createComment('--WebCPUTamer--');
   const appendChild_ = HTMLElement.prototype.appendChild;
@@ -172,17 +171,17 @@ SOFTWARE.
   if (typeof DocumentTimeline === 'function') {
     tl = new DocumentTimeline();
   } else {
-    let Animation__ = Animation_;
-    if (document.documentElement) {
-      let e = document.documentElement.animate(null);
+    let AnimationConstructor = Animation, rootElm = document.documentElement;
+    if (rootElm) {
+      let e = rootElm.animate(null);
       if (typeof (e || 0) === 'object' && '_animation' in e && e.constructor === Object) {
         e = e._animation;
       }
       if (typeof (e || 0) === 'object' && 'timeline' in e && typeof e.constructor === 'function') {
-        Animation__ = e.constructor;
+        AnimationConstructor = e.constructor;
       }
     }
-    const ant = new Animation__();
+    const ant = new AnimationConstructor();
     tl = ant.timeline;
   }
   const tl_ = tl;
@@ -267,5 +266,5 @@ SOFTWARE.
     }
   } catch (e) { }
 
-})([setTimeout, setInterval, requestAnimationFrame, clearTimeout, clearInterval, cancelAnimationFrame, Animation]);
+})([setTimeout, setInterval, requestAnimationFrame, clearTimeout, clearInterval, cancelAnimationFrame]);
 
