@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.0
+// @version             2025.100.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
