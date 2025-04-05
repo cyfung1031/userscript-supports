@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.2
+// @version             2025.100.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -171,9 +171,9 @@ SOFTWARE.
   if (typeof DocumentTimeline === 'function') {
     tl = new DocumentTimeline();
   } else {
-    let AnimationConstructor = Animation, rootElm = document.documentElement;
-    if (rootElm) {
-      let e = rootElm.animate(null);
+    let AnimationConstructor = Animation, e = document.documentElement;
+    if (e) {
+      e = e.animate(null);
       if (typeof (e || 0) === 'object' && '_animation' in e && e.constructor === Object) {
         e = e._animation;
       }
@@ -197,31 +197,48 @@ SOFTWARE.
   const tz = new Set();
   const az = new Set();
 
-  setTimeout = function (f, ...args) {
+  const h1 = async (r) => {
+    tz.add(r);
+    queueMicrotask_(act);
+    await pr;
+    queueMicrotask_(act);
+    await pr;
+    return tz.delete(r);
+  };
+
+  const h2 = async (r, upr) => {
+    az.add(r);
+    await upr;
+    return az.delete(r);
+  };
+
+  const errCatch = e => {
+    queueMicrotask_(() => { throw e });
+  };
+
+  const dOffset = 2 ** -26; // avoid Brave/uBlock adjustSetTimeout
+
+  setTimeout = function (f, d = void 0, ...args) {
     let r;
-    const g = async (...args) => {
-      tz.add(r);
-      queueMicrotask_(act);
-      await pr;
-      queueMicrotask_(act);
-      await pr;
-      tz.delete(r) && f(...args);
+    const g = (...args) => {
+      h1(r).then((act) => {
+        act && f(...args);
+      }).catch(errCatch);
     }
-    r = setTimeout_(g, ...args);
+    if (d >= 1) d -= dOffset;
+    r = setTimeout_(g, d, ...args);
     return r;
   };
 
-  setInterval = function (f, ...args) {
+  setInterval = function (f, d = void 0, ...args) {
     let r;
-    const g = async (...args) => {
-      tz.add(r);
-      queueMicrotask_(act);
-      await pr;
-      queueMicrotask_(act);
-      await pr;
-      tz.delete(r) && f(...args);
+    const g = (...args) => {
+      h1(r).then((act) => {
+        act && f(...args);
+      }).catch(errCatch);
     }
-    r = setInterval_(g, ...args);
+    if (d >= 1) d -= dOffset;
+    r = setInterval_(g, d, ...args);
     return r;
   };
 
@@ -238,12 +255,11 @@ SOFTWARE.
   requestAnimationFrame = function (f) {
     let r;
     const upr = pr;
-    const g = async (timeRes) => {
-      az.add(r);
+    const g = (timeRes) => {
       const q1 = tl_.currentTime;
-      await upr;
-      const q2 = tl_.currentTime;
-      az.delete(r) && f(timeRes + (q2 - q1));
+      h2(r, upr).then((act) => {
+        act && f(timeRes + (tl_.currentTime - q1));
+      }).catch(errCatch);
     }
     queueMicrotask_(act);
     r = requestAnimationFrame_(g);
