@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.68.2
+// @version             0.68.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -10255,7 +10255,7 @@
           let j2 = 0;
           let target = (evt || 0).target || 0;
           if (!target) return;
-
+          if (target.closest('ytd-menu-popup-renderer')) return;
 
           while (target instanceof HTMLElement) {
             if (++j1 > maxloopDOMTreeElements) break;
