@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.4
+// @version             2025.100.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -125,6 +125,9 @@ SOFTWARE.
 ((o) => {
   'use strict';
 
+  const HACK_TOSTRING = false;
+  const HACK_VALUEOF = false;
+
   const [setTimeout_, setInterval_, requestAnimationFrame_, clearTimeout_, clearInterval_, cancelAnimationFrame_] = o;
   const queueMicrotask_ = queueMicrotask;
   const win = this instanceof Window ? this : window;
@@ -137,16 +140,12 @@ SOFTWARE.
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-  const getExternalPromise = () => {
-    let f;
-    const r = new Promise((resolve) => {
-      f = resolve;
-    });
-    r.resolve = f;
-    return r;
-  };
+  let resolvePr = () => { }, pr;
+  const setPr = () => (pr = new Promise((resolve) => {
+    resolvePr = resolve;
+  }));
 
-  let pr = getExternalPromise();
+  setPr();
 
   const cme = document.createComment('--WebCPUTamer--');
   const appendChild_ = HTMLElement.prototype.appendChild;
@@ -158,7 +157,7 @@ SOFTWARE.
       if (!cmi) {
         appendChild_.call(document.documentElement, cme);
       }
-      cmi = (cmi & 1073741823) + 1;
+      cmi = (cmi & 7) + 1;
       if (cmi & 1) {
         cme.data = '++WebCPUTamer++'
       } else {
@@ -198,8 +197,8 @@ SOFTWARE.
   const tl_ = tl;
 
   const mo = new MutationObserver(() => {
-    pr.resolve();
-    pr = getExternalPromise();
+    resolvePr();
+    setPr();
   });
   mo.observe(cme, {
     characterData: true,
@@ -210,9 +209,9 @@ SOFTWARE.
 
   const h1 = async (r) => {
     tz.add(r);
-    queueMicrotask_(act);
+    if (lastPr !== pr) queueMicrotask_(act);
     await pr;
-    queueMicrotask_(act);
+    if (lastPr !== pr) queueMicrotask_(act);
     await pr;
     return tz.delete(r);
   };
@@ -240,6 +239,8 @@ SOFTWARE.
     r = setTimeout_(g, d, ...args);
     return r;
   };
+  setTimeout.toString = setTimeout_.toString.bind(setTimeout_);
+  setTimeout.valueOf = setTimeout_.valueOf.bind(setTimeout_);
 
   setInterval = function (f, d = void 0, ...args) {
     let r;
@@ -272,7 +273,7 @@ SOFTWARE.
         act && f(timeRes + (tl_.currentTime - q1));
       }).catch(errCatch);
     }
-    queueMicrotask_(act);
+    if (lastPr !== pr) queueMicrotask_(act);
     r = requestAnimationFrame_(g);
     return r;
   };
@@ -282,16 +283,38 @@ SOFTWARE.
     return cancelAnimationFrame_(aid);
   };
 
-  try {
-    if (typeof webkitRequestAnimationFrame === 'function' && location.hostname.endsWith('youtube.com') && navigator.userAgentData.brands.some(e => e.brand === 'Brave')) {  // fu*k you Brave!
-      let q;
-      q = Object.getOwnPropertyDescriptor(self, 'setTimeout');
-      Object.defineProperty(self, 'setTimeout', { ...q, writable: false });
+  if (HACK_TOSTRING) {
+    setInterval.toString = setInterval_.toString.bind(setInterval_);
+    clearTimeout.toString = clearTimeout_.toString.bind(clearTimeout_);
+    clearInterval.toString = clearInterval_.toString.bind(clearInterval_);
+    requestAnimationFrame.toString = requestAnimationFrame_.toString.bind(requestAnimationFrame_);
+    cancelAnimationFrame.toString = cancelAnimationFrame_.toString.bind(cancelAnimationFrame_);
+  }
+  if (HACK_VALUEOF) {
+    setInterval.valueOf = setInterval_.valueOf.bind(setInterval_);
+    clearTimeout.valueOf = clearTimeout_.valueOf.bind(clearTimeout_);
+    clearInterval.valueOf = clearInterval_.valueOf.bind(clearInterval_);
+    requestAnimationFrame.valueOf = requestAnimationFrame_.valueOf.bind(requestAnimationFrame_);
+    cancelAnimationFrame.valueOf = cancelAnimationFrame_.valueOf.bind(cancelAnimationFrame_);
+  }
 
-      q = Object.getOwnPropertyDescriptor(self, 'setInterval');
-      Object.defineProperty(self, 'setInterval', { ...q, writable: false });
-    }
-  } catch (e) { }
+  if (typeof webkitRequestAnimationFrame === 'function' && typeof navigator === 'object' && typeof navigator.userAgentData === 'object') {
+    try {
+      if (location?.hostname?.endsWith('youtube.com') && navigator?.userAgentData?.brands?.some(e => e?.brand === 'Brave')) {  // fu*k you Brave!
+        let e_;
+        try {
+          setTimeout_.call(1);
+        } catch (e) { e_ = e }
+        if (!`${e_?.stack}`.includes("Object.apply")) {
+          let q;
+          q = Object.getOwnPropertyDescriptor(self, 'setTimeout');
+          Object.defineProperty(self, 'setTimeout', { ...q, writable: false });
+          q = Object.getOwnPropertyDescriptor(self, 'setInterval');
+          Object.defineProperty(self, 'setInterval', { ...q, writable: false });
+        }
+      }
+    } catch (e) { }
+  }
 
 })([setTimeout, setInterval, requestAnimationFrame, clearTimeout, clearInterval, cancelAnimationFrame]);
 
