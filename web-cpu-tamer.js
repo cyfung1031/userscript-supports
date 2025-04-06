@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.5
+// @version             2025.100.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -239,8 +239,6 @@ SOFTWARE.
     r = setTimeout_(g, d, ...args);
     return r;
   };
-  setTimeout.toString = setTimeout_.toString.bind(setTimeout_);
-  setTimeout.valueOf = setTimeout_.valueOf.bind(setTimeout_);
 
   setInterval = function (f, d = void 0, ...args) {
     let r;
@@ -284,6 +282,7 @@ SOFTWARE.
   };
 
   if (HACK_TOSTRING) {
+    setTimeout.toString = setTimeout_.toString.bind(setTimeout_);
     setInterval.toString = setInterval_.toString.bind(setInterval_);
     clearTimeout.toString = clearTimeout_.toString.bind(clearTimeout_);
     clearInterval.toString = clearInterval_.toString.bind(clearInterval_);
@@ -291,6 +290,7 @@ SOFTWARE.
     cancelAnimationFrame.toString = cancelAnimationFrame_.toString.bind(cancelAnimationFrame_);
   }
   if (HACK_VALUEOF) {
+    setTimeout.valueOf = setTimeout_.valueOf.bind(setTimeout_);
     setInterval.valueOf = setInterval_.valueOf.bind(setInterval_);
     clearTimeout.valueOf = clearTimeout_.valueOf.bind(clearTimeout_);
     clearInterval.valueOf = clearInterval_.valueOf.bind(clearInterval_);
