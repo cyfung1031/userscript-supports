@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.3
+// @version             2025.100.4
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -167,15 +167,25 @@ SOFTWARE.
     }
   }
 
+  class PseudoTimeline {
+    constructor() {
+      this.startTime = performance.timeOrigin || performance.now();
+    }
+
+    get currentTime() {
+      return performance.now() - this.startTime;
+    }
+  }
+
   let tl;
   if (typeof DocumentTimeline === 'function') {
     tl = new DocumentTimeline();
-  } else {
+  } else if (typeof Animation === 'function') {
     let AnimationConstructor = Animation, e = document.documentElement;
     if (e) {
       e = e.animate(null);
       if (typeof (e || 0) === 'object' && '_animation' in e && e.constructor === Object) {
-        e = e._animation;
+        e = e._animation; // for YouTube
       }
       if (typeof (e || 0) === 'object' && 'timeline' in e && typeof e.constructor === 'function') {
         AnimationConstructor = e.constructor;
@@ -184,6 +194,7 @@ SOFTWARE.
     const ant = new AnimationConstructor();
     tl = ant.timeline;
   }
+  if (!tl || !Number.isFinite(tl.currentTime || null)) tl = new PseudoTimeline();
   const tl_ = tl;
 
   const mo = new MutationObserver(() => {
@@ -245,12 +256,12 @@ SOFTWARE.
   clearTimeout = function (cid) {
     tz.delete(cid);
     return clearTimeout_(cid);
-  }
+  };
 
   clearInterval = function (cid) {
     tz.delete(cid);
     return clearInterval_(cid);
-  }
+  };
 
   requestAnimationFrame = function (f) {
     let r;
@@ -264,12 +275,12 @@ SOFTWARE.
     queueMicrotask_(act);
     r = requestAnimationFrame_(g);
     return r;
-  }
+  };
 
   cancelAnimationFrame = function (aid) {
     az.delete(aid);
     return cancelAnimationFrame_(aid);
-  }
+  };
 
   try {
     if (typeof webkitRequestAnimationFrame === 'function' && location.hostname.endsWith('youtube.com') && navigator.userAgentData.brands.some(e => e.brand === 'Brave')) {  // fu*k you Brave!
