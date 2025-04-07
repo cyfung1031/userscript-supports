@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.4
+// @version             2025.101.5
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -329,16 +329,18 @@ SOFTWARE.
     }
   }
 
-  if (typeof GM === "object" && ((GM || 0).info || 0).injectInto === "content") {
+  // Firemonkey & Violentmonkey in Firefox under non-page context
+  const isContentScript = (typeof window.wrappedJSObject === 'object'  && typeof unsafeWindow === 'object' && typeof exportFunction === 'function') || (typeof GM === 'object' && ((GM || 0).info || 0).injectInto === 'content');
+  if (isContentScript) {
     const exportFn = (f, name) => {
       typeof exportFunction === 'function' ? exportFunction(f, win, { defineAs: name, allowCrossOriginArguments: true }) : (win[name] = f);
     }
-    exportFn(setTimeout, "setTimeout");
-    exportFn(setInterval, "setInterval");
-    exportFn(requestAnimationFrame, "requestAnimationFrame");
-    exportFn(clearTimeout, "clearTimeout");
-    exportFn(clearInterval, "clearInterval");
-    exportFn(cancelAnimationFrame, "cancelAnimationFrame");
+    exportFn(setTimeout, 'setTimeout');
+    exportFn(setInterval, 'setInterval');
+    exportFn(requestAnimationFrame, 'requestAnimationFrame');
+    exportFn(clearTimeout, 'clearTimeout');
+    exportFn(clearInterval, 'clearInterval');
+    exportFn(cancelAnimationFrame, 'cancelAnimationFrame');
     exportFn(()=>1, `webCPUTamer_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`);
   }
 
