@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.2
+// @version             2025.101.3
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -340,7 +340,7 @@ SOFTWARE.
     exportFn(clearTimeout, "clearTimeout");
     exportFn(clearInterval, "clearInterval");
     exportFn(cancelAnimationFrame, "cancelAnimationFrame");
-    exportFn(cancelAnimationFrame, "cancelAnimationFrame314");
+    exportFn(()=>1, `webCPUTamer_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`);
   }
 
 })([setTimeout, setInterval, requestAnimationFrame, clearTimeout, clearInterval, cancelAnimationFrame]);
