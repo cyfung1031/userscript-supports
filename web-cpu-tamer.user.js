@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.0
+// @version             2025.101.1
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -130,7 +130,7 @@ SOFTWARE.
 
   const [setTimeout_, setInterval_, requestAnimationFrame_, clearTimeout_, clearInterval_, cancelAnimationFrame_] = o;
   const queueMicrotask_ = queueMicrotask;
-  const win = this instanceof Window ? this : window;
+  const win = typeof window.wrappedJSObject === 'object' ? window.wrappedJSObject : typeof unsafeWindow === 'object' ? unsafeWindow : this instanceof Window ? this : window;
 
   // Create a unique key for the script and check if it is already running
   const hkey_script = 'nzsxclvflluv';
@@ -330,7 +330,6 @@ SOFTWARE.
   }
 
   const exportFn = (f, name) => {
-    const win = typeof window.wrappedJSObject === 'object' ? window.wrappedJSObject : typeof unsafeWindow === 'object' ? unsafeWindow : window;
     typeof exportFunction === 'function' ? exportFunction(f, win, { defineAs: name }) : (win[name] = f);
   }
 
