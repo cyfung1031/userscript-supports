@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.3
+// @version             2025.101.4
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -329,11 +329,10 @@ SOFTWARE.
     }
   }
 
-  const exportFn = (f, name) => {
-    typeof exportFunction === 'function' ? exportFunction(f, win, { defineAs: name }) : (win[name] = f);
-  }
-
   if (typeof GM === "object" && ((GM || 0).info || 0).injectInto === "content") {
+    const exportFn = (f, name) => {
+      typeof exportFunction === 'function' ? exportFunction(f, win, { defineAs: name, allowCrossOriginArguments: true }) : (win[name] = f);
+    }
     exportFn(setTimeout, "setTimeout");
     exportFn(setInterval, "setInterval");
     exportFn(requestAnimationFrame, "requestAnimationFrame");
