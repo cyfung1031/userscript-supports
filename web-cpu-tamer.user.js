@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.1
+// @version             2025.101.2
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -14,7 +14,7 @@
 
 // @run-at              document-start
 // @inject-into         auto
-// @grant               unsafeWindow
+// @grant               none
 // @allFrames           true
 
 // @description         Reduce Browser's Energy Impact via implicit async scheduling delay
