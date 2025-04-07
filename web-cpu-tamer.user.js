@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.100.6
+// @version             2025.101.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -11,11 +11,11 @@
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
 // @icon                https://raw.githubusercontent.com/cyfung1031/userscript-supports/7b34986ad9cdf3af8766e54b0aecb394b036e970/icons/web-cpu-tamer.svg
 // @supportURL          https://github.com/cyfung1031/userscript-supports
+
 // @run-at              document-start
-// @grant               none
-// @unwrap
+// @inject-into         auto
+// @grant               unsafeWindow
 // @allFrames           true
-// @inject-into         page
 
 // @description         Reduce Browser's Energy Impact via implicit async scheduling delay
 // @description:en      Reduce Browser's Energy Impact via implicit async scheduling delay
@@ -148,15 +148,18 @@ SOFTWARE.
   setPr();
 
   const cme = document.createComment('--WebCPUTamer--');
-  const appendChild_ = HTMLElement.prototype.appendChild;
+  // const appendChild_ = HTMLElement.prototype.appendChild;
   let cmi = 0;
   let lastPr = null;
   function act() {
     if (lastPr !== pr) {
+      // const b = lastPr === null;
       lastPr = pr;
-      if (!cmi) {
-        appendChild_.call(document.documentElement, cme);
-      }
+      // if (b) {
+      //   appendChild_.call(document.documentElement, cme);
+      //   ro.observe(document, { childList: true });
+      //   ro.observe(document.documentElement, { childList: true });
+      // }
       cmi = (cmi & 7) + 1;
       if (cmi & 1) {
         cme.data = '++WebCPUTamer++'
@@ -203,6 +206,13 @@ SOFTWARE.
   mo.observe(cme, {
     characterData: true,
   });
+
+  // const ro = new MutationObserver(() => {
+  //   if ((cme.isConnected !== true || cme.parentNode !== document.documentElement) && lastPr !== null) {
+  //     lastPr = null;
+  //     act();
+  //   }
+  // });
 
   const tz = new Set();
   const az = new Set();
@@ -299,21 +309,39 @@ SOFTWARE.
   }
 
   if (typeof webkitRequestAnimationFrame === 'function' && typeof navigator === 'object' && typeof navigator.userAgentData === 'object') {
-    try {
-      if (location?.hostname?.endsWith('youtube.com') && navigator?.userAgentData?.brands?.some(e => e?.brand === 'Brave')) {  // fu*k you Brave!
-        let e_;
-        try {
-          setTimeout_.call(1);
-        } catch (e) { e_ = e }
-        if (!`${e_?.stack}`.includes("Object.apply")) {
-          let q;
-          q = Object.getOwnPropertyDescriptor(self, 'setTimeout');
-          Object.defineProperty(self, 'setTimeout', { ...q, writable: false });
-          q = Object.getOwnPropertyDescriptor(self, 'setInterval');
-          Object.defineProperty(self, 'setInterval', { ...q, writable: false });
+    const isYouTubePage = location?.hostname?.endsWith('youtube.com');
+    if (isYouTubePage) {
+      try {
+        if (isYouTubePage && navigator?.userAgentData?.brands?.some(e => e?.brand === 'Brave')) {  // fu*k you Brave!
+          let e_;
+          try {
+            setTimeout_.call(1);
+          } catch (e) { e_ = e }
+          if (!`${e_?.stack || "Object.apply"}`.includes("Object.apply")) {
+            let q;
+            q = Object.getOwnPropertyDescriptor(self, 'setTimeout');
+            Object.defineProperty(self, 'setTimeout', { ...q, writable: false });
+            q = Object.getOwnPropertyDescriptor(self, 'setInterval');
+            Object.defineProperty(self, 'setInterval', { ...q, writable: false });
+          }
         }
-      }
-    } catch (e) { }
+      } catch (e) { }
+    }
+  }
+
+  const exportFn = (f, name) => {
+    const win = typeof window.wrappedJSObject === 'object' ? window.wrappedJSObject : typeof unsafeWindow === 'object' ? unsafeWindow : window;
+    typeof exportFunction === 'function' ? exportFunction(f, win, { defineAs: name }) : (win[name] = f);
+  }
+
+  if (typeof GM === "object" && ((GM || 0).info || 0).injectInto === "content") {
+    exportFn(setTimeout, "setTimeout");
+    exportFn(setInterval, "setInterval");
+    exportFn(requestAnimationFrame, "requestAnimationFrame");
+    exportFn(clearTimeout, "clearTimeout");
+    exportFn(clearInterval, "clearInterval");
+    exportFn(cancelAnimationFrame, "cancelAnimationFrame");
+    exportFn(cancelAnimationFrame, "cancelAnimationFrame314");
   }
 
 })([setTimeout, setInterval, requestAnimationFrame, clearTimeout, clearInterval, cancelAnimationFrame]);
