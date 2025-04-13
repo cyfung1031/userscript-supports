@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.0
+// @version             0.100.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2897,7 +2897,70 @@
     });
   }
 
-
+  // ------- side process [sideProcesses] -------
+  const reuseFixDataViewModel = (elm) => {
+    // detach data-view model signal
+    return Promise.resolve(elm).then((elm) => {
+      for (const node of elm.getElementsByTagName('*')) {
+        const cnt = insp(node);
+        if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+          try {
+            cnt.dispose();
+          } catch (e) { }
+        } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+          try {
+            node.dispose();
+          } catch (e) { }
+        }
+      }
+    }).catch(console.warn);;
+  };
+  const reuseFixYtIconRendering = (elm) => {
+    // make properties fresh for flushing
+    return Promise.resolve(elm).then((elm) => {
+      for (const node of elm.getElementsByTagName('yt-icon')) {
+        try {
+          const cnt = insp(node);
+          if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+          cnt.__refreshProps938__();
+          // cnt.removeIconShape(); // detach iconShapeDataSignal?
+          // cnt._setPendingProperty('isAttached', false);
+        } catch (e) { }
+      }
+    }).catch(console.warn);;
+  };
+  const onVisibleItemStampNodeRemoval = (elmId) =>{
+    // set the corresponding ticker [ticker-message-removed]
+    return Promise.resolve(elmId).then((elmId) => {
+      const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
+      if (tickerElm) {
+        tickerElm.setAttribute('ticker-message-removed', '')
+        if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
+          insp(tickerElm).requestRemoval();
+        }
+      }
+    }).catch(console.warn);;
+  };
+  const onTickerItemStampNodeAdded = () =>{
+    // remove the stale ticker(s)
+    return Promise.resolve().then(() => {
+      const selector = "[ticker-message-removed]:nth-child(n + 40)";
+      const tickerElm = document.querySelector(selector);
+      if (tickerElm) { // likely false
+        const tickerElms = document.querySelectorAll(selector);
+        for (const tickerElm of tickerElms) insp(tickerElm).requestRemoval();
+      }
+    }).catch(console.warn);;
+  };
+  const mutationDelayedRefreshData = async (cnt) => {
+    // ensure data is invalidated correctly after mutation
+    return Promise.resolve(cnt).then(async cnt => {
+      wme.data = `${(wme.data & 7) + 1}`;
+      await wmp;
+      cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0);
+    });
+  }
+  // ------- side process [sideProcesses] -------
 
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
@@ -3584,11 +3647,7 @@
               });
 
               // play safe for the change of 'length'
-              if (typeof nextBrowserTick !== 'function') {
-                await Promise.resolve(0);
-              } else {
-                await new Promise(resolve => nextBrowserTick(resolve)).then();
-              }
+              await prToNextMarcoTask();
 
               countOfElements = cnt.__getAllParticipantsDOMRenderedLength__();
 
@@ -4102,15 +4161,11 @@
               // page visibly ready -> load the latest comments at initial loading
               const lcRenderer = lcRendererElm();
               if (lcRenderer) {
-                if (typeof nextBrowserTick !== 'function') {
-                  insp(lcRenderer).scrollToBottom_();
-                } else {
-                  nextBrowserTick(() => {
-                    const cnt = insp(lcRenderer);
-                    if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    cnt.scrollToBottom_();
-                  });
-                }
+                nextBrowserTick_(() => {
+                  const cnt = insp(lcRenderer);
+                  if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+                  cnt.scrollToBottom_();
+                });
               }
             });
           }
@@ -5940,10 +5995,25 @@
       })();
       window.stackDM = stackDM;
 
+      const nextBrowserTick_ = (f) => {
+        typeof nextBrowserTick === 'function' ? nextBrowserTick(f) : setTimeout(f, Number.MIN_VALUE);
+      }
+
+      let prToNextMarcoTask_ = null;
+      const prToNextMarcoTask = () => {
+        if (prToNextMarcoTask_) return prToNextMarcoTask_;
+        return prToNextMarcoTask_ = new Promise(resolve => {
+          nextBrowserTick_(() => {
+            prToNextMarcoTask_ = null;
+            resolve();
+          })
+        });
+      };
+
 
       const stackMarcoTask = (f) => {
         return new Promise(resolve => {
-          nextBrowserTick(async () => {
+          nextBrowserTick_(async () => {
             try {
               await f();
             } catch (e) {
@@ -6190,8 +6260,9 @@
 
         const t29s = document.querySelectorAll("yt-live-chat-item-list-renderer");
         for (const t29 of t29s) {
-          if (insp(t29).isAttached === true) {
-            t29.attached419();
+          const cnt = insp(t29);
+          if (cnt.isAttached === true) {
+            cnt.attached419();
           }
         }
 
@@ -6202,39 +6273,31 @@
 
           /** @type {Map<number, any>} */
           const aMap = new Map();
-          let count = 6150;
+          const mcid = setTimeout(() => 0, 0.625);
+          const maid = requestAnimationFrame(() => 0);
+          clearTimeout(mcid);
+          cancelAnimationFrame(maid);
+          const count0 = mcid + maid + 1740;
+          let count = count0;
           mclp.async66 = mclp.async;
           mclp.async = function (e, f) {
             // ensure the previous operation is done
             // .async is usually after the time consuming functions like flushActiveItems_ and scrollToBottom_
             const hasF = arguments.length === 2;
-            const stack = new Error().stack;
-            const isFlushAsync = stack.indexOf('flushActiveItems_') >= 0;
-            if (count > 1e9) count = 6159;
+            if (count > 1e9) count = count0 + 9;
             const resId = ++count;
             aMap.set(resId, e);
-            (this.__intermediate_delay__ || Promise.resolve()).then(rk => {
+            const pr1 = Promise.all([this.flushActiveItemsPromise288, wmp, this.__intermediate_delay__, Promise.resolve()]);
+            const pr2 = autoTimerFn();
+            Promise.race([pr1, pr2]).then(() => {
               const rp = aMap.get(resId);
               if (typeof rp !== 'function') {
                 return;
               }
-              let cancelCall = false;
-              if (isFlushAsync) {
-                if (rk < 0) {
-                  cancelCall = true;
-                } else if (rk === 2 && arguments[0] === this.maybeScrollToBottom_) {
-                  cancelCall = true;
-                }
-              }
-              if (cancelCall) {
-                aMap.delete(resId);
-              } else {
-                const asyncEn = function () {
-                  aMap.delete(resId);
-                  return rp.apply(this, arguments);
-                };
-                aMap.set(resId, hasF ? this.async66(asyncEn, f) : this.async66(asyncEn));
-              }
+              const asyncEn = function () {
+                return aMap.delete(resId) && rp.apply(this, arguments);
+              };
+              aMap.set(resId, hasF ? this.async66(asyncEn, f) : this.async66(asyncEn));
             });
 
             return resId;
@@ -6242,7 +6305,7 @@
 
           mclp.cancelAsync66 = mclp.cancelAsync;
           mclp.cancelAsync = function (resId) {
-            if (resId <= 6150) {
+            if (resId <= count0) {
               this.cancelAsync66(resId);
             } else if (aMap.has(resId)) {
               const rp = aMap.get(resId);
@@ -6497,8 +6560,6 @@
 
               {
 
-
-
                 // const newDoc = document.implementation.createHTMLDocument("NewDoc");
                 const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
                 document.documentElement.insertAdjacentElement('beforeend', pSpace);
@@ -6508,17 +6569,14 @@
                 const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
                 pShadow.replaceChildren(pDiv);
 
-
                 const wmRemoved = new Map();
 
                 const wmMapToItem = new WeakMap();
                 let wmPendingList = null;
 
-
                 const nullComponents = new Map();
 
                 const componentDefaultAttributes = new WeakMap();
-
 
                 cProto.proceedStampDomArraySplices381_ = function (cTag, cId, indexSplice) {
                   // console.log('proceedStampDomArraySplices_')
@@ -6531,13 +6589,13 @@
                     console.warn('proceedStampDomArraySplices_', 'Error 001');
                     return false;
                   }
-                  const streamArr = this[cTag];
+                  // const streamArr = this[cTag];
                   if (!this.ec389) {
                     if (this.ec389a || this.ec389r) {
                       console.warn('proceedStampDomArraySplices_', 'Error 002');
                       return false;
                     }
-                    this.ec389 = {};
+                    this.ec389 = true;
                     this.ec389a = 0;
                     this.ec389r = 0;
                   }
@@ -6551,22 +6609,21 @@
                     let shouldScrollAfterFlush = false;
                     const pr = this.ec389pr;
                     const ec389pr = this.ec389pr = (async () => {
-                      await pr;
+                      await pr; // await the current executing task (if any)
                       if (!this.ec389a && !this.ec389r) return;
-                      await new Promise(resolve => nextBrowserTick(resolve));
+                      await prToNextMarcoTask(); // collective process (per marcoTask)
                       if (!this.ec389a && !this.ec389r) return;
-                      // const renderList = this.ec389.slice();
-                      // const domList = this.ec389n.slice();
                       const addedCount0 = this.ec389a;
                       const removedCount0 = this.ec389r;
 
-                      this.ec389 = null;
-                      this.ec389n = null;
+                      this.ec389 = false;
                       this.ec389a = 0;
                       this.ec389r = 0;
 
-                      const deObjectComponent = (insertionObj) => {
-                        const obj = insertionObj;
+                      // coming process can be stacked as ec389a and ec389r are reset.
+
+                      const deObjectComponent = (item) => {
+                        const obj = item;
                         const I = firstObjectKey(obj);
                         const t = this.stampDom[cTag].mapping;
                         const L = t[I];
@@ -6577,10 +6634,11 @@
                       const hostElement = this.hostElement;
 
                       const cList = this[cTag].slice();
+                      let renderNodeCount = 0;
                       const renderList = cList.map((item) => {
                         const [L, H] = deObjectComponent(item);
                         const node = kRef(renderMap.get(H));
-                        return node && hostElement.contains(node) ? node : item;
+                        return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
                       });
 
                       // this.ec389 = null;
@@ -6600,12 +6658,10 @@
                           // shadowElm.insertAdjacentElement('beforeend', component);
                         } else {
                           component = nullComponents.get(componentName);
-
                         }
-
                         component = component.cloneNode(false);
 
-                        const cnt = insp(component);
+                        // const cnt = insp(component);
 
                         // cnt.__dataOld = cnt.__dataPending = null;
                         pDiv.insertAdjacentElement('beforeend', component);
@@ -6615,9 +6671,6 @@
                       }
 
                       const listDom = this.getStampContainer_(cId);
-
-
-
 
                       const pnForNewItem = (item) => {
 
@@ -6651,27 +6704,6 @@
                             }
                           }
 
-                          // for (const node of connectedComponent.getElementsByTagName('*')) {
-                          //   const cnt = insp(node);
-                          //   if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
-                          //     try {
-                          //       cnt.dispose();
-                          //     } catch (e) { }
-                          //   } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
-                          //     try {
-                          //       node.dispose();
-                          //     } catch (e) { }
-                          //   }
-                          // }
-                          // for(const node of connectedComponent.getElementsByTagName('*')){
-                          //   const cnt = insp(node);
-                          //   if (cnt.is) {
-                          //     if (!cnt.__proto__.__refreshData938__) cnt.__proto__.__refreshData938__ = __refreshData938__;
-                          //     cnt.__refreshData938__('data', !0);
-                          //   }
-                          //   // if(cnt.__dataInvalid === false) cnt.__dataInvalid = true;
-                          // }
-
                         } else {
                           connectedComponent = createConnectedComponentElm(item, L, H, componentName);
                           if (this.telemetry_) this.telemetry_.create++;
@@ -6684,14 +6716,6 @@
                         return [item, L, H, connectedComponent];
 
                       };
-
-                      // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
-                      //   // interrupted by external
-                      //   this.ec389 = [];
-                      //   this.ec389a = 0;
-                      //   this.ec389r = 0;
-                      //   return;
-                      // }
 
                       let imgPreloadPr = null;
                       if (cTag === 'visibleItems') {
@@ -6768,17 +6792,11 @@
                       }
                       if (imgPreloadPr) await imgPreloadPr;
 
-                      // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
-                      //   // interrupted by external
-                      //   this.ec389 = [];
-                      //   this.ec389a = 0;
-                      //   this.ec389r = 0;
-                      //   return;
-                      // }
-
-                      const batching = [];
+                      // const batching = [];
                       let j = 0;
                       let elNode;
+                      
+                      const sideProcesses = [];
 
                       const removeStampNode_ = (elNode) => {
                         const elm = elNode;
@@ -6795,29 +6813,8 @@
                         const data = cnt.data;
                         if (data) renderMap.delete(cnt.data);
 
-                        // detach data-view model signal
-                        for (const node of elm.getElementsByTagName('*')) {
-                          const cnt = insp(node);
-                          if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
-                            try {
-                              cnt.dispose();
-                            } catch (e) { }
-                          } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
-                            try {
-                              node.dispose();
-                            } catch (e) { }
-                          }
-                        }
-                        // detach iconShapeDataSignal
-                        for (const node of elm.getElementsByTagName('yt-icon')) {
-                          try {
-                            const cnt = insp(node);
-                            if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-                            cnt.__refreshProps938__();
-                            // cnt.removeIconShape();
-                            // cnt._setPendingProperty('isAttached', false);
-                          } catch (e) { }
-                        }
+                        sideProcesses.push(reuseFixDataViewModel(elm));
+                        sideProcesses.push(reuseFixYtIconRendering(elm));
                       }
 
                       const removeStampNode = async () => {
@@ -6837,17 +6834,7 @@
                         await Promise.resolve();
 
                         if (cTag === 'visibleItems') {
-
-                          const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
-                          if (tickerElm) {
-                            Promise.resolve().then(() => {
-                              tickerElm.setAttribute('ticker-message-removed', '')
-                              if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
-                                insp(tickerElm).requestRemoval();
-                              }
-                            }).catch(console.warn);
-                          }
-
+                          sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
                         }
 
                         j++;
@@ -6877,9 +6864,9 @@
                           indexMap.set(elNode, index++);
                         }
 
-                        const keepIndices = new Array(newRenderedComponents.length);
+                        const keepIndices = new Array(renderNodeCount);
                         let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-                        for (let i = 0, l = keepIndices.length; i < l; i++) {
+                        for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
                           const entry = newRenderedComponents[i];
                           if (entry instanceof Node) {
                             const index = indexMap.get(entry);
@@ -6892,7 +6879,7 @@
                         if (requireSort) keepIndices.sort();
                         let dk = 0;
 
-                        let k = 0;
+                        // let k = 0;
                         let t0 = performance.now();
                         for (const rcEntry of newRenderedComponents) {
 
@@ -6932,40 +6919,29 @@
 
                             let t1 = performance.now();
 
-                            k++;
+                            // k++;
                             if (t1 - t0 > 14) {
-                              batching.push(k);
-                              await new Promise(r => nextBrowserTick(r));
+                              // batching.push(k);
+                              await prToNextMarcoTask();
                               t0 = performance.now();
-                              k = 0;
+                              // k = 0;
                             } else {
                               await Promise.resolve();
                             }
 
                             elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                            renderMap.set(insp(connectedComponent).data, mWeakRef(connectedComponent));
-                            Promise.resolve(insp(connectedComponent)).then(async cnt => {
-                              wme.data = `${(wme.data & 7) + 1}`;
-                              await wmp;
-                              cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0); // ensure data is invalidated correctly after mutation
-                            });
+                            const cnt = insp(connectedComponent);
+                            renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                            mutationDelayedRefreshData(cnt); // not included to sideProcesses
                             addedCounter++;
 
                             if (cTag === 'tickerItems') {
-
-                              const tickerElm = document.querySelector("[ticker-message-removed]:nth-child(n + 40)");
-                              if (tickerElm) {
-                                Promise.resolve().then(() => {
-                                  const tickerElms = document.querySelectorAll("[ticker-message-removed]:nth-child(n + 40)");
-                                  for (const tickerElm of tickerElms) insp(tickerElm).requestRemoval();
-                                }).catch(console.warn);
-                              }
-
+                              sideProcesses.push(onTickerItemStampNodeAdded());
                             }
 
                           }
                         }
-                        if (k > 0) batching.push(k);
+                        // if (k > 0) batching.push(k);
 
                         while (elNode) await removeStampNode();
 
@@ -6973,22 +6949,26 @@
 
                       {
                         const arr = this[cTag];
-                        let b = false;
-                        b = b || this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
-                        b = b || this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+                        let b = 0;
+                        b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+                        b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
                         b && this._invalidateProperties();
                       }
 
                       this.flushRenderStamperComponentBindings_(); // just in case...
 
+                      await Promise.all(sideProcesses);
+
+                      const detail = {
+                        container: listDom
+                      };
                       this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
                         bubbles: !0,
                         cancelable: !1,
                         composed: !0,
-                        detail: {
-                          container: listDom
-                        }
+                        detail
                       }));
+                      detail.container = null;
 
                       if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
                         // clear all remaining rendering before promise resolve
@@ -6999,14 +6979,18 @@
 
                     })().catch(console.warn);
 
-                    if (cTag === 'visibleItems') this.flushActiveItemsPromise288 = ec389pr;
-
+                    if (cTag === 'visibleItems') {
+                      this.flushActiveItemsPromise288 = ec389pr;
+                      this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+                    }
+    
+                    // the first microtask after promise resolved
                     pr.then(async () => {
                       if (shouldScrollAfterFlush) {
-                        if (this.atBottom === false) this.scrollToBottom_();
+                        if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
                         wme.data = `${(wme.data & 7) + 1}`;
                         await wmp;
-                        if (this.atBottom === false) this.scrollToBottom_();
+                        if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
                       }
                     });
 
@@ -7083,694 +7067,6 @@
 
               }
 
-
-
-              
-/*
-              // const newDoc = document.implementation.createHTMLDocument("NewDoc");
-              const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-              document.documentElement.insertAdjacentElement('beforeend', pSpace);
-              const pNode = document.createElement('ns-538');
-              pSpace.insertAdjacentElement('beforeend', pNode);
-              const pShadow = pNode.attachShadow({mode:"open"});
-              const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-              pShadow.replaceChildren(pDiv);
-              */
-
-/*
-              mclp.push377 = mclp.push;
-              mclp.splice377 = mclp.splice;
-
-
-
-
-              mclp.push = function(cTag, ...fnArgs){
-                if(!this.ec377) return this.push377(...arguments);
-                return this.ec378.push(...fnArgs);
-              }
-
-              mclp.splice = function(cTag, ...fnArgs){
-                if(!this.ec377) return this.splice377(...arguments);
-                return this.ec378.splice(...fnArgs);
-              }
-
-              const wmRemoved = new Map();
-
-              const wmMapToItem = new WeakMap();
-              let wmPendingList = null;
-              */
-
-              /*
-              mclp.renderSplicedList323 = function (slist, qLen, pr) {
-
-                const deleteCount = (typeof slist[0] === 'number') ? slist[0] : qLen;
-                let newAt = qLen - deleteCount;
-                if (newAt > 0 && slist[newAt - 1] !== qLen - 1) return false;
-                if (newAt > slist.length) return false;
-                if (newAt < slist.length && typeof slist[newAt] === 'number') return false;
-                const addedCount = slist.length - newAt;
-                // if (deleteCount > addedCount) return false;
-
-                if (deleteCount === 0 && addedCount === 0) return false;
-
-                // console.log(129901, this.isSmoothScrollEnabled_() , this.canScrollToBottom_() );
-                const fx00 = async () => {
-
-
-                  // const prImageLoading = preloadFn(this.activeItems_)();
-                  // await prImageLoading;
-
-                  // await new Promise(r=>nextBrowserTick(r));
-                  const cTag = 'visibleItems';
-                  const cId = 'items';
-
-                  const batching = [];
-
-
-                  const c = cTag;
-                  const arrWR = mWeakRef(this[cTag]);
-                  const v5 = {
-                    indexSplices: [{ index: 0, addedCount: 0, removed: emptyArr, get object(){
-                      return arrWR.deref()
-                    }, type: "splice" }]
-                  };
-
-                  const deObjectComponent = (insertionObj) =>{
-                    const obj = insertionObj;
-                    const I = firstObjectKey(obj);
-                    const t = this.stampDom[cTag].mapping;
-                    const L = t[I];
-                    const H = obj[I];
-                    return [L, H];
-                  }
-
-                  const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
-                    // const reusable = false;
-                    // const componentName = this.getComponentName_(L, H);
-                    let component;
-                    if (!nullComponents.has(componentName)) {
-                      nullComponents.set(componentName, (component = document.createElement(componentName)));
-                      component.className = 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom';
-                      // shadowElm.insertAdjacentElement('beforeend', component);
-                    } else {
-                      component = nullComponents.get(componentName);
-
-                    }
-                    component = component.cloneNode(false);
-
-                    const cnt = insp(component);
-
-                    cnt.__dataOld = cnt.__dataPending = null;
-                    pDiv.insertAdjacentElement('beforeend', component);
-                    cnt.__dataOld = cnt.__dataPending = null;
-
-                    return component;
-                  }
-
-                  const listDom = this.getStampContainer_(cId);
-
-
-
-
-                  const pnForNewItem = (item)=>{
-
-                    const [L, H] = deObjectComponent(item);
-
-                    const componentName = this.getComponentName_(L, H);
-
-                    const wmList = wmRemoved.get(componentName.toLowerCase());
-
-                    let connectedComponent = null;
-                    if (wmList && (connectedComponent = wmList.firstElementChild)) {
-                      this.telemetry_.reuse++;
-                      if (!wmPendingList) {
-                        wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                        pDiv.insertAdjacentElement('afterend', wmPendingList);
-                      }
-                      wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
-
-                    } else {
-                      connectedComponent = createConnectedComponentElm(item, L, H, componentName);
-                      this.telemetry_.create++;
-                    }
-
-                    return [item, L, H, connectedComponent];
-
-                  };
-
-                  const addedItems = slist.slice(newAt);
-
-                  const imgPreloadPr = preloadFn(addedItems)();
-
-                  const newComponentsEntries = await Promise.all(addedItems.map((item)=>{
-                    return Promise.resolve(item).then(pnForNewItem);
-                  }));
-
-
-                  const pnForRenderNewItem = (entry)=>{
-                    const [item, L, H, connectedComponent] = entry;
-
-                    const cnt = insp(connectedComponent);
-                    if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
-                      cnt.data = H;
-                    } else {
-                      const q = this.deferRenderStamperBinding_
-                      let q2;
-                      if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
-                      this.deferRenderStamperBinding_(connectedComponent, L, H);
-                      this.flushRenderStamperComponentBindings_();
-                      if (typeof q === 'object') {
-                        this.deferRenderStamperBinding_ = q;
-                        q2.length = 0;
-                      }
-                    }
-                    return entry;
-                  }
-
-                  const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry)=>{
-                    return Promise.resolve(entry).then(pnForRenderNewItem);
-                  }));
-
-                  
-
-
-
-
-
-                  let k, t0;
-                  k = 0;
-                  t0 = performance.now();
-
-                  for (let i = 0; i < deleteCount; i++) {
-                    const elm = listDom.firstElementChild;
-                    const elmId = elm.id;
-                    const cnt = insp(elm);
-                    const componentName = elm.nodeName.toLowerCase();
-                    let wmList = wmRemoved.get(componentName);
-                    if (!wmList) {
-                      wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                      pDiv.insertAdjacentElement('afterend', wmList);
-                      wmRemoved.set(componentName, wmList);
-                    }
-                    wmList.insertAdjacentElement('beforeend', elm);
-                    // const dzid = this.getAttribute('dz-component-id');
-                    const item = kRef(wmMapToItem.get(elm));
-                    if (item) {
-                      wmMapToItem.delete(elm);
-                      const visibleItems = this.visibleItems;
-                      const deletionIdx = visibleItems.indexOf(item);
-                      if (deletionIdx >= 0) {
-                        visibleItems.splice(deletionIdx, 1);
-                      }
-                    }
-
-                    const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
-                    if(tickerElm){
-                      Promise.resolve().then(()=>{
-                        tickerElm.setAttribute('ticker-message-removed','')
-                        if(tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')){
-                          insp(tickerElm).requestRemoval();
-                        }
-                      })
-                    }
-
-
-
-
-                    let t1 = performance.now();
-                    
-                    k++;
-                    if ((t1 - t0) / (k) * (k + 1) > 14) {
-                      await new Promise(r=>nextBrowserTick(r));
-                      t0 = performance.now();
-                      k = 0;
-                    }
-
-
-                  }
-
-                  await imgPreloadPr;
-
-
-                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
-                  k =0;
-                  t0 = performance.now();
-                  for(let i =0, l = addedItems.length;i<l;i++){
-
-                    const [item, L, H, connectedComponent] = newRenderedComponents[i];
-
-                    // await Promise.resolve(); // microTask allowance for flushRenderStamper
-
-
-                    // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
-
-                    wmMapToItem.set(connectedComponent, mWeakRef(item));
-
-
-                    const visibleItems = this.visibleItems;
-                    const activeItems_ = this.activeItems_;
-                    const activeItemIdx = activeItems_.indexOf(item);
-                    if (activeItemIdx >= 0) activeItems_.splice(activeItemIdx, 1);
-                    visibleItems.push(item);
-
-                    listDom.insertAdjacentElement('beforeend', connectedComponent);
-
-
-
-
-                    let t1 = performance.now();
-                    
-                    k++;
-                    if ((t1 - t0) / (k) * (k + 1) > 14) {
-                      batching.push(k);
-                      await new Promise(r=>nextBrowserTick(r));
-                      this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
-                      t0 = performance.now();
-                      k = 0;
-                    }
-                  }
-                  if (k > 0) batching.push(k);
-                  // console.log('batching', batching);
-                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
-
-
-
-
-                  {
-                    const visibleItems = this.visibleItems;
-                    let b = false;
-                    b = b || this._setPendingPropertyOrPath(`${c}.splices`, {}, true, true);
-                    b = b || this._setPendingPropertyOrPath(`${c}.length`, visibleItems.length, true, true);
-                    b && this._invalidateProperties();
-                  }
-
-                  this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-                    bubbles: !0,
-                    cancelable: !1,
-                    composed: !0,
-                    detail: {
-                      container: listDom
-                    }
-                  }));
-
-                };
-
-                Promise.resolve(0)
-                .then(fx00) // wait for other microTasks
-                .then(() => {
-                  pr.resolve();
-                }).catch((e) => {
-                  console.warn(e);
-                  pr.resolve();
-                });
-
-                return true;
-
-              }
-*/
-              /*
-                      a.prototype.push = function(c) {
-            var d = Ra.apply(1, arguments)
-              , e = {
-                path: ""
-            }
-              , g = Rq(this, c, e)
-              , k = g.length
-              , m = g.push.apply(g, oa(d));
-            d.length && Vq(this, g, e.path, k, d.length, []);
-            return m
-        }
-            */
-
-              /*
-              let shadow = null;
-              let shadowElm = null;
-              */
-              // mclp.push378k = function () {
-              //   const jk = window.Polymer && window.Polymer.legacyUndefined || !1;
-              //   this.push378ae = jk && !this._overrideLegacyUndefined;
-
-              //   if(!shadow){
-              //     const md = document.createElement('div');
-              //     document.body.appendChild(md);
-              //     shadow = md.attachShadow({ mode: "open" });
-              //     shadow.appendChild(shadowElm = document.createElement('div'));
-              //     shadowElm.appendChild(document.createElement('div'));
-              //     md.style.display = 'none';
-              //     shadowElm.style.display = 'none';
-
-              //   }
-              // }
-              // const nullComponents = new Map();
-              // const mwp = new DocumentFragment();
-
-            // const nullDom = document.createElement('div');
-            // nullDom.appendChild(document.createElement("div"));
-
-            // const nullDom2 = document.createElement('div');
-            // nullDom2.appendChild(document.createElement("div"));
-
-
-            // Object.defineProperty(nullDom, 'isConnected', {get(){
-            //   return true;
-            // }, enumerable: false, configurable: true});
-
-
-            // const nullDom3 = newDoc.createElement('div');
-
-            // nullDom3.appendChild(newDoc.createElement("div"));
-            // newDoc.body.appendChild(nullDom3);
-
-            // window.ndm3 = newDoc;
-
-              // mclp.push378 = function (c, ...args) {
-              //   if (c !== "visibleItems" && c !== "activeItems_") return this.push377(...arguments);
-              //   if (typeof this.push378ae === 'undefined') {
-              //     this.push378k();
-              //   }
-              //   if (this.push378ae !== false) return this.push377(...arguments);
-              //   const len = args.length;
-              //   if (len > 0) {
-              //     const arr = this[c]
-              //       , k = arr.length
-              //       , m = arr.push(...args);
-              //     const arrWR = mWeakRef(arr);
-              //     const v4 = {
-              //       indexSplices: [{ index: k, addedCount: len, removed: emptyArr, get object(){
-              //         return arrWR.deref()
-              //       }, type: "splice" }]
-              //     };
-              //     const v5 = {
-                    
-              //     };
-              //     const sd = this.stampDom[`${c}`];
-              //     if(sd && sd.reuseComponents === true){
-              //       sd.reuseComponents = false; // avoid memory leakage
-              //     }
-
-              //     const insertionArr = args;
-              //     const renderE = (idx)=>{
-              //       const obj = insertionArr[idx];
-              //       const I = firstObjectKey(obj);
-              //       const t = this.stampDom[c].mapping;
-              //       const L = t[I];
-              //       const H = obj[I];
-              //       // const reusable = false;
-              //       const componentName = this.getComponentName_(L, H);
-              //       let component;
-              //       if(!nullComponents.has(componentName)){
-              //         nullComponents.set(componentName, (component = document.createElement(componentName)) );
-              //         component.setAttribute('class','style-scope yt-live-chat-item-list-renderer');
-              //         // shadowElm.insertAdjacentElement('beforeend', component);
-              //       }else{
-              //         component = nullComponents.get(componentName);
-              //       }
-              //       window.qdd1 = component;
-              //       component = nullComponents.get(componentName).cloneNode();
-              //       window.qcc1 = component;
-
-              //       if(component && typeof ((component||0).polymerController||0).isAttached !== 'boolean'){
-
-
-              //         // Object.defineProperty(component, 'isConnected', {get(){
-              //         //   return this.parentNode === nullDom;
-              //         // }, enumerable: false, configurable: true});
-
-              //         nullDom3.insertAdjacentElement('beforeend', component);
-              //         // nullDom.append(component);
-              //         // nullDom.appendChild(component);
-              //         // if(component.polymerController && component.polymerController.isAttached !== true && typeof component.connectedCallback === 'function') component.connectedCallback();
-  
-              //         nullDom2.insertAdjacentElement('beforeend', component);
-              //         // nullDom.removeChild(component);
-              //         // if(component.polymerController && component.polymerController.isAttached !== false && typeof component.disconnectedCallback === 'function') component.disconnectedCallback();
-  
-              //         // delete component.isConnected;
-
-              //         // shadowElm.insertAdjacentElement('beforeend', component);
-
-              //         // nullDom2.insertAdjacentElement('beforeend', component);
-
-              //       }
-
-              //       // shadowElm.appendChild(component)
-
-              //       // console.log(123, component.isConnected)
-              //       // const component = document.createElement(componentName);
-              //       // const component = this.createComponent_(L, H, reusable);
-              //       this.telemetry_.create++;
-              //       // mVa(this.is, mwp, r, true)
-              //       this.deferRenderStamperBinding_(component, L, H);
-              //       // debugger;
-              //       // this.flushRenderStamperComponentBindings_();
-
-              //       return component;
-
-              //     }
-
-              //     if(c === "visibleItems"){
-
-
-              //     const list = new Array(len);
-              //     for(let i = 0; i < len;i++){
-              //       list[i]= renderE(i);
-              //     }
-              //     const listDom = this.getStampContainer_("items");
-              //     listDom.append(...list);
-
-
-              //     this.flushRenderStamperComponentBindings_();
-              //     this.stampDom[c].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-              //       bubbles: !0,
-              //       cancelable: !1,
-              //       composed: !0,
-              //       detail: {
-              //         container: listDom
-              //       }
-              //     }));
-
-
-              //     // this._setPendingProperty(`${c}.splices`, {}, null) && this._invalidateProperties();
-              //     this._setPendingPropertyOrPath(`${c}.splices`, {}, true, true) && this._invalidateProperties();
-
-              //     // this._setPendingProperty(`${c}.length`, arr.length, true);
-              //     this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
-                  
-
-              //     }else{
-
-              //     // this.notifyPath(`${c}.splices`, v4);
-              //     this._setPendingPropertyOrPath(`${c}.splices`, v4, true, true) && this._invalidateProperties();
-
-              //     // this.notifyPath(`${c}.length`, arr.length);
-              //     this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
-                  
-
-              //     }
-              //     // this.notifyPath(`${c}.splices`, v4);
-              //     // this._setPendingPropertyOrPath(`${c}.splices`, v4, true, true) && this._invalidateProperties();
-
-              //     // this.notifyPath(`${c}.length`, arr.length);
-              //     // this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
-                  
-
-              //     // const list = new Array(len);
-              //     // for(let i = 0; i < len;i++){
-              //     //   list[i]= renderE(i);
-              //     // }
-
-
-              //     // this.flushRenderStamperComponentBindings_();
-              //     // this.stampDom[c].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-              //     //   bubbles: !0,
-              //     //   cancelable: !1,
-              //     //   composed: !0,
-              //     //   detail: {
-              //     //     container: d
-              //     //   }
-              //     // }));
-
-
-              //     return m;
-              //   } else {
-              //     return 0;
-              //   }
-              // }
-
-              // // stampDomArraySplices_
-              // // b && this.splice("visibleItems", 0, b);
-              // mclp.push388 = function(cTag, ...items){
-              //   if(!this.ec377 || cTag !== 'visibleItems') return this.push378(...arguments);
-              //   const items_ = items.slice();
-
-              //   // console.log(129901, this.isSmoothScrollEnabled_() , this.canScrollToBottom_() );
-              //   this.flushActiveItemsPromise288 = (async () => {
-
-              //     console.log(19966);
-              //     await new Promise(r=>nextBrowserTick(r));
-
-
-
-              //     const batching = [];
-              //     let t0 = performance.now();
-              //     let k = 0;
-
-              //     const c = cTag;
-              //     const arrWR = mWeakRef(this[cTag]);
-              //     const v5 = {
-              //       indexSplices: [{ index: 0, addedCount: 0, removed: emptyArr, get object(){
-              //         return arrWR.deref()
-              //       }, type: "splice" }]
-              //     };
-
-              //     // const insertionArr = items;
-              //     const renderE = (insertionObj)=>{
-              //       const obj = insertionObj;
-              //       const I = firstObjectKey(obj);
-              //       const t = this.stampDom[c].mapping;
-              //       const L = t[I];
-              //       const H = obj[I];
-              //       // const reusable = false;
-              //       const componentName = this.getComponentName_(L, H);
-              //       let component;
-              //       if(!nullComponents.has(componentName)){
-              //         nullComponents.set(componentName, (component = document.createElement(componentName)) );
-              //         component.setAttribute('class','style-scope yt-live-chat-item-list-renderer');
-              //         // shadowElm.insertAdjacentElement('beforeend', component);
-              //       }else{
-              //         component = nullComponents.get(componentName);
-              //       }
-              //       window.qdd1 = component;
-              //       component = nullComponents.get(componentName).cloneNode();
-              //       window.qcc1 = component;
-
-              //       if(component && typeof ((component||0).polymerController||0).isAttached !== 'boolean'){
-
-
-              //         // Object.defineProperty(component, 'isConnected', {get(){
-              //         //   return this.parentNode === nullDom;
-              //         // }, enumerable: false, configurable: true});
-
-              //         nullDom3.insertAdjacentElement('beforeend', component);
-              //         // nullDom.append(component);
-              //         // nullDom.appendChild(component);
-              //         // if(component.polymerController && component.polymerController.isAttached !== true && typeof component.connectedCallback === 'function') component.connectedCallback();
-  
-              //         nullDom2.insertAdjacentElement('beforeend', component);
-              //         // nullDom.removeChild(component);
-              //         // if(component.polymerController && component.polymerController.isAttached !== false && typeof component.disconnectedCallback === 'function') component.disconnectedCallback();
-  
-              //         // delete component.isConnected;
-
-              //         // shadowElm.insertAdjacentElement('beforeend', component);
-
-              //         // nullDom2.insertAdjacentElement('beforeend', component);
-
-              //       }
-
-              //       // shadowElm.appendChild(component)
-
-              //       // console.log(123, component.isConnected)
-              //       // const component = document.createElement(componentName);
-              //       // const component = this.createComponent_(L, H, reusable);
-              //       this.telemetry_.create++;
-              //       // mVa(this.is, mwp, r, true)
-              //       this.deferRenderStamperBinding_(component, L, H);
-              //       this.flushRenderStamperComponentBindings_();
-              //       // debugger;
-              //       // this.flushRenderStamperComponentBindings_();
-
-              //       return component;
-
-              //     }
-
-              //     const listDom = this.getStampContainer_("items");
-              //     for (const item of items_) {
-
- 
-
-    
-              //         listDom.insertAdjacentElement('beforeend', renderE(item));
-              //         // this.push378(tag, item);
- 
-
-                    
-              //       // this.push378(tag, item);
-              //       let t1 = performance.now();
-              //       k++;
-              //       if ((t1 - t0) / (k) * (k + 1) > 14) {
-              //         batching.push(k);
-              //         // await new Promise(r=>nextBrowserTick(r));
-              //         // this.flushRenderStamperComponentBindings_();
-              //         await new Promise(r=>nextBrowserTick(r));
-              //         // wme.data = `${(wme.data & 7) + 1}`;
-              //         // await wmp;
-              //         t0 = performance.now();
-              //         k = 0;
-              //       } else {
-              //         await Promise.resolve();
-              //       }
-              //     }
-              //     if (k > 0) batching.push(k);
-              //     console.log('batching', batching);
-
-
-              //     // await new Promise(r=>nextBrowserTick(r));
-              //     // this.flushRenderStamperComponentBindings_();
-              //     // await new Promise(r=>nextBrowserTick(r));
-
-              //     wme.data = `${(wme.data & 7) + 1}`;
-              //     await wmp;
-
-              //     const arr = this[cTag];
-              //     arr.push(...items);
-
-
-              //     // await new Promise(r=>nextBrowserTick(r));
-
-              //     this.flushRenderStamperComponentBindings_();
-              //     this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-              //       bubbles: !0,
-              //       cancelable: !1,
-              //       composed: !0,
-              //       detail: {
-              //         container: listDom
-              //       }
-              //     }));
-
-              //     // await new Promise(r=>setTimeout(r,300));
-
-              //     wme.data = `${(wme.data & 7) + 1}`;
-              //     await wmp;
-
-                  
-              //     // this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && deferCallback(this, ()=> {
-              //     //   this.showNewItems_()
-              //     // }) : deferCallback(this, ()=> {
-              //     //     this.refreshOffsetContainerHeight_();
-              //     //     this.maybeScrollToBottom_()
-              //     // })
-
-       
-              //     // // this._setPendingProperty(`${c}.splices`, {}, null) && this._invalidateProperties();
-              //     let b = false;
-              //     b = b || this._setPendingPropertyOrPath(`${c}.splices`, v5, true, true);
-
-
-              //     // // listDom.append(...list);
-
-
-              //     // // this._setPendingProperty(`${c}.length`, arr.length, true);
-              //     b = b || this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true);
-              //     b && this._invalidateProperties();
-
-
-              //   })();
-
-              //   // console.log(4776)
-              //   // throw new PError();
-              // }
-              // mclp.push = mclp.push388;
 
               const deferCallback = async (cnt, callback) => {
                 // await prWaitWidth;
@@ -7891,9 +7187,6 @@
 
               let ps00 = false;
               mclp.flushActiveItems_ = function () {
-
-
-
                 if (ps00) return;
                 // console.log('flushActiveItems_')
                 ps00 = true;
@@ -7908,7 +7201,7 @@
                       this.flushActiveItems3641_();
                     }
                   }
-                });
+                }).catch(console.warn);
               };
 
               mclp.showNewItems3641_ = mclp.showNewItems_;
@@ -7923,7 +7216,7 @@
                 deferCallback(this, () => {
                   ps01 = false;
                   this.showNewItems3641_();
-                });
+                }).catch(console.warn);
               };
 
               if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
@@ -7937,7 +7230,7 @@
                   deferCallback(this, () => {
                     ps02 = false;
                     this.refreshOffsetContainerHeight3641_();
-                  });
+                  }).catch(console.warn);
                 };
               }
 
@@ -7952,20 +7245,12 @@
                   this.maybeScrollToBottom3641_();
                   if (itemsResizeObserverAttached !== true && this.atBottom === true) {
                     // fallback for old browser
-                    
                     const itemScroller = this.$['item-scroller'] || this.querySelector('#item-scroller') || 0;
-                    // if (this.atBottom === true && itemScroller.scrollTop === 0) {
-                    //   setTimeout(() => {
-                    //     if (this.atBottom === true && itemScroller.scrollTop === 0) {
-                    //       itemScroller.scrollTop = window.screen.height;
-                    //     }
-                    //   }, 1);
-                    // }
                     if (itemScroller.scrollTop === 0) {
                       resizeObserverFallback.observe(itemScroller);
                     }
                   }
-                });
+                }).catch(console.warn);
               };
 
 
@@ -7984,7 +7269,7 @@
                 deferCallback(this, () => {
                   ps11 = false;
                   this.onScrollItems3641_(a);
-                });
+                }).catch(console.warn);
               };
 
               if (!ENABLE_NO_SMOOTH_TRANSFORM) {
@@ -7996,20 +7281,9 @@
                   deferCallback(this, () => {
                     ps12 = false;
                     this.maybeResizeScrollContainer3641_(a);
-                  });
+                  }).catch(console.warn);
                 };
               }
-
-              // let ps13 = false;
-              // mclp.handleLiveChatActions_ = function (a) {
-              //   if (ps13) return;
-              //   console.log('handleLiveChatActions_')
-              //   ps13 = true;
-              //   deferCallback(this, () => {
-              //     ps13 = false;
-              //     this.handleLiveChatActions3641_(a);
-              //   });
-              // };
 
             }
 
@@ -8549,6 +7823,7 @@
                     U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
                 }
               }
+              mclp.atBottomChanged7572_ = true;
 
               console1.log("atBottomChanged_", "OK");
 
@@ -10666,12 +9941,10 @@
             const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             pShadow.replaceChildren(pDiv);
 
-
             const wmRemoved = new Map();
 
             const wmMapToItem = new WeakMap();
             let wmPendingList = null;
-
 
             const nullComponents = new Map();
 
@@ -10688,13 +9961,13 @@
                 console.warn('proceedStampDomArraySplices_', 'Error 001');
                 return false;
               }
-              const streamArr = this[cTag];
+              // const streamArr = this[cTag];
               if (!this.ec389) {
                 if (this.ec389a || this.ec389r) {
                   console.warn('proceedStampDomArraySplices_', 'Error 002');
                   return false;
                 }
-                this.ec389 = {};
+                this.ec389 = true;
                 this.ec389a = 0;
                 this.ec389r = 0;
               }
@@ -10707,23 +9980,22 @@
 
                 let shouldScrollAfterFlush = false;
                 const pr = this.ec389pr;
-                this.ec389pr = (async () => {
-                  await pr;
+                const ec389pr = this.ec389pr = (async () => {
+                  await pr; // await the current executing task (if any)
                   if (!this.ec389a && !this.ec389r) return;
-                  await new Promise(resolve => nextBrowserTick(resolve));
+                  await prToNextMarcoTask(); // collective process (per marcoTask)
                   if (!this.ec389a && !this.ec389r) return;
-                  // const renderList = this.ec389.slice();
-                  // const domList = this.ec389n.slice();
                   const addedCount0 = this.ec389a;
                   const removedCount0 = this.ec389r;
 
-                  this.ec389 = null;
-                  this.ec389n = null;
+                  this.ec389 = false;
                   this.ec389a = 0;
                   this.ec389r = 0;
 
-                  const deObjectComponent = (insertionObj) => {
-                    const obj = insertionObj;
+                  // coming process can be stacked as ec389a and ec389r are reset.
+
+                  const deObjectComponent = (item) => {
+                    const obj = item;
                     const I = firstObjectKey(obj);
                     const t = this.stampDom[cTag].mapping;
                     const L = t[I];
@@ -10734,10 +10006,11 @@
                   const hostElement = this.hostElement;
 
                   const cList = this[cTag].slice();
+                  let renderNodeCount = 0;
                   const renderList = cList.map((item) => {
                     const [L, H] = deObjectComponent(item);
                     const node = kRef(renderMap.get(H));
-                    return node && hostElement.contains(node) ? node : item;
+                    return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
                   });
 
                   // this.ec389 = null;
@@ -10757,11 +10030,10 @@
                       // shadowElm.insertAdjacentElement('beforeend', component);
                     } else {
                       component = nullComponents.get(componentName);
-
                     }
                     component = component.cloneNode(false);
 
-                    const cnt = insp(component);
+                    // const cnt = insp(component);
 
                     // cnt.__dataOld = cnt.__dataPending = null;
                     pDiv.insertAdjacentElement('beforeend', component);
@@ -10771,9 +10043,6 @@
                   }
 
                   const listDom = this.getStampContainer_(cId);
-
-
-
 
                   const pnForNewItem = (item) => {
 
@@ -10806,27 +10075,6 @@
                           }
                         }
                       }
-                      // for(const node of connectedComponent.getElementsByTagName('*')){
-                      //   const cnt = insp(node);
-                      //   if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
-                      //     try {
-                      //       cnt.dispose();
-                      //     } catch (e) { }
-                      //   } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
-                      //     try {
-                      //       node.dispose();
-                      //     } catch (e) { }
-                      //   }
-                      // }
-                      // for(const node of connectedComponent.getElementsByTagName('*')){
-                      //   const cnt = insp(node);
-                      //   if (cnt.is) {
-                      //     if (!cnt.__proto__.__refreshData938__) cnt.__proto__.__refreshData938__ = __refreshData938__;
-                      //     cnt.__refreshData938__('data', !0);
-                      //   }
-                      //   // if(cnt.__dataInvalid === false) cnt.__dataInvalid = true;
-                      // }
-
 
                     } else {
                       connectedComponent = createConnectedComponentElm(item, L, H, componentName);
@@ -10840,14 +10088,6 @@
                     return [item, L, H, connectedComponent];
 
                   };
-
-                  // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
-                  //   // interrupted by external
-                  //   this.ec389 = [];
-                  //   this.ec389a = 0;
-                  //   this.ec389r = 0;
-                  //   return;
-                  // }
 
                   let imgPreloadPr = null;
                   if (cTag === 'visibleItems') {
@@ -10924,17 +10164,11 @@
                   }
                   if (imgPreloadPr) await imgPreloadPr;
 
-                  // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
-                  //   // interrupted by external
-                  //   this.ec389 = [];
-                  //   this.ec389a = 0;
-                  //   this.ec389r = 0;
-                  //   return;
-                  // }
-
-                  const batching = [];
+                  // const batching = [];
                   let j = 0;
                   let elNode;
+                      
+                  const sideProcesses = [];
 
                   const removeStampNode_ = (elNode) => {
                     const elm = elNode;
@@ -10951,29 +10185,8 @@
                     const data = cnt.data;
                     if (data) renderMap.delete(cnt.data);
 
-                    // detach data-view model signal
-                    for(const node of elm.getElementsByTagName('*')){
-                      const cnt = insp(node);
-                      if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
-                        try {
-                          cnt.dispose();
-                        } catch (e) { }
-                      } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
-                        try {
-                          node.dispose();
-                        } catch (e) { }
-                      }
-                    }
-                    // detach iconShapeDataSignal
-                    for (const node of elm.getElementsByTagName('yt-icon')) {
-                      try {
-                        const cnt = insp(node);
-                        if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-                        cnt.__refreshProps938__();
-                        // cnt.removeIconShape();
-                        // cnt._setPendingProperty('isAttached', false);
-                      } catch (e) { }
-                    }
+                    sideProcesses.push(reuseFixDataViewModel(elm));
+                    sideProcesses.push(reuseFixYtIconRendering(elm));
                   }
 
                   const removeStampNode = async () => {
@@ -10993,17 +10206,7 @@
                     await Promise.resolve();
 
                     if (cTag === 'visibleItems') {
-
-                      const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
-                      if (tickerElm) {
-                        Promise.resolve().then(() => {
-                          tickerElm.setAttribute('ticker-message-removed', '')
-                          if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
-                            insp(tickerElm).requestRemoval();
-                          }
-                        }).catch(console.warn);
-                      }
-
+                      sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
                     }
 
                     j++;
@@ -11033,9 +10236,9 @@
                       indexMap.set(elNode, index++);
                     }
 
-                    const keepIndices = new Array(newRenderedComponents.length);
+                    const keepIndices = new Array(renderNodeCount);
                     let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-                    for (let i = 0, l = keepIndices.length; i < l; i++) {
+                    for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
                       const entry = newRenderedComponents[i];
                       if (entry instanceof Node) {
                         const index = indexMap.get(entry);
@@ -11048,7 +10251,7 @@
                     if (requireSort) keepIndices.sort();
                     let dk = 0;
 
-                    let k = 0;
+                    // let k = 0;
                     let t0 = performance.now();
                     for (const rcEntry of newRenderedComponents) {
 
@@ -11088,40 +10291,29 @@
 
                         let t1 = performance.now();
 
-                        k++;
+                        // k++;
                         if (t1 - t0 > 14) {
-                          batching.push(k);
-                          await new Promise(r => nextBrowserTick(r));
+                          // batching.push(k);
+                          await prToNextMarcoTask();
                           t0 = performance.now();
-                          k = 0;
+                          // k = 0;
                         } else {
                           await Promise.resolve();
                         }
 
                         elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                        renderMap.set(insp(connectedComponent).data, mWeakRef(connectedComponent));
-                        Promise.resolve(insp(connectedComponent)).then(async cnt => {
-                          wme.data = `${(wme.data & 7) + 1}`;
-                          await wmp;
-                          cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0); // ensure data is invalidated correctly after mutation
-                        });
+                        const cnt = insp(connectedComponent);
+                        renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                        mutationDelayedRefreshData(cnt); // not included to sideProcesses
                         addedCounter++;
 
                         if (cTag === 'tickerItems') {
-
-                          const tickerElm = document.querySelector("[ticker-message-removed]:nth-child(n + 40)");
-                          if (tickerElm) {
-                            Promise.resolve().then(() => {
-                              const tickerElms = document.querySelectorAll("[ticker-message-removed]:nth-child(n + 40)");
-                              for (const tickerElm of tickerElms) insp(tickerElm).requestRemoval();
-                            }).catch(console.warn);
-                          }
-
+                          sideProcesses.push(onTickerItemStampNodeAdded());
                         }
 
                       }
                     }
-                    if (k > 0) batching.push(k);
+                    // if (k > 0) batching.push(k);
 
                     while (elNode) await removeStampNode();
 
@@ -11129,22 +10321,26 @@
 
                   {
                     const arr = this[cTag];
-                    let b = false;
-                    b = b || this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
-                    b = b || this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+                    let b = 0;
+                    b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+                    b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
                     b && this._invalidateProperties();
                   }
 
                   this.flushRenderStamperComponentBindings_(); // just in case...
 
+                  await Promise.all(sideProcesses);
+
+                  const detail = {
+                    container: listDom
+                  };
                   this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
                     bubbles: !0,
                     cancelable: !1,
                     composed: !0,
-                    detail: {
-                      container: listDom
-                    }
+                    detail
                   }));
+                  detail.container = null;
 
                   if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
                     // clear all remaining rendering before promise resolve
@@ -11155,14 +10351,18 @@
 
                 })().catch(console.warn);
 
-                if (cTag === 'visibleItems') this.flushActiveItemsPromise288 = ec389pr;
+                if (cTag === 'visibleItems') {
+                  this.flushActiveItemsPromise288 = ec389pr;
+                  this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+                }
 
+                // the first microtask after promise resolved
                 pr.then(async () => {
                   if (shouldScrollAfterFlush) {
-                    if (this.atBottom === false) this.scrollToBottom_();
+                    if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
                     wme.data = `${(wme.data & 7) + 1}`;
                     await wmp;
-                    if (this.atBottom === false) this.scrollToBottom_();
+                    if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
                   }
                 });
 
