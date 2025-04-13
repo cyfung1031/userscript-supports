@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.68.3
+// @version             0.100.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -55,13 +55,30 @@
   // *********** DON'T REPORT NOT WORKING DUE TO THE CHANGED SETTINGS ********************
   // The settings are FIXED! You might change them to try but if the script does not work due to your change, please, don't report them as issues
 
-  const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
+  /// -------------------------------------------------------------------------
+
+  const USE_ADVANCED_TICKING = true;                      // DONT CHANGE
+  // << if USE_ADVANCED_TICKING >>
+  const FIX_TIMESTAMP_FOR_REPLAY = true;
+  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true; // MUST BE true
+  const REUSE_TICKER = true;  // for better memory control; currently it is only available in ADVANCED_TICKING; to be further reviewed << NO EFFECT SINCE ENABLE_TICKERS_BOOSTED_STAMPING IS USED >>
+  // << end >>
+
+  const ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING = true;     // TRUE to boost chat messages rendering (DONT CHANGE)
+  const ENABLE_TICKERS_BOOSTED_STAMPING = true;           // TRUE to boost chat messages rendering (DONT CHANGE)
+  const DISABLE_DYNAMIC_TICKER_WIDTH = true;              // We use the opacity change instead
+
+  /// -------------------------------------------------------------------------
+
+  // ENABLE_REDUCED_MAXITEMS_FOR_FLUSH and MAX_ITEMS_FOR_FULL_FLUSH are removed due to ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING is introduced
+
+  // const ENABLE_REDUCED_MAXITEMS_FOR_FLUSH = true;         // TRUE to enable trimming down to MAX_ITEMS_FOR_FULL_FLUSH (25) messages when there are too many unrendered messages
   const MAX_ITEMS_FOR_TOTAL_DISPLAY = 90;                 // By default, 250 latest messages will be displayed, but displaying MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages is already sufficient. (not exceeding 900)
-  const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages. (not exceeding 900)
+  // const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages. (not exceeding 900)
 
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages <<< DON'T CHANGE >>>
   const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
-  const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform.
+  const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform. (Safari is not supported)
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
   const FIX_INPUT_PANEL_OVERFLOW_ISSUE = true;            // When the super chat button is flicking with color, the scrollbar might come out.
@@ -176,15 +193,6 @@
   const CLOSE_TICKER_PINNED_MESSAGE_WHEN_HEADER_CLICKED = true;
 
   const MAX_TOOLTIP_NO_WRAP_WIDTH = '72vw'; // '' for disable; accept values like '60px', '25vw'
-
-
-
-  const USE_ADVANCED_TICKING = true; // added in Dec 2024 v0.66.0; need to ensure it would not affect the function if ticker design changed. to be reviewed
-  // << if USE_ADVANCED_TICKING >>
-  const FIX_TIMESTAMP_FOR_REPLAY = true;
-  const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true; // MUST BE true
-  const REUSE_TICKER = true;  // for better memory control; currently it is only available in ADVANCED_TICKING; to be further reviewed
-  // << end >>
 
   const DISABLE_Translation_By_Google = true;
 
@@ -566,6 +574,7 @@
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
   const [setTimeout_] = [setTimeout];
   // let jsonParseFix = null;
+  const Image_ = Image;
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
   if (typeof WebAssembly !== 'object') return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for passive and once
@@ -1014,6 +1023,7 @@
         bottom: 0;
         left: clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%);
         contain: strict;
+        pointer-events: none;
       }
       ticker-bg-overlay-end2 {
 
@@ -1050,7 +1060,7 @@
           --r6-transition-duration: 0.2s;
         }
 
-        .r6-width-adjustable {
+        .r6-width-adjustable, .yt-live-chat-ticker-stampdom {
           --r6-transition-duration-v: var(--r6-transition-duration);
           transition: var(--r6-transition-duration-v);
         }
@@ -1080,6 +1090,58 @@
         }
 
   ` : '';
+
+  const cssText20_TICKER_SIZING = ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH ? `
+
+    :root {
+      --ticker-items-gap: 8px;
+    }
+    #ticker-items.yt-live-chat-ticker-renderer {
+        position: relative;
+        transform: translateZ(1px);
+        box-sizing: border-box;
+        contain: style;
+        display: flex;
+        flex-direction: row;
+        gap: var(--ticker-items-gap);
+    }
+    #container.yt-live-chat-ticker-renderer {
+        contain: layout paint style;
+    }
+
+    .yt-live-chat-ticker-stampdom {
+      position: static;
+      width: max-content;
+      content-visibility:auto;
+    }
+    .yt-live-chat-ticker-stampdom[class] {
+      transition: none;
+    }
+    .yt-live-chat-ticker-stampdom-container {
+      position: static;
+      width: max-content;
+      content-visibility:auto;
+    }
+
+    .yt-live-chat-ticker-stampdom {
+      margin-right:0 !important; /* flex gap 8px */
+    }
+
+    
+    /* default animation */
+    .yt-live-chat-ticker-stampdom {
+        animation: ticker-shown-animation 220ms ease-in 0s 1 normal forwards;
+    }
+    
+   
+    /* default animation */
+    @keyframes ticker-shown-animation {
+        0%, 70%, 100% { opacity: 1; }
+        30% { opacity: 0.2; }
+    }
+
+
+  ` : "";
   // const cssText19_FOR_ADVANCED_TICKING = `
 
   // ticker-bg-overlay {
@@ -1360,6 +1422,40 @@
 
       }
 
+      item-anchor-b {
+      
+          height:1px;
+          width: 100%;
+          transform: scaleY(0.00001);
+          transform-origin:0 0;
+          contain: strict;
+          opacity:0;
+          display:flex;
+          position:relative;
+          flex-shrink:0;
+          flex-grow:0;
+          margin-bottom:0;
+          overflow:hidden;
+          box-sizing:border-box;
+          visibility: visible;
+          content-visibility: visible;
+          contain-intrinsic-size: auto 1px;
+          pointer-events:none !important;
+
+          height: 2px;
+          width: 10px;
+          top: auto;
+          left: auto;
+          right: auto;
+          bottom: auto;
+          transform: translateY(-1px);
+          position: absolute;
+          z-index: -1;
+
+          margin-top: 7px;
+          left: 20px;
+      }
+
     }
 
     @supports (color: var(--pre-rendering)) {
@@ -1450,6 +1546,8 @@
     ${cssText18_REACTION_ANIMATION_PANEL_CSS_FIX}
 
     ${cssText19_FOR_ADVANCED_TICKING}
+
+    ${cssText20_TICKER_SIZING}
 
   `;
 
@@ -1797,6 +1895,116 @@
     return false;
   };
 
+  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+  const indr = o => insp(o).$ || o.$ || 0;
+
+
+  const getAttributes = (node) => {
+    const attrs = node.attributes;
+    const res = {};
+    for (const { name, value } of attrs) {
+      res[name] = value;
+    }
+    res['"'] = attrs.length;
+    // const res = new Array(attrs.length);
+    // for (let i = 0; i < res.length; i++) {
+    //   const { name, value } = attrs[i];
+    //   res[i] = { name, value };
+    // }
+    return res;
+  };
+
+  const __refreshData938o__ = {};
+  const __refreshData938__ = function (prop, opt) {
+    const d = this[prop];
+    if (d) {
+      this._setPendingProperty(prop, __refreshData938o__, opt);
+      this._setPendingProperty(prop, d, opt);
+      this._invalidateProperties();
+    }
+  };
+
+  const __refreshProps938__ = function (){
+    const __data = this.__data;
+    if (__data) {
+      for (const key in __data) {
+        const v = __data[key];
+        if (typeof v === 'boolean') {
+          this._setPendingProperty(key, !v) && this._setPendingProperty(key, v);
+        } else if (typeof v === 'string') {
+          this._setPendingProperty(key, `!${v}`) && this._setPendingProperty(key, `${v}`);
+        } else if (typeof v === 'number') {
+          this._setPendingProperty(key, v + 1) && this._setPendingProperty(key, v);
+        }
+      }
+    }
+  }
+
+  const imageFetchCache = new Set();
+  const imageFetch = function (imageLink) {
+    return new Promise(resolve => {
+      let img = null;
+      for (const cacheWR of imageFetchCache) {
+        let p = kRef(cacheWR);
+        if (!p) {
+          imageFetchCache.delete(cacheWR);
+        } else if (img.busy588 === false) {
+          img = p;
+          break;
+        }
+      }
+      if (!img) {
+        img = new Image_();
+        imageFetchCache.add(mWeakRef(img));
+      }
+      img.busy588 = true;
+
+      window.mkek = imageFetchCache.size;
+      let f = () => {
+        resolve && resolve();
+        resolve = null;
+        img.onload = null;
+        img.onerror = null;
+        img.busy588 = false;
+        img = null;
+      }
+      img.onload = f;
+      img.onerror = f;
+      img.src = imageLink;
+      f = null;
+      imageLink = null;
+    });
+  };
+
+
+  const autoTimerFn = (() => {
+
+    let p1 = null;
+    let p2 = null;
+    let p3 = null;
+    setInterval(() => {
+      if (p1) p1.resolve();
+      p1 = p2;
+      p2 = p3;
+      p3 = null;
+    }, 345.00123);
+
+    return () => {
+      const p = (p3 || (p3 = new PromiseExternal()));
+      return p;
+    };
+
+  })();
+
+  const wme = document.createComment('1');
+  let wmp = new PromiseExternal();
+  const wmo = new MutationObserver(() => {
+    wmp.resolve();
+    wmp = new PromiseExternal();
+  });
+  wmo.observe(wme, { characterData: true });
+
+
   let playEventsStack = Promise.resolve();
 
 
@@ -1846,10 +2054,12 @@
       updateTickerCurrentTime();
     }
   }
-  const resistanceUpdateFn_ = () => {
-    if (!resistanceUpdateBusy) {
-      resistanceUpdateBusy = true;
-      Promise.resolve().then(resistanceUpdateFn);
+  const resistanceUpdateFn_ = (forced = false) => {
+    if (forced === true || timestampUnderLiveMode) {
+      if (!resistanceUpdateBusy) {
+        resistanceUpdateBusy = true;
+        Promise.resolve().then(resistanceUpdateFn);
+      }
     }
   }
   const startResistanceUpdater = () => {
@@ -1860,10 +2070,10 @@
 
     if (RESISTANCE_UPDATE_OPT & 1)
       document.addEventListener('yt-action', () => {
-        resistanceUpdateFn_();
+        resistanceUpdateFn_(true);
       }, true)
 
-    resistanceUpdateFn_();
+    resistanceUpdateFn_(true);
     setIntervalX0(resistanceUpdateFn_, 400);
   }
 
@@ -1876,8 +2086,6 @@
     // return window.deWeakJS ? window.deWeakJS(s) : s;
   }
 
-  const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
-  const indr = o => insp(o).$ || o.$ || 0;
 
   const getProto = (element) => {
     if (element) {
@@ -2047,8 +2255,8 @@
     mo.observe(document, { subtree: true, childList: true });
   }
 
-
-  console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
+  console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0)
+  // console.assert(MAX_ITEMS_FOR_TOTAL_DISPLAY > 0 && MAX_ITEMS_FOR_FULL_FLUSH > 0 && MAX_ITEMS_FOR_TOTAL_DISPLAY > MAX_ITEMS_FOR_FULL_FLUSH)
 
   const isContainSupport = CSS.supports('contain', 'layout paint style');
   if (!isContainSupport) {
@@ -2661,25 +2869,28 @@
   const emojiPrefetched = new LimitedSizeSet(PREFETCH_LIMITED_SIZE_EMOJI);
   const authorPhotoPrefetched = new LimitedSizeSet(PREFETCH_LIMITED_SIZE_AUTHOR_PHOTO);
 
+  const linkerOnload = function () {
+    this.resolveFn({
+      link: this,
+      success: true
+    });
+    this.remove();
+  };
+  const linkerOnError = function () {
+    this.resolveFn({
+      link: this,
+      success: false
+    });
+    this.remove();
+  };
   function linker(link, rel, href, _as) {
     return new Promise(resolve => {
       if (!link) link = document.createElement('link');
       link.rel = rel;
       if (_as) link.setAttribute('as', _as);
-      link.onload = function () {
-        resolve({
-          link: this,
-          success: true
-        })
-        this.remove();
-      };
-      link.onerror = function () {
-        resolve({
-          link: this,
-          success: false
-        });
-        this.remove();
-      };
+      link.resolveFn = resolve;
+      link.onload = linkerOnload;
+      link.onerror = linkerOnError;
       link.href = href;
       document.head.appendChild(link);
       link = null;
@@ -2932,7 +3143,6 @@
     // let allowDontRender = null;
 
     // ---- #items mutation ----
-    let sk35zResolveFn = null;
     // let firstList = true;
 
     // << end >>
@@ -3772,10 +3982,10 @@
           let btnShowMoreWR = e ? mWeakRef(e) : null;
 
           let lastVisibleItemWR = null;
-          for (const elm of document.querySelectorAll('[wSr93]')) {
-            if (elm.getAttribute('wSr93') === 'visible') lastVisibleItemWR = mWeakRef(elm);
-            elm.setAttribute('wSr93', '');
-            // custom CSS property --wsr94 not working when attribute wSr93 removed
+          for (const elm of document.querySelectorAll('[wsr93]')) {
+            if (elm.getAttribute('wsr93') === 'visible') lastVisibleItemWR = mWeakRef(elm);
+            elm.setAttribute('wsr93', '');
+            // custom CSS property --wsr94 not working when attribute wsr93 removed
           }
           foregroundPromiseFn().then(() => {
             const btnShowMore = getElemFromWR(btnShowMoreWR); btnShowMoreWR = null;
@@ -3795,7 +4005,7 @@
             }
           });
 
-        });
+        }).catch(console.warn);
 
       }
 
@@ -3856,20 +4066,20 @@
       const visObserverFn = (entry) => {
 
         const target = entry.target;
-        if (!target) return;
+        if (!target || !target.hasAttribute('wsr93')) return;
         // if(target.classList.contains('dont-render')) return;
         let isVisible = entry.isIntersecting === true && entry.intersectionRatio > 0.5;
         // const h = entry.boundingClientRect.height;
         /*
         if (h < 16) { // wrong: 8 (padding/margin); standard: 32; test: 16 or 20
             // e.g. under fullscreen. the element created but not rendered.
-            target.setAttribute('wSr93', '');
+            target.setAttribute('wsr93', '');
             return;
         }
         */
         if (isVisible) {
           // target.style.setProperty('--wsr94', h + 'px');
-          target.setAttribute('wSr93', 'visible');
+          target.setAttribute('wsr93', 'visible');
           // lastVisible = mWeakRef(target);
           if (nNextElem(target) === null) {
 
@@ -3905,11 +4115,11 @@
             });
           }
         }
-        else if (target.getAttribute('wSr93') === 'visible') { // ignore target.getAttribute('wSr93') === '' to avoid wrong sizing
+        else if (target.getAttribute('wsr93') === 'visible') { // ignore target.getAttribute('wsr93') === '' to avoid wrong sizing
 
           // target.style.setProperty('--wsr94', h + 'px');
-          target.setAttribute('wSr93', 'hidden');
-        } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wSr93') === '' <new last item>
+          target.setAttribute('wsr93', 'hidden');
+        } // note: might consider 0 < entry.intersectionRatio < 0.5 and target.getAttribute('wsr93') === '' <new last item>
 
       }
 
@@ -3949,24 +4159,34 @@
 
     })();
 
+    let itemsResizeObserverAttached = false;
+    const resizeObserverFallback = new IntersectionObserver((mutation, observer) => {
+      const itemScroller = mutation[0].target;
+      observer.unobserve(itemScroller);
+      if (itemScroller.scrollTop === 0) itemScroller.scrollTop = window.screen.height;
+    });
+
     const { setupMutObserver } = (() => {
 
 
       const mutFn = (items) => {
         let seqIndex = -1;
         const elementSet = new Set();
-        for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) {
-          if (node.hasAttribute('wSr93')) {
+        for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) { // from bottom
+          let found = node.hasAttribute('wsr93') ? (node.hasAttribute('yt-chat-item-seq') ? 2 : 1) : 0;
+          if (found === 1) node.removeAttribute('wsr93'); // reuse -> wsr93: hidden after re-attach
+          if (found === 2) {
             seqIndex = parseInt(node.getAttribute('yt-chat-item-seq'), 10);
             break;
           }
-          node.setAttribute('wSr93', '');
+          visObserver.unobserve(node); // reuse case
+          node.setAttribute('wsr93', '');
           visObserver.observe(node);
           elementSet.add(node);
         }
         let iter = elementSet.values();
         let i = seqIndex + elementSet.size;
-        for (let curr; curr = iter.next().value;) {
+        for (let curr; curr = iter.next().value;) { // from bottom
           curr.setAttribute('yt-chat-item-seq', i % 60);
           curr.classList.add('yt-chat-item-' + ((i % 2) ? 'odd' : 'even'));
           i--;
@@ -3975,13 +4195,25 @@
         elementSet.clear();
       }
 
+      const itemsResizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver((mutations) => {
+        const mutation = mutations[mutations.length - 1];
+        // console.log('resizeObserver', mutation)
+        const items = (mutation || 0).target;
+        if (!items) return;
+        const listDom = items.closest('yt-live-chat-item-list-renderer');
+        if (!listDom) return;
+        const listCnt = insp(listDom);
+        if (listCnt.atBottom !== true) return;
+        const itemScroller = listCnt.$['item-scroller'] || listCnt.querySelector('#item-scroller') || 0;
+        if (itemScroller.scrollTop === 0) {
+          itemScroller.scrollTop = mutation.contentRect.height
+        }
+      }) : null;
+      itemsResizeObserverAttached = itemsResizeObserver !== null;
+
       const mutObserver = new MutationObserver((mutations) => {
         const items = (mutations[0] || 0).target;
         if (!items) return;
-        if (sk35zResolveFn) {
-          sk35zResolveFn();
-          sk35zResolveFn = null;
-        }
         mutFn(items);
       });
 
@@ -3999,6 +4231,9 @@
             subtree: false
           });
           mutFn(m2);
+
+
+          if (itemsResizeObserver) itemsResizeObserver.observe(m2);
 
           // const isFirstList = firstList;
           // firstList = false;
@@ -5639,6 +5874,7 @@
 
             cProto.playerProgressChanged_ = function (a, b, c) {
               // console.log(48117005)
+              if (a === 0) a = arguments[0] = Number.MIN_VALUE; // avoid issue dealing with zero value
               playerProgressChangedArg1 = a;
               playerProgressChangedArg2 = b;
               playerProgressChangedArg3 = c;
@@ -5669,6 +5905,124 @@
         getLCRDummy().then(lcrFn2);
 
       }
+
+      const stackDM = (()=>{
+
+        let cm, stack, mo;
+
+        let firstRun = ()=>{
+          
+          cm = document.createComment('1');
+          stack = new Set();
+          mo = new MutationObserver(()=>{
+            const stack_ = stack;
+            stack = new Set();
+            // for(const value of stack_){
+            //   Promise.resolve(value).then(f=>f());
+            // }
+            for(const value of stack_){
+              value();
+            }
+            stack_.clear();
+          });
+          mo.observe(cm, {characterData: true});
+
+        }
+
+
+        const stackDM = (f) => {
+
+          if (firstRun) firstRun = firstRun();
+          stack.add(f);
+          cm.data = `${(cm.data & 1) + 1}`;
+        }
+        return stackDM;
+      })();
+      window.stackDM = stackDM;
+
+
+      const stackMarcoTask = (f) => {
+        return new Promise(resolve => {
+          nextBrowserTick(async () => {
+            try {
+              await f();
+            } catch (e) {
+              console.warn(e);
+            } finally {
+              resolve();
+            }
+          });
+        })
+      };
+
+      const widthReq = (()=>{
+
+        let widthIORes;
+        let widthIO;
+
+        let firstRun = () => {
+          widthIORes = new WeakMap();
+          widthIO = new IntersectionObserver((mutations) => {
+            const r = new Map();
+            for (const mutation of mutations) {
+              r.set(mutation.target, mutation.boundingClientRect);
+            }
+
+            for (const [elm, rect] of r) {
+              widthIO.unobserve(elm);
+              const o = widthIORes.get(elm);
+              o && widthIORes.delete(elm);
+              const { promise, values } = o || {};
+              if (promise && values) {
+                values.width = rect.width;
+                promise.resolve(values);
+              }
+            }
+          });
+        };
+
+        const widthReq = (elm) => {
+
+          if (firstRun) firstRun = firstRun();
+
+          {
+            const { promise, values } = widthIORes.get(elm) || {};
+            if (promise) return promise;
+          }
+
+          const promise = new PromiseExternal();
+          widthIORes.set(elm, { promise, values: {} });
+          widthIO.unobserve(elm);
+          widthIO.observe(elm);
+
+          return promise;
+
+        }
+        return widthReq;
+      })();
+
+
+      const elementFirstElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'firstElementChild');
+      const sFirstElementChild = Symbol();
+      Object.defineProperty(Element.prototype, sFirstElementChild, elementFirstElementChild);
+
+      const elementNextElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'nextElementSibling');
+      const sNextElementSibling = Symbol();
+      Object.defineProperty(Element.prototype, sNextElementSibling, elementNextElementSibling);
+
+      const firstComponentChildFn = (elNode) => {
+        elNode = elNode[sFirstElementChild];
+        while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sNextElementSibling];
+        return elNode;
+      }
+      const nextComponentSiblingFn = (elNode) => {
+        do {
+          elNode = elNode[sNextElementSibling];
+        } while ((elNode instanceof Element) && !elNode.is);
+        return elNode;
+      }
+
+      const renderMap = new WeakMap();
 
 
 
@@ -6044,47 +6398,9 @@
 
             mclp.flushActiveItems66a_ = mclp.flushActiveItems_;
             let lastLastRow = null;
-            mclp.flushActiveItems66_ = function () {
-              const visibleItemsA = (this || 0).visibleItems;
-              const lastVisibleItemA = visibleItemsA ? visibleItemsA[visibleItemsA.length - 1] : null;
-              const r = this.flushActiveItems66a_();
-
-              const visibleItemsB = (this || 0).visibleItems;
-              const lastVisibleItemB = visibleItemsB ? visibleItemsB[visibleItemsB.length - 1] : null;
-
-              if (lastVisibleItemA !== lastVisibleItemB) {
-
-                try {
-                  const lastRow = kRef(lastLastRow);
-
-                  const keyB = lastVisibleItemB ? firstObjectKey(lastVisibleItemB) : '';
-                  const idB = keyB ? (lastVisibleItemB[keyB].id || null) : null;
-
-                  if (idB) {
-
-                    let elm = this.$.items.lastElementChild;
-
-                    while (elm instanceof HTMLElement) {
-                      if (elm.id === idB) break;
-                      elm = ('__shady_native_previousElementSibling' in elm) ? elm.__shady_native_previousElementSibling : elm.previousElementSibling;
-                    }
-
-                    lastRow && lastRow.classList.remove('cyt-chat-last-message');
-                    if (elm) {
-                      elm.classList.add('cyt-chat-last-message');
-                      lastLastRow = mWeakRef(elm);
-                    }
-
-                  }
-
-                } catch (e) { }
 
 
-              }
-
-              return r; 
-            };
-
+  
             const preloadFn = (acItems) => {
               let waitFor = [];
               /** @type {Set<string>} */
@@ -6133,6 +6449,1688 @@
 
             };
 
+            // let prWaitWidth = null;
+// let widthTransitionSet = new Set();
+// document.addEventListener('transitionstart', (evt)=>{
+  
+//   if(evt.propertyName === 'width'){
+//     if(!prWaitWidth && widthTransitionSet.size === 0) prWaitWidth = new PromiseExternal();
+//     widthTransitionSet.add(evt.target);
+//     console.log(1298, widthTransitionSet.size)
+//   }
+
+// }, true);
+
+
+// document.addEventListener('transitionend', (evt)=>{
+  
+//   if(evt.propertyName === 'width'){
+//     widthTransitionSet.delete(evt.target);
+//     if(prWaitWidth && widthTransitionSet.size === 0){
+//       prWaitWidth.resolve();
+//       prWaitWidth = null
+//     }
+
+//     console.log(1299, widthTransitionSet.size)
+//   }
+
+// }, true);
+
+// document.addEventListener('transitioncancel', (evt)=>{
+  
+//   if(evt.propertyName === 'width'){
+//     widthTransitionSet.delete(evt.target);
+//     if(prWaitWidth && widthTransitionSet.size === 0){
+//       prWaitWidth.resolve();
+//       prWaitWidth = null
+//     }
+
+//     console.log(1299, widthTransitionSet.size)
+//   }
+
+// }, true);
+
+            if(ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING && `${mclp.flushActiveItems_}`.includes("this.push.apply(this,this.activeItems_)") && `${mclp.flushActiveItems_}`.includes(`this.splice("visibleItems",0,`)){
+              
+
+
+
+              {
+
+
+
+                // const newDoc = document.implementation.createHTMLDocument("NewDoc");
+                const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                document.documentElement.insertAdjacentElement('beforeend', pSpace);
+                const pNode = document.createElement('ns-538');
+                pSpace.insertAdjacentElement('beforeend', pNode);
+                const pShadow = pNode.attachShadow({ mode: "open" });
+                const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                pShadow.replaceChildren(pDiv);
+
+
+                const wmRemoved = new Map();
+
+                const wmMapToItem = new WeakMap();
+                let wmPendingList = null;
+
+
+                const nullComponents = new Map();
+
+                const componentDefaultAttributes = new WeakMap();
+
+
+                cProto.proceedStampDomArraySplices381_ = function (cTag, cId, indexSplice) {
+                  // console.log('proceedStampDomArraySplices_')
+                  // assume no error -> no try catch (performance consideration)
+                  const { index, addedCount, removed } = indexSplice;
+                  indexSplice = null;
+                  // console.log(indexSplice)
+                  const removedCount = removed.length;
+                  if (!addedCount && !removedCount) {
+                    console.warn('proceedStampDomArraySplices_', 'Error 001');
+                    return false;
+                  }
+                  const streamArr = this[cTag];
+                  if (!this.ec389) {
+                    if (this.ec389a || this.ec389r) {
+                      console.warn('proceedStampDomArraySplices_', 'Error 002');
+                      return false;
+                    }
+                    this.ec389 = {};
+                    this.ec389a = 0;
+                    this.ec389r = 0;
+                  }
+                  const shouldExecute = !this.ec389a && !this.ec389r;
+
+                  this.ec389a += addedCount;
+                  this.ec389r += removedCount;
+
+                  if (shouldExecute) {
+
+                    let shouldScrollAfterFlush = false;
+                    const pr = this.ec389pr;
+                    const ec389pr = this.ec389pr = (async () => {
+                      await pr;
+                      if (!this.ec389a && !this.ec389r) return;
+                      await new Promise(resolve => nextBrowserTick(resolve));
+                      if (!this.ec389a && !this.ec389r) return;
+                      // const renderList = this.ec389.slice();
+                      // const domList = this.ec389n.slice();
+                      const addedCount0 = this.ec389a;
+                      const removedCount0 = this.ec389r;
+
+                      this.ec389 = null;
+                      this.ec389n = null;
+                      this.ec389a = 0;
+                      this.ec389r = 0;
+
+                      const deObjectComponent = (insertionObj) => {
+                        const obj = insertionObj;
+                        const I = firstObjectKey(obj);
+                        const t = this.stampDom[cTag].mapping;
+                        const L = t[I];
+                        const H = obj[I];
+                        return [L, H];
+                      }
+
+                      const hostElement = this.hostElement;
+
+                      const cList = this[cTag].slice();
+                      const renderList = cList.map((item) => {
+                        const [L, H] = deObjectComponent(item);
+                        const node = kRef(renderMap.get(H));
+                        return node && hostElement.contains(node) ? node : item;
+                      });
+
+                      // this.ec389 = null;
+                      // this.ec389a = 0;
+                      // this.ec389r = 0;
+
+                      let addedCounter = 0;
+                      let removedCounter = 0;
+
+                      const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+                        // const reusable = false;
+                        // const componentName = this.getComponentName_(L, H);
+                        let component;
+                        if (!nullComponents.has(componentName)) {
+                          nullComponents.set(componentName, (component = document.createElement(componentName)));
+                          component.className = 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom';
+                          // shadowElm.insertAdjacentElement('beforeend', component);
+                        } else {
+                          component = nullComponents.get(componentName);
+
+                        }
+
+                        component = component.cloneNode(false);
+
+                        const cnt = insp(component);
+
+                        // cnt.__dataOld = cnt.__dataPending = null;
+                        pDiv.insertAdjacentElement('beforeend', component);
+                        // cnt.__dataOld = cnt.__dataPending = null;
+
+                        return component;
+                      }
+
+                      const listDom = this.getStampContainer_(cId);
+
+
+
+
+                      const pnForNewItem = (item) => {
+
+                        const [L, H] = deObjectComponent(item);
+
+                        const componentName = this.getComponentName_(L, H);
+
+                        const wmList = wmRemoved.get(componentName.toLowerCase());
+
+                        let connectedComponent = null;
+                        if (wmList && (connectedComponent = wmList.firstElementChild)) {
+                          if (this.telemetry_) this.telemetry_.reuse++;
+                          if (!wmPendingList) {
+                            wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                            wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
+                            pDiv.insertAdjacentElement('afterend', wmPendingList);
+                          }
+                          wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
+                          const attrMap = connectedComponent.attributes;
+                          const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
+                          if (defaultAttrs) {
+                            for (const attr of attrMap) {
+                              const name = attr.name;
+                              if (name in defaultAttrs) attr.value = defaultAttrs[name];
+                              else attrMap.removeNamedItem(name);
+                            }
+                            if (attrMap.length !== defaultAttrs['"']) {
+                              for (const name in defaultAttrs) {
+                                if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
+                              }
+                            }
+                          }
+
+                          // for (const node of connectedComponent.getElementsByTagName('*')) {
+                          //   const cnt = insp(node);
+                          //   if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+                          //     try {
+                          //       cnt.dispose();
+                          //     } catch (e) { }
+                          //   } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+                          //     try {
+                          //       node.dispose();
+                          //     } catch (e) { }
+                          //   }
+                          // }
+                          // for(const node of connectedComponent.getElementsByTagName('*')){
+                          //   const cnt = insp(node);
+                          //   if (cnt.is) {
+                          //     if (!cnt.__proto__.__refreshData938__) cnt.__proto__.__refreshData938__ = __refreshData938__;
+                          //     cnt.__refreshData938__('data', !0);
+                          //   }
+                          //   // if(cnt.__dataInvalid === false) cnt.__dataInvalid = true;
+                          // }
+
+                        } else {
+                          connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+                          if (this.telemetry_) this.telemetry_.create++;
+                        }
+                        if (cTag === 'tickerItems') {
+                          const container = connectedComponent.firstElementChild;
+                          if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
+                        }
+
+                        return [item, L, H, connectedComponent];
+
+                      };
+
+                      // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
+                      //   // interrupted by external
+                      //   this.ec389 = [];
+                      //   this.ec389a = 0;
+                      //   this.ec389r = 0;
+                      //   return;
+                      // }
+
+                      let imgPreloadPr = null;
+                      if (cTag === 'visibleItems') {
+                        const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
+                        imgPreloadPr = preloadFn(addedItems)();
+                      }
+
+                      const newComponentsEntries = await Promise.all(renderList.map((item) => {
+                        return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
+                      }));
+
+                      const imgPromises = [];
+
+                      const imgPaths = new Set();
+
+                      const pnForRenderNewItem = (entry) => {
+                        const [item, L, H, connectedComponent] = entry;
+
+                        const cnt = insp(connectedComponent);
+                        if (!cnt.__refreshData938__) {
+                          cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
+                        }
+                        if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
+                          cnt.data = H;
+                        } else {
+                          const q = this.deferRenderStamperBinding_
+                          let q2;
+                          if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
+                          this.deferRenderStamperBinding_(connectedComponent, L, H);
+                          this.flushRenderStamperComponentBindings_();
+                          if (typeof q === 'object') {
+                            this.deferRenderStamperBinding_ = q;
+                            q2.length = 0;
+                          }
+                        }
+                        if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
+                        
+                        // fix yt-icon issue
+                        for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
+                          try {
+                            const cnt = insp(node);
+                            if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+                            cnt.__refreshProps938__();
+                          } catch (e) { }
+                        }
+
+                        // const imgs = connectedComponent.getElementsByTagName('IMG');
+                        // if (imgs.length > 0) {
+                        //   for (let i = 0, l = imgs.length; i < l; i++) {
+                        //     const src = imgs[i].src;
+                        //     if (src.includes('://') && !imgPaths.has(src)) {
+                        //       imgPaths.add(src);
+                        //       imgPromises.push(imageFetch(src));
+                        //     }
+                        //   }
+                        // }
+                        componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
+                        return entry;
+                      }
+
+                      const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
+                        return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
+                      }));
+
+                      this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+
+                      imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+                      if (imgPromises.length > 0) {
+                        const pr1 = Promise.all(imgPromises).catch(e => { });
+                        const pr2 = autoTimerFn();
+                        await Promise.race([pr1, pr2]).catch(e => { });
+                        imgPaths.clear();
+                        imgPromises.length = 0;
+                      }
+                      if (imgPreloadPr) await imgPreloadPr;
+
+                      // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
+                      //   // interrupted by external
+                      //   this.ec389 = [];
+                      //   this.ec389a = 0;
+                      //   this.ec389r = 0;
+                      //   return;
+                      // }
+
+                      const batching = [];
+                      let j = 0;
+                      let elNode;
+
+                      const removeStampNode_ = (elNode) => {
+                        const elm = elNode;
+                        const cnt = insp(elm);
+                        const componentName = elm.nodeName.toLowerCase();
+                        let wmList = wmRemoved.get(componentName);
+                        if (!wmList) {
+                          wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                          wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
+                          pDiv.insertAdjacentElement('afterend', wmList);
+                          wmRemoved.set(componentName, wmList);
+                        }
+                        wmList.insertAdjacentElement('beforeend', elm);
+                        const data = cnt.data;
+                        if (data) renderMap.delete(cnt.data);
+
+                        // detach data-view model signal
+                        for (const node of elm.getElementsByTagName('*')) {
+                          const cnt = insp(node);
+                          if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+                            try {
+                              cnt.dispose();
+                            } catch (e) { }
+                          } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+                            try {
+                              node.dispose();
+                            } catch (e) { }
+                          }
+                        }
+                        // detach iconShapeDataSignal
+                        for (const node of elm.getElementsByTagName('yt-icon')) {
+                          try {
+                            const cnt = insp(node);
+                            if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+                            cnt.__refreshProps938__();
+                            // cnt.removeIconShape();
+                            // cnt._setPendingProperty('isAttached', false);
+                          } catch (e) { }
+                        }
+                      }
+
+                      const removeStampNode = async () => {
+
+                        removedCounter++;
+
+                        const nextElm = nextComponentSiblingFn(elNode);
+                        const elmId = elNode.id;
+                        removeStampNode_(elNode);
+                        // const dzid = this.getAttribute('dz-component-id');
+                        // ---- no-cache ----
+                        // try{
+                        //   elm.remove();
+                        // }catch(e){}
+                        // ---- no-cache ----
+
+                        await Promise.resolve();
+
+                        if (cTag === 'visibleItems') {
+
+                          const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
+                          if (tickerElm) {
+                            Promise.resolve().then(() => {
+                              tickerElm.setAttribute('ticker-message-removed', '')
+                              if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
+                                insp(tickerElm).requestRemoval();
+                              }
+                            }).catch(console.warn);
+                          }
+
+                        }
+
+                        j++;
+                        elNode = nextElm;
+
+                      }
+
+                      if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+                        // clear all pending rendering first
+                        await stackMarcoTask(async () => {
+                          Polymer.flush();
+                        });
+                      }
+
+                      // main UI thread - DOM modification
+                      await stackMarcoTask(async () => {
+
+                        if (this.atBottom === true) {
+                          shouldScrollAfterFlush = true;
+                        }
+    
+                        elNode = firstComponentChildFn(listDom);
+
+                        const indexMap = new WeakMap();
+                        let index = 0;
+                        for (let elNode = firstComponentChildFn(listDom); elNode instanceof Node; elNode = nextComponentSiblingFn(elNode)) {
+                          indexMap.set(elNode, index++);
+                        }
+
+                        const keepIndices = new Array(newRenderedComponents.length);
+                        let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
+                        for (let i = 0, l = keepIndices.length; i < l; i++) {
+                          const entry = newRenderedComponents[i];
+                          if (entry instanceof Node) {
+                            const index = indexMap.get(entry);
+                            keepIndices[keepIndicesLen++] = index;
+                            if (index > lastKeepIndex) lastKeepIndex = index;
+                            else requireSort = true;
+                          }
+                        }
+                        keepIndices.length = keepIndicesLen;
+                        if (requireSort) keepIndices.sort();
+                        let dk = 0;
+
+                        let k = 0;
+                        let t0 = performance.now();
+                        for (const rcEntry of newRenderedComponents) {
+
+                          const index = indexMap.get(rcEntry);
+                          if (typeof index === 'number') {
+                            const dIdx = keepIndices[dk++];
+                            indexMap.delete(rcEntry);
+                            const idx = dIdx;
+
+                            while (j < idx && elNode) await removeStampNode();
+                            if (j === idx) {
+
+                              if (elNode) {
+                                const nextElm = nextComponentSiblingFn(elNode);
+                                j++;
+                                elNode = nextElm;
+                              } else {
+                                console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                              }
+
+                            }
+
+                          } else if (rcEntry instanceof Node) {
+                            // interruped by the external like clearList
+
+                            removeStampNode_(rcEntry); // no await Promise.resolve()
+
+                          } else {
+
+                            const [item, L, H, connectedComponent] = rcEntry;
+
+                            // await Promise.resolve(); // microTask allowance for flushRenderStamper
+
+                            // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
+
+                            wmMapToItem.set(connectedComponent, mWeakRef(item));
+
+                            let t1 = performance.now();
+
+                            k++;
+                            if (t1 - t0 > 14) {
+                              batching.push(k);
+                              await new Promise(r => nextBrowserTick(r));
+                              t0 = performance.now();
+                              k = 0;
+                            } else {
+                              await Promise.resolve();
+                            }
+
+                            elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                            renderMap.set(insp(connectedComponent).data, mWeakRef(connectedComponent));
+                            Promise.resolve(insp(connectedComponent)).then(async cnt => {
+                              wme.data = `${(wme.data & 7) + 1}`;
+                              await wmp;
+                              cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0); // ensure data is invalidated correctly after mutation
+                            });
+                            addedCounter++;
+
+                            if (cTag === 'tickerItems') {
+
+                              const tickerElm = document.querySelector("[ticker-message-removed]:nth-child(n + 40)");
+                              if (tickerElm) {
+                                Promise.resolve().then(() => {
+                                  const tickerElms = document.querySelectorAll("[ticker-message-removed]:nth-child(n + 40)");
+                                  for (const tickerElm of tickerElms) insp(tickerElm).requestRemoval();
+                                }).catch(console.warn);
+                              }
+
+                            }
+
+                          }
+                        }
+                        if (k > 0) batching.push(k);
+
+                        while (elNode) await removeStampNode();
+
+                      });
+
+                      {
+                        const arr = this[cTag];
+                        let b = false;
+                        b = b || this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+                        b = b || this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+                        b && this._invalidateProperties();
+                      }
+
+                      this.flushRenderStamperComponentBindings_(); // just in case...
+
+                      this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                        bubbles: !0,
+                        cancelable: !1,
+                        composed: !0,
+                        detail: {
+                          container: listDom
+                        }
+                      }));
+
+                      if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+                        // clear all remaining rendering before promise resolve
+                        await stackMarcoTask(async () => {
+                          Polymer.flush();
+                        });
+                      }
+
+                    })().catch(console.warn);
+
+                    if (cTag === 'visibleItems') this.flushActiveItemsPromise288 = ec389pr;
+
+                    pr.then(async () => {
+                      if (shouldScrollAfterFlush) {
+                        if (this.atBottom === false) this.scrollToBottom_();
+                        wme.data = `${(wme.data & 7) + 1}`;
+                        await wmp;
+                        if (this.atBottom === false) this.scrollToBottom_();
+                      }
+                    });
+
+                  }
+
+                  return true;
+                }
+
+                // cProto.notifyPath371 = cProto.notifyPath;
+
+
+                cProto.stampDomArraySplices381_ = cProto.stampDomArraySplices_;
+
+                cProto.stampDomArraySplices_ = function (a, b, c) {
+                  if (a === 'visibleItems' && b === 'items' && (c || 0).indexSplices) {
+                    if (this.ec388) {
+                      const indexSplices = c.indexSplices;
+                      if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
+                        const indexSplice = indexSplices[0] || indexSplices;
+                        if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || []).length >= 1)) {
+                          // console.log(1059, a, b, indexSplice);
+                          if (this.proceedStampDomArraySplices381_(a, b, indexSplice)) return;
+                        }
+                      }
+                    } else {
+                      console.warn('stampDomArraySplices_ warning', ...arguments);
+                    }
+                  }
+                  return this.stampDomArraySplices381_(...arguments);
+                }
+
+                mclp.push377 = mclp.push;
+                mclp.splice377 = mclp.splice;
+
+
+
+                const emptyArr = [];
+                emptyArr.push = () => 0;
+                emptyArr.unshift = () => 0;
+                emptyArr.pop = () => void 0;
+                emptyArr.shift = () => void 0;
+                emptyArr.splice = () => void 0;
+                emptyArr.slice = function () { return this };
+
+
+                mclp.push = function (cTag, ...fnArgs) {
+                  if (cTag !== 'visibleItems' || !fnArgs.length || !fnArgs[0]) return this.push377(...arguments);
+                  const arr = this.visibleItems;
+                  const len = arr.length;
+                  const newTotalLen = arr.push(...fnArgs);
+                  const addedCount = fnArgs.length;
+                  // console.log('push')
+                  this.proceedStampDomArraySplices381_('visibleItems', 'items', {
+                    index: len, addedCount: addedCount, removed: emptyArr
+                  })
+                  return newTotalLen;
+                }
+
+                mclp.splice = function (cTag, ...fnArgs) {
+                  if (cTag !== 'visibleItems' || !fnArgs.length || (fnArgs.length === 2 && !fnArgs[1]) || (fnArgs.length > 2 && !fnArgs[2])) return this.splice377(...arguments);
+                  const arr = this.visibleItems;
+                  const removed = arr.splice(...fnArgs);
+                  const addedCount = (fnArgs.length > 2 ? fnArgs.length - 2 : 0);
+                  if (fnArgs.length >= 2 && removed.length !== fnArgs[1]) {
+                    console.warn(`incorrect splice count. expected = ${fnArgs[1]}; actual = ${removed.length}`);
+                  }
+                  // console.log('splice')
+                  this.proceedStampDomArraySplices381_('visibleItems', 'items', {
+                    index: fnArgs[0], addedCount: addedCount, removed: removed
+                  })
+                  return removed;
+                }
+
+
+              }
+
+
+
+              
+/*
+              // const newDoc = document.implementation.createHTMLDocument("NewDoc");
+              const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+              document.documentElement.insertAdjacentElement('beforeend', pSpace);
+              const pNode = document.createElement('ns-538');
+              pSpace.insertAdjacentElement('beforeend', pNode);
+              const pShadow = pNode.attachShadow({mode:"open"});
+              const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+              pShadow.replaceChildren(pDiv);
+              */
+
+/*
+              mclp.push377 = mclp.push;
+              mclp.splice377 = mclp.splice;
+
+
+
+
+              mclp.push = function(cTag, ...fnArgs){
+                if(!this.ec377) return this.push377(...arguments);
+                return this.ec378.push(...fnArgs);
+              }
+
+              mclp.splice = function(cTag, ...fnArgs){
+                if(!this.ec377) return this.splice377(...arguments);
+                return this.ec378.splice(...fnArgs);
+              }
+
+              const wmRemoved = new Map();
+
+              const wmMapToItem = new WeakMap();
+              let wmPendingList = null;
+              */
+
+              /*
+              mclp.renderSplicedList323 = function (slist, qLen, pr) {
+
+                const deleteCount = (typeof slist[0] === 'number') ? slist[0] : qLen;
+                let newAt = qLen - deleteCount;
+                if (newAt > 0 && slist[newAt - 1] !== qLen - 1) return false;
+                if (newAt > slist.length) return false;
+                if (newAt < slist.length && typeof slist[newAt] === 'number') return false;
+                const addedCount = slist.length - newAt;
+                // if (deleteCount > addedCount) return false;
+
+                if (deleteCount === 0 && addedCount === 0) return false;
+
+                // console.log(129901, this.isSmoothScrollEnabled_() , this.canScrollToBottom_() );
+                const fx00 = async () => {
+
+
+                  // const prImageLoading = preloadFn(this.activeItems_)();
+                  // await prImageLoading;
+
+                  // await new Promise(r=>nextBrowserTick(r));
+                  const cTag = 'visibleItems';
+                  const cId = 'items';
+
+                  const batching = [];
+
+
+                  const c = cTag;
+                  const arrWR = mWeakRef(this[cTag]);
+                  const v5 = {
+                    indexSplices: [{ index: 0, addedCount: 0, removed: emptyArr, get object(){
+                      return arrWR.deref()
+                    }, type: "splice" }]
+                  };
+
+                  const deObjectComponent = (insertionObj) =>{
+                    const obj = insertionObj;
+                    const I = firstObjectKey(obj);
+                    const t = this.stampDom[cTag].mapping;
+                    const L = t[I];
+                    const H = obj[I];
+                    return [L, H];
+                  }
+
+                  const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+                    // const reusable = false;
+                    // const componentName = this.getComponentName_(L, H);
+                    let component;
+                    if (!nullComponents.has(componentName)) {
+                      nullComponents.set(componentName, (component = document.createElement(componentName)));
+                      component.className = 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom';
+                      // shadowElm.insertAdjacentElement('beforeend', component);
+                    } else {
+                      component = nullComponents.get(componentName);
+
+                    }
+                    component = component.cloneNode(false);
+
+                    const cnt = insp(component);
+
+                    cnt.__dataOld = cnt.__dataPending = null;
+                    pDiv.insertAdjacentElement('beforeend', component);
+                    cnt.__dataOld = cnt.__dataPending = null;
+
+                    return component;
+                  }
+
+                  const listDom = this.getStampContainer_(cId);
+
+
+
+
+                  const pnForNewItem = (item)=>{
+
+                    const [L, H] = deObjectComponent(item);
+
+                    const componentName = this.getComponentName_(L, H);
+
+                    const wmList = wmRemoved.get(componentName.toLowerCase());
+
+                    let connectedComponent = null;
+                    if (wmList && (connectedComponent = wmList.firstElementChild)) {
+                      this.telemetry_.reuse++;
+                      if (!wmPendingList) {
+                        wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                        pDiv.insertAdjacentElement('afterend', wmPendingList);
+                      }
+                      wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
+
+                    } else {
+                      connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+                      this.telemetry_.create++;
+                    }
+
+                    return [item, L, H, connectedComponent];
+
+                  };
+
+                  const addedItems = slist.slice(newAt);
+
+                  const imgPreloadPr = preloadFn(addedItems)();
+
+                  const newComponentsEntries = await Promise.all(addedItems.map((item)=>{
+                    return Promise.resolve(item).then(pnForNewItem);
+                  }));
+
+
+                  const pnForRenderNewItem = (entry)=>{
+                    const [item, L, H, connectedComponent] = entry;
+
+                    const cnt = insp(connectedComponent);
+                    if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
+                      cnt.data = H;
+                    } else {
+                      const q = this.deferRenderStamperBinding_
+                      let q2;
+                      if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
+                      this.deferRenderStamperBinding_(connectedComponent, L, H);
+                      this.flushRenderStamperComponentBindings_();
+                      if (typeof q === 'object') {
+                        this.deferRenderStamperBinding_ = q;
+                        q2.length = 0;
+                      }
+                    }
+                    return entry;
+                  }
+
+                  const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry)=>{
+                    return Promise.resolve(entry).then(pnForRenderNewItem);
+                  }));
+
+                  
+
+
+
+
+
+                  let k, t0;
+                  k = 0;
+                  t0 = performance.now();
+
+                  for (let i = 0; i < deleteCount; i++) {
+                    const elm = listDom.firstElementChild;
+                    const elmId = elm.id;
+                    const cnt = insp(elm);
+                    const componentName = elm.nodeName.toLowerCase();
+                    let wmList = wmRemoved.get(componentName);
+                    if (!wmList) {
+                      wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                      pDiv.insertAdjacentElement('afterend', wmList);
+                      wmRemoved.set(componentName, wmList);
+                    }
+                    wmList.insertAdjacentElement('beforeend', elm);
+                    // const dzid = this.getAttribute('dz-component-id');
+                    const item = kRef(wmMapToItem.get(elm));
+                    if (item) {
+                      wmMapToItem.delete(elm);
+                      const visibleItems = this.visibleItems;
+                      const deletionIdx = visibleItems.indexOf(item);
+                      if (deletionIdx >= 0) {
+                        visibleItems.splice(deletionIdx, 1);
+                      }
+                    }
+
+                    const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
+                    if(tickerElm){
+                      Promise.resolve().then(()=>{
+                        tickerElm.setAttribute('ticker-message-removed','')
+                        if(tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')){
+                          insp(tickerElm).requestRemoval();
+                        }
+                      })
+                    }
+
+
+
+
+                    let t1 = performance.now();
+                    
+                    k++;
+                    if ((t1 - t0) / (k) * (k + 1) > 14) {
+                      await new Promise(r=>nextBrowserTick(r));
+                      t0 = performance.now();
+                      k = 0;
+                    }
+
+
+                  }
+
+                  await imgPreloadPr;
+
+
+                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+                  k =0;
+                  t0 = performance.now();
+                  for(let i =0, l = addedItems.length;i<l;i++){
+
+                    const [item, L, H, connectedComponent] = newRenderedComponents[i];
+
+                    // await Promise.resolve(); // microTask allowance for flushRenderStamper
+
+
+                    // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
+
+                    wmMapToItem.set(connectedComponent, mWeakRef(item));
+
+
+                    const visibleItems = this.visibleItems;
+                    const activeItems_ = this.activeItems_;
+                    const activeItemIdx = activeItems_.indexOf(item);
+                    if (activeItemIdx >= 0) activeItems_.splice(activeItemIdx, 1);
+                    visibleItems.push(item);
+
+                    listDom.insertAdjacentElement('beforeend', connectedComponent);
+
+
+
+
+                    let t1 = performance.now();
+                    
+                    k++;
+                    if ((t1 - t0) / (k) * (k + 1) > 14) {
+                      batching.push(k);
+                      await new Promise(r=>nextBrowserTick(r));
+                      this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+                      t0 = performance.now();
+                      k = 0;
+                    }
+                  }
+                  if (k > 0) batching.push(k);
+                  // console.log('batching', batching);
+                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+
+
+
+
+                  {
+                    const visibleItems = this.visibleItems;
+                    let b = false;
+                    b = b || this._setPendingPropertyOrPath(`${c}.splices`, {}, true, true);
+                    b = b || this._setPendingPropertyOrPath(`${c}.length`, visibleItems.length, true, true);
+                    b && this._invalidateProperties();
+                  }
+
+                  this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                    bubbles: !0,
+                    cancelable: !1,
+                    composed: !0,
+                    detail: {
+                      container: listDom
+                    }
+                  }));
+
+                };
+
+                Promise.resolve(0)
+                .then(fx00) // wait for other microTasks
+                .then(() => {
+                  pr.resolve();
+                }).catch((e) => {
+                  console.warn(e);
+                  pr.resolve();
+                });
+
+                return true;
+
+              }
+*/
+              /*
+                      a.prototype.push = function(c) {
+            var d = Ra.apply(1, arguments)
+              , e = {
+                path: ""
+            }
+              , g = Rq(this, c, e)
+              , k = g.length
+              , m = g.push.apply(g, oa(d));
+            d.length && Vq(this, g, e.path, k, d.length, []);
+            return m
+        }
+            */
+
+              /*
+              let shadow = null;
+              let shadowElm = null;
+              */
+              // mclp.push378k = function () {
+              //   const jk = window.Polymer && window.Polymer.legacyUndefined || !1;
+              //   this.push378ae = jk && !this._overrideLegacyUndefined;
+
+              //   if(!shadow){
+              //     const md = document.createElement('div');
+              //     document.body.appendChild(md);
+              //     shadow = md.attachShadow({ mode: "open" });
+              //     shadow.appendChild(shadowElm = document.createElement('div'));
+              //     shadowElm.appendChild(document.createElement('div'));
+              //     md.style.display = 'none';
+              //     shadowElm.style.display = 'none';
+
+              //   }
+              // }
+              // const nullComponents = new Map();
+              // const mwp = new DocumentFragment();
+
+            // const nullDom = document.createElement('div');
+            // nullDom.appendChild(document.createElement("div"));
+
+            // const nullDom2 = document.createElement('div');
+            // nullDom2.appendChild(document.createElement("div"));
+
+
+            // Object.defineProperty(nullDom, 'isConnected', {get(){
+            //   return true;
+            // }, enumerable: false, configurable: true});
+
+
+            // const nullDom3 = newDoc.createElement('div');
+
+            // nullDom3.appendChild(newDoc.createElement("div"));
+            // newDoc.body.appendChild(nullDom3);
+
+            // window.ndm3 = newDoc;
+
+              // mclp.push378 = function (c, ...args) {
+              //   if (c !== "visibleItems" && c !== "activeItems_") return this.push377(...arguments);
+              //   if (typeof this.push378ae === 'undefined') {
+              //     this.push378k();
+              //   }
+              //   if (this.push378ae !== false) return this.push377(...arguments);
+              //   const len = args.length;
+              //   if (len > 0) {
+              //     const arr = this[c]
+              //       , k = arr.length
+              //       , m = arr.push(...args);
+              //     const arrWR = mWeakRef(arr);
+              //     const v4 = {
+              //       indexSplices: [{ index: k, addedCount: len, removed: emptyArr, get object(){
+              //         return arrWR.deref()
+              //       }, type: "splice" }]
+              //     };
+              //     const v5 = {
+                    
+              //     };
+              //     const sd = this.stampDom[`${c}`];
+              //     if(sd && sd.reuseComponents === true){
+              //       sd.reuseComponents = false; // avoid memory leakage
+              //     }
+
+              //     const insertionArr = args;
+              //     const renderE = (idx)=>{
+              //       const obj = insertionArr[idx];
+              //       const I = firstObjectKey(obj);
+              //       const t = this.stampDom[c].mapping;
+              //       const L = t[I];
+              //       const H = obj[I];
+              //       // const reusable = false;
+              //       const componentName = this.getComponentName_(L, H);
+              //       let component;
+              //       if(!nullComponents.has(componentName)){
+              //         nullComponents.set(componentName, (component = document.createElement(componentName)) );
+              //         component.setAttribute('class','style-scope yt-live-chat-item-list-renderer');
+              //         // shadowElm.insertAdjacentElement('beforeend', component);
+              //       }else{
+              //         component = nullComponents.get(componentName);
+              //       }
+              //       window.qdd1 = component;
+              //       component = nullComponents.get(componentName).cloneNode();
+              //       window.qcc1 = component;
+
+              //       if(component && typeof ((component||0).polymerController||0).isAttached !== 'boolean'){
+
+
+              //         // Object.defineProperty(component, 'isConnected', {get(){
+              //         //   return this.parentNode === nullDom;
+              //         // }, enumerable: false, configurable: true});
+
+              //         nullDom3.insertAdjacentElement('beforeend', component);
+              //         // nullDom.append(component);
+              //         // nullDom.appendChild(component);
+              //         // if(component.polymerController && component.polymerController.isAttached !== true && typeof component.connectedCallback === 'function') component.connectedCallback();
+  
+              //         nullDom2.insertAdjacentElement('beforeend', component);
+              //         // nullDom.removeChild(component);
+              //         // if(component.polymerController && component.polymerController.isAttached !== false && typeof component.disconnectedCallback === 'function') component.disconnectedCallback();
+  
+              //         // delete component.isConnected;
+
+              //         // shadowElm.insertAdjacentElement('beforeend', component);
+
+              //         // nullDom2.insertAdjacentElement('beforeend', component);
+
+              //       }
+
+              //       // shadowElm.appendChild(component)
+
+              //       // console.log(123, component.isConnected)
+              //       // const component = document.createElement(componentName);
+              //       // const component = this.createComponent_(L, H, reusable);
+              //       this.telemetry_.create++;
+              //       // mVa(this.is, mwp, r, true)
+              //       this.deferRenderStamperBinding_(component, L, H);
+              //       // debugger;
+              //       // this.flushRenderStamperComponentBindings_();
+
+              //       return component;
+
+              //     }
+
+              //     if(c === "visibleItems"){
+
+
+              //     const list = new Array(len);
+              //     for(let i = 0; i < len;i++){
+              //       list[i]= renderE(i);
+              //     }
+              //     const listDom = this.getStampContainer_("items");
+              //     listDom.append(...list);
+
+
+              //     this.flushRenderStamperComponentBindings_();
+              //     this.stampDom[c].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+              //       bubbles: !0,
+              //       cancelable: !1,
+              //       composed: !0,
+              //       detail: {
+              //         container: listDom
+              //       }
+              //     }));
+
+
+              //     // this._setPendingProperty(`${c}.splices`, {}, null) && this._invalidateProperties();
+              //     this._setPendingPropertyOrPath(`${c}.splices`, {}, true, true) && this._invalidateProperties();
+
+              //     // this._setPendingProperty(`${c}.length`, arr.length, true);
+              //     this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
+                  
+
+              //     }else{
+
+              //     // this.notifyPath(`${c}.splices`, v4);
+              //     this._setPendingPropertyOrPath(`${c}.splices`, v4, true, true) && this._invalidateProperties();
+
+              //     // this.notifyPath(`${c}.length`, arr.length);
+              //     this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
+                  
+
+              //     }
+              //     // this.notifyPath(`${c}.splices`, v4);
+              //     // this._setPendingPropertyOrPath(`${c}.splices`, v4, true, true) && this._invalidateProperties();
+
+              //     // this.notifyPath(`${c}.length`, arr.length);
+              //     // this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true) && this._invalidateProperties();
+                  
+
+              //     // const list = new Array(len);
+              //     // for(let i = 0; i < len;i++){
+              //     //   list[i]= renderE(i);
+              //     // }
+
+
+              //     // this.flushRenderStamperComponentBindings_();
+              //     // this.stampDom[c].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+              //     //   bubbles: !0,
+              //     //   cancelable: !1,
+              //     //   composed: !0,
+              //     //   detail: {
+              //     //     container: d
+              //     //   }
+              //     // }));
+
+
+              //     return m;
+              //   } else {
+              //     return 0;
+              //   }
+              // }
+
+              // // stampDomArraySplices_
+              // // b && this.splice("visibleItems", 0, b);
+              // mclp.push388 = function(cTag, ...items){
+              //   if(!this.ec377 || cTag !== 'visibleItems') return this.push378(...arguments);
+              //   const items_ = items.slice();
+
+              //   // console.log(129901, this.isSmoothScrollEnabled_() , this.canScrollToBottom_() );
+              //   this.flushActiveItemsPromise288 = (async () => {
+
+              //     console.log(19966);
+              //     await new Promise(r=>nextBrowserTick(r));
+
+
+
+              //     const batching = [];
+              //     let t0 = performance.now();
+              //     let k = 0;
+
+              //     const c = cTag;
+              //     const arrWR = mWeakRef(this[cTag]);
+              //     const v5 = {
+              //       indexSplices: [{ index: 0, addedCount: 0, removed: emptyArr, get object(){
+              //         return arrWR.deref()
+              //       }, type: "splice" }]
+              //     };
+
+              //     // const insertionArr = items;
+              //     const renderE = (insertionObj)=>{
+              //       const obj = insertionObj;
+              //       const I = firstObjectKey(obj);
+              //       const t = this.stampDom[c].mapping;
+              //       const L = t[I];
+              //       const H = obj[I];
+              //       // const reusable = false;
+              //       const componentName = this.getComponentName_(L, H);
+              //       let component;
+              //       if(!nullComponents.has(componentName)){
+              //         nullComponents.set(componentName, (component = document.createElement(componentName)) );
+              //         component.setAttribute('class','style-scope yt-live-chat-item-list-renderer');
+              //         // shadowElm.insertAdjacentElement('beforeend', component);
+              //       }else{
+              //         component = nullComponents.get(componentName);
+              //       }
+              //       window.qdd1 = component;
+              //       component = nullComponents.get(componentName).cloneNode();
+              //       window.qcc1 = component;
+
+              //       if(component && typeof ((component||0).polymerController||0).isAttached !== 'boolean'){
+
+
+              //         // Object.defineProperty(component, 'isConnected', {get(){
+              //         //   return this.parentNode === nullDom;
+              //         // }, enumerable: false, configurable: true});
+
+              //         nullDom3.insertAdjacentElement('beforeend', component);
+              //         // nullDom.append(component);
+              //         // nullDom.appendChild(component);
+              //         // if(component.polymerController && component.polymerController.isAttached !== true && typeof component.connectedCallback === 'function') component.connectedCallback();
+  
+              //         nullDom2.insertAdjacentElement('beforeend', component);
+              //         // nullDom.removeChild(component);
+              //         // if(component.polymerController && component.polymerController.isAttached !== false && typeof component.disconnectedCallback === 'function') component.disconnectedCallback();
+  
+              //         // delete component.isConnected;
+
+              //         // shadowElm.insertAdjacentElement('beforeend', component);
+
+              //         // nullDom2.insertAdjacentElement('beforeend', component);
+
+              //       }
+
+              //       // shadowElm.appendChild(component)
+
+              //       // console.log(123, component.isConnected)
+              //       // const component = document.createElement(componentName);
+              //       // const component = this.createComponent_(L, H, reusable);
+              //       this.telemetry_.create++;
+              //       // mVa(this.is, mwp, r, true)
+              //       this.deferRenderStamperBinding_(component, L, H);
+              //       this.flushRenderStamperComponentBindings_();
+              //       // debugger;
+              //       // this.flushRenderStamperComponentBindings_();
+
+              //       return component;
+
+              //     }
+
+              //     const listDom = this.getStampContainer_("items");
+              //     for (const item of items_) {
+
+ 
+
+    
+              //         listDom.insertAdjacentElement('beforeend', renderE(item));
+              //         // this.push378(tag, item);
+ 
+
+                    
+              //       // this.push378(tag, item);
+              //       let t1 = performance.now();
+              //       k++;
+              //       if ((t1 - t0) / (k) * (k + 1) > 14) {
+              //         batching.push(k);
+              //         // await new Promise(r=>nextBrowserTick(r));
+              //         // this.flushRenderStamperComponentBindings_();
+              //         await new Promise(r=>nextBrowserTick(r));
+              //         // wme.data = `${(wme.data & 7) + 1}`;
+              //         // await wmp;
+              //         t0 = performance.now();
+              //         k = 0;
+              //       } else {
+              //         await Promise.resolve();
+              //       }
+              //     }
+              //     if (k > 0) batching.push(k);
+              //     console.log('batching', batching);
+
+
+              //     // await new Promise(r=>nextBrowserTick(r));
+              //     // this.flushRenderStamperComponentBindings_();
+              //     // await new Promise(r=>nextBrowserTick(r));
+
+              //     wme.data = `${(wme.data & 7) + 1}`;
+              //     await wmp;
+
+              //     const arr = this[cTag];
+              //     arr.push(...items);
+
+
+              //     // await new Promise(r=>nextBrowserTick(r));
+
+              //     this.flushRenderStamperComponentBindings_();
+              //     this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+              //       bubbles: !0,
+              //       cancelable: !1,
+              //       composed: !0,
+              //       detail: {
+              //         container: listDom
+              //       }
+              //     }));
+
+              //     // await new Promise(r=>setTimeout(r,300));
+
+              //     wme.data = `${(wme.data & 7) + 1}`;
+              //     await wmp;
+
+                  
+              //     // this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && deferCallback(this, ()=> {
+              //     //   this.showNewItems_()
+              //     // }) : deferCallback(this, ()=> {
+              //     //     this.refreshOffsetContainerHeight_();
+              //     //     this.maybeScrollToBottom_()
+              //     // })
+
+       
+              //     // // this._setPendingProperty(`${c}.splices`, {}, null) && this._invalidateProperties();
+              //     let b = false;
+              //     b = b || this._setPendingPropertyOrPath(`${c}.splices`, v5, true, true);
+
+
+              //     // // listDom.append(...list);
+
+
+              //     // // this._setPendingProperty(`${c}.length`, arr.length, true);
+              //     b = b || this._setPendingPropertyOrPath(`${c}.length`, arr.length, true, true);
+              //     b && this._invalidateProperties();
+
+
+              //   })();
+
+              //   // console.log(4776)
+              //   // throw new PError();
+              // }
+              // mclp.push = mclp.push388;
+
+              const deferCallback = async (cnt, callback) => {
+                // await prWaitWidth;
+
+                // console.log(1928)
+                const pr288 = cnt.flushActiveItemsPromise288;
+                await pr288;
+                // console.log(1929)
+                wme.data = `${(wme.data & 7) + 1}`;
+                await wmp;
+                if (callback) callback.call(cnt);
+              }
+              /*
+              mclp.flushActiveItems66b_ = function () {
+
+                let prWait = null;
+                let shouldProceedNextFlushActiveItems = false;
+
+                try {
+
+
+                  const activeItems_ = this.activeItems_;
+                  const activeItemsCount = activeItems_.length;
+                  const maxItemsToDisplay = this.data.maxItemsToDisplay;
+                  if (activeItemsCount > maxItemsToDisplay) {
+                    activeItems_.splice(0, activeItemsCount - maxItemsToDisplay);
+                  }
+                  const qLen = this.visibleItems.length;
+                  const pr0 = this.flushActiveItemsPromise288;
+                  const pr = this.flushActiveItemsPromise288 = new PromiseExternal();
+                  this.ec377 = true;
+                  const ec378 = this.ec378 = new Array(qLen).fill(0).map((e, idx) => idx);
+                  this.flushActiveItems66a_();
+                  this.ec377 = false;
+                  this.ec378 = null;
+                  this.flushActiveItemsPromise288 = pr0;
+                  this.activeItems_ = typeof activeItems_[0] === 'string' ? activeItems_.slice(1) : activeItems_;
+                  wme.data = `${(wme.data & 7) + 1}`;
+                  const isSuccess = this.renderSplicedList323(ec378, qLen, pr);
+                  if (isSuccess) {
+                    // console.log('19949 - ok')
+                    this.flushActiveItemsPromise288 = pr;
+                    shouldProceedNextFlushActiveItems = true;
+
+                    wme.data = `${(wme.data & 7) + 1}`;
+                    prWait = wmp;
+
+                  } else if (activeItemsCount === 0 || !this.canScrollToBottom_()) {
+                    // skip
+                  } else {
+                    const ppr = ((slist, qLen, pr) => {
+                      const deleteCount = (typeof slist[0] === 'number') ? slist[0] : qLen;
+                      let newAt = qLen - deleteCount;
+                      if (newAt > 0 && slist[newAt - 1] !== qLen - 1) return 3;
+                      if (newAt > slist.length) return 4;
+                      if (newAt < slist.length && typeof slist[newAt] === 'number') return 5;
+                      const addedCount = slist.length - newAt;
+                      // if (deleteCount > addedCount) return 6;
+
+                      if (deleteCount === 0 && addedCount === 0) return 7;
+
+                    })(ec378, qLen, pr);
+
+                    console.log('19949 - ng', ppr)
+
+                    const pr2 = this.flushActiveItemsPromise288 = new PromiseExternal();
+                    this.flushActiveItems66a_();
+                    pr2.resolve();
+                    shouldProceedNextFlushActiveItems = true;
+
+                    wme.data = `${(wme.data & 7) + 1}`;
+                    prWait = wmp;
+
+                  }
+
+                } catch (e) {
+
+                  console.warn(e);
+                }
+
+
+                const pr5 = this.flushActiveItemsPromise288;
+
+                (async ()=>{
+                  await pr5;
+                  await prWait;
+                  flushActiveItemExecuted = false;
+                  if (shouldProceedNextFlushActiveItems && this.activeItems_.length > 0) setTimeout(() => this.flushActiveItems_(), 0);
+                })();
+
+              }
+              */
+
+
+              mclp.flushActiveItemsFix001_ = function () {
+
+                // fix YouTube wrong code
+                // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                // b && this.splice("visibleItems", 0, b);
+                // e.g. 0 + 99 - 90 = 9
+
+                const data = this.data;
+                if (!data) return;
+                const visibleItems = this.visibleItems;
+                const activeItems_ = this.activeItems_;
+                if (!visibleItems || !activeItems_) return;
+                const viLen = visibleItems.length;
+                const aiLen = activeItems_.length;
+                const maxDisplayLen = data.maxItemsToDisplay;
+                if (!maxDisplayLen) return;
+                if (viLen + aiLen > maxDisplayLen) {
+                  if (aiLen > maxDisplayLen) activeItems_.splice(0, aiLen - maxDisplayLen);
+                  // visibleItems splice done by original flushActiveItems_
+                }
+              }
+
+              mclp.flushActiveItems3641_ = mclp.flushActiveItems_;
+
+              let ps00 = false;
+              mclp.flushActiveItems_ = function () {
+
+
+
+                if (ps00) return;
+                // console.log('flushActiveItems_')
+                ps00 = true;
+                deferCallback(this, () => {
+                  ps00 = false;
+                  // console.log('flushActiveItems3641_')
+                  if (this.activeItems_.length > 0) {
+                    const data = this.data;
+                    if (data) {
+                      if (data.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) data.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
+                      this.flushActiveItemsFix001_(); // bug fix
+                      this.flushActiveItems3641_();
+                    }
+                  }
+                });
+              };
+
+              mclp.showNewItems3641_ = mclp.showNewItems_;
+              mclp.refreshOffsetContainerHeight3641_ = mclp.refreshOffsetContainerHeight_;
+              mclp.maybeScrollToBottom3641_ = mclp.maybeScrollToBottom_;
+
+              let ps01 = false;
+              mclp.showNewItems_ = function () {
+                if (ps01) return;
+                // console.log('showNewItems_')
+                ps01 = true;
+                deferCallback(this, () => {
+                  ps01 = false;
+                  this.showNewItems3641_();
+                });
+              };
+
+              if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
+              } else {
+
+                let ps02 = false;
+                mclp.refreshOffsetContainerHeight_ = function () {
+                  if (ps02) return;
+                  // console.log('refreshOffsetContainerHeight_')
+                  ps02 = true;
+                  deferCallback(this, () => {
+                    ps02 = false;
+                    this.refreshOffsetContainerHeight3641_();
+                  });
+                };
+              }
+
+
+              let ps03 = false;
+              mclp.maybeScrollToBottom_ = function () {
+                if (ps03) return;
+                // console.log('maybeScrollToBottom_')
+                ps03 = true;
+                deferCallback(this, () => {
+                  ps03 = false;
+                  this.maybeScrollToBottom3641_();
+                  if (itemsResizeObserverAttached !== true && this.atBottom === true) {
+                    // fallback for old browser
+                    
+                    const itemScroller = this.$['item-scroller'] || this.querySelector('#item-scroller') || 0;
+                    // if (this.atBottom === true && itemScroller.scrollTop === 0) {
+                    //   setTimeout(() => {
+                    //     if (this.atBottom === true && itemScroller.scrollTop === 0) {
+                    //       itemScroller.scrollTop = window.screen.height;
+                    //     }
+                    //   }, 1);
+                    // }
+                    if (itemScroller.scrollTop === 0) {
+                      resizeObserverFallback.observe(itemScroller);
+                    }
+                  }
+                });
+              };
+
+
+
+              assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
+
+              mclp.onScrollItems3641_ = mclp.onScrollItems_;
+              mclp.maybeResizeScrollContainer3641_ = mclp.maybeResizeScrollContainer_;
+              mclp.handleLiveChatActions3641_ = mclp.handleLiveChatActions_;
+
+              let ps11 = false;
+              mclp.onScrollItems_ = function (a) {
+                if (ps11) return;
+                // console.log('onScrollItems_')
+                ps11 = true;
+                deferCallback(this, () => {
+                  ps11 = false;
+                  this.onScrollItems3641_(a);
+                });
+              };
+
+              if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+                let ps12 = false;
+                mclp.maybeResizeScrollContainer_ = function (a) {
+                  if (ps12) return;
+                  // console.log('maybeResizeScrollContainer_')
+                  ps12 = true;
+                  deferCallback(this, () => {
+                    ps12 = false;
+                    this.maybeResizeScrollContainer3641_(a);
+                  });
+                };
+              }
+
+              // let ps13 = false;
+              // mclp.handleLiveChatActions_ = function (a) {
+              //   if (ps13) return;
+              //   console.log('handleLiveChatActions_')
+              //   ps13 = true;
+              //   deferCallback(this, () => {
+              //     ps13 = false;
+              //     this.handleLiveChatActions3641_(a);
+              //   });
+              // };
+
+            }
+
+            /*
+            f.flushActiveItems_ = function() {
+              var a = this;
+              if (this.activeItems_.length > 0)
+                  if (this.canScrollToBottom_()) {
+                      var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                      b && this.splice("visibleItems", 0, b);
+                      if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+                          this.preinsertHeight_ = this.items.clientHeight;
+                      this.activeItems_.unshift("visibleItems");
+                      try {
+                          this.push.apply(this, this.activeItems_)
+                      } catch (c) {
+                          Ak(c)
+                      }
+                      this.activeItems_ = [];
+                      this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Js(function() {
+                          a.showNewItems_()
+                      }) : Js(function() {
+                          a.refreshOffsetContainerHeight_();
+                          a.maybeScrollToBottom_()
+                      })
+                  } else
+                      this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
+          };*/
+
+            /*
+            mclp.flushActiveItems66_ = function () {
+              const visibleItemsA = (this || 0).visibleItems;
+              const lastVisibleItemA = visibleItemsA ? visibleItemsA[visibleItemsA.length - 1] : null;
+              const r = this.flushActiveItems66a_();
+
+              const visibleItemsB = (this || 0).visibleItems;
+              const lastVisibleItemB = visibleItemsB ? visibleItemsB[visibleItemsB.length - 1] : null;
+
+              if (lastVisibleItemA !== lastVisibleItemB) {
+
+                try {
+                  const lastRow = kRef(lastLastRow);
+
+                  const keyB = lastVisibleItemB ? firstObjectKey(lastVisibleItemB) : '';
+                  const idB = keyB ? (lastVisibleItemB[keyB].id || null) : null;
+
+                  if (idB) {
+
+                    let elm = this.$.items.lastElementChild;
+
+                    while (elm instanceof HTMLElement) {
+                      if (elm.id === idB) break;
+                      elm = ('__shady_native_previousElementSibling' in elm) ? elm.__shady_native_previousElementSibling : elm.previousElementSibling;
+                    }
+
+                    lastRow && lastRow.classList.remove('cyt-chat-last-message');
+                    if (elm) {
+                      elm.classList.add('cyt-chat-last-message');
+                      lastLastRow = mWeakRef(elm);
+                    }
+
+                  }
+
+                } catch (e) { }
+
+
+              }
+
+              return r; 
+            };
+            */
+
+            // const preloadFn = (acItems) => {
+            //   let waitFor = [];
+            //   /** @type {Set<string>} */
+            //   const imageLinks = new Set();
+
+            //   if (ENABLE_PRELOAD_THUMBNAIL || EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL) {
+            //     for (const item of acItems) {
+            //       fixLiveChatItem(item, imageLinks);
+            //     }
+            //   }
+            //   if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4)) && imageLinks.size > 0) {
+
+            //     // reference: https://github.com/Yuanfang-fe/Blog-X/issues/34
+            //     const rel = kptPF & 8 ? 'subresource' : kptPF & 16 ? 'preload' : kptPF & 4 ? 'prefetch' : '';
+            //     // preload performs the high priority fetching.
+            //     // prefetch delays the chat display if the video resoruce is demanding.
+
+            //     if (rel) {
+
+            //       imageLinks.forEach(imageLink => {
+            //         let d = false;
+            //         if (SKIP_PRELOAD_EMOJI && imageLink.includes('.ggpht.com/')) return;
+            //         const isEmoji = imageLink.includes('/emoji/');
+            //         const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
+            //         if (!pretechedSet.has(imageLink)) {
+            //           pretechedSet.add(imageLink);
+            //           d = true;
+            //         }
+            //         if (d) {
+            //           waitFor.push(linker(null, rel, imageLink, 'image'));
+
+            //         }
+            //       })
+
+            //     }
+
+            //   }
+
+            //   return async () => {
+            //     if (waitFor.length > 0) {
+            //       await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
+            //     }
+            //     waitFor.length = 0;
+            //     waitFor = null;
+            //   };
+
+            // };
+
+            /*
             mclp.flushActiveItems78_ = async function (tid) {
               try {
 
@@ -6304,7 +8302,9 @@
                 console.warn(e);
               }
             };
+            */
 
+            /*
             mclp.flushActiveItems77_ = function () {
 
               return new Promise(resResolve => {
@@ -6343,7 +8343,9 @@
               });
 
             };
+            */
 
+            /*
             mclp.flushActiveItems_ = function () {
               const cnt = this;
 
@@ -6391,6 +8393,8 @@
               });
 
             };
+
+            */
             console1.log("flushActiveItems_", "OK");
           } else {
             console1.log("flushActiveItems_", "NG");
@@ -6436,221 +8440,230 @@
 
         if ((_flag0281_ & 0x40) == 0 ) {
 
-          if( (mclp.atBottomChanged_ || 0).length === 0) {
-            // note: if the scrolling is too frequent, the show more visibility might get wrong.
 
-            const sfi = fnIntegrity(mclp.atBottomChanged_);
+          if (true) {
 
-            if(sfi === '0.75.37'){
-              // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+            if ((mclp.atBottomChanged_ || 0).length === 0) {
+              // note: if the scrolling is too frequent, the show more visibility might get wrong.
 
+              const sfi = fnIntegrity(mclp.atBottomChanged_);
 
-              // Dec 2024.
+              if (sfi === '0.74.37') {
 
-              /**
-               *
-               *
-
-                  f.atBottomChanged_ = function() {
-                      var a = this;
-                      this.atBottom ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = Zu(function() {
-                          R(a.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                      }, 200)) : (this.hideShowMoreAsync_ && $u(this.hideShowMoreAsync_),
-                      this.hideShowMoreAsync_ = null,
-                      R(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                  }
-              *
-              */
-
-            } else {
-              assertor(() => fnIntegrity(mclp.atBottomChanged_, '0.75.37'));
-            }
+              } else if (sfi === '0.75.37') {
+                // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
 
-            const querySelector = HTMLElement.prototype.querySelector;
-            const U = (element) => ({
-              querySelector: (selector) => querySelector.call(element, selector)
-            });
+                // Dec 2024.
 
-            let qid = 0;
-            mclp.__updateButtonVisibility371__ = function (button) {
-              Promise.resolve(this).then((cnt) => {
-                button.style.visibility = cnt.__buttonVisibility371__;
+                /**
+                 *
+                 *
+  
+                    f.atBottomChanged_ = function() {
+                        var a = this;
+                        this.atBottom ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = Zu(function() {
+                            R(a.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                        }, 200)) : (this.hideShowMoreAsync_ && $u(this.hideShowMoreAsync_),
+                        this.hideShowMoreAsync_ = null,
+                        R(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+                    }
+                *
+                */
+
+              } else {
+                assertor(() => fnIntegrity(mclp.atBottomChanged_, '0.75.37'));
+              }
+
+
+              const querySelector = HTMLElement.prototype.querySelector;
+              const U = (element) => ({
+                querySelector: (selector) => querySelector.call(element, selector)
               });
-            }
-            const fixButtonOnClick = function (cnt, button) {
-              button.addEventListener('click', (evt) => {
-                evt.stopImmediatePropagation();
-                evt.stopPropagation();
-                evt.preventDefault();
-                Promise.resolve(cnt).then((cnt) => {
-                  cnt.scrollToBottom_();
+
+              let qid = 0;
+              mclp.__updateButtonVisibility371__ = function (button) {
+                Promise.resolve(this).then((cnt) => {
+                  button.style.visibility = cnt.__buttonVisibility371__;
                 });
-              }, true);
-              // button.addEventListener('pointerup', (evt)=>{
-              //   evt.stopImmediatePropagation();
-              //   evt.stopPropagation();
-              // }, true);
-              // button.addEventListener('mouseup', (evt)=>{
-              //   evt.stopImmediatePropagation();
-              //   evt.stopPropagation();
-              // }, true);
-            }
-            mclp.atBottomChanged_ = function () {
-              let a = this.atBottom;
-              const button = (this.$ || 0)['show-more'];
-              if (button) {
-                // primary execution
-                if (a) {
-                  if (this.__buttonVisibility371__ !== "hidden") {
-                    this.__buttonVisibility371__ = "hidden";
-                    if (!this.hideShowMoreAsync_) {
-                      const tid = ++qid;
-                      this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
-                        if (tid !== qid) {
-                          return;
-                        }
-                        this.__updateButtonVisibility371__(button);
-                      });
+              }
+              const fixButtonOnClick = function (cnt, button) {
+                button.addEventListener('click', (evt) => {
+                  evt.stopImmediatePropagation();
+                  evt.stopPropagation();
+                  evt.preventDefault();
+                  Promise.resolve(cnt).then((cnt) => {
+                    cnt.scrollToBottom_();
+                  });
+                }, true);
+                // button.addEventListener('pointerup', (evt)=>{
+                //   evt.stopImmediatePropagation();
+                //   evt.stopPropagation();
+                // }, true);
+                // button.addEventListener('mouseup', (evt)=>{
+                //   evt.stopImmediatePropagation();
+                //   evt.stopPropagation();
+                // }, true);
+              }
+              mclp.atBottomChanged_ = function () {
+                let a = this.atBottom;
+                const button = (this.$ || 0)['show-more'];
+                if (button) {
+                  // primary execution
+                  if (a) {
+                    if (this.__buttonVisibility371__ !== "hidden") {
+                      this.__buttonVisibility371__ = "hidden";
+                      if (!this.hideShowMoreAsync_) {
+                        const tid = ++qid;
+                        this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
+                          if (tid !== qid) {
+                            return;
+                          }
+                          this.__updateButtonVisibility371__(button);
+                        });
+                      }
+                    }
+                  } else {
+                    if (this.__buttonVisibility371__ !== "visible") {
+                      this.__buttonVisibility371__ = "visible";
+                      if (this.hideShowMoreAsync_) {
+                        qid++;
+                      }
+                      this.hideShowMoreAsync_ = null;
+                      if (!button.__fix_onclick__) {
+                        button.__fix_onclick__ = true;
+                        fixButtonOnClick(this, button);
+                      }
+                      this.__updateButtonVisibility371__(button);
                     }
                   }
                 } else {
-                  if (this.__buttonVisibility371__ !== "visible") {
-                    this.__buttonVisibility371__ = "visible";
-                    if (this.hideShowMoreAsync_) {
-                      qid++;
-                    }
-                    this.hideShowMoreAsync_ = null;
-                    if (!button.__fix_onclick__) {
-                      button.__fix_onclick__ = true;
-                      fixButtonOnClick(this, button);
-                    }
-                    this.__updateButtonVisibility371__(button);
-                  }
+                  // fallback
+                  let tid = ++qid;
+                  let b = this;
+                  a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
+                    if (tid !== qid) return;
+                    U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                  }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
+                    this.hideShowMoreAsync_ = null,
+                    U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
                 }
-              } else {
-                // fallback
-                let tid = ++qid;
-                let b = this;
-                a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-                  if (tid !== qid) return;
-                  U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-                  this.hideShowMoreAsync_ = null,
-                  U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
               }
-            }
 
-            console1.log("atBottomChanged_", "OK");
+              console1.log("atBottomChanged_", "OK");
 
-          } else if ((mclp.atBottomChanged_ || 0).length === 1) {
-            // note: if the scrolling is too frequent, the show more visibility might get wrong.
+            } else if ((mclp.atBottomChanged_ || 0).length === 1) {
 
-            const sfi = fnIntegrity(mclp.atBottomChanged_);
-            if (sfi === '1.73.37') {
-              // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+              // note: if the scrolling is too frequent, the show more visibility might get wrong.
 
-              /**
-               *
-               *
-               *
+              const sfi = fnIntegrity(mclp.atBottomChanged_);
+              if (sfi === '1.73.37') {
+                // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
-                  f.atBottomChanged_ = function(a) {
-                      var b = this;
-                      a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = zQ(function() {
-                          T(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                      }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_),
-                      this.hideShowMoreAsync_ = null,
-                      T(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                  };
+                /**
+                 *
+                 *
+                 *
+  
+                    f.atBottomChanged_ = function(a) {
+                        var b = this;
+                        a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = zQ(function() {
+                            T(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                        }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_),
+                        this.hideShowMoreAsync_ = null,
+                        T(this.hostElement).querySelector("#show-more").style.visibility = "visible")
+                    };
+  
+                *
+                 *
+                 */
 
-              *
-               *
-               */
 
+              } else if (sfi === '1.75.39') {
+                // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
+              } else {
+                assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
+              }
 
-            } else if (sfi === '1.75.39') {
-              // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
-            } else {
-              assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
-            }
-
-            const querySelector = HTMLElement.prototype.querySelector;
-            const U = (element) => ({
-              querySelector: (selector) => querySelector.call(element, selector)
-            });
-
-            let qid = 0;
-            mclp.__updateButtonVisibility371__ = function (button) {
-              Promise.resolve(this).then((cnt) => {
-                button.style.visibility = cnt.__buttonVisibility371__;
+              const querySelector = HTMLElement.prototype.querySelector;
+              const U = (element) => ({
+                querySelector: (selector) => querySelector.call(element, selector)
               });
-            }
-            const fixButtonOnClick = function (cnt, button) {
-              button.addEventListener('click', (evt) => {
-                evt.stopImmediatePropagation();
-                evt.stopPropagation();
-                evt.preventDefault();
-                Promise.resolve(cnt).then((cnt) => {
-                  cnt.scrollToBottom_();
+
+              let qid = 0;
+              mclp.__updateButtonVisibility371__ = function (button) {
+                Promise.resolve(this).then((cnt) => {
+                  button.style.visibility = cnt.__buttonVisibility371__;
                 });
-              }, true);
-              // button.addEventListener('pointerup', (evt)=>{
-              //   evt.stopImmediatePropagation();
-              //   evt.stopPropagation();
-              // }, true);
-              // button.addEventListener('mouseup', (evt)=>{
-              //   evt.stopImmediatePropagation();
-              //   evt.stopPropagation();
-              // }, true);
-            }
-            mclp.atBottomChanged_ = function (a) {
-              const button = (this.$ || 0)['show-more'];
-              if (button) {
-                // primary execution
-                if (a) {
-                  if (this.__buttonVisibility371__ !== "hidden") {
-                    this.__buttonVisibility371__ = "hidden";
-                    if (!this.hideShowMoreAsync_) {
-                      const tid = ++qid;
-                      this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
-                        if (tid !== qid) {
-                          return;
-                        }
-                        this.__updateButtonVisibility371__(button);
-                      });
+              }
+              const fixButtonOnClick = function (cnt, button) {
+                button.addEventListener('click', (evt) => {
+                  evt.stopImmediatePropagation();
+                  evt.stopPropagation();
+                  evt.preventDefault();
+                  Promise.resolve(cnt).then((cnt) => {
+                    cnt.scrollToBottom_();
+                  });
+                }, true);
+                // button.addEventListener('pointerup', (evt)=>{
+                //   evt.stopImmediatePropagation();
+                //   evt.stopPropagation();
+                // }, true);
+                // button.addEventListener('mouseup', (evt)=>{
+                //   evt.stopImmediatePropagation();
+                //   evt.stopPropagation();
+                // }, true);
+              }
+              mclp.atBottomChanged_ = function (a) {
+                const button = (this.$ || 0)['show-more'];
+                if (button) {
+                  // primary execution
+                  if (a) {
+                    if (this.__buttonVisibility371__ !== "hidden") {
+                      this.__buttonVisibility371__ = "hidden";
+                      if (!this.hideShowMoreAsync_) {
+                        const tid = ++qid;
+                        this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
+                          if (tid !== qid) {
+                            return;
+                          }
+                          this.__updateButtonVisibility371__(button);
+                        });
+                      }
+                    }
+                  } else {
+                    if (this.__buttonVisibility371__ !== "visible") {
+                      this.__buttonVisibility371__ = "visible";
+                      if (this.hideShowMoreAsync_) {
+                        qid++;
+                      }
+                      this.hideShowMoreAsync_ = null;
+                      if (!button.__fix_onclick__) {
+                        button.__fix_onclick__ = true;
+                        fixButtonOnClick(this, button);
+                      }
+                      this.__updateButtonVisibility371__(button);
                     }
                   }
                 } else {
-                  if (this.__buttonVisibility371__ !== "visible") {
-                    this.__buttonVisibility371__ = "visible";
-                    if (this.hideShowMoreAsync_) {
-                      qid++;
-                    }
-                    this.hideShowMoreAsync_ = null;
-                    if (!button.__fix_onclick__) {
-                      button.__fix_onclick__ = true;
-                      fixButtonOnClick(this, button);
-                    }
-                    this.__updateButtonVisibility371__(button);
-                  }
+                  // fallback
+                  let tid = ++qid;
+                  let b = this;
+                  a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
+                    if (tid !== qid) return;
+                    U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
+                  }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
+                    this.hideShowMoreAsync_ = null,
+                    U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
                 }
-              } else {
-                // fallback
-                let tid = ++qid;
-                let b = this;
-                a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-                  if (tid !== qid) return;
-                  U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-                  this.hideShowMoreAsync_ = null,
-                  U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
               }
+
+              console1.log("atBottomChanged_", "OK");
+
+            } else {
+              console1.log("atBottomChanged_", "NG");
             }
 
-            console1.log("atBottomChanged_", "OK");
-          } else {
-            console1.log("atBottomChanged_", "NG");
           }
         }
 
@@ -6658,7 +8671,12 @@
         if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.onScrollItems_ || 0).length === 1) {
 
-            assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
+            if(mclp.onScrollItems3641_){
+
+            }else{
+              assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
+
+            }
             mclp.onScrollItems66_ = mclp.onScrollItems_;
             mclp.onScrollItems77_ = async function (evt) {
               let tid = myw = (myw & 1073741823) + 1;
@@ -6711,7 +8729,7 @@
                     // ensure setAtBottom is correctly set
                     !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
                   }
-                });
+                }).catch(console.warn);
               } else {
                 cnt.onScrollItems66_(evt);
               }
@@ -6758,6 +8776,8 @@
               // TBC
             } else if (sfi === '1.31.17') {
               // original
+            } else if (mclp.handleLiveChatActions3641_){
+              
             } else {
               assertor(() => fnIntegrity(mclp.handleLiveChatActions_, '1.40.20'))
                 || logFn('mclp.handleLiveChatActions_', mclp.handleLiveChatActions_)();
@@ -6813,7 +8833,7 @@
                 });
               });
 
-              resistanceUpdateFn_();
+              resistanceUpdateFn_(true);
             }
             console1.log("handleLiveChatActions_", "OK");
           } else {
@@ -7096,7 +9116,6 @@
 
       // const wmList = new Set;
 
-
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
         mightFirstCheckOnYtInit();
@@ -7119,38 +9138,6 @@
             } catch (e) { }
           }
           return false;
-        }
-
-        const widthIORes = new WeakMap();
-        const widthIO = new IntersectionObserver((mutations) => {
-          for (const mutation of mutations) {
-            const elm = mutation.target;
-            widthIO.unobserve(elm);
-             const {promise, values} =widthIORes.get(elm) || {};
-             if(promise && values){
-
-
-              widthIORes.delete(elm);
-              values.width= mutation.boundingClientRect.width;
-              promise.resolve(values);
-             }
-          }
-        });
-        const widthReq = (elm)=>{
-
-          {
-
-            const {promise, values} =widthIORes.get(elm) || {};
-            if(promise) return promise;
-          }
-
-          const promise = new PromiseExternal();
-          widthIORes.set(elm, {promise, values: {}});
-          widthIO.unobserve(elm);
-          widthIO.observe(elm);
-
-          return promise;
-
         }
 
 
@@ -7486,6 +9473,227 @@
         }
 
 
+
+        const isTickerItemsScrolling = function () {
+          const elm = document.querySelector('#ticker-bar.yt-live-chat-ticker-renderer');
+          if (!elm) return false;
+          return (elm.scrollLeft > 0);
+        }
+
+
+
+
+        const u37fn = function (cnt) {
+
+          if (cnt.__dataEnabled === false || cnt.__dataInvalid === true) return;
+
+          if (!__LCRInjection__) {
+            console.error('[yt-chat] USE_ADVANCED_TICKING fails because of no __LCRInjection__');
+          }
+
+          const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
+          if (!cntData) return;
+          const cntElement = cnt.hostElement;
+          if (!(cntElement instanceof HTMLElement)) return;
+
+          const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
+
+          let ct;
+
+          if (__LCRInjection__ && cntData && duration > 0 && !('__progressAt__' in cntData)) {
+            ct = Date.now();
+            cntData.__liveTimestamp__ = (cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT / 1000;
+            timestampUnderLiveMode = true;
+          } else if (__LCRInjection__ && cntData && duration > 0 && cntData.__progressAt__ > 0) {
+            timestampUnderLiveMode = false;
+          }
+          // console.log(48117007, cntData)
+
+          let tk = cntData.__progressAt__ || cntData.__liveTimestamp__;
+
+          if (!tk) {
+            console.log('time property is not found', !!__LCRInjection__, !!cntData, !!(duration > 0), !('__progressAt__' in cntData), cntData.__progressAt__, cntData.__liveTimestamp__);
+            return;
+          }
+
+
+
+          const liveOffsetMs = ct > 0 && cntData.__timestampActionRequest__ > 0 ? ct - cntData.__timestampActionRequest__ : 0;
+
+          // console.log(1237, liveOffsetMs, cntData.durationSec)
+
+          if (liveOffsetMs > 0) {
+            cntData.durationSec -= Math.floor(liveOffsetMs / 1000);
+            if (cntData.durationSec < 0) cntData.durationSec = 0;
+            // console.log(1238, liveOffsetMs, cntData.durationSec)
+            if (!cntData.durationSec) {
+              try {
+                cnt.requestRemoval();
+              } catch (e) { }
+              return;
+            }
+          }
+
+
+          let offset = cntData.fullDurationSec - cntData.durationSec; // consider this is live replay video, offset can be > 0
+          if (offset > 0) tk -= offset;
+          // in livestreaming. tk can be negative as we use performance.timeOrigin for t=0s time frame
+
+
+
+          const existingOverlaySelector = `ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`;
+
+          const q = kRef(overlayBgMap.get(cnt));
+
+          let r = valAssign(cntElement, '--ticker-start-time', tk);
+
+          if ((r || !q || q.isConnected === false) && duration > 0) {
+
+            // t0 ...... 1 ... fullDurationSec
+            // tk ...... k ... fullDurationSec-durationSec
+            // t0-fullDurationSec ...... 0 ... 0
+
+            // now - (fullDurationSec-durationSec)
+
+
+            // update dntElementWeak
+            const dnt = cnt.parentComponent;
+            const dntElement = dnt ? dnt.hostElement || dnt : 0;
+            if (dntElement) {
+              dntElementWeak = mWeakRef(dntElement);
+              resistanceUpdateBusy = false;
+              if (!startResistanceUpdaterStarted) startResistanceUpdater();
+              else updateTickerCurrentTime();
+            }
+
+
+            // create overlay if needed
+            if (!cntElement.querySelector(existingOverlaySelector)) {
+
+              // remove if any
+              const oldElement = cntElement.querySelector('ticker-bg-overlay');
+              if (oldElement) oldElement.remove();
+
+              // use advancedTicking, ticker enabled
+              cnt.__advancedTicking038__ = 1;
+
+              const em = q || document.createElement('ticker-bg-overlay');
+
+              overlayBgMap.set(cnt, mWeakRef(em));
+              // const ey = document.createElement('ticker-bg-overlay-end');
+              const wy = document.createElement('ticker-bg-overlay-end2');
+
+              const cr1 = cnt.colorFromDecimal(cntData.startBackgroundColor);
+              const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
+
+              const container = cnt.$.container;
+
+              em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
+
+              const tid = `ticker-${cnt.__ticker_attachmentId__}-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
+              em.id = `${tid}-b`;
+              em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
+
+              if (!(container instanceof HTMLElement)) {
+                // em.insertBefore(ey, em.firstChild);
+                insertBeforeNaFn(cntElement, em, cntElement.firstChild); // cntElement.insertBefore(em, cntElement.firstChild);
+                cntElement.style.borderRadius = '16px';
+                container.style.borderRadius = 'initial';
+              } else {
+                // em.insertBefore(ey, em.firstChild);
+                insertBeforeNaFn(container, em, container.firstChild); // container.insertBefore(em, container.firstChild);
+              }
+
+              // em.style.left = '-50%';
+              // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
+
+              if (container instanceof HTMLElement) {
+
+                container.style.background = 'transparent';
+                container.style.backgroundColor = 'transparent';
+                // container.style.zIndex = '1';
+              }
+              // em.style.zIndex = '-1';
+              valAssign(cntElement, '--ticker-duration-time', duration)
+
+              valAssign(wy, '--ticker-start-time', tk);
+              valAssign(wy, '--ticker-duration-time', duration);
+              wy.id = `${tid}-e`;
+
+              appendChildNaFn(dntElement, wy);
+
+              // if (wio instanceof IntersectionObserver) {
+              //   wio.observe(ey);
+              // }
+
+              const wio2 = dProto.wio2;
+              if (wio2 instanceof IntersectionObserver) {
+                wio2.observe(wy);
+              }
+
+            }
+          }
+        };
+
+
+
+        const timeFn748 = async (cnt) => {
+
+
+          if (cnt.data) {
+            const data = cnt.data;
+            cnt[`_pr7_${data.id}`] = new PromiseExternal();
+            cnt[`_pr9_${data.id}`] = new PromiseExternal();
+          } else {
+            cnt[`_pr7_${data.id}`] = null;
+            cnt[`_pr9_${data.id}`] = null;
+          }
+
+
+          if (cnt && cnt.data) {
+            const data = cnt.data;
+            const pr = cnt[`_pr7_${data.id}`]
+            const pr9 = cnt[`_pr9_${data.id}`]
+            if (pr) await pr;
+            if (cnt[`_pr7_${data.id}`] === pr) cnt[`_pr7_${data.id}`] = null;
+            const parentComponent = cnt.parentComponent;
+            if (parentComponent) {
+              const pr = insp(parentComponent).ec389pr;
+              if (pr) await pr;
+            }
+            pr9.resolve();
+          }
+
+          if(
+            cnt 
+            && (cnt.hostElement && cnt.isAttached && cnt.hostElement.isConnected ) 
+            && cnt.parentComponent // startCountdown is triggered by dataChanged; // not yet attached to the actual dom tree
+            && cnt.__ticker_attachmentId__
+          ){
+  
+            Promise.resolve(cnt).then(u37fn);
+
+          }
+
+
+
+
+          
+          if (cnt.data) {
+            const data = cnt.data;
+            if (cnt.hostElement && cnt.isAttached, cnt.hostElement?.isConnected && cnt.parentComponent) {
+              const pr = cnt[`_pr7_${data.id}`];
+              if (pr) {
+                cnt[`_pr7_${data.id}`] = null;
+                pr.resolve();
+              }
+            }
+          }
+          cnt.pz483 = ((cnt.pz483 || 0) & 1073741823) + 1;
+
+        };
+
         let tagI = 0;
         for (const tag of tagsItemRenderer) { // ##tag##
 
@@ -7671,7 +9879,7 @@
 
 
 
-          if (USE_ADVANCED_TICKING && canDoAdvancedTicking) {
+          if (USE_ADVANCED_TICKING && canDoAdvancedTicking && ENABLE_TICKERS_BOOSTED_STAMPING) {
             // startResistanceUpdater();
             // live replay video ->   48117005 -> 48117006 keep fire.  ->48117007 0 -> 48117007 {...}
             // live stream video -> 48117007 0 -> 48117007 YES
@@ -7764,174 +9972,45 @@
 
 
 
-            const u37fn = dProto.u37fn || (dProto.u37fn = function (cnt) {
-
-              if(cnt.__dataEnabled === false || cnt.__dataInvalid === true) return;
-
-              if (!__LCRInjection__) {
-                console.error('[yt-chat] USE_ADVANCED_TICKING fails because of no __LCRInjection__');
-              }
-
-              const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
-              if (!cntData) return;
-              const cntElement = cnt.hostElement;
-              if (!(cntElement instanceof HTMLElement)) return;
-
-              const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
-
-              let ct;
-
-              if (__LCRInjection__ && cntData && duration > 0 && !('__progressAt__' in cntData)) {
-                ct = Date.now();
-                cntData.__liveTimestamp__ = (cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT / 1000;
-                timestampUnderLiveMode = true;
-              } else if (__LCRInjection__ && cntData && duration > 0 && cntData.__progressAt__ > 0) {
-                timestampUnderLiveMode = false;
-              }
-              // console.log(48117007, cntData)
-
-              let tk = cntData.__progressAt__ || cntData.__liveTimestamp__;
-
-              if (!tk) {
-                console.log('time property is not found');
-                return;
-              }
-
-
-
-              const liveOffsetMs = ct > 0 && cntData.__timestampActionRequest__ > 0 ? ct - cntData.__timestampActionRequest__ : 0;
-
-              // console.log(1237, liveOffsetMs, cntData.durationSec)
-
-              if (liveOffsetMs > 0) {
-                cntData.durationSec -= Math.floor(liveOffsetMs / 1000);
-                if (cntData.durationSec < 0) cntData.durationSec = 0;
-                // console.log(1238, liveOffsetMs, cntData.durationSec)
-                if (!cntData.durationSec) {
-                  try {
-                    cnt.requestRemoval();
-                  } catch (e) { }
-                  return;
-                }
-              }
-
-
-              let offset = cntData.fullDurationSec - cntData.durationSec; // consider this is live replay video, offset can be > 0
-              if (offset > 0) tk -= offset;
-              // in livestreaming. tk can be negative as we use performance.timeOrigin for t=0s time frame
-
-
-
-              const existingOverlaySelector = `ticker-bg-overlay[ticker-id="${cnt.__ticker_attachmentId__}"]`;
-
-              const q = kRef(overlayBgMap.get(cnt));
-
-              let r = valAssign(cntElement, '--ticker-start-time', tk);
-
-              if ((r || !q || q.isConnected === false) && duration > 0) {
-
-                // t0 ...... 1 ... fullDurationSec
-                // tk ...... k ... fullDurationSec-durationSec
-                // t0-fullDurationSec ...... 0 ... 0
-
-                // now - (fullDurationSec-durationSec)
-
-
-                // update dntElementWeak
-                const dnt = cnt.parentComponent;
-                const dntElement = dnt ? dnt.hostElement || dnt : 0;
-                if (dntElement) {
-                  dntElementWeak = mWeakRef(dntElement);
-                  resistanceUpdateBusy = false;
-                  if (!startResistanceUpdaterStarted) startResistanceUpdater();
-                  else updateTickerCurrentTime();
-                }
-
-
-                // create overlay if needed
-                if (!cntElement.querySelector(existingOverlaySelector)) {
-
-                  // remove if any
-                  const oldElement = cntElement.querySelector('ticker-bg-overlay');
-                  if (oldElement) oldElement.remove();
-
-                  // use advancedTicking, ticker enabled
-                  cnt.__advancedTicking038__ = 1;
-
-                  const em = q || document.createElement('ticker-bg-overlay');
-
-                  overlayBgMap.set(cnt, mWeakRef(em));
-                  // const ey = document.createElement('ticker-bg-overlay-end');
-                  const wy = document.createElement('ticker-bg-overlay-end2');
-
-                  const cr1 = cnt.colorFromDecimal(cntData.startBackgroundColor);
-                  const cr2 = cnt.colorFromDecimal(cntData.endBackgroundColor);
-
-                  const container = cnt.$.container;
-
-                  em.setAttribute('ticker-id', `${cnt.__ticker_attachmentId__}`);
-
-                  const tid = `ticker-${cnt.__ticker_attachmentId__}-${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-
-                  em.id = `${tid}-b`;
-                  em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
-
-                  if (!(container instanceof HTMLElement)) {
-                    // em.insertBefore(ey, em.firstChild);
-                    insertBeforeNaFn(cntElement, em, cntElement.firstChild); // cntElement.insertBefore(em, cntElement.firstChild);
-                    cntElement.style.borderRadius = '16px';
-                    container.style.borderRadius = 'initial';
-                  } else {
-                    // em.insertBefore(ey, em.firstChild);
-                    insertBeforeNaFn(container, em, container.firstChild); // container.insertBefore(em, container.firstChild);
-                  }
-
-                  // em.style.left = '-50%';
-                  // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
-
-                  if (container instanceof HTMLElement) {
-
-                    container.style.background = 'transparent';
-                    container.style.backgroundColor = 'transparent';
-                    // container.style.zIndex = '1';
-                  }
-                  // em.style.zIndex = '-1';
-                  valAssign(cntElement, '--ticker-duration-time', duration)
-
-                  valAssign(wy, '--ticker-start-time', tk);
-                  valAssign(wy, '--ticker-duration-time', duration);
-                  wy.id = `${tid}-e`;
-
-                  appendChildNaFn(dntElement, wy);
-
-                  // if (wio instanceof IntersectionObserver) {
-                  //   wio.observe(ey);
-                  // }
-
-                  if (wio2 instanceof IntersectionObserver) {
-                    wio2.observe(wy);
-                  }
-
-                }
-              }
-            });
-
-            const timeFn = (cnt) => {
-
-              if (!cnt) return;
-              if (!cnt.hostElement) return;
-
-              const attachementId = cnt.__ticker_attachmentId__;
-              if (!attachementId) return;
-
-              Promise.resolve(cnt).then(u37fn);
-
-            }
             cProto.__isTickerItem58__ = 1;
+            cProto.attached747 = cProto.attached;
+            cProto.attached = function () {
+              Promise.resolve().then(()=>{
+                if(this.hostElement && this.isAttached && this.hostElement.isConnected && this.parentComponent){
+                  const data = this.data;
+                  if(data){
+                    const pr = this[`_pr7_${data.id}`]
+                    if(pr){
+                      this[`_pr7_${data.id}`] = null;
+                      pr.resolve();
+                    } 
+                  }
+
+                }
+              }).catch(console.warn);
+              return this.attached747();
+            };
+            
+            cProto.setContainerWidth371 = cProto.setContainerWidth;
+            cProto.setContainerWidthPr9 = function(){
+              if (this.pz485 !== this.pz483) {
+                this.pz485 = this.pz483;
+                const cnt = this;
+                if (cnt && cnt.data) {
+                  const data = cnt.data;
+                  const pr9 = cnt[`_pr9_${data.id}`]
+                  if (pr9) {
+                    return pr9;
+                  }
+                }
+              }
+            }
             cProto.startCountdown = dProto.startCountdownAdv || (dProto.startCountdownAdv = function (a, b) {
 
-              timeFn(kRef(this));
 
+              timeFn748(kRef(this));
+
+             
 
             });
 
@@ -8218,41 +10297,40 @@
 
 
 
-            if (typeof cProto.setRevampContainerWidth === 'function' && !cProto.setRevampContainerWidth41 && cProto.setRevampContainerWidth.length === 0) {
-              cProto.setRevampContainerWidth41 = cProto.setRevampContainerWidth;
-              cProto.setRevampContainerWidth = dProto.setRevampContainerWidthAdv || (dProto.setRevampContainerWidthAdv = async function () {
+            if(ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH && typeof cProto.updateWidthOnDataChanged === 'function' && cProto.updateWidthOnDataChanged.length === 0 && !cProto.updateWidthOnDataChanged41){
 
-                // not sure the reason for auto instead of pixel.
-                // this is a new function in Dec 2024, but not mainly adopted in the coding yet
+              cProto.updateWidthOnDataChanged41 = cProto.updateWidthOnDataChanged;
+              cProto.updateWidthOnDataChanged = dProto.updateWidthOnDataChangedAdv || (dProto.updateWidthOnDataChangedAdv = function(){
+              
+                const style = this.hostElement.style;
+                style.width = "";
+                style.overflow = "";
+              });
 
-                /*
-
-
-                        var a = this;
-                        (R(this.hostElement).querySelector("#container").clientWidth || 0) === 0 ? (this.hostElement.style.overflow = "visible",
-                        this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
-                        this.ytLiveChatTickerItemBehavior.shouldAnimateIn ? (this.hostElement.style.width = "0",
-                        Zu(function() {
-                            a.hostElement.style.width = "auto"
-                        }, 1)) : this.hostElement.style.width = "auto")
-
-                */
+            }
 
 
+            if (!cProto.setStandardContainerWidth8447) {
+              cProto.setStandardContainerWidth8447 = dProto.setStandardContainerWidthAdv || (dProto.setStandardContainerWidthAdv =  async function (kName) {
 
+                if (typeof this.setContainerWidthPr9 === 'function') {
+                  const pr9 = this.setContainerWidthPr9();
+                  if (pr9) {
+                    await pr9;
+                  }
+                }
 
                 const hostElement = (this || 0).hostElement;
                 const container = this.$.container;
 
-
                 let qw = null;
+                let qt = '';
 
                 {
 
-
                   let maxC = 4;
 
-                  for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
+                  for (let p = qt = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
 
                     const ed = `${hostElement.id}`
                     if (!p || !p.startsWith(`${ed}::`)) {
@@ -8267,7 +10345,7 @@
                         return;
                       }
 
-                      hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
+                      hostElement.setAttribute('r6-ticker-width', p = qt = `${ed}::${(res.width).toFixed(2)}`);
 
                     } else {
                       qw = p.split('::');
@@ -8281,7 +10359,7 @@
                 if (!qw) {
 
                   console.log('container width failure');
-                  this.setRevampContainerWidth41();
+                  if(kName === 'setContainerWidth') this.setContainerWidth41(); else this.setRevampContainerWidth41();
                   return; // failure
                 }
 
@@ -8289,25 +10367,83 @@
                 const shouldAnimateIn = ((this || 0).ytLiveChatTickerItemBehavior || 0).shouldAnimateIn || (this || 0).shouldAnimateIn || false;
                 if (shouldAnimateIn) {
 
+                  stackDM(async () => {
+
+                    if (hostElement.getAttribute('r6-ticker-width') !== qt || hostElement.isConnected !== true) return;
+                    if (hostElement.previousElementSibling || isTickerItemsScrolling()) {
+
+                      hostElement.style.width = `${qw[1]}px`;
+
+                    } else {
+
+                      const w = hostElement.style.width;
+                      if (w !== '0px' && w !== '0') hostElement.style.width = '0';
+
+                      await widthReq(container);
+
+                      hostElement.style.width = `${qw[1]}px`;
+                    }
 
 
-                  const w = hostElement.style.width;
-                  if (w !== '0px' && w !== '0') hostElement.style.width = '0';
-                  // hostElement.classList.remove('ticker-no-transition-time');
-                  await widthReq(container);
-
-                  hostElement.style.width = `${qw[1]}px`;
-                  return;
+                  });
 
 
                 } else {
-                  hostElement.style.width = `${qw[1]}px`;
+
+
+                  stackDM(async () => {
+
+
+
+                    if (hostElement.getAttribute('r6-ticker-width') !== qt || hostElement.isConnected !== true) return;
+
+                    hostElement.style.width = `${qw[1]}px`;
+
+                  });
                 }
 
 
-                // const container = this.$.container;
-                // if(hostElement instanceof HTMLElement && hostElement.style.width) hostElement.style.width = '';
+
               });
+            }
+
+            if (typeof cProto.setRevampContainerWidth === 'function' && !cProto.setRevampContainerWidth41 && cProto.setRevampContainerWidth.length === 0 && typeof cProto.setStandardContainerWidth8447 === 'function' && cProto.setStandardContainerWidth8447.length === 1) {
+              cProto.setRevampContainerWidth41 = cProto.setRevampContainerWidth;
+              if (ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH) {
+
+                cProto.setRevampContainerWidth = dProto.setRevampContainerWidthAdv || (dProto.setRevampContainerWidthAdv = async function () {
+                  const hostElement = this.hostElement;
+                  if (((hostElement || 0).style || 0).width) hostElement.style.width = '';
+                  return;
+                });
+
+              } else {
+
+
+
+                cProto.setRevampContainerWidth = dProto.setRevampContainerWidthAdv || (dProto.setRevampContainerWidthAdv = async function () {
+
+                  // not sure the reason for auto instead of pixel.
+                  // this is a new function in Dec 2024, but not mainly adopted in the coding yet
+
+                  /*
+  
+  
+                          var a = this;
+                          (R(this.hostElement).querySelector("#container").clientWidth || 0) === 0 ? (this.hostElement.style.overflow = "visible",
+                          this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
+                          this.ytLiveChatTickerItemBehavior.shouldAnimateIn ? (this.hostElement.style.width = "0",
+                          Zu(function() {
+                              a.hostElement.style.width = "auto"
+                          }, 1)) : this.hostElement.style.width = "auto")
+  
+                  */
+
+
+                  return this.setStandardContainerWidth8447('setRevampContainerWidth');
+
+                });
+              }
 
 
               console1.log(`USE_ADVANCED_TICKING[#${tagI}]::setRevampContainerWidth - OK`)
@@ -8317,91 +10453,42 @@
             }
 
 
-            if (typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth41 && cProto.setContainerWidth.length === 0) {
+            if (typeof cProto.setContainerWidth === 'function' && !cProto.setContainerWidth41 && cProto.setContainerWidth.length === 0 && typeof cProto.setStandardContainerWidth8447 === 'function' && cProto.setStandardContainerWidth8447.length === 1) {
               cProto.setContainerWidth41 = cProto.setContainerWidth;
-              cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
 
+              if (ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH) {
 
-
-                /*
-
-
-                  var a = this
-                    , b = R(this.hostElement).querySelector("#container").clientWidth || 0;
-                  b === 0 ? (this.hostElement.style.overflow = "visible",
-                  this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
-                  this.shouldAnimateIn ? (this.hostElement.style.width = "0",
-                  Zu(function() {
-                      a.hostElement.style.width = b + "px"
-                  }, 1)) : this.hostElement.style.width = b + "px")
-
-                */
-
-                const hostElement = (this || 0).hostElement;
-                const container = this.$.container;
-
-
-                let qw = null;
-
-                {
-
-
-                  let maxC = 4;
-
-                  for (let p = hostElement.getAttribute('r6-ticker-width') || ''; maxC--;) {
-
-                    const ed = `${hostElement.id}`
-                    if (!p || !p.startsWith(`${ed}::`)) {
-
-                      const w = hostElement.style.width;
-                      if (w !== '' && w !== 'auto') hostElement.style.width = 'auto';
-
-                      const res = await widthReq(container);
-
-                      if (res.width < 1 || !Number.isFinite(res.width)) {
-                        // just skip due to iron-page hidden
-                        return;
-                      }
-
-                      hostElement.setAttribute('r6-ticker-width', p = `${ed}::${(res.width).toFixed(2)}`);
-
-                    } else {
-                      qw = p.split('::');
-                      break;
-                    }
-
-                  }
-
-                }
-
-                if (!qw) {
-
-                  console.log('container width failure');
-                  this.setContainerWidth41();
-                  return; // failure
-                }
-
-
-                const shouldAnimateIn = ((this || 0).ytLiveChatTickerItemBehavior || 0).shouldAnimateIn || (this || 0).shouldAnimateIn || false;
-                if (shouldAnimateIn) {
-
-
-
-                  const w = hostElement.style.width;
-                  if (w !== '0px' && w !== '0') hostElement.style.width = '0';
-                  // hostElement.classList.remove('ticker-no-transition-time');
-                  await widthReq(container);
-
-                  hostElement.style.width = `${qw[1]}px`;
+                cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
+                  const hostElement = this.hostElement;
+                  if (((hostElement || 0).style || 0).width) hostElement.style.width = '';
                   return;
+                });
+
+              } else {
+
+                cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
 
 
-                } else {
-                  hostElement.style.width = `${qw[1]}px`;
-                }
 
+                  /*
+  
+  
+                    var a = this
+                      , b = R(this.hostElement).querySelector("#container").clientWidth || 0;
+                    b === 0 ? (this.hostElement.style.overflow = "visible",
+                    this.hostElement.style.width = "auto") : (this.hostElement.style.overflow = "hidden",
+                    this.shouldAnimateIn ? (this.hostElement.style.width = "0",
+                    Zu(function() {
+                        a.hostElement.style.width = b + "px"
+                    }, 1)) : this.hostElement.style.width = b + "px")
+  
+                  */
+  
+                  return this.setStandardContainerWidth8447('setContainerWidth');
 
-              });
+                });
+
+              }
 
 
 
@@ -8564,6 +10651,570 @@
             console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
           }
+
+          // const imgCollection = document.getElementsByTagName('IMG');
+
+          if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3 && !cProto.notifyPath371) {
+
+
+            // const newDoc = document.implementation.createHTMLDocument("NewDoc");
+            const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            document.documentElement.insertAdjacentElement('beforeend', pSpace);
+            const pNode = document.createElement('ns-538');
+            pSpace.insertAdjacentElement('beforeend', pNode);
+            const pShadow = pNode.attachShadow({mode:"open"});
+            const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            pShadow.replaceChildren(pDiv);
+
+
+            const wmRemoved = new Map();
+
+            const wmMapToItem = new WeakMap();
+            let wmPendingList = null;
+
+
+            const nullComponents = new Map();
+
+            const componentDefaultAttributes = new Map();
+
+            cProto.proceedStampDomArraySplices371_ = function (cTag, cId, indexSplice) {
+              // console.log('proceedStampDomArraySplices_')
+              // assume no error -> no try catch (performance consideration)
+              const { index, addedCount, removed } = indexSplice;
+              indexSplice = null;
+              // console.log(indexSplice)
+              const removedCount = removed.length;
+              if (!addedCount && !removedCount) {
+                console.warn('proceedStampDomArraySplices_', 'Error 001');
+                return false;
+              }
+              const streamArr = this[cTag];
+              if (!this.ec389) {
+                if (this.ec389a || this.ec389r) {
+                  console.warn('proceedStampDomArraySplices_', 'Error 002');
+                  return false;
+                }
+                this.ec389 = {};
+                this.ec389a = 0;
+                this.ec389r = 0;
+              }
+              const shouldExecute = !this.ec389a && !this.ec389r;
+
+              this.ec389a += addedCount;
+              this.ec389r += removedCount;
+
+              if (shouldExecute) {
+
+                let shouldScrollAfterFlush = false;
+                const pr = this.ec389pr;
+                this.ec389pr = (async () => {
+                  await pr;
+                  if (!this.ec389a && !this.ec389r) return;
+                  await new Promise(resolve => nextBrowserTick(resolve));
+                  if (!this.ec389a && !this.ec389r) return;
+                  // const renderList = this.ec389.slice();
+                  // const domList = this.ec389n.slice();
+                  const addedCount0 = this.ec389a;
+                  const removedCount0 = this.ec389r;
+
+                  this.ec389 = null;
+                  this.ec389n = null;
+                  this.ec389a = 0;
+                  this.ec389r = 0;
+
+                  const deObjectComponent = (insertionObj) => {
+                    const obj = insertionObj;
+                    const I = firstObjectKey(obj);
+                    const t = this.stampDom[cTag].mapping;
+                    const L = t[I];
+                    const H = obj[I];
+                    return [L, H];
+                  }
+
+                  const hostElement = this.hostElement;
+
+                  const cList = this[cTag].slice();
+                  const renderList = cList.map((item) => {
+                    const [L, H] = deObjectComponent(item);
+                    const node = kRef(renderMap.get(H));
+                    return node && hostElement.contains(node) ? node : item;
+                  });
+
+                  // this.ec389 = null;
+                  // this.ec389a = 0;
+                  // this.ec389r = 0;
+
+                  let addedCounter = 0;
+                  let removedCounter = 0;
+
+                  const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+                    // const reusable = false;
+                    // const componentName = this.getComponentName_(L, H);
+                    let component;
+                    if (!nullComponents.has(componentName)) {
+                      nullComponents.set(componentName, (component = document.createElement(componentName)));
+                      component.className = 'style-scope yt-live-chat-ticker-renderer yt-live-chat-ticker-stampdom';
+                      // shadowElm.insertAdjacentElement('beforeend', component);
+                    } else {
+                      component = nullComponents.get(componentName);
+
+                    }
+                    component = component.cloneNode(false);
+
+                    const cnt = insp(component);
+
+                    // cnt.__dataOld = cnt.__dataPending = null;
+                    pDiv.insertAdjacentElement('beforeend', component);
+                    // cnt.__dataOld = cnt.__dataPending = null;
+
+                    return component;
+                  }
+
+                  const listDom = this.getStampContainer_(cId);
+
+
+
+
+                  const pnForNewItem = (item) => {
+
+                    const [L, H] = deObjectComponent(item);
+
+                    const componentName = this.getComponentName_(L, H);
+
+                    const wmList = wmRemoved.get(componentName.toLowerCase());
+
+                    let connectedComponent = null;
+                    if (wmList && (connectedComponent = wmList.firstElementChild)) {
+                      if (this.telemetry_) this.telemetry_.reuse++;
+                      if (!wmPendingList) {
+                        wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                        wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
+                        pDiv.insertAdjacentElement('afterend', wmPendingList);
+                      }
+                      wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
+                      const attrMap = connectedComponent.attributes;
+                      const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
+                      if (defaultAttrs) {
+                        for (const attr of attrMap) {
+                          const name = attr.name;
+                          if (name in defaultAttrs) attr.value = defaultAttrs[name];
+                          else attrMap.removeNamedItem(name);
+                        }
+                        if (attrMap.length !== defaultAttrs['"']) {
+                          for (const name in defaultAttrs) {
+                            if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
+                          }
+                        }
+                      }
+                      // for(const node of connectedComponent.getElementsByTagName('*')){
+                      //   const cnt = insp(node);
+                      //   if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+                      //     try {
+                      //       cnt.dispose();
+                      //     } catch (e) { }
+                      //   } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+                      //     try {
+                      //       node.dispose();
+                      //     } catch (e) { }
+                      //   }
+                      // }
+                      // for(const node of connectedComponent.getElementsByTagName('*')){
+                      //   const cnt = insp(node);
+                      //   if (cnt.is) {
+                      //     if (!cnt.__proto__.__refreshData938__) cnt.__proto__.__refreshData938__ = __refreshData938__;
+                      //     cnt.__refreshData938__('data', !0);
+                      //   }
+                      //   // if(cnt.__dataInvalid === false) cnt.__dataInvalid = true;
+                      // }
+
+
+                    } else {
+                      connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+                      if (this.telemetry_) this.telemetry_.create++;
+                    }
+                    if (cTag === 'tickerItems') {
+                      const container = connectedComponent.firstElementChild;
+                      if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
+                    }
+
+                    return [item, L, H, connectedComponent];
+
+                  };
+
+                  // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
+                  //   // interrupted by external
+                  //   this.ec389 = [];
+                  //   this.ec389a = 0;
+                  //   this.ec389r = 0;
+                  //   return;
+                  // }
+
+                  let imgPreloadPr = null;
+                  if (cTag === 'visibleItems') {
+                    const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
+                    imgPreloadPr = preloadFn(addedItems)();
+                  }
+
+                  const newComponentsEntries = await Promise.all(renderList.map((item) => {
+                    return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
+                  }));
+
+                  const imgPromises = [];
+
+                  const imgPaths = new Set();
+
+                  const pnForRenderNewItem = (entry) => {
+                    const [item, L, H, connectedComponent] = entry;
+
+                    const cnt = insp(connectedComponent);
+                    if (!cnt.__refreshData938__) {
+                      cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
+                    }
+                    if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
+                      cnt.data = H;
+                    } else {
+                      const q = this.deferRenderStamperBinding_
+                      let q2;
+                      if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
+                      this.deferRenderStamperBinding_(connectedComponent, L, H);
+                      this.flushRenderStamperComponentBindings_();
+                      if (typeof q === 'object') {
+                        this.deferRenderStamperBinding_ = q;
+                        q2.length = 0;
+                      }
+                    }
+                    if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
+
+                    // fix yt-icon issue
+                    for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
+                      try {
+                        const cnt = insp(node);
+                        if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+                        cnt.__refreshProps938__();
+                      } catch (e) { }
+                    }
+
+                    // const imgs = connectedComponent.getElementsByTagName('IMG');
+                    // if (imgs.length > 0) {
+                    //   for (let i = 0, l = imgs.length; i < l; i++) {
+                    //     const src = imgs[i].src;
+                    //     if (src.includes('://') && !imgPaths.has(src)) {
+                    //       imgPaths.add(src);
+                    //       imgPromises.push(imageFetch(src));
+                    //     }
+                    //   }
+                    // }
+                    componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
+                    return entry;
+                  }
+
+                  const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
+                    return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
+                  }));
+
+                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+
+                  imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+                  if (imgPromises.length > 0) {
+                    const pr1 = Promise.all(imgPromises).catch(e => { });
+                    const pr2 = autoTimerFn();
+                    await Promise.race([pr1, pr2]).catch(e => { });
+                    imgPaths.clear();
+                    imgPromises.length = 0;
+                  }
+                  if (imgPreloadPr) await imgPreloadPr;
+
+                  // if(this[cTag].length === 0 && firstComponentChildFn(listDom) === null) {
+                  //   // interrupted by external
+                  //   this.ec389 = [];
+                  //   this.ec389a = 0;
+                  //   this.ec389r = 0;
+                  //   return;
+                  // }
+
+                  const batching = [];
+                  let j = 0;
+                  let elNode;
+
+                  const removeStampNode_ = (elNode) => {
+                    const elm = elNode;
+                    const cnt = insp(elm);
+                    const componentName = elm.nodeName.toLowerCase();
+                    let wmList = wmRemoved.get(componentName);
+                    if (!wmList) {
+                      wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                      wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
+                      pDiv.insertAdjacentElement('afterend', wmList);
+                      wmRemoved.set(componentName, wmList);
+                    }
+                    wmList.insertAdjacentElement('beforeend', elm);
+                    const data = cnt.data;
+                    if (data) renderMap.delete(cnt.data);
+
+                    // detach data-view model signal
+                    for(const node of elm.getElementsByTagName('*')){
+                      const cnt = insp(node);
+                      if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+                        try {
+                          cnt.dispose();
+                        } catch (e) { }
+                      } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+                        try {
+                          node.dispose();
+                        } catch (e) { }
+                      }
+                    }
+                    // detach iconShapeDataSignal
+                    for (const node of elm.getElementsByTagName('yt-icon')) {
+                      try {
+                        const cnt = insp(node);
+                        if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+                        cnt.__refreshProps938__();
+                        // cnt.removeIconShape();
+                        // cnt._setPendingProperty('isAttached', false);
+                      } catch (e) { }
+                    }
+                  }
+
+                  const removeStampNode = async () => {
+
+                    removedCounter++;
+
+                    const nextElm = nextComponentSiblingFn(elNode);
+                    const elmId = elNode.id;
+                    removeStampNode_(elNode);
+                    // const dzid = this.getAttribute('dz-component-id');
+                    // ---- no-cache ----
+                    // try{
+                    //   elm.remove();
+                    // }catch(e){}
+                    // ---- no-cache ----
+
+                    await Promise.resolve();
+
+                    if (cTag === 'visibleItems') {
+
+                      const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
+                      if (tickerElm) {
+                        Promise.resolve().then(() => {
+                          tickerElm.setAttribute('ticker-message-removed', '')
+                          if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
+                            insp(tickerElm).requestRemoval();
+                          }
+                        }).catch(console.warn);
+                      }
+
+                    }
+
+                    j++;
+                    elNode = nextElm;
+
+                  }
+
+                  if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+                    // clear all pending rendering first
+                    await stackMarcoTask(async () => {
+                      Polymer.flush();
+                    });
+                  }
+
+                  // main UI thread - DOM modification
+                  await stackMarcoTask(async () => {
+
+                    if (this.atBottom === true) {
+                      shouldScrollAfterFlush = true;
+                    }
+
+                    elNode = firstComponentChildFn(listDom);
+
+                    const indexMap = new WeakMap();
+                    let index = 0;
+                    for (let elNode = firstComponentChildFn(listDom); elNode instanceof Node; elNode = nextComponentSiblingFn(elNode)) {
+                      indexMap.set(elNode, index++);
+                    }
+
+                    const keepIndices = new Array(newRenderedComponents.length);
+                    let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
+                    for (let i = 0, l = keepIndices.length; i < l; i++) {
+                      const entry = newRenderedComponents[i];
+                      if (entry instanceof Node) {
+                        const index = indexMap.get(entry);
+                        keepIndices[keepIndicesLen++] = index;
+                        if (index > lastKeepIndex) lastKeepIndex = index;
+                        else requireSort = true;
+                      }
+                    }
+                    keepIndices.length = keepIndicesLen;
+                    if (requireSort) keepIndices.sort();
+                    let dk = 0;
+
+                    let k = 0;
+                    let t0 = performance.now();
+                    for (const rcEntry of newRenderedComponents) {
+
+                      const index = indexMap.get(rcEntry);
+                      if (typeof index === 'number') {
+                        const dIdx = keepIndices[dk++];
+                        indexMap.delete(rcEntry);
+                        const idx = dIdx;
+
+                        while (j < idx && elNode) await removeStampNode();
+                        if (j === idx) {
+
+                          if (elNode) {
+                            const nextElm = nextComponentSiblingFn(elNode);
+                            j++;
+                            elNode = nextElm;
+                          } else {
+                            console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                          }
+
+                        }
+
+                      } else if (rcEntry instanceof Node) {
+                        // interruped by the external like clearList
+
+                        removeStampNode_(rcEntry); // no await Promise.resolve()
+
+                      } else {
+
+                        const [item, L, H, connectedComponent] = rcEntry;
+
+                        // await Promise.resolve(); // microTask allowance for flushRenderStamper
+
+                        // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
+
+                        wmMapToItem.set(connectedComponent, mWeakRef(item));
+
+                        let t1 = performance.now();
+
+                        k++;
+                        if (t1 - t0 > 14) {
+                          batching.push(k);
+                          await new Promise(r => nextBrowserTick(r));
+                          t0 = performance.now();
+                          k = 0;
+                        } else {
+                          await Promise.resolve();
+                        }
+
+                        elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                        renderMap.set(insp(connectedComponent).data, mWeakRef(connectedComponent));
+                        Promise.resolve(insp(connectedComponent)).then(async cnt => {
+                          wme.data = `${(wme.data & 7) + 1}`;
+                          await wmp;
+                          cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0); // ensure data is invalidated correctly after mutation
+                        });
+                        addedCounter++;
+
+                        if (cTag === 'tickerItems') {
+
+                          const tickerElm = document.querySelector("[ticker-message-removed]:nth-child(n + 40)");
+                          if (tickerElm) {
+                            Promise.resolve().then(() => {
+                              const tickerElms = document.querySelectorAll("[ticker-message-removed]:nth-child(n + 40)");
+                              for (const tickerElm of tickerElms) insp(tickerElm).requestRemoval();
+                            }).catch(console.warn);
+                          }
+
+                        }
+
+                      }
+                    }
+                    if (k > 0) batching.push(k);
+
+                    while (elNode) await removeStampNode();
+
+                  });
+
+                  {
+                    const arr = this[cTag];
+                    let b = false;
+                    b = b || this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+                    b = b || this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+                    b && this._invalidateProperties();
+                  }
+
+                  this.flushRenderStamperComponentBindings_(); // just in case...
+
+                  this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                    bubbles: !0,
+                    cancelable: !1,
+                    composed: !0,
+                    detail: {
+                      container: listDom
+                    }
+                  }));
+
+                  if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+                    // clear all remaining rendering before promise resolve
+                    await stackMarcoTask(async () => {
+                      Polymer.flush();
+                    });
+                  }
+
+                })().catch(console.warn);
+
+                if (cTag === 'visibleItems') this.flushActiveItemsPromise288 = ec389pr;
+
+                pr.then(async () => {
+                  if (shouldScrollAfterFlush) {
+                    if (this.atBottom === false) this.scrollToBottom_();
+                    wme.data = `${(wme.data & 7) + 1}`;
+                    await wmp;
+                    if (this.atBottom === false) this.scrollToBottom_();
+                  }
+                });
+
+              }
+
+              return true;
+            }
+
+            cProto.notifyPath371 = cProto.notifyPath;
+
+            cProto.notifyPath = function (a, b) {
+              // console.log(a, b);
+              if (a === 'tickerItems.splices' && (b||0).indexSplices && !this.ec388) {
+                const indexSplices = b.indexSplices;
+                if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
+                  const indexSplice = indexSplices[0] || indexSplices;
+                  if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || []).length >= 1)) {
+                    // console.log(1039, a, indexSplice);
+                    this.ec388 = true;
+                    const r = this.notifyPath371(a, b);
+                    this.ec388 = false;
+                    return r;
+                  }
+                }
+              }
+
+              return this.notifyPath371(a, b);
+            }
+
+            cProto.stampDomArraySplices371_ = cProto.stampDomArraySplices_;
+
+            cProto.stampDomArraySplices_ = function (a, b, c) {
+              if (a === 'tickerItems' && b === 'ticker-items' && (c || 0).indexSplices) {
+                if (this.ec388) {
+                  const indexSplices = c.indexSplices;
+                  if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
+                    const indexSplice = indexSplices[0] || indexSplices;
+                    if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || 0).length >= 1)) {
+                      // console.log(1059, a, b, indexSplice);
+                      if (this.proceedStampDomArraySplices371_(a, b, indexSplice)) return;
+                    }
+                  }
+                } else {
+                  console.warn('stampDomArraySplices_ warning', ...arguments);
+                }
+              }
+              return this.stampDomArraySplices371_(...arguments);
+            };
+
+          }
+
+
 
           if(typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3 && !cProto.createComponent58_ ){
 
@@ -10002,6 +12653,8 @@
 
             if (!targetDropDown) return;
 
+            if (evt.target.closest('ytd-menu-popup-renderer')) return;
+
             if ((nszDropdown = targetDropDown)) {
               muzTimestamp = Date.now();
               evt.stopImmediatePropagation();
@@ -10170,6 +12823,7 @@
             if (element.is) break;
           }
           if (!element || !element.is) return;
+          if (element.closest('ytd-menu-popup-renderer')) return;
           const cnt = insp(element);
           if (typeof cnt.onItemTap === 'function') {
             cnt._onItemTap_isNonStationary = 0;
@@ -12185,7 +14839,7 @@
                 cProto.createEmojiAnimation = function (a, b, c, d) {
                   createElement_fountain_model_enabled = true;
                   if (!this.__weakRef9591__) {
-                    this.__weakRef9591__ = new WeakRef(this);
+                    this.__weakRef9591__ = mWeakRef(this);
                     const q = this.__weakRef9591__;
                     const hostElement = this.hostElement;
                     const mo = new MutationObserver(() => {
