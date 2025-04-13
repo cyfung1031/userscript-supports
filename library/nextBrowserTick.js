@@ -1,4 +1,4 @@
-var nextBrowserTick = typeof nextBrowserTick !== "undefined" ? nextBrowserTick : (() => {
+var nextBrowserTick = typeof nextBrowserTick !== "undefined" && nextBrowserTick.version >= 2 ? nextBrowserTick : (() => {
     "use strict";
     const world = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
 
@@ -48,7 +48,7 @@ var nextBrowserTick = typeof nextBrowserTick !== "undefined" ? nextBrowserTick :
     };
     world.addEventListener('message', mfn, false);
 
-    return (f = fns) => {
+    const g = (f = fns) => {
         if (f === fns) {
             if (promise) return promise;
             let code;
@@ -70,5 +70,7 @@ var nextBrowserTick = typeof nextBrowserTick !== "undefined" ? nextBrowserTick :
             world.postMessage(code, "*");
         }
     };
+    g.version = 2;
+    return g;
 
 })();
