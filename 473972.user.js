@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.21
+// @version     0.18.22
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -10,7 +10,7 @@
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
 // @description To enhance YouTube performance by modifying YouTube JS Engine
 // @grant       none
-// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@7221a4efffd49d852de0074ec503d4febb99f28b/library/nextBrowserTick.min.js
+// @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@c2b707e4977f77792042d4a5015fb188aae4772e/library/nextBrowserTick.min.js
 // @run-at      document-start
 // @unwrap
 // @inject-into page
