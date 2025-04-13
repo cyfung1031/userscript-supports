@@ -1,19 +1,14 @@
-(function (world) {
+var nextBrowserTick = typeof nextBrowserTick !== "undefined" ? nextBrowserTick : (() => {
     "use strict";
+    const world = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
 
-    if (world.nextBrowserTick) {
-        return;
-    }
-
-    function canUsePostMessage() {
+    let ok = true;
+    function canUsePostMessage(e) {
+        if (e) return (ok = false);
         if (world.postMessage && !world.importScripts && world.addEventListener) {
-            let ok = true;
-            let mfn = () => {
-                ok = false;
-            }
-            world.addEventListener('message', mfn, false);
-            world.postMessage("", "*");
-            world.removeEventListener('message', mfn, false);
+            world.addEventListener('message', canUsePostMessage, false);
+            world.postMessage("$$$", "*");
+            world.removeEventListener('message', canUsePostMessage, false);
             return ok;
         }
     }
@@ -26,44 +21,54 @@
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-    const PromiseExternal = ((resolve_, reject_) => {
-        const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
-        return class PromiseExternal extends Promise {
-            constructor(cb = h) {
-                super(cb);
-                if (cb === h) {
-                    /** @type {(value: any) => void} */
-                    this.resolve = resolve_;
-                    /** @type {(reason?: any) => void} */
-                    this.reject = reject_;
-                }
-            }
-        };
-    })();
-
     let promise = null;
+    const fns = new Map();
+
+    const {floor, random} = Math;
 
     let tmp;
     do {
-        const uid = (Math.random() + 8).toString().slice(2);
-        tmp = `$$nextBrowserTick$$${uid}$$`;
+        tmp = `$$nextBrowserTick$$${(random() + 8).toString().slice(2)}$$`;
     } while (tmp in world);
     const messageString = tmp;
+    const p = messageString.length + 9;
     world[messageString] = 1;
     const mfn = (evt) => {
-        const data = promise !== null ? (evt || 0).data : 0;
-        if (data === messageString && evt.source === (evt.target || 1)) {
-            promise.resolve(promise = null);
+        if (fns.size !== 0) {
+            const data = (evt || 0).data;
+            if (typeof data === 'string' && data.length === p && evt.source === (evt.target || 1)) {
+                const fn = fns.get(data);
+                if (fn) {
+                    if (data[0] === 'p') promise = null;
+                    fns.delete(data);
+                    fn();
+                }
+            }
         }
-    }
+    };
     world.addEventListener('message', mfn, false);
 
-    world.nextBrowserTick = (f) => {
-        if (!promise) {
-            promise = new PromiseExternal();
-            world.postMessage(messageString, "*");
+    return (f = fns) => {
+        if (f === fns) {
+            if (promise) return promise;
+            let code;
+            do {
+                code = `p${messageString}${floor(random() * 314159265359 + 314159265359).toString(36)}`;
+            } while (fns.has(code));
+            promise = new Promise(resolve => {
+                fns.set(code, resolve);
+            });
+            world.postMessage(code, "*");
+            code = null;
+            return promise;
+        } else {
+            let code;
+            do {
+                code = `f${messageString}${floor(random() * 314159265359 + 314159265359).toString(36)}`;
+            } while (fns.has(code));
+            fns.set(code, f);
+            world.postMessage(code, "*");
         }
-        promise.then(f).catch(console.warn);
-    }
+    };
 
-}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
+})();
