@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.2
+// @version             0.100.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2250,7 +2250,7 @@
     console.warn("Your browser does not support css property 'overflow-anchor'.\nPlease upgrade to the latest version.".trim());
   }
 
-  const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && isOverflowAnchorSupport && ENABLE_NO_SMOOTH_TRANSFORM;
+  const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && isOverflowAnchorSupport && ENABLE_NO_SMOOTH_TRANSFORM && typeof ResizeObserver === 'function';
   let WITH_SCROLL_ANCHOR = false;
 
   const fxOperator = (proto, propertyName) => {
@@ -4203,6 +4203,21 @@
     //   if (itemScroller.scrollTop === 0) itemScroller.scrollTop = window.screen.height; // scrollTop changing
     // });
 
+    const itemScrollerResizeObserver = typeof ResizeObserver === 'function' && ENABLE_OVERFLOW_ANCHOR ? new ResizeObserver((mutations) => {
+      const mutation = mutations[mutations.length - 1];
+      // console.log('resizeObserver', mutation)
+      const itemScroller = (mutation || 0).target;
+      if (!itemScroller) return;
+      const listDom = itemScroller.closest('yt-live-chat-item-list-renderer');
+      if (!listDom) return;
+      const listCnt = insp(listDom);
+      if(listCnt.visibleItems.length === 0) return;
+      if (listCnt.atBottom !== true) return;
+      // if (itemScroller.scrollTop === 0) {
+      itemScroller.scrollTop = 16777216; // scrollTop changing
+      // }
+    }) : null;
+
     const { setupMutObserver } = (() => {
 
 
@@ -4233,17 +4248,17 @@
       }
 
       // const itemsResizeObserver = typeof ResizeObserver === 'function' && 0 ? new ResizeObserver((mutations) => {
-      //   // const mutation = mutations[mutations.length - 1];
-      //   // // console.log('resizeObserver', mutation)
-      //   // const items = (mutation || 0).target;
-      //   // if (!items) return;
-      //   // const listDom = items.closest('yt-live-chat-item-list-renderer');
-      //   // if (!listDom) return;
-      //   // const listCnt = insp(listDom);
-      //   // if (listCnt.atBottom !== true) return;
-      //   // const itemScroller = listCnt.itemScroller || listCnt.$['item-scroller'] || listCnt.querySelector('#item-scroller') || 0;
+      //   const mutation = mutations[mutations.length - 1];
+      //   // console.log('resizeObserver', mutation)
+      //   const items = (mutation || 0).target;
+      //   if (!items) return;
+      //   const listDom = items.closest('yt-live-chat-item-list-renderer');
+      //   if (!listDom) return;
+      //   const listCnt = insp(listDom);
+      //   if (listCnt.atBottom !== true) return;
+      //   const itemScroller = listCnt.itemScroller || listCnt.$['item-scroller'] || listCnt.querySelector('#item-scroller') || 0;
       //   // if (itemScroller.scrollTop === 0) {
-      //   //   itemScroller.scrollTop = mutation.contentRect.height; // scrollTop changing
+      //     itemScroller.scrollTop = mutation.contentRect.height; // scrollTop changing
       //   // }
       // }) : null;
       // itemsResizeObserverAttached = itemsResizeObserver !== null;
@@ -4270,7 +4285,7 @@
           mutFn(items);
 
 
-          // if (itemsResizeObserver) itemsResizeObserver.observe(m2);
+          // if (itemsResizeObserver) itemsResizeObserver.observe(items);
 
           // const isFirstList = firstList;
           // firstList = false;
@@ -6276,6 +6291,9 @@
             btn.addEventListener('transitionend', this.__showMoreBtn_transitionend012__, false);
             btn.addEventListener('transitioncancel', this.__showMoreBtn_transitionend012__, false);
           }
+
+          // fix panel height changing issue (ENABLE_OVERFLOW_ANCHOR only)
+          if (itemScrollerResizeObserver) itemScrollerResizeObserver.observe(this.itemScroller || this.$['item-scroller']);
 
         }
 
