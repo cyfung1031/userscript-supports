@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.1
+// @version             0.100.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -16,6 +16,7 @@
 // @allFrames           true
 // @inject-into         page
 // @require             https://update.greasyfork.org/scripts/475632/1361351/ytConfigHacks.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@c2b707e4977f77792042d4a5015fb188aae4772e/library/nextBrowserTick.min.js
 //
 // @compatible          firefox Violentmonkey
 // @compatible          firefox Tampermonkey
@@ -77,7 +78,7 @@
   // const MAX_ITEMS_FOR_FULL_FLUSH = 25;                    // If there are too many new (stacked) messages not yet rendered, clean all and flush MAX_ITEMS_FOR_FULL_FLUSH (25) latest messages then incrementally added back to MAX_ITEMS_FOR_TOTAL_DISPLAY (90) messages. (not exceeding 900)
 
   const ENABLE_NO_SMOOTH_TRANSFORM = true;                // Depends on whether you want the animation effect for new chat messages <<< DON'T CHANGE >>>
-  const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
+  // const USE_OPTIMIZED_ON_SCROLL_ITEMS = true;             // TRUE for the majority
   const ENABLE_OVERFLOW_ANCHOR_PREFERRED = true;          // Enable `overflow-anchor: auto` to lock the scroll list at the bottom for no smooth transform. (Safari is not supported)
 
   const FIX_SHOW_MORE_BUTTON_LOCATION = true;             // When there are voting options (bottom panel), move the "show more" button to the top.
@@ -575,6 +576,12 @@
   const [setTimeout_] = [setTimeout];
   // let jsonParseFix = null;
   const Image_ = Image;
+
+  const nextBrowserTick_ = nextBrowserTick;
+  if (typeof nextBrowserTick_ !== "function" || (nextBrowserTick_.version || 0) < 2) {
+    console.log('nextBrowserTick is not found.');
+    return;
+  }
 
   if (!IntersectionObserver) return console.warn("Your browser does not support IntersectionObserver.\nPlease upgrade to the latest version.");
   if (typeof WebAssembly !== 'object') return console.warn("Your browser is too old.\nPlease upgrade to the latest version."); // for passive and once
@@ -1276,6 +1283,10 @@
 
   const addCss = () => `
 
+    yt-live-chat-renderer {
+      max-height: 100vh;
+    }
+
     @property --ticker-rtime {
       syntax: "<percentage>";
       inherits: false;
@@ -1381,80 +1392,46 @@
       .no-anchor > item-anchor {
           overflow-anchor: auto;
       }
-
-      item-anchor {
-
-          height:1px;
-          width: 100%;
-          transform: scaleY(0.00001);
-          transform-origin:0 0;
-          contain: strict;
-          opacity:0;
-          display:flex;
-          position:relative;
-          flex-shrink:0;
-          flex-grow:0;
-          margin-bottom:0;
-          overflow:hidden;
-          box-sizing:border-box;
-          visibility: visible;
-          content-visibility: visible;
-          contain-intrinsic-size: auto 1px;
-          pointer-events:none !important;
-
-      }
-
+    
       #item-scroller.style-scope.yt-live-chat-item-list-renderer[class] {
-          overflow-anchor: initial !important; /* whenever ENABLE_OVERFLOW_ANCHOR or not */
+        overflow-anchor: initial !important; /* whenever ENABLE_OVERFLOW_ANCHOR or not */
       }
+    }
 
-      html item-anchor {
-
-          height: 1px;
-          width: 1px;
-          top: auto;
-          left: auto;
-          right: auto;
-          bottom: auto;
-          transform: translateY(-1px);
-          position: absolute;
-          z-index: -1;
-
-      }
-
-      item-anchor-b {
       
-          height:1px;
-          width: 100%;
-          transform: scaleY(0.00001);
-          transform-origin:0 0;
-          contain: strict;
-          opacity:0;
-          display:flex;
-          position:relative;
-          flex-shrink:0;
-          flex-grow:0;
-          margin-bottom:0;
-          overflow:hidden;
-          box-sizing:border-box;
-          visibility: visible;
-          content-visibility: visible;
-          contain-intrinsic-size: auto 1px;
-          pointer-events:none !important;
+    item-anchor {
 
-          height: 2px;
-          width: 10px;
-          top: auto;
-          left: auto;
-          right: auto;
-          bottom: auto;
-          transform: translateY(-1px);
-          position: absolute;
-          z-index: -1;
+        height: 1px;
+        width: 100%;
+        transform: scaleY(0.00001);
+        transform-origin:0 0;
+        contain: strict;
+        opacity:0;
+        display:flex;
+        position:relative;
+        flex-shrink:0;
+        flex-grow:0;
+        margin-bottom:0;
+        overflow:hidden;
+        box-sizing:border-box;
+        visibility: visible;
+        content-visibility: visible;
+        contain-intrinsic-size: auto 1px;
+        pointer-events:none !important;
 
-          margin-top: 7px;
-          left: 20px;
-      }
+    }
+
+    html item-anchor {
+
+        height: 1px;
+        width: 1px;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        transform: translateY(-1px);
+        position: absolute;
+        z-index: -1;
 
     }
 
@@ -1653,6 +1630,12 @@
       }
     };
   })();
+
+  // const nextBrowserTick_ = nextBrowserTick;
+  // const nextBrowserTick_ = (f) => {
+  //   typeof nextBrowserTick === 'function' ? nextBrowserTick(f) : setTimeout(f, Number.MIN_VALUE);
+  // };
+
 
   let qWidthAdjustable = null;
 
@@ -2067,7 +2050,6 @@
     if (startResistanceUpdaterStarted) return;
     startResistanceUpdaterStarted = true;
 
-
     if (RESISTANCE_UPDATE_OPT & 1)
       document.addEventListener('yt-action', () => {
         resistanceUpdateFn_(true);
@@ -2269,7 +2251,7 @@
   }
 
   const ENABLE_OVERFLOW_ANCHOR = ENABLE_OVERFLOW_ANCHOR_PREFERRED && isOverflowAnchorSupport && ENABLE_NO_SMOOTH_TRANSFORM;
-
+  let WITH_SCROLL_ANCHOR = false;
 
   const fxOperator = (proto, propertyName) => {
     let propertyDescriptorGetter = null;
@@ -3126,44 +3108,44 @@
     }));
     const foregroundPromiseFn = foregroundPromiseFn_noGPU || getRafPromise;
 
-    const iAFP = foregroundPromiseFn_noGPU ? foregroundPromiseFn_noGPU : typeof IntersectionObserver === 'undefined' ? getRafPromise : (() => {
+    // const iAFP = foregroundPromiseFn_noGPU ? foregroundPromiseFn_noGPU : typeof IntersectionObserver === 'undefined' ? getRafPromise : (() => {
 
-      const ioWM = new WeakMap();
-      const ek = Symbol();
-      /** @type {IntersectionObserverCallback} */
-      const ioCb = (entries, observer) => {
-        /** @type {PromiseExternal} */
-        const pr = observer[ek];
-        const resolve = pr.resolve;
-        let target;
-        if (resolve && (target = ((entries ? entries[0] : 0) || 0).target) instanceof Element) {
-          pr.resolve = null;
-          observer.unobserve(target);
-          resolve();
-        }
-      };
-      /**
-       *
-       * @param {Element} elm
-       * @returns {Promise<void>}
-       */
-      const iAFP = (elm) => {
-        let io = ioWM.get(elm);
-        if (!io) {
-          io = new IntersectionObserver(ioCb);
-          ioWM.set(elm, io); // strong reference
-        }
-        let pr = io[ek];
-        if (!pr) {
-          pr = io[ek] = new PromiseExternal();
-          io.observe(elm);
-        }
-        return pr;
-      }
+    //   const ioWM = new WeakMap();
+    //   const ek = Symbol();
+    //   /** @type {IntersectionObserverCallback} */
+    //   const ioCb = (entries, observer) => {
+    //     /** @type {PromiseExternal} */
+    //     const pr = observer[ek];
+    //     const resolve = pr.resolve;
+    //     let target;
+    //     if (resolve && (target = ((entries ? entries[0] : 0) || 0).target) instanceof Element) {
+    //       pr.resolve = null;
+    //       observer.unobserve(target);
+    //       resolve();
+    //     }
+    //   };
+    //   /**
+    //    *
+    //    * @param {Element} elm
+    //    * @returns {Promise<void>}
+    //    */
+    //   const iAFP = (elm) => {
+    //     let io = ioWM.get(elm);
+    //     if (!io) {
+    //       io = new IntersectionObserver(ioCb);
+    //       ioWM.set(elm, io); // strong reference
+    //     }
+    //     let pr = io[ek];
+    //     if (!pr) {
+    //       pr = io[ek] = new PromiseExternal();
+    //       io.observe(elm);
+    //     }
+    //     return pr;
+    //   }
 
-      return iAFP;
+    //   return iAFP;
 
-    })();
+    // })();
 
     let playerState = null;
     let _playerState = null;
@@ -3647,7 +3629,7 @@
               });
 
               // play safe for the change of 'length'
-              await prToNextMarcoTask();
+              await nextBrowserTick_();
 
               countOfElements = cnt.__getAllParticipantsDOMRenderedLength__();
 
@@ -4156,18 +4138,18 @@
           } else if (!hasFirstShowMore) { // should more than one item being visible
             // implement inside visObserver to ensure there is sufficient delay
             hasFirstShowMore = true;
-            foregroundPromiseFn().then(() => {
-              // foreground page
-              // page visibly ready -> load the latest comments at initial loading
-              const lcRenderer = lcRendererElm();
-              if (lcRenderer) {
-                nextBrowserTick_(() => {
-                  const cnt = insp(lcRenderer);
-                  if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                  cnt.scrollToBottom_();
-                });
-              }
-            });
+            // foregroundPromiseFn().then(() => {
+            //   // foreground page
+            //   // page visibly ready -> load the latest comments at initial loading
+            //   const lcRenderer = lcRendererElm();
+            //   if (lcRenderer) {
+            //     nextBrowserTick_(() => {
+            //       const cnt = insp(lcRenderer);
+            //       if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
+            //       cnt.scrollToBottom_();
+            //     });
+            //   }
+            // });
           }
         }
         else if (target.getAttribute('wsr93') === 'visible') { // ignore target.getAttribute('wsr93') === '' to avoid wrong sizing
@@ -4214,12 +4196,12 @@
 
     })();
 
-    let itemsResizeObserverAttached = false;
-    const resizeObserverFallback = new IntersectionObserver((mutation, observer) => {
-      const itemScroller = mutation[0].target;
-      observer.unobserve(itemScroller);
-      if (itemScroller.scrollTop === 0) itemScroller.scrollTop = window.screen.height;
-    });
+    // let itemsResizeObserverAttached = false;
+    // const resizeObserverFallback = new IntersectionObserver((mutation, observer) => {
+    //   const itemScroller = mutation[0].target;
+    //   observer.unobserve(itemScroller);
+    //   if (itemScroller.scrollTop === 0) itemScroller.scrollTop = window.screen.height; // scrollTop changing
+    // });
 
     const { setupMutObserver } = (() => {
 
@@ -4250,21 +4232,21 @@
         elementSet.clear();
       }
 
-      const itemsResizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver((mutations) => {
-        const mutation = mutations[mutations.length - 1];
-        // console.log('resizeObserver', mutation)
-        const items = (mutation || 0).target;
-        if (!items) return;
-        const listDom = items.closest('yt-live-chat-item-list-renderer');
-        if (!listDom) return;
-        const listCnt = insp(listDom);
-        if (listCnt.atBottom !== true) return;
-        const itemScroller = listCnt.$['item-scroller'] || listCnt.querySelector('#item-scroller') || 0;
-        if (itemScroller.scrollTop === 0) {
-          itemScroller.scrollTop = mutation.contentRect.height
-        }
-      }) : null;
-      itemsResizeObserverAttached = itemsResizeObserver !== null;
+      // const itemsResizeObserver = typeof ResizeObserver === 'function' && 0 ? new ResizeObserver((mutations) => {
+      //   // const mutation = mutations[mutations.length - 1];
+      //   // // console.log('resizeObserver', mutation)
+      //   // const items = (mutation || 0).target;
+      //   // if (!items) return;
+      //   // const listDom = items.closest('yt-live-chat-item-list-renderer');
+      //   // if (!listDom) return;
+      //   // const listCnt = insp(listDom);
+      //   // if (listCnt.atBottom !== true) return;
+      //   // const itemScroller = listCnt.itemScroller || listCnt.$['item-scroller'] || listCnt.querySelector('#item-scroller') || 0;
+      //   // if (itemScroller.scrollTop === 0) {
+      //   //   itemScroller.scrollTop = mutation.contentRect.height; // scrollTop changing
+      //   // }
+      // }) : null;
+      // itemsResizeObserverAttached = itemsResizeObserver !== null;
 
       const mutObserver = new MutationObserver((mutations) => {
         const items = (mutations[0] || 0).target;
@@ -4272,47 +4254,37 @@
         mutFn(items);
       });
 
-      const setupMutObserver = (m2) => {
+      const setupMutObserver = (items) => {
         scrollChatFn = null;
         mutObserver.disconnect();
         mutObserver.takeRecords();
-        if (m2) {
-          if (typeof m2.__appendChild932__ === 'function') {
-            if (typeof m2.appendChild === 'function') m2.appendChild = m2.__appendChild932__;
-            if (typeof m2.__shady_native_appendChild === 'function') m2.__shady_native_appendChild = m2.__appendChild932__;
+        if (items) {
+          if (typeof items.__appendChild932__ === 'function') {
+            if (typeof items.appendChild === 'function') items.appendChild = items.__appendChild932__;
+            if (typeof items.__shady_native_appendChild === 'function') items.__shady_native_appendChild = items.__appendChild932__;
           }
-          mutObserver.observe(m2, {
+          mutObserver.observe(items, {
             childList: true,
             subtree: false
           });
-          mutFn(m2);
+          mutFn(items);
 
 
-          if (itemsResizeObserver) itemsResizeObserver.observe(m2);
+          // if (itemsResizeObserver) itemsResizeObserver.observe(m2);
 
           // const isFirstList = firstList;
           // firstList = false;
 
-          if (ENABLE_OVERFLOW_ANCHOR) {
-            // console.log('ENABLE_OVERFLOW_ANCHOR', m2)
 
-            let items = m2;
-            let addedAnchor = false;
-            if (items) {
-              if (items.nextElementSibling === null) {
-                items.classList.add('no-anchor');
-                addedAnchor = true;
-                items.parentNode.appendChild(dr(document.createElement('item-anchor')));
-              }
+          if (items && items.nextElementSibling === null) {
+            items.parentNode.appendChild(dr(document.createElement('item-anchor')));
+            WITH_SCROLL_ANCHOR = true;
+            if (ENABLE_OVERFLOW_ANCHOR) {
+              items.classList.add('no-anchor');
+              nodeParent(items).classList.add('no-anchor'); // required
             }
-
-
-
-            if (addedAnchor) {
-              nodeParent(m2).classList.add('no-anchor'); // required
-            }
-
           }
+
 
 
 
@@ -4525,18 +4497,20 @@
 
       const passiveCapture = typeof IntersectionObserver === 'function' ? { capture: true, passive: true } : true;
 
-      const delayFlushActiveItemsAfterUserActionK_ = () => {
+      // const delayFlushActiveItemsAfterUserActionK_ = () => {
 
-        const lcRenderer = lcRendererElm();
-        if (lcRenderer) {
-          const cnt = insp(lcRenderer);
-          if (!cnt.hasUserJustInteracted11_) return;
-          if (cnt.atBottom && cnt.allowScroll && cnt.activeItems_.length >= 1 && cnt.hasUserJustInteracted11_()) {
-            cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
-          }
-        }
+      //   const lcRenderer = lcRendererElm();
+      //   if (lcRenderer) {
+      //     const cnt = insp(lcRenderer);
+      //     if (!cnt.hasUserJustInteracted11_) return;
+      //     if (cnt.atBottom && cnt.allowScroll && cnt.activeItems_.length >= 1 && cnt.hasUserJustInteracted11_()) {
+      //       cnt.delayFlushActiveItemsAfterUserAction11_ && cnt.delayFlushActiveItemsAfterUserAction11_();
+      //     }
+      //   }
 
-      }
+      // }
+
+      const delayFlushActiveItemsAfterUserActionK_ = null;
 
       document.addEventListener('scroll', (evt) => {
         if (!evt || !evt.isTrusted) return;
@@ -4645,24 +4619,24 @@
 
     }
 
-    const getTimestampUsec = (itemRenderer) => {
-      if (itemRenderer && 'timestampUsec' in itemRenderer) {
-        return itemRenderer.timestampUsec
-      } else if (itemRenderer && itemRenderer.showItemEndpoint) {
-        const messageRenderer = ((itemRenderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
-        if (messageRenderer) {
+    // const getTimestampUsec = (itemRenderer) => {
+    //   if (itemRenderer && 'timestampUsec' in itemRenderer) {
+    //     return itemRenderer.timestampUsec
+    //   } else if (itemRenderer && itemRenderer.showItemEndpoint) {
+    //     const messageRenderer = ((itemRenderer.showItemEndpoint.showLiveChatItemEndpoint || 0).renderer || 0);
+    //     if (messageRenderer) {
 
-          const messageRendererKey = firstObjectKey(messageRenderer);
-          if (messageRendererKey && messageRenderer[messageRendererKey]) {
-            const messageRendererData = messageRenderer[messageRendererKey];
-            if (messageRendererData && 'timestampUsec' in messageRendererData) {
-              return messageRendererData.timestampUsec
-            }
-          }
-        }
-      }
-      return null;
-    }
+    //       const messageRendererKey = firstObjectKey(messageRenderer);
+    //       if (messageRendererKey && messageRenderer[messageRendererKey]) {
+    //         const messageRendererData = messageRenderer[messageRendererKey];
+    //         if (messageRendererData && 'timestampUsec' in messageRendererData) {
+    //           return messageRendererData.timestampUsec
+    //         }
+    //       }
+    //     }
+    //   }
+    //   return null;
+    // }
 
     const onRegistryReadyForDOMOperations = () => {
 
@@ -5995,22 +5969,6 @@
       })();
       window.stackDM = stackDM;
 
-      const nextBrowserTick_ = (f) => {
-        typeof nextBrowserTick === 'function' ? nextBrowserTick(f) : setTimeout(f, Number.MIN_VALUE);
-      }
-
-      let prToNextMarcoTask_ = null;
-      const prToNextMarcoTask = () => {
-        if (prToNextMarcoTask_) return prToNextMarcoTask_;
-        return prToNextMarcoTask_ = new Promise(resolve => {
-          nextBrowserTick_(() => {
-            prToNextMarcoTask_ = null;
-            resolve();
-          })
-        });
-      };
-
-
       const stackMarcoTask = (f) => {
         return new Promise(resolve => {
           nextBrowserTick_(async () => {
@@ -6076,6 +6034,14 @@
       const sFirstElementChild = Symbol();
       Object.defineProperty(Element.prototype, sFirstElementChild, elementFirstElementChild);
 
+      const elementLastElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'lastElementChild');
+      const sLastElementChild = Symbol();
+      Object.defineProperty(Element.prototype, sLastElementChild, elementLastElementChild);
+
+      const elementPrevElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'previousElementSibling');
+      const sPrevElementSibling = Symbol();
+      Object.defineProperty(Element.prototype, sPrevElementSibling, elementPrevElementSibling);
+
       const elementNextElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'nextElementSibling');
       const sNextElementSibling = Symbol();
       Object.defineProperty(Element.prototype, sNextElementSibling, elementNextElementSibling);
@@ -6083,6 +6049,11 @@
       const firstComponentChildFn = (elNode) => {
         elNode = elNode[sFirstElementChild];
         while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sNextElementSibling];
+        return elNode;
+      }
+      const lastComponentChildFn = (elNode) => {
+        elNode = elNode[sLastElementChild];
+        while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sPrevElementSibling];
         return elNode;
       }
       const nextComponentSiblingFn = (elNode) => {
@@ -6136,7 +6107,7 @@
           assertor(() => typeof mclp.resetSmoothScroll_ === 'function');
         } catch (e) { }
 
-        mclp.__intermediate_delay__ = null;
+        mclp.prDelay171 = null;
 
         let myk = 0; // showNewItems77_
         let mlf = 0; // flushActiveItems77_
@@ -6157,7 +6128,7 @@
               mzt = (mzt & 1073741823) + 1;
               mlg = (mlg & 1073741823) + 1;
               zarr = null;
-              this.__intermediate_delay__ = null;
+              this.prDelay171 = null;
               this.clearList66();
             };
             console1.log("clearList", "OK");
@@ -6191,6 +6162,53 @@
           console.log('[yt-chat] setupMutObserver DONE')
         }
 
+
+        const deferSeqFns = []; // ensure correct sequence
+        let deferSeqFnI = 0;
+        const deferCallbackLooper = entry => {
+          nextBrowserTick_(() => {
+            const { a, b } = entry;
+            const cnt = kRef(a);
+            if (cnt && b) b.call(cnt);
+            entry.a = entry.b = null;
+          });
+        }
+        const deferCallback = async (cnt, callback) => {
+          const a = cnt.__weakRef9441__ || (cnt.__weakRef9441__ = mWeakRef(cnt));
+          deferSeqFns[deferSeqFnI++] = { a, b: callback };
+          if (deferSeqFnI > 1) return;
+          const pr288 = cnt.prDelay288;
+          await pr288;
+          wme.data = `${(wme.data & 7) + 1}`;
+          await wmp;
+          const l = deferSeqFnI;
+          deferSeqFnI = 0;
+          for (let i = 0; i < l; i++) {
+            Promise.resolve(deferSeqFns[i]).then(deferCallbackLooper);
+          }
+        };
+
+        let showMoreBtnTransitionTrigg = null;
+
+        mclp.__showMoreBtn_transitionstart011__ = function (evt) {
+          showMoreBtnTransitionTrigg = true;
+          const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+          if (newVisibility === "visible") {
+            const btn = evt.target;
+            if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+          }
+        };
+
+
+        mclp.__showMoreBtn_transitionend011__ = function (evt) {
+          showMoreBtnTransitionTrigg = true;
+          const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+          if (newVisibility === "hidden") {
+            const btn = evt.target;
+            if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+          }
+        };
+        
         mclp.attached419 = async function () {
 
           if (!this.isAttached) return;
@@ -6198,7 +6216,7 @@
           let maxTrial = 16;
           while (!this.$ || !this.$['item-scroller'] || !this.$['item-offset'] || !this.$['items']) {
             if (--maxTrial < 0 || !this.isAttached) return;
-            await iAFP(this.hostElement).then();
+            await nextBrowserTick_();
             // await new Promise(requestAnimationFrame);
           }
 
@@ -6242,6 +6260,22 @@
           }
 
           setList(itemOffset, items);
+
+          if (WITH_SCROLL_ANCHOR) this.__itemAnchorColl011__ = itemOffset.getElementsByTagName('item-anchor');
+          else this.__itemAnchorColl011__ = null;
+
+
+
+          // btn-show-more-transition
+          const btn = this.$['show-more'];
+          if (btn) {
+            if (!this.__showMoreBtn_transitionstart012__) this.__showMoreBtn_transitionstart012__ = this.__showMoreBtn_transitionstart011__.bind(this);
+            if (!this.__showMoreBtn_transitionend012__) this.__showMoreBtn_transitionend012__ = this.__showMoreBtn_transitionend011__.bind(this);
+            btn.addEventListener('transitionrun', this.__showMoreBtn_transitionstart012__, false);
+            btn.addEventListener('transitionstart', this.__showMoreBtn_transitionstart012__, false);
+            btn.addEventListener('transitionend', this.__showMoreBtn_transitionend012__, false);
+            btn.addEventListener('transitioncancel', this.__showMoreBtn_transitionend012__, false);
+          }
 
         }
 
@@ -6287,7 +6321,7 @@
             if (count > 1e9) count = count0 + 9;
             const resId = ++count;
             aMap.set(resId, e);
-            const pr1 = Promise.all([this.flushActiveItemsPromise288, wmp, this.__intermediate_delay__, Promise.resolve()]);
+            const pr1 = Promise.all([this.prDelay288, wmp, this.prDelay171, Promise.resolve()]);
             const pr2 = autoTimerFn();
             Promise.race([pr1, pr2]).then(() => {
               const rp = aMap.get(resId);
@@ -6327,39 +6361,132 @@
 
             assertor(() => fnIntegrity(mclp.showNewItems_, '0.170.79'));
             mclp.showNewItems66_ = mclp.showNewItems_;
-
-            mclp.showNewItems77_ = async function () {
-              let tid = myk = (myk & 1073741823) + 1;
-
-              await iAFP(this.hostElement).then();
-              // await new Promise(requestAnimationFrame);
-
-              if (tid !== myk) {
-                return;
-              }
-
-              const cnt = this;
-
-              await Promise.resolve();
-              cnt.showNewItems66_();
-
-              await Promise.resolve();
-
-            }
-
             mclp.showNewItems_ = function () {
-
-              const cnt = this;
-              cnt.__intermediate_delay__ = new Promise(resolve => {
-                cnt.showNewItems77_().then(() => {
-                  resolve();
-                });
-              });
+              //
             }
 
             console1.log("showNewItems_", "OK");
           } else {
             console1.log("showNewItems_", "NG");
+          }
+
+        }
+
+
+
+        if ((_flag0281_ & 0x2) == 0) {
+          if ((mclp.onScrollItems_ || 0).length === 1) {
+
+            if (mclp.onScrollItems3641_) {
+
+            } else {
+              assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
+
+            }
+
+            if (typeof mclp.setAtBottom === 'function' && mclp.setAtBottom.length === 0) {
+
+              mclp.setAtBottom217 = mclp.setAtBottom;
+              mclp.setAtBottom = function () {
+                const v = this.ec217;
+                if (typeof v !== 'boolean') return this.setAtBottom217();
+                const u = this.atBottom;
+                if (u !== v && typeof u === 'boolean') this.atBottom = v;
+                // this.atBottom = a.scrollTop >= a.scrollHeight - a.clientHeight - 15
+              }
+
+              let lastScrollTarget = null;
+              mclp.onScrollItems66_ = mclp.onScrollItems_;
+              let callback = () => { };
+
+              // let itemScrollerWR = null;
+              let lastEvent = null;
+
+              let io2 = null, io1 = null;
+              const io2f = (entries, observer) => {
+                const entry = entries[entries.length - 1];
+                if (entry.target !== lastScrollTarget) return;
+                callback(entry);
+              };
+              const io1f = (entries, observer) => {
+                const entry = entries[entries.length - 1];
+                observer.unobserve(entry.target);
+                if (entry.target !== lastScrollTarget) return;
+                lastScrollTarget = null;
+                callback(entry);
+              };
+              mclp.onScrollItems3885cb2_ = function (entry) {
+                const v = (entry.isIntersecting === true);
+                this.ec217 = v;
+                this.onScrollItems66_(lastEvent);
+                this.ec217 = null;
+              }
+              mclp.onScrollItems3885cb1_ = function (entry) {
+                const v = (entry.intersectionRatio > 0.98);
+                this.ec217 = v;
+                this.onScrollItems66_(lastEvent);
+                this.ec217 = null;
+              };
+
+              mclp.onScrollItems_ = function (evt) {
+
+                if (evt === lastEvent) return;
+                if (evt && lastEvent && evt.timeStamp === lastEvent.timeStamp) return;
+                lastEvent = evt;
+                const ytRendererBehavior = this.ytRendererBehavior || 0;
+                if (typeof ytRendererBehavior.onScroll === 'function') ytRendererBehavior.onScroll(evt);
+                const coll = this.__itemAnchorColl011__;
+                if (coll) {
+                  const anchorElement = coll.length === 1 ? coll[0] : null;
+                  if (lastScrollTarget !== anchorElement) {
+                    if (io2) io2.disconnect();
+                    lastScrollTarget = anchorElement;
+                    if (anchorElement) {
+                      if (!this.onScrollItems3886cb2_) this.onScrollItems3886cb2_ = this.onScrollItems3885cb2_.bind(this);
+                      callback = this.onScrollItems3886cb2_;
+                      if (!io2) io2 = new IntersectionObserver(io2f);
+                      io2.observe(anchorElement);
+                    }
+                  }
+                } else {
+                  const items = this.$.items;
+                  if (!items) return this.onScrollItems66_();
+                  const lastComponent = lastComponentChildFn(items);
+                  if (!lastComponent) return this.onScrollItems66_();
+                  if (lastScrollTarget === lastComponent) return;
+                  lastScrollTarget = lastComponent;
+
+                  if (io1) io1.disconnect();
+                  if (!this.onScrollItems3886cb1_) this.onScrollItems3886cb1_ = this.onScrollItems3885cb1_.bind(this);
+                  callback = this.onScrollItems3886cb1_;
+                  if (!io1) io1 = new IntersectionObserver(io1f);
+                  io1.observe(lastComponent);
+                }
+              };
+
+            }
+
+            
+            console1.log("onScrollItems_", "OK");
+          } else {
+            console1.log("onScrollItems_", "NG");
+          }
+        }
+
+
+        if ((_flag0281_ & 0x40) == 0) {
+
+          if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
+            assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
+            mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
+            mclp.refreshOffsetContainerHeight_ = function () {
+              // var a = this.itemScroller.clientHeight;
+              // this.itemOffset.style.height = this.items.clientHeight + "px";
+              // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
+            }
+            console1.log("refreshOffsetContainerHeight_", "OK");
+          } else {
+            console1.log("refreshOffsetContainerHeight_", "NG");
           }
 
         }
@@ -6460,7 +6587,7 @@
             let hasMoreMessageState = !ENABLE_SHOW_MORE_BLINKER ? -1 : 0;
 
             mclp.flushActiveItems66a_ = mclp.flushActiveItems_;
-            let lastLastRow = null;
+            // let lastLastRow = null;
 
 
   
@@ -6512,46 +6639,7 @@
 
             };
 
-            // let prWaitWidth = null;
-// let widthTransitionSet = new Set();
-// document.addEventListener('transitionstart', (evt)=>{
-  
-//   if(evt.propertyName === 'width'){
-//     if(!prWaitWidth && widthTransitionSet.size === 0) prWaitWidth = new PromiseExternal();
-//     widthTransitionSet.add(evt.target);
-//     console.log(1298, widthTransitionSet.size)
-//   }
 
-// }, true);
-
-
-// document.addEventListener('transitionend', (evt)=>{
-  
-//   if(evt.propertyName === 'width'){
-//     widthTransitionSet.delete(evt.target);
-//     if(prWaitWidth && widthTransitionSet.size === 0){
-//       prWaitWidth.resolve();
-//       prWaitWidth = null
-//     }
-
-//     console.log(1299, widthTransitionSet.size)
-//   }
-
-// }, true);
-
-// document.addEventListener('transitioncancel', (evt)=>{
-  
-//   if(evt.propertyName === 'width'){
-//     widthTransitionSet.delete(evt.target);
-//     if(prWaitWidth && widthTransitionSet.size === 0){
-//       prWaitWidth.resolve();
-//       prWaitWidth = null
-//     }
-
-//     console.log(1299, widthTransitionSet.size)
-//   }
-
-// }, true);
 
             if(ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING && `${mclp.flushActiveItems_}`.includes("this.push.apply(this,this.activeItems_)") && `${mclp.flushActiveItems_}`.includes(`this.splice("visibleItems",0,`)){
               
@@ -6607,11 +6695,11 @@
                   if (shouldExecute) {
 
                     let shouldScrollAfterFlush = false;
-                    const pr = this.ec389pr;
+                    const pr00 = this.ec389pr;
                     const ec389pr = this.ec389pr = (async () => {
-                      await pr; // await the current executing task (if any)
+                      await pr00; // await the current executing task (if any)
                       if (!this.ec389a && !this.ec389r) return;
-                      await prToNextMarcoTask(); // collective process (per marcoTask)
+                      await nextBrowserTick_(); // collective process (per marcoTask)
                       if (!this.ec389a && !this.ec389r) return;
                       const addedCount0 = this.ec389a;
                       const removedCount0 = this.ec389r;
@@ -6851,8 +6939,9 @@
 
                       // main UI thread - DOM modification
                       await stackMarcoTask(async () => {
-
-                        if (this.atBottom === true) {
+                        
+                        const isAtBottom = this.atBottom === true;
+                        if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
                           shouldScrollAfterFlush = true;
                         }
     
@@ -6922,7 +7011,7 @@
                             // k++;
                             if (t1 - t0 > 14) {
                               // batching.push(k);
-                              await prToNextMarcoTask();
+                              await nextBrowserTick_();
                               t0 = performance.now();
                               // k = 0;
                             } else {
@@ -6937,6 +7026,15 @@
 
                             if (cTag === 'tickerItems') {
                               sideProcesses.push(onTickerItemStampNodeAdded());
+                            }
+
+                            // YYYYY
+                            if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                              const itemScroller = this.itemScroller;
+                              if (itemScroller) itemScroller.scrollTop = 16777216;
+                            } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                              const itemScroller = this.itemScroller;
+                              if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
                             }
 
                           }
@@ -6980,19 +7078,21 @@
                     })().catch(console.warn);
 
                     if (cTag === 'visibleItems') {
-                      this.flushActiveItemsPromise288 = ec389pr;
+                      this.prDelay288 = ec389pr;
                       this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+
+                      // the first microtask after promise resolved
+                      // YYYYYYY
+                      // ec389pr.then(async () => {
+                      //   if (shouldScrollAfterFlush) {
+                      //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+                      //     wme.data = `${(wme.data & 7) + 1}`;
+                      //     await wmp;
+                      //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+                      //   }
+                      // });
+
                     }
-    
-                    // the first microtask after promise resolved
-                    pr.then(async () => {
-                      if (shouldScrollAfterFlush) {
-                        if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                        wme.data = `${(wme.data & 7) + 1}`;
-                        await wmp;
-                        if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                      }
-                    });
 
                   }
 
@@ -7067,18 +7167,6 @@
 
               }
 
-
-              const deferCallback = async (cnt, callback) => {
-                // await prWaitWidth;
-
-                // console.log(1928)
-                const pr288 = cnt.flushActiveItemsPromise288;
-                await pr288;
-                // console.log(1929)
-                wme.data = `${(wme.data & 7) + 1}`;
-                await wmp;
-                if (callback) callback.call(cnt);
-              }
               /*
               mclp.flushActiveItems66b_ = function () {
 
@@ -7095,20 +7183,20 @@
                     activeItems_.splice(0, activeItemsCount - maxItemsToDisplay);
                   }
                   const qLen = this.visibleItems.length;
-                  const pr0 = this.flushActiveItemsPromise288;
-                  const pr = this.flushActiveItemsPromise288 = new PromiseExternal();
+                  const pr0 = this.prDelay288;
+                  const pr = this.prDelay288 = new PromiseExternal();
                   this.ec377 = true;
                   const ec378 = this.ec378 = new Array(qLen).fill(0).map((e, idx) => idx);
                   this.flushActiveItems66a_();
                   this.ec377 = false;
                   this.ec378 = null;
-                  this.flushActiveItemsPromise288 = pr0;
+                  this.prDelay288 = pr0;
                   this.activeItems_ = typeof activeItems_[0] === 'string' ? activeItems_.slice(1) : activeItems_;
                   wme.data = `${(wme.data & 7) + 1}`;
                   const isSuccess = this.renderSplicedList323(ec378, qLen, pr);
                   if (isSuccess) {
                     // console.log('19949 - ok')
-                    this.flushActiveItemsPromise288 = pr;
+                    this.prDelay288 = pr;
                     shouldProceedNextFlushActiveItems = true;
 
                     wme.data = `${(wme.data & 7) + 1}`;
@@ -7132,7 +7220,7 @@
 
                     console.log('19949 - ng', ppr)
 
-                    const pr2 = this.flushActiveItemsPromise288 = new PromiseExternal();
+                    const pr2 = this.prDelay288 = new PromiseExternal();
                     this.flushActiveItems66a_();
                     pr2.resolve();
                     shouldProceedNextFlushActiveItems = true;
@@ -7148,7 +7236,7 @@
                 }
 
 
-                const pr5 = this.flushActiveItemsPromise288;
+                const pr5 = this.prDelay288;
 
                 (async ()=>{
                   await pr5;
@@ -7185,6 +7273,18 @@
 
               mclp.flushActiveItems3641_ = mclp.flushActiveItems_;
 
+              mclp.__moreItemButtonBlinkingCheck183__ = function () {
+                const hasPendingItems = (this.activeItems_ && this.activeItems_.length > 0) ? 1 : 0;
+                const shouldChange = (hasMoreMessageState === (1 - hasPendingItems));
+                if (shouldChange) {
+                  hasMoreMessageState = hasPendingItems;
+                  const showMore = (this.$ || 0)['show-more'];
+                  if (showMore) {
+                    showMore.classList.toggle('has-new-messages-miuzp', hasPendingItems ? true : false);
+                  }
+                }
+              }
+
               let ps00 = false;
               mclp.flushActiveItems_ = function () {
                 if (ps00) return;
@@ -7199,6 +7299,9 @@
                       if (data.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) data.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
                       this.flushActiveItemsFix001_(); // bug fix
                       this.flushActiveItems3641_();
+                      if (ENABLE_SHOW_MORE_BLINKER) {
+                        this.__moreItemButtonBlinkingCheck183__(); // blink the button if there are activeItems remaining.
+                      }
                     }
                   }
                 }).catch(console.warn);
@@ -7219,9 +7322,7 @@
                 }).catch(console.warn);
               };
 
-              if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
-              } else {
-
+              if (!ENABLE_NO_SMOOTH_TRANSFORM && !mclp.refreshOffsetContainerHeight26_) {
                 let ps02 = false;
                 mclp.refreshOffsetContainerHeight_ = function () {
                   if (ps02) return;
@@ -7242,20 +7343,21 @@
                 ps03 = true;
                 deferCallback(this, () => {
                   ps03 = false;
-                  this.maybeScrollToBottom3641_();
-                  if (itemsResizeObserverAttached !== true && this.atBottom === true) {
-                    // fallback for old browser
-                    const itemScroller = this.$['item-scroller'] || this.querySelector('#item-scroller') || 0;
-                    if (itemScroller.scrollTop === 0) {
-                      resizeObserverFallback.observe(itemScroller);
-                    }
+                  if (this.atBottom === true) {
+
+                    // if (itemsResizeObserverAttached !== true && this.atBottom === true) {
+                    //   // fallback for old browser
+                    //   const itemScroller = this.itemScroller || this.$['item-scroller'] || this.querySelector('#item-scroller') || 0;
+                    //   if (itemScroller.scrollTop === 0) {
+                    //     resizeObserverFallback.observe(itemScroller);
+                    //   }
+                    // }
+                  } else {
+
+                    this.maybeScrollToBottom3641_();
                   }
                 }).catch(console.warn);
               };
-
-
-
-              assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
 
               mclp.onScrollItems3641_ = mclp.onScrollItems_;
               mclp.maybeResizeScrollContainer3641_ = mclp.maybeResizeScrollContainer_;
@@ -7272,7 +7374,7 @@
                 }).catch(console.warn);
               };
 
-              if (!ENABLE_NO_SMOOTH_TRANSFORM) {
+              if (!ENABLE_NO_SMOOTH_TRANSFORM) { // no function for ENABLE_NO_SMOOTH_TRANSFORM
                 let ps12 = false;
                 mclp.maybeResizeScrollContainer_ = function (a) {
                   if (ps12) return;
@@ -7430,7 +7532,7 @@
                 const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
                 let logger = false;
                 const cnt = this;
-                let immd = cnt.__intermediate_delay__;
+                let immd = cnt.prDelay171;
                 await iAFP(this.hostElement).then();
                 // await new Promise(requestAnimationFrame);
 
@@ -7477,7 +7579,7 @@
                 // to avoid lagging in popular livestream with massive chats, trim first before rendering.
                 // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
 
-                cnt.__intermediate_delay__ = Promise.all([cnt.__intermediate_delay__ || null, immd || null]);
+                cnt.prDelay171 = Promise.all([cnt.prDelay171 || null, immd || null]);
                 await Promise.resolve();
                 const acItems = cnt.activeItems_;
                 const len1 = acItems.length;
@@ -7626,7 +7728,7 @@
               if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
 
               if (cnt.activeItems_.length === 0) {
-                cnt.__intermediate_delay__ = null;
+                cnt.prDelay171 = null;
                 return;
               }
 
@@ -7637,8 +7739,8 @@
                 cntData.maxItemsToDisplay944 = cntData.maxItemsToDisplay || null;
               }
 
-              // ignore previous __intermediate_delay__ and create a new one
-              cnt.__intermediate_delay__ = new Promise(resolve => {
+              // ignore previous prDelay171 and create a new one
+              cnt.prDelay171 = new Promise(resolve => {
                 cnt.flushActiveItems77_().then(rt => {  // either undefined or 1 or 2
                   if (rt === 1) {
                     resolve(1); // success, scroll to bottom
@@ -7675,47 +7777,135 @@
           }
         }
 
-        if ((_flag0281_ & 0x40) == 0) {
-
-          if (ENABLE_NO_SMOOTH_TRANSFORM && SUPPRESS_refreshOffsetContainerHeight_ && typeof mclp.refreshOffsetContainerHeight_ === 'function' && !mclp.refreshOffsetContainerHeight26_ && mclp.refreshOffsetContainerHeight_.length === 0) {
-            assertor(() => fnIntegrity(mclp.refreshOffsetContainerHeight_, '0.31.21'));
-            mclp.refreshOffsetContainerHeight26_ = mclp.refreshOffsetContainerHeight_;
-            mclp.refreshOffsetContainerHeight_ = function () {
-              // var a = this.itemScroller.clientHeight;
-              // this.itemOffset.style.height = this.items.clientHeight + "px";
-              // this.bottomAlignMessages && (this.itemOffset.style.minHeight = a + "px")
-            }
-            console1.log("refreshOffsetContainerHeight_", "OK");
-          } else {
-            console1.log("refreshOffsetContainerHeight_", "NG");
-          }
-
-        }
 
         if ((_flag0281_ & 0x80) == 0) {
-          mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
-            try {
-              const tid = mlg = (mlg & 1073741823) + 1;
-              const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
-              const runCond = () => this.canScrollToBottom_();
-              if (!keepTrialCond()) return;
-              if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
-              await new Promise(r => setTimeout(r, 80));
-              if (!keepTrialCond()) return;
-              if (runCond()) return this.flushActiveItems_() | 1;
-              await iAFP(this.hostElement).then();
-              // await new Promise(requestAnimationFrame);
-              if (runCond()) return this.flushActiveItems_() | 1;
-            } catch (e) {
-              console.warn(e);
-            }
-          }
+          // mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
+          //   try {
+          //     const tid = mlg = (mlg & 1073741823) + 1;
+          //     const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
+          //     const runCond = () => this.canScrollToBottom_();
+          //     if (!keepTrialCond()) return;
+          //     if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
+          //     await new Promise(r => setTimeout(r, 80));
+          //     if (!keepTrialCond()) return;
+          //     if (runCond()) return this.flushActiveItems_() | 1;
+          //     await iAFP(this.hostElement).then();
+          //     // await new Promise(requestAnimationFrame);
+          //     if (runCond()) return this.flushActiveItems_() | 1;
+          //   } catch (e) {
+          //     console.warn(e);
+          //   }
+          // }
         }
+
 
         if ((_flag0281_ & 0x40) == 0 ) {
 
 
-          if (true) {
+          let showBtnLastState = null;
+          let lastAtBottomState = null;
+          // let showMoreBtnTransitionTrigg = false;
+          mclp.atBottomChanged314_ = mclp.atBottomChanged_;
+          mclp.atBottomChanged_ = function () {
+
+            const currentAtBottomState = this.atBottom;
+            if(lastAtBottomState === currentAtBottomState) return;
+            lastAtBottomState = currentAtBottomState;
+
+            // console.log(1289, showMoreBtnTransitionTrigg)
+
+            /*
+              if (!this.___btn3848___) {
+                this.___btn3848___ = true;
+                const btn = ((this || 0).$ || 0)["show-more"] || 0;
+                if (btn) {
+                  btn.addEventListener('transitionstart', (evt) => {
+                    showMoreBtnTransitionTrigg = true;
+                    const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+                    if (newVisibility === "visible") {
+                      const btn = evt.target;
+                      if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+                    }
+                  });
+                  btn.addEventListener('transitionend', (evt) => {
+                    showMoreBtnTransitionTrigg = true;
+                    const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+                    if (newVisibility === "hidden") {
+                      const btn = evt.target;
+                      if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+                    }
+                  });
+                  btn.addEventListener('transitioncancel', (evt) => {
+                    showMoreBtnTransitionTrigg = true;
+                    const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+                    if (newVisibility === "hidden") {
+                      const btn = evt.target;
+                      if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+                    }
+                  });
+                }
+              }
+            */
+
+            // btn-show-more-transition
+            if (showMoreBtnTransitionTrigg) return;
+
+            const btn = ((this || 0).$ || 0)["show-more"] || 0;
+            if (!btn) return this.atBottomChanged314_();
+
+            const showBtnCurrentState = btn.hasAttribute('disabled');
+            if (showBtnLastState === showBtnCurrentState) return;
+            showBtnLastState = showBtnCurrentState;
+
+            if (this.visibleItems.length === 0) {
+              if (this.atBottom === true) {
+                btn.setAttribute('disabled', '');
+                showBtnLastState = true;
+              }
+              const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+              if (btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+              return;
+            }
+
+            nextBrowserTick_(() => {
+
+              if (showMoreBtnTransitionTrigg) return;
+
+              // fallback
+
+              // const isAtBottom = this.atBottom === true;
+              // if (isAtBottom) {
+              //   if (!this.hideShowMoreAsync_) {
+              //     this.hideShowMoreAsync_ = setTimeoutX0(function () {
+              //       const btn = ((this || 0).$ || 0)["#show-more"] || 0;
+              //       if (btn) btn.style.visibility = "hidden";
+              //     }, 200 - 0.125);
+              //   }
+              // } else {
+              //   if (this.hideShowMoreAsync_) {
+              //     clearTimeoutX0(this.hideShowMoreAsync_);
+              //     this.hideShowMoreAsync_ = null;
+              //   }
+              //   const btn = ((this || 0).$ || 0)["#show-more"] || 0;
+              //   if (btn) btn.style.visibility = "visible";
+              // }
+
+              const btn = ((this || 0).$ || 0)["show-more"] || 0;
+              const newVisibility = (this.atBottom === true) ? "hidden" : "visible";
+
+              if (newVisibility === "hidden") {
+                console.warn('show-more-btn no transition')
+              }
+
+              if (btn && btn.style.visibility !== newVisibility) btn.style.visibility = newVisibility;
+
+            });
+
+          };
+
+          
+
+          if (false) {
 
             if ((mclp.atBottomChanged_ || 0).length === 0) {
               // note: if the scrolling is too frequent, the show more visibility might get wrong.
@@ -7943,90 +8133,6 @@
         }
 
 
-        if ((_flag0281_ & 0x2) == 0) {
-          if ((mclp.onScrollItems_ || 0).length === 1) {
-
-            if(mclp.onScrollItems3641_){
-
-            }else{
-              assertor(() => fnIntegrity(mclp.onScrollItems_, '1.17.9'));
-
-            }
-            mclp.onScrollItems66_ = mclp.onScrollItems_;
-            mclp.onScrollItems77_ = async function (evt) {
-              let tid = myw = (myw & 1073741823) + 1;
-
-              await iAFP(this.hostElement).then();
-              // await new Promise(requestAnimationFrame);
-
-              if (tid !== myw) {
-                return;
-              }
-
-              const cnt = this;
-
-              await Promise.resolve();
-              if (USE_OPTIMIZED_ON_SCROLL_ITEMS) {
-                const onScrollItemsBasicOnly_ = !!((cnt.__notRequired__ || 0) & 512);
-                await Promise.resolve().then(() => {
-                  this.ytRendererBehavior.onScroll(evt);
-                }).then(() => {
-                  if (onScrollItemsBasicOnly_) return;
-                  if (this.canScrollToBottom_()) {
-                    const hasUserJustInteracted = this.hasUserJustInteracted11_ ? this.hasUserJustInteracted11_() : true;
-                    if (hasUserJustInteracted) {
-                      // only when there is an user action
-                      !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
-                      return 1;
-                    }
-                  } else {
-                    // no message inserting
-                    !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
-                    return 1;
-                  }
-                }).then((r) => {
-
-                  if (onScrollItemsBasicOnly_) return;
-                  if (this.activeItems_.length) {
-
-                    if (this.canScrollToBottom_()) {
-                      this.flushActiveItems_();
-                      return 1 && r;
-                    } else if (this.atBottom && this.allowScroll && (this.hasUserJustInteracted11_ && this.hasUserJustInteracted11_())) {
-                      // delayed due to user action
-                      this.delayFlushActiveItemsAfterUserAction11_ && this.delayFlushActiveItemsAfterUserAction11_();
-                      return 0;
-                    }
-                  }
-                }).then((r) => {
-                  if (onScrollItemsBasicOnly_) return;
-                  if (r) {
-                    // ensure setAtBottom is correctly set
-                    !((cnt.__notRequired__ || 0) & 256) && this.setAtBottom();
-                  }
-                }).catch(console.warn);
-              } else {
-                cnt.onScrollItems66_(evt);
-              }
-
-              await Promise.resolve();
-
-            }
-
-            mclp.onScrollItems_ = function (evt) {
-
-              const cnt = this;
-              cnt.__intermediate_delay__ = new Promise(resolve => {
-                cnt.onScrollItems77_(evt).then(() => {
-                  resolve();
-                });
-              });
-            }
-            console1.log("onScrollItems_", "OK");
-          } else {
-            console1.log("onScrollItems_", "NG");
-          }
-        }
 
         if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.handleLiveChatActions_ || 0).length === 1) {
@@ -8060,35 +8166,7 @@
 
             mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
 
-            mclp.handleLiveChatActions77_ = async function (arr) {
-              if (typeof (arr || 0).length !== 'number') {
-                this.handleLiveChatActions66_(arr);
-                return;
-              }
-              let tid = mzt = (mzt & 1073741823) + 1;
-
-              if (zarr === null) zarr = arr;
-              else Array.prototype.push.apply(zarr, arr);
-              arr = null;
-
-              await iAFP(this.hostElement).then();
-              // await new Promise(requestAnimationFrame);
-
-              if (tid !== mzt || zarr === null) {
-                return;
-              }
-
-              const carr = zarr;
-              zarr = null;
-
-              await Promise.resolve();
-              this.handleLiveChatActions66_(carr);
-              await Promise.resolve();
-
-            }
-
             mclp.handleLiveChatActions_ = function (arr) {
-
 
               try {
                 preprocessChatLiveActions(arr);
@@ -8096,17 +8174,7 @@
                 console.warn(e);
               }
 
-
-
-              // console.log(1929, cnt.activeItems_)
-              // console.log(9487, arr);
-
-              const cnt = this;
-              cnt.__intermediate_delay__ = new Promise(resolve => {
-                cnt.handleLiveChatActions77_(arr).then(() => {
-                  resolve();
-                });
-              });
+              this.handleLiveChatActions66_(arr);
 
               resistanceUpdateFn_(true);
             }
@@ -9979,11 +10047,11 @@
               if (shouldExecute) {
 
                 let shouldScrollAfterFlush = false;
-                const pr = this.ec389pr;
+                const pr00 = this.ec389pr;
                 const ec389pr = this.ec389pr = (async () => {
-                  await pr; // await the current executing task (if any)
+                  await pr00; // await the current executing task (if any)
                   if (!this.ec389a && !this.ec389r) return;
-                  await prToNextMarcoTask(); // collective process (per marcoTask)
+                  await nextBrowserTick_(); // collective process (per marcoTask)
                   if (!this.ec389a && !this.ec389r) return;
                   const addedCount0 = this.ec389a;
                   const removedCount0 = this.ec389r;
@@ -10224,7 +10292,8 @@
                   // main UI thread - DOM modification
                   await stackMarcoTask(async () => {
 
-                    if (this.atBottom === true) {
+                    const isAtBottom = this.atBottom === true;
+                    if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
                       shouldScrollAfterFlush = true;
                     }
 
@@ -10294,7 +10363,7 @@
                         // k++;
                         if (t1 - t0 > 14) {
                           // batching.push(k);
-                          await prToNextMarcoTask();
+                          await nextBrowserTick_();
                           t0 = performance.now();
                           // k = 0;
                         } else {
@@ -10309,6 +10378,15 @@
 
                         if (cTag === 'tickerItems') {
                           sideProcesses.push(onTickerItemStampNodeAdded());
+                        }
+
+                        // XXXXX
+                        if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                          const itemScroller = this.itemScroller;
+                          if (itemScroller) itemScroller.scrollTop = 16777216;
+                        } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                          const itemScroller = this.itemScroller;
+                          if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
                         }
 
                       }
@@ -10352,19 +10430,21 @@
                 })().catch(console.warn);
 
                 if (cTag === 'visibleItems') {
-                  this.flushActiveItemsPromise288 = ec389pr;
+                  this.prDelay288 = ec389pr;
                   this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
-                }
 
-                // the first microtask after promise resolved
-                pr.then(async () => {
-                  if (shouldScrollAfterFlush) {
-                    if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                    wme.data = `${(wme.data & 7) + 1}`;
-                    await wmp;
-                    if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                  }
-                });
+                  // the first microtask after promise resolved
+                  // XXXX
+                  // ec389pr.then(async () => {
+                  //   if (shouldScrollAfterFlush) {
+                  //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+                  //     wme.data = `${(wme.data & 7) + 1}`;
+                  //     await wmp;
+                  //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+                  //   }
+                  // });
+
+                }
 
               }
 
