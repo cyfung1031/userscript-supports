@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.3
+// @version             0.100.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -229,9 +229,9 @@
   const FIX_MEMORY_LEAKAGE_TICKER_DATACHANGED_setContainerWidth = true; // To fix Memory Leakage due to _.ytLiveChatTickerItemBehavior.setContainerWidth()
 
 
-  const USE_RM_ON_FOUNTAIN_MODEL = true;
-  const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
-  const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
+  // const USE_RM_ON_FOUNTAIN_MODEL = false;                 // No longer working since 2025.04.15
+  // const DEBUG_RM_ON_FOUNTAIN_MODEL = false;
+  // const FOUNTAIN_MODEL_TIME_CONFIRM = 1600; // 800 not sufficient; re-adding?
   const MODIFY_EMIT_MESSAGES_FOR_BOOST_CHAT = true; // enabled for boost chat only; instant emit & no background flush
 
 /**
@@ -1637,6 +1637,72 @@
   // };
 
 
+  // const { accurateTiming, isAccurateTimingUsable } = (() => {
+  //   let audioCtx_ = null;
+  //   let sampleRate = 0;
+  //   const isAccurateTimingUsable = () => sampleRate > 0;
+  //   const kill = () => {
+  //     sampleRate = audioCtx_.currentTime;
+  //     document.removeEventListener('pointerdown', listener, { capture: true, passive: true });
+  //     document.removeEventListener('keydown', listener, { capture: true, passive: true });
+  //   };
+  //   const listener = (e) => {
+  //     if (e.isTrusted === true) {
+  //       if (!audioCtx_) {
+  //         audioCtx_ = new (window.AudioContext || window.webkitAudioContext)();
+  //       }
+  //       if (audioCtx_.state === 'suspended') {
+  //         const p = audioCtx_.resume();
+  //         if (p && typeof p.then === 'function') p.then(kill);
+  //       } else if (audioCtx_.state === 'running') {
+  //         kill();
+  //       }
+  //     }
+  //   };
+  //   document.addEventListener('pointerdown', listener, { capture: true, passive: true });
+  //   document.addEventListener('keydown', listener, { capture: true, passive: true });
+  //   const fnSym = Symbol()
+  //   const commonOscClean = (osc) => {
+  //     osc[fnSym] = osc.onended = null;
+  //   }
+  //   const commonOscOnEnded = function () {
+  //     this[fnSym]()
+  //     Promise.resolve(this).then(commonOscClean)
+  //   }
+  //   let buffer_;
+  //   const accurateTiming = (fn, delay) => {
+  //     if (!sampleRate) return false;
+  //     const audioCtx = audioCtx_;
+  //     const ct = audioCtx.currentTime;
+
+  //     if (!(delay >= 0)) delay = 0;
+  //     const stopTime = ct + delay;
+  //     let startTime = ct + delay - (1 / sampleRate);
+  //     if (startTime === stopTime) startTime -= 1;
+  //     if (startTime < 0) startTime = 0;
+
+  //     if (!buffer_) {
+  //       buffer_ = audioCtx.createBuffer(1, 1, sampleRate);
+  //       // const data = buffer.getChannelData(0)
+  //       // data[0] = 1e-20 // tiny pulse – not silent!
+  //     }
+
+  //     const buffer = buffer_;
+  //     const source = audioCtx.createBufferSource()
+  //     source.buffer = buffer
+  //     source.connect(audioCtx.destination) // or silent gain node
+
+  //     source[fnSym] = fn
+  //     source.onended = commonOscOnEnded
+  //     source.start(startTime) // schedule start
+
+  //     return true;
+  //   }
+  //   return { accurateTiming, isAccurateTimingUsable }
+  // })();
+
+
+
   let qWidthAdjustable = null;
 
   /** @type {typeof PromiseExternal.prototype | null} */
@@ -2141,19 +2207,19 @@
   const px2cm = (px) => px * window.devicePixelRatio * 0.026458333;
   const px2mm = (px) => px * window.devicePixelRatio * 0.26458333;
 
-  let createElement_fountain_model_fn = null;
-  let createElement_fountain_model_enabled = null;
+  // let createElement_fountain_model_fn = null;
+  // let createElement_fountain_model_enabled = null;
 
-  ; (USE_RM_ON_FOUNTAIN_MODEL) && (()=>{
-    document.createElement4719 = document.createElement;
-    document.createElement = function (a) {
-      if (createElement_fountain_model_enabled) {
-        const r = createElement_fountain_model_fn(a);
-        if (r) return r;
-      }
-      return document.createElement4719(a);
-    }
-  })();
+  // ; (USE_RM_ON_FOUNTAIN_MODEL) && (()=>{
+  //   document.createElement4719 = document.createElement;
+  //   document.createElement = function (a) {
+  //     if (createElement_fountain_model_enabled) {
+  //       const r = createElement_fountain_model_fn(a);
+  //       if (r) return r;
+  //     }
+  //     return document.createElement4719(a);
+  //   }
+  // })();
 
   ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS || DISABLE_FLAGS_SHADYDOM_FREE) && (() => {
 
@@ -6988,6 +7054,28 @@
 
                         // let k = 0;
                         let t0 = performance.now();
+
+                        const closurePn = (closureFn) => {
+                          let t1 = performance.now();
+                          let r;
+                          if (t1 - t0 > 14) {
+                            // batching.push(k);
+                            r = new Promise(resolve => {
+                              nextBrowserTick_(() => {
+                                try {
+                                  closureFn();
+                                } catch (e) { console.warn(e) }
+                                resolve();
+                              });
+                            });
+                            t0 = performance.now();
+                            // k = 0;
+                          } else {
+                            r = Promise.resolve().then(closureFn).catch(console.warn);
+                          }
+                          return r;
+                        }
+                        
                         for (const rcEntry of newRenderedComponents) {
 
                           const index = indexMap.get(rcEntry);
@@ -6996,7 +7084,7 @@
                             indexMap.delete(rcEntry);
                             const idx = dIdx;
 
-                            while (j < idx && elNode) await removeStampNode();
+                            while (j < idx && elNode) await closurePn(removeStampNode);
                             if (j === idx) {
 
                               if (elNode) {
@@ -7024,42 +7112,34 @@
 
                             wmMapToItem.set(connectedComponent, mWeakRef(item));
 
-                            let t1 = performance.now();
+                            const addClosure = () => {
+                              elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                              const cnt = insp(connectedComponent);
+                              renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                              mutationDelayedRefreshData(cnt); // not included to sideProcesses
+                              addedCounter++;
 
-                            // k++;
-                            if (t1 - t0 > 14) {
-                              // batching.push(k);
-                              await nextBrowserTick_();
-                              t0 = performance.now();
-                              // k = 0;
-                            } else {
-                              await Promise.resolve();
-                            }
+                              if (cTag === 'tickerItems') {
+                                sideProcesses.push(onTickerItemStampNodeAdded());
+                              }
 
-                            elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                            const cnt = insp(connectedComponent);
-                            renderMap.set(cnt.data, mWeakRef(connectedComponent));
-                            mutationDelayedRefreshData(cnt); // not included to sideProcesses
-                            addedCounter++;
+                              // YYYYY
+                              if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                                const itemScroller = this.itemScroller;
+                                if (itemScroller) itemScroller.scrollTop = 16777216;
+                              } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                                const itemScroller = this.itemScroller;
+                                if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
+                              }
+                            };
 
-                            if (cTag === 'tickerItems') {
-                              sideProcesses.push(onTickerItemStampNodeAdded());
-                            }
-
-                            // YYYYY
-                            if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                              const itemScroller = this.itemScroller;
-                              if (itemScroller) itemScroller.scrollTop = 16777216;
-                            } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                              const itemScroller = this.itemScroller;
-                              if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
-                            }
+                            await closurePn(addClosure);
 
                           }
                         }
                         // if (k > 0) batching.push(k);
 
-                        while (elNode) await removeStampNode();
+                        while (elNode) await closurePn(removeStampNode);
 
                       });
 
@@ -10289,8 +10369,6 @@
                     // }catch(e){}
                     // ---- no-cache ----
 
-                    await Promise.resolve();
-
                     if (cTag === 'visibleItems') {
                       sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
                     }
@@ -10340,6 +10418,28 @@
 
                     // let k = 0;
                     let t0 = performance.now();
+
+                    const closurePn = (closureFn) => {
+                      let t1 = performance.now();
+                      let r;
+                      if (t1 - t0 > 14) {
+                        // batching.push(k);
+                        r = new Promise(resolve => {
+                          nextBrowserTick_(() => {
+                            try {
+                              closureFn();
+                            } catch (e) { console.warn(e) }
+                            resolve();
+                          });
+                        });
+                        t0 = performance.now();
+                        // k = 0;
+                      } else {
+                        r = Promise.resolve().then(closureFn).catch(console.warn);
+                      }
+                      return r;
+                    }
+
                     for (const rcEntry of newRenderedComponents) {
 
                       const index = indexMap.get(rcEntry);
@@ -10348,7 +10448,7 @@
                         indexMap.delete(rcEntry);
                         const idx = dIdx;
 
-                        while (j < idx && elNode) await removeStampNode();
+                        while (j < idx && elNode) await closurePn(removeStampNode);
                         if (j === idx) {
 
                           if (elNode) {
@@ -10376,42 +10476,34 @@
 
                         wmMapToItem.set(connectedComponent, mWeakRef(item));
 
-                        let t1 = performance.now();
+                        const addClosure = () => {
+                          elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                          const cnt = insp(connectedComponent);
+                          renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                          mutationDelayedRefreshData(cnt); // not included to sideProcesses
+                          addedCounter++;
 
-                        // k++;
-                        if (t1 - t0 > 14) {
-                          // batching.push(k);
-                          await nextBrowserTick_();
-                          t0 = performance.now();
-                          // k = 0;
-                        } else {
-                          await Promise.resolve();
-                        }
+                          if (cTag === 'tickerItems') {
+                            sideProcesses.push(onTickerItemStampNodeAdded());
+                          }
 
-                        elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                        const cnt = insp(connectedComponent);
-                        renderMap.set(cnt.data, mWeakRef(connectedComponent));
-                        mutationDelayedRefreshData(cnt); // not included to sideProcesses
-                        addedCounter++;
+                          // XXXXX
+                          if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                            const itemScroller = this.itemScroller;
+                            if (itemScroller) itemScroller.scrollTop = 16777216;
+                          } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                            const itemScroller = this.itemScroller;
+                            if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
+                          }
+                        };
 
-                        if (cTag === 'tickerItems') {
-                          sideProcesses.push(onTickerItemStampNodeAdded());
-                        }
-
-                        // XXXXX
-                        if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                          const itemScroller = this.itemScroller;
-                          if (itemScroller) itemScroller.scrollTop = 16777216;
-                        } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                          const itemScroller = this.itemScroller;
-                          if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
-                        }
+                        await closurePn(addClosure);
 
                       }
                     }
                     // if (k > 0) batching.push(k);
 
-                    while (elNode) await removeStampNode();
+                    while (elNode) await closurePn(removeStampNode);
 
                   });
 
@@ -13800,380 +13892,703 @@
 
       }
 
-      if (USE_RM_ON_FOUNTAIN_MODEL) {
+      // if (USE_RM_ON_FOUNTAIN_MODEL) {
 
 
-        customElements.whenDefined("yt-emoji-fountain-view-model").then(() => {
+      //   customElements.whenDefined("yt-emoji-fountain-view-model").then(() => {
 
 
-          mightFirstCheckOnYtInit();
-          groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-fountain-view-model hacks");
-          console1.log("[Begin]");
-          (() => {
+      //     mightFirstCheckOnYtInit();
+      //     groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-fountain-view-model hacks");
+      //     console1.log("[Begin]");
+      //     (() => {
 
-            const tag = "yt-emoji-fountain-view-model"
-            const dummy = document.createElement(tag);
+      //       const tag = "yt-emoji-fountain-view-model"
+      //       const dummy = document.createElement(tag);
 
-            const cProto = getProto(dummy);
-            if (!cProto || !cProto.attached) {
-              console1.warn(`proto.attached for ${tag} is unavailable.`);
-              return;
-            }
+      //       const cProto = getProto(dummy);
+      //       if (!cProto || !cProto.attached) {
+      //         console1.warn(`proto.attached for ${tag} is unavailable.`);
+      //         return;
+      //       }
 
-            if (typeof cProto.createEmojiAnimation === 'function' && !cProto.createEmojiAnimation037 && cProto.createEmojiAnimation.length === 4) {
-              cProto.createEmojiAnimation037 = cProto.createEmojiAnimation;
+      //       if (typeof cProto.createEmojiAnimation === 'function' && !cProto.createEmojiAnimation037 && cProto.createEmojiAnimation.length === 4) {
+      //         cProto.createEmojiAnimation037 = cProto.createEmojiAnimation;
 
-              const heartEmoji = {
-                "emojiId": "❤",
-                "image": {
-                  "thumbnails": [
-                    {
-                      "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/2764/72.png"
-                    }
-                  ]
-                },
-                "searchTerms": [
-                  "red",
-                  "heart"
-                ],
-                "shortcuts": [
-                  ":red_heart:",
-                  ":heart:",
-                  "<3"
-                ],
-                "index": 318
-              };
-              const $this = {
-                reactionBuckets: [
-                  {
-                    "totalReactions": 1,
-                    "duration": {
-                      "seconds": "1"
-                    },
-                    "intensityScore": 0.75,
-                    "reactionsData": [
-                      {
-                        "unicodeEmojiId": "❤",
-                        "reactionCount": 1
-                      }
-                    ]
-                  }
-                ],
-                noEmojiIdentifier: "NO_EMOJI",
-                "emojiBucketTimerId": 155,
-                "lastEmojiRequestedForTesting": "❤",
-                "emojiAnimationTimerId": 338,
-                emojiManager: new Proxy(dummy.emojiManager, {
-                  get(target, p) {
-                    if (p === 'emojiMap') {
-                      const o = target[p] || {};
-                      if (!o["❤"]) o["❤"] = heartEmoji;
-                      return o;
-                    }
-                  }
-                }),
-                emojiContainer: null
-              };
+      //         let creationKey = '';
 
-              const tracelist = new Set();
-              try {
-                createElement_fountain_model_enabled = true;
-                createElement_fountain_model_fn = function (a) {
-                  tracelist.add(a);
-                  return false;
-                }
-                cProto.createEmojiAnimation037.call($this, '❤', false, undefined, undefined);
-              } catch (e) { }
-              createElement_fountain_model_enabled = false;
+      //         const selfRemovalListener = function (evt) {
+      //           console.log('selfRemovalListener')
+      //           if (this.parentNode instanceof Node && this.isConnected === true) {
+      //             if (this.remove147) this.remove147(); else this.remove();
+      //           }
+      //         };
+      //         const __addEventListenerFountainEmoji__ = function (evtName, fnListener, opt = void 0) {
+      //           if (evtName === 'animationend' && fnListener.length === 0 && !opt) {
+      //             const s = `${fnListener}`;
+      //             if (s.length >= 22 && s.length <= 24 && s.endsWith('.remove()}') && s.startsWith('function(){')) {
+      //               // 'function(){k.remove()}' to  'function(){xxx.remove()}'
+      //               // console.log(2838, `${fnListener}`, `${fnListener}`.length);
+      //               // [D]<< 2838 'function(){k.remove()}' 22 >>
+      //               this.removeEventListener(evtName, selfRemovalListener, false);
+      //               return this.addEventListener147(evtName, selfRemovalListener, false);
+      //             }
+      //           }
+      //           return this.addEventListener147(...arguments);
+      //         }
+      //         const __removeFountainEmoji__ = function () {
+      //           console.log('__removeFountainEmoji__')
+      //           if (this.parentNode instanceof Node && this.isConnected === true && this.remove147) this.remove147();
+      //         };
 
-              const tracelistLen = tracelist.size;
-              tracelist.clear();
+      //         const heartEmoji = {
+      //           "emojiId": "❤",
+      //           "image": {
+      //             "thumbnails": [
+      //               {
+      //                 "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/2764/72.png"
+      //               }
+      //             ]
+      //           },
+      //           "searchTerms": [
+      //             "red",
+      //             "heart"
+      //           ],
+      //           "shortcuts": [
+      //             ":red_heart:",
+      //             ":heart:",
+      //             "<3"
+      //           ],
+      //           "index": 318
+      //         };
+      //         const $this = {
+      //           reactionBuckets: [
+      //             {
+      //               "totalReactions": 1,
+      //               "duration": {
+      //                 "seconds": "1"
+      //               },
+      //               "intensityScore": 0.75,
+      //               "reactionsData": [
+      //                 {
+      //                   "unicodeEmojiId": "❤",
+      //                   "reactionCount": 1
+      //                 }
+      //               ]
+      //             }
+      //           ],
+      //           noEmojiIdentifier: "NO_EMOJI",
+      //           "emojiBucketTimerId": 155,
+      //           "lastEmojiRequestedForTesting": "❤",
+      //           "emojiAnimationTimerId": 338,
+      //           emojiManager: new Proxy(dummy.emojiManager, {
+      //             get(target, p) {
+      //               if (p === 'emojiMap') {
+      //                 const o = target[p] || {};
+      //                 if (!o["❤"]) o["❤"] = heartEmoji;
+      //                 return o;
+      //               }
+      //             }
+      //           }),
+      //           emojiContainer: null
+      //         };
 
-              if (tracelistLen > 0) {
+      //         const tracelist = new Set();
+      //         try {
+      //           createElement_fountain_model_enabled = true;
+      //           createElement_fountain_model_fn = function (a) {
+      //             tracelist.add(a);
+      //             return false;
+      //           }
+      //           cProto.createEmojiAnimation037.call($this, '❤', false, undefined, undefined);
+      //         } catch (e) { }
+      //         createElement_fountain_model_enabled = false;
+      //         createElement_fountain_model_fn = null;
 
-                const elementList = new Set();
-                // const classList = new Set();
+      //         const tracelistLen = tracelist.size;
+      //         tracelist.clear();
 
-                const fountainMap = new WeakMap();
+      //         if(tracelistLen > 0){
+      //           const elementLists = {}
+      //           createElement_fountain_model_fn = function (a) {
+      //             if (!elementLists[a]) elementLists[a] = new Set();
+      //             const list = elementLists[a];
+      //             for (const entry of list) {
+      //               if (entry && entry.creationKey !== creationKey) {
+      //                 let elm = kRef(entry.wr);
+      //                 if (elm instanceof Node && (elm.nodeName) && elm.nodeType === 1) {
+      //                   if (elm.isConnected === false && !elm.parentNode) {
+      //                     if (elm.is === 'yt-icon') {
+      //                       const cnt = insp(node);
+      //                       if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+      //                       cnt.__refreshProps938__();
+      //                       // cnt.removeIconShape();
+      //                     }
+      //                     const coll = elm.getElementsByTagName('*');
+      //                     for (let i = 0, l = coll.length; i < l; i++) {
+      //                       const node = coll[i];
+      //                       const cnt = insp(node);
+      //                       if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
+      //                         try {
+      //                           cnt.dispose();
+      //                         } catch (e) { }
+      //                       } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
+      //                         try {
+      //                           node.dispose();
+      //                         } catch (e) { }
+      //                       }
+      //                     }
+      //                     const attrs = elm.attributes || 0;
+      //                     if (attrs.style) attrs.style.value = '';
+      //                     if (attrs.id) attrs.id.value = '';
+      //                     if (!elm.is && attrs.class) attrs.class.value = '';
+      //                     console.log('reuse', a, elm);
+      //                     // [D]<< reuse emoji <emoji class=​"yt-emoji-fountain-view-model transVert0X">​…​</emoji>​  >>
+      //                     // transVert0X; X=1,2,3
+      //                     entry.creationKey = creationKey;
+      //                     return elm;
+      //                   }
+      //                 } else {
+      //                   entry.wr = null;
+      //                   list.delete(entry);
+      //                 }
+      //               }
+      //             }
+      //             const r = document.createElement4719(a);
+      //             list.add({ wr: mWeakRef(r), creationKey });
+      //             if (r.nodeName === 'EMOJI') {
+      //               if (!r.addEventListener147 && r.addEventListener) {
+      //                 r.addEventListener147 = r.addEventListener;
+      //                 r.addEventListener = __addEventListenerFountainEmoji__;
+      //               }
+      //               if (!r.remove147 && r.remove) {
+      //                 r.remove147 = r.remove;
+      //                 r.remove = __removeFountainEmoji__;
+      //               }
+      //             }
+      //             return r;
+      //           }
 
-                const listOfRemove = [];
-
-                const listOfRemoveFn = () => {
-                  if (listOfRemove.length === 0) return;
-                  for (const elm of listOfRemove) elm.parentNode && elm.remove();
-                  listOfRemove.length = 0;
-                }
-                const animationendListener = (evt) => {
-                  const p = evt.target;
-                  if (p instanceof HTMLElement && p.nodeName === 'EMOJI' && p.__removeOnAnimationEnd381__) {
-                    p.__removeOnAnimationEnd381__ = false;
-                    listOfRemove.push(p);
-                    Promise.resolve().then(listOfRemoveFn);
-                  }
-                };
-
-                const addEventListener716 = function (a, b, c = undefined) {
-                  // console.log(1239889, this, a,b,c)
-                  if (a === 'animationend' && this.__emoji4818__ && typeof b === 'function' && b.length === 0 && c === undefined && (this || 0).nodeName === "EMOJI" && /^function\s*\(\s*\)\s*\{\s*[$a-wA-Z_-\d]+\.remove\(\);?\s*}$/.test(`${b}`)) {
-                    const cnt = kRef(fountainMap.get(this));
-                    const hostElement = cnt ? cnt.hostElement : null;
-                    if (cnt && hostElement instanceof HTMLElement) {
-                      if (!cnt.__addedAnimationEnd381__) {
-                        cnt.__addedAnimationEnd381__ = true;
-                        hostElement.addEventListener('animationend', animationendListener, passiveCapture);
-                      }
-                      this.__removeOnAnimationEnd381__ = true; // set on addEventListener; unset on execution; (to be re-set in createEmojiAnimation)
-                      return;
-                    }
-                  }
-                  // console.log(477, a,b,c)
-                  return this.addEventListener717(...arguments)
-                }
-
-                let __weakRef9592__;
-                DEBUG_RM_ON_FOUNTAIN_MODEL && (window.__elementList183__ = elementList); // around 30 ~ 60 elements when dt = 1600ms
-
-                const updateElementList = function (cntWR) {
-
-                  try {
-
-                    const cnt = kRef(cntWR);
-                    if (!cnt) return;
-
-
-                    const ct = Date.now();
-                    for (const entry of elementList) {
-                      const [elementW, creationTime, addTime, removeTime] = entry;
-
-                      const element = kRef(elementW);
-                      if (!element) {
-                        elementList.delete(entry);
-                        continue;
-                      }
-
-                      // addTime removeTime
-                      // 0 0 -> element.isConnected === true
-                      // 0 1 -> element.isConnected === true
-                      // 1 0 -> element.isConnected === false
-                      // 1 1 X
-
-                      if (!addTime) {
-                        if (element.isConnected === true) {
-                          entry[2] = ct;
-                          entry[3] = 0;
-                          // arrange the entry to the iteration end
-                          elementList.delete(entry);
-                          elementList.add(entry);
-                        }
-                      } else if (!removeTime) {
-                        if (element.isConnected === false) {
-                          entry[2] = 0;
-                          entry[3] = ct;
-                          // arrange the entry to the iteration end
-                          // elementList.delete(entry);
-                          // elementList.add(entry);
-                        }
-                      }
-
-
-
-                    }
-                  } catch (e) {
-                    console.warn(e);
-                  }
+      //           // console.log(399, cProto.generateEmojiAnimations)
 
 
-                }
+      //           /*
 
-                createElement_fountain_model_fn = function (a) {
-                  if (typeof a !== 'string') return;
-                  const ct = Date.now();
-                  const timeRef = ct - FOUNTAIN_MODEL_TIME_CONFIRM;
-                  const tagNameLower = a.toLowerCase();
-                  try {
-                    for (const entry of elementList) {
-                      const [elementW, creationTime, addTime, removeTime] = entry;
-                      if (!removeTime || removeTime > timeRef) continue;
-                      const element = kRef(elementW);
-                      if (!element) { // play safe
-                        elementList.delete(entry);
-                        continue;
-                      }
+      //               f.generateEmojiAnimations = function(a) {
+      //                   var b = this
+      //                     , c = this.getRandomEmojiIdFromBucketWithOverride(a);
+      //                   if (c && c !== this.noEmojiIdentifier) {
+      //                       var d = 0;
+      //                       a.targetEps ? (d = this.linearInterpolateBounded(1, 20, 100, 12, a.emojiSizeIndex || 0),
+      //                       this.createEmojiAnimation(c, !1, a.emojiAnimationMs, d),
+      //                       d = this.getEmojiDelayMsFromTargetEps(a.targetEps)) : (this.createEmojiAnimation(c),
+      //                       d = this.getEmojiDelayMsFromDistribution(a.intensityScore));
+      //                       this.emojiAnimationTimerId = setTimeout(function() {
+      //                           b.generateEmojiAnimations(a)
+      //                       }, d)
+      //                   }
+      //               }
 
-                      const bool = element.__tagNameLower584__ === tagNameLower && element.isConnected === false;
+      //           */
+      //           // let animatedTimingStarted= false;
+      //           // const animatedTimingStack = [];
+      //           // let animatedTimingLooper = null;
+      //           // let animatedTimingInit = ()=>{
 
-                      // if (element.isConnected === true) {  // play safe
-                      //   continue;
-                      // }
+      //           //   const wme = document.createComment('1');
+      //           //   let wmp = new PromiseExternal();
+      //           //   const wmo = new MutationObserver(() => {
+      //           //     wmp.resolve();
+      //           //     wmp = new PromiseExternal();
+      //           //   });
+      //           //   wmo.observe(wme, { characterData: true });
+
+      //           //   animatedTimingLooper = async () => {
+      //           //     if (animatedTimingStarted) return;
+      //           //     animatedTimingStarted = true;
+      //           //     while (arr.length > 0) {
+      //           //       wme.data = `${(wme.data & 7) + 1}`;
+      //           //       await wmp;
+      //           //       const now = Date.now();
+      //           //       let arr = animatedTimingStack;
+      //           //       let l = arr.length;
+      //           //       let u = -1;
+      //           //       for (let i = 0; i < l; i++) {
+      //           //         if (arr[i].fireAt <= now) {
+      //           //           Promise.resolve(arr[i]).then(entry => {
+      //           //             const { obj, fn, args } = entry;
+      //           //             const o = kRef(obj);
+      //           //             if (obj && !o) {
+      //           //               // cleared
+      //           //             } else {
+      //           //               let t;
+      //           //               if (typeof fn === 'string' && (t = o || window)) t[fn](...args);
+      //           //               else if (typeof fn === 'function') o ? fn.call(o) : fn();
+      //           //             }
+      //           //           });
+      //           //           u = i;
+      //           //         } else {
+      //           //           break;
+      //           //         }
+      //           //       }
+      //           //       u >= 0 && arr.splice(0, u + 1);
+      //           //     }
+      //           //     animatedTimingStarted = false;
+      //           //   }
+
+      //           //   animatedTimingInit = null;
+
+
+      //           // }
+      //           // function insertSorted(arr, element, prop) {
+      //           //   // limitation: max length 1073741823
+      //           //   let left = 0;
+      //           //   let right = arr.length;
+
+      //           //   // Binary search to find the correct index
+      //           //   while (left < right) {
+      //           //     const mid = (left + right) >> 1; // same as Math.floor((left + right) / 2)
+      //           //     if (arr[mid][prop] < element[prop]) {
+      //           //       left = mid + 1;
+      //           //     } else {
+      //           //       right = mid;
+      //           //     }
+      //           //   }
+
+      //           //   // Insert element at the correct index
+      //           //   if (left === arr.length) arr.push(element);
+      //           //   else if (left === 0) arr.unshift(element);
+      //           //   else arr.splice(left, 0, element);
+      //           //   return arr;
+      //           // }
+
+
+      //           // const animatedTimingStackAdd = (entry) => {
+      //           //   if(animatedTimingStack.length > 973741823) {
+      //           //     console.warn('animatedTimingStack size warning', animatedTimingStack.length);
+      //           //     animatedTimingStack.splice(0, Math.floor(animatedTimingStack.length / 2));
+      //           //   }
+      //           //   insertSorted(animatedTimingStack, entry, 'fireAt');
+      //           //   if (!animatedTimingLooper) animatedTimingInit();
+      //           //   if (!animatedTimingStarted) animatedTimingLooper();
+      //           // }
+
+      //           cProto.processEmojiBucket137 = cProto.processEmojiBucket;
+      //           cProto.processEmojiBucket = function (a) {
+      //             if (this.reactionBuckets && !(a >= this.reactionBuckets.length)) {
+      //               clearTimeout(this.emojiAnimationTimerId);
+      //               this.emojiAnimationTimerId = 0;
+      //             }
+      //             return this.processEmojiBucket137(...arguments)
+      //           };
+
+      //           cProto.cleanupFountain137 = cProto.cleanupFountain;
+      //           cProto.cleanupFountain = function () {
+      //             clearTimeout(this.emojiBucketTimerId);
+      //             clearTimeout(this.emojiAnimationTimerId);
+      //             this.emojiBucketTimerId = 0;
+      //             this.emojiAnimationTimerId = 0;
+      //             return this.cleanupFountain137(...arguments)
+      //           };
+
+      //           cProto.generateEmojiAnimations137 = cProto.generateEmojiAnimations;
+      //           let takenD = null;
+      //           cProto.generateEmojiAnimations = function (a) {
+      //             if (arguments.length !== 1) return this.generateEmojiAnimations137(...arguments);
+      //             takenD = null;
+      //             // const dt = Date.now();
+      //             let previousTimerId = this.emojiAnimationTimerId; // can be any value including null and undefined
+      //             let r = this.generateEmojiAnimations137(a);
+      //             const takenD_ = takenD;
+      //             takenD = null;
+      //             if (previousTimerId === this.emojiAnimationTimerId) return r; // no special treatment if no timer is created
+      //             clearTimeout(this.emojiAnimationTimerId); // we use custom timing for precision handling
+      //             // this.emojiAnimationTimerId = null;
+      //             // console.log('takenD', takenD_);
+      //             const d = takenD_ || 0;
+      //             const obj = mWeakRef(this);
+      //             if (d > 0) {
+      //               const a_ = a;
+      //               accurateTiming(() => {
+      //                 const cnt = kRef(obj);
+      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
+      //                 if (cnt) cnt.generateEmojiAnimations(a_);
+      //               }, d / 1000) || setTimeoutX0(() => {
+      //                 const cnt = kRef(obj);
+      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
+      //                 if (cnt) cnt.generateEmojiAnimations(a_);
+      //               }, d);
+      //             } else if (!d) {
+      //               const a_ = a;
+      //               nextBrowserTick_(() => {
+      //                 const cnt = kRef(obj);
+      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
+      //                 if (cnt) cnt.generateEmojiAnimations(a_);
+      //               });
+      //             }
+      //             return r;
+      //           }
+
+      //           cProto.getEmojiDelayMsFromTargetEps463 = cProto.getEmojiDelayMsFromTargetEps;
+      //           cProto.getEmojiDelayMsFromTargetEps = function(targetEps){
+      //             return takenD = this.getEmojiDelayMsFromTargetEps463(...arguments);
+      //           }
+      //           cProto.getEmojiDelayMsFromDistribution463 = cProto.getEmojiDelayMsFromDistribution;
+      //           cProto.getEmojiDelayMsFromDistribution = function(intensityScore){
+      //             return takenD = this.getEmojiDelayMsFromDistribution463(...arguments);
+      //           }
+
+      //           cProto.createEmojiAnimation = function (a, b, c, d) {
+      //             // createUserReactionAnimation -> b = true
+      //             // generateEmojiAnimations -> b = false ; d is produced by linearInterpolateBounded
+                  
+      //             // a - emoji key ??
+      //             // b - [boolean] true for user-reaction-bubble (non-animation?); (default false)
+      //             // c - [number] emojiAnimationMs (void 0 able)
+      //             // d - [number] size (void 0 able)
+      //             // takenD = d;
+      //             if (createElement_fountain_model_enabled) return this.createEmojiAnimation037(...arguments);
+      //             let r;
+      //             creationKey = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      //             // console.log('createEmojiAnimation')
+      //             // console.log(new Error().stack);
+
+      //             /*
+
+      //             Error
+      //                 at cProto.createEmojiAnimation (chrome-extension://fcifjokfpggmdbacgeaickkblaldgeaj/YouTube%20%E8%B6%85%E5%BF%AB%E8%81%8A%E5%A4%A9.user.js#154:14178:31)
+      //                 at f.createUserReactionAnimation (live_chat_polymer.js:11877:48)
+      //                 at live_chat_polymer.js:1243:63
+      //                 at live_chat_polymer.js:3287:62
+      //                 at Map.forEach (<anonymous>)
+      //                 at xAa (live_chat_polymer.js:3287:25)
+      //                 at Js.handleAction (live_chat_polymer.js:3286:88)
+      //                 at e.onYtAction_ [as onYtAction57_] (live_chat_polymer.js:23966:44)
+      //                 at ut (live_chat_polymer.js:3398:129)
+      //                 at pu (live_chat_polymer.js:3644:302)
+
+
+      //             Error
+      //                 at cProto.createEmojiAnimation (chrome-extension://fcifjokfpggmdbacgeaickkblaldgeaj/YouTube%20%E8%B6%85%E5%BF%AB%E8%81%8A%E5%A4%A9.user.js#154:14178:31)
+      //                 at f.generateEmojiAnimations (live_chat_polymer.js:11882:328)
+      //                 at f.processEmojiBucket (live_chat_polymer.js:11881:181)
+      //                 at f.onEmojiFountainDataEntityUpdate (live_chat_polymer.js:11880:200)
+      //                 at Object.Vva [as fn] (live_chat_polymer.js:2416:119)
+      //                 at Uq (live_chat_polymer.js:2398:218)
+      //                 at a._propertiesChanged (live_chat_polymer.js:2450:122)
+      //                 at b._propertiesChanged (live_chat_polymer.js:3490:309)
+      //                 at b._flushProperties (live_chat_polymer.js:2321:200)
+      //                 at a._invalidateProperties (live_chat_polymer.js:2442:69)
+
+      //             Error
+      //                 at cProto.createEmojiAnimation (YouTube 超快聊天.user.js:14178:31)
+      //                 at f.generateEmojiAnimations (live_chat_polymer.js:11882:328)
+      //                 at live_chat_polymer.js:11882:461
+      //                 at Web CPU Tamer.user.js:247:16
 
 
 
-                      if (bool) {
-                      // const qq = true;
-                      // console.log(1838, p === a.toLowerCase() , entry[3] > 0 , entry[3] < targetCreationTime)
-                      // if (  qq &&  p === a.toLowerCase() && removeTime > 0 && removeTime < targetCreationTime ) {
-                        // console.log(123992, element , element.isConnected)
 
-                        elementList.delete(entry);
-                        entry[1] = ct;
-                        entry[2] = 0;
-                        entry[3] = 0;
-                        elementList.add(entry);
+      //             */
 
-                        element.className = '';
-                        element.style = '';
-                        if (tagNameLower === 'img') {
-                          element.src = '';
-                          element.alt = '';
-                        }
+      //             createElement_fountain_model_enabled = true;
+      //             try{
+      //             r = this.createEmojiAnimation037(...arguments);
+      //             }catch(e){
+      //               console.warn(e);
+      //             }
+      //             createElement_fountain_model_enabled =false;
+      //             return r;
+      //           }
+
+
+      //         }
+
+      //         // if (tracelistLen > 0) {
+
+      //         //   const elementList = new Set();
+      //         //   // const classList = new Set();
+
+      //         //   const fountainMap = new WeakMap();
+
+      //         //   const listOfRemove = [];
+
+      //         //   const listOfRemoveFn = () => {
+      //         //     if (listOfRemove.length === 0) return;
+      //         //     for (const elm of listOfRemove) elm.parentNode && elm.remove();
+      //         //     listOfRemove.length = 0;
+      //         //   }
+      //         //   const animationendListener = (evt) => {
+      //         //     const p = evt.target;
+      //         //     if (p instanceof HTMLElement && p.nodeName === 'EMOJI' && p.__removeOnAnimationEnd381__) {
+      //         //       p.__removeOnAnimationEnd381__ = false;
+      //         //       listOfRemove.push(p);
+      //         //       Promise.resolve().then(listOfRemoveFn);
+      //         //     }
+      //         //   };
+
+      //         //   const addEventListener716 = function (a, b, c = undefined) {
+      //         //     // console.log(1239889, this, a,b,c)
+      //         //     if (a === 'animationend' && this.__emoji4818__ && typeof b === 'function' && b.length === 0 && c === undefined && (this || 0).nodeName === "EMOJI" && /^function\s*\(\s*\)\s*\{\s*[$a-wA-Z_-\d]+\.remove\(\);?\s*}$/.test(`${b}`)) {
+      //         //       const cnt = kRef(fountainMap.get(this));
+      //         //       const hostElement = cnt ? cnt.hostElement : null;
+      //         //       if (cnt && hostElement instanceof HTMLElement) {
+      //         //         if (!cnt.__addedAnimationEnd381__) {
+      //         //           cnt.__addedAnimationEnd381__ = true;
+      //         //           hostElement.addEventListener('animationend', animationendListener, passiveCapture);
+      //         //         }
+      //         //         this.__removeOnAnimationEnd381__ = true; // set on addEventListener; unset on execution; (to be re-set in createEmojiAnimation)
+      //         //         return;
+      //         //       }
+      //         //     }
+      //         //     // console.log(477, a,b,c)
+      //         //     return this.addEventListener717(...arguments)
+      //         //   }
+
+      //         //   let __weakRef9592__;
+      //         //   DEBUG_RM_ON_FOUNTAIN_MODEL && (window.__elementList183__ = elementList); // around 30 ~ 60 elements when dt = 1600ms
+
+      //         //   const updateElementList = function (cntWR) {
+
+      //         //     try {
+
+      //         //       const cnt = kRef(cntWR);
+      //         //       if (!cnt) return;
+
+
+      //         //       const ct = Date.now();
+      //         //       for (const entry of elementList) {
+      //         //         const [elementW, creationTime, addTime, removeTime] = entry;
+
+      //         //         const element = kRef(elementW);
+      //         //         if (!element) {
+      //         //           elementList.delete(entry);
+      //         //           continue;
+      //         //         }
+
+      //         //         // addTime removeTime
+      //         //         // 0 0 -> element.isConnected === true
+      //         //         // 0 1 -> element.isConnected === true
+      //         //         // 1 0 -> element.isConnected === false
+      //         //         // 1 1 X
+
+      //         //         if (!addTime) {
+      //         //           if (element.isConnected === true) {
+      //         //             entry[2] = ct;
+      //         //             entry[3] = 0;
+      //         //             // arrange the entry to the iteration end
+      //         //             elementList.delete(entry);
+      //         //             elementList.add(entry);
+      //         //           }
+      //         //         } else if (!removeTime) {
+      //         //           if (element.isConnected === false) {
+      //         //             entry[2] = 0;
+      //         //             entry[3] = ct;
+      //         //             // arrange the entry to the iteration end
+      //         //             // elementList.delete(entry);
+      //         //             // elementList.add(entry);
+      //         //           }
+      //         //         }
+
+
+
+      //         //       }
+      //         //     } catch (e) {
+      //         //       console.warn(e);
+      //         //     }
+
+
+      //         //   }
+
+      //         //   createElement_fountain_model_fn = function (a) {
+      //         //     if (typeof a !== 'string') return;
+      //         //     const ct = Date.now();
+      //         //     const timeRef = ct - FOUNTAIN_MODEL_TIME_CONFIRM;
+      //         //     const tagNameLower = a.toLowerCase();
+      //         //     try {
+      //         //       for (const entry of elementList) {
+      //         //         const [elementW, creationTime, addTime, removeTime] = entry;
+      //         //         if (!removeTime || removeTime > timeRef) continue;
+      //         //         const element = kRef(elementW);
+      //         //         if (!element) { // play safe
+      //         //           elementList.delete(entry);
+      //         //           continue;
+      //         //         }
+
+      //         //         const bool = element.__tagNameLower584__ === tagNameLower && element.isConnected === false;
+
+      //         //         // if (element.isConnected === true) {  // play safe
+      //         //         //   continue;
+      //         //         // }
+
+
+
+      //         //         if (bool) {
+      //         //         // const qq = true;
+      //         //         // console.log(1838, p === a.toLowerCase() , entry[3] > 0 , entry[3] < targetCreationTime)
+      //         //         // if (  qq &&  p === a.toLowerCase() && removeTime > 0 && removeTime < targetCreationTime ) {
+      //         //           // console.log(123992, element , element.isConnected)
+
+      //         //           elementList.delete(entry);
+      //         //           entry[1] = ct;
+      //         //           entry[2] = 0;
+      //         //           entry[3] = 0;
+      //         //           elementList.add(entry);
+
+      //         //           element.className = '';
+      //         //           element.style = '';
+      //         //           if (tagNameLower === 'img') {
+      //         //             element.src = '';
+      //         //             element.alt = '';
+      //         //           }
 
                         
 
 
-                        if (!onPageContainer) {
-                          let p = document.createElement('noscript');
-                          p.style.all = 'unset';
-                          document.body.prepend(p);
-                          onPageContainer = p;
-                        }
+      //         //           if (!onPageContainer) {
+      //         //             let p = document.createElement('noscript');
+      //         //             p.style.all = 'unset';
+      //         //             document.body.prepend(p);
+      //         //             onPageContainer = p;
+      //         //           }
 
-                        const cnt = insp(element);
-                        const hostElement = cnt.hostElement;
-                        if(hostElement === element && !cnt.__dataInvalid && cnt.__dataEnabled  && cnt.__dataReady){
+      //         //           const cnt = insp(element);
+      //         //           const hostElement = cnt.hostElement;
+      //         //           if(hostElement === element && !cnt.__dataInvalid && cnt.__dataEnabled  && cnt.__dataReady){
 
-                          // console.log(1238);
-                          onPageContainer.appendChild(hostElement); // to fix some issues for the rendered elements
+      //         //             // console.log(1238);
+      //         //             onPageContainer.appendChild(hostElement); // to fix some issues for the rendered elements
           
-                          cnt.__dataInvalid = false;
-                          cnt.__dataEnabled = true;
-                          cnt.__dataReady = true;
-                          // cnt._initializeProtoProperties(cnt.data)
+      //         //             cnt.__dataInvalid = false;
+      //         //             cnt.__dataEnabled = true;
+      //         //             cnt.__dataReady = true;
+      //         //             // cnt._initializeProtoProperties(cnt.data)
               
-                          // window.meaa = cnt.$.container;
+      //         //             // window.meaa = cnt.$.container;
 
-                          if (cnt.__data) cnt.__data = Object.assign({}, cnt.__data);
-                          cnt.__dataPending = {};
-                          cnt.__dataOld = {}
+      //         //             if (cnt.__data) cnt.__data = Object.assign({}, cnt.__data);
+      //         //             cnt.__dataPending = {};
+      //         //             cnt.__dataOld = {}
               
-                          try{
-                            cnt.markDirty();
-                          }catch(e){}
-                          try{
-                            cnt.markDirtyVisibilityObserver();
-                          }catch(e){}
-                          try{
-                            cnt.wasPrescan = cnt.wasVisible = !1
-                          }catch(e){}
+      //         //             try{
+      //         //               cnt.markDirty();
+      //         //             }catch(e){}
+      //         //             try{
+      //         //               cnt.markDirtyVisibilityObserver();
+      //         //             }catch(e){}
+      //         //             try{
+      //         //               cnt.wasPrescan = cnt.wasVisible = !1
+      //         //             }catch(e){}
   
 
 
-                        }
+      //         //           }
 
-                        element.__reuseCount918__ = (element.__reuseCount918__ || 0) + 1;
+      //         //           element.__reuseCount918__ = (element.__reuseCount918__ || 0) + 1;
           
 
 
 
-                        // console.log(2183, element);
-                        // emoji -> div -> img
-                        return element;
-                      }
+      //         //           // console.log(2183, element);
+      //         //           // emoji -> div -> img
+      //         //           return element;
+      //         //         }
 
-                      // console.log(element, element.nodeName);
-                      // continue;
-                      /*
-                      const p = (element.nodeName || '').toLowerCase();
+      //         //         // console.log(element, element.nodeName);
+      //         //         // continue;
+      //         //         /*
+      //         //         const p = (element.nodeName || '').toLowerCase();
                       
-                      if (p === a.toLowerCase()) {
-                        elementList.delete(entry);
-                        entry[1] = ct;
-                        entry[2] = 0;
-                        elementList.add(entry);
-                        element.className = '';
-                        element.style = '';
-                        if (p === 'img') {
-                          element.src = '';
-                          element.alt = '';
-                        }
-                        // console.log(2183, element);
-                        // emoji -> div -> img
-                        return element;
+      //         //         if (p === a.toLowerCase()) {
+      //         //           elementList.delete(entry);
+      //         //           entry[1] = ct;
+      //         //           entry[2] = 0;
+      //         //           elementList.add(entry);
+      //         //           element.className = '';
+      //         //           element.style = '';
+      //         //           if (p === 'img') {
+      //         //             element.src = '';
+      //         //             element.alt = '';
+      //         //           }
+      //         //           // console.log(2183, element);
+      //         //           // emoji -> div -> img
+      //         //           return element;
                         
-                      }
-                        */
+      //         //         }
+      //         //           */
 
 
 
-                    }
+      //         //       }
 
-                  } catch (e) {
-                    console.warn(e);
-                  }
-                  const elm = document.createElement4719(a)
+      //         //     } catch (e) {
+      //         //       console.warn(e);
+      //         //     }
+      //         //     const elm = document.createElement4719(a)
 
-                  try {
+      //         //     try {
 
-                    const elmW = mWeakRef(elm);
-                    const entry = [elmW, ct, 0, 0];
-                    elementList.add(entry);
-                    elm.__tagNameLower584__ = tagNameLower;
-                    // elm.__entry428__ = mWeakRef(entry);
-                    if (!elm.addEventListener717) {
-                      elm.addEventListener717 = elm.addEventListener;
-                      elm.addEventListener = addEventListener716;
-                      if (elm.nodeName.toLowerCase() === 'emoji') elm.__emoji4818__ = true;
-                    }
-                    if (__weakRef9592__) {
-                      const cnt = kRef(__weakRef9592__);
-                      cnt && fountainMap.set(elm, __weakRef9592__);
-                    }
-                  } catch (e) {
-                    console.warn(e);
-                  }
+      //         //       const elmW = mWeakRef(elm);
+      //         //       const entry = [elmW, ct, 0, 0];
+      //         //       elementList.add(entry);
+      //         //       elm.__tagNameLower584__ = tagNameLower;
+      //         //       // elm.__entry428__ = mWeakRef(entry);
+      //         //       if (!elm.addEventListener717) {
+      //         //         elm.addEventListener717 = elm.addEventListener;
+      //         //         elm.addEventListener = addEventListener716;
+      //         //         if (elm.nodeName.toLowerCase() === 'emoji') elm.__emoji4818__ = true;
+      //         //       }
+      //         //       if (__weakRef9592__) {
+      //         //         const cnt = kRef(__weakRef9592__);
+      //         //         cnt && fountainMap.set(elm, __weakRef9592__);
+      //         //       }
+      //         //     } catch (e) {
+      //         //       console.warn(e);
+      //         //     }
 
-                  return elm;
-                };
+      //         //     return elm;
+      //         //   };
 
-                cProto.createEmojiAnimation = function (a, b, c, d) {
-                  createElement_fountain_model_enabled = true;
-                  if (!this.__weakRef9591__) {
-                    this.__weakRef9591__ = mWeakRef(this);
-                    const q = this.__weakRef9591__;
-                    const hostElement = this.hostElement;
-                    const mo = new MutationObserver(() => {
-                      Promise.resolve(q).then(updateElementList);
-                    }).observe(hostElement, { subtree: true, childList: true });
-                  }
-                  __weakRef9592__ = this.__weakRef9591__;
-                  let r = this.createEmojiAnimation037(a, b, c, d);
-                  __weakRef9592__ = null;
-                  createElement_fountain_model_enabled = false;
-                  return r;
-                }
-                console1.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
-              } else {
+      //         //   cProto.createEmojiAnimation = function (a, b, c, d) {
+      //         //     createElement_fountain_model_enabled = true;
+      //         //     if (!this.__weakRef9591__) {
+      //         //       this.__weakRef9591__ = mWeakRef(this);
+      //         //       const q = this.__weakRef9591__;
+      //         //       const hostElement = this.hostElement;
+      //         //       const mo = new MutationObserver(() => {
+      //         //         Promise.resolve(q).then(updateElementList);
+      //         //       }).observe(hostElement, { subtree: true, childList: true });
+      //         //     }
+      //         //     __weakRef9592__ = this.__weakRef9591__;
+      //         //     let r = this.createEmojiAnimation037(a, b, c, d);
+      //         //     __weakRef9592__ = null;
+      //         //     createElement_fountain_model_enabled = false;
+      //         //     return r;
+      //         //   }
+      //         //   console1.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
+      //         // } else {
 
-                console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
-              }
+      //         //   console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+      //         // }
 
-            } else {
+      //       } else {
 
-              console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
-            }
+      //         console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
+      //       }
 
 
-          })();
+      //     })();
 
-          console1.log("[End]");
+      //     console1.log("[End]");
 
-          groupEnd();
+      //     groupEnd();
 
 
   
-        }).catch(console.warn);
+      //   }).catch(console.warn);
 
         
-      }
+      // }
 
     }
 
