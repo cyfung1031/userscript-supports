@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.6
+// @version             0.100.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3394,9 +3394,14 @@
       document.documentElement.insertAdjacentElement('beforeend', pSpace);
       const pNode = document.createElement('ns-538');
       pSpace.insertAdjacentElement('beforeend', pNode);
-      const pShadow = pNode.attachShadow({ mode: "open" });
+
       const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      pShadow.replaceChildren(pDiv);
+      if (typeof pNode.attachShadow === 'function') {
+        const pShadow = pNode.attachShadow({ mode: "open" });
+        pShadow.replaceChildren(pDiv);
+      } else {
+        pNode.insertAdjacentElement('beforeend', pDiv);
+      }
 
       const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       pDiv.insertAdjacentElement('beforeend', pDivNew);
