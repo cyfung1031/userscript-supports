@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.5
+// @version             0.100.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3416,9 +3416,9 @@
       const fnKeyH = `${key}$$c472`;
 
       cProto[fnKeyH] = async function (cTag, cId, pr00) {
-        await pr00; // await the current executing task (if any)
-        if (!this.ec389a && !this.ec389r) return;
-        await nextBrowserTick_(); // collective process (per marcoTask)
+        // await the current executing task (if any)
+        // and avoid stacking in the same marco task
+        await Promise.all([pr00, nextBrowserTick_()]); 
         if (!this.ec389a && !this.ec389r) return;
         const addedCount0 = this.ec389a;
         const removedCount0 = this.ec389r;
@@ -3427,22 +3427,23 @@
         this.ec389a = 0;
         this.ec389r = 0;
 
+        const stampDomMap = this.stampDom[cTag].mapping;
+        const isTickerRendering = cTag === 'tickerItems';
+        const isMessageListRendering = cTag === 'visibleItems';
+
         // coming process can be stacked as ec389a and ec389r are reset.
 
-        const deObjectComponent = (item) => {
-          const obj = item;
-          const I = firstObjectKey(obj);
-          const t = this.stampDom[cTag].mapping;
-          const L = t[I];
-          const H = obj[I];
+        const deObjectComponent = (itemEntry) => {
+          const I = firstObjectKey(itemEntry);
+          const L = stampDomMap[I];
+          const H = itemEntry[I];
           return [L, H];
         }
 
         const hostElement = this.hostElement;
 
-        const cList = this[cTag].slice();
         let renderNodeCount = 0;
-        const renderList = cList.map((item) => {
+        const renderList = this[cTag].map((item) => {
           const [L, H] = deObjectComponent(item);
           const node = kRef(renderMap.get(H));
           return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
@@ -3516,7 +3517,7 @@
             connectedComponent = createConnectedComponentElm(item, L, H, componentName);
             if (this.telemetry_) this.telemetry_.create++;
           }
-          if (cTag === 'tickerItems') {
+          if (isTickerRendering) {
             const container = connectedComponent.firstElementChild;
             if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
           }
@@ -3526,7 +3527,7 @@
         };
 
         let imgPreloadPr = null;
-        if (cTag === 'visibleItems') {
+        if (isMessageListRendering) {
           const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
           imgPreloadPr = preloadFn(addedItems)();
         }
@@ -3658,294 +3659,172 @@
 
         // }
 
-        if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-          // clear all pending rendering first
-          await stackMarcoTask(async () => {
-            Polymer.flush();
-          });
-        }
+        // if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+        //   // clear all pending rendering first
+        //   await stackMarcoTask(async () => {
+        //     Polymer.flush();
+        //   });
+        // }
 
         // main UI thread - DOM modification
-        await stackMarcoTask(async () => {
+        await new Promise((resolveDM) => {
+          nextBrowserTick_(() => {
 
-          const isAtBottom = this.atBottom === true;
-          // if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
-          //   shouldScrollAfterFlush = true;
-          // }
-
-
-          const tasks = [];
-
-          const taskFn = {
-            remove: (task)=>{
-
-              const {elNode} = task;
-
-              removedCounter++;
-
-              const elmId = elNode.id;
-              removeStampNode_(elNode);
-              // const dzid = this.getAttribute('dz-component-id');
-              // ---- no-cache ----
-              // try{
-              //   elm.remove();
-              // }catch(e){}
-              // ---- no-cache ----
-    
-              if (cTag === 'visibleItems') {
-                sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
-              }
-    
-
-            },
-            append: (task)=>{
-
-              const {newNode, nodeAfter, parentNode} = task;
-
-              nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
-              const connectedComponent = newNode;
-              const cnt = insp(connectedComponent);
-              renderMap.set(cnt.data, mWeakRef(connectedComponent));
-              mutationDelayedRefreshData(cnt); // not included to sideProcesses
-              addedCounter++;
-
-              if (cTag === 'tickerItems') {
-                sideProcesses.push(onTickerItemStampNodeAdded());
-              }
-
-              // YYYYY
-              if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                const itemScroller = this.itemScroller;
-                if (itemScroller) itemScroller.scrollTop = 16777216;
-              } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                const itemScroller = this.itemScroller;
-                if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
-              }
-
-            }
-          }
+            const isAtBottom = this.atBottom === true;
+            // if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
+            //   shouldScrollAfterFlush = true;
+            // }
 
 
-          {
+            const tasks = [];
 
+            const taskFn = {
+              remove: (task) => {
 
+                const { elNode } = task;
 
-            const indexMap = new WeakMap();
-            let index = 0;
-            for (let elNode_ = firstComponentChildFn(listDom); elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
-              indexMap.set(elNode_, index++);
-            }
+                removedCounter++;
 
-            const keepIndices = new Array(renderNodeCount);
-            let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-            for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
-              const entry = newRenderedComponents[i];
-              if (entry instanceof Node) {
-                const index = indexMap.get(entry);
-                keepIndices[keepIndicesLen++] = [index, entry];
-                if (index > lastKeepIndex) lastKeepIndex = index;
-                else requireSort = true;
-              }
-            }
-            keepIndices.length = keepIndicesLen;
-            if (requireSort) keepIndices.sort((a, b) => a[0] - b[0]);
-            let dk = 0;
+                const elmId = elNode.id;
+                removeStampNode_(elNode);
+                // const dzid = this.getAttribute('dz-component-id');
+                // ---- no-cache ----
+                // try{
+                //   elm.remove();
+                // }catch(e){}
+                // ---- no-cache ----
 
-            // let k = 0;
-            // let t0 = performance.now();
-            /*
-  
-            const closurePn = (closureFn) => {
-              let t1 = performance.now();
-              let r;
-              if (t1 - t0 > 14) {
-                // batching.push(k);
-                r = new Promise(resolve => {
-                  nextBrowserTick_(() => {
-                    try {
-                      closureFn();
-                    } catch (e) { console.warn(e) }
-                    resolve();
-                  });
-                });
-                t0 = performance.now();
-                // k = 0;
-              } else {
-                r = Promise.resolve().then(closureFn).catch(console.warn);
-              }
-              return r;
-            }
-            */
-
-            let j = 0;
-            let elNode;
-
-            elNode = firstComponentChildFn(listDom);
-
-            for (const rcEntry of newRenderedComponents) {
-
-
-              const index = indexMap.get(rcEntry);
-              if (typeof index === 'number') {
-
-
-                const indexEntry = keepIndices[dk++];
-                const [dIdx, dNode] = indexEntry;
-                indexMap.delete(rcEntry);
-                const idx = dIdx;
-                while (j < idx && elNode) {
-                  tasks.push({
-                    type: 'remove',
-                    elNode,
-                    fn: taskFn.remove
-                  });
-                  elNode = nextComponentSiblingFn(elNode);
-                  j++;
-                }
-                if (j === idx) {
-                  if (elNode) {
-                    // if (dNode !== elNode) tasks.push({
-                    //   type: 'swap',
-                    //   earlyNode: indexEntry[1],
-                    //   laterNode: elNode
-                    // });
-                    elNode = nextComponentSiblingFn(elNode);
-                    j++;
-                  } else {
-                    console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
-                  }
-                }
-              } else if (rcEntry instanceof Node) {
-                // interruped by the external like clearList
-
-                tasks.push({
-                  type: 'remove',
-                  elNode: rcEntry,
-                  fn: taskFn.remove
-                });
-
-              } else {
-                const [item, L, H, connectedComponent] = rcEntry;
-
-
-                tasks.push({
-                  type: 'append',
-                  newNode: connectedComponent,
-                  nodeAfter: elNode,
-                  parentNode: listDom,
-                  fn: taskFn.append
-                })
-
-              }
-
-            }
-
-            while (elNode) {
-
-              tasks.push({
-                type: 'remove',
-                elNode,
-                fn: taskFn.remove
-              });
-              elNode = nextComponentSiblingFn(elNode);
-
-            }
-
-          }
-
-/*
-
-            tasks.push({
-              type: 'remove',
-              elNode
-            })
-
-            tasks.push({
-              type: 'swap',
-              earlyNode: indexEntry[1],
-              laterNode: elNode
-            })
-
-            tasks.push({
-              type: 'append',
-              newNode: connectedComponent,
-              nodeAfter: elNode,
-              parentNode: listDom
-            })  */
-
-            /*
-
-            const index = indexMap.get(rcEntry);
-            if (typeof index === 'number') {
-              const indexEntry = keepIndices[dk++];
-              const dIdx = indexEntry[0];
-              indexMap.delete(rcEntry);
-              const idx = dIdx;
-
-              while (j < idx && elNode) await closurePn(removeStampNode);
-              if (j === idx) {
-
-                if (elNode) {
-                  const nextElm = nextComponentSiblingFn(elNode);
-                  j++;
-                  elNode = nextElm;
-                } else {
-                  console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                if (isMessageListRendering) {
+                  sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
                 }
 
-              }
+                return 2
 
-            } else if (rcEntry instanceof Node) {
-              // interruped by the external like clearList
+              },
+              append: (task) => {
 
-              removeStampNode_(rcEntry); // no await Promise.resolve()
+                const { newNode, nodeAfter, parentNode } = task;
 
-            } else {
-
-              const [item, L, H, connectedComponent] = rcEntry;
-
-              // await Promise.resolve(); // microTask allowance for flushRenderStamper
-
-              // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
-
-              wmMapToItem.set(connectedComponent, mWeakRef(item));
-
-              const addClosure = () => {
-                elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
+                const connectedComponent = newNode;
                 const cnt = insp(connectedComponent);
                 renderMap.set(cnt.data, mWeakRef(connectedComponent));
                 mutationDelayedRefreshData(cnt); // not included to sideProcesses
                 addedCounter++;
 
-                if (cTag === 'tickerItems') {
+                if (isTickerRendering) {
                   sideProcesses.push(onTickerItemStampNodeAdded());
                 }
 
-                // YYYYY
-                if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                if (isMessageListRendering && isAtBottom) {
+
                   const itemScroller = this.itemScroller;
-                  if (itemScroller) itemScroller.scrollTop = 16777216;
-                } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                  const itemScroller = this.itemScroller;
-                  if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
+                  if (itemScroller && (!ENABLE_OVERFLOW_ANCHOR || itemScroller.scrollTop === 0)) itemScroller.scrollTop = 16777216;
+
                 }
-              };
 
-              await closurePn(addClosure);
-
-            
+                return 1
+              }
             }
 
-  */
+            {
+              const indexMap = new WeakMap();
+              let index = 0;
+              for (let elNode_ = firstComponentChildFn(listDom); elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
+                indexMap.set(elNode_, index++);
+              }
 
-          // }
-          // if (k > 0) batching.push(k);
+              const keepIndices = new Array(renderNodeCount);
+              let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
+              for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
+                const entry = newRenderedComponents[i];
+                if (entry instanceof Node) {
+                  const index = indexMap.get(entry);
+                  keepIndices[keepIndicesLen++] = [index, entry];
+                  if (index > lastKeepIndex) lastKeepIndex = index;
+                  else requireSort = true;
+                }
+              }
+              keepIndices.length = keepIndicesLen;
+              if (requireSort) keepIndices.sort((a, b) => a[0] - b[0]);
+              let dk = 0;
 
-          // while (elNode) await closurePn(removeStampNode);
+              let j = 0;
+              let elNode;
 
-          return await renderAll(tasks);
+              elNode = firstComponentChildFn(listDom);
 
-        });
+              for (const rcEntry of newRenderedComponents) {
+                const index = indexMap.get(rcEntry);
+                if (typeof index === 'number') {
+                  const indexEntry = keepIndices[dk++];
+                  const [dIdx, dNode] = indexEntry;
+                  indexMap.delete(rcEntry);
+                  const idx = dIdx;
+                  while (j < idx && elNode) {
+                    tasks.push({
+                      type: 'remove',
+                      elNode,
+                      fn: taskFn.remove
+                    });
+                    elNode = nextComponentSiblingFn(elNode);
+                    j++;
+                  }
+                  if (j === idx) {
+                    if (elNode) {
+                      // if (dNode !== elNode) tasks.push({
+                      //   type: 'swap',
+                      //   earlyNode: indexEntry[1],
+                      //   laterNode: elNode
+                      // });
+                      elNode = nextComponentSiblingFn(elNode);
+                      j++;
+                    } else {
+                      console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                    }
+                  }
+                } else if (rcEntry instanceof Node) {
+                  // interruped by the external like clearList
+
+                  tasks.push({
+                    type: 'remove',
+                    elNode: rcEntry,
+                    fn: taskFn.remove
+                  });
+
+                } else {
+                  const [item, L, H, connectedComponent] = rcEntry;
+
+                  tasks.push({
+                    type: 'append',
+                    newNode: connectedComponent,
+                    nodeAfter: elNode,
+                    parentNode: listDom,
+                    fn: taskFn.append
+                  });
+
+                }
+
+              }
+
+              while (elNode) {
+
+                tasks.push({
+                  type: 'remove',
+                  elNode,
+                  fn: taskFn.remove
+                });
+                elNode = nextComponentSiblingFn(elNode);
+
+              }
+
+            }
+
+
+            renderAll(tasks).then(resolveDM).catch(console.warn);
+
+          });
+        }).catch(console.warn);
 
         {
           const arr = this[cTag];
@@ -3955,7 +3834,7 @@
           b && this._invalidateProperties();
         }
 
-        this.flushRenderStamperComponentBindings_(); // just in case...
+        // this.flushRenderStamperComponentBindings_(); // just in case...
 
         await Promise.all(sideProcesses);
 
@@ -3970,12 +3849,12 @@
         }));
         detail.container = null;
 
-        if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-          // clear all remaining rendering before promise resolve
-          await stackMarcoTask(async () => {
-            Polymer.flush();
-          });
-        }
+        // if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+        //   // clear all remaining rendering before promise resolve
+        //   await stackMarcoTask(async () => {
+        //     Polymer.flush();
+        //   });
+        // }
 
       }
 
@@ -4012,7 +3891,7 @@
 
           if (cTag === 'visibleItems') {
             this.prDelay288 = ec389pr;
-            this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+            // this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
 
             // the first microtask after promise resolved
             // YYYYYYY
