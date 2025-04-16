@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.4
+// @version             0.100.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2989,9 +2989,13 @@
       }
     }).catch(console.warn);;
   };
+  let onTickerItemStampNodeAddedwaiting = false;
   const onTickerItemStampNodeAdded = () =>{
     // remove the stale ticker(s)
+    if (onTickerItemStampNodeAddedwaiting) return;
+    onTickerItemStampNodeAddedwaiting = true;
     return Promise.resolve().then(() => {
+      onTickerItemStampNodeAddedwaiting = false;
       const selector = "[ticker-message-removed]:nth-child(n + 40)";
       const tickerElm = document.querySelector(selector);
       if (tickerElm) { // likely false
@@ -3257,6 +3261,783 @@
     // let firstList = true;
 
     // << end >>
+
+
+    const stackMarcoTask = (f) => {
+      return new Promise(resolve => {
+        nextBrowserTick_(async () => {
+          try {
+            await f();
+          } catch (e) {
+            console.warn(e);
+          } finally {
+            resolve();
+          }
+        });
+      })
+    };
+
+
+    const elementFirstElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'firstElementChild');
+    const sFirstElementChild = Symbol();
+    Object.defineProperty(Element.prototype, sFirstElementChild, elementFirstElementChild);
+
+    const elementLastElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'lastElementChild');
+    const sLastElementChild = Symbol();
+    Object.defineProperty(Element.prototype, sLastElementChild, elementLastElementChild);
+
+    const elementPrevElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'previousElementSibling');
+    const sPrevElementSibling = Symbol();
+    Object.defineProperty(Element.prototype, sPrevElementSibling, elementPrevElementSibling);
+
+    const elementNextElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'nextElementSibling');
+    const sNextElementSibling = Symbol();
+    Object.defineProperty(Element.prototype, sNextElementSibling, elementNextElementSibling);
+
+    const firstComponentChildFn = (elNode) => {
+      elNode = elNode[sFirstElementChild];
+      while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sNextElementSibling];
+      return elNode;
+    }
+    const lastComponentChildFn = (elNode) => {
+      elNode = elNode[sLastElementChild];
+      while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sPrevElementSibling];
+      return elNode;
+    }
+    const nextComponentSiblingFn = (elNode) => {
+      do {
+        elNode = elNode[sNextElementSibling];
+      } while ((elNode instanceof Element) && !elNode.is);
+      return elNode;
+    }
+
+    const nativeNow = performance.constructor.prototype.now.bind(performance);
+
+    const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
+    
+
+    const renderAll = function (taskArr, firstMarco = true) {
+      if (!(taskArr || 0).length) throw new TypeError(`Illegal invocation`);
+      return new Promise(resolveFinal => {
+        let resolveFn = null;
+        const len = taskArr.length;
+        const results = new Array(len);
+        const makePromise = () => new Promise(resolve => { resolveFn = resolve });
+        let firedCount = 0;
+        const executor = () => {
+          if (taskArr.length !== len) throw new TypeError(`Illegal invocation`);
+          const resolveFn_ = resolveFn;
+          let t0 = 0;
+          let next = 0;
+          taskArr.forEach((task, idx) => {
+            if (typeof (task || 0) !== 'object') throw new TypeError(`Illegal invocation`);
+            if (!task.fired) {
+              queueMicrotask_(() => {
+                if (next || task.fired) return;
+                task.fired = true;
+                if (++firedCount === len) next |= 2;
+                if (!t0) t0 = nativeNow() + 10;
+                const { fn } = task;
+                results[idx] = fn(task); // sync task only
+                if (nativeNow() > t0) next |= 1;
+              });
+            }
+          });
+          queueMicrotask_(() => resolveFn_(next))
+        }
+        const looper = (next) => {
+          if (!next) throw new TypeError(`Illegal invocation`);
+          if (next & 2) {
+            if (next & 1) {
+              nextBrowserTick_(() => resolveFinal(results))
+            } else {
+              resolveFinal(results);
+            }
+          } else {
+            const p = makePromise();
+            nextBrowserTick_(executor);
+            p.then(looper);
+          }
+        }
+        const p = makePromise();
+        firstMarco ? nextBrowserTick_(executor) : executor();
+        p.then(looper);
+
+      })
+
+    }
+    // window.renderAll = renderAll;
+
+
+    const renderMap = new WeakMap();
+
+
+
+
+    const rendererStamperFactory = (cProto, options) => {
+
+
+      let pDivResourceEventCountLast = 0;
+      let pDivResourceEventCount = 0; 
+
+      const pDivOnResource = function (evt) {
+        const target = evt.target;
+        if (target && target.nodeType === 1 && target.nodeName === "IMG") {
+          pDivResourceEventCount = (pDivResourceEventCount & 1073741823) + 1;
+        }
+      };
+
+      const { key, stamperDomClass, preloadFn } = options;
+
+      // const newDoc = document.implementation.createHTMLDocument("NewDoc");
+      const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      document.documentElement.insertAdjacentElement('beforeend', pSpace);
+      const pNode = document.createElement('ns-538');
+      pSpace.insertAdjacentElement('beforeend', pNode);
+      const pShadow = pNode.attachShadow({ mode: "open" });
+      const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      pShadow.replaceChildren(pDiv);
+
+      const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      pDiv.insertAdjacentElement('beforeend', pDivNew);
+
+      pDivNew.addEventListener('load', pDivOnResource, true);
+      pDivNew.addEventListener('error', pDivOnResource, true);
+
+      const wmRemoved = new Map();
+
+      // const wmMapToItem = new WeakMap();
+      // let wmPendingList = null;
+
+      const nullComponents = new Map();
+
+      const componentDefaultAttributes = new WeakMap();
+
+      const fnKeyH = `${key}$$c472`;
+
+      cProto[fnKeyH] = async function (cTag, cId, pr00) {
+        await pr00; // await the current executing task (if any)
+        if (!this.ec389a && !this.ec389r) return;
+        await nextBrowserTick_(); // collective process (per marcoTask)
+        if (!this.ec389a && !this.ec389r) return;
+        const addedCount0 = this.ec389a;
+        const removedCount0 = this.ec389r;
+
+        this.ec389 = false;
+        this.ec389a = 0;
+        this.ec389r = 0;
+
+        // coming process can be stacked as ec389a and ec389r are reset.
+
+        const deObjectComponent = (item) => {
+          const obj = item;
+          const I = firstObjectKey(obj);
+          const t = this.stampDom[cTag].mapping;
+          const L = t[I];
+          const H = obj[I];
+          return [L, H];
+        }
+
+        const hostElement = this.hostElement;
+
+        const cList = this[cTag].slice();
+        let renderNodeCount = 0;
+        const renderList = cList.map((item) => {
+          const [L, H] = deObjectComponent(item);
+          const node = kRef(renderMap.get(H));
+          return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
+        });
+
+        // this.ec389 = null;
+        // this.ec389a = 0;
+        // this.ec389r = 0;
+
+        let addedCounter = 0;
+        let removedCounter = 0;
+
+        const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+          // const reusable = false;
+          // const componentName = this.getComponentName_(L, H);
+          let component;
+          if (!nullComponents.has(componentName)) {
+            nullComponents.set(componentName, (component = document.createElement(componentName)));
+            component.className = stamperDomClass;
+            // shadowElm.insertAdjacentElement('beforeend', component);
+          } else {
+            component = nullComponents.get(componentName);
+          }
+          component = component.cloneNode(false);
+
+          // const cnt = insp(component);
+
+          // cnt.__dataOld = cnt.__dataPending = null;
+          pDivNew.insertAdjacentElement('beforeend', component);
+          // cnt.__dataOld = cnt.__dataPending = null;
+
+          return component;
+        }
+
+        const listDom = this.getStampContainer_(cId);
+
+        const pnForNewItem = (item) => {
+
+          const [L, H] = deObjectComponent(item);
+
+          const componentName = this.getComponentName_(L, H);
+
+          const wmList = wmRemoved.get(componentName.toLowerCase());
+
+          let connectedComponent = null;
+          if (wmList && (connectedComponent = wmList.firstElementChild)) {
+            if (this.telemetry_) this.telemetry_.reuse++;
+            // if (!wmPendingList) {
+            //   wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            //   wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
+            //   pDiv.insertAdjacentElement('afterend', wmPendingList);
+            // }
+            // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
+            pDivNew.insertAdjacentElement('beforeend', connectedComponent);
+            const attrMap = connectedComponent.attributes;
+            const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
+            if (defaultAttrs) {
+              for (const attr of attrMap) {
+                const name = attr.name;
+                if (name in defaultAttrs) attr.value = defaultAttrs[name];
+                else attrMap.removeNamedItem(name);
+              }
+              if (attrMap.length !== defaultAttrs['"']) {
+                for (const name in defaultAttrs) {
+                  if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
+                }
+              }
+            }
+
+          } else {
+            connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+            if (this.telemetry_) this.telemetry_.create++;
+          }
+          if (cTag === 'tickerItems') {
+            const container = connectedComponent.firstElementChild;
+            if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
+          }
+
+          return [item, L, H, connectedComponent];
+
+        };
+
+        let imgPreloadPr = null;
+        if (cTag === 'visibleItems') {
+          const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
+          imgPreloadPr = preloadFn(addedItems)();
+        }
+
+        const newComponentsEntries = await Promise.all(renderList.map((item) => {
+          return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
+        }));
+
+        const imgPromises = [];
+
+        const imgPaths = new Set();
+
+        const pnForRenderNewItem = (entry) => {
+          const [item, L, H, connectedComponent] = entry;
+
+          const cnt = insp(connectedComponent);
+          if (!cnt.__refreshData938__) {
+            cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
+          }
+          if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
+            cnt.data = H;
+          } else {
+            const q = this.deferRenderStamperBinding_
+            let q2;
+            if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
+            this.deferRenderStamperBinding_(connectedComponent, L, H);
+            this.flushRenderStamperComponentBindings_();
+            if (typeof q === 'object') {
+              this.deferRenderStamperBinding_ = q;
+              q2.length = 0;
+            }
+          }
+          if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
+
+          // fix yt-icon issue
+          for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
+            try {
+              const cnt = insp(node);
+              if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+              cnt.__refreshProps938__();
+            } catch (e) { }
+          }
+
+          // const imgs = connectedComponent.getElementsByTagName('IMG');
+          // if (imgs.length > 0) {
+          //   for (let i = 0, l = imgs.length; i < l; i++) {
+          //     const src = imgs[i].src;
+          //     if (src.includes('://') && !imgPaths.has(src)) {
+          //       imgPaths.add(src);
+          //       imgPromises.push(imageFetch(src));
+          //     }
+          //   }
+          // }
+          componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
+          return entry;
+        }
+
+        const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
+          return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
+        }));
+
+
+        // wait for network cached images loading
+        // let trialMax = 4;
+        // while (trialMax--) {
+        //   wme.data = `${(wme.data & 7) + 1}`;
+        //   await wmp;
+        //   if (pDivResourceEventCountLast === pDivResourceEventCount) break;
+        //   pDivResourceEventCountLast = pDivResourceEventCount;
+        // }
+
+        this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+
+        // imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+        if (imgPromises.length > 0) {
+          const pr1 = Promise.all(imgPromises).catch(e => { });
+          const pr2 = autoTimerFn();
+          await Promise.race([pr1, pr2]).catch(e => { });
+          imgPaths.clear();
+          imgPromises.length = 0;
+        }
+        if (imgPreloadPr) await imgPreloadPr;
+
+        // const batching = [];
+        // let j = 0;
+        // let elNode;
+
+        const sideProcesses = [];
+
+        const removeStampNode_ = (elNode) => {
+          const elm = elNode;
+          const cnt = insp(elm);
+          const componentName = elm.nodeName.toLowerCase();
+          let wmList = wmRemoved.get(componentName);
+          if (!wmList) {
+            wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
+            pDiv.insertAdjacentElement('afterend', wmList);
+            wmRemoved.set(componentName, wmList);
+          }
+          wmList.insertAdjacentElement('beforeend', elm);
+          const data = cnt.data;
+          if (data) renderMap.delete(cnt.data);
+
+          sideProcesses.push(reuseFixDataViewModel(elm));
+          sideProcesses.push(reuseFixYtIconRendering(elm));
+        }
+
+        // const removeStampNode = async () => {
+
+        //   removedCounter++;
+
+        //   const nextElm = nextComponentSiblingFn(elNode);
+        //   const elmId = elNode.id;
+        //   removeStampNode_(elNode);
+        //   // const dzid = this.getAttribute('dz-component-id');
+        //   // ---- no-cache ----
+        //   // try{
+        //   //   elm.remove();
+        //   // }catch(e){}
+        //   // ---- no-cache ----
+
+        //   if (cTag === 'visibleItems') {
+        //     sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
+        //   }
+
+        //   j++;
+        //   elNode = nextElm;
+
+        // }
+
+        if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+          // clear all pending rendering first
+          await stackMarcoTask(async () => {
+            Polymer.flush();
+          });
+        }
+
+        // main UI thread - DOM modification
+        await stackMarcoTask(async () => {
+
+          const isAtBottom = this.atBottom === true;
+          // if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
+          //   shouldScrollAfterFlush = true;
+          // }
+
+
+          const tasks = [];
+
+          const taskFn = {
+            remove: (task)=>{
+
+              const {elNode} = task;
+
+              removedCounter++;
+
+              const elmId = elNode.id;
+              removeStampNode_(elNode);
+              // const dzid = this.getAttribute('dz-component-id');
+              // ---- no-cache ----
+              // try{
+              //   elm.remove();
+              // }catch(e){}
+              // ---- no-cache ----
+    
+              if (cTag === 'visibleItems') {
+                sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
+              }
+    
+
+            },
+            append: (task)=>{
+
+              const {newNode, nodeAfter, parentNode} = task;
+
+              nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
+              const connectedComponent = newNode;
+              const cnt = insp(connectedComponent);
+              renderMap.set(cnt.data, mWeakRef(connectedComponent));
+              mutationDelayedRefreshData(cnt); // not included to sideProcesses
+              addedCounter++;
+
+              if (cTag === 'tickerItems') {
+                sideProcesses.push(onTickerItemStampNodeAdded());
+              }
+
+              // YYYYY
+              if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                const itemScroller = this.itemScroller;
+                if (itemScroller) itemScroller.scrollTop = 16777216;
+              } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                const itemScroller = this.itemScroller;
+                if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
+              }
+
+            }
+          }
+
+
+          {
+
+
+
+            const indexMap = new WeakMap();
+            let index = 0;
+            for (let elNode_ = firstComponentChildFn(listDom); elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
+              indexMap.set(elNode_, index++);
+            }
+
+            const keepIndices = new Array(renderNodeCount);
+            let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
+            for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
+              const entry = newRenderedComponents[i];
+              if (entry instanceof Node) {
+                const index = indexMap.get(entry);
+                keepIndices[keepIndicesLen++] = [index, entry];
+                if (index > lastKeepIndex) lastKeepIndex = index;
+                else requireSort = true;
+              }
+            }
+            keepIndices.length = keepIndicesLen;
+            if (requireSort) keepIndices.sort((a, b) => a[0] - b[0]);
+            let dk = 0;
+
+            // let k = 0;
+            // let t0 = performance.now();
+            /*
+  
+            const closurePn = (closureFn) => {
+              let t1 = performance.now();
+              let r;
+              if (t1 - t0 > 14) {
+                // batching.push(k);
+                r = new Promise(resolve => {
+                  nextBrowserTick_(() => {
+                    try {
+                      closureFn();
+                    } catch (e) { console.warn(e) }
+                    resolve();
+                  });
+                });
+                t0 = performance.now();
+                // k = 0;
+              } else {
+                r = Promise.resolve().then(closureFn).catch(console.warn);
+              }
+              return r;
+            }
+            */
+
+            let j = 0;
+            let elNode;
+
+            elNode = firstComponentChildFn(listDom);
+
+            for (const rcEntry of newRenderedComponents) {
+
+
+              const index = indexMap.get(rcEntry);
+              if (typeof index === 'number') {
+
+
+                const indexEntry = keepIndices[dk++];
+                const [dIdx, dNode] = indexEntry;
+                indexMap.delete(rcEntry);
+                const idx = dIdx;
+                while (j < idx && elNode) {
+                  tasks.push({
+                    type: 'remove',
+                    elNode,
+                    fn: taskFn.remove
+                  });
+                  elNode = nextComponentSiblingFn(elNode);
+                  j++;
+                }
+                if (j === idx) {
+                  if (elNode) {
+                    // if (dNode !== elNode) tasks.push({
+                    //   type: 'swap',
+                    //   earlyNode: indexEntry[1],
+                    //   laterNode: elNode
+                    // });
+                    elNode = nextComponentSiblingFn(elNode);
+                    j++;
+                  } else {
+                    console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                  }
+                }
+              } else if (rcEntry instanceof Node) {
+                // interruped by the external like clearList
+
+                tasks.push({
+                  type: 'remove',
+                  elNode: rcEntry,
+                  fn: taskFn.remove
+                });
+
+              } else {
+                const [item, L, H, connectedComponent] = rcEntry;
+
+
+                tasks.push({
+                  type: 'append',
+                  newNode: connectedComponent,
+                  nodeAfter: elNode,
+                  parentNode: listDom,
+                  fn: taskFn.append
+                })
+
+              }
+
+            }
+
+            while (elNode) {
+
+              tasks.push({
+                type: 'remove',
+                elNode,
+                fn: taskFn.remove
+              });
+              elNode = nextComponentSiblingFn(elNode);
+
+            }
+
+          }
+
+/*
+
+            tasks.push({
+              type: 'remove',
+              elNode
+            })
+
+            tasks.push({
+              type: 'swap',
+              earlyNode: indexEntry[1],
+              laterNode: elNode
+            })
+
+            tasks.push({
+              type: 'append',
+              newNode: connectedComponent,
+              nodeAfter: elNode,
+              parentNode: listDom
+            })  */
+
+            /*
+
+            const index = indexMap.get(rcEntry);
+            if (typeof index === 'number') {
+              const indexEntry = keepIndices[dk++];
+              const dIdx = indexEntry[0];
+              indexMap.delete(rcEntry);
+              const idx = dIdx;
+
+              while (j < idx && elNode) await closurePn(removeStampNode);
+              if (j === idx) {
+
+                if (elNode) {
+                  const nextElm = nextComponentSiblingFn(elNode);
+                  j++;
+                  elNode = nextElm;
+                } else {
+                  console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                }
+
+              }
+
+            } else if (rcEntry instanceof Node) {
+              // interruped by the external like clearList
+
+              removeStampNode_(rcEntry); // no await Promise.resolve()
+
+            } else {
+
+              const [item, L, H, connectedComponent] = rcEntry;
+
+              // await Promise.resolve(); // microTask allowance for flushRenderStamper
+
+              // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
+
+              wmMapToItem.set(connectedComponent, mWeakRef(item));
+
+              const addClosure = () => {
+                elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
+                const cnt = insp(connectedComponent);
+                renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                mutationDelayedRefreshData(cnt); // not included to sideProcesses
+                addedCounter++;
+
+                if (cTag === 'tickerItems') {
+                  sideProcesses.push(onTickerItemStampNodeAdded());
+                }
+
+                // YYYYY
+                if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                  const itemScroller = this.itemScroller;
+                  if (itemScroller) itemScroller.scrollTop = 16777216;
+                } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
+                  const itemScroller = this.itemScroller;
+                  if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
+                }
+              };
+
+              await closurePn(addClosure);
+
+            
+            }
+
+  */
+
+          // }
+          // if (k > 0) batching.push(k);
+
+          // while (elNode) await closurePn(removeStampNode);
+
+          return await renderAll(tasks);
+
+        });
+
+        {
+          const arr = this[cTag];
+          let b = 0;
+          b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+          b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+          b && this._invalidateProperties();
+        }
+
+        this.flushRenderStamperComponentBindings_(); // just in case...
+
+        await Promise.all(sideProcesses);
+
+        const detail = {
+          container: listDom
+        };
+        this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+          bubbles: !0,
+          cancelable: !1,
+          composed: !0,
+          detail
+        }));
+        detail.container = null;
+
+        if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+          // clear all remaining rendering before promise resolve
+          await stackMarcoTask(async () => {
+            Polymer.flush();
+          });
+        }
+
+      }
+
+      cProto[key] = function (cTag, cId, indexSplice) {
+        // console.log('proceedStampDomArraySplices_')
+        // assume no error -> no try catch (performance consideration)
+        const { index, addedCount, removed } = indexSplice;
+        const removedCount = removed ? removed.length : indexSplice.removedCount;
+        indexSplice = null;
+        if (!addedCount && !removedCount) {
+          console.warn('proceedStampDomArraySplices_', 'Error 001');
+          return false;
+        }
+        // const streamArr = this[cTag];
+        if (!this.ec389) {
+          if (this.ec389a || this.ec389r) {
+            console.warn('proceedStampDomArraySplices_', 'Error 002');
+            return false;
+          }
+          this.ec389 = true;
+          this.ec389a = 0;
+          this.ec389r = 0;
+        }
+        const shouldExecute = !this.ec389a && !this.ec389r;
+
+        this.ec389a += addedCount;
+        this.ec389r += removedCount;
+
+        if (shouldExecute) {
+
+          // let shouldScrollAfterFlush = false;
+          const pr00 = this.ec389pr;
+          const ec389pr = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
+
+          if (cTag === 'visibleItems') {
+            this.prDelay288 = ec389pr;
+            this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+
+            // the first microtask after promise resolved
+            // YYYYYYY
+            // ec389pr.then(async () => {
+            //   if (shouldScrollAfterFlush) {
+            //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+            //     wme.data = `${(wme.data & 7) + 1}`;
+            //     await wmp;
+            //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+            //   }
+            // });
+
+          }
+
+        }
+
+        return true;
+      }
+
+
+
+
+
+    }
+
 
     class RAFHub {
       constructor() {
@@ -6050,19 +6831,6 @@
       })();
       window.stackDM = stackDM;
 
-      const stackMarcoTask = (f) => {
-        return new Promise(resolve => {
-          nextBrowserTick_(async () => {
-            try {
-              await f();
-            } catch (e) {
-              console.warn(e);
-            } finally {
-              resolve();
-            }
-          });
-        })
-      };
 
       const widthReq = (()=>{
 
@@ -6110,41 +6878,6 @@
         return widthReq;
       })();
 
-
-      const elementFirstElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'firstElementChild');
-      const sFirstElementChild = Symbol();
-      Object.defineProperty(Element.prototype, sFirstElementChild, elementFirstElementChild);
-
-      const elementLastElementChild = Object.getOwnPropertyDescriptor(Element.prototype, 'lastElementChild');
-      const sLastElementChild = Symbol();
-      Object.defineProperty(Element.prototype, sLastElementChild, elementLastElementChild);
-
-      const elementPrevElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'previousElementSibling');
-      const sPrevElementSibling = Symbol();
-      Object.defineProperty(Element.prototype, sPrevElementSibling, elementPrevElementSibling);
-
-      const elementNextElementSibling = Object.getOwnPropertyDescriptor(Element.prototype, 'nextElementSibling');
-      const sNextElementSibling = Symbol();
-      Object.defineProperty(Element.prototype, sNextElementSibling, elementNextElementSibling);
-
-      const firstComponentChildFn = (elNode) => {
-        elNode = elNode[sFirstElementChild];
-        while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sNextElementSibling];
-        return elNode;
-      }
-      const lastComponentChildFn = (elNode) => {
-        elNode = elNode[sLastElementChild];
-        while ((elNode instanceof Element) && !elNode.is) elNode = elNode[sPrevElementSibling];
-        return elNode;
-      }
-      const nextComponentSiblingFn = (elNode) => {
-        do {
-          elNode = elNode[sNextElementSibling];
-        } while ((elNode instanceof Element) && !elNode.is);
-        return elNode;
-      }
-
-      const renderMap = new WeakMap();
 
 
 
@@ -6732,471 +7465,13 @@
 
               {
 
-                // const newDoc = document.implementation.createHTMLDocument("NewDoc");
-                const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                document.documentElement.insertAdjacentElement('beforeend', pSpace);
-                const pNode = document.createElement('ns-538');
-                pSpace.insertAdjacentElement('beforeend', pNode);
-                const pShadow = pNode.attachShadow({ mode: "open" });
-                const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                pShadow.replaceChildren(pDiv);
 
-                const wmRemoved = new Map();
-
-                const wmMapToItem = new WeakMap();
-                let wmPendingList = null;
-
-                const nullComponents = new Map();
-
-                const componentDefaultAttributes = new WeakMap();
-
-                cProto.proceedStampDomArraySplices381_ = function (cTag, cId, indexSplice) {
-                  // console.log('proceedStampDomArraySplices_')
-                  // assume no error -> no try catch (performance consideration)
-                  const { index, addedCount, removed } = indexSplice;
-                  indexSplice = null;
-                  // console.log(indexSplice)
-                  const removedCount = removed.length;
-                  if (!addedCount && !removedCount) {
-                    console.warn('proceedStampDomArraySplices_', 'Error 001');
-                    return false;
-                  }
-                  // const streamArr = this[cTag];
-                  if (!this.ec389) {
-                    if (this.ec389a || this.ec389r) {
-                      console.warn('proceedStampDomArraySplices_', 'Error 002');
-                      return false;
-                    }
-                    this.ec389 = true;
-                    this.ec389a = 0;
-                    this.ec389r = 0;
-                  }
-                  const shouldExecute = !this.ec389a && !this.ec389r;
-
-                  this.ec389a += addedCount;
-                  this.ec389r += removedCount;
-
-                  if (shouldExecute) {
-
-                    let shouldScrollAfterFlush = false;
-                    const pr00 = this.ec389pr;
-                    const ec389pr = this.ec389pr = (async () => {
-                      await pr00; // await the current executing task (if any)
-                      if (!this.ec389a && !this.ec389r) return;
-                      await nextBrowserTick_(); // collective process (per marcoTask)
-                      if (!this.ec389a && !this.ec389r) return;
-                      const addedCount0 = this.ec389a;
-                      const removedCount0 = this.ec389r;
-
-                      this.ec389 = false;
-                      this.ec389a = 0;
-                      this.ec389r = 0;
-
-                      // coming process can be stacked as ec389a and ec389r are reset.
-
-                      const deObjectComponent = (item) => {
-                        const obj = item;
-                        const I = firstObjectKey(obj);
-                        const t = this.stampDom[cTag].mapping;
-                        const L = t[I];
-                        const H = obj[I];
-                        return [L, H];
-                      }
-
-                      const hostElement = this.hostElement;
-
-                      const cList = this[cTag].slice();
-                      let renderNodeCount = 0;
-                      const renderList = cList.map((item) => {
-                        const [L, H] = deObjectComponent(item);
-                        const node = kRef(renderMap.get(H));
-                        return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
-                      });
-
-                      // this.ec389 = null;
-                      // this.ec389a = 0;
-                      // this.ec389r = 0;
-
-                      let addedCounter = 0;
-                      let removedCounter = 0;
-
-                      const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
-                        // const reusable = false;
-                        // const componentName = this.getComponentName_(L, H);
-                        let component;
-                        if (!nullComponents.has(componentName)) {
-                          nullComponents.set(componentName, (component = document.createElement(componentName)));
-                          component.className = 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom';
-                          // shadowElm.insertAdjacentElement('beforeend', component);
-                        } else {
-                          component = nullComponents.get(componentName);
-                        }
-                        component = component.cloneNode(false);
-
-                        // const cnt = insp(component);
-
-                        // cnt.__dataOld = cnt.__dataPending = null;
-                        pDiv.insertAdjacentElement('beforeend', component);
-                        // cnt.__dataOld = cnt.__dataPending = null;
-
-                        return component;
-                      }
-
-                      const listDom = this.getStampContainer_(cId);
-
-                      const pnForNewItem = (item) => {
-
-                        const [L, H] = deObjectComponent(item);
-
-                        const componentName = this.getComponentName_(L, H);
-
-                        const wmList = wmRemoved.get(componentName.toLowerCase());
-
-                        let connectedComponent = null;
-                        if (wmList && (connectedComponent = wmList.firstElementChild)) {
-                          if (this.telemetry_) this.telemetry_.reuse++;
-                          if (!wmPendingList) {
-                            wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                            wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
-                            pDiv.insertAdjacentElement('afterend', wmPendingList);
-                          }
-                          wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
-                          const attrMap = connectedComponent.attributes;
-                          const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
-                          if (defaultAttrs) {
-                            for (const attr of attrMap) {
-                              const name = attr.name;
-                              if (name in defaultAttrs) attr.value = defaultAttrs[name];
-                              else attrMap.removeNamedItem(name);
-                            }
-                            if (attrMap.length !== defaultAttrs['"']) {
-                              for (const name in defaultAttrs) {
-                                if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
-                              }
-                            }
-                          }
-
-                        } else {
-                          connectedComponent = createConnectedComponentElm(item, L, H, componentName);
-                          if (this.telemetry_) this.telemetry_.create++;
-                        }
-                        if (cTag === 'tickerItems') {
-                          const container = connectedComponent.firstElementChild;
-                          if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
-                        }
-
-                        return [item, L, H, connectedComponent];
-
-                      };
-
-                      let imgPreloadPr = null;
-                      if (cTag === 'visibleItems') {
-                        const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
-                        imgPreloadPr = preloadFn(addedItems)();
-                      }
-
-                      const newComponentsEntries = await Promise.all(renderList.map((item) => {
-                        return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
-                      }));
-
-                      const imgPromises = [];
-
-                      const imgPaths = new Set();
-
-                      const pnForRenderNewItem = (entry) => {
-                        const [item, L, H, connectedComponent] = entry;
-
-                        const cnt = insp(connectedComponent);
-                        if (!cnt.__refreshData938__) {
-                          cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
-                        }
-                        if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
-                          cnt.data = H;
-                        } else {
-                          const q = this.deferRenderStamperBinding_
-                          let q2;
-                          if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
-                          this.deferRenderStamperBinding_(connectedComponent, L, H);
-                          this.flushRenderStamperComponentBindings_();
-                          if (typeof q === 'object') {
-                            this.deferRenderStamperBinding_ = q;
-                            q2.length = 0;
-                          }
-                        }
-                        if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
-                        
-                        // fix yt-icon issue
-                        for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
-                          try {
-                            const cnt = insp(node);
-                            if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-                            cnt.__refreshProps938__();
-                          } catch (e) { }
-                        }
-
-                        // const imgs = connectedComponent.getElementsByTagName('IMG');
-                        // if (imgs.length > 0) {
-                        //   for (let i = 0, l = imgs.length; i < l; i++) {
-                        //     const src = imgs[i].src;
-                        //     if (src.includes('://') && !imgPaths.has(src)) {
-                        //       imgPaths.add(src);
-                        //       imgPromises.push(imageFetch(src));
-                        //     }
-                        //   }
-                        // }
-                        componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
-                        return entry;
-                      }
-
-                      const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
-                        return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
-                      }));
-
-                      this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
-
-                      imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
-                      if (imgPromises.length > 0) {
-                        const pr1 = Promise.all(imgPromises).catch(e => { });
-                        const pr2 = autoTimerFn();
-                        await Promise.race([pr1, pr2]).catch(e => { });
-                        imgPaths.clear();
-                        imgPromises.length = 0;
-                      }
-                      if (imgPreloadPr) await imgPreloadPr;
-
-                      // const batching = [];
-                      let j = 0;
-                      let elNode;
-                      
-                      const sideProcesses = [];
-
-                      const removeStampNode_ = (elNode) => {
-                        const elm = elNode;
-                        const cnt = insp(elm);
-                        const componentName = elm.nodeName.toLowerCase();
-                        let wmList = wmRemoved.get(componentName);
-                        if (!wmList) {
-                          wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                          wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
-                          pDiv.insertAdjacentElement('afterend', wmList);
-                          wmRemoved.set(componentName, wmList);
-                        }
-                        wmList.insertAdjacentElement('beforeend', elm);
-                        const data = cnt.data;
-                        if (data) renderMap.delete(cnt.data);
-
-                        sideProcesses.push(reuseFixDataViewModel(elm));
-                        sideProcesses.push(reuseFixYtIconRendering(elm));
-                      }
-
-                      const removeStampNode = async () => {
-
-                        removedCounter++;
-
-                        const nextElm = nextComponentSiblingFn(elNode);
-                        const elmId = elNode.id;
-                        removeStampNode_(elNode);
-                        // const dzid = this.getAttribute('dz-component-id');
-                        // ---- no-cache ----
-                        // try{
-                        //   elm.remove();
-                        // }catch(e){}
-                        // ---- no-cache ----
-
-                        await Promise.resolve();
-
-                        if (cTag === 'visibleItems') {
-                          sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
-                        }
-
-                        j++;
-                        elNode = nextElm;
-
-                      }
-
-                      if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-                        // clear all pending rendering first
-                        await stackMarcoTask(async () => {
-                          Polymer.flush();
-                        });
-                      }
-
-                      // main UI thread - DOM modification
-                      await stackMarcoTask(async () => {
-                        
-                        const isAtBottom = this.atBottom === true;
-                        if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
-                          shouldScrollAfterFlush = true;
-                        }
-    
-                        elNode = firstComponentChildFn(listDom);
-
-                        const indexMap = new WeakMap();
-                        let index = 0;
-                        for (let elNode = firstComponentChildFn(listDom); elNode instanceof Node; elNode = nextComponentSiblingFn(elNode)) {
-                          indexMap.set(elNode, index++);
-                        }
-
-                        const keepIndices = new Array(renderNodeCount);
-                        let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-                        for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
-                          const entry = newRenderedComponents[i];
-                          if (entry instanceof Node) {
-                            const index = indexMap.get(entry);
-                            keepIndices[keepIndicesLen++] = index;
-                            if (index > lastKeepIndex) lastKeepIndex = index;
-                            else requireSort = true;
-                          }
-                        }
-                        keepIndices.length = keepIndicesLen;
-                        if (requireSort) keepIndices.sort();
-                        let dk = 0;
-
-                        // let k = 0;
-                        let t0 = performance.now();
-
-                        const closurePn = (closureFn) => {
-                          let t1 = performance.now();
-                          let r;
-                          if (t1 - t0 > 14) {
-                            // batching.push(k);
-                            r = new Promise(resolve => {
-                              nextBrowserTick_(() => {
-                                try {
-                                  closureFn();
-                                } catch (e) { console.warn(e) }
-                                resolve();
-                              });
-                            });
-                            t0 = performance.now();
-                            // k = 0;
-                          } else {
-                            r = Promise.resolve().then(closureFn).catch(console.warn);
-                          }
-                          return r;
-                        }
-                        
-                        for (const rcEntry of newRenderedComponents) {
-
-                          const index = indexMap.get(rcEntry);
-                          if (typeof index === 'number') {
-                            const dIdx = keepIndices[dk++];
-                            indexMap.delete(rcEntry);
-                            const idx = dIdx;
-
-                            while (j < idx && elNode) await closurePn(removeStampNode);
-                            if (j === idx) {
-
-                              if (elNode) {
-                                const nextElm = nextComponentSiblingFn(elNode);
-                                j++;
-                                elNode = nextElm;
-                              } else {
-                                console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
-                              }
-
-                            }
-
-                          } else if (rcEntry instanceof Node) {
-                            // interruped by the external like clearList
-
-                            removeStampNode_(rcEntry); // no await Promise.resolve()
-
-                          } else {
-
-                            const [item, L, H, connectedComponent] = rcEntry;
-
-                            // await Promise.resolve(); // microTask allowance for flushRenderStamper
-
-                            // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
-
-                            wmMapToItem.set(connectedComponent, mWeakRef(item));
-
-                            const addClosure = () => {
-                              elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                              const cnt = insp(connectedComponent);
-                              renderMap.set(cnt.data, mWeakRef(connectedComponent));
-                              mutationDelayedRefreshData(cnt); // not included to sideProcesses
-                              addedCounter++;
-
-                              if (cTag === 'tickerItems') {
-                                sideProcesses.push(onTickerItemStampNodeAdded());
-                              }
-
-                              // YYYYY
-                              if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                                const itemScroller = this.itemScroller;
-                                if (itemScroller) itemScroller.scrollTop = 16777216;
-                              } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                                const itemScroller = this.itemScroller;
-                                if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
-                              }
-                            };
-
-                            await closurePn(addClosure);
-
-                          }
-                        }
-                        // if (k > 0) batching.push(k);
-
-                        while (elNode) await closurePn(removeStampNode);
-
-                      });
-
-                      {
-                        const arr = this[cTag];
-                        let b = 0;
-                        b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
-                        b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
-                        b && this._invalidateProperties();
-                      }
-
-                      this.flushRenderStamperComponentBindings_(); // just in case...
-
-                      await Promise.all(sideProcesses);
-
-                      const detail = {
-                        container: listDom
-                      };
-                      this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-                        bubbles: !0,
-                        cancelable: !1,
-                        composed: !0,
-                        detail
-                      }));
-                      detail.container = null;
-
-                      if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-                        // clear all remaining rendering before promise resolve
-                        await stackMarcoTask(async () => {
-                          Polymer.flush();
-                        });
-                      }
-
-                    })().catch(console.warn);
-
-                    if (cTag === 'visibleItems') {
-                      this.prDelay288 = ec389pr;
-                      this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
-
-                      // the first microtask after promise resolved
-                      // YYYYYYY
-                      // ec389pr.then(async () => {
-                      //   if (shouldScrollAfterFlush) {
-                      //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                      //     wme.data = `${(wme.data & 7) + 1}`;
-                      //     await wmp;
-                      //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                      //   }
-                      // });
-
-                    }
-
-                  }
-
-                  return true;
-                }
-
+                rendererStamperFactory(cProto, {
+                  key: 'proceedStampDomArraySplices381_',
+                  stamperDomClass: 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom',
+                  preloadFn
+                });
+                
                 // cProto.notifyPath371 = cProto.notifyPath;
 
 
@@ -7242,7 +7517,7 @@
                   const addedCount = fnArgs.length;
                   // console.log('push')
                   this.proceedStampDomArraySplices381_('visibleItems', 'items', {
-                    index: len, addedCount: addedCount, removed: emptyArr
+                    index: len, addedCount: addedCount, removedCount: 0
                   })
                   return newTotalLen;
                 }
@@ -7251,16 +7526,18 @@
                   if (cTag !== 'visibleItems' || !fnArgs.length || (fnArgs.length === 2 && !fnArgs[1]) || (fnArgs.length > 2 && !fnArgs[2])) return this.splice377(...arguments);
                   const arr = this.visibleItems;
                   const removed = arr.splice(...fnArgs);
+                  const removedCount = removed.length;
                   const addedCount = (fnArgs.length > 2 ? fnArgs.length - 2 : 0);
-                  if (fnArgs.length >= 2 && removed.length !== fnArgs[1]) {
-                    console.warn(`incorrect splice count. expected = ${fnArgs[1]}; actual = ${removed.length}`);
+                  if (fnArgs.length >= 2 && removedCount !== fnArgs[1]) {
+                    console.warn(`incorrect splice count. expected = ${fnArgs[1]}; actual = ${removedCount}`);
                   }
                   // console.log('splice')
                   this.proceedStampDomArraySplices381_('visibleItems', 'items', {
-                    index: fnArgs[0], addedCount: addedCount, removed: removed
+                    index: fnArgs[0], addedCount: addedCount, removedCount
                   })
                   return removed;
                 }
+
 
 
               }
@@ -10097,469 +10374,10 @@
 
           if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3 && !cProto.notifyPath371) {
 
-
-            // const newDoc = document.implementation.createHTMLDocument("NewDoc");
-            const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-            document.documentElement.insertAdjacentElement('beforeend', pSpace);
-            const pNode = document.createElement('ns-538');
-            pSpace.insertAdjacentElement('beforeend', pNode);
-            const pShadow = pNode.attachShadow({mode:"open"});
-            const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-            pShadow.replaceChildren(pDiv);
-
-            const wmRemoved = new Map();
-
-            const wmMapToItem = new WeakMap();
-            let wmPendingList = null;
-
-            const nullComponents = new Map();
-
-            const componentDefaultAttributes = new Map();
-
-            cProto.proceedStampDomArraySplices371_ = function (cTag, cId, indexSplice) {
-              // console.log('proceedStampDomArraySplices_')
-              // assume no error -> no try catch (performance consideration)
-              const { index, addedCount, removed } = indexSplice;
-              indexSplice = null;
-              // console.log(indexSplice)
-              const removedCount = removed.length;
-              if (!addedCount && !removedCount) {
-                console.warn('proceedStampDomArraySplices_', 'Error 001');
-                return false;
-              }
-              // const streamArr = this[cTag];
-              if (!this.ec389) {
-                if (this.ec389a || this.ec389r) {
-                  console.warn('proceedStampDomArraySplices_', 'Error 002');
-                  return false;
-                }
-                this.ec389 = true;
-                this.ec389a = 0;
-                this.ec389r = 0;
-              }
-              const shouldExecute = !this.ec389a && !this.ec389r;
-
-              this.ec389a += addedCount;
-              this.ec389r += removedCount;
-
-              if (shouldExecute) {
-
-                let shouldScrollAfterFlush = false;
-                const pr00 = this.ec389pr;
-                const ec389pr = this.ec389pr = (async () => {
-                  await pr00; // await the current executing task (if any)
-                  if (!this.ec389a && !this.ec389r) return;
-                  await nextBrowserTick_(); // collective process (per marcoTask)
-                  if (!this.ec389a && !this.ec389r) return;
-                  const addedCount0 = this.ec389a;
-                  const removedCount0 = this.ec389r;
-
-                  this.ec389 = false;
-                  this.ec389a = 0;
-                  this.ec389r = 0;
-
-                  // coming process can be stacked as ec389a and ec389r are reset.
-
-                  const deObjectComponent = (item) => {
-                    const obj = item;
-                    const I = firstObjectKey(obj);
-                    const t = this.stampDom[cTag].mapping;
-                    const L = t[I];
-                    const H = obj[I];
-                    return [L, H];
-                  }
-
-                  const hostElement = this.hostElement;
-
-                  const cList = this[cTag].slice();
-                  let renderNodeCount = 0;
-                  const renderList = cList.map((item) => {
-                    const [L, H] = deObjectComponent(item);
-                    const node = kRef(renderMap.get(H));
-                    return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
-                  });
-
-                  // this.ec389 = null;
-                  // this.ec389a = 0;
-                  // this.ec389r = 0;
-
-                  let addedCounter = 0;
-                  let removedCounter = 0;
-
-                  const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
-                    // const reusable = false;
-                    // const componentName = this.getComponentName_(L, H);
-                    let component;
-                    if (!nullComponents.has(componentName)) {
-                      nullComponents.set(componentName, (component = document.createElement(componentName)));
-                      component.className = 'style-scope yt-live-chat-ticker-renderer yt-live-chat-ticker-stampdom';
-                      // shadowElm.insertAdjacentElement('beforeend', component);
-                    } else {
-                      component = nullComponents.get(componentName);
-                    }
-                    component = component.cloneNode(false);
-
-                    // const cnt = insp(component);
-
-                    // cnt.__dataOld = cnt.__dataPending = null;
-                    pDiv.insertAdjacentElement('beforeend', component);
-                    // cnt.__dataOld = cnt.__dataPending = null;
-
-                    return component;
-                  }
-
-                  const listDom = this.getStampContainer_(cId);
-
-                  const pnForNewItem = (item) => {
-
-                    const [L, H] = deObjectComponent(item);
-
-                    const componentName = this.getComponentName_(L, H);
-
-                    const wmList = wmRemoved.get(componentName.toLowerCase());
-
-                    let connectedComponent = null;
-                    if (wmList && (connectedComponent = wmList.firstElementChild)) {
-                      if (this.telemetry_) this.telemetry_.reuse++;
-                      if (!wmPendingList) {
-                        wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                        wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
-                        pDiv.insertAdjacentElement('afterend', wmPendingList);
-                      }
-                      wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
-                      const attrMap = connectedComponent.attributes;
-                      const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
-                      if (defaultAttrs) {
-                        for (const attr of attrMap) {
-                          const name = attr.name;
-                          if (name in defaultAttrs) attr.value = defaultAttrs[name];
-                          else attrMap.removeNamedItem(name);
-                        }
-                        if (attrMap.length !== defaultAttrs['"']) {
-                          for (const name in defaultAttrs) {
-                            if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
-                          }
-                        }
-                      }
-
-                    } else {
-                      connectedComponent = createConnectedComponentElm(item, L, H, componentName);
-                      if (this.telemetry_) this.telemetry_.create++;
-                    }
-                    if (cTag === 'tickerItems') {
-                      const container = connectedComponent.firstElementChild;
-                      if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
-                    }
-
-                    return [item, L, H, connectedComponent];
-
-                  };
-
-                  let imgPreloadPr = null;
-                  if (cTag === 'visibleItems') {
-                    const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
-                    imgPreloadPr = preloadFn(addedItems)();
-                  }
-
-                  const newComponentsEntries = await Promise.all(renderList.map((item) => {
-                    return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
-                  }));
-
-                  const imgPromises = [];
-
-                  const imgPaths = new Set();
-
-                  const pnForRenderNewItem = (entry) => {
-                    const [item, L, H, connectedComponent] = entry;
-
-                    const cnt = insp(connectedComponent);
-                    if (!cnt.__refreshData938__) {
-                      cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
-                    }
-                    if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
-                      cnt.data = H;
-                    } else {
-                      const q = this.deferRenderStamperBinding_
-                      let q2;
-                      if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
-                      this.deferRenderStamperBinding_(connectedComponent, L, H);
-                      this.flushRenderStamperComponentBindings_();
-                      if (typeof q === 'object') {
-                        this.deferRenderStamperBinding_ = q;
-                        q2.length = 0;
-                      }
-                    }
-                    if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
-
-                    // fix yt-icon issue
-                    for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
-                      try {
-                        const cnt = insp(node);
-                        if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-                        cnt.__refreshProps938__();
-                      } catch (e) { }
-                    }
-
-                    // const imgs = connectedComponent.getElementsByTagName('IMG');
-                    // if (imgs.length > 0) {
-                    //   for (let i = 0, l = imgs.length; i < l; i++) {
-                    //     const src = imgs[i].src;
-                    //     if (src.includes('://') && !imgPaths.has(src)) {
-                    //       imgPaths.add(src);
-                    //       imgPromises.push(imageFetch(src));
-                    //     }
-                    //   }
-                    // }
-                    componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
-                    return entry;
-                  }
-
-                  const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
-                    return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
-                  }));
-
-                  this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
-
-                  imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
-                  if (imgPromises.length > 0) {
-                    const pr1 = Promise.all(imgPromises).catch(e => { });
-                    const pr2 = autoTimerFn();
-                    await Promise.race([pr1, pr2]).catch(e => { });
-                    imgPaths.clear();
-                    imgPromises.length = 0;
-                  }
-                  if (imgPreloadPr) await imgPreloadPr;
-
-                  // const batching = [];
-                  let j = 0;
-                  let elNode;
-                      
-                  const sideProcesses = [];
-
-                  const removeStampNode_ = (elNode) => {
-                    const elm = elNode;
-                    const cnt = insp(elm);
-                    const componentName = elm.nodeName.toLowerCase();
-                    let wmList = wmRemoved.get(componentName);
-                    if (!wmList) {
-                      wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                      wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
-                      pDiv.insertAdjacentElement('afterend', wmList);
-                      wmRemoved.set(componentName, wmList);
-                    }
-                    wmList.insertAdjacentElement('beforeend', elm);
-                    const data = cnt.data;
-                    if (data) renderMap.delete(cnt.data);
-
-                    sideProcesses.push(reuseFixDataViewModel(elm));
-                    sideProcesses.push(reuseFixYtIconRendering(elm));
-                  }
-
-                  const removeStampNode = async () => {
-
-                    removedCounter++;
-
-                    const nextElm = nextComponentSiblingFn(elNode);
-                    const elmId = elNode.id;
-                    removeStampNode_(elNode);
-                    // const dzid = this.getAttribute('dz-component-id');
-                    // ---- no-cache ----
-                    // try{
-                    //   elm.remove();
-                    // }catch(e){}
-                    // ---- no-cache ----
-
-                    if (cTag === 'visibleItems') {
-                      sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
-                    }
-
-                    j++;
-                    elNode = nextElm;
-
-                  }
-
-                  if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-                    // clear all pending rendering first
-                    await stackMarcoTask(async () => {
-                      Polymer.flush();
-                    });
-                  }
-
-                  // main UI thread - DOM modification
-                  await stackMarcoTask(async () => {
-
-                    const isAtBottom = this.atBottom === true;
-                    if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
-                      shouldScrollAfterFlush = true;
-                    }
-
-                    elNode = firstComponentChildFn(listDom);
-
-                    const indexMap = new WeakMap();
-                    let index = 0;
-                    for (let elNode = firstComponentChildFn(listDom); elNode instanceof Node; elNode = nextComponentSiblingFn(elNode)) {
-                      indexMap.set(elNode, index++);
-                    }
-
-                    const keepIndices = new Array(renderNodeCount);
-                    let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-                    for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
-                      const entry = newRenderedComponents[i];
-                      if (entry instanceof Node) {
-                        const index = indexMap.get(entry);
-                        keepIndices[keepIndicesLen++] = index;
-                        if (index > lastKeepIndex) lastKeepIndex = index;
-                        else requireSort = true;
-                      }
-                    }
-                    keepIndices.length = keepIndicesLen;
-                    if (requireSort) keepIndices.sort();
-                    let dk = 0;
-
-                    // let k = 0;
-                    let t0 = performance.now();
-
-                    const closurePn = (closureFn) => {
-                      let t1 = performance.now();
-                      let r;
-                      if (t1 - t0 > 14) {
-                        // batching.push(k);
-                        r = new Promise(resolve => {
-                          nextBrowserTick_(() => {
-                            try {
-                              closureFn();
-                            } catch (e) { console.warn(e) }
-                            resolve();
-                          });
-                        });
-                        t0 = performance.now();
-                        // k = 0;
-                      } else {
-                        r = Promise.resolve().then(closureFn).catch(console.warn);
-                      }
-                      return r;
-                    }
-
-                    for (const rcEntry of newRenderedComponents) {
-
-                      const index = indexMap.get(rcEntry);
-                      if (typeof index === 'number') {
-                        const dIdx = keepIndices[dk++];
-                        indexMap.delete(rcEntry);
-                        const idx = dIdx;
-
-                        while (j < idx && elNode) await closurePn(removeStampNode);
-                        if (j === idx) {
-
-                          if (elNode) {
-                            const nextElm = nextComponentSiblingFn(elNode);
-                            j++;
-                            elNode = nextElm;
-                          } else {
-                            console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
-                          }
-
-                        }
-
-                      } else if (rcEntry instanceof Node) {
-                        // interruped by the external like clearList
-
-                        removeStampNode_(rcEntry); // no await Promise.resolve()
-
-                      } else {
-
-                        const [item, L, H, connectedComponent] = rcEntry;
-
-                        // await Promise.resolve(); // microTask allowance for flushRenderStamper
-
-                        // connectedComponent.setAttribute("dz-component-id", `~${connectedComponent.data.id||""}~`);
-
-                        wmMapToItem.set(connectedComponent, mWeakRef(item));
-
-                        const addClosure = () => {
-                          elNode ? elNode.insertAdjacentElement('beforebegin', connectedComponent) : listDom.insertAdjacentElement('beforeend', connectedComponent);
-                          const cnt = insp(connectedComponent);
-                          renderMap.set(cnt.data, mWeakRef(connectedComponent));
-                          mutationDelayedRefreshData(cnt); // not included to sideProcesses
-                          addedCounter++;
-
-                          if (cTag === 'tickerItems') {
-                            sideProcesses.push(onTickerItemStampNodeAdded());
-                          }
-
-                          // XXXXX
-                          if (!ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                            const itemScroller = this.itemScroller;
-                            if (itemScroller) itemScroller.scrollTop = 16777216;
-                          } else if (ENABLE_OVERFLOW_ANCHOR && cTag === 'visibleItems' && isAtBottom) {
-                            const itemScroller = this.itemScroller;
-                            if (itemScroller && itemScroller.scrollTop === 0) itemScroller.scrollTop = 16777216;
-                          }
-                        };
-
-                        await closurePn(addClosure);
-
-                      }
-                    }
-                    // if (k > 0) batching.push(k);
-
-                    while (elNode) await closurePn(removeStampNode);
-
-                  });
-
-                  {
-                    const arr = this[cTag];
-                    let b = 0;
-                    b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
-                    b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
-                    b && this._invalidateProperties();
-                  }
-
-                  this.flushRenderStamperComponentBindings_(); // just in case...
-
-                  await Promise.all(sideProcesses);
-
-                  const detail = {
-                    container: listDom
-                  };
-                  this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-                    bubbles: !0,
-                    cancelable: !1,
-                    composed: !0,
-                    detail
-                  }));
-                  detail.container = null;
-
-                  if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
-                    // clear all remaining rendering before promise resolve
-                    await stackMarcoTask(async () => {
-                      Polymer.flush();
-                    });
-                  }
-
-                })().catch(console.warn);
-
-                if (cTag === 'visibleItems') {
-                  this.prDelay288 = ec389pr;
-                  this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
-
-                  // the first microtask after promise resolved
-                  // XXXX
-                  // ec389pr.then(async () => {
-                  //   if (shouldScrollAfterFlush) {
-                  //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                  //     wme.data = `${(wme.data & 7) + 1}`;
-                  //     await wmp;
-                  //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-                  //   }
-                  // });
-
-                }
-
-              }
-
-              return true;
-            }
+            rendererStamperFactory(cProto, {
+              key: 'proceedStampDomArraySplices371_',
+              stamperDomClass: 'style-scope yt-live-chat-ticker-renderer yt-live-chat-ticker-stampdom'
+            });
 
             cProto.notifyPath371 = cProto.notifyPath;
 
