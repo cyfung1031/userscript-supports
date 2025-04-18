@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.7
+// @version             0.100.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3316,7 +3316,7 @@
     const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
     
 
-    const renderAll = function (taskArr, firstMarco = true) {
+    const executeTaskBatch = function (taskArr, firstMarco = true) {
       if (!(taskArr || 0).length) throw new TypeError(`Illegal invocation`);
       return new Promise(resolveFinal => {
         let resolveFn = null;
@@ -3366,7 +3366,7 @@
       })
 
     }
-    // window.renderAll = renderAll;
+    // window.executeTaskBatch = executeTaskBatch;
 
 
     const renderMap = new WeakMap();
@@ -3537,9 +3537,18 @@
           imgPreloadPr = preloadFn(addedItems)();
         }
 
-        const newComponentsEntries = await Promise.all(renderList.map((item) => {
-          return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
-        }));
+        // const pt1 = performance.now();
+        // const newComponentsEntries = await Promise.all(renderList.map((item) => {
+        //   return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
+        // }));
+        const newComponentsEntries = await executeTaskBatch(renderList.map(item => ({
+          item,
+          fn(task) {
+            const { item } = task;
+            return typeof item === 'object' && !(item instanceof Node) ? pnForNewItem(item) : item;
+          }
+        })));
+        // const pt2 = performance.now();
 
         const imgPromises = [];
 
@@ -3590,9 +3599,21 @@
           return entry;
         }
 
-        const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
-          return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
-        }));
+        // const pt3 = performance.now();
+        // const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
+        //   return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
+        // }));
+        const newRenderedComponents = await executeTaskBatch(newComponentsEntries.map(entry => ({
+          entry,
+          fn(task) {
+            const { entry } = task;
+            return typeof entry === 'object' && !(entry instanceof Node) ? pnForRenderNewItem(entry) : entry;
+          }
+        })));
+        // const pt4 = performance.now();
+
+
+        // console.log('xxss' , pt2-pt1, pt4-pt3)
 
 
         // wait for network cached images loading
@@ -3826,7 +3847,7 @@
             }
 
 
-            renderAll(tasks).then(resolveDM).catch(console.warn);
+            executeTaskBatch(tasks).then(resolveDM).catch(console.warn);
 
           });
         }).catch(console.warn);
@@ -3863,6 +3884,7 @@
 
       }
 
+      // proceedStampDomArraySplices371_ // proceedStampDomArraySplices381_
       cProto[key] = function (cTag, cId, indexSplice) {
         // console.log('proceedStampDomArraySplices_')
         // assume no error -> no try catch (performance consideration)
@@ -7379,6 +7401,54 @@
                   return this.stampDomArraySplices381_(...arguments);
                 }
 
+                cProto.stampDomArray366_ = cProto.stampDomArray_;
+                cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
+                  const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
+                  const isMessageListRendering = items === this.visibleItems && containerId === 'items';
+                  
+                  if(!isTickerRendering && !isMessageListRendering){
+                    console.log('stampDomArray_ warning 0xF501', ...arguments)
+                    return this.stampDomArray366_(...arguments);
+                  }
+
+                  const container = (this.$ || 0)[containerId];
+                  if (!container) {
+                    console.log('stampDomArray_ warning 0xF502', ...arguments)
+                    return this.stampDomArray366_(...arguments);
+                  }
+
+                  if (container[sFirstElementChild] === null && items.length === 0) {
+
+                  } else {
+                    const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
+                    this.proceedStampDomArraySplices381_(cTag, containerId, {
+                      addedCount: items.length,
+                      removedCount: container.childElementCount
+                    });
+                  }
+
+                  const f = () => {
+                    this.markDirty && this.markDirty();
+                    const detail = {
+                      container
+                    };
+                    shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                      bubbles: !0,
+                      cancelable: !1,
+                      composed: !0,
+                      detail
+                    }));
+                    detail.container = null;
+                  };
+
+                  if (this.ec389pr) {
+                    this.ec389pr.then(f)
+                  } else {
+                    f();
+                  }
+
+                };
+
                 mclp.push377 = mclp.push;
                 mclp.splice377 = mclp.splice;
 
@@ -10302,6 +10372,54 @@
                 }
               }
               return this.stampDomArraySplices371_(...arguments);
+            };
+
+            cProto.stampDomArray366_ = cProto.stampDomArray_;
+            cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
+              const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
+              const isMessageListRendering = items === this.visibleItems && containerId === 'items';
+
+              if(!isTickerRendering && !isMessageListRendering){
+                console.log('stampDomArray_ warning 0xF501', ...arguments)
+                return this.stampDomArray366_(...arguments);
+              }
+
+              const container = (this.$ || 0)[containerId];
+              if (!container) {
+                console.log('stampDomArray_ warning 0xF502', ...arguments)
+                return this.stampDomArray366_(...arguments);
+              }
+
+              if (container[sFirstElementChild] === null && items.length === 0){
+
+              }else{
+                const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
+                this.proceedStampDomArraySplices371_(cTag, containerId, {
+                  addedCount: items.length,
+                  removedCount: container.childElementCount
+                });
+              }
+
+              const f = () => {
+                this.markDirty && this.markDirty();
+                const detail = {
+                  container
+                };
+                shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                  bubbles: !0,
+                  cancelable: !1,
+                  composed: !0,
+                  detail
+                }));
+                detail.container = null;
+              };
+              
+              if (this.ec389pr) {
+                this.ec389pr.then(f)
+              } else {
+                f();
+              }
+
             };
 
           }
