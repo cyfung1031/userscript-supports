@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.9
+// @version             0.100.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3765,7 +3765,7 @@
                 if (isMessageListRendering && isAtBottom) {
 
                   const itemScroller = this.itemScroller;
-                  if (itemScroller && (!ENABLE_OVERFLOW_ANCHOR || itemScroller.scrollTop === 0)) itemScroller.scrollTop = 16777216;
+                  if (itemScroller && (!ENABLE_OVERFLOW_ANCHOR || typeof webkitCancelAnimationFrame !== "function" || itemScroller.scrollTop === 0)) itemScroller.scrollTop = 16777216;
 
                 }
 
