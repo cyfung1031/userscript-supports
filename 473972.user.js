@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.6
+// @version     0.20.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5192,7 +5192,7 @@
         // xlivev.removeChild(node); // detached -> detached
       }
     }
-    window.removeTNode__ = removeTNode__;
+    // window.removeTNode__ = removeTNode__;
 
     const removeTNode_ = (node) => { // need trigger removal of its parent component
       const xdeadv = xdeadc00.__domApi;
@@ -5204,7 +5204,7 @@
       //   xdeadv.removeChild(node); // detached -> detached
       // }
     }
-    window.removeTNode_ = removeTNode_;
+    // window.removeTNode_ = removeTNode_;
 
     const removeTNode = (node) => { // need trigger removal of its parent component
       const xdeadv = xdeadc00.__domApi;
@@ -5231,7 +5231,7 @@
         // xdeadv.removeChild(node); // detached -> detached
       }
     }
-    window.removeTNode = removeTNode;
+    // window.removeTNode = removeTNode;
 
 
     const removeTNodeDelayed = (node) => {
@@ -5245,7 +5245,7 @@
         xdeadv.removeChild(node); // detached -> detached
       }
     }
-    window.removeTNodeDelayed = removeTNodeDelayed;
+    // window.removeTNodeDelayed = removeTNodeDelayed;
 
     let triggerCountWithinMicro = 0;
 
@@ -5549,106 +5549,46 @@
 
       let renderJob = this.renderJobsMap_ && containerId ? this.renderJobsMap_[containerId] : null;
       const items_ = items__;
-
       const hasRunningTasks = stamperTasks.length >= 1;
-
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      const container = typeof this.getStampContainer_ === 'function' ? this.getStampContainer_(containerId) : (this.$ || 0)[containerId];
+
       if (!config) {
         console.warn('no config');
         fallbackToDefault = true;
-      }
-
-      if (!this.deferredBindingTasks_ || this.deferredBindingTasks_.length !== 0) {
+      } else if (!this.deferredBindingTasks_ || this.deferredBindingTasks_.length !== 0) {
         console.warn('no deferredBindingTasks_');
         fallbackToDefault = true;
-      }
-
-      const container = typeof this.getStampContainer_ === 'function' ? this.getStampContainer_(containerId) : (this.$ || 0)[containerId];
-
-      if (!container) {
+      } else if (!container) {
         console.warn('no container');
         fallbackToDefault = true;
-      }
-      if (!container.__xnHook944__) {
-        if (container.__xnHook944__ === 2) {
-          if (container.firstElementChild === null) {
-            container.__xnHook944__ = 0;
+      } else {
+        if (container.__xnHookE93__ !== null) {
+          if (container.firstElementChild !== null) {
+            if (!container.__xnHookE93__) container.__xnHookE93__ = new Set();
+            container.__xnHookE93__.add(containerId);
+          } else if (container.__xnHookE93__) {
+            container.__xnHookE93__.delete(containerId);
+            if (container.__xnHookE93__.size === 0) {
+              container.__xnHookE93__ = null;
+            }
+          }
+          if (container.__xnHookE93__ !== null) {
+            fallbackToDefault = true; // skip handling weird element. wait until container become clean
           } else {
-            console.log('skip handling weird element (2)');
-            return this.stampDomArray9682_(...arguments);// skip handling weird element
+            container.__xnHookE93__ = null;
+            try {
+              this.stampDomArray9682_(null, containerId, null, false, false, false); // bind the yt dom api
+            } catch (e) { }
+            if (container.__domApi && !container.__domApi.__daHook377__) {
+              setupDomApi(Reflect.getPrototypeOf(container.__domApi));
+              setupSDomWrapper();
+            }
           }
         }
-        if (container.firstElementChild) {
-          container.__xnHook944__ = 2;
-          console.log('skip handling weird element (1)');
-          return this.stampDomArray9682_(...arguments);// skip handling weird element
-        }
-        container.__xnHook944__ = 1;
-        // if (container.firstElementChild) {
-        //   debugger;
-        //   console.warn('container element?')
-        // }
-        try {
-          this.stampDomArray9682_(null, containerId, null, false, false, false); // bind the yt dom api
-        } catch (e) { }
       }
-      if (container.__domApi && !container.__domApi.__daHook377__) {
-        setupDomApi(Reflect.getPrototypeOf(container.__domApi));
-        setupSDomWrapper();
-      }
-
-
-
-      // if (!hasRunningTasks && !this[keyRequireAsync] && triggerCountWithinMicro_ === 1) {
-
-      //   useSyncE = true;
-      //   // useNative = true;
-     
-        
-      // }
-      // if(this.is === 'ytd-shorts' ||  this.hostElement.closest('ytd-shorts')) useNative = true;
-
-      // const isParentFrag = this?.hostElement?.parentNode instanceof DocumentFragment_;
-      // const isParentNode = this?.hostElement?.parentNode instanceof Node;
-
-      // if(isParentFrag){
-      //   // useNative = true;
-      // }else if(isParentNode && bStableList !== false){
-
-        
-      //   if (bStableList || this.is === 'ytd-shorts' || this?.hostElement?.parentNode?.hasAttribute('__stampWithStableList__')) {
-      //     if(!this[`__stamperStable#${containerId}__`]){
-
-      //       console.log(12883, bStableList)
-
-      //       this[`__stamperStable#${containerId}__`] = true;
-
-      //       containerElement.setAttribute('__stampWithStableList__', '');
-      //       this[`__stamperStable__`] = true;
-
-      //     }
-      //   }
-
-      //   if(containerElement.closest('[__stampWithStableList__]')) useNative = true;
-      // }
-
-      // if(this.parentComponent){
-      //   if(this.parentComponent.__stamperStable__){
-      //     this[`__stamperStable__`] = true;
-      //     useNative = true;
-      //   }
-      // }
-
-      // if(containerElement.hasAttribute('__stampWithStableList__')) useNative = true;
-
-
-      // if(useNative) fallbackToDefault = true;
-
-
-
 
       if (fallbackToDefault) {
-        // this[keyRequireAsync] = this[key5993] = this[key5996] = null;
         return this.stampDomArray9682_(...arguments);
       }
 
@@ -6006,7 +5946,7 @@
         // const xdeadv = xdeadc.__domApi;
 
         for (const node of removes) {
-          removeTNode(node);
+          removeTNode_(node);
           registerFn(node, '01');
         }
 
