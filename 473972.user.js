@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.18.22
+// @version     0.20.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -69,11 +69,9 @@
   // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
-  const ENABLE_discreteTasking = true;
-  // << if ENABLE_discreteTasking >>
-  const FIX_stampDomArray_stableList = true;
-  const ENABLE_weakenStampReferences = true; // disabled in old browsers
-  // << end >>
+  const ENABLE_discreteTasking = false; // removed since 0.20.0
+  const FIX_stampDomArray_ = true; // changed since 0.20.0
+  const FIX_stampDomArray = FIX_stampDomArray_ && typeof WeakRef === "function" && typeof FinalizationRegistry === "function";
 
   const FIX_perfNow = true; // history state issue; see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
   const ENABLE_ASYNC_DISPATCHEVENT = false; // problematic
@@ -101,12 +99,12 @@
   const FORCE_NO_REUSEABLE_ELEMENT_POOL = true;
 
   const FIX_TRANSCRIPT_SEGMENTS = true; // Based on Tabview Youtube's implementation
-  const DO_createStampDomArrayFnE1_ = true; // added in 2025.02.11 - to improve stampDom responsiveness
-  const DO_createStampDomArrayFnE1_noConstraintE = true;
-  const DO_createStampDomArrayFnE1_nativeAppendD = true;
-  const DO_createStampDomArrayFnF1_ = true;
-  const DO_createStampDomArray_STRICT_FULFILLMENT = true; // avoid issues; can be changed to false
-  const DO_createStampDomArray_DEBUG = false;
+  // const DO_createStampDomArrayFnE1_ = true; // added in 2025.02.11 - to improve stampDom responsiveness
+  // const DO_createStampDomArrayFnE1_noConstraintE = true;
+  // const DO_createStampDomArrayFnE1_nativeAppendD = true;
+  // const DO_createStampDomArrayFnF1_ = true;
+  // const DO_createStampDomArray_STRICT_FULFILLMENT = true; // avoid issues; can be changed to false
+  // const DO_createStampDomArray_DEBUG = false;
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
 
@@ -156,6 +154,7 @@
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
   const DEBUG_renderDebounceTs = false;
 
+  const FIX_ICON_RENDER = true;
 
   const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
 
@@ -1958,6 +1957,78 @@
 
   })();
 
+  let xdeadc00 = null; // a deteched node with __domApi
+
+  const setupXdeadC = (cnt)=>{
+
+    let xdeadc = xdeadc00;
+    if(!xdeadc){
+      setupSDomWrapper(); // just in case
+      const hostElement = cnt.hostElement;
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      hostElement.insertAdjacentHTML('beforeend', '<!---->');
+      hostElement.lastChild.replaceWith(el);
+      el.insertAdjacentHTML('afterbegin', `<div></div>`);
+      const rid = `xdead_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      el.firstElementChild.id = rid;
+      cnt.$[rid] = el.firstElementChild;
+      cnt.stampDomArray9682_(null, rid, null, false, false, false);
+
+      xdeadc =  cnt.getStampContainer_(rid);
+      el.remove();
+      xdeadc00 = xdeadc;
+      // console.log(xdeadc.__domApi)
+      // debugger;
+      // const xdeadv = xdeadc.__domApi;
+    }
+    return xdeadc00;
+  }
+
+  const setupSDomWrapper = () => {
+
+    const sdwProto = ShadyDOM.Wrapper.prototype;
+
+    if (sdwProto.__pseudo__isConnected__ !== null) {
+      sdwProto.__pseudo__isConnected__ = null;
+      const isConnectedPd = Object.getOwnPropertyDescriptor(sdwProto, 'isConnected');
+      if (isConnectedPd && isConnectedPd.get && isConnectedPd.configurable === true) {
+        const get = isConnectedPd.get;
+        isConnectedPd.get = function () {
+          const pseudoVal = this.__pseudo__isConnected__;
+          return typeof pseudoVal === 'boolean' ? pseudoVal : get.call(this);
+        }
+        Object.defineProperty(sdwProto, 'isConnected', { ...isConnectedPd });
+      }
+
+
+
+      // if (!sdwProto.__nodeMove__) {
+
+      //   sdwProto.__nodeMove__ = function (dest) {
+
+
+      //   }
+
+
+      // }
+
+
+
+
+      // debugger;
+      // new xdeadc.__domApi.constructor(document.createElement('div'));
+    }
+
+  }
+  const setupDomApi = (daProto) => {
+
+    daProto.__daHook377__ = true;
+
+
+
+  }
+
+
   // WEAKREF_ShadyDOM
 
   MODIFY_ShadyDOM_OBJ && ((WeakRef) => {
@@ -2014,6 +2085,29 @@
 
     console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
 
+    const selfWrKey = Symbol();
+
+    const weakWrapperNodeHandlerFn = () => ({
+      get() {
+        const wv = this[selfWrKey];
+        if (typeof wv === 'undefined') return undefined;
+        let node = kRef(wv);
+        if (!node) this[selfWrKey] = undefined;
+        return node || undefined;
+        // let w = shadyDOMNodeWRM.get(this);
+        // if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
+        // return w;
+      },
+      set(nv) {
+        const wv = (nv[selfWrKey] || (nv[selfWrKey] = mWeakRef(nv)));
+        this[selfWrKey] = wv;
+        return true;
+      },
+      enumerable: true,
+      configurable: true
+    });
+
+    /*
     const weakWrapperNodeHandlerFn = () => ({
       get() {
         let w = shadyDOMNodeWRM.get(this);
@@ -2021,12 +2115,14 @@
         return w;
       },
       set(nv) {
-        shadyDOMNodeWRM.set(this, mWeakRef(nv));
+        const wv = (nv[selfWrKey] || (nv[selfWrKey] = mWeakRef(nv)));
+        shadyDOMNodeWRM.set(this, wv);
         return true;
       },
       enumerable: true,
       configurable: true
     });
+    */
 
     function weakWrapper(_ShadyDOM) {
       const ShadyDOM = _ShadyDOM;
@@ -2039,7 +2135,24 @@
           Object.defineProperty(ShadyDOM.Wrapper.prototype, 'node', weakWrapperNodeHandlerFn());
           console.log('[yt-js-engine-tamer] FIX::ShadyDOM << WEAKREF_ShadyDOM >>')
         }
+        
+        // Object.defineProperty(ShadyDOM.Wrapper.prototype, '__cleanup__', function(){
+        //   // to be reviewed
+        //   debugger;
+
+
+
+
+        // });
+
+
       }
+      if (typeof (((ShadyDOM || 0).Wrapper || 0).prototype || 0) === 'object') {
+        try {
+          setupSDomWrapper();
+        } catch (e) { }
+      }
+
     }
 
     let previousWrapStore = null;
@@ -3575,719 +3688,2683 @@
   })();
 
 
-  const convertionFuncMap = new WeakMap();
-  let val_kevlar_should_maintain_stable_list = null;
-
-  const csb = (a, b) => { for (const c in a) if (a.hasOwnProperty(c) && b[c]) return c; return null }
-  const createStampDomArrayFnE1_ = function (a, b, c, d, shouldTriggerRendererStamperFinished, h) {
-
-
-    // this.__$$fs894$$__ = this.__$$fs894$$__  ||  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-
-    // console.log(1880, this.__$$fs894$$__)
-    this[`__0p892::${b}__`] = (this[`__0p892::${b}__`] || Promise.resolve(0)).then(async () => {
-
-      try {
-
-        // console.log(1882 , this.__$$fs894$$__)
-
-        // const t892 = this.__$$fs892$$__;
-        // const t892 = this.__$$fs892$$__ = 1;
-
-        if ((this.hostElement || 0).isConnected) this[`__0fs892::${b}__`] = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-        const t892 = this[`__0fs892::${b}__`];
-        // c - mapping
-        // d - reuseComponents
-        // e - events (shouldTriggerRendererStamperFinished)
-        // h - stamperStableList
-
-        // this is for flushing the new elements to a blank container. (without reusing)
-
-        // const sdc01 = this.__$$StampDomCounter$$__;
-        // console.log('createStampDomArrayFnE1_', a, c)
-        const b_ = b;
-        const c_ = c;
-        const a_ = a;
-
-        // const {data, __data} = this; // for data integrity check
-
-        const doDeferRenderStamperBinding_ = async (cp) => {
-          const i = cp[stampIdxSb];
-          const u = a_[i];
-          const c = c_;
-          const x = csb(c, u);
-          this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
-        };
-
-        const container = this.getStampContainer_(b_);
-
-        const domShell = container.__domApi;
-        if (!domShell || !domShell.appendChild || typeof domShell.childElementCount !== 'number') throw new Error();
-        const domShellElementCount = domShell.childElementCount;
-        const noscript = document.createElement('noscript');
-        // document.body.appendChild(noscript); 
-
-        let doc = document;
-        // ---------- doc ----------
-        // let docHTML = '<html></html>';
-        // try {
-        //   docHTML = trustedTypes.defaultPolicy.createHTML(docHTML) || docHTML;
-        // } catch (e) { }
-        // try {
-        //   const parser = new DOMParser();
-        //   doc = parser.parseFromString(docHTML, "text/html");
-        // } catch (e) { }
-        // ---------- doc ----------
-
-        // document.documentElement.appendChild.call(doc.documentElement, noscript);
-        // nativeRemoveE.call(noscript);
-        // doc = null;
-        // parser = null;
-        // console.log(doc,38);
-
-        const nofn = () => true;
-        const n = a_.length;
-        const fns = new Array(n);
-        let cxt = 0;
-
-        let qxd = domShellElementCount > 0 ? new WeakSet() : null;
-        const nextTickFnE1 = () => {
-          a_.some((u, i) => {
-
-            const x = csb(c, u);
-            if (!x) {
-              fns[i] = nofn;
-              cxt++;
-            } else {
-
-              const cp = this.createComponent_(c[x], u[x], d);
-              cp[stampIdxSb] = i;
-              doDeferRenderStamperBinding_(cp);
-              // mutex = mutex.then(() => {
-              noscript.appendChild(cp);
-              // });
-
-              // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
-              let q = cp;
-              fns[i] = () => {
-                if (q && q.parentNode === noscript) {
-                  const cp = q;
-                  q = null;
-                }
-                if (!q) return true;
-              };
-
-            }
-
-          });
-          noscript.setAttribute('ylul8gr', `${Date.now()}`);
-        };
-
-        const nextTickFnF1 = () => {
-          let startNode = null;
-
-          const isSet = new Set();
-          a_.some((u, i) => {
-
-            const x = csb(c, u);
-            if (!x) {
-              fns[i] = nofn;
-              cxt++;
-            } else {
-
-              const is = this.getComponentName_(c[x], u[x]);
-              isSet.add(is);
-              let np = startNode || domShell.firstElementChild;
-              let chosenNode = null;
-              while (np) {
-                if (np instanceof Node_ && np.is === is && !qxd.has(np)) {
-                  qxd.add(np);
-                  chosenNode = np;
-                  break;
-                }
-                np = np.nextElementSibling;
-              }
+  let marcoPr = new PromiseExternal();
+  const trackMarcoCm = document.createComment('1');
+  const trackMarcoCmObs = new MutationObserver(()=>{
+    marcoPr.resolve();
+    marcoPr = new PromiseExternal();
+  });
+  trackMarcoCmObs.observe(trackMarcoCm, {characterData: true});
 
 
-              const cp = chosenNode || this.createComponent_(c[x], u[x], d);
-              let oldIdx = cp[stampIdxSb];
-              if (chosenNode !== null && cp === chosenNode) {
+  // ----------------------------
 
-                cp[stampIdxSb] = i;
-                doDeferRenderStamperBinding_(cp);
-                fns[i] = nofn;
-                startNode = chosenNode;
-              } else {
 
-                cp[stampIdxSb] = i;
-                doDeferRenderStamperBinding_(cp);
-                // mutex = mutex.then(() => {
-                noscript.appendChild(cp); // ui formation
-                // });
 
-                // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
-                let q = cp;
-                fns[i] = () => {
-                  if (q && q.parentNode === noscript) {
-                    const cp = q;
-                    q = null;
-                  }
-                  if (!q) return true;
-                };
+  // const rendererStamperCreationFactory = (cProto, options) => {
 
-              }
+  //   const { key, stamperDomClass, preloadFn } = options;
 
-            }
+  //   // const newDoc = document.implementation.createHTMLDocument("NewDoc");
+  //   const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  //   document.documentElement.insertAdjacentElement('beforeend', pSpace);
+  //   const pNode = document.createElement('ns-538');
+  //   pSpace.insertAdjacentElement('beforeend', pNode);
 
-          });
+  //   const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  //   if (typeof pNode.attachShadow === 'function') {
+  //     const pShadow = pNode.attachShadow({ mode: "open" });
+  //     pShadow.replaceChildren(pDiv);
+  //   } else {
+  //     pNode.insertAdjacentElement('beforeend', pDiv);
+  //   }
 
-          if (isSet.size === 1 && qxd !== null) {
+  //   const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  //   pDiv.insertAdjacentElement('beforeend', pDivNew);
 
-            const is = isSet.values().next().value;
+  //   const wmRemoved = new Map();
 
-            if (typeof is === 'string' && is.length >= 1) {
+  //   // const wmMapToItem = new WeakMap();
+  //   // let wmPendingList = null;
 
-              let np = startNode || domShell.firstElementChild;
-              const removal = [];
-              while (np) {
-                if (np instanceof Node_ && np.is === is && !qxd.has(np)) {
-                  removal.push(np);
-                  np[stampIdxSb] = -1;
-                }
-                np = np.nextElementSibling;
-              }
-              // by default, removal.length shoule be zero. just play safe.
-              if (removal.length > 0) {
-                const dFrag = doc.createDocumentFragment();
-                dFrag.append(...removal);
-                removal.length = 0;
-              }
+  //   const nullComponents = new Map();
 
-            }
+  //   const componentDefaultAttributes = new WeakMap();
 
+  //   const fnKeyH = `${key}$$c472`;
+
+  //   cProto[fnKeyH] = async function (cTag, cId, pr00) {
+  //     // await the current executing task (if any)
+  //     // and avoid stacking in the same marco task
+  //     await Promise.all([pr00, nextBrowserTick_()]); 
+  //     if (!this.ec389a && !this.ec389r) return;
+  //     const addedCount0 = this.ec389a;
+  //     const removedCount0 = this.ec389r;
+
+  //     this.ec389 = false;
+  //     this.ec389a = 0;
+  //     this.ec389r = 0;
+
+  //     const stampDomMap = this.stampDom[cTag].mapping;
+  //     const isTickerRendering = cTag === 'tickerItems';
+  //     const isMessageListRendering = cTag === 'visibleItems';
+
+  //     // coming process can be stacked as ec389a and ec389r are reset.
+
+  //     const deObjectComponent = (itemEntry) => {
+  //       const I = firstObjectKey(itemEntry);
+  //       const L = stampDomMap[I];
+  //       const H = itemEntry[I];
+  //       return [L, H];
+  //     }
+
+  //     const hostElement = this.hostElement;
+
+  //     let renderNodeCount = 0;
+  //     const renderList = this[cTag].map((item) => {
+  //       const [L, H] = deObjectComponent(item);
+  //       const node = kRef(renderMap.get(H));
+  //       return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
+  //     });
+
+  //     // this.ec389 = null;
+  //     // this.ec389a = 0;
+  //     // this.ec389r = 0;
+
+  //     let addedCounter = 0;
+  //     let removedCounter = 0;
+
+  //     const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+  //       // const reusable = false;
+  //       // const componentName = this.getComponentName_(L, H);
+  //       let component;
+  //       if (!nullComponents.has(componentName)) {
+  //         nullComponents.set(componentName, (component = document.createElement(componentName)));
+  //         component.className = stamperDomClass;
+  //         // shadowElm.insertAdjacentElement('beforeend', component);
+  //       } else {
+  //         component = nullComponents.get(componentName);
+  //       }
+  //       component = component.cloneNode(false);
+
+  //       // const cnt = insp(component);
+
+  //       // cnt.__dataOld = cnt.__dataPending = null;
+  //       pDivNew.insertAdjacentElement('beforeend', component);
+  //       // cnt.__dataOld = cnt.__dataPending = null;
+
+  //       return component;
+  //     }
+
+  //     const listDom = this.getStampContainer_(cId);
+
+  //     const pnForNewItem = (item) => {
+
+  //       const [L, H] = deObjectComponent(item);
+
+  //       const componentName = this.getComponentName_(L, H);
+
+  //       const wmList = wmRemoved.get(componentName.toLowerCase());
+
+  //       let connectedComponent = null;
+  //       if (wmList && (connectedComponent = wmList.firstElementChild)) {
+  //         if (this.telemetry_) this.telemetry_.reuse++;
+  //         // if (!wmPendingList) {
+  //         //   wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  //         //   wmPendingList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-pending', 'true');
+  //         //   pDiv.insertAdjacentElement('afterend', wmPendingList);
+  //         // }
+  //         // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
+  //         pDivNew.insertAdjacentElement('beforeend', connectedComponent);
+  //         const attrMap = connectedComponent.attributes;
+  //         const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
+  //         if (defaultAttrs) {
+  //           for (const attr of attrMap) {
+  //             const name = attr.name;
+  //             if (name in defaultAttrs) attr.value = defaultAttrs[name];
+  //             else attrMap.removeNamedItem(name);
+  //           }
+  //           if (attrMap.length !== defaultAttrs['"']) {
+  //             for (const name in defaultAttrs) {
+  //               if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
+  //             }
+  //           }
+  //         }
+
+  //       } else {
+  //         connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+  //         if (this.telemetry_) this.telemetry_.create++;
+  //       }
+  //       if (isTickerRendering) {
+  //         const container = connectedComponent.firstElementChild;
+  //         if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
+  //       }
+
+  //       return [item, L, H, connectedComponent];
+
+  //     };
+
+  //     let imgPreloadPr = null;
+  //     if (isMessageListRendering) {
+  //       const addedItems = renderList.filter(item => item === 'object' && (item instanceof Node));
+  //       imgPreloadPr = preloadFn(addedItems)();
+  //     }
+
+  //     const newComponentsEntries = await executeTaskBatch(renderList.map(item => ({
+  //       item,
+  //       fn(task) {
+  //         const { item } = task;
+  //         return typeof item === 'object' && !(item instanceof Node) ? pnForNewItem(item) : item;
+  //       }
+  //     })));
+
+  //     const imgPromises = [];
+
+  //     const imgPaths = new Set();
+
+  //     const pnForRenderNewItem = (entry) => {
+  //       const [item, L, H, connectedComponent] = entry;
+
+  //       const cnt = insp(connectedComponent);
+  //       if (!cnt.__refreshData938__) {
+  //         cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
+  //       }
+  //       if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
+  //         cnt.data = H;
+  //       } else {
+  //         const q = this.deferRenderStamperBinding_
+  //         let q2;
+  //         if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
+  //         this.deferRenderStamperBinding_(connectedComponent, L, H);
+  //         this.flushRenderStamperComponentBindings_();
+  //         if (typeof q === 'object') {
+  //           this.deferRenderStamperBinding_ = q;
+  //           q2.length = 0;
+  //         }
+  //       }
+  //       if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
+
+  //       // fix yt-icon issue
+  //       for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
+  //         try {
+  //           const cnt = insp(node);
+  //           if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
+  //           cnt.__refreshProps938__();
+  //         } catch (e) { }
+  //       }
+
+  //       componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
+  //       return entry;
+  //     }
+
+  //     const newRenderedComponents = await executeTaskBatch(newComponentsEntries.map(entry => ({
+  //       entry,
+  //       fn(task) {
+  //         const { entry } = task;
+  //         return typeof entry === 'object' && !(entry instanceof Node) ? pnForRenderNewItem(entry) : entry;
+  //       }
+  //     })));
+
+
+  //     this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
+
+  //     // imgPromises.push(imageFetch('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+  //     if (imgPromises.length > 0) {
+  //       const pr1 = Promise.all(imgPromises).catch(e => { });
+  //       const pr2 = autoTimerFn();
+  //       await Promise.race([pr1, pr2]).catch(e => { });
+  //       imgPaths.clear();
+  //       imgPromises.length = 0;
+  //     }
+  //     if (imgPreloadPr) await imgPreloadPr;
+
+  //     // const batching = [];
+  //     // let j = 0;
+  //     // let elNode;
+
+  //     const sideProcesses = [];
+
+  //     const removeStampNode_ = (elNode) => {
+  //       const elm = elNode;
+  //       const cnt = insp(elm);
+  //       const componentName = elm.nodeName.toLowerCase();
+  //       let wmList = wmRemoved.get(componentName);
+  //       if (!wmList) {
+  //         wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  //         wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
+  //         pDiv.insertAdjacentElement('afterend', wmList);
+  //         wmRemoved.set(componentName, wmList);
+  //       }
+  //       wmList.insertAdjacentElement('beforeend', elm);
+  //       const data = cnt.data;
+  //       if (data) renderMap.delete(cnt.data);
+
+  //       sideProcesses.push(reuseFixDataViewModel(elm));
+  //       sideProcesses.push(reuseFixYtIconRendering(elm));
+  //     }
+
+  //     // const removeStampNode = async () => {
+
+  //     //   removedCounter++;
+
+  //     //   const nextElm = nextComponentSiblingFn(elNode);
+  //     //   const elmId = elNode.id;
+  //     //   removeStampNode_(elNode);
+  //     //   // const dzid = this.getAttribute('dz-component-id');
+  //     //   // ---- no-cache ----
+  //     //   // try{
+  //     //   //   elm.remove();
+  //     //   // }catch(e){}
+  //     //   // ---- no-cache ----
+
+  //     //   if (cTag === 'visibleItems') {
+  //     //     sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
+  //     //   }
+
+  //     //   j++;
+  //     //   elNode = nextElm;
+
+  //     // }
+
+  //     // if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+  //     //   // clear all pending rendering first
+  //     //   await stackMarcoTask(async () => {
+  //     //     Polymer.flush();
+  //     //   });
+  //     // }
+
+  //     // main UI thread - DOM modification
+  //     await new Promise((resolveDM) => {
+  //       nextBrowserTick_(() => {
+
+  //         const isAtBottom = this.atBottom === true;
+  //         // if (ENABLE_OVERFLOW_ANCHOR && isAtBottom) {
+  //         //   shouldScrollAfterFlush = true;
+  //         // }
+
+
+  //         const tasks = [];
+
+  //         const taskFn = {
+  //           remove: (task) => {
+
+  //             const { elNode } = task;
+
+  //             removedCounter++;
+
+  //             const elmId = elNode.id;
+  //             removeStampNode_(elNode);
+  //             // const dzid = this.getAttribute('dz-component-id');
+  //             // ---- no-cache ----
+  //             // try{
+  //             //   elm.remove();
+  //             // }catch(e){}
+  //             // ---- no-cache ----
+
+  //             if (isMessageListRendering) {
+  //               sideProcesses.push(onVisibleItemStampNodeRemoval(elmId));
+  //             }
+
+  //             return 2
+
+  //           },
+  //           append: (task) => {
+
+  //             const { newNode, nodeAfter, parentNode } = task;
+
+  //             nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
+  //             const connectedComponent = newNode;
+  //             const cnt = insp(connectedComponent);
+  //             renderMap.set(cnt.data, mWeakRef(connectedComponent));
+  //             mutationDelayedRefreshData(cnt); // not included to sideProcesses
+  //             addedCounter++;
+
+  //             if (isTickerRendering) {
+  //               sideProcesses.push(onTickerItemStampNodeAdded());
+  //             }
+
+  //             if (isMessageListRendering && isAtBottom) {
+
+  //               const itemScroller = this.itemScroller;
+  //               if (itemScroller && (!ENABLE_OVERFLOW_ANCHOR || itemScroller.scrollTop === 0)) itemScroller.scrollTop = 16777216;
+
+  //             }
+
+  //             return 1
+  //           }
+  //         }
+
+  //         {
+  //           const indexMap = new WeakMap();
+  //           let index = 0;
+  //           for (let elNode_ = firstComponentChildFn(listDom); elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
+  //             indexMap.set(elNode_, index++);
+  //           }
+
+  //           const keepIndices = new Array(renderNodeCount);
+  //           let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
+  //           for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
+  //             const entry = newRenderedComponents[i];
+  //             if (entry instanceof Node) {
+  //               const index = indexMap.get(entry);
+  //               keepIndices[keepIndicesLen++] = [index, entry];
+  //               if (index > lastKeepIndex) lastKeepIndex = index;
+  //               else requireSort = true;
+  //             }
+  //           }
+  //           keepIndices.length = keepIndicesLen;
+  //           if (requireSort) keepIndices.sort((a, b) => a[0] - b[0]);
+  //           let dk = 0;
+
+  //           let j = 0;
+  //           let elNode;
+
+  //           elNode = firstComponentChildFn(listDom);
+
+  //           for (const rcEntry of newRenderedComponents) {
+  //             const index = indexMap.get(rcEntry);
+  //             if (typeof index === 'number') {
+  //               const indexEntry = keepIndices[dk++];
+  //               const [dIdx, dNode] = indexEntry;
+  //               indexMap.delete(rcEntry);
+  //               const idx = dIdx;
+  //               while (j < idx && elNode) {
+  //                 tasks.push({
+  //                   type: 'remove',
+  //                   elNode,
+  //                   fn: taskFn.remove
+  //                 });
+  //                 elNode = nextComponentSiblingFn(elNode);
+  //                 j++;
+  //               }
+  //               if (j === idx) {
+  //                 if (elNode) {
+  //                   // if (dNode !== elNode) tasks.push({
+  //                   //   type: 'swap',
+  //                   //   earlyNode: indexEntry[1],
+  //                   //   laterNode: elNode
+  //                   // });
+  //                   elNode = nextComponentSiblingFn(elNode);
+  //                   j++;
+  //                 } else {
+  //                   console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+  //                 }
+  //               }
+  //             } else if (rcEntry instanceof Node) {
+  //               // interruped by the external like clearList
+
+  //               tasks.push({
+  //                 type: 'remove',
+  //                 elNode: rcEntry,
+  //                 fn: taskFn.remove
+  //               });
+
+  //             } else {
+  //               const [item, L, H, connectedComponent] = rcEntry;
+
+  //               tasks.push({
+  //                 type: 'append',
+  //                 newNode: connectedComponent,
+  //                 nodeAfter: elNode,
+  //                 parentNode: listDom,
+  //                 fn: taskFn.append
+  //               });
+
+  //             }
+
+  //           }
+
+  //           while (elNode) {
+
+  //             tasks.push({
+  //               type: 'remove',
+  //               elNode,
+  //               fn: taskFn.remove
+  //             });
+  //             elNode = nextComponentSiblingFn(elNode);
+
+  //           }
+
+  //         }
+
+
+  //         executeTaskBatch(tasks).then(resolveDM).catch(console.warn);
+
+  //       });
+  //     }).catch(console.warn);
+
+  //     {
+  //       const arr = this[cTag];
+  //       let b = 0;
+  //       b = b | this._setPendingPropertyOrPath(`${cTag}.splices`, {}, true, true);
+  //       b = b | this._setPendingPropertyOrPath(`${cTag}.length`, arr.length, true, true);
+  //       b && this._invalidateProperties();
+  //     }
+
+  //     // this.flushRenderStamperComponentBindings_(); // just in case...
+
+  //     await Promise.all(sideProcesses);
+
+  //     const detail = {
+  //       container: listDom
+  //     };
+  //     this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+  //       bubbles: !0,
+  //       cancelable: !1,
+  //       composed: !0,
+  //       detail
+  //     }));
+  //     detail.container = null;
+
+  //     // if (typeof Polymer !== "undefined" && typeof Polymer.flush === "function") {
+  //     //   // clear all remaining rendering before promise resolve
+  //     //   await stackMarcoTask(async () => {
+  //     //     Polymer.flush();
+  //     //   });
+  //     // }
+
+  //   }
+
+  //   cProto[key] = function (cTag, cId, indexSplice) {
+  //     // console.log('proceedStampDomArraySplices_')
+  //     // assume no error -> no try catch (performance consideration)
+  //     const { index, addedCount, removed } = indexSplice;
+  //     const removedCount = removed ? removed.length : indexSplice.removedCount;
+  //     indexSplice = null;
+  //     if (!addedCount && !removedCount) {
+  //       console.warn('proceedStampDomArraySplices_', 'Error 001');
+  //       return false;
+  //     }
+  //     // const streamArr = this[cTag];
+  //     if (!this.ec389) {
+  //       if (this.ec389a || this.ec389r) {
+  //         console.warn('proceedStampDomArraySplices_', 'Error 002');
+  //         return false;
+  //       }
+  //       this.ec389 = true;
+  //       this.ec389a = 0;
+  //       this.ec389r = 0;
+  //     }
+  //     const shouldExecute = !this.ec389a && !this.ec389r;
+
+  //     this.ec389a += addedCount;
+  //     this.ec389r += removedCount;
+
+  //     if (shouldExecute) {
+
+  //       // let shouldScrollAfterFlush = false;
+  //       const pr00 = this.ec389pr;
+  //       const ec389pr = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
+
+  //       if (cTag === 'visibleItems') {
+  //         this.prDelay288 = ec389pr;
+  //         // this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
+
+  //         // the first microtask after promise resolved
+  //         // YYYYYYY
+  //         // ec389pr.then(async () => {
+  //         //   if (shouldScrollAfterFlush) {
+  //         //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+  //         //     wme.data = `${(wme.data & 7) + 1}`;
+  //         //     await wmp;
+  //         //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
+  //         //   }
+  //         // });
+
+  //       }
+
+  //     }
+
+  //     return true;
+  //   }
+
+
+
+
+
+  // }
+
+  // ----------------------------
+
+
+  // const convertionFuncMap = new WeakMap();
+  // let val_kevlar_should_maintain_stable_list = null;
+
+  // const csb = (a, b) => { for (const c in a) if (a.hasOwnProperty(c) && b[c]) return c; return null }
+  // const createStampDomArrayFnE1_ = function (items, containerId, componentConfig, rendererConfig, shouldTriggerRendererStamperFinished, isStableList) {
+
+
+  //   // this.__$$fs894$$__ = this.__$$fs894$$__  ||  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+
+  //   // console.log(1880, this.__$$fs894$$__)
+  //   if(!this[`__0p893::${containerId}__`]) this[`__0p893::${containerId}__`]= [];
+
+  //   // const task = 
+  //   queueMicrotask_(()=>{
+
+
+  //   });
+  //   this[`__0p892::${containerId}__`] = (this[`__0p892::${containerId}__`] || Promise.resolve(0)).then(async () => {
+
+  //     try {
+
+  //       if ((this.hostElement || 0).isConnected) this[`__0fs892::${containerId}__`] = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+  //       const t892 = this[`__0fs892::${containerId}__`];
+  //       // a - array 
+  //       // c - mapping
+  //       // d - reuseComponents
+  //       // e - events (shouldTriggerRendererStamperFinished)
+  //       // h - stamperStableList
+
+  //       // this is for flushing the new elements to a blank container. (without reusing)
+
+  //       const b_ = containerId;
+  //       const c_ = componentConfig;
+  //       const items_ = items;
+
+  //       const doDeferRenderStamperBinding_ = async (component) => {
+  //         const i = component[stampIdxSb];
+  //         const u = items_[i];
+  //         const c = c_;
+  //         const x = csb(c, u);
+  //         this.deferRenderStamperBinding_(component, c[x], u[x]); // necessary?
+  //       };
+
+  //       const container = this.getStampContainer_(b_);
+
+  //       const domShell = container.__domApi || container;
+  //       if (!domShell || !domShell.appendChild || typeof domShell.childElementCount !== 'number') throw new Error();
+  //       const domShellElementCount = domShell.childElementCount;
+  //       const noscript = document.createElement('noscript');
+  //       // document.body.appendChild(noscript); 
+
+  //       let doc = document;
+
+  //       const nofn = () => true;
+  //       const n = items_.length;
+  //       const fns = new Array(n);
+  //       let cxt = 0;
+
+  //       let qxd = domShellElementCount > 0 ? new WeakSet() : null;
+  //       const nextTickFnE1 = () => {
+  //         items_.some((item, i) => {
+
+  //           const componentKey = csb(componentConfig, item);
+  //           if (!componentKey) {
+  //             fns[i] = nofn;
+  //             cxt++;
+  //           } else {
+
+  //             const newComponent = this.createComponent_(componentConfig[componentKey], item[componentKey], rendererConfig);
+  //             newComponent[stampIdxSb] = i;
+  //             doDeferRenderStamperBinding_(newComponent);
+  //             // mutex = mutex.then(() => {
+  //             noscript.appendChild(newComponent);
+  //             // });
+
+  //             // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
+  //             let newComponent_ = newComponent;
+  //             fns[i] = () => {
+  //               if (!newComponent_) return true;
+  //               if (newComponent_.parentNode === noscript) {
+  //                 newComponent_ = null;
+  //                 return true;
+  //               }
+  //               return false;
+  //             };
+
+  //           }
+
+  //         });
+  //         noscript.setAttribute('ylul8gr', `${Date.now()}`);
+  //       };
+
+  //       const nextTickFnF1 = () => {
+  //         let startNode = null;
+
+  //         const isSet = new Set();
+  //         items_.some((item, i) => {
+
+  //           const componentKey = csb(componentConfig, item);
+  //           if (!componentKey) {
+  //             fns[i] = nofn;
+  //             cxt++;
+  //           } else {
+
+  //             const componentName = this.getComponentName_(componentConfig[componentKey], item[componentKey]);
+  //             isSet.add(componentName);
+  //             let np = startNode || domShell.firstElementChild;
+  //             let chosenNode = null;
+  //             while (np) {
+  //               if (np instanceof Node_ && np.is === componentName && !qxd.has(np)) {
+  //                 qxd.add(np);
+  //                 chosenNode = np;
+  //                 break;
+  //               }
+  //               np = np.nextElementSibling;
+  //             }
+
+
+  //             const cp = chosenNode || this.createComponent_(componentConfig[componentKey], item[componentKey], rendererConfig);
+  //             let oldIdx = cp[stampIdxSb];
+
+  //             cp[stampIdxSb] = i;
+  //             doDeferRenderStamperBinding_(cp);
+  //             if (chosenNode !== null && cp === chosenNode) {
+
+  //               fns[i] = nofn;
+  //               startNode = chosenNode;
+  //             } else {
+
+  //               // mutex = mutex.then(() => {
+  //               noscript.appendChild(cp); // ui formation
+  //               // });
+
+  //               // Promise.resolve(cp).then(doDeferRenderStamperBinding_);
+  //               let q = cp;
+  //               fns[i] = () => {
+  //                 if (q && q.parentNode === noscript) {
+  //                   const cp = q;
+  //                   q = null;
+  //                 }
+  //                 if (!q) return true;
+  //               };
+
+  //             }
+
+  //           }
+
+  //         });
+
+  //         if (isSet.size === 1 && qxd !== null) {
+
+  //           const is = isSet.values().next().value;
+
+  //           if (typeof is === 'string' && is.length >= 1) {
+
+  //             let np = startNode || domShell.firstElementChild;
+  //             const removal = [];
+  //             while (np) {
+  //               if (np instanceof Node_ && np.is === is && !qxd.has(np)) {
+  //                 removal.push(np);
+  //                 np[stampIdxSb] = -1;
+  //               }
+  //               np = np.nextElementSibling;
+  //             }
+  //             // by default, removal.length shoule be zero. just play safe.
+  //             if (removal.length > 0) {
+  //               const dFrag = doc.createDocumentFragment();
+  //               dFrag.append(...removal);
+  //               removal.length = 0;
+  //             }
+
+  //           }
+
+  //         }
+  //         noscript.setAttribute('ylul8gr', `${Date.now()}`);
+
+
+
+  //       }
+
+  //       const pr = new Promise(resolvePR => {
+
+  //         let mo = new MutationObserver(() => {
+  //           if (typeof fns[n - 1] !== 'function') return;
+  //           if (!noscript.hasAttribute('ylul8gr')) return;
+  //           const everyTrue = fns.every(fn => fn() === true);
+  //           if (everyTrue) {
+  //             if (mo) {
+  //               mo.disconnect();
+  //               mo.takeRecords();
+  //               mo = null;
+  //             }
+  //             resolvePR();
+  //           }
+  //         });
+  //         mo.observe(noscript, { subtree: false, childList: true, attributes: ['ylul8gr'] });
+
+  //         if (domShellElementCount > 0) {
+  //           nextBrowserTick_(nextTickFnF1);
+  //         } else {
+  //           nextBrowserTick_(nextTickFnE1);
+  //         }
+
+  //       });
+  //       await pr.then();
+  //       fns.length = 0;
+  //       qxd = null;
+
+  //       // console.log(3025)
+
+
+
+  //       // document.documentElement.appendChild.call(doc.documentElement, noscript);
+  //       // nativeRemoveE.call(noscript);
+
+  //       // nativeRemoveE.call(noscript);
+  //       noscript.remove(); // trigger isAttached change
+  //       const hostElement = this.hostElement;
+
+
+  //       /** @type {DocumentFragment} */
+  //       // const gFragment = document.createDocumentFragment();
+  //       const gFragment = doc.createDocumentFragment();
+
+  //       const fnE = () => {
+  //         const evt = new CustomEvent("yt-rendererstamper-finished", {
+  //           bubbles: !0,
+  //           cancelable: !1,
+  //           composed: !0,
+  //           detail: {
+  //             container
+  //           }
+  //         });
+  //         hostElement.dispatchEvent(evt);
+  //       };
+
+  //       let f1, f2;
+  //       f1 = async () => {
+  //         await new Promise(r => nextBrowserTick_(r));
+  //         if (t892 !== this[`__0fs892::${containerId}__`]) return;
+  //         // await new Promise(r=>setTimeout(r, 1000));
+
+  //         // if (this.data !== data || this.__data !== __data) return;
+
+  //         const domShellElementCountCurrent = domShell.childElementCount;
+  //         if (domShellElementCountCurrent !== domShellElementCount) return;
+  //         if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
+  //           return;
+  //         }
+  //         // const t1 = performance.now();
+
+  //         if (DO_createStampDomArrayFnE1_nativeAppendD) {
+  //           let elm;
+  //           while (elm = noscript.firstChild) {
+  //             nativeAppendD.call(gFragment, elm); // no attached / detached
+  //           }
+  //         } else {
+  //           let elm;
+  //           while (elm = noscript.firstChild) {
+  //             gFragment.appendChild(elm);
+  //           }
+  //         }
+  //         // const t2 = performance.now();
+
+  //         // console.log('createStampDomArrayFn_{T2}', t2-t1);
+
+  //         // nextBrowserTick_(f2);
+  //         return true;
+  //       };
+
+  //       f2 = async () => {
+  //         await new Promise(r => nextBrowserTick_(r));
+  //         if (t892 !== this[`__0fs892::${containerId}__`]) return;
+  //         // if (this.data !== data || this.__data !== __data) return;
+
+  //         const domShellElementCountCurrent = domShell.childElementCount;
+  //         if (domShellElementCountCurrent !== domShellElementCount) return;
+  //         if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
+  //           return;
+  //         }
+
+  //         domShell.appendChild(gFragment);
+  //         this.flushRenderStamperComponentBindings_();
+  //         this.markDirty && this.markDirty();
+
+  //         if (shouldTriggerRendererStamperFinished) {
+  //           nextBrowserTick_(fnE);
+  //         }
+
+  //         return true;
+
+  //       };
+
+  //       const r1 = await f1();
+  //       if (r1 === true) {
+  //         const r2 = await f2();
+  //       }
+
+
+  //     } catch (err) {
+
+  //       console.warn(err);
+
+  //     } finally {
+  //       //
+  //     }
+
+  //   }).catch(() => 0);
+
+
+  // };
+
+
+  // const stampIdxSb = Symbol();
+  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
+  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
+  // const byPassIs55 = new Set([
+  //   'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', // avoid disappearing of video/short entries
+  //   'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer', 'ytd-add-to-playlist-renderer', // avoid share-panel being non-central
+  //   'ytd-continuation-item-renderer', 'tp-yt-paper-spinner',
+  //   'ytd-multi-page-menu-renderer', 'yt-multi-page-menu-section-renderer'
+  // ]);
+  // const byPassB55 = new Set(['continuations']);
+  // const byPassB55 = new Set(['flexible-item-buttons', 'continuations', 'header', 'sections']);
+
+  // let stampContainer = null;
+  // const requestDomApiObject = { getStampContainer_: () => stampContainer };
+  // const requestDomApiProxy = new Proxy(requestDomApiObject, {
+  //   get(target, prop, receiver) {
+  //     if (prop === 'getStampContainer_') return target[prop];
+  //     throw new Error("requestDomApiProxyGet");
+  //   },
+  //   set(target, prop, value, receiver) {
+  //     throw new Error("requestDomApiProxySet");
+  //   }
+  // });
+  // const fulfillment2Set = new Set([
+  //   'ytd-watch-next-secondary-results-renderer.items',
+  //   'yt-related-chip-cloud-renderer.content',
+  //   'yt-chip-cloud-renderer.chips',
+  //   // 'ytd-section-list-renderer.contents', // affect loading of https://www.youtube.com/feed/history
+  //   'ytd-engagement-panel-section-list-renderer.content',
+  //   'ytd-engagement-panel-section-list-renderer.header',
+  //   'ytd-video-description-infocards-section-renderer.items',
+  //   'yt-clip-creation-renderer.title-input',
+  //   'yt-clip-creation-renderer.scrubber',
+  //   'ytd-watch-flexy.info-contents',
+  //   'ytd-video-primary-info-renderer.menu',
+  //   'ytd-menu-renderer.flexible-item-buttons',
+  //   'ytd-metadata-row-container-renderer.always-shown',
+  //   'ytd-subscribe-button-renderer.notification-preference-button',
+  //   'ytd-watch-metadata.subscribe-button',
+  //   'ytd-watch-metadata.teaser-carousel',
+  //   'ytd-structured-description-content-renderer.items',
+  //   'ytd-video-description-infocards-section-renderer.infocard-videos-button',
+  //   'ytd-video-description-infocards-section-renderer.infocard-channel-button',
+  //   'ytd-rich-metadata-row-renderer.contents',
+  //   'ytd-subscribe-button-renderer.notification-preference-button',
+  //   'ytd-watch-flexy.panels',
+  //   // yt-live-chat
+  //   'yt-live-chat-renderer.input-panel',
+  //   'yt-live-chat-app.contents',
+  //   'yt-live-chat-message-input-renderer.picker-buttons',
+  //   'yt-live-chat-message-input-renderer.pickers',
+  //   'yt-live-chat-message-input-renderer.emoji-picker-button',
+  //   'yt-live-chat-product-picker-panel-view-model.items',
+  //   'yt-live-chat-message-input-renderer.send-button',
+  //   'yt-live-chat-renderer.continuations',
+  //   // 'yt-live-chat-renderer.item-list', // affect yt live chat message init
+  //   'yt-live-chat-renderer.ticker'
+  // ]);
+
+  const __refreshData938o__ = {};
+  const __refreshData938__ = function (prop, opt) {
+    const d = this[prop];
+    if (d) {
+      this._setPendingProperty(prop, __refreshData938o__, opt);
+      this._setPendingProperty(prop, d, opt);
+      this._invalidateProperties();
+    }
+  };
+
+  // const pendingStampFlushs = [];
+
+  const nativeNow = performance.constructor.prototype.now.bind(performance);
+
+  const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
+  
+
+  const executeTaskBatch = function (taskArr, firstMarco = true) {
+    if (!(taskArr || 0).length) throw new TypeError(`Illegal invocation`);
+    return new Promise(resolveFinal => {
+      let resolveFn = null;
+      const len = taskArr.length;
+      const results = new Array(len);
+      const makePromise = () => new Promise(resolve => { resolveFn = resolve });
+      let firedCount = 0;
+      const executor = () => {
+        if (taskArr.length !== len) throw new TypeError(`Illegal invocation`);
+        const resolveFn_ = resolveFn;
+        let t0 = 0;
+        let next = 0;
+        taskArr.forEach((task, idx) => {
+          if (typeof (task || 0) !== 'object') throw new TypeError(`Illegal invocation`);
+          if (!task.fired) {
+            queueMicrotask_(() => {
+              if (next || task.fired) return;
+              task.fired = true;
+              if (++firedCount === len) next |= 2;
+              if (!t0) t0 = nativeNow() + 10;
+              const { fn } = task;
+              results[idx] = fn(task); // sync task only
+              if (nativeNow() > t0) next |= 1;
+            });
           }
-          noscript.setAttribute('ylul8gr', `${Date.now()}`);
-
-
-
-        }
-
-        const pr = new Promise(resolvePR => {
-
-          let mo = new MutationObserver(() => {
-            if (typeof fns[n - 1] !== 'function') return;
-            if (!noscript.hasAttribute('ylul8gr')) return;
-            const everyTrue = fns.every(fn => fn() === true);
-            if (everyTrue) {
-              if (mo) {
-                mo.disconnect();
-                mo.takeRecords();
-                mo = null;
-              }
-              resolvePR();
-            }
-          });
-          mo.observe(noscript, { subtree: false, childList: true, attributes: ['ylul8gr'] });
-
-          if (domShellElementCount > 0) {
-            nextBrowserTick_(nextTickFnF1);
-          } else {
-            nextBrowserTick_(nextTickFnE1);
-
-          }
-
-
         });
-        await pr.then();
-        fns.length = 0;
-        qxd = null;
+        queueMicrotask_(() => resolveFn_(next))
+      }
+      const looper = (next) => {
+        if (!next) throw new TypeError(`Illegal invocation`);
+        if (next & 2) {
+          if (next & 1) {
+            nextBrowserTick_(() => resolveFinal(results))
+          } else {
+            resolveFinal(results);
+          }
+        } else {
+          const p = makePromise();
+          nextBrowserTick_(executor);
+          p.then(looper);
+        }
+      }
+      const p = makePromise();
+      firstMarco ? nextBrowserTick_(executor) : executor();
+      p.then(looper);
 
-        // console.log(3025)
+    })
+
+  }
+
+
+  FIX_ICON_RENDER && whenCEDefined('yt-icon').then(async () => {
+
+
+    const globalPromiseStack = {};
+
+    // let dummy;
+    // while(!dummy){
+
+    //   dummy = document.querySelector('yt-icon');
+    //   await new Promise(r=>setTimeout(r,0));
+    // }
+
+    dummy = document.createElement('yt-icon');
+
+    let cProto;
+    if (!(dummy instanceof Element)) return;
+    cProto = insp(dummy).constructor.prototype;
+
+    cProto.handlePropertyChange671 = cProto.handlePropertyChange;
+    cProto.determineIconSet671 = cProto.determineIconSet;
+    cProto.switchToYtSysIconset671 = cProto.switchToYtSysIconset;
+    cProto.useYtSysIconsetForMissingIcons671 = cProto.useYtSysIconsetForMissingIcons;
+    cProto.getIconManager671 = cProto.getIconManager;
+    cProto.getIconShapeData671 = cProto.getIconShapeData;
+    cProto.renderIcon671 = cProto.renderIcon;
+
+    if(cProto.__renderIconFix__) return;
+    cProto.__renderIconFix__ = true;
+
+    let taskStack = [];
+    const cmObs = new MutationObserver(()=>{
+      const tasks = taskStack.slice();
+      taskStack.length = 0;
+      for(const task of tasks){
+        task();
+      }
+    })
+    const cm = document.createComment('1');
+    const stackTask = (f)=>{
+      taskStack.push(f);
+      cm.data = `${(cm.data & 7) + 1}`;
+    }
+    cmObs.observe(cm, {characterData: true});
+
+    let iconManagers = {}; // assume shared
+
+    window.iconManagers = ()=>iconManagers;
+
+
+    const setupYtIcon=(inst)=>{
+    
+      if(inst.__ytIconSetup588__) return;
+      const cProto = Reflect.getPrototypeOf(inst);
+      cProto. __ytIconSetup588__ = true; 
+
+      
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+
+      config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;
+      config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;
+      config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;
+      config.EXPERIMENT_FLAGS.wil_icon_network_first = true;
+
+      
+      // this.renderingMode = _.x("wil_icon_use_mask_rendering") ? 1 : 0;
+      // this.isNetworkFirstStrategy = _.x("wil_icon_network_first");
+      // this.renderWhenIdle = _.x("wil_icon_render_when_idle");
+      // this.waitForAnimationFrame = !_.x("wil_icon_load_immediately");
 
 
 
-        // document.documentElement.appendChild.call(doc.documentElement, noscript);
-        // nativeRemoveE.call(noscript);
+    }
 
-        // nativeRemoveE.call(noscript);
-        noscript.remove(); // trigger isAttached change
-        const hostElement = this.hostElement;
+    cProto.handlePropertyChange = function (...a) { // 10+
 
-        // console.log('em77', hasElement, noscript.childElementCount, domShell.childElementCount, cxt, a_.length);
-        // if(a_.length !== noscript.childElementCount+ domShell.childElementCount+ cxt){
-        //   const pd =  `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // string bool=false bool int=24 (empty string?) bool? bool
+      // undefined bool=false bool int bool? true
 
-        //   console.log('em77b', pd, [...a_], [...noscript.childNodes], [...domShell.childNodes])
-        //   setTimeout(()=>{
-        //     console.log('em77c', pd,  [...domShell.childNodes])
-        //   }, 1000)
+
+      // if(typeof a[0]==='string'&& typeof (a[1]||false)==='boolean' && typeof a[2]==='boolean' && typeof a[3] === 'number'){
+
+      //   if(a[0].)
+      //   this.determineIconSet()
+        
+      // }
+
+      // const lastData = this.__lastData__;
+      // let newData = '';
+      this.__resolved__ = {
+
+      };
+
+      // let chAction = null;
+
+      // let returnNone = false;
+
+      // // w.nextAddress  ... 
+      // if(typeof a[0] === 'string' && a[0].length > 9 && a[1]===false && a[2] ===false && a[3]===24 && a[5] === true && a[0].length >= 3){
+
+      //   console.log(12398, this.icon, this.iconsetName, this.iconType)
+      //   if(this.icon === a[0]  &&  this.icon === `${this.iconsetName}:${this.iconType}` && this.iconType && this.iconsetName && typeof this.targetContainer === 'string'){
+
+      //     console.log(12399)
+      //     newData = `renderIcon_${this.targetContainer}_${this.icon}`;
+      //     chAction = ()=>{
+      //       this.renderIcon(this.targetContainer, this.icon);
+      //       console.log('yt-icon.xxs')
+      //     }
+
+      //     returnNone = true;
+          
+      //   }
+      // }
+
+
+      // if(!newData) newData = `x${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`;
+
+      // if (lastData !== newData) {
+      //   this.__lastData__ = newData;
+
+      //   if (chAction && newData.startsWith('renderIcon_')) {
+      //     stackTask(chAction);
+      //   }
+
+      // }
+      const a01 = this.isAttached;
+      let a02, a03;
+
+
+      const t = this.__stackedKey3818__ = (this.__stackedKey3818__ & 1073741823) + 1;
+
+      const stackFn = ()=>{
+        if(t!== this.__stackedKey3818__){
+          return;
+        }
+        a03 = this.isAttached;
+
+        // if(!a02 && !a03){
+
         // }
 
-        // const sdc02 = this.__$$StampDomCounter$$__;
+        if(a01 === false && a02 === false && a03 === false) return;
+
+        if(a01===true && a02===true && a03===true){
+
+        }else{
+          if(a01 === undefined && a02 === undefined && a03 === undefined && (this.hostElement || this).isConnected === false ){
+            // unknown yt-icon#label-icon
+            return;
+          }else{
+            console.log('[yt-icon] debug', a01, a02, a03, this)
+          }
+        }
+       
+        this.handlePropertyChange671(...arguments);
+
+      };
 
 
-        /** @type {DocumentFragment} */
-        // const gFragment = document.createDocumentFragment();
-        const gFragment = doc.createDocumentFragment();
 
-        const fnE = () => {
-          const evt = new CustomEvent("yt-rendererstamper-finished", {
-            bubbles: !0,
-            cancelable: !1,
-            composed: !0,
-            detail: {
+      Promise.resolve().then(()=>{
+        a02= this.isAttached;
+        stackTask(stackFn);
+      })
+
+
+
+      
+
+      // console.log('yt-icon.handlePropertyChange', ...arguments);
+
+      // if(returnNone) return;
+      // return this.handlePropertyChange671(...arguments);
+    }
+
+    cProto.determineIconSet = function (a, b, c, d) { // 10-
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // string bool? bool=false int=24
+      // NOTIFICATIONS_NONE OR LIKE
+      // console.log('yt-icon.determineIconSet', ...arguments);
+
+      const r = this.determineIconSet671(...arguments);
+      // if(r.then){
+      //   r.then((result)=>{
+      //     console.log('yt-icon.determineIconSet.result = ', result)
+      // })
+      // }
+      return r;
+    }
+
+    cProto.switchToYtSysIconset = function (a, b, c, d) { // 10-
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // same as determineIconSet
+      // console.log('yt-icon.switchToYtSysIconset', ...arguments);
+      return this.switchToYtSysIconset671(...arguments);
+    }
+
+    cProto.useYtSysIconsetForMissingIcons = function(a, b, c, d){ // X
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // console.log('yt-icon.useYtSysIconsetForMissingIcons', ...arguments);
+      return this.useYtSysIconsetForMissingIcons671(...arguments);
+    }
+
+    cProto.getIconManager = function(){ // 10+
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // no argument
+
+      // if(this.iconsetName && this.iconType){
+      //   const p = kRef(iconManagers[this.iconsetName]);
+      //   if(p) return p;
+      // }
+      // console.log(2388, this.iconType)
+      // console.log('yt-icon.getIconManager', ...arguments);
+      if(!this.__resolved__)this.__resolved__ ={};
+      if(!this.__resolved__.getIconManager) this.__resolved__.getIconManager = this.getIconManager671(...arguments);
+      const r = this.__resolved__.getIconManager;
+      // if(r.then){
+      //   r.then((result)=>{
+      //     iconManagers[this.iconsetName] = mWeakRef(result);   
+      //     console.log('yt-icon.getIconManager.result = ', result)
+      // })
+      // }
+      return r;
+    }
+
+    cProto.getIconShapeData = function(){ // 10+
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+
+      // let rr;
+      // if (typeof (this.iconType || 0) === 'string' && typeof (this.iconsetName || 0) === 'string' && this.icon === `${this.iconsetName}:${this.iconType}` && (+this.size >= 1)) {
+      //   const a = this;
+      //   rr= {
+      //     iconName: a.iconType.toLowerCase(),
+      //     iconStyle: (a.active || a.defaultToFilled || c ? "youtube_fill" : "youtube_outline"),
+      //     iconSize: a.size,
+      //     iconSetName: a.iconsetName
+      //   };
+
+      // }
+
+      // no argument
+      // console.log('yt-icon.getIconShapeData', ...arguments);
+      if(!this.__resolved__)this.__resolved__ ={};
+      if(!this.__resolved__.getIconShapeData) this.__resolved__.getIconShapeData = this.getIconShapeData671(...arguments);
+      const r = this.__resolved__.getIconShapeData;
+      // if (r.then) {
+      //   r.then((result) =>{
+
+      //     console.log('yt-icon.getIconShapeData.result = ', result)
+      //     console.log('yt-icon.getIconShapeData.resultxx = ', rr)
+      //   } )
+      // }
+      
+
+
+      /*
+
+      temp1.resolveIcon({
+                    iconName: a.iconType.toLowerCase(),
+                    iconStyle: (a.active || a.defaultToFilled || c ? "youtube_fill" : "youtube_outline"),
+                    iconSize: a.size,
+                    iconSetName: a.iconsetName
+                })
+
+                */
+      return r
+    }
+
+    cProto.renderIcon = function(a, b){ // X
+
+      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      // "" yt-icons:xxx
+      // console.log('yt-icon.renderIcon', ...arguments);
+      return this.renderIcon671(...arguments);
+    }
+
+  });
+
+  // stampDomArray_
+  const createStampDomArrayFn_ = () => {
+    // if (val_kevlar_should_maintain_stable_list === null) {
+    //   const config_ = ((window.yt || 0).config_ || 0);
+    //   val_kevlar_should_maintain_stable_list = ((config_ || 0).EXPERIMENT_FLAGS || 0).kevlar_should_maintain_stable_list === true;
+    // }
+
+    // if(true){
+
+
+    const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    document.documentElement.insertAdjacentElement('beforeend', pSpace);
+    const pNode = document.createElement('ns-538');
+    pSpace.insertAdjacentElement('beforeend', pNode);
+
+    const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    if (typeof pNode.attachShadow === 'function') {
+      const pShadow = pNode.attachShadow({ mode: "open" });
+      pShadow.replaceChildren(pDiv);
+    } else {
+      pNode.insertAdjacentElement('beforeend', pDiv);
+    }
+
+    const pDivTempRemoval = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    pDiv.insertAdjacentElement('beforeend', pDivTempRemoval);
+    pDivTempRemoval.setAttribute('attm', 'pDivTempRemoval');
+
+    const pDivDeletion =  document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    pDiv.insertAdjacentElement('beforeend', pDivDeletion);
+    pDivDeletion.setAttribute('attm', 'pDivDeletion');
+    const pDivKeep =  document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    pDiv.insertAdjacentElement('beforeend', pDivKeep);
+    pDivKeep.setAttribute('attm', 'pDivKeep');
+
+
+    const pDivDeletionObs = new MutationObserver(() => {
+      let node = pDivDeletion.firstElementChild;
+      while (node) {
+        let nextNode = node.nextElementSibling;
+        if (node.__delayRemoved__) {
+          removeTNode(node)
+          // } else {
+          // node.remove();
+        }
+        node = nextNode;
+      }
+      if (pDivDeletion.firstChild) pDivDeletion.textContent = '';
+    });
+    pDivDeletionObs.observe(pDivDeletion, { childList: true, subtree: false });
+    
+
+    // const URa = function (a, b) {
+    //   for (var c in a)
+    //     if (a.hasOwnProperty(c) && b[c])
+    //       return c;
+    //   return null
+    // }
+
+    const syta = Symbol(); // container uid
+    // const sytb = Symbol();
+    const sytc = Symbol(); // data & parent relationship
+    const sytd = Symbol(); // bind data and component (in case not .data relationship -- to be reviewed)
+    const syte = Symbol(); // data uid
+
+    // const tmpElementNode = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+    let fallbackToDefault = false;
+
+    const attributeMutationObserver = new MutationObserver((mutations) => {
+      const targets = new Set();
+      for (const mutation of mutations) {
+        targets.add(mutation.target);
+      }
+      for (const container of targets) {
+        const tag = container.__closestYtTag388__;
+        if (tag) {
+          const hostElement = container.closest(tag);
+          if (hostElement && hostElement.is === tag) {
+            const detail = {
               container
-            }
-          });
-          hostElement.dispatchEvent(evt);
-        };
-
-        let f1, f2;
-        f1 = async () => {
-          await new Promise(r => nextBrowserTick_(r));
-          if (t892 !== this[`__0fs892::${b}__`]) return;
-          // await new Promise(r=>setTimeout(r, 1000));
-
-          // if (this.data !== data || this.__data !== __data) return;
-
-          const domShellElementCountCurrent = domShell.childElementCount;
-          if (domShellElementCountCurrent !== domShellElementCount) return;
-          if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
-            return;
+            };
+            hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+              bubbles: !0,
+              cancelable: !1,
+              composed: !0,
+              detail
+            }));
+            detail.container = null;
           }
-          // const t1 = performance.now();
+        }
+      }
+    });
 
-          if (DO_createStampDomArrayFnE1_nativeAppendD) {
-            let elm;
-            while (elm = noscript.firstChild) {
-              nativeAppendD.call(gFragment, elm); // no attached / detached
-            }
-          } else {
-            let elm;
-            while (elm = noscript.firstChild) {
-              gFragment.appendChild(elm);
+    const stamperTasksA = {};
+
+    const YRa = (a, b) => {
+      for (const c in a)
+        if (a.hasOwnProperty(c) && b[c])
+          return c;
+      return null
+    }
+
+    // let lastClickX33 = 0;
+    // let minusX33 = 0;
+    // document.addEventListener('pointerdown', ()=>{
+    //   nextBrowserTick_(()=>{
+    //     minusX33 = 10000;
+    //   });
+    //   minusX33 = 0;
+    //   lastClickX33 = Date.now();
+    // },true);
+    // document.addEventListener('keydown', ()=>{
+    //   nextBrowserTick_(()=>{
+    //     minusX33 = 10000;
+    //   });
+    //   minusX33 = 0;
+    //   lastClickX33 = Date.now();
+    // },true);
+    // document.addEventListener('keyup', ()=>{
+    //   nextBrowserTick_(()=>{
+    //     minusX33 = 10000;
+    //   });
+    //   minusX33 = 0;
+    //   lastClickX33 = Date.now();
+    // },true);
+    // document.addEventListener('pointerup', ()=>{
+    //   nextBrowserTick_(()=>{
+    //     minusX33 = 10000;
+    //   });
+    //   minusX33 = 0;
+    //   lastClickX33 = Date.now();
+    // },true);
+
+    // document.addEventListener('pointercancel', ()=>{
+    //   nextBrowserTick_(()=>{
+    //     minusX33 = 10000;
+    //   });
+    //   minusX33 = 0;
+    //   lastClickX33 = Date.now();
+    // },true);
+
+    let pageFirstDom = '';
+
+    // let emComponents = new Set();
+    let withStampDomExx = false;
+
+    const DEBUG_STAMP_CHANGE = false;
+
+
+    const reuseStore = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? new Map() : null;
+    const registry = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? new FinalizationRegistry((heldValue) => {
+      DEBUG_STAMP_CHANGE && console.log(`Object(${heldValue}) has been released`);
+    }) : null;
+
+    const registerFn = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? (node, heldValue) => {
+      Promise.resolve(node).then((node) => {
+        registry.register(node, heldValue);
+      });
+    } : () => { }
+
+
+    const go = function (a, b, c, d) {
+      d || (d = {
+        bubbles: !0,
+        cancelable: !1,
+        composed: !0
+      });
+      c !== null && c !== void 0 && (d.detail = c);
+      b = new CustomEvent(b, d);
+      a.dispatchEvent(b);
+      return b
+    };
+
+    const removeTNode = (node) => { // need trigger removal of its parent component
+      const xdeadv = xdeadc00.__domApi;
+      if (node.isConnected === true) {
+        if (node.parentNode !== pDivDeletion) {
+          pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+          pDivDeletion.lastChild.replaceWith(node); // attached -> attached
+        }
+
+        // xdeadv.appendChild(node); // attached -> detached
+        // xdeadv.removeChild(node); // detached -> detached
+
+        node.remove(); // attached -> detached
+        xdeadv.appendChild(node); // detached -> detached
+        xdeadv.removeChild(node); // detached -> detached
+      } else {
+        
+
+        node.remove(); // detached -> detached
+        xdeadv.appendChild(node); // detached -> detached
+        xdeadv.removeChild(node); // detached -> detached
+
+        // xdeadv.appendChild(node); // detached -> detached
+        // xdeadv.removeChild(node); // detached -> detached
+      }
+    }
+
+
+    const removeTNodeDelayed = (node) => {
+      if (node.isConnected === true) {
+        node.__delayRemoved__ = true;
+        pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+        pDivDeletion.lastChild.replaceWith(node); // attached -> attached
+      } else {
+        const xdeadv = xdeadc00.__domApi;
+        xdeadv.appendChild(node); // detached -> detached
+        xdeadv.removeChild(node); // detached -> detached
+      }
+    }
+
+    let triggerCountWithinMicro = 0;
+
+    
+
+    const gn = function (items__, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) {
+      if (!xdeadc00) setupXdeadC(this);
+      let useSyncE = false; // essential components
+      // let useNative = false; // native
+      let disableTaskSkip = false;
+      
+
+      triggerCountWithinMicro++;
+      const triggerCountWithinMicro_ = triggerCountWithinMicro;
+      Promise.resolve().then(() => {
+        triggerCountWithinMicro--;
+      });
+
+      const stack = new Error().stack;
+
+      let appendFrag = null;
+
+
+      // const safeFn0 = (items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) => {
+
+      //   let err, result;
+
+
+      //   const qv1 = config.DEFERRED_DETACH;
+      //   const qv2 = config.REUSE_COMPONENTS;
+      //   const qv3 = config.STAMPER_STABLE_LIST;
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      //   // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      //   try {
+      //     result = this.stampDomArray9682_(items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
+      //   } catch (e) {
+      //     err = e;
+      //   }
+
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      //   // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      //   if (err) throw err;
+
+      //   return result;
+
+
+      // };
+
+      // const safeFn = (items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) => {
+
+      //   let err, result;
+
+
+      //   const qv1 = config.DEFERRED_DETACH;
+      //   const qv2 = config.REUSE_COMPONENTS;
+      //   const qv3 = config.STAMPER_STABLE_LIST;
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      //   try {
+      //     this.stampDomArray9682_(null, containerId, null, bReuseComponent, null, null);
+      //     result = this.stampDomArray9682_(items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
+      //   } catch (e) {
+      //     err = e;
+      //   }
+
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      //   if (err) throw err;
+
+      //   return result;
+
+
+      // };
+
+      // const safeClear = (containerId, bEventCallback, finishState) => {
+
+      //   let err, result;
+
+
+      //   const qv1 = config.DEFERRED_DETACH;
+      //   const qv2 = config.REUSE_COMPONENTS;
+      //   const qv3 = config.STAMPER_STABLE_LIST;
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      //   try {
+      //     this.stampDomArray9682_(null, containerId, null, false, null, null);
+      //     const k = this.getStampContainer_(containerId);
+
+      //     if (finishState & 1) {
+      //       this.flushRenderStamperComponentBindings_();
+      //     }
+      //     if (finishState & 2) {
+      //       this.markDirty && this.markDirty();
+      //     }
+      //     if (finishState & 4) {
+      //       bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+      //         container: k
+      //       });
+      //     }
+      //   } catch (e) {
+      //     err = e;
+      //   }
+
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      //   if (err) throw err;
+
+      //   return result;
+
+
+      // };
+
+
+
+      // const safeAppendElm = (elm, items, containerId, componentConfig, bEventCallback, removeExisting, finishState) => {
+
+      //   let err, result;
+
+
+      //   const qv1 = config.DEFERRED_DETACH;
+      //   const qv2 = config.REUSE_COMPONENTS;
+      //   const qv3 = config.STAMPER_STABLE_LIST;
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      //   try {
+      //     if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
+      //     const c = componentConfig;
+      //     const k = this.getStampContainer_(containerId);
+      //     const b = k.__domApi || k;
+
+      //     const g = appendFrag || (appendFrag = document.createDocumentFragment());
+      //     let r;
+      //     for (let i = 0, l = items.length; i < l; i++) {
+      //       const u = items[i];
+      //       const w = YRa(c, u);
+      //       if (w) {
+      //         r = elm;
+      //         this.deferRenderStamperBinding_(r, c[w], u[w]);
+      //         g.appendChild(r);
+      //       }
+      //     }
+      //     b.appendChild(g)
+
+      //     if (finishState & 1) {
+      //       this.flushRenderStamperComponentBindings_();
+      //     }
+      //     if (finishState & 2) {
+      //       this.markDirty && this.markDirty();
+      //     }
+      //     if (finishState & 4) {
+      //       bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+      //         container: k
+      //       });
+      //     }
+      //   } catch (e) {
+      //     err = e;
+      //   }
+
+      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      //   if (err) throw err;
+
+      //   return result;
+
+
+      // };
+
+
+      const safeAppend = (items, containerId, componentConfig, bEventCallback, removeExisting, finishState) => {
+
+        let err, result;
+
+
+        const qv1 = config.DEFERRED_DETACH;
+        const qv2 = config.REUSE_COMPONENTS;
+        const qv3 = config.STAMPER_STABLE_LIST;
+        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+        try {
+          if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
+          const c = componentConfig;
+          const k = this.getStampContainer_(containerId);
+          const b = k.__domApi || k;
+          /*
+          const g = document.createDocumentFragment();
+          let r;
+          for(let i = 0, l =items.length; i<l;i++){
+            const u = items[i];
+            const w = YRa(c, u);
+            if (w) {
+              r = this.createComponent_(c[w], u[w], false);
+              this.deferRenderStamperBinding_(r, c[w], u[w]);
+              g.appendChild(r);
             }
           }
-          // const t2 = performance.now();
+          b.appendChild(g)
+          */
 
-          // console.log('createStampDomArrayFn_{T2}', t2-t1);
-
-          // nextBrowserTick_(f2);
-          return true;
-        };
-
-        f2 = async () => {
-          await new Promise(r => nextBrowserTick_(r));
-          if (t892 !== this[`__0fs892::${b}__`]) return;
-          // if (this.data !== data || this.__data !== __data) return;
-
-          const domShellElementCountCurrent = domShell.childElementCount;
-          if (domShellElementCountCurrent !== domShellElementCount) return;
-          if (hostElement.isConnected === false || this.isAttached === false || !hostElement.contains(container) || container.__domApi !== domShell) {
-            return;
+          const g = appendFrag || (appendFrag = document.createDocumentFragment());
+          let r;
+          for (let i = 0, l = items.length; i < l; i++) {
+            const u = items[i];
+            const w = YRa(c, u);
+            if (w) {
+              r = this.createComponent_(c[w], u[w], false);
+              this.deferRenderStamperBinding_(r, c[w], u[w]);
+              g.appendChild(r);
+            }
           }
+          b.appendChild(g)
 
-          // const t1 = performance.now();
-          // const arr = [...noscript.childNodes];
-          // g.append(...arr);
+          if (finishState & 1) {
+            this.flushRenderStamperComponentBindings_();
+          }
+          if (finishState & 2) {
+            this.markDirty && this.markDirty();
+          }
+          if (finishState & 4) {
+            bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+              container: k
+            });
+          }
+        } catch (e) {
+          err = e;
+        }
 
-          // if(gFragment.childElementCount>10){
+        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
 
-          // for(const p of gFragment.childNodes){
+        if (err) throw err;
 
-          //   const w = document.createDocumentFragment();
-          //   w.append(p);
-
-          //   domShell.appendChild(w);
-          //   await Promise.resolve(0);
-
-          // }
-
-          // }else{
-
-          domShell.appendChild(gFragment);
-          // }
+        return result;
 
 
+      };
 
-          // for (const cp of arr) {
-          //   const i = cp[stampIdxSb];
-          //   const u = a_[i];
-          //   const c = c_;
-          //   const x = csb(c, u);
-          //   this.deferRenderStamperBinding_(cp, c[x], u[x]); // necessary?
-          // }
+
+      const safeFinish = (containerId, bEventCallback) => {
+
+        let err, result;
+
+
+        const qv1 = config.DEFERRED_DETACH;
+        const qv2 = config.REUSE_COMPONENTS;
+        const qv3 = config.STAMPER_STABLE_LIST;
+        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+        try {
+          const k = this.getStampContainer_(containerId);
 
           this.flushRenderStamperComponentBindings_();
           this.markDirty && this.markDirty();
-          // const t2 = performance.now();
+          bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+            container: k
+          });
 
-          // console.log('createStampDomArrayFn_{T3}', t2-t1); // time consuming
+        } catch (e) {
+          err = e;
+        }
 
-          if (shouldTriggerRendererStamperFinished) {
-            nextBrowserTick_(fnE);
+        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+        if (err) throw err;
+
+        return result;
+
+
+      };
+
+      const stamperTasksKey = `${this.is}::${containerId}`;
+      const stamperTasks = stamperTasksA[stamperTasksKey] || (stamperTasksA[stamperTasksKey] = []);
+
+      let renderJob = this.renderJobsMap_ && containerId ? this.renderJobsMap_[containerId] : null;
+      const items_ = items__;
+
+      const hasRunningTasks = stamperTasks.length >= 1;
+
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      if (!config) {
+        console.warn('no config');
+        fallbackToDefault = true;
+      }
+
+      if (!this.deferredBindingTasks_ || this.deferredBindingTasks_.length !== 0) {
+        console.warn('no deferredBindingTasks_');
+        fallbackToDefault = true;
+      }
+
+      const container = typeof this.getStampContainer_ === 'function' ? this.getStampContainer_(containerId) : (this.$ || 0)[containerId];
+
+      if (!container) {
+        console.warn('no container');
+        fallbackToDefault = true;
+      }
+      if (!container.__xnHook944__) {
+        if (container.__xnHook944__ === 2) {
+          console.log('skip handling weird element (2)');
+          return this.stampDomArray9682_(...arguments);// skip handling weird element
+        }
+        if (container.firstElementChild) {
+          container.__xnHook944__ = 2;
+          console.log('skip handling weird element (1)');
+          return this.stampDomArray9682_(...arguments);// skip handling weird element
+        }
+        container.__xnHook944__ = 1;
+        if (container.firstElementChild) {
+          debugger;
+          console.warn('container element?')
+        }
+        try {
+          this.stampDomArray9682_(null, containerId, null, false, false, false); // bind the yt dom api
+        } catch (e) { }
+      }
+      if (container.__domApi && !container.__domApi.__daHook377__) {
+        setupDomApi(Reflect.getPrototypeOf(container.__domApi));
+        setupSDomWrapper();
+      }
+
+
+
+      // if (!hasRunningTasks && !this[keyRequireAsync] && triggerCountWithinMicro_ === 1) {
+
+      //   useSyncE = true;
+      //   // useNative = true;
+     
+        
+      // }
+      // if(this.is === 'ytd-shorts' ||  this.hostElement.closest('ytd-shorts')) useNative = true;
+
+      // const isParentFrag = this?.hostElement?.parentNode instanceof DocumentFragment_;
+      // const isParentNode = this?.hostElement?.parentNode instanceof Node;
+
+      // if(isParentFrag){
+      //   // useNative = true;
+      // }else if(isParentNode && bStableList !== false){
+
+        
+      //   if (bStableList || this.is === 'ytd-shorts' || this?.hostElement?.parentNode?.hasAttribute('__stampWithStableList__')) {
+      //     if(!this[`__stamperStable#${containerId}__`]){
+
+      //       console.log(12883, bStableList)
+
+      //       this[`__stamperStable#${containerId}__`] = true;
+
+      //       containerElement.setAttribute('__stampWithStableList__', '');
+      //       this[`__stamperStable__`] = true;
+
+      //     }
+      //   }
+
+      //   if(containerElement.closest('[__stampWithStableList__]')) useNative = true;
+      // }
+
+      // if(this.parentComponent){
+      //   if(this.parentComponent.__stamperStable__){
+      //     this[`__stamperStable__`] = true;
+      //     useNative = true;
+      //   }
+      // }
+
+      // if(containerElement.hasAttribute('__stampWithStableList__')) useNative = true;
+
+
+      // if(useNative) fallbackToDefault = true;
+
+
+
+
+      if (fallbackToDefault) {
+        // this[keyRequireAsync] = this[key5993] = this[key5996] = null;
+        return this.stampDomArray9682_(...arguments);
+      }
+
+
+      const bStableListA = bStableList !== undefined ? Boolean(bStableList) : (typeof config.STAMPER_STABLE_LIST !== "undefined" ? !!config.STAMPER_STABLE_LIST : false);
+
+      const containerDomApi = (container || 0).__domApi || container;
+      const containerElement = containerDomApi instanceof Node ? containerDomApi : insp(container).hostElement instanceof Node ? insp(container).hostElement : container;
+
+      const keyRequireAsync = `__stamperRequireAsync#${containerId}__`;
+      const key5993 = `__stamperCounter5993#${containerId}__`;
+      const key5996 = `__stamperCounter5996#${containerId}__`;
+      // const keyOnSync = `__stamperOnSync#${containerId}__`;
+
+
+
+      let hasKey = false;
+      if (items_ && items_.length >= 1) {
+
+        hasKey = items_.some((v) => (typeof YRa(componentConfig, v) === 'string'));
+
+      }
+
+      if (bEventCallback) {
+        if (!container.__rendererStamperEventCallback388__) {
+          container.__rendererStamperEventCallback388__ = true;
+          container.__closestYtTag388__ = this.is;
+          attributeMutationObserver.observe(container, { attributes: ['ytxx-stamper-finished'] });
+        }
+      }
+
+
+      if (!this.__rendererStamperFinishFn588__) {
+        this.__rendererStamperFinishFn588__ = () => {
+          if (this.deferredBindingTasks_ && this.deferredBindingTasks_.length >= 1) {
+            this.flushRenderStamperComponentBindings_();
+          }
+          this.markDirty && this.markDirty();
+        };
+
+      }
+
+
+
+
+      const items = hasKey ? items_.slice() : []; // avoid memory leakge
+
+      this[key5993] = (this[key5993] & 1073741823) + 1;
+ 
+
+      let leaveWithNoChange = false;
+
+
+      if (!hasRunningTasks && !this[keyRequireAsync]) {
+        if (!pageFirstDom) { // initial stamp action
+          pageFirstDom = this.is;
+          useSyncE = true;
+          this.__stampDomExx__ = true;
+        } else if (this.__stampDomExx__) { // essential component
+          useSyncE = true;
+        } else if (!withStampDomExx) { // not ready
+          useSyncE = true;
+        } else if (triggerCountWithinMicro_ === 1) { // first stamp action (user action)
+          useSyncE = true;
+        }
+        if (!hasKey) { // noChange
+          leaveWithNoChange = true;
+          useSyncE = true;
+        }
+      }
+
+      const useSync_ = useSyncE;
+      const tryBatchUpdate_ = !useSync_ && (renderJob || hasRunningTasks || this[keyRequireAsync]);
+
+      const skey = stamperTasks.__skey__ = `${Date.now()}`;
+
+      let taskFinish = false;
+
+      let result;
+
+      let skipToNextTask = false;
+
+      stamperTasks.push(() => {
+        if (skey !== stamperTasks.__skey__ && !disableTaskSkip) {
+          skipToNextTask = true;
+          // taskFinish = true;
+        }
+      });
+
+      if (leaveWithNoChange) {
+        if (container.__rendererStamperEventCallback388__) {
+          stamperTasks.push(() => {
+            if (taskFinish) return;
+            if(skipToNextTask) return;
+            if (container.__rendererStamperEventCallback388__) {
+              taskFinish = true;
+              container.setAttribute('ytxx-stamper-finished', (container.getAttribute('ytxx-stamper-finished') & 7) + 1);
+              return;
+            }
+          });
+        }
+      } else {
+
+        this[key5996] = (this[key5996] & 1073741823) + 1;
+      }
+
+      // this[key5996] = (this[key5996] & 1073741823) + 1;
+
+
+ 
+
+
+
+      containerElement[syta] = containerElement[syta] || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`;
+      containerElement[sytd] = containerElement[sytd] || new WeakMap();
+
+      const mkData = new Set();
+
+      const pneItems = items.map(eq => {
+        const dataKey = firstObjectKey(eq);
+        const dataKey2 = YRa(componentConfig, eq)
+        if (dataKey && dataKey2 === dataKey) {
+          const targetComponentName = this.getComponentName_(componentConfig[dataKey], eq[dataKey]);
+          const data = eq[dataKey];
+          // if (data) data[sytb] = (data[sytb] & 1073741823) + 1;
+          if (data) {
+            data[syte] = data[syte] || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`;
+            const arr = new Set((data[sytc] || '').split(','));
+            arr.delete('');
+            arr.add(containerElement[syta]);
+            data[sytc] = [...arr].join(',');
+            // addData.add(data);
+            mkData.add(data[syte]);
+            const dte = data[syte];
+            return {
+              targetComponentName,
+              dataKey,
+              data,
+              item: eq,
+              dte
+            }
+          }
+        }
+        return {
+          data: void 0,
+          item: eq,
+          dte: ''
+        };
+      }).filter(e=>!!e.dte);
+
+
+      let elementIter = containerElement.firstElementChild;
+      const uneElements = !elementIter ? [] : new Array(containerElement.childElementCount);
+      for (let i = 0, l = uneElements.length; i < l; i++) {
+        const pageElement = elementIter;
+        if (!pageElement) {
+          uneElements.length = i;
+          break;
+        }
+        const pageElementData = kRef(containerElement[sytd].get(pageElement));
+        const dte_ = pageElement[syte];
+        const dte = pageElementData && dte_ && pageElementData[syte] === dte_ && (insp(pageElement).data || 0)[syte] === dte_ ? dte_ : '';
+
+        uneElements[i] = {
+          pageElement: pageElement,
+          pageElementData: pageElementData,
+          dte
+        }
+        elementIter = elementIter.nextElementSibling;
+      }
+
+
+      const reuseKey = `${containerElement[syta]}**${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`
+
+
+      let reuseRefreshMode = 1;
+
+      const setupComponent = (data, component, refNode, deferredBindingTask, reused = false) => {
+
+        let noRenderTaskForResuedComponent = false;
+        if (component instanceof Node) {
+
+
+          if (data && data[syte]) {
+            // component[sytb] = data[sytb]
+            component[sytc] = data[sytc]
+            component[syte] = data[syte];
+            // containerElement[sytd].set(data, mWeakRef(component));
+            containerElement[sytd].set(component, mWeakRef(data));
+            if(reuseStore) reuseStore.set(data[syte], mWeakRef(component));
           }
 
+          const cnt = insp(component);
 
-          // this.flushRenderStamperComponentBindings_();
+          if (reused && reuseRefreshMode >= 1 && cnt.data) {
+            if (!cnt.__refreshData938__) {
+              cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
+            }
+            try {
+              cnt.__refreshData938__('data', !0);
+              if(reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
+            } catch (e) {  
+            }
+          }
 
+          if (refNode !== undefined) {
+            const componentX = component;
+            if (componentX instanceof Node) {
+              if (refNode !== componentX) {
+                if (!refNode) {
+                  containerElement.insertAdjacentHTML('beforeend', '<!---->');
+                  containerElement.lastChild.replaceWith(componentX);
+                } else {
+                  refNode.insertAdjacentHTML('beforebegin', '<!---->');
+                  refNode.previousSibling.replaceWith(componentX);
+                }
+              }
+            }
 
+          }
+
+          if (noRenderTaskForResuedComponent) {
+
+          } else if (deferredBindingTask && deferredBindingTask.typeOrConfig) {
+            this.deferredBindingTasks_.push(deferredBindingTask);
+            this.flushRenderStamperComponentBindings_();
+            if (this.deferredBindingTasks_.length >= 1) this.deferredBindingTasks_.length = 0;
+          }
 
           return true;
 
-        };
-
-        const r1 = await f1();
-        if (r1 === true) {
-
-
-          const r2 = await f2();
-          // p892R();
         }
+        return false;
 
-        // console.log(1883 , this.__$$fs894$$__)
-
-
-
-
-      } catch (err) {
-
-        console.warn(err);
-
-      } finally {
-        //
       }
 
-    }).catch(() => 0);
+      // if(!useNative)
+         stamperTasks.push(() => {
+
+        if (taskFinish) return;
+        if(skipToNextTask) return;
+
+        // if(skipToNextTask) return;
 
 
-  };
+        let tryStable = null;
+        if (bStableListA) {
+          tryStable = {};
+
+          pneItems.forEach(pneItem => {
 
 
-  const stampIdxSb = Symbol();
-  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-item-renderer', 'ytd-rich-grid-media', 'ytd-rich-section-renderer', 'ytd-rich-shelf-renderer']); // some issues for the view model
-  // const byPassIs55 = new Set(['ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer']);
-  const byPassIs55 = new Set([
-    'ytd-rich-grid-renderer', 'ytd-rich-shelf-renderer', // avoid disappearing of video/short entries
-    'ytd-unified-share-panel-renderer', 'yt-third-party-share-target-section-renderer', 'ytd-add-to-playlist-renderer', // avoid share-panel being non-central
-    'ytd-continuation-item-renderer', 'tp-yt-paper-spinner',
-    'ytd-multi-page-menu-renderer', 'yt-multi-page-menu-section-renderer'
-  ]);
-  // const byPassB55 = new Set(['continuations']);
-  const byPassB55 = new Set(['flexible-item-buttons', 'continuations', 'header', 'sections']);
+            const { item, dte, data, dataKey, targetComponentName } = pneItem;
 
-  let stampContainer = null;
-  const requestDomApiObject = { getStampContainer_: () => stampContainer };
-  const requestDomApiProxy = new Proxy(requestDomApiObject, {
-    get(target, prop, receiver) {
-      if (prop === 'getStampContainer_') return target[prop];
-      throw new Error("requestDomApiProxyGet");
-    },
-    set(target, prop, value, receiver) {
-      throw new Error("requestDomApiProxySet");
-    }
-  });
-  const fulfillment2Set = new Set([
-    'ytd-watch-next-secondary-results-renderer.items',
-    'yt-related-chip-cloud-renderer.content',
-    'yt-chip-cloud-renderer.chips',
-    // 'ytd-section-list-renderer.contents', // affect loading of https://www.youtube.com/feed/history
-    'ytd-engagement-panel-section-list-renderer.content',
-    'ytd-engagement-panel-section-list-renderer.header',
-    'ytd-video-description-infocards-section-renderer.items',
-    'yt-clip-creation-renderer.title-input',
-    'yt-clip-creation-renderer.scrubber',
-    'ytd-watch-flexy.info-contents',
-    'ytd-video-primary-info-renderer.menu',
-    'ytd-menu-renderer.flexible-item-buttons',
-    'ytd-metadata-row-container-renderer.always-shown',
-    'ytd-subscribe-button-renderer.notification-preference-button',
-    'ytd-watch-metadata.subscribe-button',
-    'ytd-watch-metadata.teaser-carousel',
-    'ytd-structured-description-content-renderer.items',
-    'ytd-video-description-infocards-section-renderer.infocard-videos-button',
-    'ytd-video-description-infocards-section-renderer.infocard-channel-button',
-    'ytd-rich-metadata-row-renderer.contents',
-    'ytd-subscribe-button-renderer.notification-preference-button',
-    'ytd-watch-flexy.panels',
-    // yt-live-chat
-    'yt-live-chat-renderer.input-panel',
-    'yt-live-chat-app.contents',
-    'yt-live-chat-message-input-renderer.picker-buttons',
-    'yt-live-chat-message-input-renderer.pickers',
-    'yt-live-chat-message-input-renderer.emoji-picker-button',
-    'yt-live-chat-product-picker-panel-view-model.items',
-    'yt-live-chat-message-input-renderer.send-button',
-    'yt-live-chat-renderer.continuations',
-    // 'yt-live-chat-renderer.item-list', // affect yt live chat message init
-    'yt-live-chat-renderer.ticker'
-  ]);
-  const createStampDomArrayFn_ = (fn) => {
-    if (val_kevlar_should_maintain_stable_list === null) {
-      const config_ = ((window.yt || 0).config_ || 0);
-      val_kevlar_should_maintain_stable_list = ((config_ || 0).EXPERIMENT_FLAGS || 0).kevlar_should_maintain_stable_list === true;
-    }
-    const gn = function (a, b, c, d, bv, h) {
 
-      // bv = shouldTriggerRendererStamperFinished
+            const q_ = reuseStore ? kRef(reuseStore.get(dte)) : null; // no rendered dom for the item
 
-      // this.__$$StampDomCounter$$__ = (this.__$$StampDomCounter$$__ || 0) + 1;
-      // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-      // if (a.length > 10) {
-      //   console.log(58691, this.is, b, c);
+            if (!q_) {
+
+              if(!tryStable[targetComponentName]) tryStable[targetComponentName] = new Set();
+
+              tryStable[targetComponentName].add((node)=>{
+
+                const component = node;
+                const oldDte = node[syte];
+                const cnt = insp(node);
+                if (oldDte && oldDte !== dte && node.parentNode === containerElement && data && data[syte] && cnt.data && cnt.data[syte] ) {
+
+                  this.telemetry_.reuse++;
+
+                  // console.log(123992, node, componentConfig[dataKey], data, cnt.data, oldDte, dte )
+
+                  // play safe
+                  // component[sytb] = null;
+                  component[sytc] = null;
+                  component[syte] = null;
+                  containerElement[sytd].delete(component);
+                  // play safe
+
+                  if (reuseStore) reuseStore.delete(oldDte);
+                  node[syte] = dte;
+                  node.___reuseFor__ = reuseKey; // once only
+
+
+
+                  // cnt.data = data;
+                  const deferredBindingTaskX = { component: component, typeOrConfig: componentConfig[dataKey], data: data }
+                  setupComponent(data, component, undefined, deferredBindingTaskX, true);
+
+                  // console.log(123993,'true')
+
+                  return true;
+
+
+                }
+
+                return false;
+
+              });
+
+            }
+
+          })
+
+        }
+
+
+        const removes = [];
+
+
+        let node = containerElement.firstElementChild;
+        while (node !== null) {
+
+          const dte = node[syte];
+          const nextNode = node.nextElementSibling;
+
+
+          const tryStableCur = tryStable ? tryStable[node.is] : null;
+
+          if (tryStableCur && dte && !mkData.has(dte) && tryStableCur.size >= 1) {
+            // to be removed as no equal entry, but try to make it for tryStable
+
+            // this.deferRenderStamperBinding_(r, c[t], g[t]);
+            const fn = tryStableCur.values().next().value;
+            tryStableCur.delete(fn) && fn(node);
+            // this.deferRenderStamperBinding_(r, c[t], g[t]);
+
+          }
+
+          if(node.___reuseFor__ === reuseKey){
+
+
+          } else if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
+
+            // console.log(insp(node).data);
+            // console.log(items)
+            removes.push(node);
+            // q30 = true;
+            // u.removeChild(node)
+            // try{
+            //   v.removeChild(node); // just to trigger some internal removal
+            // }catch(e){
+            // }
+          }
+          node = nextNode;
+
+        }
+
+        tryStable = null;
+
+        if(removes.length === 0) return;
+
+        // let xdeadc = xdeadc00;
+        if (!xdeadc00) setupXdeadC(this);
+        // const xdeadv = xdeadc.__domApi;
+
+        for (const node of removes) {
+
+          // const u = node.parentElement;
+          // const v = u.__domApi || u;
+          // console.log(node.parentElement, node.parentElement.isConnected)
+          // if (node.isConnected) {
+          //   removeTNodeDelayed(node);
+          // } else {
+          //   node.remove();
+          // }
+          removeTNode(node);
+
+          // v.removeChild(node);
+          // console.log(1540, insp(node).isAttached)
+          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+          // pDivDeletion.lastChild.replaceWith(node);
+          // console.log(1541, insp(node).isAttached)
+          // node.remove(); // no isAttached change
+          // console.log(1542, insp(node).isAttached)
+          // // xdeadv.__pseudo__isConnected__ = false;
+          // xdeadv.appendChild(node); // isConnected true so no custom remove. isConnected is false so no custom append
+          // debugger;
+          // xdeadv.removeChild(node);
+          // console.log(1543, insp(node).isAttached)
+          // xdeadv.__pseudo__isConnected__ = null;
+          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+          // pDivDeletion.lastChild.replaceWith(node);
+
+          // console.log(1544, insp(node).isAttached)
+
+          // if(node && node.__domApi && node.__domApi.node instanceof Node && !node.__domApi.nodeWR ){
+          //   if(node.__cleanup__) node.__cleanup__();
+          //   // node.__domApi
+          //   // debugger;
+          // }
+
+          registerFn(node, '01');
+
+        }
+
+
+
+
+        // safeClear(containerId, null, 2 | 4)
+
+      });
+      
+
+
+
+
+
+
+      // stamperTasks.push(() => {
+      //   if (taskFinish) return;
+
+
+      //   let node = containerElement.lastElementChild;
+      //   while (node !== null) {
+
+      //     const dte = node[syte];
+      //     const nextNode = node.previousElementSibling;
+
+      //     if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
+      //       pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+      //       pDivDeletion.lastChild.replaceWith(node);
+      //     }
+      //     node = nextNode;
+
+      //   }
+
+      //   console.log(23300, containerElement.childElementCount)
+
+      // });
+
+
+
+      
+      // let q30 = false;
+      // stamperTasks.push(() => {
+      //   if (taskFinish) return;
+
+
+      //   let node = containerElement.lastElementChild;
+      //   while (node !== null) {
+
+      //     const dte = node[syte];
+      //     const nextNode = node.previousElementSibling;
+
+      //     if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
+      //       q30 = true;
+      //       // const u =node.parentElement;
+      //       // const v = u.__domApi || u;
+      //       // v.removeChild(node);
+      //       // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+      //       // pDivDeletion.lastChild.replaceWith(node);
+      //     }
+      //     node = nextNode;
+
+      //   }
+
+      //   // console.log(23300, containerElement.childElementCount)
+
+
+
+
+      //   // safeFinish(containerId, true)
+
+
+      // });
+      
+
+
+
+      // ---------
+
+      // stamperTasks.push(() => {
+
+      //   // if(q30)
+      //     safeClear(containerId, null, 2 | 4);
+
+      //   // safeClear(containerId, null, 2 | 4)
+
+      // });
+
+      // ---------
+
+      // stamperTasks.push(() => {
+      //   if(!q30 && pneItems.length === containerElement.childElementCount){
+
+      //     console.log('keep')
+      //   }else{
+
+      //     safeClear(containerId, null, 2 | 4)
+      //   }
+
+      // });
+
+      // const listX = [];
+      let refNode = null;
+      let refNodeIdx = -1;
+
+      const taskPerPneItem = (pneItem) => {
+
+
+        let reused = false;
+
+        const { item, dte, data, dataKey, targetComponentName } = pneItem;
+
+        refNode = ++refNodeIdx === 0 ? containerElement.firstElementChild : refNode && refNode.nextElementSibling;
+
+
+        const q_ = reuseStore ? kRef(reuseStore.get(dte)) : null;
+        const q = (q_ && (q_.___reuseFor__ === reuseKey || q_.closest('defs'))) ? q_ : null;
+
+        let deferredBindingTaskX = null;
+        let component = null;
+        if (q && q.is === targetComponentName) {
+
+          if (q_.closest('defs')) {
+
+            const node = component = q;
+            const cnt = insp(node);
+            cnt.data = data;
+            deferredBindingTaskX = { component: q, data: data }
+            // listX.push(deferredBindingTaskX);
+
+            DEBUG_STAMP_CHANGE && console.log('reuse X0')
+            reused = true;
+
+          } else {
+
+            const node = component = q;
+            const cnt = insp(node);
+            // cnt.data = data;
+            deferredBindingTaskX = { component: q, typeOrConfig: componentConfig[dataKey], data: data }
+            // listX.push(deferredBindingTaskX);
+
+            reused = true;
+
+            DEBUG_STAMP_CHANGE && console.log('reuse S0')
+
+          }
+
+
+
+        } else {
+
+          // console.log('new')
+
+
+          // const qf2 = this.deferRenderStamperBinding_;
+          // let deferredBindingTaskX = null;
+          this.deferRenderStamperBinding_ = function (a, b, c) {
+            deferredBindingTaskX = {
+              component: a,
+              typeOrConfig: b,
+              data: c
+            };
+          }
+
+          // console.log(23400, containerElement.childElementCount)
+          safeAppend([item], containerId, componentConfig, bEventCallback, false, 0 | 2 | 4);
+
+          // console.log(23401, containerElement.childElementCount)
+
+          // safeFn([item], containerId, componentConfig, false, bEventCallback, false);
+
+          delete this.deferRenderStamperBinding_;
+          // this.deferRenderStamperBinding_ = qf2;
+          // console.log(deferredBindingTaskX)
+          // listX.push(deferredBindingTaskX);
+
+          component = deferredBindingTaskX.component;
+
+        }
+
+
+        if (setupComponent(data, component, refNode, deferredBindingTaskX, reused)) {
+
+          refNode = component;
+        }
+
+
+
+
+      }
+
+      // if (!useNative)
+      pneItems.forEach((pneItem, idx) => {
+
+        stamperTasks.push(() => {
+          if (taskFinish) return;
+          if (skipToNextTask) return;
+
+          if (skipToNextTask) {
+
+            if (idx === 0) {
+
+              for (const pneItem of pneItems) {
+
+                taskPerPneItem(pneItem);
+              }
+            } else {
+              // skip
+
+            }
+          } else {
+
+
+            taskPerPneItem(pneItem);
+
+          }
+
+        });
+
+
+      });
+
+
+      // if(!useNative)
+      stamperTasks.push(() => {
+
+        if (taskFinish) return;
+        if (skipToNextTask) return;
+        // if (skipToNextTask) return;
+        let node = refNode;
+
+        if (!node) return;
+
+        // console.log(1039, node, containerElement.childElementCount)
+
+
+        node = node.nextElementSibling;
+
+        while (node) {
+
+
+
+          let nextNode = node.nextElementSibling;
+
+          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+          // pDivDeletion.lastChild.replaceWith(node);
+
+
+          removeTNode(node);
+
+          registerFn(node, '02');
+
+
+          node = nextNode;
+
+
+        }
+
+      });
+
+
+
+      // if(useNative && stamperTasks.length === 0){
+
+
+      //   this.stampDomArray9682_(...arguments); 
+      //   return;
+
       // }
 
-      if ((this.hostElement || 0).isConnected) this[`__0fs892::${b}__`] = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-      let n = (a || 0).length, t;
-      if (n === 1 && typeof (t = (a[0] || {})) === 'object' && Object.keys(t).length === 0) n = 0;
-      if (n >= 1) {
-        const instanceIs = this.is;
-        if (h === undefined && typeof b === 'string' && c && typeof c === 'object' && instanceIs && val_kevlar_should_maintain_stable_list) {
-          if (c.clientSideToggleMenuItemRenderer) {
-            h = false;
-          } else {
-            h = true;
-          }
+
+      // if (useNative) {
+
+      //   useSyncE = true;
+
+      //   stamperTasks.push(() => {
+
+      //     if (taskFinish) return;
+      //     // if (skipToNextTask) return;
+
+      //     // safeFn0(items__, containerId, componentConfig, false, bEventCallback, false);
+      //     // safeFn(pneItems.map(e => e.item), containerId, componentConfig, false, bEventCallback, false)
+
+      //     // this.stampDomArray9682_(items_, containerId, componentConfig, false, bEventCallback, false);
+      //     // this.stampDomArray9682_(pneItems.map(e => e.item), containerId, componentConfig, false, bEventCallback, false);
+
+
+      //     safeFn0(pneItems.map(e => e.item), containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
+      //     // this.stampDomArray9682_(pneItems.map(e => e.item), containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
+
+      //     // this.stampDomArray9682_(...arguments);
+      //   })
+
+      // }
+
+
+
+      stamperTasks.push(() => {
+
+
+        if (!skipToNextTask) {
+
+          safeFinish(containerId, bEventCallback);
         }
-        if (DO_createStampDomArrayFnE1_ && typeof (instanceIs || 0) === 'string' && typeof (b || 0) === 'string' && typeof (c || 0) === 'object') {
-          // !!c <=> typeof c should be always object
 
-          let fulfillment = false;
-          if (DO_createStampDomArray_STRICT_FULFILLMENT) {
-            const isPlaylistRendering = instanceIs === 'ytd-playlist-panel-renderer' && b === 'items' && (c || 0).playlistPanelVideoRenderer;
-            const isTranscriptRendering = instanceIs === 'ytd-transcript-segment-list-renderer' && b === 'segments-container' && (c || 0).transcriptSegmentRenderer;
-            const isProductListRendering = instanceIs === 'ytd-product-list-renderer' && b === 'contents' && (c || 0).productListItemRenderer;
-            const isGuideSectionItemRendering = instanceIs === 'ytd-guide-section-renderer' && b === 'items' && ((c || 0).guideCollapsibleEntryRenderer || (c || 0).guideCollapsibleSectionEntryRenderer || (c || 0).guideEntryRenderer);
-            const isPlaylistVideosRendering = instanceIs === 'ytd-playlist-video-list-renderer' && b === 'contents' && (c || 0).playlistVideoRenderer;
-            const isShareTargetItemRendering = instanceIs === 'yt-third-party-share-target-section-renderer' && b === 'contents' && (c || 0).shareTargetRenderer;
-
-            const fulfillment1 = (isPlaylistRendering || isTranscriptRendering || isProductListRendering || isGuideSectionItemRendering || isPlaylistVideosRendering || isShareTargetItemRendering);
-
-            fulfillment = (fulfillment1 && a.length > 1); // strict fulfillment; avoid issues
-          } else {
-            fulfillment = true && a.length > 1;
-          }
-
-          if (!fulfillment) {
-            if (
-              typeof (a || 0) === 'object' &&
-              // typeof (b || 0) === 'string' && typeof (c || 0) === 'object' &&
-              d === undefined && bv === undefined && h === true) {
-              if (fulfillment2Set.has(`${this.is}.${b}`)) {
-                fulfillment = true;
-              }
-            }
-          }
-
-          const constraintE = DO_createStampDomArrayFnE1_noConstraintE ? true : !bv;
-          const dk55 = (window.dk55 || (window.dk55 = new Set()));
-          dk55.add(`(is=${this.is}, b=${b})`);
-          if (!d && constraintE && h && !byPassIs55.has(this.is) && !byPassB55.has(b) && fulfillment) {
-            // h (stamperStableList) = true
-            // d (reuseComponents) = false
-            // a.length > 1 to avoid chatroom display issue
-
-            const container = this.getStampContainer_(b);
-
-            if (container) {
-
-              // this.__$$fs892$$__ = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-
-              let domShell = container.__domApi;
-
-              if (!domShell) {
-                // -- request __domApi --
-                stampContainer = container;
-                try {
-                  fn.call(requestDomApiProxy, undefined, b, undefined, false, false, false);
-                } catch (e) {
-                }
-                stampContainer = null;
-                // -- request __domApi --
-
-                // fn.call(this, undefined, b, undefined, d); // erase the contents. so byPass is required.
-                domShell = container.__domApi;
-                if (!domShell) {
-                  try {
-                    fn.call(this, undefined, b, undefined, false, false, false);
-                    domShell = container.__domApi;
-                  } catch (e) { }
-                }
-              }
+      });
 
 
-
-              if (domShell && domShell.appendChild) {
-
-                let doNew = false;
-                // console.log(5882, this.is, b)
-                if (domShell.firstElementChild === null) {
-                  doNew = true;
-                } else if (DO_createStampDomArrayFnF1_ && domShell.firstElementChild instanceof Node_) {
-                  // let t1 = performance.now();
-                  let error = 0;
-                  const createDocumentFragment = document.createDocumentFragment;
-                  document.createDocumentFragment = function () {
-                    throw new Error("DN96IZkGLTY6");
-                  }
-                  let r;
-                  try {
-                    r = fn.call(this, a, b, c, d, bv, h);
-                  } catch (e) {
-                    error = (e.message === 'DN96IZkGLTY6') ? 1 : e;
-                  }
-                  document.createDocumentFragment = createDocumentFragment;
-                  if (!error) return r;
-                  if (error !== 1) throw e;
-                  // let t2 = performance.now();
-                  // console.log('createStampDomArrayFnF1_', t2-t1);
-
-                  doNew = true;
-                }
-
-                if (doNew) {
-                  DO_createStampDomArray_DEBUG && console.time(`createStampDomArrayFn_NEW@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
-                  createStampDomArrayFnE1_.call(this, a, b, c, d, bv, h);
-                  DO_createStampDomArray_DEBUG && console.timeEnd(`createStampDomArrayFn_NEW@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
-                  return;
-                }
-
-              }
+      this[keyRequireAsync] = (this[keyRequireAsync] || 0) + 1;
 
 
-            }
+      stamperTasks.push(() => {
 
+        if (!skipToNextTask) {
 
-
-          }
-
-
+          this.__rendererStamperFinishFn588__();
         }
+
+        this[keyRequireAsync] = (this[keyRequireAsync] || 0) - 1;
+
+      });
+
+
+      if(
+        // useNative &&
+         !leaveWithNoChange) {
+        disableTaskSkip = true;
+
+        const tasks = stamperTasks.slice();
+        stamperTasks.length = 0;
+
+        for (const task of tasks) {
+          task();
+        }
+        return;
       }
-      DO_createStampDomArray_DEBUG && console.time(`createStampDomArrayFn_ORI@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
-      const r = fn.call(this, a, b, c, d, bv, h);
-      DO_createStampDomArray_DEBUG && console.timeEnd(`createStampDomArrayFn_ORI@${this.is}( ${a}, ${b}, ${c}, ${d}, ${bv}, ${h} )`);
-      // console.log(2949, a,b,c,d,e,h)
-      return r;
+
+      
+      if (useSync_) {
+
+        disableTaskSkip = true;
+
+        // [[ FOR CRITICAL TASK ]]
+
+        // if (!this[keyOnSync]) this[keyOnSync] = 0;
+        // this[keyOnSync]++;
+
+        // const pr = marcoPr;
+        // console.log(2992, pr, trackMarcoCm.data)
+        // trackMarcoCm.data = `${(trackMarcoCm.data & 7) + 1}`;
+        // pr.then(() => {
+        //   this[keyOnSync]--;
+        //   // console.log(3992, this.is);
+        // });
+
+        const tasks = stamperTasks.slice();
+        stamperTasks.length = 0;
+
+        for (const task of tasks) {
+          task();
+        }
+
+        if (!withStampDomExx && useSyncE && this.is === pageFirstDom) {
+          // we treat the components generated by initial stampDom as important
+
+          for (const elm of document.getElementsByTagName('*')) {
+            if (elm.is) {
+              insp(elm).__stampDomExx__ = true;
+              // emComponents.add(elm.is);
+            }
+          }
+          withStampDomExx = true;
+        }
+
+      } else {
+
+        if (!hasRunningTasks) {
+
+          const f = () => {
+            if (!stamperTasks.length) return;
+            const tasks = stamperTasks.slice();
+            stamperTasks.length = 0;
+            executeTaskBatch(tasks.map(fn => ({ fn })), false);
+          }
+
+          if (tryBatchUpdate_) {
+            nextBrowserTick_(f);// collecting all tasks (after reflow)
+          } else {
+            queueMicrotask_(f); // collecting some tasks (before reflow)
+          }
+
+        }
+
+      }
+
+      return;
+
+
+
+
+
     }
-    gn.originalFn = fn;
-    convertionFuncMap.set(fn, gn);
+
     return gn;
+
   };
 
-  const fixStampDomArrayStableList = (h) => {
-    if (!h.stampDomArray_) return;
-    const proto = h.__proto__;
-    const f = proto.stampDomArray_;
-    if (!proto.stampDomArrayF001_ && typeof f === 'function' && f.length === 6) {
-      proto.stampDomArrayF001_ = 1;
-      proto.stampDomArray_ = convertionFuncMap.get(f) || createStampDomArrayFn_(f);
-    }
-  }
-
-  const weakenStampReferences = (() => {
-
-    const DEBUG_STAMP = false;
-
-    const s1 = Symbol();
-    const handler1 = {
-      get(target, prop, receiver) {
-        if (prop === 'object') {
-          return kRef(target[s1]); // avoid memory leakage
-        }
-        if (prop === '__proxy312__') return 1;
-        return target[prop];
-      }
-    };
-    const handler2 = {
-      get(target, prop, receiver) {
-        if (prop === 'indexSplices') {
-          return kRef(target[s1]); // avoid memory leakage
-        }
-        if (prop === '__proxy312__') return 1;
-        return target[prop];
-      }
-    }
-    return (h) => {
-
-      if (h.rendererStamperApplyChangeRecord_ || h.stampDomArraySplices_) {
-        const proto = h.__proto__;
-        if (!proto.yzxer && (proto.rendererStamperApplyChangeRecord_ || proto.stampDomArraySplices_)) {
-          proto.yzxer = 1;
-
-          const list = [
-            // "rendererStamperObserver_", // 3  ==> rendererStamperApplyChangeRecord_
-            "rendererStamperApplyChangeRecord_", // 3
-            "forwardRendererStamperChanges_", // 3
-            "stampDomArraySplices_", // 3
-            "stampDomArray_", // 6
-            "deferRenderStamperBinding_", // 3
-          ];
-          for (const key of list) {
-            const pey = `${key}$wq0iw_`;
-            const vKey = proto[key];
-            if (typeof vKey !== 'function') continue;
-            if (proto[pey] || vKey.length === 0) continue;
-
-            if (key === 'stampDomArraySplices_' && vKey.length === 3) {
-              proto[pey] = vKey;
-              proto[key] = function (a, b, c) {
-
-                if (typeof a === 'string' && typeof b === 'string' && typeof c === 'object' && c && c.indexSplices && c.indexSplices.length >= 1 && !c.indexSplices.rzgjr) {
-
-                  c.indexSplices = c.indexSplices.map(e => {
-                    if (e.__proxy312__) return e;
-                    e[s1] = mWeakRef(e.object);
-                    e.object = null;
-                    return new Proxy(e, handler1);
-                  });
-                  c.indexSplices.rzgjr = 1;
-
-                  c[s1] = mWeakRef(c.indexSplices);
-                  c.indexSplices = null;
-                  c = new Proxy(c, handler2)
-                  arguments[2] = c;
-
-                }
-                // console.log(key, arguments.length, [...arguments]);
-                return proto[pey].call(this, a, b, c);
-              }
-
-            } else if (key === 'rendererStamperApplyChangeRecord_' && vKey.length === 3) {
-
-              // Nil
-
-            } else if (DEBUG_STAMP) {
-
-              console.log(proto.isRenderer_, 'ms_' + key, vKey.length, h.is)
-              proto[pey] = vKey;
-              proto[key] = function () {
-                if (key === 'rendererStamperApplyChangeRecord_' && typeof arguments[3] === 'object') {
-                  console.log(key, arguments.length, { value: arguments[3].value, base: arguments[3].base, })
-                }
-                console.log(key, arguments.length, [...arguments]);
-                return proto[pey].apply(this, arguments);
-              }
-
-            }
-
-          }
-
-
-          // const m = (Object.mkss = Object.mkss || new Set());
-          // Object.keys(h.__proto__).filter(e => e.toLowerCase().includes('stamp') && typeof h[e] === 'function').forEach(e => m.add(e))
-          // console.log([...m])
-        }
-      }
-
-    }
-  })();
 
   const setupDiscreteTasks = (h, rb) => {
 
-    if (rb) {
-      if (h.ky36) return;
-    }
 
 
     if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
@@ -4368,72 +6445,7 @@
       g.km34 = 1;
       h.onVideoDataChange_ = g;
 
-    }
-
-    /*
-    // affect chat message icon tooltips
-    if (typeof h.addTooltips === 'function' && !(h.addTooltips.km34)) {
-
-      const f = h.addTooltips;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.addTooltips = g;
-
-    }
-    */
-    /*
-        if (typeof h.onMouseOver_ === 'function' && !(h.onMouseOver_.km34) && typeof h.createTooltipIfRequired_ === 'function') {
-            console.log(212, h.is);
-            const f = h.onMouseOver_;
-          const g = ump3.get(f) || function () {
-
-              if (!this.__mEZ__) {
-
-
-                  const w = document.createElement;
-                  let EU = null;
-                  document.createElement = function () {
-                      let r = w.apply(this, arguments);
-                      EU = r;
-                      return r;
-                  };
-                  let done = false;
-                  try {
-                      this.polymerController.createTooltipIfRequired_();
-                      done = true;
-                  } catch (e) {
-
-                  }
-                  if (!done) {
-                      try {
-                          this.createTooltipIfRequired_();
-                          done = true;
-                      } catch (e) {
-
-                      }
-
-                  }
-                  this.__mEZ__ = EU;
-                  document.createElement = w;
-              }
-              if(this.__mEZ__){
-                this.__mEZ__.remove();
-                // this.__mEZ__.for = null;
-                [...this.__mEZ__.querySelectorAll('.hidden')].forEach(e=>e.classList.remove('hidden'))
-              }
-            console.log(212,this, this.is, this.__mEZ__)
-            return f.apply(this, arguments)
-          }
-          ump3.set(f, g);
-          g.km34 = 1;
-          h.onMouseOver_ = g;
-
-        }
-        */
-
+    } 
 
     if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
 
@@ -4953,9 +6965,6 @@
 
     }
 
-    FIX_stampDomArray_stableList && fixStampDomArrayStableList(h);
-    const ENABLE_weakenStampReferencesQ = ENABLE_weakenStampReferences && typeof DocumentTimeline !== 'undefined' && typeof WeakRef !== 'undefined';
-    ENABLE_weakenStampReferencesQ && weakenStampReferences(h);
 
 
     /**
@@ -5119,18 +7128,48 @@
       return r;
     }
   }
+  const pvr = Symbol()
 
-  ENABLE_discreteTasking && Object.defineProperty(Object.prototype, 'connectedCallback', {
+  let stampDomArrayMethod = null;
+  const setupMap = new WeakSet();
+
+  // const ENABLE_weakenStampReferencesQ = ENABLE_weakenStampReferences && typeof DocumentTimeline !== 'undefined' && typeof WeakRef !== 'undefined';
+  const setupYtComponent = (cnt) => {
+    const cProto = (cnt || 0).__proto__ || 0;
+    if (!cProto || setupMap.has(cProto)) return;
+    setupMap.add(cProto);
+    if (FIX_stampDomArray && !(cProto[pvr] & 1) && 'stampDomArray_' in cProto) {
+      cProto[pvr] |= 1;
+      if (FIX_stampDomArray && cProto.stampDomArray_ && !cProto.stampDomArray9682_) {
+        if (!stampDomArrayMethod) stampDomArrayMethod = createStampDomArrayFn_();
+        cProto.stampDomArray9682_ = cProto.stampDomArray_;
+        cProto.stampDomArray_ = stampDomArrayMethod;
+      }
+    }
+    if (ENABLE_discreteTasking && !(cProto[pvr] & 2) && (typeof (cProto.is || 0) === 'string' || ('attached' in cProto) || ('isAttached' in cProto))) {
+      cProto[pvr] |= 2;
+      setupDiscreteTasks(cProto);
+    }
+  };
+
+  (ENABLE_discreteTasking || FIX_stampDomArray) && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
+      
       const f = this[keyStConnectedCallback];
+      if (this.is) {
+        setupYtComponent(this);
+      }
+      /*
       if (this.is) {
         setupDiscreteTasks(this, true);
         if (f) this.ky36 = 1;
       }
+      */
       return f;
     },
     set(nv) {
-      let gv;
+      let gv = nv;
+      /*
       if (typeof nv === 'function') {
 
         gv = cmf.get(nv) || gvGenerator(nv);
@@ -5143,10 +7182,13 @@
       } else {
         gv = nv;
       }
+      */
       this[keyStConnectedCallback] = gv; // proto or object
+      /*
       if (this.is) {
         setupDiscreteTasks(this);
       }
+      */
       return true;
     },
     enumerable: false,
@@ -6694,7 +8736,7 @@
 
 
 
-    (ENABLE_discreteTasking || FIX_Polymer_dom) && (async () => {
+    (ENABLE_discreteTasking || FIX_Polymer_dom || FIX_stampDomArray ) && (async () => {
 
       const Polymer = await polymerObservable.obtain();
       if (!Polymer) return;
@@ -6829,10 +8871,10 @@
       }
 
 
-      if (ENABLE_discreteTasking) {
+      if (ENABLE_discreteTasking || FIX_stampDomArray) {
 
         Polymer.Base.__connInit__ = function () {
-          setupDiscreteTasks(this);
+          setupYtComponent(this);
         }
 
 
