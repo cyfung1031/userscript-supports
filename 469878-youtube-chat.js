@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.12
+// @version             0.100.13
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -576,6 +576,8 @@
   const [setTimeout_] = [setTimeout];
   // let jsonParseFix = null;
   const Image_ = Image;
+  /** @type {typeof HTMLElement} */
+  const HTMLElement_ = Reflect.getPrototypeOf(HTMLTitleElement);
 
   const nextBrowserTick_ = nextBrowserTick;
   if (typeof nextBrowserTick_ !== "function" || (nextBrowserTick_.version || 0) < 2) {
@@ -781,7 +783,7 @@
 
   ` : '';
 
-  const ENABLE_FONT_PRE_RENDERING = typeof HTMLElement.prototype.append === 'function' ? (ENABLE_FONT_PRE_RENDERING_PREFERRED || 0) : 0;
+  const ENABLE_FONT_PRE_RENDERING = typeof HTMLElement_.prototype.append === 'function' ? (ENABLE_FONT_PRE_RENDERING_PREFERRED || 0) : 0;
   const cssText8_fonts_pre_render = ENABLE_FONT_PRE_RENDERING ? `
 
     elzm-fonts {
@@ -1540,8 +1542,8 @@
   const setIntervalX0 = setInterval;
   const clearIntervalX0 = clearInterval;
 
-  const __shady_native_appendChild = HTMLElement.prototype.__shady_native_appendChild || HTMLElement.prototype.appendChild;
-  const __shady_native_removeChild = HTMLElement.prototype.__shady_native_removeChild || HTMLElement.prototype.removeChild;
+  const __shady_native_appendChild = HTMLElement_.prototype.__shady_native_appendChild || HTMLElement_.prototype.appendChild;
+  const __shady_native_removeChild = HTMLElement_.prototype.__shady_native_removeChild || HTMLElement_.prototype.removeChild;
 
   const isEmptyObject = (obj) => {
     for (const key in obj) {
@@ -1750,7 +1752,7 @@
 
           const hostElement = cnt.hostElement;
 
-          if(hostElement instanceof HTMLElement && hostElement.isConnected === false && hostElement.parentNode === null && hostElement.getAttribute('__reuseid__')===reuseId ){
+          if(hostElement instanceof HTMLElement_ && hostElement.isConnected === false && hostElement.parentNode === null && hostElement.getAttribute('__reuseid__')===reuseId ){
 
           // console.log(952, cnt.hostElement.parentNode)
           // debugger;
@@ -2086,7 +2088,7 @@
 
     const dntElement = kRef(dntElementWeak);
     const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT / 1000) : playerProgressChangedArg1;
-    if (dntElement instanceof HTMLElement && v >= 0) {
+    if (dntElement instanceof HTMLElement_ && v >= 0) {
       valAssign(dntElement, '--ticker-current-time', v);
     }
   }
@@ -2343,10 +2345,9 @@
   };
 
   const nodeParent = fxOperator(Node.prototype, 'parentNode');
-  // const nFirstElem = fxOperator(HTMLElement.prototype, 'firstElementChild');
-  const nPrevElem = fxOperator(HTMLElement.prototype, 'previousElementSibling');
-  const nNextElem = fxOperator(HTMLElement.prototype, 'nextElementSibling');
-  const nLastElem = fxOperator(HTMLElement.prototype, 'lastElementChild');
+  const nPrevElem = fxOperator(HTMLElement_.prototype, 'previousElementSibling');
+  const nNextElem = fxOperator(HTMLElement_.prototype, 'nextElementSibling');
+  const nLastElem = fxOperator(HTMLElement_.prototype, 'lastElementChild');
 
   let groupCI = [];
   let groupDI = 0;
@@ -2528,11 +2529,8 @@
   const { insertBeforeNaFn, appendChildNaFn } = (() => {
     // native methods
 
-    const dummyElement = document.createElement('dummy-388');
-    const HTMLElement = dummyElement.constructor;
-
-    const insertBefore = HTMLElement.prototype.insertBefore;
-    const appendChild = HTMLElement.prototype.appendChild;
+    const insertBefore = HTMLElement_.prototype.insertBefore;
+    const appendChild = HTMLElement_.prototype.appendChild;
 
     return {
       insertBeforeNaFn: (parent, node, child) => {
@@ -2755,7 +2753,7 @@
 
       console1.log('number of elzm-font elements', arr.length);
 
-      HTMLElement.prototype.append.apply(efsContainer, arr);
+      HTMLElement_.prototype.append.apply(efsContainer, arr);
 
       (document.body || document.documentElement).appendChild(efsContainer);
 
@@ -4600,7 +4598,7 @@
         cProto.__getAllParticipantsDOMRenderedLength__ = function () {
           const container = ((this || 0).$ || 0).participants;
           if (!container) return 0;
-          return HTMLElement.prototype.querySelectorAll.call(container, 'yt-live-chat-participant-renderer').length;
+          return HTMLElement_.prototype.querySelectorAll.call(container, 'yt-live-chat-participant-renderer').length;
         }
 
         const onPageElements = [...document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')];
@@ -4749,12 +4747,12 @@
       if (!divProto.__children577__ && !divProto.__children578__) {
 
         const dp = Object.getOwnPropertyDescriptor(Element.prototype, 'children');
-        const dp2 = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'children');
+        const dp2 = Object.getOwnPropertyDescriptor(HTMLElement_.prototype, 'children');
         const dp3 = Object.getOwnPropertyDescriptor(divProto, 'children');
 
         if (dp && dp.configurable === true && dp.enumerable === true && typeof dp.get === 'function' && !dp2 && !dp3) {
 
-          if (divProto instanceof HTMLElement && divProto instanceof Element) {
+          if (divProto instanceof HTMLElement_ && divProto instanceof Element) {
 
             let m = Object.assign({}, dp);
             divProto.__children577__ = dp.get;
@@ -4960,22 +4958,7 @@
 
         }
 
-        // const _lastVisible = kRef(lastVisible);
-        // for (const entry of entries) {
-
-        //   // Promise.resolve(entry).then(visObserverFn);
-        //   visObserverFn(entry);
-
-        // }
-        // const lastVisibleC = kRef(lastVisible);
-
-        // if (_lastVisible !== lastVisibleC) {
-        //   if (_lastVisible instanceof HTMLElement) _lastVisible.classList.remove('cyt-chat-last-message');
-        //   if (lastVisibleC instanceof HTMLElement) lastVisibleC.classList.add('cyt-chat-last-message');
-        // }
-
       }, {
-        // root: HTMLElement.prototype.closest.call(m2, '#item-scroller.yt-live-chat-item-list-renderer'), // nullable
         rootMargin: "0px",
         threshold: [0.05, 0.95],
       });
@@ -7009,7 +6992,7 @@
             return;
           }
 
-          const isTargetItems = HTMLElement.prototype.matches.call(items, '#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer')
+          const isTargetItems = HTMLElement_.prototype.matches.call(items, '#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer')
 
           if (!isTargetItems) {
             console.warn("!isTargetItems");
@@ -7755,413 +7738,10 @@
 
             }
 
-            /*
-            f.flushActiveItems_ = function() {
-              var a = this;
-              if (this.activeItems_.length > 0)
-                  if (this.canScrollToBottom_()) {
-                      var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
-                      b && this.splice("visibleItems", 0, b);
-                      if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
-                          this.preinsertHeight_ = this.items.clientHeight;
-                      this.activeItems_.unshift("visibleItems");
-                      try {
-                          this.push.apply(this, this.activeItems_)
-                      } catch (c) {
-                          Ak(c)
-                      }
-                      this.activeItems_ = [];
-                      this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Js(function() {
-                          a.showNewItems_()
-                      }) : Js(function() {
-                          a.refreshOffsetContainerHeight_();
-                          a.maybeScrollToBottom_()
-                      })
-                  } else
-                      this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
-          };*/
-
-            /*
-            mclp.flushActiveItems66_ = function () {
-              const visibleItemsA = (this || 0).visibleItems;
-              const lastVisibleItemA = visibleItemsA ? visibleItemsA[visibleItemsA.length - 1] : null;
-              const r = this.flushActiveItems66a_();
-
-              const visibleItemsB = (this || 0).visibleItems;
-              const lastVisibleItemB = visibleItemsB ? visibleItemsB[visibleItemsB.length - 1] : null;
-
-              if (lastVisibleItemA !== lastVisibleItemB) {
-
-                try {
-                  const lastRow = kRef(lastLastRow);
-
-                  const keyB = lastVisibleItemB ? firstObjectKey(lastVisibleItemB) : '';
-                  const idB = keyB ? (lastVisibleItemB[keyB].id || null) : null;
-
-                  if (idB) {
-
-                    let elm = this.$.items.lastElementChild;
-
-                    while (elm instanceof HTMLElement) {
-                      if (elm.id === idB) break;
-                      elm = ('__shady_native_previousElementSibling' in elm) ? elm.__shady_native_previousElementSibling : elm.previousElementSibling;
-                    }
-
-                    lastRow && lastRow.classList.remove('cyt-chat-last-message');
-                    if (elm) {
-                      elm.classList.add('cyt-chat-last-message');
-                      lastLastRow = mWeakRef(elm);
-                    }
-
-                  }
-
-                } catch (e) { }
-
-
-              }
-
-              return r; 
-            };
-            */
-
-            // const preloadFn = (acItems) => {
-            //   let waitFor = [];
-            //   /** @type {Set<string>} */
-            //   const imageLinks = new Set();
-
-            //   if (ENABLE_PRELOAD_THUMBNAIL || EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL) {
-            //     for (const item of acItems) {
-            //       fixLiveChatItem(item, imageLinks);
-            //     }
-            //   }
-            //   if (ENABLE_PRELOAD_THUMBNAIL && kptPF !== null && (kptPF & (8 | 4)) && imageLinks.size > 0) {
-
-            //     // reference: https://github.com/Yuanfang-fe/Blog-X/issues/34
-            //     const rel = kptPF & 8 ? 'subresource' : kptPF & 16 ? 'preload' : kptPF & 4 ? 'prefetch' : '';
-            //     // preload performs the high priority fetching.
-            //     // prefetch delays the chat display if the video resoruce is demanding.
-
-            //     if (rel) {
-
-            //       imageLinks.forEach(imageLink => {
-            //         let d = false;
-            //         if (SKIP_PRELOAD_EMOJI && imageLink.includes('.ggpht.com/')) return;
-            //         const isEmoji = imageLink.includes('/emoji/');
-            //         const pretechedSet = isEmoji ? emojiPrefetched : authorPhotoPrefetched;
-            //         if (!pretechedSet.has(imageLink)) {
-            //           pretechedSet.add(imageLink);
-            //           d = true;
-            //         }
-            //         if (d) {
-            //           waitFor.push(linker(null, rel, imageLink, 'image'));
-
-            //         }
-            //       })
-
-            //     }
-
-            //   }
-
-            //   return async () => {
-            //     if (waitFor.length > 0) {
-            //       await Promise.race([new Promise(r => setTimeout(r, 250)), Promise.all(waitFor)]);
-            //     }
-            //     waitFor.length = 0;
-            //     waitFor = null;
-            //   };
-
-            // };
-
-            /*
-            mclp.flushActiveItems78_ = async function (tid) {
-              try {
-
-                if (tid !== mlf) return;
-                if ((this._flag0281_ & 0x4) == 0x4) {
-                  const cnt = this;
-
-                  if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                  const acItems = cnt.activeItems_;
-                  if (!acItems || acItems.length === 0) return;
-
-                  mlf = (mlf & 1073741823) + 1;
-                  mlg = (mlg & 1073741823) + 1;
-                  if (acItems.length < MAX_ITEMS_FOR_FULL_FLUSH) {
-                    const pn = preloadFn(acItems);
-                    await pn();
-                  }
-                  cnt.flushActiveItems66_();
-
-                  return 1;
-
-                }
-                const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
-                let logger = false;
-                const cnt = this;
-                let immd = cnt.prDelay171;
-                await iAFP(this.hostElement).then();
-                // await new Promise(requestAnimationFrame);
-
-                if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return;
-
-                mlf = (mlf & 1073741823) + 1;
-                mlg = (mlg & 1073741823) + 1;
-
-                const tmpMaxItemsCount = this.data.maxItemsToDisplay;
-                const reducedMaxItemsToDisplay = MAX_ITEMS_FOR_FULL_FLUSH;
-                let changeMaxItemsToDisplay = false;
-                const activeItemsLen = this.activeItems_.length;
-                if (activeItemsLen > tmpMaxItemsCount && tmpMaxItemsCount > 0) {
-                  logger = true;
-
-                  groupCollapsed("YouTube Super Fast Chat", " | flushActiveItems78_");
-
-                  console1.log('[Begin]')
-
-                  console1.log('this.activeItems_.length > N', activeItemsLen, tmpMaxItemsCount);
-                  if (ENABLE_REDUCED_MAXITEMS_FOR_FLUSH && lockedMaxItemsToDisplay === tmpMaxItemsCount && lockedMaxItemsToDisplay !== reducedMaxItemsToDisplay) {
-                    console1.log('reduce maxitems');
-                    if (tmpMaxItemsCount > reducedMaxItemsToDisplay) {
-                      // as all the rendered chats are already "outdated"
-                      // all old chats shall remove and reduced number of few chats will be rendered
-                      // then restore to the original number
-                      changeMaxItemsToDisplay = true;
-                      this.data.maxItemsToDisplay = reducedMaxItemsToDisplay;
-                      console1.log(`'maxItemsToDisplay' is reduced from ${tmpMaxItemsCount} to ${reducedMaxItemsToDisplay}.`)
-                    }
-                    this.activeItems_.splice(0, activeItemsLen - this.data.maxItemsToDisplay);
-                    //   console.log('changeMaxItemsToDisplay 01', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
-
-                    console1.log('new this.activeItems_.length > N', this.activeItems_.length);
-                  } else {
-                    this.activeItems_.splice(0, activeItemsLen - (tmpMaxItemsCount < 900 ? tmpMaxItemsCount : 900));
-
-                    console1.log('new this.activeItems_.length > N', this.activeItems_.length);
-                  }
-
-                }
-                // it is found that it will render all stacked chats after switching back from background
-                // to avoid lagging in popular livestream with massive chats, trim first before rendering.
-                // this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay);
-
-                cnt.prDelay171 = Promise.all([cnt.prDelay171 || null, immd || null]);
-                await Promise.resolve();
-                const acItems = cnt.activeItems_;
-                const len1 = acItems.length;
-                if (!len1) console.warn('cnt.activeItems_.length = 0');
-
-                const pn = preloadFn(acItems);
-                const noVisibleItem1 = ((cnt.visibleItems || 0).length || 0) === 0;
-                // skipDontRender = noVisibleItem1;
-                await pn();
-                // console.log('ss2', Date.now())
-                cnt.flushActiveItems66_();
-                const noVisibleItem2 = ((cnt.visibleItems || 0).length || 0) === 0;
-                // skipDontRender = noVisibleItem2;
-                await Promise.resolve();
-                if (changeMaxItemsToDisplay && this.data.maxItemsToDisplay === reducedMaxItemsToDisplay && tmpMaxItemsCount > reducedMaxItemsToDisplay) {
-                  this.data.maxItemsToDisplay = tmpMaxItemsCount;
-
-                  logger && console1.log(`'maxItemsToDisplay' is restored from ${reducedMaxItemsToDisplay} to ${tmpMaxItemsCount}.`);
-                  //   console.log('changeMaxItemsToDisplay 02', this.data.maxItemsToDisplay, oMaxItemsToDisplay, reducedMaxItemsToDisplay)
-                } else if (changeMaxItemsToDisplay) {
-
-                  logger && console1.log(`'maxItemsToDisplay' cannot be restored`, {
-                    maxItemsToDisplay: this.data.maxItemsToDisplay,
-                    reducedMaxItemsToDisplay,
-                    originalMaxItemsToDisplay: tmpMaxItemsCount
-                  });
-                }
-                logger && console1.log('[End]');
-
-                logger && groupEnd();
-
-                if (noVisibleItem1 && !noVisibleItem2) {
-                  // fix possible no auto scroll issue.
-                  !((cnt.__notRequired__ || 0) & 256) && setTimeout(() => cnt.setAtBottom(), 1);
-                }
-
-                if (!ENABLE_NO_SMOOTH_TRANSFORM) {
-
-
-                  const ff = () => {
-
-                    if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    //   if (tid !== mlf || cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                    if (!cnt.atBottom && cnt.allowScroll && cnt.hasUserJustInteracted11_ && !cnt.hasUserJustInteracted11_()) {
-
-                      if (typeof nextBrowserTick !== 'function') {
-                        cnt.scrollToBottom_();
-                        Promise.resolve().then(() => {
-                          if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                          if (!cnt.canScrollToBottom_()) cnt.scrollToBottom_();
-                        });
-                      } else {
-                        nextBrowserTick(() => {
-                          if (cnt.isAttached === false || (cnt.hostElement || cnt).isConnected === false) return;
-                          cnt.scrollToBottom_();
-                        });
-                      }
-
-                    }
-                  }
-
-                  ff();
-
-
-                  Promise.resolve().then(ff);
-
-                  // requestAnimationFrame(ff);
-                } else if (true) { // it might not be sticky to bottom when there is a full refresh.
-
-                  const knt = cnt;
-                  if (!scrollChatFn) {
-                    const cnt = knt;
-                    const f = () => {
-                      const itemScroller = cnt.itemScroller;
-                      if (!itemScroller || itemScroller.isConnected === false || cnt.isAttached === false) return;
-                      if (!cnt.atBottom) {
-                        cnt.scrollToBottom_();
-                      } else if (itemScroller.scrollTop === 0) { // not yet interacted by user; cannot stick to bottom
-                        itemScroller.scrollTop = itemScroller.scrollHeight;
-                      }
-                    };
-                    if (typeof nextBrowserTick !== 'function') {
-                      scrollChatFn = () => Promise.resolve().then(f).then(f);
-                    } else {
-                      scrollChatFn = () => nextBrowserTick(f);
-                    }
-                  }
-
-                  scrollChatFn();
-                }
-
-                return 1;
-
-
-              } catch (e) {
-                console.warn(e);
-              }
-            };
-            */
-
-            /*
-            mclp.flushActiveItems77_ = function () {
-
-              return new Promise(resResolve => {
-                try {
-                  const cnt = this;
-                  let tid = mlf = (mlf & 1073741823) + 1;
-                  const hostElement = cnt.hostElement || cnt;
-                  if (tid !== mlf || cnt.isAttached === false || hostElement.isConnected === false) return resResolve();
-                  if (!cnt.activeItems_ || cnt.activeItems_.length === 0) return resResolve();
-
-                  // 4 times to maxItems to avoid frequent trimming.
-                  // 1 ... 10 ... 20 ... 30 ... 40 ... 50 ... 60 => 16 ... 20 ... 30 ..... 60 ... => 16
-
-                  const lockedMaxItemsToDisplay = this.data.maxItemsToDisplay944;
-                  this.activeItems_.length > lockedMaxItemsToDisplay * 4 && lockedMaxItemsToDisplay > 4 && this.activeItems_.splice(0, this.activeItems_.length - lockedMaxItemsToDisplay - 1);
-                  if (cnt.canScrollToBottom_()) {
-                    cnt.mutexPromiseFA78 = (cnt.mutexPromiseFA78 || Promise.resolve())
-                      .then(() => cnt.flushActiveItems78_(tid)) // async function
-                      .then((asyncResult) => {
-                        resResolve(asyncResult); // either undefined or 1
-                        resResolve = null;
-                      }).catch((e) => {
-                        console.warn(e);
-                        if (resResolve) resResolve();
-                      });
-                  } else {
-                    resResolve(2);
-                    resResolve = null;
-                  }
-                } catch (e) {
-                  console.warn(e);
-                  if (resResolve) resResolve();
-                }
-
-
-              });
-
-            };
-            */
-
-            /*
-            mclp.flushActiveItems_ = function () {
-              const cnt = this;
-
-              if (arguments.length !== 0 || !cnt.activeItems_ || !cnt.canScrollToBottom_) return cnt.flushActiveItems66_.apply(this, arguments);
-
-              if (cnt.activeItems_.length === 0) {
-                cnt.prDelay171 = null;
-                return;
-              }
-
-              const cntData = ((cnt || 0).data || 0);
-              if (cntData.maxItemsToDisplay944 === undefined) {
-                cntData.maxItemsToDisplay944 = null;
-                if (cntData.maxItemsToDisplay > MAX_ITEMS_FOR_TOTAL_DISPLAY) cntData.maxItemsToDisplay = MAX_ITEMS_FOR_TOTAL_DISPLAY;
-                cntData.maxItemsToDisplay944 = cntData.maxItemsToDisplay || null;
-              }
-
-              // ignore previous prDelay171 and create a new one
-              cnt.prDelay171 = new Promise(resolve => {
-                cnt.flushActiveItems77_().then(rt => {  // either undefined or 1 or 2
-                  if (rt === 1) {
-                    resolve(1); // success, scroll to bottom
-                    if (hasMoreMessageState === 1) {
-                      hasMoreMessageState = 0;
-                      const showMore = (cnt.$ || 0)['show-more'];
-                      if (showMore) {
-                        showMore.classList.remove('has-new-messages-miuzp');
-                      }
-                    }
-                  }
-                  else if (rt === 2) {
-                    resolve(2); // success, trim
-                    if (hasMoreMessageState === 0) {
-                      hasMoreMessageState = 1;
-                      const showMore = cnt.$['show-more'];
-                      if (showMore) {
-                        showMore.classList.add('has-new-messages-miuzp');
-                      }
-                    }
-                  }
-                  else resolve(-1); // skip
-                }).catch(e => {
-                  console.warn(e);
-                });
-              });
-
-            };
-
-            */
             console1.log("flushActiveItems_", "OK");
           } else {
             console1.log("flushActiveItems_", "NG");
           }
-        }
-
-
-        if ((_flag0281_ & 0x80) == 0) {
-          // mclp.delayFlushActiveItemsAfterUserAction11_ = async function () {
-          //   try {
-          //     const tid = mlg = (mlg & 1073741823) + 1;
-          //     const keepTrialCond = () => this.atBottom && this.allowScroll && (tid === mlg) && this.isAttached === true && this.activeItems_.length >= 1 && (this.hostElement || 0).isConnected === true;
-          //     const runCond = () => this.canScrollToBottom_();
-          //     if (!keepTrialCond()) return;
-          //     if (runCond()) return this.flushActiveItems_() | 1; // avoid return promise
-          //     await new Promise(r => setTimeout(r, 80));
-          //     if (!keepTrialCond()) return;
-          //     if (runCond()) return this.flushActiveItems_() | 1;
-          //     await iAFP(this.hostElement).then();
-          //     // await new Promise(requestAnimationFrame);
-          //     if (runCond()) return this.flushActiveItems_() | 1;
-          //   } catch (e) {
-          //     console.warn(e);
-          //   }
-          // }
         }
 
 
@@ -8270,232 +7850,6 @@
           };
 
           
-
-          if (false) {
-
-            if ((mclp.atBottomChanged_ || 0).length === 0) {
-              // note: if the scrolling is too frequent, the show more visibility might get wrong.
-
-              const sfi = fnIntegrity(mclp.atBottomChanged_);
-
-              if (sfi === '0.74.37') {
-
-              } else if (sfi === '0.75.37') {
-                // https://www.youtube.com/s/desktop/f7495da0/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-
-                // Dec 2024.
-
-                /**
-                 *
-                 *
-  
-                    f.atBottomChanged_ = function() {
-                        var a = this;
-                        this.atBottom ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = Zu(function() {
-                            R(a.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                        }, 200)) : (this.hideShowMoreAsync_ && $u(this.hideShowMoreAsync_),
-                        this.hideShowMoreAsync_ = null,
-                        R(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                    }
-                *
-                */
-
-              } else {
-                assertor(() => fnIntegrity(mclp.atBottomChanged_, '0.75.37'));
-              }
-
-
-              const querySelector = HTMLElement.prototype.querySelector;
-              const U = (element) => ({
-                querySelector: (selector) => querySelector.call(element, selector)
-              });
-
-              let qid = 0;
-              mclp.__updateButtonVisibility371__ = function (button) {
-                Promise.resolve(this).then((cnt) => {
-                  button.style.visibility = cnt.__buttonVisibility371__;
-                });
-              }
-              const fixButtonOnClick = function (cnt, button) {
-                button.addEventListener('click', (evt) => {
-                  evt.stopImmediatePropagation();
-                  evt.stopPropagation();
-                  evt.preventDefault();
-                  Promise.resolve(cnt).then((cnt) => {
-                    cnt.scrollToBottom_();
-                  });
-                }, true);
-                // button.addEventListener('pointerup', (evt)=>{
-                //   evt.stopImmediatePropagation();
-                //   evt.stopPropagation();
-                // }, true);
-                // button.addEventListener('mouseup', (evt)=>{
-                //   evt.stopImmediatePropagation();
-                //   evt.stopPropagation();
-                // }, true);
-              }
-              mclp.atBottomChanged_ = function () {
-                let a = this.atBottom;
-                const button = (this.$ || 0)['show-more'];
-                if (button) {
-                  // primary execution
-                  if (a) {
-                    if (this.__buttonVisibility371__ !== "hidden") {
-                      this.__buttonVisibility371__ = "hidden";
-                      if (!this.hideShowMoreAsync_) {
-                        const tid = ++qid;
-                        this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
-                          if (tid !== qid) {
-                            return;
-                          }
-                          this.__updateButtonVisibility371__(button);
-                        });
-                      }
-                    }
-                  } else {
-                    if (this.__buttonVisibility371__ !== "visible") {
-                      this.__buttonVisibility371__ = "visible";
-                      if (this.hideShowMoreAsync_) {
-                        qid++;
-                      }
-                      this.hideShowMoreAsync_ = null;
-                      if (!button.__fix_onclick__) {
-                        button.__fix_onclick__ = true;
-                        fixButtonOnClick(this, button);
-                      }
-                      this.__updateButtonVisibility371__(button);
-                    }
-                  }
-                } else {
-                  // fallback
-                  let tid = ++qid;
-                  let b = this;
-                  a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-                    if (tid !== qid) return;
-                    U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                  }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-                    this.hideShowMoreAsync_ = null,
-                    U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                }
-              }
-              mclp.atBottomChanged7572_ = true;
-
-              console1.log("atBottomChanged_", "OK");
-
-            } else if ((mclp.atBottomChanged_ || 0).length === 1) {
-
-              // note: if the scrolling is too frequent, the show more visibility might get wrong.
-
-              const sfi = fnIntegrity(mclp.atBottomChanged_);
-              if (sfi === '1.73.37') {
-                // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-                /**
-                 *
-                 *
-                 *
-  
-                    f.atBottomChanged_ = function(a) {
-                        var b = this;
-                        a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = zQ(function() {
-                            T(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                        }, 200)) : (this.hideShowMoreAsync_ && AQ(this.hideShowMoreAsync_),
-                        this.hideShowMoreAsync_ = null,
-                        T(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                    };
-  
-                *
-                 *
-                 */
-
-
-              } else if (sfi === '1.75.39') {
-                // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
-              } else {
-                assertor(() => fnIntegrity(mclp.atBottomChanged_, '1.73.37'));
-              }
-
-              const querySelector = HTMLElement.prototype.querySelector;
-              const U = (element) => ({
-                querySelector: (selector) => querySelector.call(element, selector)
-              });
-
-              let qid = 0;
-              mclp.__updateButtonVisibility371__ = function (button) {
-                Promise.resolve(this).then((cnt) => {
-                  button.style.visibility = cnt.__buttonVisibility371__;
-                });
-              }
-              const fixButtonOnClick = function (cnt, button) {
-                button.addEventListener('click', (evt) => {
-                  evt.stopImmediatePropagation();
-                  evt.stopPropagation();
-                  evt.preventDefault();
-                  Promise.resolve(cnt).then((cnt) => {
-                    cnt.scrollToBottom_();
-                  });
-                }, true);
-                // button.addEventListener('pointerup', (evt)=>{
-                //   evt.stopImmediatePropagation();
-                //   evt.stopPropagation();
-                // }, true);
-                // button.addEventListener('mouseup', (evt)=>{
-                //   evt.stopImmediatePropagation();
-                //   evt.stopPropagation();
-                // }, true);
-              }
-              mclp.atBottomChanged_ = function (a) {
-                const button = (this.$ || 0)['show-more'];
-                if (button) {
-                  // primary execution
-                  if (a) {
-                    if (this.__buttonVisibility371__ !== "hidden") {
-                      this.__buttonVisibility371__ = "hidden";
-                      if (!this.hideShowMoreAsync_) {
-                        const tid = ++qid;
-                        this.hideShowMoreAsync_ = foregroundPromiseFn().then(() => {
-                          if (tid !== qid) {
-                            return;
-                          }
-                          this.__updateButtonVisibility371__(button);
-                        });
-                      }
-                    }
-                  } else {
-                    if (this.__buttonVisibility371__ !== "visible") {
-                      this.__buttonVisibility371__ = "visible";
-                      if (this.hideShowMoreAsync_) {
-                        qid++;
-                      }
-                      this.hideShowMoreAsync_ = null;
-                      if (!button.__fix_onclick__) {
-                        button.__fix_onclick__ = true;
-                        fixButtonOnClick(this, button);
-                      }
-                      this.__updateButtonVisibility371__(button);
-                    }
-                  }
-                } else {
-                  // fallback
-                  let tid = ++qid;
-                  let b = this;
-                  a ? this.hideShowMoreAsync_ || (this.hideShowMoreAsync_ = this.async(function () {
-                    if (tid !== qid) return;
-                    U(b.hostElement).querySelector("#show-more").style.visibility = "hidden"
-                  }, 200)) : (this.hideShowMoreAsync_ && this.cancelAsync(this.hideShowMoreAsync_),
-                    this.hideShowMoreAsync_ = null,
-                    U(this.hostElement).querySelector("#show-more").style.visibility = "visible")
-                }
-              }
-
-              console1.log("atBottomChanged_", "OK");
-
-            } else {
-              console1.log("atBottomChanged_", "NG");
-            }
-
-          }
         }
 
 
@@ -8784,11 +8138,11 @@
             }
           }
 
-          HTMLElement.prototype.setAttribute.call(dr(this), attrName, v);
+          HTMLElement_.prototype.setAttribute.call(dr(this), attrName, v);
 
 
         } else {
-          HTMLElement.prototype.setAttribute.apply(dr(this), arguments);
+          HTMLElement_.prototype.setAttribute.apply(dr(this), arguments);
         }
 
       };
@@ -8975,7 +8329,7 @@
 
 
             const hostElement = (this || 0).hostElement;
-            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
+            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement_) {
  
               // otherwise the startCountDown not working
               hostElement.style.removeProperty('--ticker-start-time');
@@ -8985,7 +8339,7 @@
 
                 // need to update the first ticker
                 const q = document.querySelector('.r6-width-adjustable');
-                if (q instanceof HTMLElement && q.classList.contains('r6-width-adjustable-f')) {
+                if (q instanceof HTMLElement_ && q.classList.contains('r6-width-adjustable-f')) {
                   q.classList.remove('r6-width-adjustable-f');
                 }
                 qWidthAdjustable = mWeakRef(q);
@@ -9007,9 +8361,9 @@
             this.__ticker_attachmentId__ = tickerAttachmentId = (tickerAttachmentId & 1073741823) + 1;
 
             const hostElement = (this || 0).hostElement;
-            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement) {
+            if (USE_ADVANCED_TICKING && (this || 0).__isTickerItem58__ && hostElement instanceof HTMLElement_) {
               const prevElement = kRef(qWidthAdjustable);
-              if (prevElement instanceof HTMLElement) {
+              if (prevElement instanceof HTMLElement_) {
                 prevElement.classList.add('r6-width-adjustable-f');
               }
               if (hostElement.__fgvm573__) {
@@ -9203,7 +8557,7 @@
           const cntData = ((cnt || 0).__data || 0).data || (cnt || 0).data || 0;
           if (!cntData) return;
           const cntElement = cnt.hostElement;
-          if (!(cntElement instanceof HTMLElement)) return;
+          if (!(cntElement instanceof HTMLElement_)) return;
 
           const duration = (cntData.fullDurationSec || cntData.durationSec || 0);
 
@@ -9304,7 +8658,7 @@
               em.id = `${tid}-b`;
               em.style.background = `linear-gradient(90deg, ${cr1},${cr1} 50%,${cr2} 50%,${cr2})`;
 
-              if (!(container instanceof HTMLElement)) {
+              if (!(container instanceof HTMLElement_)) {
                 // em.insertBefore(ey, em.firstChild);
                 insertBeforeNaFn(cntElement, em, cntElement.firstChild); // cntElement.insertBefore(em, cntElement.firstChild);
                 cntElement.style.borderRadius = '16px';
@@ -9317,7 +8671,7 @@
               // em.style.left = '-50%';
               // em.style.left = "clamp(-100%, calc( -100% * ( var(--ticker-current-time) - var(--ticker-start-time) ) / var(--ticker-duration-time) ), 0%)";
 
-              if (container instanceof HTMLElement) {
+              if (container instanceof HTMLElement_) {
 
                 container.style.background = 'transparent';
                 container.style.backgroundColor = 'transparent';
@@ -9615,8 +8969,8 @@
                   marker.remove();
                   let p = overlay || 0;
                   let cn = 4;
-                  while ((p = p.parentElement) instanceof HTMLElement) {
-                    if (p instanceof HTMLElement) {
+                  while ((p = p.parentElement) instanceof HTMLElement_) {
+                    if (p instanceof HTMLElement_) {
                       const cnt = insp(p);
                       if (cnt && typeof cnt.slideDown === 'function' && typeof cnt.setContainerWidth === 'function' && cnt.__advancedTicking038__ === 1) {
 
@@ -9753,7 +9107,7 @@
                   const parentComponentCnt = insp(this.parentComponent);
                   const parentComponentElm = parentComponentCnt? parentComponentCnt.hostElement : null;
 
-                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement && parentComponentElm instanceof HTMLElement) {
+                  if (hostElement instanceof HTMLElement_ && container instanceof HTMLElement_ && parentComponentElm instanceof HTMLElement_) {
                     // const prevTransitionClosingElm = kRef(prevTransitionClosing);
                     // if (prevTransitionClosingElm !== hostElement) {
                     //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
@@ -9776,7 +9130,7 @@
                     transitionEndAfterFnSimpleEnable--;
                     transitionEndAfterFnSimple.delete(hostElement);
                     transitionEndAfterFnSimple.delete(container);
-                    if (this && this.hostElement instanceof HTMLElement) {
+                    if (this && this.hostElement instanceof HTMLElement_) {
 
                       this.collapse();
                     }
@@ -9812,7 +9166,7 @@
                   const parentComponentCnt = insp(this.parentComponent);
                   const parentComponentElm = parentComponentCnt ? parentComponentCnt.hostElement : null;
 
-                  if (hostElement instanceof HTMLElement && container instanceof HTMLElement && parentComponentElm instanceof HTMLElement) {
+                  if (hostElement instanceof HTMLElement_ && container instanceof HTMLElement_ && parentComponentElm instanceof HTMLElement_) {
                     // const prevTransitionClosingElm = kRef(prevTransitionClosing);
                     // if (prevTransitionClosingElm !== hostElement) {
                     //   prevTransitionClosingElm && prevTransitionClosingElm.classList.add('ticker-no-transition-time');
@@ -9836,7 +9190,7 @@
                     transitionEndAfterFnSimpleEnable--;
                     transitionEndAfterFnSimple.delete(hostElement);
                     transitionEndAfterFnSimple.delete(container);
-                    if (this && this.hostElement instanceof HTMLElement) {
+                    if (this && this.hostElement instanceof HTMLElement_) {
 
                       this.requestRemoval();
                     }
@@ -9895,14 +9249,14 @@
                   } catch (e) { }
                   this.__advancedTicking038__ = 2;
                   // console.log('requestRemoval!!')
-                  if (hostElement instanceof HTMLElement) {
+                  if (hostElement instanceof HTMLElement_) {
                     // otherwise the startCountDown not working
                     hostElement.style.removeProperty('--ticker-start-time');
                     hostElement.style.removeProperty('--ticker-duration-time');
                   }
                   if (REUSE_TICKER) {
                     const cntData = this.data;
-                    if (hostElement instanceof HTMLElement && cntData.id && cntData.fullDurationSec && !hostElement.hasAttribute('__reuseid__')) {
+                    if (hostElement instanceof HTMLElement_ && cntData.id && cntData.fullDurationSec && !hostElement.hasAttribute('__reuseid__')) {
                       hostElement.setAttribute('__reuseid__', reuseId);
                       hostElement.setAttribute('__nogc__', ''); // provided to leakage detection script
                       // this.__markReuse13__ = true;
@@ -9910,7 +9264,7 @@
                     }
                   }
                 }
-                if (hostElement instanceof HTMLElement) {
+                if (hostElement instanceof HTMLElement_) {
                   // try {
                   //   // hostElement.remove();
 
@@ -10704,9 +10058,9 @@
               Promise.resolve(this).then((cnt) => {
 
                 const hostElement = cnt.hostElement || cnt;
-                if (!(hostElement instanceof HTMLElement)) return;
-                if (!HTMLElement.prototype.matches.call(hostElement, '.yt-live-chat-renderer')) return;
-                const ironPage = HTMLElement.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
+                if (!(hostElement instanceof HTMLElement_)) return;
+                if (!HTMLElement_.prototype.matches.call(hostElement, '.yt-live-chat-renderer')) return;
+                const ironPage = HTMLElement_.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
                 // or #chat-messages
                 if (!ironPage) return;
 
@@ -10743,7 +10097,7 @@
               const target = (evt || 0).target || 0;
               if (!target) return;
 
-              for (let p = target; p instanceof HTMLElement; p = nodeParent(p)) {
+              for (let p = target; p instanceof HTMLElement_; p = nodeParent(p)) {
                 const is = p.is;
                 if (typeof is === 'string' && is) {
 
@@ -10751,7 +10105,7 @@
                     return;
                   }
                   if (is === 'iron-pages' || is === 'yt-live-chat-renderer' || is === 'yt-live-chat-app') {
-                    const fade = HTMLElement.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
+                    const fade = HTMLElement_.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
                     if (fade) {
                       Promise.resolve(fade).then(clickFade);
                       evt && evt.stopPropagation();
@@ -10919,7 +10273,7 @@
 
             if (doHack) {
 
-              const querySelector = HTMLElement.prototype.querySelector;
+              const querySelector = HTMLElement_.prototype.querySelector;
               const U = (element) => ({
                 querySelector: (selector) => querySelector.call(element, selector)
               });
@@ -11577,7 +10931,7 @@
             };
             r = this.createTooltipIfRequired14_();
             document.createElement = w;
-            if (EU instanceof HTMLElement && EU.is) {
+            if (EU instanceof HTMLElement_ && EU.is) {
               tooltipUIWM.set(this, EU);
               EU.setAttribute('__nogc__', ''); // avoid gc process script
 
@@ -11811,7 +11165,7 @@
               const hostElement = kurMPCe.hostElement || kurMPCe; // should be always hostElement === kurMPCe ?
               if (!hostElement.hasAttribute('menu-visible')) return;
 
-              const chatBanner = HTMLElement.prototype.closest.call(hostElement, 'yt-live-chat-banner-renderer') || 0;
+              const chatBanner = HTMLElement_.prototype.closest.call(hostElement, 'yt-live-chat-banner-renderer') || 0;
               if (chatBanner) return;
 
               if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
@@ -11880,15 +11234,15 @@
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
             if (!kurMP) return;
-            const kurMPCe = HTMLElement.prototype.closest.call(kurMP, '[menu-visible]') || 0; // element
+            const kurMPCe = HTMLElement_.prototype.closest.call(kurMP, '[menu-visible]') || 0; // element
 
             if (!kurMPCe || !kurMPCe.hasAttribute('whole-message-clickable')) return;
 
             const kurMPCc = insp(kurMPCe); // controller
 
-            if (!kurMPCc.isClickableChatRow111 || !kurMPCc.isClickableChatRow111() || !HTMLElement.prototype.contains.call(kurMPCe, evt.target)) return;
+            if (!kurMPCc.isClickableChatRow111 || !kurMPCc.isClickableChatRow111() || !HTMLElement_.prototype.contains.call(kurMPCe, evt.target)) return;
 
-            const chatBanner = HTMLElement.prototype.closest.call(kurMPCe, 'yt-live-chat-banner-renderer') || 0;
+            const chatBanner = HTMLElement_.prototype.closest.call(kurMPCe, 'yt-live-chat-banner-renderer') || 0;
             if (chatBanner) return;
 
             let targetDropDown = null;
@@ -12066,7 +11420,7 @@
         document.addEventListener('mousedown', (e) => {
           if (!e || !e.isTrusted) return;
           let element = e.target;
-          for (; element instanceof HTMLElement; element = element.parentNode) {
+          for (; element instanceof HTMLElement_; element = element.parentNode) {
             if (element.is) break;
           }
           if (!element || !element.is) return;
@@ -12158,13 +11512,13 @@
           if (!target) return;
           if (target.closest('ytd-menu-popup-renderer')) return;
 
-          while (target instanceof HTMLElement) {
+          while (target instanceof HTMLElement_) {
             if (++j1 > maxloopDOMTreeElements) break;
             if (typeof (target.is || insp(target).is || null) === 'string') break;
             target = nodeParent(target);
           }
           const components = [];
-          while (target instanceof HTMLElement) {
+          while (target instanceof HTMLElement_) {
             if (++j2 > maxloopYtCompontents) break;
             const cnt = insp(target);
             if (typeof (target.is || cnt.is || null) === 'string') {
@@ -12173,7 +11527,7 @@
             if (typeof cnt.showContextMenu === 'function') break;
             target = target.parentComponent || cnt.parentComponent || null;
           }
-          if (!(target instanceof HTMLElement)) return;
+          if (!(target instanceof HTMLElement_)) return;
           const targetCnt = insp(target);
           if (typeof targetCnt.handleGetContextMenuResponse_ !== 'function' || typeof targetCnt.handleGetContextMenuError !== 'function') {
             console.log('Error Found: handleGetContextMenuResponse_ OR handleGetContextMenuError is not defined on a component with showContextMenu')
@@ -13681,7 +13035,7 @@
                   }
                 }
                 if (toRun) {
-                  if (stopAfterRun && (this.hostElement instanceof HTMLElement)) {
+                  if (stopAfterRun && (this.hostElement instanceof HTMLElement_)) {
                     this.__toStopAfterRun__(this.hostElement); // primary
                   }
                   const r = this.maybeLoadAnimationBackground77.apply(this, arguments);
@@ -13748,704 +13102,6 @@
         });
 
       }
-
-      // if (USE_RM_ON_FOUNTAIN_MODEL) {
-
-
-      //   customElements.whenDefined("yt-emoji-fountain-view-model").then(() => {
-
-
-      //     mightFirstCheckOnYtInit();
-      //     groupCollapsed("YouTube Super Fast Chat", " | yt-emoji-fountain-view-model hacks");
-      //     console1.log("[Begin]");
-      //     (() => {
-
-      //       const tag = "yt-emoji-fountain-view-model"
-      //       const dummy = document.createElement(tag);
-
-      //       const cProto = getProto(dummy);
-      //       if (!cProto || !cProto.attached) {
-      //         console1.warn(`proto.attached for ${tag} is unavailable.`);
-      //         return;
-      //       }
-
-      //       if (typeof cProto.createEmojiAnimation === 'function' && !cProto.createEmojiAnimation037 && cProto.createEmojiAnimation.length === 4) {
-      //         cProto.createEmojiAnimation037 = cProto.createEmojiAnimation;
-
-      //         let creationKey = '';
-
-      //         const selfRemovalListener = function (evt) {
-      //           console.log('selfRemovalListener')
-      //           if (this.parentNode instanceof Node && this.isConnected === true) {
-      //             if (this.remove147) this.remove147(); else this.remove();
-      //           }
-      //         };
-      //         const __addEventListenerFountainEmoji__ = function (evtName, fnListener, opt = void 0) {
-      //           if (evtName === 'animationend' && fnListener.length === 0 && !opt) {
-      //             const s = `${fnListener}`;
-      //             if (s.length >= 22 && s.length <= 24 && s.endsWith('.remove()}') && s.startsWith('function(){')) {
-      //               // 'function(){k.remove()}' to  'function(){xxx.remove()}'
-      //               // console.log(2838, `${fnListener}`, `${fnListener}`.length);
-      //               // [D]<< 2838 'function(){k.remove()}' 22 >>
-      //               this.removeEventListener(evtName, selfRemovalListener, false);
-      //               return this.addEventListener147(evtName, selfRemovalListener, false);
-      //             }
-      //           }
-      //           return this.addEventListener147(...arguments);
-      //         }
-      //         const __removeFountainEmoji__ = function () {
-      //           console.log('__removeFountainEmoji__')
-      //           if (this.parentNode instanceof Node && this.isConnected === true && this.remove147) this.remove147();
-      //         };
-
-      //         const heartEmoji = {
-      //           "emojiId": "❤",
-      //           "image": {
-      //             "thumbnails": [
-      //               {
-      //                 "url": "https://fonts.gstatic.com/s/e/notoemoji/15.1/2764/72.png"
-      //               }
-      //             ]
-      //           },
-      //           "searchTerms": [
-      //             "red",
-      //             "heart"
-      //           ],
-      //           "shortcuts": [
-      //             ":red_heart:",
-      //             ":heart:",
-      //             "<3"
-      //           ],
-      //           "index": 318
-      //         };
-      //         const $this = {
-      //           reactionBuckets: [
-      //             {
-      //               "totalReactions": 1,
-      //               "duration": {
-      //                 "seconds": "1"
-      //               },
-      //               "intensityScore": 0.75,
-      //               "reactionsData": [
-      //                 {
-      //                   "unicodeEmojiId": "❤",
-      //                   "reactionCount": 1
-      //                 }
-      //               ]
-      //             }
-      //           ],
-      //           noEmojiIdentifier: "NO_EMOJI",
-      //           "emojiBucketTimerId": 155,
-      //           "lastEmojiRequestedForTesting": "❤",
-      //           "emojiAnimationTimerId": 338,
-      //           emojiManager: new Proxy(dummy.emojiManager, {
-      //             get(target, p) {
-      //               if (p === 'emojiMap') {
-      //                 const o = target[p] || {};
-      //                 if (!o["❤"]) o["❤"] = heartEmoji;
-      //                 return o;
-      //               }
-      //             }
-      //           }),
-      //           emojiContainer: null
-      //         };
-
-      //         const tracelist = new Set();
-      //         try {
-      //           createElement_fountain_model_enabled = true;
-      //           createElement_fountain_model_fn = function (a) {
-      //             tracelist.add(a);
-      //             return false;
-      //           }
-      //           cProto.createEmojiAnimation037.call($this, '❤', false, undefined, undefined);
-      //         } catch (e) { }
-      //         createElement_fountain_model_enabled = false;
-      //         createElement_fountain_model_fn = null;
-
-      //         const tracelistLen = tracelist.size;
-      //         tracelist.clear();
-
-      //         if(tracelistLen > 0){
-      //           const elementLists = {}
-      //           createElement_fountain_model_fn = function (a) {
-      //             if (!elementLists[a]) elementLists[a] = new Set();
-      //             const list = elementLists[a];
-      //             for (const entry of list) {
-      //               if (entry && entry.creationKey !== creationKey) {
-      //                 let elm = kRef(entry.wr);
-      //                 if (elm instanceof Node && (elm.nodeName) && elm.nodeType === 1) {
-      //                   if (elm.isConnected === false && !elm.parentNode) {
-      //                     if (elm.is === 'yt-icon') {
-      //                       const cnt = insp(node);
-      //                       if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-      //                       cnt.__refreshProps938__();
-      //                       // cnt.removeIconShape();
-      //                     }
-      //                     const coll = elm.getElementsByTagName('*');
-      //                     for (let i = 0, l = coll.length; i < l; i++) {
-      //                       const node = coll[i];
-      //                       const cnt = insp(node);
-      //                       if (typeof cnt.dispose === 'function' && cnt.dispose.length === 0) {
-      //                         try {
-      //                           cnt.dispose();
-      //                         } catch (e) { }
-      //                       } else if (typeof node.dispose === 'function' && node.dispose.length === 0) {
-      //                         try {
-      //                           node.dispose();
-      //                         } catch (e) { }
-      //                       }
-      //                     }
-      //                     const attrs = elm.attributes || 0;
-      //                     if (attrs.style) attrs.style.value = '';
-      //                     if (attrs.id) attrs.id.value = '';
-      //                     if (!elm.is && attrs.class) attrs.class.value = '';
-      //                     console.log('reuse', a, elm);
-      //                     // [D]<< reuse emoji <emoji class=​"yt-emoji-fountain-view-model transVert0X">​…​</emoji>​  >>
-      //                     // transVert0X; X=1,2,3
-      //                     entry.creationKey = creationKey;
-      //                     return elm;
-      //                   }
-      //                 } else {
-      //                   entry.wr = null;
-      //                   list.delete(entry);
-      //                 }
-      //               }
-      //             }
-      //             const r = document.createElement4719(a);
-      //             list.add({ wr: mWeakRef(r), creationKey });
-      //             if (r.nodeName === 'EMOJI') {
-      //               if (!r.addEventListener147 && r.addEventListener) {
-      //                 r.addEventListener147 = r.addEventListener;
-      //                 r.addEventListener = __addEventListenerFountainEmoji__;
-      //               }
-      //               if (!r.remove147 && r.remove) {
-      //                 r.remove147 = r.remove;
-      //                 r.remove = __removeFountainEmoji__;
-      //               }
-      //             }
-      //             return r;
-      //           }
-
-      //           // console.log(399, cProto.generateEmojiAnimations)
-
-
-      //           /*
-
-      //               f.generateEmojiAnimations = function(a) {
-      //                   var b = this
-      //                     , c = this.getRandomEmojiIdFromBucketWithOverride(a);
-      //                   if (c && c !== this.noEmojiIdentifier) {
-      //                       var d = 0;
-      //                       a.targetEps ? (d = this.linearInterpolateBounded(1, 20, 100, 12, a.emojiSizeIndex || 0),
-      //                       this.createEmojiAnimation(c, !1, a.emojiAnimationMs, d),
-      //                       d = this.getEmojiDelayMsFromTargetEps(a.targetEps)) : (this.createEmojiAnimation(c),
-      //                       d = this.getEmojiDelayMsFromDistribution(a.intensityScore));
-      //                       this.emojiAnimationTimerId = setTimeout(function() {
-      //                           b.generateEmojiAnimations(a)
-      //                       }, d)
-      //                   }
-      //               }
-
-      //           */
-      //           // let animatedTimingStarted= false;
-      //           // const animatedTimingStack = [];
-      //           // let animatedTimingLooper = null;
-      //           // let animatedTimingInit = ()=>{
-
-      //           //   const wme = document.createComment('1');
-      //           //   let wmp = new PromiseExternal();
-      //           //   const wmo = new MutationObserver(() => {
-      //           //     wmp.resolve();
-      //           //     wmp = new PromiseExternal();
-      //           //   });
-      //           //   wmo.observe(wme, { characterData: true });
-
-      //           //   animatedTimingLooper = async () => {
-      //           //     if (animatedTimingStarted) return;
-      //           //     animatedTimingStarted = true;
-      //           //     while (arr.length > 0) {
-      //           //       wme.data = `${(wme.data & 7) + 1}`;
-      //           //       await wmp;
-      //           //       const now = Date.now();
-      //           //       let arr = animatedTimingStack;
-      //           //       let l = arr.length;
-      //           //       let u = -1;
-      //           //       for (let i = 0; i < l; i++) {
-      //           //         if (arr[i].fireAt <= now) {
-      //           //           Promise.resolve(arr[i]).then(entry => {
-      //           //             const { obj, fn, args } = entry;
-      //           //             const o = kRef(obj);
-      //           //             if (obj && !o) {
-      //           //               // cleared
-      //           //             } else {
-      //           //               let t;
-      //           //               if (typeof fn === 'string' && (t = o || window)) t[fn](...args);
-      //           //               else if (typeof fn === 'function') o ? fn.call(o) : fn();
-      //           //             }
-      //           //           });
-      //           //           u = i;
-      //           //         } else {
-      //           //           break;
-      //           //         }
-      //           //       }
-      //           //       u >= 0 && arr.splice(0, u + 1);
-      //           //     }
-      //           //     animatedTimingStarted = false;
-      //           //   }
-
-      //           //   animatedTimingInit = null;
-
-
-      //           // }
-      //           // function insertSorted(arr, element, prop) {
-      //           //   // limitation: max length 1073741823
-      //           //   let left = 0;
-      //           //   let right = arr.length;
-
-      //           //   // Binary search to find the correct index
-      //           //   while (left < right) {
-      //           //     const mid = (left + right) >> 1; // same as Math.floor((left + right) / 2)
-      //           //     if (arr[mid][prop] < element[prop]) {
-      //           //       left = mid + 1;
-      //           //     } else {
-      //           //       right = mid;
-      //           //     }
-      //           //   }
-
-      //           //   // Insert element at the correct index
-      //           //   if (left === arr.length) arr.push(element);
-      //           //   else if (left === 0) arr.unshift(element);
-      //           //   else arr.splice(left, 0, element);
-      //           //   return arr;
-      //           // }
-
-
-      //           // const animatedTimingStackAdd = (entry) => {
-      //           //   if(animatedTimingStack.length > 973741823) {
-      //           //     console.warn('animatedTimingStack size warning', animatedTimingStack.length);
-      //           //     animatedTimingStack.splice(0, Math.floor(animatedTimingStack.length / 2));
-      //           //   }
-      //           //   insertSorted(animatedTimingStack, entry, 'fireAt');
-      //           //   if (!animatedTimingLooper) animatedTimingInit();
-      //           //   if (!animatedTimingStarted) animatedTimingLooper();
-      //           // }
-
-      //           cProto.processEmojiBucket137 = cProto.processEmojiBucket;
-      //           cProto.processEmojiBucket = function (a) {
-      //             if (this.reactionBuckets && !(a >= this.reactionBuckets.length)) {
-      //               clearTimeout(this.emojiAnimationTimerId);
-      //               this.emojiAnimationTimerId = 0;
-      //             }
-      //             return this.processEmojiBucket137(...arguments)
-      //           };
-
-      //           cProto.cleanupFountain137 = cProto.cleanupFountain;
-      //           cProto.cleanupFountain = function () {
-      //             clearTimeout(this.emojiBucketTimerId);
-      //             clearTimeout(this.emojiAnimationTimerId);
-      //             this.emojiBucketTimerId = 0;
-      //             this.emojiAnimationTimerId = 0;
-      //             return this.cleanupFountain137(...arguments)
-      //           };
-
-      //           cProto.generateEmojiAnimations137 = cProto.generateEmojiAnimations;
-      //           let takenD = null;
-      //           cProto.generateEmojiAnimations = function (a) {
-      //             if (arguments.length !== 1) return this.generateEmojiAnimations137(...arguments);
-      //             takenD = null;
-      //             // const dt = Date.now();
-      //             let previousTimerId = this.emojiAnimationTimerId; // can be any value including null and undefined
-      //             let r = this.generateEmojiAnimations137(a);
-      //             const takenD_ = takenD;
-      //             takenD = null;
-      //             if (previousTimerId === this.emojiAnimationTimerId) return r; // no special treatment if no timer is created
-      //             clearTimeout(this.emojiAnimationTimerId); // we use custom timing for precision handling
-      //             // this.emojiAnimationTimerId = null;
-      //             // console.log('takenD', takenD_);
-      //             const d = takenD_ || 0;
-      //             const obj = mWeakRef(this);
-      //             if (d > 0) {
-      //               const a_ = a;
-      //               accurateTiming(() => {
-      //                 const cnt = kRef(obj);
-      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
-      //                 if (cnt) cnt.generateEmojiAnimations(a_);
-      //               }, d / 1000) || setTimeoutX0(() => {
-      //                 const cnt = kRef(obj);
-      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
-      //                 if (cnt) cnt.generateEmojiAnimations(a_);
-      //               }, d);
-      //             } else if (!d) {
-      //               const a_ = a;
-      //               nextBrowserTick_(() => {
-      //                 const cnt = kRef(obj);
-      //                 if(!cnt || !cnt.emojiAnimationTimerId) return;
-      //                 if (cnt) cnt.generateEmojiAnimations(a_);
-      //               });
-      //             }
-      //             return r;
-      //           }
-
-      //           cProto.getEmojiDelayMsFromTargetEps463 = cProto.getEmojiDelayMsFromTargetEps;
-      //           cProto.getEmojiDelayMsFromTargetEps = function(targetEps){
-      //             return takenD = this.getEmojiDelayMsFromTargetEps463(...arguments);
-      //           }
-      //           cProto.getEmojiDelayMsFromDistribution463 = cProto.getEmojiDelayMsFromDistribution;
-      //           cProto.getEmojiDelayMsFromDistribution = function(intensityScore){
-      //             return takenD = this.getEmojiDelayMsFromDistribution463(...arguments);
-      //           }
-
-      //           cProto.createEmojiAnimation = function (a, b, c, d) {
-      //             // createUserReactionAnimation -> b = true
-      //             // generateEmojiAnimations -> b = false ; d is produced by linearInterpolateBounded
-                  
-      //             // a - emoji key ??
-      //             // b - [boolean] true for user-reaction-bubble (non-animation?); (default false)
-      //             // c - [number] emojiAnimationMs (void 0 able)
-      //             // d - [number] size (void 0 able)
-      //             // takenD = d;
-      //             if (createElement_fountain_model_enabled) return this.createEmojiAnimation037(...arguments);
-      //             let r;
-      //             creationKey = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-      //             // console.log('createEmojiAnimation')
-      //             // console.log(new Error().stack);
-
-      //             /*
-
-      //             Error
-      //                 at cProto.createEmojiAnimation (chrome-extension://fcifjokfpggmdbacgeaickkblaldgeaj/YouTube%20%E8%B6%85%E5%BF%AB%E8%81%8A%E5%A4%A9.user.js#154:14178:31)
-      //                 at f.createUserReactionAnimation (live_chat_polymer.js:11877:48)
-      //                 at live_chat_polymer.js:1243:63
-      //                 at live_chat_polymer.js:3287:62
-      //                 at Map.forEach (<anonymous>)
-      //                 at xAa (live_chat_polymer.js:3287:25)
-      //                 at Js.handleAction (live_chat_polymer.js:3286:88)
-      //                 at e.onYtAction_ [as onYtAction57_] (live_chat_polymer.js:23966:44)
-      //                 at ut (live_chat_polymer.js:3398:129)
-      //                 at pu (live_chat_polymer.js:3644:302)
-
-
-      //             Error
-      //                 at cProto.createEmojiAnimation (chrome-extension://fcifjokfpggmdbacgeaickkblaldgeaj/YouTube%20%E8%B6%85%E5%BF%AB%E8%81%8A%E5%A4%A9.user.js#154:14178:31)
-      //                 at f.generateEmojiAnimations (live_chat_polymer.js:11882:328)
-      //                 at f.processEmojiBucket (live_chat_polymer.js:11881:181)
-      //                 at f.onEmojiFountainDataEntityUpdate (live_chat_polymer.js:11880:200)
-      //                 at Object.Vva [as fn] (live_chat_polymer.js:2416:119)
-      //                 at Uq (live_chat_polymer.js:2398:218)
-      //                 at a._propertiesChanged (live_chat_polymer.js:2450:122)
-      //                 at b._propertiesChanged (live_chat_polymer.js:3490:309)
-      //                 at b._flushProperties (live_chat_polymer.js:2321:200)
-      //                 at a._invalidateProperties (live_chat_polymer.js:2442:69)
-
-      //             Error
-      //                 at cProto.createEmojiAnimation (YouTube 超快聊天.user.js:14178:31)
-      //                 at f.generateEmojiAnimations (live_chat_polymer.js:11882:328)
-      //                 at live_chat_polymer.js:11882:461
-      //                 at Web CPU Tamer.user.js:247:16
-
-
-
-
-      //             */
-
-      //             createElement_fountain_model_enabled = true;
-      //             try{
-      //             r = this.createEmojiAnimation037(...arguments);
-      //             }catch(e){
-      //               console.warn(e);
-      //             }
-      //             createElement_fountain_model_enabled =false;
-      //             return r;
-      //           }
-
-
-      //         }
-
-      //         // if (tracelistLen > 0) {
-
-      //         //   const elementList = new Set();
-      //         //   // const classList = new Set();
-
-      //         //   const fountainMap = new WeakMap();
-
-      //         //   const listOfRemove = [];
-
-      //         //   const listOfRemoveFn = () => {
-      //         //     if (listOfRemove.length === 0) return;
-      //         //     for (const elm of listOfRemove) elm.parentNode && elm.remove();
-      //         //     listOfRemove.length = 0;
-      //         //   }
-      //         //   const animationendListener = (evt) => {
-      //         //     const p = evt.target;
-      //         //     if (p instanceof HTMLElement && p.nodeName === 'EMOJI' && p.__removeOnAnimationEnd381__) {
-      //         //       p.__removeOnAnimationEnd381__ = false;
-      //         //       listOfRemove.push(p);
-      //         //       Promise.resolve().then(listOfRemoveFn);
-      //         //     }
-      //         //   };
-
-      //         //   const addEventListener716 = function (a, b, c = undefined) {
-      //         //     // console.log(1239889, this, a,b,c)
-      //         //     if (a === 'animationend' && this.__emoji4818__ && typeof b === 'function' && b.length === 0 && c === undefined && (this || 0).nodeName === "EMOJI" && /^function\s*\(\s*\)\s*\{\s*[$a-wA-Z_-\d]+\.remove\(\);?\s*}$/.test(`${b}`)) {
-      //         //       const cnt = kRef(fountainMap.get(this));
-      //         //       const hostElement = cnt ? cnt.hostElement : null;
-      //         //       if (cnt && hostElement instanceof HTMLElement) {
-      //         //         if (!cnt.__addedAnimationEnd381__) {
-      //         //           cnt.__addedAnimationEnd381__ = true;
-      //         //           hostElement.addEventListener('animationend', animationendListener, passiveCapture);
-      //         //         }
-      //         //         this.__removeOnAnimationEnd381__ = true; // set on addEventListener; unset on execution; (to be re-set in createEmojiAnimation)
-      //         //         return;
-      //         //       }
-      //         //     }
-      //         //     // console.log(477, a,b,c)
-      //         //     return this.addEventListener717(...arguments)
-      //         //   }
-
-      //         //   let __weakRef9592__;
-      //         //   DEBUG_RM_ON_FOUNTAIN_MODEL && (window.__elementList183__ = elementList); // around 30 ~ 60 elements when dt = 1600ms
-
-      //         //   const updateElementList = function (cntWR) {
-
-      //         //     try {
-
-      //         //       const cnt = kRef(cntWR);
-      //         //       if (!cnt) return;
-
-
-      //         //       const ct = Date.now();
-      //         //       for (const entry of elementList) {
-      //         //         const [elementW, creationTime, addTime, removeTime] = entry;
-
-      //         //         const element = kRef(elementW);
-      //         //         if (!element) {
-      //         //           elementList.delete(entry);
-      //         //           continue;
-      //         //         }
-
-      //         //         // addTime removeTime
-      //         //         // 0 0 -> element.isConnected === true
-      //         //         // 0 1 -> element.isConnected === true
-      //         //         // 1 0 -> element.isConnected === false
-      //         //         // 1 1 X
-
-      //         //         if (!addTime) {
-      //         //           if (element.isConnected === true) {
-      //         //             entry[2] = ct;
-      //         //             entry[3] = 0;
-      //         //             // arrange the entry to the iteration end
-      //         //             elementList.delete(entry);
-      //         //             elementList.add(entry);
-      //         //           }
-      //         //         } else if (!removeTime) {
-      //         //           if (element.isConnected === false) {
-      //         //             entry[2] = 0;
-      //         //             entry[3] = ct;
-      //         //             // arrange the entry to the iteration end
-      //         //             // elementList.delete(entry);
-      //         //             // elementList.add(entry);
-      //         //           }
-      //         //         }
-
-
-
-      //         //       }
-      //         //     } catch (e) {
-      //         //       console.warn(e);
-      //         //     }
-
-
-      //         //   }
-
-      //         //   createElement_fountain_model_fn = function (a) {
-      //         //     if (typeof a !== 'string') return;
-      //         //     const ct = Date.now();
-      //         //     const timeRef = ct - FOUNTAIN_MODEL_TIME_CONFIRM;
-      //         //     const tagNameLower = a.toLowerCase();
-      //         //     try {
-      //         //       for (const entry of elementList) {
-      //         //         const [elementW, creationTime, addTime, removeTime] = entry;
-      //         //         if (!removeTime || removeTime > timeRef) continue;
-      //         //         const element = kRef(elementW);
-      //         //         if (!element) { // play safe
-      //         //           elementList.delete(entry);
-      //         //           continue;
-      //         //         }
-
-      //         //         const bool = element.__tagNameLower584__ === tagNameLower && element.isConnected === false;
-
-      //         //         // if (element.isConnected === true) {  // play safe
-      //         //         //   continue;
-      //         //         // }
-
-
-
-      //         //         if (bool) {
-      //         //         // const qq = true;
-      //         //         // console.log(1838, p === a.toLowerCase() , entry[3] > 0 , entry[3] < targetCreationTime)
-      //         //         // if (  qq &&  p === a.toLowerCase() && removeTime > 0 && removeTime < targetCreationTime ) {
-      //         //           // console.log(123992, element , element.isConnected)
-
-      //         //           elementList.delete(entry);
-      //         //           entry[1] = ct;
-      //         //           entry[2] = 0;
-      //         //           entry[3] = 0;
-      //         //           elementList.add(entry);
-
-      //         //           element.className = '';
-      //         //           element.style = '';
-      //         //           if (tagNameLower === 'img') {
-      //         //             element.src = '';
-      //         //             element.alt = '';
-      //         //           }
-
-                        
-
-
-      //         //           if (!onPageContainer) {
-      //         //             let p = document.createElement('noscript');
-      //         //             p.style.all = 'unset';
-      //         //             document.body.prepend(p);
-      //         //             onPageContainer = p;
-      //         //           }
-
-      //         //           const cnt = insp(element);
-      //         //           const hostElement = cnt.hostElement;
-      //         //           if(hostElement === element && !cnt.__dataInvalid && cnt.__dataEnabled  && cnt.__dataReady){
-
-      //         //             // console.log(1238);
-      //         //             onPageContainer.appendChild(hostElement); // to fix some issues for the rendered elements
-          
-      //         //             cnt.__dataInvalid = false;
-      //         //             cnt.__dataEnabled = true;
-      //         //             cnt.__dataReady = true;
-      //         //             // cnt._initializeProtoProperties(cnt.data)
-              
-      //         //             // window.meaa = cnt.$.container;
-
-      //         //             if (cnt.__data) cnt.__data = Object.assign({}, cnt.__data);
-      //         //             cnt.__dataPending = {};
-      //         //             cnt.__dataOld = {}
-              
-      //         //             try{
-      //         //               cnt.markDirty();
-      //         //             }catch(e){}
-      //         //             try{
-      //         //               cnt.markDirtyVisibilityObserver();
-      //         //             }catch(e){}
-      //         //             try{
-      //         //               cnt.wasPrescan = cnt.wasVisible = !1
-      //         //             }catch(e){}
-  
-
-
-      //         //           }
-
-      //         //           element.__reuseCount918__ = (element.__reuseCount918__ || 0) + 1;
-          
-
-
-
-      //         //           // console.log(2183, element);
-      //         //           // emoji -> div -> img
-      //         //           return element;
-      //         //         }
-
-      //         //         // console.log(element, element.nodeName);
-      //         //         // continue;
-      //         //         /*
-      //         //         const p = (element.nodeName || '').toLowerCase();
-                      
-      //         //         if (p === a.toLowerCase()) {
-      //         //           elementList.delete(entry);
-      //         //           entry[1] = ct;
-      //         //           entry[2] = 0;
-      //         //           elementList.add(entry);
-      //         //           element.className = '';
-      //         //           element.style = '';
-      //         //           if (p === 'img') {
-      //         //             element.src = '';
-      //         //             element.alt = '';
-      //         //           }
-      //         //           // console.log(2183, element);
-      //         //           // emoji -> div -> img
-      //         //           return element;
-                        
-      //         //         }
-      //         //           */
-
-
-
-      //         //       }
-
-      //         //     } catch (e) {
-      //         //       console.warn(e);
-      //         //     }
-      //         //     const elm = document.createElement4719(a)
-
-      //         //     try {
-
-      //         //       const elmW = mWeakRef(elm);
-      //         //       const entry = [elmW, ct, 0, 0];
-      //         //       elementList.add(entry);
-      //         //       elm.__tagNameLower584__ = tagNameLower;
-      //         //       // elm.__entry428__ = mWeakRef(entry);
-      //         //       if (!elm.addEventListener717) {
-      //         //         elm.addEventListener717 = elm.addEventListener;
-      //         //         elm.addEventListener = addEventListener716;
-      //         //         if (elm.nodeName.toLowerCase() === 'emoji') elm.__emoji4818__ = true;
-      //         //       }
-      //         //       if (__weakRef9592__) {
-      //         //         const cnt = kRef(__weakRef9592__);
-      //         //         cnt && fountainMap.set(elm, __weakRef9592__);
-      //         //       }
-      //         //     } catch (e) {
-      //         //       console.warn(e);
-      //         //     }
-
-      //         //     return elm;
-      //         //   };
-
-      //         //   cProto.createEmojiAnimation = function (a, b, c, d) {
-      //         //     createElement_fountain_model_enabled = true;
-      //         //     if (!this.__weakRef9591__) {
-      //         //       this.__weakRef9591__ = mWeakRef(this);
-      //         //       const q = this.__weakRef9591__;
-      //         //       const hostElement = this.hostElement;
-      //         //       const mo = new MutationObserver(() => {
-      //         //         Promise.resolve(q).then(updateElementList);
-      //         //       }).observe(hostElement, { subtree: true, childList: true });
-      //         //     }
-      //         //     __weakRef9592__ = this.__weakRef9591__;
-      //         //     let r = this.createEmojiAnimation037(a, b, c, d);
-      //         //     __weakRef9592__ = null;
-      //         //     createElement_fountain_model_enabled = false;
-      //         //     return r;
-      //         //   }
-      //         //   console1.log('USE_RM_ON_FOUNTAIN_MODEL - OK');
-      //         // } else {
-
-      //         //   console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
-      //         // }
-
-      //       } else {
-
-      //         console1.log('USE_RM_ON_FOUNTAIN_MODEL - NG');
-      //       }
-
-
-      //     })();
-
-      //     console1.log("[End]");
-
-      //     groupEnd();
-
-
-  
-      //   }).catch(console.warn);
-
-        
-      // }
 
     }
 

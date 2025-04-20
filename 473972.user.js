@@ -1,14 +1,16 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
+// @name:ja     YouTube JS Engine Tamer
+// @name:zh-TW  YouTube JS Engine Tamer
+// @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.3
+// @version     0.20.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
-// @description To enhance YouTube performance by modifying YouTube JS Engine
 // @grant       none
 // @require     https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@c2b707e4977f77792042d4a5015fb188aae4772e/library/nextBrowserTick.min.js
 // @run-at      document-start
@@ -16,6 +18,12 @@
 // @inject-into page
 // @allFrames   true
 // @exclude     /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
+//
+// @description         To enhance YouTube performance by modifying YouTube JS Engine
+// @description:ja      YouTubeのJSエンジンを変更してパフォーマンスを向上させる
+// @description:zh-TW   修改 YouTube 的 JS 引擎以提升效能
+// @description:zh-CN   修改 YouTube 的 JS 引擎以提升性能
+//
 // ==/UserScript==
 
 (() => {
@@ -360,7 +368,8 @@
   }
 
 
-  const HTMLElement_ = HTMLElement;
+  /** @type { typeof HTMLElement } */
+  const HTMLElement_ = Reflect.getPrototypeOf(HTMLTitleElement);
   const nativeAppendE = HTMLElement_.prototype.append;
   const nativeRemoveE = HTMLElement_.prototype.remove;
   const DocumentFragment_ = DocumentFragment;
@@ -1305,8 +1314,8 @@
     };
     let mousemoveCId = 0;
     let mouseoverFn = null;
-    HTMLElement.prototype.addEventListener4882 = HTMLElement.prototype.addEventListener;
-    HTMLElement.prototype.addEventListener = function (a, b, c) {
+    HTMLElement_.prototype.addEventListener4882 = HTMLElement_.prototype.addEventListener;
+    HTMLElement_.prototype.addEventListener = function (a, b, c) {
       if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
         const bt = `${b}`;
         if (bt.length >= 61 && bt.length <= 71 && bt.startsWith('function(){try{return ') && bt.includes('.apply(this,arguments)}catch(')) {
@@ -1380,8 +1389,8 @@
 
 
 
-    HTMLElement.prototype.removeEventListener4882 = HTMLElement.prototype.removeEventListener;
-    HTMLElement.prototype.removeEventListener = function (a, b, c) {
+    HTMLElement_.prototype.removeEventListener4882 = HTMLElement_.prototype.removeEventListener;
+    HTMLElement_.prototype.removeEventListener = function (a, b, c) {
       if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
 
         if (b[`__$$${a}$$1926__`]) {
@@ -1696,12 +1705,12 @@
 
             // dom-if __ensureTemplate
             // dom-repeat __ensureTemplatized
-            if (FIX_DOM_IF_TEMPLATE && !cProto.__ensureTemplate847 && typeof cProto.__ensureTemplate === 'function' && cProto.__ensureTemplate.length === 0 && this instanceof HTMLElement && `${cProto.__ensureTemplate}`.length > 20) {
+            if (FIX_DOM_IF_TEMPLATE && !cProto.__ensureTemplate847 && typeof cProto.__ensureTemplate === 'function' && cProto.__ensureTemplate.length === 0 && this instanceof HTMLElement_ && `${cProto.__ensureTemplate}`.length > 20) {
               // note that "_templateInfo" diffs the different version of DOM-IF
 
               cProto.__ensureTemplate847 = cProto.__ensureTemplate;
               cProto.__ensureTemplate = function () {
-                if (!(this instanceof HTMLElement) || arguments.length > 0) return this.__ensureTemplate847(...arguments);
+                if (!(this instanceof HTMLElement_) || arguments.length > 0) return this.__ensureTemplate847(...arguments);
                 if (!this.__template) {
                   let b;
                   if (this._templateInfo) {
@@ -1971,6 +1980,7 @@
   })();
 
   let xdeadc00 = null; // a deteched node with __domApi
+  let xlivec00 = null; // a deteched node with __domApi
 
   const setupXdeadC = (cnt)=>{
 
@@ -1994,6 +2004,27 @@
       // debugger;
       // const xdeadv = xdeadc.__domApi;
     }
+
+    let xlivec = xlivec00;
+    if(!xlivec){
+      setupSDomWrapper(); // just in case
+      const hostElement = cnt.hostElement;
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      hostElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+      hostElement.lastChild.replaceWith(el);
+      el.insertAdjacentHTML('afterbegin', ttpHTML(`<div></div>`));
+      const rid = `xlive_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+      el.firstElementChild.id = rid;
+      cnt.$[rid] = el.firstElementChild;
+      cnt.stampDomArray9682_(null, rid, null, false, false, false);
+
+      xlivec =  cnt.getStampContainer_(rid);
+      xlivec00 = xlivec;
+      // console.log(xdeadc.__domApi)
+      // debugger;
+      // const xdeadv = xdeadc.__domApi;
+    }
+
     return xdeadc00;
   }
 
@@ -2259,10 +2290,10 @@
         if (OMIT_ShadyDOM_EXPERIMENTAL & 2) {
           ShadyDOM.composedPath = function (e) {
             const t = (e || 0).target || null;
-            if (!(t instanceof HTMLElement)) {
+            if (!(t instanceof HTMLElement_)) {
               console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
             }
-            return t instanceof HTMLElement ? [t] : [];
+            return t instanceof HTMLElement_ ? [t] : [];
           };
         }
 
@@ -2562,7 +2593,7 @@
     let getObjsFn = () => {
       let euyVal = 0;
       const eukElm = {};
-      Object.setPrototypeOf(eukElm, HTMLElement.prototype);
+      Object.setPrototypeOf(eukElm, HTMLElement_.prototype);
       const euzObj = new Proxy(eukElm, {
         get(target, prop) {
           throw `ErrorF31.get(${prop})`
@@ -3289,13 +3320,13 @@
             else if (aElm instanceof HTMLImageElement) controlPhase = 2;
             else if (aElm instanceof HTMLEmbedElement) controlPhase = 2;
             else {
-              if (aElm instanceof HTMLElement && aElm.closest('[role]')) controlPhase = 5;
+              if (aElm instanceof HTMLElement_ && aElm.closest('[role]')) controlPhase = 5;
               if (aElm instanceof HTMLDivElement) controlPhase = 2;
               else if (aElm instanceof HTMLAnchorElement) controlPhase = 2;
-              else if (!(aElm instanceof HTMLElement) && (aElm instanceof Element)) controlPhase = 2; // svg
+              else if (!(aElm instanceof HTMLElement_) && (aElm instanceof Element)) controlPhase = 2; // svg
             }
 
-            if ((controlPhase === 2 || controlPhase === 5) && (aElm instanceof HTMLElement) && aElm.contains(mediaPlayerElement)) {
+            if ((controlPhase === 2 || controlPhase === 5) && (aElm instanceof HTMLElement_) && aElm.contains(mediaPlayerElement)) {
               controlPhase = 0;
             }
 
@@ -3604,12 +3635,12 @@
   PROP_OverReInclusion_AVOID && (() => {
 
 
-    if (typeof HTMLElement.prototype.hasOwnProperty72 === 'function' || typeof HTMLElement.prototype.hasOwnProperty !== 'function') return;
-    const f = HTMLElement.prototype.hasOwnProperty72 = HTMLElement.prototype.hasOwnProperty;
+    if (typeof HTMLElement_.prototype.hasOwnProperty72 === 'function' || typeof HTMLElement_.prototype.hasOwnProperty !== 'function') return;
+    const f = HTMLElement_.prototype.hasOwnProperty72 = HTMLElement_.prototype.hasOwnProperty;
     let byPassVal = null;
     let byPassCount = 0;
     let mmw = new Set();
-    HTMLElement.prototype.hasOwnProperty = function (prop) {
+    HTMLElement_.prototype.hasOwnProperty = function (prop) {
       if (arguments.length !== 1) return f.apply(this, arguments);
       if (byPassVal !== null && typeof prop === 'string') {
 
@@ -3672,7 +3703,7 @@
     };
 
     const valMap = new WeakMap();
-    Object.defineProperty(HTMLElement.prototype, 'didForwardDynamicProps', {
+    Object.defineProperty(HTMLElement_.prototype, 'didForwardDynamicProps', {
       get() {
         propCheck(this.constructor.prototype);
         return valMap.get(this);
@@ -4707,6 +4738,17 @@
     cProto.getIconShapeData671 = cProto.getIconShapeData;
     cProto.renderIcon671 = cProto.renderIcon;
 
+    // cProto.attached488 = cProto.attached;
+    // cProto.attached = function(){
+    //   console.log('attached')
+    //   return this.attached488(...arguments);
+    // }
+    // cProto.detached488 = cProto.detached;
+    // cProto.detached = function(){
+    //   console.log('detached')
+    //   return this.detached488(...arguments);
+    // }
+
     if(cProto.__renderIconFix__) return;
     cProto.__renderIconFix__ = true;
 
@@ -5005,7 +5047,7 @@
       while (node) {
         let nextNode = node.nextElementSibling;
         if (node.__delayRemoved__) {
-          removeTNode(node)
+          removeTNode_(node)
           // } else {
           // node.remove();
         }
@@ -5112,11 +5154,12 @@
     let withStampDomExx = false;
 
     const DEBUG_STAMP_CHANGE = false;
+    const DEBUG_FINALIZATION = false;
 
 
     const reuseStore = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? new Map() : null;
     const registry = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? new FinalizationRegistry((heldValue) => {
-      DEBUG_STAMP_CHANGE && console.log(`Object(${heldValue}) has been released`);
+      DEBUG_FINALIZATION && console.log(`Object(${heldValue}) has been released`);
     }) : null;
 
     const registerFn = typeof WeakRef === "function" && typeof FinalizationRegistry === "function" ? (node, heldValue) => {
@@ -5137,6 +5180,31 @@
       a.dispatchEvent(b);
       return b
     };
+
+
+    const removeTNode__ = (node) => { // need trigger removal of its parent component
+      const xlivev = xlivec00.__domApi;
+      if (node.isConnected === true) {
+        xlivev.appendChild(node); // attached -> detached
+        // xlivev.removeChild(node); // detached -> detached
+      } else {
+        xlivev.appendChild(node); // detached -> detached
+        // xlivev.removeChild(node); // detached -> detached
+      }
+    }
+    window.removeTNode__ = removeTNode__;
+
+    const removeTNode_ = (node) => { // need trigger removal of its parent component
+      const xdeadv = xdeadc00.__domApi;
+      // if (node.isConnected === true) {
+        xdeadv.appendChild(node); // attached -> detached
+        xdeadv.removeChild(node); // detached -> detached
+      // } else {
+      //   xdeadv.appendChild(node); // detached -> detached
+      //   xdeadv.removeChild(node); // detached -> detached
+      // }
+    }
+    window.removeTNode_ = removeTNode_;
 
     const removeTNode = (node) => { // need trigger removal of its parent component
       const xdeadv = xdeadc00.__domApi;
@@ -5163,6 +5231,7 @@
         // xdeadv.removeChild(node); // detached -> detached
       }
     }
+    window.removeTNode = removeTNode;
 
 
     const removeTNodeDelayed = (node) => {
@@ -5176,6 +5245,7 @@
         xdeadv.removeChild(node); // detached -> detached
       }
     }
+    window.removeTNodeDelayed = removeTNodeDelayed;
 
     let triggerCountWithinMicro = 0;
 
@@ -5501,8 +5571,12 @@
       }
       if (!container.__xnHook944__) {
         if (container.__xnHook944__ === 2) {
-          console.log('skip handling weird element (2)');
-          return this.stampDomArray9682_(...arguments);// skip handling weird element
+          if (container.firstElementChild === null) {
+            container.__xnHook944__ = 0;
+          } else {
+            console.log('skip handling weird element (2)');
+            return this.stampDomArray9682_(...arguments);// skip handling weird element
+          }
         }
         if (container.firstElementChild) {
           container.__xnHook944__ = 2;
@@ -5510,10 +5584,10 @@
           return this.stampDomArray9682_(...arguments);// skip handling weird element
         }
         container.__xnHook944__ = 1;
-        if (container.firstElementChild) {
-          debugger;
-          console.warn('container element?')
-        }
+        // if (container.firstElementChild) {
+        //   debugger;
+        //   console.warn('container element?')
+        // }
         try {
           this.stampDomArray9682_(null, containerId, null, false, false, false); // bind the yt dom api
         } catch (e) { }
@@ -6073,7 +6147,7 @@
         node = node.nextElementSibling;
         while (node) {
           let nextNode = node.nextElementSibling;
-          removeTNode(node);
+          removeTNode_(node);
           registerFn(node, '02');
           node = nextNode;
         }
@@ -6933,7 +7007,7 @@
       const cnt = insp(this);
       const hostElement = cnt.hostElement || 0;
       const dollar = hostElement ? (this.$ || indr(this)) : 0;
-      let p = (hostElement instanceof HTMLElement) && (dollar || !this.is);
+      let p = (hostElement instanceof HTMLElement_) && (dollar || !this.is);
       if (p && (!dollar && !this.is)) {
         const nodeName = hostElement.nodeName;
         if (typeof nodeName !== 'string') {
@@ -6974,7 +7048,7 @@
   }
 
 
-  let nativeHTMLElement = window.HTMLElement;
+  let nativeHTMLElement = Reflect.getPrototypeOf(HTMLFontElement);
 
   try {
 
@@ -8638,9 +8712,9 @@
             try {
               const p = this.node;
 
-              if (p instanceof HTMLElement) {
+              if (p instanceof HTMLElement_) {
                 const pp = pd2.get.call(p);
-                if (pp instanceof HTMLElement && pp.isConnected === true) {
+                if (pp instanceof HTMLElement_ && pp.isConnected === true) {
                   return pp.getRootNode();
                 }
 
@@ -8662,10 +8736,6 @@
           const querySelectorFn = function (query) {
             try {
               const p = this.node;
-
-              // if (p instanceof HTMLElement && p.isConnected === true) {
-              //     return pd4.value.call(p, query);
-              // }
 
               if (p instanceof Document && p.isConnected === true) {
                 return pd4b.value.call(p, query);
@@ -8701,10 +8771,6 @@
             try {
 
               const p = this.node;
-
-              // if (p instanceof HTMLElement && p.isConnected === true) {
-              //     return pd6.value.call(p, query);
-              // }
 
               if (p instanceof Document && p.isConnected === true) {
                 return pd6b.value.call(p, query);
@@ -9281,13 +9347,13 @@
           const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
 
             // console.log(140000, a, b, c);
-            if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement) {
+            if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement_) {
               const num = c;
               c = `${num}`;
               if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
             }
 
-            if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement) {
+            if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement_) {
 
               let elmPropTemp = null;
 
@@ -9296,11 +9362,6 @@
                 // div.ytp-play-progress.ytp-swatch-background-color
 
                 nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
-                // let ast = null;
-                // if (a instanceof HTMLElement && !('__styleH745__' in a) && (ast = a.style)) {
-                //   a.__styleH745__ = 1;
-                //   Object.defineProperty(ast, 'left', hookLeftPD);
-                // }
                 return;
 
               } else if (elmPropTemp = elmPropTemps[b]) {
@@ -9443,7 +9504,7 @@
               if (typeof a !== 'string') return this.updateValue31(a, b);
 
               const element = this.element;
-              if (!(element instanceof HTMLElement)) return this.updateValue31(a, b);
+              if (!(element instanceof HTMLElement_)) return this.updateValue31(a, b);
 
               let ntLog = ntLogs.get(a);
               if (!ntLog) ntLogs.set(a, (ntLog = new WeakMap()));
@@ -10967,7 +11028,7 @@
 
               const h = this.hostElement;
 
-              if (h instanceof HTMLElement) {
+              if (h instanceof HTMLElement_) {
 
                 const map = h.__skme44__ = h.__skme44__ || new Map();
 
