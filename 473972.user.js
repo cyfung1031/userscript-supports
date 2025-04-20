@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.5
+// @version     0.20.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4715,7 +4715,7 @@
   FIX_ICON_RENDER && whenCEDefined('yt-icon').then(async () => {
 
 
-    const globalPromiseStack = {};
+    // const globalPromiseStack = {};
 
     // let dummy;
     // while(!dummy){
@@ -4781,10 +4781,10 @@
       
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
 
-      config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;
+      // config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;
       config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;
-      config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;
-      config.EXPERIMENT_FLAGS.wil_icon_network_first = true;
+      // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;
+      // config.EXPERIMENT_FLAGS.wil_icon_network_first = true;
 
       
       // this.renderingMode = _.x("wil_icon_use_mask_rendering") ? 1 : 0;
@@ -5705,18 +5705,18 @@
       if (!hasRunningTasks && !this[keyRequireAsync]) {
         if (!pageFirstDom) { // initial stamp action
           pageFirstDom = this.is;
-          // useSyncE = true;
+          useSyncE = true;
           this.__stampDomExx__ = true;
         } else if (this.__stampDomExx__) { // essential component
-          // useSyncE = true;
+          useSyncE = true;
         } else if (!withStampDomExx) { // not ready
-          // useSyncE = true;
+          useSyncE = true;
         } else if (triggerCountWithinMicro_ === 1) { // first stamp action (user action)
-          // useSyncE = true;
+          useSyncE = true;
         }
         if (!hasKey) { // noChange
           leaveWithNoChange = true;
-          // useSyncE = true;
+          useSyncE = true;
         }
       }
 
@@ -6275,7 +6275,7 @@
             if (!stamperTasks.length) return;
             const tasks = stamperTasks.slice();
             stamperTasks.length = 0;
-            executeTaskBatch(tasks.map(fn => ({ fn })), true);
+            executeTaskBatch(tasks.map(fn => ({ fn })), false);
           }
 
           if (tryBatchUpdate_) {
