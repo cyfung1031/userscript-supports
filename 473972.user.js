@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.0
+// @version     0.20.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -346,6 +346,11 @@
       }
     };
   })();
+
+  if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
+    let s = s => s;
+    trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+  }
 
   const HTMLElement_ = HTMLElement;
   const nativeAppendE = HTMLElement_.prototype.append;

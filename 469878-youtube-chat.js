@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.10
+// @version             0.100.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1630,6 +1630,11 @@
       }
     };
   })();
+
+  if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
+    let s = s => s;
+    trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+  }
 
   // const nextBrowserTick_ = nextBrowserTick;
   // const nextBrowserTick_ = (f) => {
