@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.10
+// @version     0.20.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4761,32 +4761,32 @@
       }
     })
     const cm = document.createComment('1');
-    const stackTask = (f)=>{
+    const stackTask = (f) => {
       taskStack.push(f);
       cm.data = `${(cm.data & 7) + 1}`;
     }
-    cmObs.observe(cm, {characterData: true});
+    cmObs.observe(cm, { characterData: true });
 
-    let iconManagers = {}; // assume shared
+    // let iconManagers = {}; // assume shared
 
-    window.iconManagers = ()=>iconManagers;
+    // window.iconManagers = () => iconManagers;
 
 
-    const setupYtIcon=(inst)=>{
-    
-      if(inst.__ytIconSetup588__) return;
+    const setupYtIcon = (inst) => {
+
+      if (inst.__ytIconSetup588__) return;
       const cProto = Reflect.getPrototypeOf(inst);
-      cProto. __ytIconSetup588__ = true; 
+      cProto.__ytIconSetup588__ = true;
 
-      
+
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
 
-      // config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;
-      config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;
-      // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;
-      // config.EXPERIMENT_FLAGS.wil_icon_network_first = true;
+      config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;        // single rendering
+      config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;         // single rendering
+      // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;   // DON'T!
+      config.EXPERIMENT_FLAGS.wil_icon_network_first = true;            // single rendering
 
-      
+
       // this.renderingMode = _.x("wil_icon_use_mask_rendering") ? 1 : 0;
       // this.isNetworkFirstStrategy = _.x("wil_icon_network_first");
       // this.renderWhenIdle = _.x("wil_icon_render_when_idle");
@@ -4798,7 +4798,7 @@
 
     cProto.handlePropertyChange = function (...a) { // 10+
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // string bool=false bool int=24 (empty string?) bool? bool
       // undefined bool=false bool int bool? true
 
@@ -4807,7 +4807,7 @@
 
       //   if(a[0].)
       //   this.determineIconSet()
-        
+
       // }
 
       // const lastData = this.__lastData__;
@@ -4834,7 +4834,7 @@
       //     }
 
       //     returnNone = true;
-          
+
       //   }
       // }
 
@@ -4855,8 +4855,8 @@
 
       const t = this.__stackedKey3818__ = (this.__stackedKey3818__ & 1073741823) + 1;
 
-      const stackFn = ()=>{
-        if(t!== this.__stackedKey3818__){
+      const stackFn = () => {
+        if (t !== this.__stackedKey3818__) {
           return;
         }
         a03 = this.isAttached;
@@ -4865,33 +4865,33 @@
 
         // }
 
-        if(a01 === false && a02 === false && a03 === false) return;
+        if (a01 === false && a02 === false && a03 === false) return;
 
-        if(a01===true && a02===true && a03===true){
+        if (a01 === true && a02 === true && a03 === true) {
 
-        }else{
-          if(a01 === undefined && a02 === undefined && a03 === undefined && (this.hostElement || this).isConnected === false ){
+        } else {
+          if (a01 === undefined && a02 === undefined && a03 === undefined && (this.hostElement || this).isConnected === false) {
             // unknown yt-icon#label-icon
             return;
-          }else{
+          } else {
             console.log('[yt-icon] debug', a01, a02, a03, this)
           }
         }
-       
+
         this.handlePropertyChange671(...arguments);
 
       };
 
 
 
-      Promise.resolve().then(()=>{
-        a02= this.isAttached;
+      Promise.resolve().then(() => {
+        a02 = this.isAttached;
         stackTask(stackFn);
-      })
+      });
 
 
 
-      
+
 
       // console.log('yt-icon.handlePropertyChange', ...arguments);
 
@@ -4901,7 +4901,7 @@
 
     cProto.determineIconSet = function (a, b, c, d) { // 10-
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // string bool? bool=false int=24
       // NOTIFICATIONS_NONE OR LIKE
       // console.log('yt-icon.determineIconSet', ...arguments);
@@ -4917,22 +4917,22 @@
 
     cProto.switchToYtSysIconset = function (a, b, c, d) { // 10-
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // same as determineIconSet
       // console.log('yt-icon.switchToYtSysIconset', ...arguments);
       return this.switchToYtSysIconset671(...arguments);
     }
 
-    cProto.useYtSysIconsetForMissingIcons = function(a, b, c, d){ // X
+    cProto.useYtSysIconsetForMissingIcons = function (a, b, c, d) { // X
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // console.log('yt-icon.useYtSysIconsetForMissingIcons', ...arguments);
       return this.useYtSysIconsetForMissingIcons671(...arguments);
     }
 
-    cProto.getIconManager = function(){ // 10+
+    cProto.getIconManager = function () { // 10+
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // no argument
 
       // if(this.iconsetName && this.iconType){
@@ -4941,8 +4941,8 @@
       // }
       // console.log(2388, this.iconType)
       // console.log('yt-icon.getIconManager', ...arguments);
-      if(!this.__resolved__)this.__resolved__ ={};
-      if(!this.__resolved__.getIconManager) this.__resolved__.getIconManager = this.getIconManager671(...arguments);
+      if (!this.__resolved__) this.__resolved__ = {};
+      if (!this.__resolved__.getIconManager) this.__resolved__.getIconManager = this.getIconManager671(...arguments);
       const r = this.__resolved__.getIconManager;
       // if(r.then){
       //   r.then((result)=>{
@@ -4953,9 +4953,9 @@
       return r;
     }
 
-    cProto.getIconShapeData = function(){ // 10+
+    cProto.getIconShapeData = function () { // 10+
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
 
       // let rr;
       // if (typeof (this.iconType || 0) === 'string' && typeof (this.iconsetName || 0) === 'string' && this.icon === `${this.iconsetName}:${this.iconType}` && (+this.size >= 1)) {
@@ -4971,8 +4971,8 @@
 
       // no argument
       // console.log('yt-icon.getIconShapeData', ...arguments);
-      if(!this.__resolved__)this.__resolved__ ={};
-      if(!this.__resolved__.getIconShapeData) this.__resolved__.getIconShapeData = this.getIconShapeData671(...arguments);
+      if (!this.__resolved__) this.__resolved__ = {};
+      if (!this.__resolved__.getIconShapeData) this.__resolved__.getIconShapeData = this.getIconShapeData671(...arguments);
       const r = this.__resolved__.getIconShapeData;
       // if (r.then) {
       //   r.then((result) =>{
@@ -4981,7 +4981,7 @@
       //     console.log('yt-icon.getIconShapeData.resultxx = ', rr)
       //   } )
       // }
-      
+
 
 
       /*
@@ -4997,9 +4997,9 @@
       return r
     }
 
-    cProto.renderIcon = function(a, b){ // X
+    cProto.renderIcon = function (a, b) { // X
 
-      if(!this.__ytIconSetup588__) setupYtIcon(this);
+      if (!this.__ytIconSetup588__) setupYtIcon(this);
       // "" yt-icons:xxx
       // console.log('yt-icon.renderIcon', ...arguments);
       return this.renderIcon671(...arguments);
