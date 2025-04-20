@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.11
+// @version             0.100.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1631,9 +1631,13 @@
     };
   })();
 
-  if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
-    let s = s => s;
-    trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+  let ttpHTML = (s) => {
+    ttpHTML = s => s;
+    if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
+      let s = s => s;
+      trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+    }
+    return s;
   }
 
   // const nextBrowserTick_ = nextBrowserTick;
@@ -3396,10 +3400,10 @@
 
       // const newDoc = document.implementation.createHTMLDocument("NewDoc");
       const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      document.documentElement.insertAdjacentHTML('beforeend', '<!---->');
+      document.documentElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
       document.documentElement.lastChild.replaceWith(pSpace);
       const pNode = document.createElement('ns-538');
-      pSpace.insertAdjacentHTML('beforeend', '<!---->');
+      pSpace.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
       pSpace.lastChild.replaceWith(pNode);
 
       const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -3407,13 +3411,13 @@
         const pShadow = pNode.attachShadow({ mode: "open" });
         pShadow.replaceChildren(pDiv);
       } else {
-        pNode.insertAdjacentHTML('beforeend', '<!---->');
+        pNode.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
         pNode.lastChild.replaceWith(pDiv);
       }
 
       const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-      pDiv.insertAdjacentHTML('beforeend', '<!---->');
+      pDiv.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
       pDiv.lastChild.replaceWith(pDivNew);
 
       pDivNew.addEventListener('load', pDivOnResource, true);
@@ -3490,7 +3494,7 @@
           // const cnt = insp(component);
 
           // cnt.__dataOld = cnt.__dataPending = null;
-          pDivNew.insertAdjacentHTML('beforeend', '<!---->');
+          pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
           pDivNew.lastChild.replaceWith(component);
           // cnt.__dataOld = cnt.__dataPending = null;
 
@@ -3516,7 +3520,7 @@
             //   pDiv.insertAdjacentElement('afterend', wmPendingList);
             // }
             // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
-            pDivNew.insertAdjacentHTML('beforeend', '<!---->');
+            pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
             pDivNew.lastChild.replaceWith(connectedComponent);
             const attrMap = connectedComponent.attributes;
             const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
@@ -3666,11 +3670,11 @@
           if (!wmList) {
             wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
-            pDiv.insertAdjacentHTML('afterend', '<!---->');
+            pDiv.insertAdjacentHTML('afterend', ttpHTML('<!---->'));
             pDiv.nextSibling.replaceWith(wmList);
             wmRemoved.set(componentName, wmList);
           }
-          wmList.insertAdjacentHTML('beforeend', '<!---->');
+          wmList.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
           wmList.lastChild.replaceWith(elm);
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
@@ -3749,10 +3753,10 @@
                 const { newNode, nodeAfter, parentNode } = task;
 
                 if (nodeAfter) {
-                  nodeAfter.insertAdjacentHTML('beforebegin', '<!---->');
+                  nodeAfter.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
                   nodeAfter.previousSibling.replaceWith(newNode);
                 } else {
-                  parentNode.insertAdjacentHTML('beforeend', '<!---->');
+                  parentNode.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
                   parentNode.lastChild.replaceWith(newNode);
                 }
 

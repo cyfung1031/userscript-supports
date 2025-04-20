@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.1
+// @version     0.20.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -347,10 +347,15 @@
     };
   })();
 
-  if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
-    let s = s => s;
-    trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+  let ttpHTML = (s) => {
+    ttpHTML = s => s;
+    if (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy === null) {
+      let s = s => s;
+      trustedTypes.createPolicy('default', { createHTML: s, createScriptURL: s, createScript: s });
+    }
+    return s;
   }
+
 
   const HTMLElement_ = HTMLElement;
   const nativeAppendE = HTMLElement_.prototype.append;
@@ -1971,9 +1976,9 @@
       setupSDomWrapper(); // just in case
       const hostElement = cnt.hostElement;
       const el = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      hostElement.insertAdjacentHTML('beforeend', '<!---->');
+      hostElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
       hostElement.lastChild.replaceWith(el);
-      el.insertAdjacentHTML('afterbegin', `<div></div>`);
+      el.insertAdjacentHTML('afterbegin', ttpHTML(`<div></div>`));
       const rid = `xdead_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
       el.firstElementChild.id = rid;
       cnt.$[rid] = el.firstElementChild;
@@ -5134,7 +5139,7 @@
       const xdeadv = xdeadc00.__domApi;
       if (node.isConnected === true) {
         if (node.parentNode !== pDivDeletion) {
-          pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+          pDivDeletion.insertAdjacentHTML('afterbegin', ttpHTML('<!---->'));
           pDivDeletion.lastChild.replaceWith(node); // attached -> attached
         }
 
@@ -5160,7 +5165,7 @@
     const removeTNodeDelayed = (node) => {
       if (node.isConnected === true) {
         node.__delayRemoved__ = true;
-        pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
+        pDivDeletion.insertAdjacentHTML('afterbegin', ttpHTML('<!---->'));
         pDivDeletion.lastChild.replaceWith(node); // attached -> attached
       } else {
         const xdeadv = xdeadc00.__domApi;
@@ -5777,10 +5782,10 @@
             if (componentX instanceof Node) {
               if (refNode !== componentX) {
                 if (!refNode) {
-                  containerElement.insertAdjacentHTML('beforeend', '<!---->');
+                  containerElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
                   containerElement.lastChild.replaceWith(componentX);
                 } else {
-                  refNode.insertAdjacentHTML('beforebegin', '<!---->');
+                  refNode.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
                   refNode.previousSibling.replaceWith(componentX);
                 }
               }
@@ -5924,47 +5929,9 @@
         // const xdeadv = xdeadc.__domApi;
 
         for (const node of removes) {
-
-          // const u = node.parentElement;
-          // const v = u.__domApi || u;
-          // console.log(node.parentElement, node.parentElement.isConnected)
-          // if (node.isConnected) {
-          //   removeTNodeDelayed(node);
-          // } else {
-          //   node.remove();
-          // }
           removeTNode(node);
-
-          // v.removeChild(node);
-          // console.log(1540, insp(node).isAttached)
-          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
-          // pDivDeletion.lastChild.replaceWith(node);
-          // console.log(1541, insp(node).isAttached)
-          // node.remove(); // no isAttached change
-          // console.log(1542, insp(node).isAttached)
-          // // xdeadv.__pseudo__isConnected__ = false;
-          // xdeadv.appendChild(node); // isConnected true so no custom remove. isConnected is false so no custom append
-          // debugger;
-          // xdeadv.removeChild(node);
-          // console.log(1543, insp(node).isAttached)
-          // xdeadv.__pseudo__isConnected__ = null;
-          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
-          // pDivDeletion.lastChild.replaceWith(node);
-
-          // console.log(1544, insp(node).isAttached)
-
-          // if(node && node.__domApi && node.__domApi.node instanceof Node && !node.__domApi.nodeWR ){
-          //   if(node.__cleanup__) node.__cleanup__();
-          //   // node.__domApi
-          //   // debugger;
-          // }
-
           registerFn(node, '01');
-
         }
-
-
-
 
         // safeClear(containerId, null, 2 | 4)
 
@@ -5972,96 +5939,6 @@
       
 
 
-
-
-
-
-      // stamperTasks.push(() => {
-      //   if (taskFinish) return;
-
-
-      //   let node = containerElement.lastElementChild;
-      //   while (node !== null) {
-
-      //     const dte = node[syte];
-      //     const nextNode = node.previousElementSibling;
-
-      //     if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
-      //       pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
-      //       pDivDeletion.lastChild.replaceWith(node);
-      //     }
-      //     node = nextNode;
-
-      //   }
-
-      //   console.log(23300, containerElement.childElementCount)
-
-      // });
-
-
-
-      
-      // let q30 = false;
-      // stamperTasks.push(() => {
-      //   if (taskFinish) return;
-
-
-      //   let node = containerElement.lastElementChild;
-      //   while (node !== null) {
-
-      //     const dte = node[syte];
-      //     const nextNode = node.previousElementSibling;
-
-      //     if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
-      //       q30 = true;
-      //       // const u =node.parentElement;
-      //       // const v = u.__domApi || u;
-      //       // v.removeChild(node);
-      //       // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
-      //       // pDivDeletion.lastChild.replaceWith(node);
-      //     }
-      //     node = nextNode;
-
-      //   }
-
-      //   // console.log(23300, containerElement.childElementCount)
-
-
-
-
-      //   // safeFinish(containerId, true)
-
-
-      // });
-      
-
-
-
-      // ---------
-
-      // stamperTasks.push(() => {
-
-      //   // if(q30)
-      //     safeClear(containerId, null, 2 | 4);
-
-      //   // safeClear(containerId, null, 2 | 4)
-
-      // });
-
-      // ---------
-
-      // stamperTasks.push(() => {
-      //   if(!q30 && pneItems.length === containerElement.childElementCount){
-
-      //     console.log('keep')
-      //   }else{
-
-      //     safeClear(containerId, null, 2 | 4)
-      //   }
-
-      // });
-
-      // const listX = [];
       let refNode = null;
       let refNodeIdx = -1;
 
@@ -6185,39 +6062,18 @@
 
       // if(!useNative)
       stamperTasks.push(() => {
-
         if (taskFinish) return;
         if (skipToNextTask) return;
         // if (skipToNextTask) return;
         let node = refNode;
-
         if (!node) return;
-
-        // console.log(1039, node, containerElement.childElementCount)
-
-
         node = node.nextElementSibling;
-
         while (node) {
-
-
-
           let nextNode = node.nextElementSibling;
-
-          // pDivDeletion.insertAdjacentHTML('afterbegin', '<!---->');
-          // pDivDeletion.lastChild.replaceWith(node);
-
-
           removeTNode(node);
-
           registerFn(node, '02');
-
-
           node = nextNode;
-
-
         }
-
       });
 
 
