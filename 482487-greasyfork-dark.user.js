@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.23
+// @version             0.3.24
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -3048,6 +3048,15 @@ select:-webkit-autofill:focus {
 .notification-widget {
     box-shadow: 0px 0px 6px #69d6c7; /* additional rule for making notification being easy to notice
 }
+`,
+
+
+`
+
+.prettyprint.linenums {
+    background-color: initial;
+}
+
 `
   
   ].join('\n\n');
