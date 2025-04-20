@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Fix Brave Bug for YouTube Live Chat
 // @namespace    UserScripts
-// @version      3.36
+// @version      3.37
 // @description  To Fix Brave Bug for YouTube Live Chat
 // @author       CY Fung
 // @license      MIT
 // @icon         https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@main/icons/brave.png
 // @match        https://www.youtube.com/*
+// @require      https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@c2b707e4977f77792042d4a5015fb188aae4772e/library/nextBrowserTick.min.js
 // @grant        none
 // @run-at       document-start
 // @unwrap
@@ -65,7 +66,11 @@
             this.urlChanged66();
         }
         cProto.urlChanged = function () {
-            this.urlChangedAsync12();
+            const t = this.__urlChangedAsyncT688__ = (this.__urlChangedAsyncT688__ & 1073741823) + 1;
+            nextBrowserTick(() => {
+              if (t !== this.__urlChangedAsyncT688__) return;
+              this.urlChanged66();
+            });
         }
     }
 
