@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.8
+// @version             0.100.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3391,20 +3391,25 @@
 
       // const newDoc = document.implementation.createHTMLDocument("NewDoc");
       const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      document.documentElement.insertAdjacentElement('beforeend', pSpace);
+      document.documentElement.insertAdjacentHTML('beforeend', '<!---->');
+      document.documentElement.lastChild.replaceWith(pSpace);
       const pNode = document.createElement('ns-538');
-      pSpace.insertAdjacentElement('beforeend', pNode);
+      pSpace.insertAdjacentHTML('beforeend', '<!---->');
+      pSpace.lastChild.replaceWith(pNode);
 
       const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       if (typeof pNode.attachShadow === 'function') {
         const pShadow = pNode.attachShadow({ mode: "open" });
         pShadow.replaceChildren(pDiv);
       } else {
-        pNode.insertAdjacentElement('beforeend', pDiv);
+        pNode.insertAdjacentHTML('beforeend', '<!---->');
+        pNode.lastChild.replaceWith(pDiv);
       }
 
       const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      pDiv.insertAdjacentElement('beforeend', pDivNew);
+
+      pDiv.insertAdjacentHTML('beforeend', '<!---->');
+      pDiv.lastChild.replaceWith(pDivNew);
 
       pDivNew.addEventListener('load', pDivOnResource, true);
       pDivNew.addEventListener('error', pDivOnResource, true);
@@ -3423,7 +3428,7 @@
       cProto[fnKeyH] = async function (cTag, cId, pr00) {
         // await the current executing task (if any)
         // and avoid stacking in the same marco task
-        await Promise.all([pr00, nextBrowserTick_()]); 
+        await Promise.all([pr00, nextBrowserTick_()]);
         if (!this.ec389a && !this.ec389r) return;
         const addedCount0 = this.ec389a;
         const removedCount0 = this.ec389r;
@@ -3454,6 +3459,9 @@
           return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
         });
 
+        const isRenderListEmpty = renderList.length === 0;
+
+
         // this.ec389 = null;
         // this.ec389a = 0;
         // this.ec389r = 0;
@@ -3477,7 +3485,8 @@
           // const cnt = insp(component);
 
           // cnt.__dataOld = cnt.__dataPending = null;
-          pDivNew.insertAdjacentElement('beforeend', component);
+          pDivNew.insertAdjacentHTML('beforeend', '<!---->');
+          pDivNew.lastChild.replaceWith(component);
           // cnt.__dataOld = cnt.__dataPending = null;
 
           return component;
@@ -3502,7 +3511,8 @@
             //   pDiv.insertAdjacentElement('afterend', wmPendingList);
             // }
             // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
-            pDivNew.insertAdjacentElement('beforeend', connectedComponent);
+            pDivNew.insertAdjacentHTML('beforeend', '<!---->');
+            pDivNew.lastChild.replaceWith(connectedComponent);
             const attrMap = connectedComponent.attributes;
             const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
             if (defaultAttrs) {
@@ -3541,7 +3551,7 @@
         // const newComponentsEntries = await Promise.all(renderList.map((item) => {
         //   return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
         // }));
-        const newComponentsEntries = await executeTaskBatch(renderList.map(item => ({
+        const newComponentsEntries = isRenderListEmpty ? [] : await executeTaskBatch(renderList.map(item => ({
           item,
           fn(task) {
             const { item } = task;
@@ -3603,7 +3613,7 @@
         // const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
         //   return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
         // }));
-        const newRenderedComponents = await executeTaskBatch(newComponentsEntries.map(entry => ({
+        const newRenderedComponents = isRenderListEmpty ? [] : await executeTaskBatch(newComponentsEntries.map(entry => ({
           entry,
           fn(task) {
             const { entry } = task;
@@ -3651,10 +3661,12 @@
           if (!wmList) {
             wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
-            pDiv.insertAdjacentElement('afterend', wmList);
+            pDiv.insertAdjacentHTML('afterend', '<!---->');
+            pDiv.nextSibling.replaceWith(wmList);
             wmRemoved.set(componentName, wmList);
           }
-          wmList.insertAdjacentElement('beforeend', elm);
+          wmList.insertAdjacentHTML('beforeend', '<!---->');
+          wmList.lastChild.replaceWith(elm);
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
 
@@ -3731,7 +3743,15 @@
 
                 const { newNode, nodeAfter, parentNode } = task;
 
-                nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
+                if (nodeAfter) {
+                  nodeAfter.insertAdjacentHTML('beforebegin', '<!---->');
+                  nodeAfter.previousSibling.replaceWith(newNode);
+                } else {
+                  parentNode.insertAdjacentHTML('beforeend', '<!---->');
+                  parentNode.lastChild.replaceWith(newNode);
+                }
+
+                // nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
                 const connectedComponent = newNode;
                 const cnt = insp(connectedComponent);
                 renderMap.set(cnt.data, mWeakRef(connectedComponent));
@@ -3754,11 +3774,17 @@
             }
 
             {
+              
               const indexMap = new WeakMap();
-              let index = 0;
-              for (let elNode_ = firstComponentChildFn(listDom); elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
-                indexMap.set(elNode_, index++);
+              // let index = 0;
+
+              if (!isRenderListEmpty) {
+                for (let elNode_ = firstComponentChildFn(listDom), index = 0; elNode_ instanceof Node; elNode_ = nextComponentSiblingFn(elNode_)) {
+                  indexMap.set(elNode_, index++);
+                }
               }
+
+
 
               const keepIndices = new Array(renderNodeCount);
               let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
@@ -3780,57 +3806,59 @@
 
               elNode = firstComponentChildFn(listDom);
 
-              for (const rcEntry of newRenderedComponents) {
-                const index = indexMap.get(rcEntry);
-                if (typeof index === 'number') {
-                  const indexEntry = keepIndices[dk++];
-                  const [dIdx, dNode] = indexEntry;
-                  indexMap.delete(rcEntry);
-                  const idx = dIdx;
-                  while (j < idx && elNode) {
-                    tasks.push({
-                      type: 'remove',
-                      elNode,
-                      fn: taskFn.remove
-                    });
-                    elNode = nextComponentSiblingFn(elNode);
-                    j++;
-                  }
-                  if (j === idx) {
-                    if (elNode) {
-                      // if (dNode !== elNode) tasks.push({
-                      //   type: 'swap',
-                      //   earlyNode: indexEntry[1],
-                      //   laterNode: elNode
-                      // });
+              if (!isRenderListEmpty) {
+                for (const rcEntry of newRenderedComponents) {
+                  const index = indexMap.get(rcEntry);
+                  if (typeof index === 'number') {
+                    const indexEntry = keepIndices[dk++];
+                    const [dIdx, dNode] = indexEntry;
+                    indexMap.delete(rcEntry);
+                    const idx = dIdx;
+                    while (j < idx && elNode) {
+                      tasks.push({
+                        type: 'remove',
+                        elNode,
+                        fn: taskFn.remove
+                      });
                       elNode = nextComponentSiblingFn(elNode);
                       j++;
-                    } else {
-                      console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
                     }
+                    if (j === idx) {
+                      if (elNode) {
+                        // if (dNode !== elNode) tasks.push({
+                        //   type: 'swap',
+                        //   earlyNode: indexEntry[1],
+                        //   laterNode: elNode
+                        // });
+                        elNode = nextComponentSiblingFn(elNode);
+                        j++;
+                      } else {
+                        console.warn('elNode is not available?', renderList, addedCount0, removedCount0, j, idx);
+                      }
+                    }
+                  } else if (rcEntry instanceof Node) {
+                    // interruped by the external like clearList
+
+                    tasks.push({
+                      type: 'remove',
+                      elNode: rcEntry,
+                      fn: taskFn.remove
+                    });
+
+                  } else {
+                    const [item, L, H, connectedComponent] = rcEntry;
+
+                    tasks.push({
+                      type: 'append',
+                      newNode: connectedComponent,
+                      nodeAfter: elNode,
+                      parentNode: listDom,
+                      fn: taskFn.append
+                    });
+
                   }
-                } else if (rcEntry instanceof Node) {
-                  // interruped by the external like clearList
-
-                  tasks.push({
-                    type: 'remove',
-                    elNode: rcEntry,
-                    fn: taskFn.remove
-                  });
-
-                } else {
-                  const [item, L, H, connectedComponent] = rcEntry;
-
-                  tasks.push({
-                    type: 'append',
-                    newNode: connectedComponent,
-                    nodeAfter: elNode,
-                    parentNode: listDom,
-                    fn: taskFn.append
-                  });
 
                 }
-
               }
 
               while (elNode) {
