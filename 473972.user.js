@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.2
+// @version     0.20.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -325,8 +325,11 @@
 
   // const setImmediate = ((self || 0).jmt || 0).setImmediate;
   /** @type {(f: ()=>{})=>{}} */
-  const nextBrowserTick = (self || 0).nextBrowserTick || 0;
-  const nextBrowserTick_ = nextBrowserTick || (f => f());
+  const nextBrowserTick_ = nextBrowserTick;
+  if (typeof nextBrowserTick_ !== "function" || (nextBrowserTick_.version || 0) < 2) {
+    console.log('nextBrowserTick is not found.');
+    return;
+  }
 
   let p59 = 0;
 
@@ -1357,7 +1360,7 @@
                     mouseoverFn = null;
                     this[`__$$${a}$$1938__`](evt_);
                   }
-                  nextBrowserTick(mouseoverFn);
+                  nextBrowserTick_(mouseoverFn);
                 }
               }
             }, c);
@@ -2358,7 +2361,7 @@
 
   })(typeof WeakRef !== 'undefined' ? WeakRef : function () { });
 
-  if (ENABLE_ASYNC_DISPATCHEVENT && nextBrowserTick) {
+  if (ENABLE_ASYNC_DISPATCHEVENT) {
     const filter = new Set([
       'yt-action',
       // 'iframe-src-replaced',
@@ -2377,7 +2380,7 @@
       if (typeof type === 'string' && event.isTrusted === false && (event instanceof CustomEvent) && event.cancelable === false) {
         if (!filter.has(type) && !type.endsWith('-changed')) {
           if (this instanceof Node || this instanceof Window) {
-            nextBrowserTick(() => this.dispatchEvent938(event));
+            nextBrowserTick_(() => this.dispatchEvent938(event));
             return true;
           }
         }
@@ -8939,10 +8942,10 @@
                 target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
               } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
                 // often
-                if ((FIX_schedulerInstanceInstance & 4) && typeof nextBrowserTick == 'function') {
+                if ((FIX_schedulerInstanceInstance & 4)) {
                   const f = requestingArgs[0];
                   const tir = ++mzt;
-                  nextBrowserTick(() => {
+                  nextBrowserTick_(() => {
                     if (target[timerIdProp] === -tir) f();
                   });
                   target[_fnSelectorProp] = 940;
