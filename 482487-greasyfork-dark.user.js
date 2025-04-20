@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.24
+// @version             0.3.25
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -3061,8 +3061,8 @@ select:-webkit-autofill:focus {
   
   ].join('\n\n');
 
-    const key01 = "7QdSEuQ5k7dH"
-    const key02 = "SQwUTxgG5hhi"
+    const key01 = "7QdSEuQ5k8dH"
+    const key02 = "SQwUTxgG6hhi"
 
     const removeNonColor = (text) => {
 
