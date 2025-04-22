@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.11
+// @version     0.20.12
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -391,6 +391,130 @@
 
   const TRANSLATE_DEBUG = false;
 
+
+  let xdeadc00 = null; // a deteched node with __domApi
+  let xlivec00 = null; // a deteched node with __domApi
+
+  let removeTNodeRM = null;
+  let removeTNodeBP = false;
+
+
+
+
+  let FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = false;
+
+  const FORCE_NO_REUSEABLE_ELEMENT_POOL_fn = (mainCnt) => {
+
+    if (FORCE_NO_REUSEABLE_ELEMENT_POOL_fired) return;
+
+    FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = true;
+
+
+    if (typeof mainCnt.createComponent_ !== 'function' || mainCnt.createComponent_.length != 3) {
+      console.warn('FORCE_NO_REUSEABLE_ELEMENT_POOL_fn failed.')
+      return;
+    }
+
+
+    const mapGet = Map.prototype.get;
+    const setHas = Set.prototype.has;
+
+
+    /** @type {Map | null} */
+    let qcMap = null;
+
+    Set.prototype.has = function (a) {
+      if (a === 'dummy-4718') return false; // false to allow re-use?
+      return setHas.call(this, a);
+    }
+
+    Map.prototype.get = function (a) {
+      if (a === 'dummy-4718') qcMap = this;
+      return mapGet.call(this, a);
+    };
+    let r;
+    try {
+      r = mainCnt.createComponent_('dummy-4718', {}, true);
+    } catch (e) {
+
+    }
+
+    Map.prototype.get = mapGet;
+    Set.prototype.has = setHas;
+
+    if (r && (r.nodeName || '').toLowerCase() === 'dummy-4718') {
+
+
+      // clearInterval(ckId);
+      // ckId = 0;
+
+      if (qcMap !== null && qcMap instanceof Map) {
+
+        console.log('[yt-js-engine-tamer] qcMap', qcMap);
+        qcMap.__qcMap8781__ = true;
+
+        const setArrayC = (c) => {
+          if (c instanceof Array) {
+            c.length = 0;
+            c.push = function () { };
+            c.pop = function () { };
+            c.shift = function () { };
+            c.unshift = function () { };
+            c.splice = function () { };
+            c.sort = function () { };
+            c.reverse = function () { };
+          }
+        }
+
+        const cleaning = function (m) {
+          m.forEach(setArrayC);
+          m.clear();
+        }
+
+        qcMap.set = function (b, c) {
+          if (!this.__qcMap8781__) return Map.prototype.set.call(this, b, c);
+
+          setArrayC(c);
+
+          // console.log('qcMap.set', b, c);
+
+          if (this.size > 0) {
+            // play safe
+
+            console.log('[yt-js-engine-tamer] qcMap', 'clear 01')
+            cleaning(this);
+          }
+
+        }
+        qcMap.get = function (b) {
+          if (!this.__qcMap8781__) return Map.prototype.get.call(this, b);
+
+          // console.log('qcMap.get', b);
+
+          if (this.size > 0) {
+            // play safe
+
+            console.log('[yt-js-engine-tamer] qcMap', 'clear 02')
+            cleaning(this);
+          }
+
+        }
+
+
+        if (qcMap.size > 0) {
+
+          console.log('[yt-js-engine-tamer] qcMap', 'clear 03')
+          cleaning(qcMap);
+        }
+
+      }
+
+    }
+
+    r = null;
+    qcMap = null;
+
+  }
 
   function getTranslate() {
 
@@ -1979,9 +2103,6 @@
 
   })();
 
-  let xdeadc00 = null; // a deteched node with __domApi
-  let xlivec00 = null; // a deteched node with __domApi
-
   const setupXdeadC = (cnt)=>{
 
     let xdeadc = xdeadc00;
@@ -2027,6 +2148,8 @@
 
     return xdeadc00;
   }
+
+  let standardWrap_ = null;
 
   const setupSDomWrapper = () => {
 
@@ -2131,12 +2254,33 @@
 
     const selfWrKey = Symbol();
 
+    const mak = new Map();
+    const emm = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
     const weakWrapperNodeHandlerFn = () => ({
       get() {
         const wv = this[selfWrKey];
         if (typeof wv === 'undefined') return undefined;
         let node = kRef(wv);
         if (!node) this[selfWrKey] = undefined;
+
+        // if(node && node.__shady_shadowRoot instanceof DocumentFragment_ && !node.__shady_shadowRoot.d32 ){
+        //   node.__shady_shadowRoot.d32 = 1;
+        //   const c = node.__shady_shadowRoot;
+        //   if(mak.has(node.nodeName)){
+        //     const r =  mak.get(node.nodeName);
+        //     if(r !== c){
+        //       let t;
+        //       while(t = c.firstChild) c.removeChild(t);
+        //       node.__shady_shadowRoot = mak.get(node.nodeName);
+        //       console.log('123234534')
+        //     }
+        //   }else{
+        //     mak.set(node.nodeName, c);
+        //   }
+
+        // }
+
         return node || undefined;
         // let w = shadyDOMNodeWRM.get(this);
         // if (typeof w === 'object') w = kRef(w) || (shadyDOMNodeWRM.delete(this), undefined);
@@ -2217,6 +2361,8 @@
       }
       return u;
     }
+
+    standardWrap_ = standardWrap;
 
 
     function setupWrapFunc(_ShadyDOM) {
@@ -4679,9 +4825,10 @@
             queueMicrotask_(() => {
               if (next || task.fired) return;
               task.fired = true;
+              const { fn } = task;
+              task.fn = null;
               if (++firedCount === len) next |= 2;
               if (!t0) t0 = nativeNow() + 10;
-              const { fn } = task;
               results[idx] = fn(task); // sync task only
               if (nativeNow() > t0) next |= 1;
             });
@@ -4692,6 +4839,7 @@
       const looper = (next) => {
         if (!next) throw new TypeError(`Illegal invocation`);
         if (next & 2) {
+          taskArr.length = 0;
           if (next & 1) {
             nextBrowserTick_(() => resolveFinal(results))
           } else {
@@ -5073,7 +5221,7 @@
 
     // const tmpElementNode = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-    let fallbackToDefault = false;
+    let fallbackToDefault00 = false; // full by-pass mode enabled as incorrect calling was found
 
     const attributeMutationObserver = new MutationObserver((mutations) => {
       const targets = new Set();
@@ -5196,6 +5344,7 @@
 
     const removeTNode_ = (node) => { // need trigger removal of its parent component
       const xdeadv = xdeadc00.__domApi;
+      removeTNodeBP = true;
       // if (node.isConnected === true) {
         xdeadv.appendChild(node); // attached -> detached
         xdeadv.removeChild(node); // detached -> detached
@@ -5203,8 +5352,10 @@
       //   xdeadv.appendChild(node); // detached -> detached
       //   xdeadv.removeChild(node); // detached -> detached
       // }
+      removeTNodeBP = false;
     }
-    // window.removeTNode_ = removeTNode_;
+    window.removeTNode_ = removeTNode_;
+    removeTNodeRM = removeTNode_;
 
     const removeTNode = (node) => { // need trigger removal of its parent component
       const xdeadv = xdeadc00.__domApi;
@@ -5247,14 +5398,204 @@
     }
     // window.removeTNodeDelayed = removeTNodeDelayed;
 
+    let config00 = null;
+
+    let appendFrag00 = null;
+
+    const safeAppend = function (items, containerId, componentConfig, bEventCallback, removeExisting, finishState) {
+
+      const config = config00;
+      const appendFrag = appendFrag00;
+      let err, result;
+
+
+      const qv1 = config.DEFERRED_DETACH;
+      const qv2 = config.REUSE_COMPONENTS;
+      const qv3 = config.STAMPER_STABLE_LIST;
+      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      try {
+        if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
+        const c = componentConfig;
+        const k = this.getStampContainer_(containerId);
+        const b = k.__domApi || k;
+        /*
+        const g = document.createDocumentFragment();
+        let r;
+        for(let i = 0, l =items.length; i<l;i++){
+          const u = items[i];
+          const w = YRa(c, u);
+          if (w) {
+            r = this.createComponent_(c[w], u[w], false);
+            this.deferRenderStamperBinding_(r, c[w], u[w]);
+            g.appendChild(r);
+          }
+        }
+        b.appendChild(g)
+        */
+
+        const g = appendFrag00 || (appendFrag00 = document.createDocumentFragment());
+        let r;
+        for (let i = 0, l = items.length; i < l; i++) {
+          const u = items[i];
+          const w = YRa(c, u);
+          if (w) {
+            r = this.createComponent_(c[w], u[w], false);
+            this.deferRenderStamperBinding_(r, c[w], u[w]);
+            g.appendChild(r);
+          }
+        }
+        b.appendChild(g)
+
+        if (finishState & 1) {
+          this.flushRenderStamperComponentBindings_();
+        }
+        if (finishState & 2) {
+          this.markDirty && this.markDirty();
+        }
+        if (finishState & 4) {
+          bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+            container: k
+          });
+        }
+      } catch (e) {
+        err = e;
+      }
+
+      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      if (err) throw err;
+
+      return result;
+
+
+    };
+
+
+    const safeFinish = function (containerId, bEventCallback) {
+
+      const config = config00;
+      let err, result;
+
+
+      const qv1 = config.DEFERRED_DETACH;
+      const qv2 = config.REUSE_COMPONENTS;
+      const qv3 = config.STAMPER_STABLE_LIST;
+      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
+      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
+      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
+
+
+      try {
+        const k = this.getStampContainer_(containerId);
+
+        this.flushRenderStamperComponentBindings_();
+        this.markDirty && this.markDirty();
+        bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
+          container: k
+        });
+
+      } catch (e) {
+        err = e;
+      }
+
+      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      if (err) throw err;
+
+      return result;
+
+
+    };
+
+
+    const reuseRefreshMode = 1;
+
+    const setupComponent = function (data, component, containerElement, refNode, deferredBindingTask, reused = false) {
+
+      let noRenderTaskForResuedComponent = false;
+      if (component instanceof Node) {
+
+
+        if (data && data[syte]) {
+          // component[sytb] = data[sytb]
+          component[sytc] = data[sytc]
+          component[syte] = data[syte];
+          // containerElement[sytd].set(data, mWeakRef(component));
+          containerElement[sytd].set(component, mWeakRef(data));
+          if(reuseStore) reuseStore.set(data[syte], mWeakRef(component));
+        }
+
+        const cnt = insp(component);
+
+        if (reused && reuseRefreshMode >= 1 && cnt.data) {
+          if (!cnt.__refreshData938__) {
+            const cProto = Reflect.getPrototypeOf(cnt);
+            cProto.__refreshData938__ = __refreshData938__;
+          }
+          try {
+            cnt.__refreshData938__('data', !0);
+            if(reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
+          } catch (e) {  
+          }
+        }
+
+        if (refNode !== undefined) {
+          const componentX = component;
+          if (componentX instanceof Node) {
+            if (refNode !== componentX) {
+              if (!refNode) {
+                containerElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+                containerElement.lastChild.replaceWith(componentX);
+              } else {
+                refNode.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
+                refNode.previousSibling.replaceWith(componentX);
+              }
+            }
+          }
+
+        }
+
+        if (noRenderTaskForResuedComponent) {
+
+        } else if (deferredBindingTask && deferredBindingTask.typeOrConfig) {
+          this.deferredBindingTasks_.push(deferredBindingTask);
+          this.flushRenderStamperComponentBindings_();
+          if (this.deferredBindingTasks_.length >= 1) this.deferredBindingTasks_.length = 0;
+        }
+
+        return true;
+
+      }
+      return false;
+
+    }
+
+
     let triggerCountWithinMicro = 0;
 
+    let firstExecuted = false;
     
 
     const gn = function (items__, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) {
-      if (!xdeadc00) setupXdeadC(this);
+      const config = config00 || (config00 = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0));
+      if (!firstExecuted) {
+        firstExecuted = true;
+        if (!xdeadc00) setupXdeadC(this);
+        if (FORCE_NO_REUSEABLE_ELEMENT_POOL && typeof this.createComponent_ === 'function' && this.createComponent_.length === 3) {
+          FORCE_NO_REUSEABLE_ELEMENT_POOL_fn(this);
+        }
+      }
+
+
       let useSyncE = false; // essential components
-      // let useNative = false; // native
       let disableTaskSkip = false;
       
 
@@ -5264,285 +5605,16 @@
         triggerCountWithinMicro--;
       });
 
-      const stack = new Error().stack;
-
-      let appendFrag = null;
-
-
-      // const safeFn0 = (items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) => {
-
-      //   let err, result;
-
-
-      //   const qv1 = config.DEFERRED_DETACH;
-      //   const qv2 = config.REUSE_COMPONENTS;
-      //   const qv3 = config.STAMPER_STABLE_LIST;
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      //   // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-      //   try {
-      //     result = this.stampDomArray9682_(items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
-      //   } catch (e) {
-      //     err = e;
-      //   }
-
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      //   // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      //   if (err) throw err;
-
-      //   return result;
-
-
-      // };
-
-      // const safeFn = (items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList) => {
-
-      //   let err, result;
-
-
-      //   const qv1 = config.DEFERRED_DETACH;
-      //   const qv2 = config.REUSE_COMPONENTS;
-      //   const qv3 = config.STAMPER_STABLE_LIST;
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-      //   try {
-      //     this.stampDomArray9682_(null, containerId, null, bReuseComponent, null, null);
-      //     result = this.stampDomArray9682_(items, containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
-      //   } catch (e) {
-      //     err = e;
-      //   }
-
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      //   if (err) throw err;
-
-      //   return result;
-
-
-      // };
-
-      // const safeClear = (containerId, bEventCallback, finishState) => {
-
-      //   let err, result;
-
-
-      //   const qv1 = config.DEFERRED_DETACH;
-      //   const qv2 = config.REUSE_COMPONENTS;
-      //   const qv3 = config.STAMPER_STABLE_LIST;
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-      //   try {
-      //     this.stampDomArray9682_(null, containerId, null, false, null, null);
-      //     const k = this.getStampContainer_(containerId);
-
-      //     if (finishState & 1) {
-      //       this.flushRenderStamperComponentBindings_();
-      //     }
-      //     if (finishState & 2) {
-      //       this.markDirty && this.markDirty();
-      //     }
-      //     if (finishState & 4) {
-      //       bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
-      //         container: k
-      //       });
-      //     }
-      //   } catch (e) {
-      //     err = e;
-      //   }
-
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      //   if (err) throw err;
-
-      //   return result;
-
-
-      // };
-
-
-
-      // const safeAppendElm = (elm, items, containerId, componentConfig, bEventCallback, removeExisting, finishState) => {
-
-      //   let err, result;
-
-
-      //   const qv1 = config.DEFERRED_DETACH;
-      //   const qv2 = config.REUSE_COMPONENTS;
-      //   const qv3 = config.STAMPER_STABLE_LIST;
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-      //   try {
-      //     if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
-      //     const c = componentConfig;
-      //     const k = this.getStampContainer_(containerId);
-      //     const b = k.__domApi || k;
-
-      //     const g = appendFrag || (appendFrag = document.createDocumentFragment());
-      //     let r;
-      //     for (let i = 0, l = items.length; i < l; i++) {
-      //       const u = items[i];
-      //       const w = YRa(c, u);
-      //       if (w) {
-      //         r = elm;
-      //         this.deferRenderStamperBinding_(r, c[w], u[w]);
-      //         g.appendChild(r);
-      //       }
-      //     }
-      //     b.appendChild(g)
-
-      //     if (finishState & 1) {
-      //       this.flushRenderStamperComponentBindings_();
-      //     }
-      //     if (finishState & 2) {
-      //       this.markDirty && this.markDirty();
-      //     }
-      //     if (finishState & 4) {
-      //       bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
-      //         container: k
-      //       });
-      //     }
-      //   } catch (e) {
-      //     err = e;
-      //   }
-
-      //   if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      //   if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      //   if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      //   if (err) throw err;
-
-      //   return result;
-
-
-      // };
-
-
-      const safeAppend = (items, containerId, componentConfig, bEventCallback, removeExisting, finishState) => {
-
-        let err, result;
-
-
-        const qv1 = config.DEFERRED_DETACH;
-        const qv2 = config.REUSE_COMPONENTS;
-        const qv3 = config.STAMPER_STABLE_LIST;
-        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-        try {
-          if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
-          const c = componentConfig;
-          const k = this.getStampContainer_(containerId);
-          const b = k.__domApi || k;
-          /*
-          const g = document.createDocumentFragment();
-          let r;
-          for(let i = 0, l =items.length; i<l;i++){
-            const u = items[i];
-            const w = YRa(c, u);
-            if (w) {
-              r = this.createComponent_(c[w], u[w], false);
-              this.deferRenderStamperBinding_(r, c[w], u[w]);
-              g.appendChild(r);
-            }
-          }
-          b.appendChild(g)
-          */
-
-          const g = appendFrag || (appendFrag = document.createDocumentFragment());
-          let r;
-          for (let i = 0, l = items.length; i < l; i++) {
-            const u = items[i];
-            const w = YRa(c, u);
-            if (w) {
-              r = this.createComponent_(c[w], u[w], false);
-              this.deferRenderStamperBinding_(r, c[w], u[w]);
-              g.appendChild(r);
-            }
-          }
-          b.appendChild(g)
-
-          if (finishState & 1) {
-            this.flushRenderStamperComponentBindings_();
-          }
-          if (finishState & 2) {
-            this.markDirty && this.markDirty();
-          }
-          if (finishState & 4) {
-            bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
-              container: k
-            });
-          }
-        } catch (e) {
-          err = e;
-        }
-
-        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-        if (err) throw err;
-
-        return result;
-
-
-      };
-
-
-      const safeFinish = (containerId, bEventCallback) => {
-
-        let err, result;
-
-
-        const qv1 = config.DEFERRED_DETACH;
-        const qv2 = config.REUSE_COMPONENTS;
-        const qv3 = config.STAMPER_STABLE_LIST;
-        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-        try {
-          const k = this.getStampContainer_(containerId);
-
-          this.flushRenderStamperComponentBindings_();
-          this.markDirty && this.markDirty();
-          bEventCallback && go(this.hostElement, "yt-rendererstamper-finished", {
-            container: k
-          });
-
-        } catch (e) {
-          err = e;
-        }
-
-        if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-        if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-        if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-        if (err) throw err;
-
-        return result;
-
-
-      };
+      // const stack = new Error().stack;
+
+
+      if (!this.__rendererStamperConfig5422__) {
+        const cProto = Reflect.getPrototypeOf(this);
+        cProto.__rendererStamperConfig5422__ = 1;
+        if (!cProto.__safeAppend8382__) cProto.__safeAppend8382__ = safeAppend;
+        if (!cProto.__safeFinish8382__) cProto.__safeFinish8382__ = safeFinish;
+        if (!cProto.__setupComponent8382__) cProto.__setupComponent8382__ = setupComponent;
+      }
 
       const stamperTasksKey = `${this.is}::${containerId}`;
       const stamperTasks = stamperTasksA[stamperTasksKey] || (stamperTasksA[stamperTasksKey] = []);
@@ -5550,18 +5622,19 @@
       let renderJob = this.renderJobsMap_ && containerId ? this.renderJobsMap_[containerId] : null;
       const items_ = items__;
       const hasRunningTasks = stamperTasks.length >= 1;
-      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      
       const container = typeof this.getStampContainer_ === 'function' ? this.getStampContainer_(containerId) : (this.$ || 0)[containerId];
 
+      let fallbackToDefault = fallbackToDefault00;
       if (!config) {
-        console.warn('no config');
-        fallbackToDefault = true;
+        console.warn('stampDomArray_ fallback: no config');
+        fallbackToDefault = fallbackToDefault00 = true;
       } else if (!this.deferredBindingTasks_ || this.deferredBindingTasks_.length !== 0) {
-        console.warn('no deferredBindingTasks_');
-        fallbackToDefault = true;
+        console.warn('stampDomArray_ fallback: no deferredBindingTasks_');
+        fallbackToDefault = fallbackToDefault00 = true;
       } else if (!container) {
-        console.warn('no container');
-        fallbackToDefault = true;
+        console.warn('stampDomArray_ fallback: no container');
+        fallbackToDefault = fallbackToDefault00 = true;
       } else {
         if (container.__xnHookE93__ !== null) {
           if (container.firstElementChild !== null) {
@@ -5572,6 +5645,8 @@
             if (container.__xnHookE93__.size === 0) {
               container.__xnHookE93__ = null;
             }
+          } else {
+            container.__xnHookE93__ = null;
           }
           if (container.__xnHookE93__ !== null) {
             fallbackToDefault = true; // skip handling weird element. wait until container become clean
@@ -5764,69 +5839,8 @@
       const reuseKey = `${containerElement[syta]}**${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`
 
 
-      let reuseRefreshMode = 1;
 
-      const setupComponent = (data, component, refNode, deferredBindingTask, reused = false) => {
-
-        let noRenderTaskForResuedComponent = false;
-        if (component instanceof Node) {
-
-
-          if (data && data[syte]) {
-            // component[sytb] = data[sytb]
-            component[sytc] = data[sytc]
-            component[syte] = data[syte];
-            // containerElement[sytd].set(data, mWeakRef(component));
-            containerElement[sytd].set(component, mWeakRef(data));
-            if(reuseStore) reuseStore.set(data[syte], mWeakRef(component));
-          }
-
-          const cnt = insp(component);
-
-          if (reused && reuseRefreshMode >= 1 && cnt.data) {
-            if (!cnt.__refreshData938__) {
-              cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
-            }
-            try {
-              cnt.__refreshData938__('data', !0);
-              if(reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
-            } catch (e) {  
-            }
-          }
-
-          if (refNode !== undefined) {
-            const componentX = component;
-            if (componentX instanceof Node) {
-              if (refNode !== componentX) {
-                if (!refNode) {
-                  containerElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
-                  containerElement.lastChild.replaceWith(componentX);
-                } else {
-                  refNode.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
-                  refNode.previousSibling.replaceWith(componentX);
-                }
-              }
-            }
-
-          }
-
-          if (noRenderTaskForResuedComponent) {
-
-          } else if (deferredBindingTask && deferredBindingTask.typeOrConfig) {
-            this.deferredBindingTasks_.push(deferredBindingTask);
-            this.flushRenderStamperComponentBindings_();
-            if (this.deferredBindingTasks_.length >= 1) this.deferredBindingTasks_.length = 0;
-          }
-
-          return true;
-
-        }
-        return false;
-
-      }
-
-      // if(!useNative)
-         stamperTasks.push(() => {
+      stamperTasks.push(() => {
 
         if (taskFinish) return;
         if(skipToNextTask) return;
@@ -5854,8 +5868,8 @@
 
                 const component = node;
                 const oldDte = node[syte];
-                const cnt = insp(node);
-                if (oldDte && oldDte !== dte && node.parentNode === containerElement && data && data[syte] && cnt.data && cnt.data[syte] ) {
+                // const cnt = insp(node);
+                if (oldDte && oldDte !== dte && node.parentNode === containerElement && data && data[syte] && data[syte] === dte ) {
 
                   this.telemetry_.reuse++;
 
@@ -5876,7 +5890,7 @@
 
                   // cnt.data = data;
                   const deferredBindingTaskX = { component: component, typeOrConfig: componentConfig[dataKey], data: data }
-                  setupComponent(data, component, undefined, deferredBindingTaskX, true);
+                  this.__setupComponent8382__(data, component, containerElement, undefined, deferredBindingTaskX, true);
 
                   // console.log(123993,'true')
 
@@ -5980,7 +5994,7 @@
 
             const node = component = q;
             const cnt = insp(node);
-            cnt.data = data;
+            if ('data' in cnt) cnt.data = data;
             deferredBindingTaskX = { component: q, data: data }
             // listX.push(deferredBindingTaskX);
 
@@ -6019,7 +6033,7 @@
           }
 
           // console.log(23400, containerElement.childElementCount)
-          safeAppend([item], containerId, componentConfig, bEventCallback, false, 0 | 2 | 4);
+          this.__safeAppend8382__([item], containerId, componentConfig, bEventCallback, false, 0 | 2 | 4);
 
           // console.log(23401, containerElement.childElementCount)
 
@@ -6035,7 +6049,7 @@
         }
 
 
-        if (setupComponent(data, component, refNode, deferredBindingTaskX, reused)) {
+        if (this.__setupComponent8382__(data, component, containerElement, refNode, deferredBindingTaskX, reused)) {
 
           refNode = component;
         }
@@ -6045,7 +6059,6 @@
 
       }
 
-      // if (!useNative)
       pneItems.forEach((pneItem, idx) => {
 
         stamperTasks.push(() => {
@@ -6077,11 +6090,9 @@
       });
 
 
-      // if(!useNative)
       stamperTasks.push(() => {
         if (taskFinish) return;
         if (skipToNextTask) return;
-        // if (skipToNextTask) return;
         let node = refNode;
         if (!node) return;
         node = node.nextElementSibling;
@@ -6095,47 +6106,13 @@
 
 
 
-      // if(useNative && stamperTasks.length === 0){
-
-
-      //   this.stampDomArray9682_(...arguments); 
-      //   return;
-
-      // }
-
-
-      // if (useNative) {
-
-      //   useSyncE = true;
-
-      //   stamperTasks.push(() => {
-
-      //     if (taskFinish) return;
-      //     // if (skipToNextTask) return;
-
-      //     // safeFn0(items__, containerId, componentConfig, false, bEventCallback, false);
-      //     // safeFn(pneItems.map(e => e.item), containerId, componentConfig, false, bEventCallback, false)
-
-      //     // this.stampDomArray9682_(items_, containerId, componentConfig, false, bEventCallback, false);
-      //     // this.stampDomArray9682_(pneItems.map(e => e.item), containerId, componentConfig, false, bEventCallback, false);
-
-
-      //     safeFn0(pneItems.map(e => e.item), containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
-      //     // this.stampDomArray9682_(pneItems.map(e => e.item), containerId, componentConfig, bReuseComponent, bEventCallback, bStableList);
-
-      //     // this.stampDomArray9682_(...arguments);
-      //   })
-
-      // }
-
-
 
       stamperTasks.push(() => {
 
 
         if (!skipToNextTask) {
 
-          safeFinish(containerId, bEventCallback);
+          this.__safeFinish8382__(containerId, bEventCallback);
         }
 
       });
@@ -6156,9 +6133,7 @@
       });
 
 
-      if(
-        // useNative &&
-         !leaveWithNoChange) {
+      if(!leaveWithNoChange) {
         disableTaskSkip = true;
 
         const tasks = stamperTasks.slice();
@@ -8216,6 +8191,574 @@
 
 
 
+//     FORCE_NO_REUSEABLE_ELEMENT_POOL && promiseForYtActionCalled.then(async () => {
+
+//       const appTag = isChatRoomURL ? 'yt-live-chat-app' : 'ytd-watch-flexy';
+
+//       const app = await observablePromise(() => {
+
+//         return document.querySelector(appTag);
+
+//       }).obtain();
+
+//       if (!app) return;
+
+
+//       const appCnt = insp(app);
+
+//       if (typeof appCnt.createComponent_ !== 'function' || appCnt.createComponent_.length != 3) return;
+
+//       // appCnt.createComponent_('amkamk')
+
+
+
+// //       setTimeout(()=>{
+
+// //         console.log('XXX_OBJECT')
+
+
+
+
+// //         let j1 = new FinalizationRegistry((heldValue) => {
+// //           console.log(`CLEAR_OBJECT (${heldValue}) has been released`);
+// //         });
+  
+// //         const setup = (options)=>{
+// //           const {key, add, remove, parent}=options;
+// //           const elm = add();
+// //           if(elm.parentNode !== parent) parent.appendChild(elm);
+// //           remove(elm, parent);
+// //           console.log('SET_OBJECT '+key, elm.outerHTML)
+// //           j1.register(elm, key);
+  
+// //         }
+  
+// //         setup({
+  
+// //           key: 'c1',
+// //           parent: document.body,
+// //           add() {
+// //             return appCnt.createComponent_('yt-icon', {}, {
+// //               "size": 16,
+// //               "icon": "AUDIO_BADGE",
+// //               "active": false,
+// //               "defaultToFilled": true,
+// //               "targetContainer": "",
+// //               "isDarkTheme": true,
+// //               "isAttached": true
+// //             })
+// //           },
+// //           remove(elm, parent) {
+// //               parent.removeChild(elm);
+// //           }
+// //         });
+
+
+
+// //         setup({
+  
+// //           key: 'c1b',
+// //           parent: document.body,
+// //           add() {
+// //             return appCnt.createComponent_('yt-icon', {}, { })
+// //           },
+// //           remove(elm, parent) {
+
+// //             for(const p of elm.childNodes){
+// //               p.remove();
+// //             }
+// //               parent.removeChild(elm);
+
+// //               const cnt = insp(elm);
+
+// //               cnt.$ = null;
+// //               cnt.__dataInvalid = true;
+// //               cnt.__dataEnabled = false;
+// //               cnt.__dataReady = false;
+// //               cnt.data = {}; cnt.__data= {};
+// //           }
+// //         });
+
+
+// //         setup({
+  
+// //           key: 'c1c',
+// //           parent: document.body,
+// //           add() {
+// //             return document.createElement('yt-icon')
+// //           },
+// //           remove(elm, parent) {
+
+// //             for(const p of elm.childNodes){
+// //               p.remove();
+// //             }
+// //               parent.removeChild(elm);
+
+// //               const cnt = insp(elm);
+
+// //               cnt.$ = null;
+// //               cnt.__dataInvalid = true;
+// //               cnt.__dataEnabled = false;
+// //               cnt.__dataReady = false;
+// //               cnt.data = {}; cnt.__data= {};
+// //           }
+// //         });
+
+
+// //         const dummyIcon =  document.createElement('yt-icon');
+// //         setup({
+  
+// //           key: 'c1d',
+// //           parent: document.documentElement,
+// //           add() {
+// //             const pt = Reflect.getPrototypeOf(dummyIcon);
+// //             const uu = {}
+// //             for(const key of Object.keys(pt)){
+// //               try{
+// //                 if(typeof pt[key]==='function') uu[key] = pt[key];
+// //               }catch(e){}
+// //             }
+
+// //             const qkey = new Set([
+
+// //               // "_applyListeners",
+// //               // "ready",
+// //               // "registerActionMap",
+// //               // "unregisterActionMap",
+
+
+// //               // "constructor",
+
+
+// //               // "created",
+// //               // "_registered",
+// //               // "_ensureAttributes",
+// //               // "attached",
+// //               // "detached",
+// //               // "attributeChanged",
+// //               // "equals",
+// //               // "isEmpty",
+// //               // "onDarkModeToggledAction",
+// //               // "handlePropertyChange",
+// //               // "toggleContainerClass",
+// //               // "computeIcon",
+// //               // "determineIconSet",
+// //               // "switchToYtSysIconset",
+// //               // "getIconName",
+// //               // "useYtSysIconsetForMissingIcons",
+// //               // "onIconsetAdded",
+// //               // "getIconManager",
+// //               // "getIconShapeData",
+// //               // "shouldRenderIconShape",
+// //               // "renderIcon",
+// //               // "getContainer",
+// //               // "getTargetContainer",
+// //               // "applyStaticIcon",
+// //               // "applyIconShape",
+// //               // "removeIconShape",
+// //               // "removeStaticIcon",
+// //               // "applyAnimatedIcon",
+// //               // "removeAnimatedIcon",
+// //               // "handleError",
+// //               // "handlePropertyChange671",
+// //               // "determineIconSet671",
+// //               // "switchToYtSysIconset671",
+// //               // "useYtSysIconsetForMissingIcons671",
+// //               // "getIconManager671",
+// //               // "getIconShapeData671",
+// //               // "renderIcon671",
+// //               // "__refreshProps938__"
+// //           ]);
+
+          
+
+// //             Object.keys(uu).forEach(key=>{
+// // try{
+// //   if(key ==='ready' && 0){
+// //     pt[key]=function(){console.log('_OBJECT hello '+ key); debugger; uu.ready.call(this)}
+// //   }
+// //   else if(qkey.has(key))  pt[key]=function(){console.log('_OBJECT hello '+ key)}
+// // }catch(E){}
+// //             });
+
+// //             EventTarget.prototype.addEventListener99320 = EventTarget.prototype.addEventListener;
+// //             EventTarget.prototype.addEventListener = function(){console.log('_OBJECT hello addEventListener!!')}
+
+
+// //             uu._runEffectsForTemplate = pt._runEffectsForTemplate;
+// //             uu._flushClients = pt._flushClients;
+// //             uu._readyClients = pt._readyClients;
+// //             uu._flushClients = pt._flushClients;
+// //             uu._attachDom = pt._attachDom;
+// //             const  pva = function(a, b) {
+// //               return a.indexOf(b + ".") === 0
+// //           }
+// //          const  jm = function(a, b) {
+// //             return b.indexOf(a + ".") === 0
+// //         }
+// //             const uva = function(a, b) {
+// //               if (b) {
+// //                   var c = b.name;
+// //                   return c == a || !(!b.structured || !pva(c, a)) || !(!b.wildcard || !jm(c, a))
+// //               }
+// //               return !0
+// //           }
+// //          const im = function(a) {
+// //             var b = a.indexOf(".");
+// //             return b === -1 ? a : a.slice(0, b)
+// //         }
+// //             const om = function(a, b, c, d, e, g) {
+// //               if (b) {
+// //                   var k = !1, m = nm++, n;
+// //                   for (n in c) {
+// //                       var r = e ? im(n) : n;
+// //                       if (r = b[r])
+// //                           for (var t = 0, u = r.length, w = void 0; t < u && (w = r[t]); t++)
+// //                               w.info && w.info.lastRun === m || e && !uva(n, w.trigger) || (w.info && (w.info.lastRun = m),
+// //                               w.fn(a, n, c, d, w.info, e, g),
+// //                               k = !0)
+// //                   }
+// //                   return k
+// //               }
+// //               return !1
+// //           }
+
+// //             pt._runEffectsForTemplate = function(c, d, e, g) {
+// //               console.log('_OBJECT hello _runEffectsForTemplate!! X')
+// //               let k = this;
+// //               let wr = new WeakRef(k);
+// //               let m = function (n, r) {
+// //                   const k = wr.deref();
+// //                   om(k, c.propertyEffects, n, e, r, c.nodeList);
+// //                   for (var t = c.firstChild; t; t = t.nextSibling)
+// //                     k._runEffectsForTemplate(t, n, e, r)
+// //                 };
+// //               c.runEffects ? c.runEffects(m, d, g) : m(d, g)
+
+// //             }
+
+// //             pt._readyClients3828 = pt._readyClients;
+// //             pt._readyClients = function(){
+
+// //               console.log('_OBJECT hello _readyClients!! A', ...arguments )
+
+// //               // debugger;
+// //               this._attachDom(this.root);
+
+// //               const sr = standardWrap_(this).__shady_shadowRoot;
+
+// //               let t;
+// //               // while(t=sr.firstChild) sr.removeChild(t);
+// //               // console.log(133 )
+// //               // debugger;
+
+// //               this.root = null;
+              
+
+// //               // this._template && (this.root = this._attachDom(this.root));
+// //               // this.__enableOrFlushClients()
+
+// //               // debugger;
+
+// //               // return this._readyClients3828(...arguments);
+// //             }
+// //             pt._flushClients = function(){ 
+              
+// //               console.log('_OBJECT hello _flushClients!! Y', this.__dataClientsReady )
+            
+// //               this.__dataClientsReady ? this.__enableOrFlushClients() : (this.__dataClientsReady = !0,
+// //                 this._readyClients(),
+// //                 this.__dataReady = !0)
+
+
+// //             }
+
+// //             pt.__cleanup__ = function(templateC){
+// //               const c = templateC
+// //               const d= c.templateInfo
+ 
+// //               const e = d.nodeList;
+// //               const g = d.nodeInfoList;
+// //               d.nodeList = null;
+// //               c.nodeList = null;
+// //               d.nodeInfoList= null;
+// //               c.templateInfo = null;
+
+// //               for(let k =0; k <g.length;i++ ){
+
+// //                 const m = e[k];
+// //                 const n =g[k].bindings;
+// //                 e[k]=null;
+// //                 g[k].bindings = null;
+// //                 g[k]=null;
+// //                 m.__dataHost = null;
+
+// //               }
+
+
+// //             }
+
+// //             uu._stampTemplate = pt._stampTemplate;
+// //             pt._stampTemplate359 = pt._stampTemplate;
+// //             pt._stampTemplate = function(c, d){
+// //               if(c===this._template && d === undefined){
+// //                 console.log('_OBJECT 3882');
+
+
+// //                 Array.prototype.push4882 = Array.prototype.push;
+
+// //                 let eru = 0;
+// //                 Array.prototype.push = function(){
+// //                   if(eru >= 1) return;
+// //                   this.push4882(...arguments);
+// //                 }
+
+// //                 Array.prototype.pop4882 = Array.prototype.pop;
+// //                 Array.prototype.pop = function(){
+// //                   eru++;
+// //                   this.pop4882();
+// //                   // throw new Error()
+// //                 };
+
+// //                 let templateC = null;
+// //                 // debugger;
+// //                 try{
+// //                   templateC = this._stampTemplate359(...arguments)
+// //                 }catch(e){
+// //                   console.warn(e);
+// //                 }
+// //                 Array.prototype.pop=Array.prototype.pop4882;
+// //                 Array.prototype.push=Array.prototype.push4882;
+
+
+// //                 this.__cleanup__(templateC);
+
+// //                 // throw new Error();
+
+// //                 return templateC;
+
+
+
+// //                 /*
+
+// //                 d = d || this._bindTemplate(c, !0);
+// //                 dC.push(this);
+// //                 c = b.prototype._stampTemplate.call(this, c, d);
+// //                 dC.pop();
+// //                 d.nodeList = c.nodeList;
+// //                 if (!d.wasPreBound)
+// //                     for (var e = d.childNodes = [], g = c.firstChild; g; g = g.nextSibling)
+// //                         e.push(g);
+// //                 c.templateInfo = d;
+// //                 e = d.nodeList;
+// //                 g = d.nodeInfoList;
+// //                 if (g.length)
+// //                     for (var k = 0; k < g.length; k++) {
+// //                         var m = e[k]
+// //                           , n = g[k].bindings;
+// //                         if (n)
+// //                             for (var r = 0; r < n.length; r++) {
+// //                                 var t = n[r]
+// //                                   , u = m
+// //                                   , w = t;
+// //                                 if (w.isCompound) {
+// //                                     for (var A = u.__dataCompoundStorage || (u.__dataCompoundStorage = {}), C = w.parts, G = Array(C.length), J = 0; J < C.length; J++)
+// //                                         G[J] = C[J].literal;
+// //                                     C = w.target;
+// //                                     A[C] = G;
+// //                                     w.literal && w.kind == "property" && (C === "className" && (u = (0,
+// //                                     _.qm)(u)),
+// //                                     u[C] = w.literal)
+// //                                 }
+// //                                 Gva(m, this, t)
+// //                             }
+// //                         m.__dataHost = this
+// //                     }
+// //                 this.__dataClientsReady && (this._runEffectsForTemplate(d, this.__data, null, !1),
+// //                 this._flushClients());
+// //                 return c
+
+
+
+// // */
+
+
+// //               }else{
+// //                 return this._stampTemplate359(...arguments)
+// //               }
+// //             }
+
+// //             console.log('_OBJECT keys', Object.keys(uu))
+
+// //             try{
+// //              document.documentElement.insertAdjacentHTML('beforeend', ttpHTML('<yt-icon></yt-icon>'));
+// //             }catch(e){}
+// //              const r =  document.documentElement.lastChild;
+
+
+
+// //              const sw = standardWrap_(r);
+// //             //  debugger;
+// //              sw.node.__shady_shadowRoot = null
+
+// //              EventTarget.prototype.addEventListener =  EventTarget.prototype.addEventListener99320;
+ 
+
+// //             Object.keys(uu).forEach(key=>{
+// //               try{
+// //                 pt[key]=uu[key]
+
+// //               }catch(e){}
+// //             });
+// //             return r;
+// //           },
+// //           remove(elm, parent) {
+
+
+// //               const cnt = insp(elm);
+// //               try{
+
+// //                 cnt.unregisterActionMap(cnt.actionMap);
+// //               }catch(e){}
+// //               try{
+
+// //                 elm.unregisterActionMap(elm.actionMap);
+// //               }catch(e){}
+
+
+
+// //               const sr = elm.__shady_shadowRoot;
+
+// //               let t;
+// //               while(t=sr.firstChild) {
+// //                 try{
+
+// //                   sr.removeChild(t);
+// //                 }catch(e){
+// //                   console.warn(e)
+// //                 }
+// //               }
+
+// //             for(const p of elm.childNodes){
+// //               p.remove();
+// //             }
+// //               parent.removeChild(elm);
+
+// //               try{
+
+// //                 cnt.__cleanup__();
+// //               }catch(e){}
+// //               try{
+
+// //                 elm.__cleanup__();
+// //               }catch(e){}
+ 
+
+
+// //               for(let k in sr){
+// //                 try{
+// //                   sr[k] = null;
+// //                 }catch(e){}
+// //               }
+
+// //               cnt.$.root = null;
+
+// //               cnt.$ = null;
+// //               cnt.__dataInvalid = true;
+// //               cnt.__dataEnabled = false;
+// //               cnt.__dataReady = false;
+// //               cnt.data = {}; cnt.__data= {};
+
+              
+
+// //               console.log('TRY_OBJECT qq')
+// //           }
+// //         });
+
+
+
+// //         setup({
+  
+// //           key: 'c1e',
+// //           parent: document.documentElement,
+// //           add() {
+// //              document.documentElement.insertAdjacentElement('beforeend', document.createElement('yt-icon'));
+// //             return document.documentElement.lastChild;
+// //           },
+// //           remove(elm, parent) {
+
+// //             for(const p of elm.childNodes){
+// //               p.remove();
+// //             }
+// //               parent.removeChild(elm);
+
+// //               const cnt = insp(elm);
+
+// //               cnt.$ = null;
+// //               cnt.__dataInvalid = true;
+// //               cnt.__dataEnabled = false;
+// //               cnt.__dataReady = false;
+// //               cnt.data = {}; cnt.__data= {};
+// //           }
+// //         });
+  
+// //         setup({
+  
+// //           key: 'c2',
+// //           parent: document.body,
+// //           add() {
+// //             return appCnt.createComponent_('dummy-3mk', {}, false);
+// //           },
+// //           remove(elm, parent) {
+// //             setTimeout(()=>{
+// //               removeTNodeRM && removeTNodeRM(elm);
+// //             });
+// //           }
+// //         });
+  
+  
+// //         setup({
+  
+// //           key: 'c3',
+// //           parent: document.body,
+// //           add() {
+// //             return appCnt.createComponent_('dummy-3mk', {}, false);
+// //           },
+// //           remove(elm, parent) {
+// //             elm.remove();
+// //           }
+// //         });
+
+  
+
+  
+// //         // const p  = document.querySelector('#upload-info yt-icon[size].style-scope.ytd-badge-supported-renderer');
+// //         document.querySelector('#upload-info yt-icon[size].style-scope.ytd-badge-supported-renderer') && setup({
+  
+// //           key: 'c4',
+// //           parent: document.querySelector('#upload-info yt-icon[size].style-scope.ytd-badge-supported-renderer').parentNode,
+// //           add() {
+// //             return document.querySelector('#upload-info yt-icon[size].style-scope.ytd-badge-supported-renderer');
+// //           },
+// //           remove(elm, parent) {
+// //             elm.remove();
+// //           }
+// //         });
+
+// //         window.jmksmks =j1;
+
+
+// //         console.log('YYY_OBJECT')
+
+// //       }, 5000)
+      
+
+
+//       qcMaps = null;
+
+//     });
+
+
     FORCE_NO_REUSEABLE_ELEMENT_POOL && promiseForYtActionCalled.then(async () => {
 
       const appTag = isChatRoomURL ? 'yt-live-chat-app' : 'ytd-watch-flexy';
@@ -8228,94 +8771,13 @@
 
       if (!app) return;
 
-
       const appCnt = insp(app);
-
-      if (typeof appCnt.createComponent_ !== 'function' || appCnt.createComponent_.length != 3) return;
-
-
-      const mapGet = Map.prototype.get;
+      FORCE_NO_REUSEABLE_ELEMENT_POOL_fn(appCnt);
 
 
-      /** @type {Map | null} */
-      let qcMap = null;
-
-      Map.prototype.get = function (a) {
-        if (a === 'dummy-4718') qcMap = this;
-        return mapGet.call(this, a);
-      };
-      const r = appCnt.createComponent_('dummy-4718', {}, true);
-      Map.prototype.get = mapGet;
-
-      if (r && (r.nodeName || '').toLowerCase() === 'dummy-4718') {
-
-
-        // clearInterval(ckId);
-        // ckId = 0;
-
-        if (qcMap !== null && qcMap instanceof Map) {
-
-          console.log('[yt-js-engine-tamer] qcMap', qcMap);
-
-          const setArrayC = (c) => {
-            if (c instanceof Array) {
-              c.length = 0;
-              c.push = function () { };
-              c.pop = function () { };
-              c.shift = function () { };
-              c.unshift = function () { };
-              c.splice = function () { };
-              c.sort = function () { };
-              c.reverse = function () { };
-            }
-          }
-
-          const cleaning = function () {
-            qcMap.forEach(setArrayC);
-            qcMap.clear();
-          }
-
-          qcMap.set = function (b, c) {
-
-            setArrayC(c);
-
-            // console.log('qcMap.set', b, c);
-
-            if (qcMap.size > 0) {
-              // play safe
-
-              console.log('[yt-js-engine-tamer] qcMap', 'clear 01')
-              cleaning();
-            }
-
-          }
-          qcMap.get = function (b) {
-
-            // console.log('qcMap.get', b);
-
-            if (qcMap.size > 0) {
-              // play safe
-
-              console.log('[yt-js-engine-tamer] qcMap', 'clear 02')
-              cleaning();
-            }
-
-          }
-
-
-          if (qcMap.size > 0) {
-
-            console.log('[yt-js-engine-tamer] qcMap', 'clear 03')
-            cleaning();
-          }
-
-        }
-
-      }
 
 
     });
-
 
     const observablePromise = (proc, timeoutPromise) => {
       let promise = null;
