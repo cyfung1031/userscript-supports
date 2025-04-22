@@ -3773,6 +3773,26 @@
     }
   };
 
+  const __refreshData933__ = function (prop, opt) {
+    const d = this[prop];
+    if (d) {
+      this.signalProxy.setWithPath([prop], d);
+    }
+  }
+
+  const setupRefreshData930 = (cnt) => {
+    if (cnt.__refreshData930__ !== undefined) return;
+    const cProto = Reflect.getPrototypeOf(cnt);
+    let r = null;
+    if (typeof cnt._setPendingProperty === 'function' && typeof cnt._invalidateProperties === 'function' && cnt._setPendingProperty.length === 3 && cnt._invalidateProperties.length === 0) {
+      r = __refreshData938__;
+    } else if(typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2){
+      r = __refreshData933__;
+    }
+    cProto.__refreshData930__ = r;
+    // ytd-comments-header-renderer : no _invalidateProperties (cnt.signalProxy.setWithPath)
+  }
+
   // const pendingStampFlushs = [];
 
   const nativeNow = performance.constructor.prototype.now.bind(performance);
@@ -4194,6 +4214,32 @@
       return b
     };
 
+    const __rd481o__ = {}
+
+    const tryDirectDataSet = (cnt, data) => {
+      if (typeof (cnt.__data || 0).data === 'object' && cnt.__data.data === cnt.data) {
+        if (cnt.data !== data) {
+          if (typeof cnt.set === 'function' && cnt.set.length >= 2) {
+            try {
+              cnt.set('data', data);
+            } catch (e) { }
+            return cnt.data === data;
+          } else {
+            cnt.data = data;
+            return cnt.data === data;
+          }
+        } else if (typeof cnt._setPendingProperty === 'function' && cnt._setPendingProperty.length === 3
+          && typeof cnt._invalidateProperties === 'function' && cnt._invalidateProperties.length === 0) {
+          try {
+            cnt._setPendingProperty('data', __rd481o__, !0);
+            cnt._setPendingProperty('data', data, !0);
+            cnt._invalidateProperties();
+            return true;
+          } catch (e) {
+          }
+        }
+      }
+    };
 
     const removeTNode__ = (node) => { // need trigger removal of its parent component
       const xlivev = xlivec00.__domApi;
@@ -4389,7 +4435,7 @@
       if (component instanceof Node) {
 
 
-        if (data && data[syte]) {
+        if (data && data[syte] && component[syte] !== data[syte]) {
           // component[sytb] = data[sytb]
           component[sytc] = data[sytc]
           component[syte] = data[syte];
@@ -4400,15 +4446,15 @@
 
         const cnt = insp(component);
 
-        if (reused && reuseRefreshMode >= 1 && cnt.data) {
-          if (!cnt.__refreshData938__) {
-            const cProto = Reflect.getPrototypeOf(cnt);
-            cProto.__refreshData938__ = __refreshData938__;
-          }
-          try {
-            cnt.__refreshData938__('data', !0);
-            if(reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
-          } catch (e) {  
+
+        if (reused && reuseRefreshMode >= 1 && cnt.data) { // in case cnt.data no change. force re-render
+          setupRefreshData930(cnt);
+          if (cnt.__refreshData930__) {
+            try {
+              cnt.__refreshData930__('data', !0);
+              if (reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
+            } catch (e) {
+            }
           }
         }
 
@@ -4561,15 +4607,15 @@
       }
 
 
-      if (!this.__rendererStamperFinishFn588__) {
-        this.__rendererStamperFinishFn588__ = () => {
-          if (this.deferredBindingTasks_ && this.deferredBindingTasks_.length >= 1) {
-            this.flushRenderStamperComponentBindings_();
-          }
-          this.markDirty && this.markDirty();
-        };
+      // if (!this.__rendererStamperFinishFn588__) {
+      //   this.__rendererStamperFinishFn588__ = () => {
+      //     if (this.deferredBindingTasks_ && this.deferredBindingTasks_.length >= 1) {
+      //       this.flushRenderStamperComponentBindings_();
+      //     }
+      //     this.markDirty && this.markDirty();
+      //   };
 
-      }
+      // }
 
 
 
@@ -4704,14 +4750,12 @@
       const reuseKey = `${containerElement[syta]}**${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`
 
 
-
       stamperTasks.push(() => {
 
         if (taskFinish) return;
         if(skipToNextTask) return;
 
         // if(skipToNextTask) return;
-
 
         let tryStable = null;
         if (bStableListA) {
@@ -4844,17 +4888,36 @@
         let reused = false;
 
         const { item, dte, data, dataKey, targetComponentName } = pneItem;
-
         refNode = ++refNodeIdx === 0 ? containerElement.firstElementChild : refNode && refNode.nextElementSibling;
 
 
         const q_ = reuseStore ? kRef(reuseStore.get(dte)) : null;
-        const q = (q_ && (q_.___reuseFor__ === reuseKey || q_.closest('defs'))) ? q_ : null;
+        // q_.___reuseFor__ === reuseKey -> tryStable
+        // q_.closest('defs') -> removed so reuse
+        const reuseCase = !q_ ? 0 : q_.___reuseFor__ === reuseKey ? 1: q_.closest('defs') ? 2 : q_[syte] === dte ? 3 : -1;
 
         let deferredBindingTaskX = null;
         let component = null;
-        if (q && q.is === targetComponentName) {
+        if (reuseCase < 0) {
+          console.log(`reuse ${reuseCase}... ${this.is} ... ${containerId}`);
+        }
+        if (reuseCase >= 0 && q_ && q_.is === targetComponentName) {
 
+          component = q_;
+          const cnt = insp(q_);
+
+          let dataSetOK = tryDirectDataSet(cnt, data);
+          if (dataSetOK) {
+            deferredBindingTaskX = { component: q_, data: data }
+            reused = true;
+            DEBUG_STAMP_CHANGE && console.log('reuse X0')
+          } else {
+            deferredBindingTaskX = { component: component, typeOrConfig: componentConfig[dataKey], data: data }
+            reused = true;
+            DEBUG_STAMP_CHANGE && console.log('reuse S0')
+          }
+
+          /*
           if (q_.closest('defs')) {
 
             const node = component = q;
@@ -4879,13 +4942,11 @@
             DEBUG_STAMP_CHANGE && console.log('reuse S0')
 
           }
-
-
+          */
 
         } else {
 
           // console.log('new')
-
 
           // const qf2 = this.deferRenderStamperBinding_;
           // let deferredBindingTaskX = null;
@@ -4914,7 +4975,7 @@
         }
 
 
-        if (this.__setupComponent8382__(data, component, containerElement, refNode, deferredBindingTaskX, reused)) {
+        if (  this.__setupComponent8382__(data, component, containerElement, refNode, deferredBindingTaskX, reused)) {
 
           refNode = component;
         }
@@ -4930,24 +4991,24 @@
           if (taskFinish) return;
           if (skipToNextTask) return;
 
-          if (skipToNextTask) {
+          // if (skipToNextTask) {
 
-            if (idx === 0) {
+          //   if (idx === 0) {
 
-              for (const pneItem of pneItems) {
+          //     for (const pneItem of pneItems) {
 
-                taskPerPneItem(pneItem);
-              }
-            } else {
-              // skip
+          //       taskPerPneItem(pneItem);
+          //     }
+          //   } else {
+          //     // skip
 
-            }
-          } else {
+          //   }
+          // } else {
 
 
             taskPerPneItem(pneItem);
 
-          }
+          // }
 
         });
 
@@ -4972,45 +5033,26 @@
 
 
 
-      stamperTasks.push(() => {
-
-
-        if (!skipToNextTask) {
-
-          this.__safeFinish8382__(containerId, bEventCallback);
-        }
-
-      });
-
-
       this[keyRequireAsync] = (this[keyRequireAsync] || 0) + 1;
 
-
       stamperTasks.push(() => {
-
         if (!skipToNextTask) {
-
-          this.__rendererStamperFinishFn588__();
+          this.__safeFinish8382__(containerId, bEventCallback);
+          // this.__rendererStamperFinishFn588__();
         }
-
         this[keyRequireAsync] = (this[keyRequireAsync] || 0) - 1;
-
       });
-
 
       if(!leaveWithNoChange) {
         disableTaskSkip = true;
-
         const tasks = stamperTasks.slice();
         stamperTasks.length = 0;
-
         for (const task of tasks) {
           task();
         }
         return;
       }
 
-      
       if (useSync_) {
 
         disableTaskSkip = true;
@@ -5859,9 +5901,25 @@
     if (FIX_stampDomArray && !(cProto[pvr] & 1) && 'stampDomArray_' in cProto) {
       cProto[pvr] |= 1;
       if (FIX_stampDomArray && cProto.stampDomArray_ && !cProto.stampDomArray9682_) {
-        if (!stampDomArrayMethod) stampDomArrayMethod = createStampDomArrayFn_();
-        cProto.stampDomArray9682_ = cProto.stampDomArray_;
-        cProto.stampDomArray_ = stampDomArrayMethod;
+        const b = cProto.stampDomArray_.length === 6
+          && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
+          && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
+          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
+          && cProto.createComponent_ && cProto.createComponent_.length === 3
+          && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
+          && typeof (cnt.telemetry_ || 0) === 'object'
+          && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
+        if (!b) {
+          console.warn("YouTube Coding Changed. createStampDomArrayFn_() is not applied")
+        } else {
+          if (!stampDomArrayMethod) stampDomArrayMethod = createStampDomArrayFn_();
+          if (stampDomArrayMethod && typeof stampDomArrayMethod === 'function' && stampDomArrayMethod.length === 6) {
+            cProto.stampDomArray9682_ = cProto.stampDomArray_;
+            cProto.stampDomArray_ = stampDomArrayMethod;
+          } else {
+            console.warn("createStampDomArrayFn_() failed")
+          }
+        }
       }
     }
     if (ENABLE_discreteTasking && !(cProto[pvr] & 2) && (typeof (cProto.is || 0) === 'string' || ('attached' in cProto) || ('isAttached' in cProto))) {
@@ -8141,13 +8199,13 @@
                 let m = log77.get(b);
                 if (!m) {
                   m = [];
-                  console.log(27306, m);
+                  console.log('attrUpdateFn.debug.27304', m);
                   log77.set(b, m);
                 }
                 m.push([a, b, c]);
 
               } else {
-                console.log(27306, a, b, c);
+                console.log('attrUpdateFn.debug.27306', a, b, c);
               }
 
               attrUpdateFn.call(this, a, b, c);
