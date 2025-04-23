@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.20.13
+// @version     0.20.14
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3784,11 +3784,18 @@
     if (cnt.__refreshData930__ !== undefined) return;
     const cProto = Reflect.getPrototypeOf(cnt);
     let r = null;
+    let flag = 0;
     if (typeof cnt._setPendingProperty === 'function' && typeof cnt._invalidateProperties === 'function' && cnt._setPendingProperty.length === 3 && cnt._invalidateProperties.length === 0) {
-      r = __refreshData938__;
-    } else if(typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2){
-      r = __refreshData933__;
+      flag |= 1;
     }
+    if (typeof cnt.signalProxy !== "undefined") {
+      flag |= 2;
+    }
+    if (typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2) {
+      flag |= 4;
+    }
+    if (r === 1) r = __refreshData938__;
+    // else if (r === 6) r = __refreshData933__;
     cProto.__refreshData930__ = r;
     // ytd-comments-header-renderer : no _invalidateProperties (cnt.signalProxy.setWithPath)
   }
@@ -4313,22 +4320,49 @@
 
     let appendFrag00 = null;
 
-    const safeAppend = function (items, containerId, componentConfig, bEventCallback, removeExisting, finishState) {
+    let safeActionCount = 0;
+
+
+    const safeAction = function (f) {
+
+      if (safeActionCount > 0) return f();
+
+      safeActionCount++;
 
       const config = config00;
-      const appendFrag = appendFrag00;
       let err, result;
-
 
       const qv1 = config.DEFERRED_DETACH;
       const qv2 = config.REUSE_COMPONENTS;
-      const qv3 = config.STAMPER_STABLE_LIST;
+      // const qv3 = config.STAMPER_STABLE_LIST;
       if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
       if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
+      // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
 
       try {
+        result = f();
+      } catch (e) {
+        err = e;
+      }
+
+      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
+      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
+      // if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
+
+      safeActionCount--;
+
+      if (err) throw err;
+
+      return result;
+
+
+    };
+
+    const safeAppend = function (items, containerId, componentConfig, bEventCallback, removeExisting, finishState) {
+
+      return safeAction(()=>{
+
+
         if (removeExisting) this.stampDomArray9682_(null, containerId, null, false, null, null);
         const c = componentConfig;
         const k = this.getStampContainer_(containerId);
@@ -4372,17 +4406,8 @@
             container: k
           });
         }
-      } catch (e) {
-        err = e;
-      }
 
-      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      if (err) throw err;
-
-      return result;
+      })
 
 
     };
@@ -4390,19 +4415,9 @@
 
     const safeFinish = function (containerId, bEventCallback) {
 
-      const config = config00;
-      let err, result;
+      return safeAction(()=>{
 
 
-      const qv1 = config.DEFERRED_DETACH;
-      const qv2 = config.REUSE_COMPONENTS;
-      const qv3 = config.STAMPER_STABLE_LIST;
-      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = false;
-      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = false;
-      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = false;
-
-
-      try {
         const k = this.getStampContainer_(containerId);
 
         this.flushRenderStamperComponentBindings_();
@@ -4411,18 +4426,7 @@
           container: k
         });
 
-      } catch (e) {
-        err = e;
-      }
-
-      if (typeof qv1 !== 'undefined') config.DEFERRED_DETACH = qv1;
-      if (typeof qv2 !== 'undefined') config.REUSE_COMPONENTS = qv2;
-      if (typeof qv3 !== 'undefined') config.STAMPER_STABLE_LIST = qv3;
-
-      if (err) throw err;
-
-      return result;
-
+      })
 
     };
 
@@ -4454,6 +4458,7 @@
               cnt.__refreshData930__('data', !0);
               if (reuseRefreshMode >= 2) noRenderTaskForResuedComponent = true;
             } catch (e) {
+              console.warn(e)
             }
           }
         }
@@ -4574,7 +4579,7 @@
         }
       }
 
-      if (fallbackToDefault) {
+      if (fallbackToDefault || true) {
         return this.stampDomArray9682_(...arguments);
       }
 
@@ -4587,6 +4592,7 @@
       const keyRequireAsync = `__stamperRequireAsync#${containerId}__`;
       const key5993 = `__stamperCounter5993#${containerId}__`;
       const key5996 = `__stamperCounter5996#${containerId}__`;
+      const keyNative4772 = `__stamperNative4772#${containerId}__`;
       // const keyOnSync = `__stamperOnSync#${containerId}__`;
 
 
@@ -4645,6 +4651,7 @@
           useSyncE = true;
         }
       }
+      // console.log(18480, useSyncE, triggerCountWithinMicro_, hasKey)
 
       const useSync_ = useSyncE;
       const tryBatchUpdate_ = !useSync_ && (renderJob || hasRunningTasks || this[keyRequireAsync]);
@@ -4657,9 +4664,45 @@
 
       let skipToNextTask = false;
 
+      let nativeMode_ = false;
+      if (this[keyNative4772]) {
+        nativeMode_ = true;
+      } else if (hasKey && (containerId.length == 7 || (containerId.length === 14) || (containerId.length > 5 && containerId.length < 8))) {
+        // if(this.is != 'ytd-comment-simplebox-renderer'){
+
+        // if (hasKey) {
+
+          if (this.is === 'ytd-masthead' || this.is === 'ytd-watch-flexy' || this.is === 'ytd-watch-engagement-panels' || this.is === 'ytd-rich-grid-renderer' || this.is === 'ytd-comment-simplebox-renderer') {
+
+
+          } else if (this.is === 'ytd-engagement-panel-section-list-renderer' && (containerId.length === 14)) {
+
+
+          } else {
+
+            console.log(containerId.length, 391992, this.is)
+
+            // console.log(391921, this.is, containerId)
+            nativeMode_ = true;
+          }
+        // }
+        // }
+      }
+      const nativeMode = nativeMode_;
+      // let nativeModeProceeded = false;
+
       stamperTasks.push(() => {
-        if (skey !== stamperTasks.__skey__ && !disableTaskSkip) {
-          skipToNextTask = true;
+        if (skey !== stamperTasks.__skey__ && !disableTaskSkip ) {
+
+          if(nativeMode && bStableListA && items.length > 0 && hasKey && !leaveWithNoChange){
+
+            
+            // console.log(2949011, containerElement.childElementCount)
+
+          } else {
+
+            skipToNextTask = true;
+          }
           // taskFinish = true;
         }
       });
@@ -4749,11 +4792,459 @@
 
       const reuseKey = `${containerElement[syta]}**${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`
 
+      let modeSelection = 0;
 
       stamperTasks.push(() => {
 
         if (taskFinish) return;
-        if(skipToNextTask) return;
+        if (skipToNextTask) return;
+
+
+        if (this[keyNative4772]) {
+          modeSelection = 9;
+          return;
+        }
+        
+
+        if (nativeMode) {
+
+
+            
+
+
+          // const container = this.getStampContainer_(containerId);
+          // const containerElement = this.
+
+
+
+
+
+
+          // if (b = _.yn(k),
+          // d = kSa(d),
+          // a) {
+          //     var m = 0, n = 0, r;
+          //     if (g = g === void 0 ? _.Gi("STAMPER_STABLE_LIST", !1) : g || !1)
+          //         for (r = b.firstElementChild; r && !$s.has(r) && a.length > n; ) {
+          //             g = a[n];
+          //             var t = hSa(c, g);
+          //             if (t) {
+          //                 if (this.getComponentName_(c[t], g[t]) != r.is) {
+          //                     var u = this.createComponent_(c[t], g[t], d)
+          //                       , x = _.yn(r).nextElementSibling;
+          //                     x ? b.insertBefore(u, x) : b.appendChild(u);
+          //                     oSa(this.is, b, r, d);
+          //                     r = u
+          //                 } else
+          //                     this.telemetry_.reuse++;
+          //                 this.deferRenderStamperBinding_(r, c[t], g[t]);
+          //                 m++;
+          //                 n++;
+          //                 r = _.yn(r).nextElementSibling
+          //             } else
+          //                 n++
+          //         }
+          //     pSa(this.is, b, m, d);
+          //     m = r;
+          //     if (a.length > n) {
+          //         g = document.createDocumentFragment();
+          //         for (t = a.length; n < t; n++)
+          //             if (u = a[n],
+          //             x = hSa(c, u))
+          //                 r = this.createComponent_(c[x], u[x], d),
+          //                 this.deferRenderStamperBinding_(r, c[x], u[x]),
+          //                 g.appendChild(r);
+          //         m && _.yn(m).parentNode && r && !$s.has(r) ? b.insertBefore(g, m) : b.appendChild(g)
+          //     }
+          //     this.flushRenderStamperComponentBindings_();
+          //     this.markDirty && this.markDirty();
+          //     e && _.jo(this.hostElement, "yt-rendererstamper-finished", {
+          //         container: k
+          //     })
+          // } else
+          //     pSa(this.is, b, 0, d);
+
+          const items = pneItems.map(e=>e.item);
+
+
+
+
+          // const container = this.getStampContainer_(containerId);
+          // const containerElement = container.__domApi || container;
+          const a = items;
+          const c = componentConfig;
+
+          // console.log(2949012, containerElement.childElementCount);
+
+          {
+
+            const container = typeof this.getStampContainer_ === 'function' ? this.getStampContainer_(containerId) : (this.$ || 0)[containerId];
+
+
+      const containerDomApi = (container || 0).__domApi || container;
+      const containerElement = containerDomApi instanceof Node ? containerDomApi : insp(container).hostElement instanceof Node ? insp(container).hostElement : container;
+
+      // console.log(2949013, containerElement.childElementCount);
+          }
+
+          if(a){
+
+            const bStableListA = bStableList !== undefined ? Boolean(bStableList) : (typeof config.STAMPER_STABLE_LIST !== "undefined" ? !!config.STAMPER_STABLE_LIST : false);
+
+
+
+            // let m = 0, n = 0, r;
+            
+            // const bStableListA = bStableList !== undefined ? Boolean(bStableList) : (typeof config.STAMPER_STABLE_LIST !== "undefined" ? !!config.STAMPER_STABLE_LIST : false);
+
+            // if(bStableListA){
+            //   for (r = containerElement.firstElementChild; r && a.length > n; ) {
+            //           const item = items[n];
+            //           let t = YRa(c, item);
+            //           if (t) {
+            //               if (this.getComponentName_(c[t], item[t]) != r.is) {
+            //                   let component = this.createComponent_(c[t], g[t], false)
+            //                     , x = standardWrap_(r).nextElementSibling;
+            //                   x ? b.insertBefore(component, x) : b.appendChild(component);
+            //                   // oSa(this.is, b, r, d);
+            //                   r = u
+            //               } else
+            //                   this.telemetry_.reuse++;
+            //               this.deferRenderStamperBinding_(r, c[t], g[t]);
+            //               m++;
+            //               n++;
+            //               r = standardWrap_(r).nextElementSibling
+            //           } else
+            //               n++
+            //   }
+            // }
+            // let child;
+            // if (containerElement && containerElement.children && (child = containerElement.children[m])){
+            //   let k;
+            //   for (; (k = containerElement.lastElementChild) && (containerElement.removeChild(k),
+            //   nSa(a, k, d),
+            //   k != child); )
+            // }
+
+            if (bStableListA && containerElement.firstElementChild && items.length > 0 && hasKey) {
+
+
+
+              let needNativeCall01 = false;
+              let needNativeCall02 = false;
+ 
+              let node;
+              {
+                let m =0, n=0;
+                node = containerElement.firstElementChild;
+                while(node && items.length > n){
+                  const item = items[n];
+                  const t = YRa(c, item);
+                  if(t){
+                    if (this.getComponentName_(c[t], item[t]) != node.is) {
+                      needNativeCall01 =true;
+                      break;
+                    }
+                    m++;
+                    n++;
+                    node =  node.nextElementSibling;
+                  } else {
+                    n++;
+                  }
+                }
+                if(containerDomApi.children[m]){
+                  needNativeCall02 = true;
+                }
+              }
+
+
+              if(!needNativeCall01 && !needNativeCall02){
+
+                modeSelection = 5;
+
+
+              } else {
+
+                modeSelection = 9;
+
+
+              }
+
+
+              // nativeModeProceeded = true;
+
+
+            }
+
+
+          }
+
+
+
+
+          // if (b = _.yn(k),
+          // d = kSa(d),
+          // a) {
+          //     var m = 0, n = 0, r;
+          //     if (g = g === void 0 ? _.Gi("STAMPER_STABLE_LIST", !1) : g || !1)
+          //         for (r = b.firstElementChild; r && !$s.has(r) && a.length > n; ) {
+          //             g = a[n];
+          //             var t = hSa(c, g);
+          //             if (t) {
+          //                 if (this.getComponentName_(c[t], g[t]) != r.is) {
+          //                     var u = this.createComponent_(c[t], g[t], d)
+          //                       , x = _.yn(r).nextElementSibling;
+          //                     x ? b.insertBefore(u, x) : b.appendChild(u);
+          //                     oSa(this.is, b, r, d);
+          //                     r = u
+          //                 } else
+          //                     this.telemetry_.reuse++;
+          //                 this.deferRenderStamperBinding_(r, c[t], g[t]);
+          //                 m++;
+          //                 n++;
+          //                 r = _.yn(r).nextElementSibling
+          //             } else
+          //                 n++
+          //         }
+          //     pSa(this.is, b, m, d);
+          //     m = r;
+          //     if (a.length > n) {
+          //         g = document.createDocumentFragment();
+          //         for (t = a.length; n < t; n++)
+          //             if (u = a[n],
+          //             x = hSa(c, u))
+          //                 r = this.createComponent_(c[x], u[x], d),
+          //                 this.deferRenderStamperBinding_(r, c[x], u[x]),
+          //                 g.appendChild(r);
+          //         m && _.yn(m).parentNode && r && !$s.has(r) ? b.insertBefore(g, m) : b.appendChild(g)
+          //     }
+          //     this.flushRenderStamperComponentBindings_();
+          //     this.markDirty && this.markDirty();
+          //     e && _.jo(this.hostElement, "yt-rendererstamper-finished", {
+          //         container: k
+          //     })
+          // } else
+          //     pSa(this.is, b, 0, d);
+
+
+          // this.stampDomArray9682_(items, containerId, componentConfig, false, bEventCallback, bStableList);
+
+
+
+
+          // this.stampDomArray9682_(...arguments);
+        }
+      });
+
+
+      stamperTasks.push(() => {
+
+        if (taskFinish) return;
+        if (skipToNextTask) return;
+
+
+        
+
+        if (modeSelection === 9) {
+
+
+
+          const key = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
+          console.log(2949071, key, this.is, containerId, containerElement.childElementCount, items.length, [...containerElement.children].map(e=>e.nodeName.toLowerCase()).join('|'))
+          safeAction(() => {
+            window.p3mk = 1;
+            this.stampDomArray9682_(items, containerId, componentConfig, false, bEventCallback, bStableList);
+            window.p3mk = 0;
+          });
+
+          console.log(2949072, key, this.is, containerId, containerElement.childElementCount, items.length, [...containerElement.children].map(e=>e.nodeName.toLowerCase()).join('|'))
+
+
+          this[keyNative4772] = true;
+
+        }
+      });
+
+      
+      const reuseExistingStableElement = (component, dte, config, data) =>{
+
+        const oldDte = component[syte];
+
+        if (this.telemetry_ && this.telemetry_.reuse >= 0) this.telemetry_.reuse++;
+
+        // console.log(123992, node, componentConfig[dataKey], data, cnt.data, oldDte, dte )
+
+        // play safe
+        // component[sytb] = null;
+        component[sytc] = null;
+        component[syte] = null;
+        containerElement[sytd].delete(component);
+        // play safe
+
+        if (reuseStore) reuseStore.delete(oldDte);
+        component[syte] = dte;
+        component.___reuseFor__ = reuseKey; // once only
+
+
+
+        // cnt.data = data;
+        const deferredBindingTaskX = { component: component, typeOrConfig: config, data: data }
+        this.__setupComponent8382__(data, component, containerElement, undefined, deferredBindingTaskX, true);
+
+
+        
+      }
+
+      let newItemStartElm = null;
+      let newItemStartIdx = 0;
+
+      stamperTasks.push(() => {
+
+        if (taskFinish) return;
+        if (skipToNextTask) return;
+
+        if (this[keyNative4772]) return;
+
+        if(modeSelection === 5){
+
+          // console.log('modeSelection 5b')
+
+          const itemsCount = pneItems.length;
+
+          let m = 0, n = 0, elementNode;
+              for (elementNode = containerElement.firstElementChild; elementNode && itemsCount > n; ) {
+                  const {item, dte, data, dataKey} = pneItems[n];
+                  const componentKey = YRa(componentConfig, item);
+                  if (componentKey) {
+
+                    reuseExistingStableElement(elementNode, dte, componentConfig[dataKey], data);
+                      m++;
+                      n++;
+                      elementNode = elementNode.nextElementSibling
+                  } else
+                      n++
+              }
+          m = elementNode;
+          newItemStartElm = m;
+          newItemStartIdx = n;
+
+          
+          // this.flushRenderStamperComponentBindings_();
+          // this.markDirty && this.markDirty();
+          // e && go(this.hostElement, "yt-rendererstamper-finished", {
+          //     container: k
+          // })
+
+        }
+
+
+      });
+
+/*
+      stamperTasks.push(() => {
+
+
+        if (taskFinish) return;
+        if (skipToNextTask) return;
+
+        if (this[keyNative4772]) return;
+
+        if (modeSelection === 5) {
+
+          const itemsCount = pneItems.length;
+          let m = newItemStartElm;
+          let n = newItemStartIdx;
+
+          if (itemsCount > n) {
+            const g = appendFrag00 || (appendFrag00 = document.createDocumentFragment());
+            for (; n < itemsCount; n++) {
+              const { item } = pneItems[n];
+              const componentKey = YRa(componentConfig, item);
+
+              if (componentKey) {
+
+                const component = this.createComponent_(componentConfig[componentKey], item[componentKey], false);
+                this.deferRenderStamperBinding_(component, componentConfig[componentKey], item[componentKey]);
+                g.appendChild(component);
+                m && m.parentNode && component ? containerDomApi.insertBefore(g, m) : containerDomApi.appendChild(g)
+
+              }
+
+            }
+
+          }
+
+
+
+        }
+
+
+
+
+      });
+      */
+
+      pneItems.forEach((pneItem, idx) => {
+
+        stamperTasks.push(() => {
+
+
+          if (taskFinish) return;
+          if (skipToNextTask) return;
+  
+          if (this[keyNative4772]) return;
+
+            const itemsCount = pneItems.length;
+  
+          if (modeSelection === 5 && itemsCount > newItemStartIdx && idx>=newItemStartIdx) {
+
+
+            let m = newItemStartElm;
+            const n = idx;
+  
+              // const g = appendFrag00 || (appendFrag00 = document.createDocumentFragment());
+              // for (; n < itemsCount; n++) {
+                const { item } = pneItems[n];
+                const componentKey = YRa(componentConfig, item);
+  
+                if (componentKey) {
+  
+                  // const component = this.createComponent_(componentConfig[componentKey], item[componentKey], false);
+                  // this.deferRenderStamperBinding_(component, componentConfig[componentKey], item[componentKey]);
+                  // g.appendChild(component);
+                  // m && m.parentNode && component ? containerDomApi.insertBefore(g, m) : containerDomApi.appendChild(g)
+  
+
+                  safeAppend([item], containerId, componentConfig[componentKey], item[componentKey], false, 0)
+
+                }
+  
+              // }
+
+
+  
+
+
+
+          }
+
+
+
+
+
+        })
+      });
+      
+
+
+      stamperTasks.push(() => {
+
+        if (taskFinish) return;
+        if (skipToNextTask) return;
+
+        if (this[keyNative4772]) return;
+
+        if(modeSelection !== 0) return;
 
         // if(skipToNextTask) return;
 
@@ -4771,37 +5262,16 @@
 
             if (!q_) {
 
-              if(!tryStable[targetComponentName]) tryStable[targetComponentName] = new Set();
+              if (!tryStable[targetComponentName]) tryStable[targetComponentName] = new Set();
 
-              tryStable[targetComponentName].add((node)=>{
+              tryStable[targetComponentName].add((node) => {
 
                 const component = node;
                 const oldDte = node[syte];
                 // const cnt = insp(node);
-                if (oldDte && oldDte !== dte && node.parentNode === containerElement && data && data[syte] && data[syte] === dte ) {
+                if (oldDte && oldDte !== dte && node.parentNode === containerElement && data && data[syte] && data[syte] === dte) {
 
-                  this.telemetry_.reuse++;
-
-                  // console.log(123992, node, componentConfig[dataKey], data, cnt.data, oldDte, dte )
-
-                  // play safe
-                  // component[sytb] = null;
-                  component[sytc] = null;
-                  component[syte] = null;
-                  containerElement[sytd].delete(component);
-                  // play safe
-
-                  if (reuseStore) reuseStore.delete(oldDte);
-                  node[syte] = dte;
-                  node.___reuseFor__ = reuseKey; // once only
-
-
-
-                  // cnt.data = data;
-                  const deferredBindingTaskX = { component: component, typeOrConfig: componentConfig[dataKey], data: data }
-                  this.__setupComponent8382__(data, component, containerElement, undefined, deferredBindingTaskX, true);
-
-                  // console.log(123993,'true')
+                  reuseExistingStableElement(component, dte, componentConfig[dataKey], data);
 
                   return true;
 
@@ -4841,7 +5311,7 @@
 
           }
 
-          if(node.___reuseFor__ === reuseKey){
+          if (node.___reuseFor__ === reuseKey) {
 
 
           } else if (!(typeof (dte || 0) === 'string' && mkData.has(dte))) {
@@ -4862,7 +5332,7 @@
 
         tryStable = null;
 
-        if(removes.length === 0) return;
+        if (removes.length === 0) return;
 
         // let xdeadc = xdeadc00;
         if (!xdeadc00) setupXdeadC(this);
@@ -4876,7 +5346,7 @@
         // safeClear(containerId, null, 2 | 4)
 
       });
-      
+
 
 
       let refNode = null;
@@ -4894,7 +5364,7 @@
         const q_ = reuseStore ? kRef(reuseStore.get(dte)) : null;
         // q_.___reuseFor__ === reuseKey -> tryStable
         // q_.closest('defs') -> removed so reuse
-        const reuseCase = !q_ ? 0 : q_.___reuseFor__ === reuseKey ? 1: q_.closest('defs') ? 2 : q_[syte] === dte ? 3 : -1;
+        const reuseCase = !q_ ? 0 : q_.___reuseFor__ === reuseKey ? 1 : q_.closest('defs') ? 2 : q_[syte] === dte ? 3 : -1;
 
         let deferredBindingTaskX = null;
         let component = null;
@@ -4906,13 +5376,13 @@
           component = q_;
           const cnt = insp(q_);
 
-          let dataSetOK = tryDirectDataSet(cnt, data);
+          let dataSetOK = false && tryDirectDataSet(cnt, data);
           if (dataSetOK) {
             deferredBindingTaskX = { component: q_, data: data }
             reused = true;
             DEBUG_STAMP_CHANGE && console.log('reuse X0')
           } else {
-            deferredBindingTaskX = { component: component, typeOrConfig: componentConfig[dataKey], data: data }
+            deferredBindingTaskX = { component: q_, typeOrConfig: componentConfig[dataKey], data: data }
             reused = true;
             DEBUG_STAMP_CHANGE && console.log('reuse S0')
           }
@@ -4975,7 +5445,7 @@
         }
 
 
-        if (  this.__setupComponent8382__(data, component, containerElement, refNode, deferredBindingTaskX, reused)) {
+        if (this.__setupComponent8382__(data, component, containerElement, refNode, deferredBindingTaskX, reused)) {
 
           refNode = component;
         }
@@ -4991,6 +5461,9 @@
           if (taskFinish) return;
           if (skipToNextTask) return;
 
+          if(this[keyNative4772]) return;
+
+        if(modeSelection !== 0) return;
           // if (skipToNextTask) {
 
           //   if (idx === 0) {
@@ -5006,7 +5479,7 @@
           // } else {
 
 
-            taskPerPneItem(pneItem);
+          taskPerPneItem(pneItem);
 
           // }
 
@@ -5019,6 +5492,9 @@
       stamperTasks.push(() => {
         if (taskFinish) return;
         if (skipToNextTask) return;
+        if(this[keyNative4772]) return;
+
+        if(modeSelection !== 0) return;
         let node = refNode;
         if (!node) return;
         node = node.nextElementSibling;
@@ -5036,22 +5512,23 @@
       this[keyRequireAsync] = (this[keyRequireAsync] || 0) + 1;
 
       stamperTasks.push(() => {
-        if (!skipToNextTask) {
+
+        if (!skipToNextTask && !this[keyNative4772]) {
           this.__safeFinish8382__(containerId, bEventCallback);
           // this.__rendererStamperFinishFn588__();
         }
         this[keyRequireAsync] = (this[keyRequireAsync] || 0) - 1;
       });
 
-      if(!leaveWithNoChange) {
-        disableTaskSkip = true;
-        const tasks = stamperTasks.slice();
-        stamperTasks.length = 0;
-        for (const task of tasks) {
-          task();
-        }
-        return;
-      }
+      // if(!leaveWithNoChange) {
+      //   // disableTaskSkip = true;
+      //   // const tasks = stamperTasks.slice();
+      //   // stamperTasks.length = 0;
+      //   // for (const task of tasks) {
+      //   //   task();
+      //   // }
+      //   // return;
+      // }
 
       if (useSync_) {
 
@@ -5903,11 +6380,9 @@
       if (FIX_stampDomArray && cProto.stampDomArray_ && !cProto.stampDomArray9682_) {
         const b = cProto.stampDomArray_.length === 6
           && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
-          && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
-          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
           && cProto.createComponent_ && cProto.createComponent_.length === 3
+          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
           && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
-          && typeof (cnt.telemetry_ || 0) === 'object'
           && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
         if (!b) {
           console.warn("YouTube Coding Changed. createStampDomArrayFn_() is not applied")
