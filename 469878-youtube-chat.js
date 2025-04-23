@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.13
+// @version             0.100.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1984,7 +1984,34 @@
     }
   };
 
-  const __refreshProps938__ = function (){
+  const __refreshData933__ = function (prop, opt) {
+    const d = this[prop];
+    if (d) {
+      this.signalProxy.setWithPath([prop], d);
+    }
+  }
+
+  const setupRefreshData930 = (cnt) => {
+    if (cnt.__refreshData930__ !== undefined) return;
+    const cProto = Reflect.getPrototypeOf(cnt);
+    let r = null;
+    let flag = 0;
+    if (typeof cnt._setPendingProperty === 'function' && typeof cnt._invalidateProperties === 'function' && cnt._setPendingProperty.length === 3 && cnt._invalidateProperties.length === 0) {
+      flag |= 1;
+    }
+    if (typeof cnt.signalProxy !== "undefined") {
+      flag |= 2;
+    }
+    if (typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2) {
+      flag |= 4;
+    }
+    if (r === 1) r = __refreshData938__;
+    // else if (r === 6) r = __refreshData933__;
+    cProto.__refreshData930__ = r;
+    // ytd-comments-header-renderer : no _invalidateProperties (cnt.signalProxy.setWithPath)
+  }
+
+  const __refreshProps938__ = function () {
     const __data = this.__data;
     if (__data) {
       for (const key in __data) {
@@ -1999,6 +2026,43 @@
       }
     }
   }
+
+  const setupRefreshProps930 = (cnt) => {
+    if (cnt.__refreshProps930__ !== undefined) return;
+    const cProto = Reflect.getPrototypeOf(cnt);
+    let r = null;
+    let flag = 0;
+    if (typeof cnt._setPendingProperty === 'function' && typeof cnt._invalidateProperties === 'function' && cnt._setPendingProperty.length === 3 && cnt._invalidateProperties.length === 0) {
+      flag |= 1;
+    }
+    if (typeof cnt.signalProxy !== "undefined") {
+      flag |= 2;
+    }
+    if (typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2) {
+      flag |= 4;
+    }
+    if (r === 1) r = __refreshProps938__;
+    cProto.__refreshProps930__ = r;
+    // ytd-comments-header-renderer : no _invalidateProperties (cnt.signalProxy.setWithPath)
+  }
+
+  const refreshChildrenYtIcons = (node) => {
+    let goNext = false;
+    for (const iconElm of node.getElementsByTagName('yt-icon')) {
+      try {
+        const cnt = insp(iconElm);
+        setupRefreshProps930(cnt);
+        if (cnt.__refreshProps930__) {
+          cnt.__refreshProps930__();
+          goNext = true;
+        }
+        // cnt.removeIconShape(); // detach iconShapeDataSignal?
+        // cnt._setPendingProperty('isAttached', false);
+      } catch (e) { }
+      if (!goNext) break;
+    }
+  }
+
 
   const imageFetchCache = new Set();
   const imageFetch = function (imageLink) {
@@ -2973,15 +3037,7 @@
   const reuseFixYtIconRendering = (elm) => {
     // make properties fresh for flushing
     return Promise.resolve(elm).then((elm) => {
-      for (const node of elm.getElementsByTagName('yt-icon')) {
-        try {
-          const cnt = insp(node);
-          if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-          cnt.__refreshProps938__();
-          // cnt.removeIconShape(); // detach iconShapeDataSignal?
-          // cnt._setPendingProperty('isAttached', false);
-        } catch (e) { }
-      }
+      refreshChildrenYtIcons(elm);
     }).catch(console.warn);;
   };
   const onVisibleItemStampNodeRemoval = (elmId) =>{
@@ -3016,7 +3072,7 @@
     return Promise.resolve(cnt).then(async cnt => {
       wme.data = `${(wme.data & 7) + 1}`;
       await wmp;
-      cnt.data && cnt.__refreshData938__ && cnt.isAttached && cnt.parentComponent && cnt.__refreshData938__('data', !0);
+      cnt.__refreshData930__ && cnt.data && cnt.isAttached && cnt.parentComponent && cnt.__refreshData930__('data', !0);
     });
   }
   // ------- side process [sideProcesses] -------
@@ -3575,9 +3631,7 @@
           const [item, L, H, connectedComponent] = entry;
 
           const cnt = insp(connectedComponent);
-          if (!cnt.__refreshData938__) {
-            cnt.constructor.prototype.__refreshData938__ = __refreshData938__;
-          }
+          setupRefreshData930(cnt);
           if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
             cnt.data = H;
           } else {
@@ -3591,16 +3645,10 @@
               q2.length = 0;
             }
           }
-          if (cnt.data) cnt.__refreshData938__('data', !0); // ensure data is invalidated
+          if (cnt.__refreshData930__ && cnt.data) cnt.__refreshData930__('data', !0); // ensure data is invalidated
 
           // fix yt-icon issue
-          for (const node of connectedComponent.getElementsByTagName('yt-icon')) {
-            try {
-              const cnt = insp(node);
-              if (!cnt.__refreshProps938__) cnt.constructor.prototype.__refreshProps938__ = __refreshProps938__;
-              cnt.__refreshProps938__();
-            } catch (e) { }
-          }
+          refreshChildrenYtIcons(connectedComponent);
 
           // const imgs = connectedComponent.getElementsByTagName('IMG');
           // if (imgs.length > 0) {
