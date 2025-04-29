@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.7
+// @version     0.30.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5344,15 +5344,13 @@
             if (typeof typeOrConfig === 'object' && typeOrConfig[syb6]) p = 'e';
             if (!p) p = '1';
           }
-          bdr.producer = bdr.typeOrConfig = bdr.data = null;
+          // bdr.producer = bdr.typeOrConfig = bdr.data = null;
+
+
+          forceCancel(node);
+
+
           node.removeAttribute('ytx-flushing');
-          for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
-            e.remove();
-          }
-          for (const e of node.querySelectorAll('[ytx-stamping], [ytx-flushing]')) {
-            e.removeAttribute('ytx-stamping');
-            e.removeAttribute('ytx-flushing');
-          }
           Promise.resolve(node).then(cleanComponent);
 
         }
@@ -5423,20 +5421,50 @@
       }
 
       if (!skip) {
-        if (node.isConnected === true) {
           node.setAttribute('ytx-flushing', '0');
           node.setAttribute('ytx-flushing', '3');
           node.appendChild(document.createComment('-')).remove();
-        } else {
-          node.setAttribute('ytx-flushing', '0');
-          node.setAttribute('ytx-flushing', '3');
-          node.appendChild(document.createComment('-')).remove();
-          for (const e of component.querySelectorAll('rp[yt-element-placholder]')) {
-            bindingMap.delete(e);
-            e.remove();
-          }
-          flushedFn();
-        }
+        // if (node.isConnected === true) {
+        //   node.setAttribute('ytx-flushing', '0');
+        //   node.setAttribute('ytx-flushing', '3');
+        //   node.appendChild(document.createComment('-')).remove();
+        // } else {
+        //   node.setAttribute('ytx-flushing', '0');
+        //   node.setAttribute('ytx-flushing', '3');
+        //   node.appendChild(document.createComment('-')).remove();
+
+
+        //   let bdr = bindingMap.get(node);
+        //   if (bdr) bdr.flushId = genId();
+
+        //   for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
+        //     const bdr = bindingMap.get(e)
+        //     if (!bdr) continue;
+        //     bdr.flushId = genId();
+        //     e.parentNode.appendChild(document.createComment('.')).remove();
+        //     // e.remove();
+        //   }
+
+        //   for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
+        //     e.remove();
+        //   }
+        //   for (const e of node.querySelectorAll('[ytx-flushing]')) {
+        //     e.setAttribute('ytx-flushing', '3');
+        //   }
+
+        //   node.setAttribute('ytx-flushing', '3');
+        //   flushedFn();
+
+
+        //   for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
+        //     e.remove();
+        //   }
+        //   for (const e of node.querySelectorAll('[ytx-stamping], [ytx-flushing]')) {
+        //     e.removeAttribute('ytx-flushing');
+        //     e.removeAttribute('ytx-stamping');
+        //   }
+
+        // }
       }
 
     };
@@ -5456,21 +5484,27 @@
 
         if (target.getAttribute('ytx-flushing') === '2') {
 
+          const node = target;
+
           const container = target.parentNode;
           if (!container || !container.id) continue;
           if (target.isConnected === false) continue;
 
-          const node = target;
           const bdr = bindingMap.get(node);
           if (!bdr) continue;
           const producer = kRef(bdr.producer);
           if (!producer) continue;
-
           const stampingContainerId = bdr.stampingContainerId;
           if (stampingContainerId !== container.id) continue;
 
-          target.setAttribute('ytx-flushing', '2x');
+          if (target.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
+            target.setAttribute('ytx-flushing', '0');
+            target.setAttribute('ytx-flushing', '2');
+            continue;
+          }
           const bdrFlushId = bdr.flushId = genId();
+
+          target.setAttribute('ytx-flushing', '2x');
 
           let p = containerMap.get(container);
           const [typeOrConfig, p_] = getTypeOfConfig(bdr.typeOrConfig, true);
@@ -5689,6 +5723,31 @@
 
     const bindingMap = new WeakMap();
 
+    const forceCancel = (component) => {
+
+      const node = component;
+      if (node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
+
+        for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
+          if (e.hasAttribute('ytx-flushing')) {
+            e.appendChild(document.createComment('.')).remove();
+          }
+          const bdr = bindingMap.get(e)
+          if (!bdr) continue;
+          bdr.flushId = genId();
+        }
+
+        for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
+          e.remove();
+        }
+        for (const e of node.querySelectorAll('[ytx-stamping], [ytx-flushing]')) {
+          e.removeAttribute('ytx-flushing');
+          e.removeAttribute('ytx-stamping');
+        }
+
+      }
+    }
+
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
 
@@ -5702,38 +5761,60 @@
       const bdr = setBinding(component, typeOrConfig, data, this);
 
       if (component && component.parentNode && component.parentNode.id && this.getComponentName_(typeOrConfig, data) === component.is && component.isConnected === true) {
+        const containerId = component.parentNode.id;
+        
+        let fullRefresh = false;
+        try {
 
-        if(component.nodeName === "RP"){
-          console.warn('deferRenderStamperBinding_ ERROR 001')
-          // debugger;
-
-        }
-
-        const componentFlushing = component.getAttribute('ytx-flushing');
-        if (componentFlushing) {
-          if (componentFlushing === '2' || componentFlushing === '1') {
-            // use new data to render the last pending function
-
-          } else if (componentFlushing === '3' || componentFlushing === '2x'){
-            for(const e of component.querySelectorAll('rp[yt-element-placholder]')){
-              bindingMap.delete(e);
-              e.remove();
-            }
-            flushedFn();
-            if (component.hasAttribute('ytx-flushing')) {
-              console.log('ytx-flushing', component.getAttribute('ytx-flushing'));
-              console.warn('deferRenderStamperBinding_ ERROR 002')
-            }
-          } else {
-            console.warn('deferRenderStamperBinding_ ERROR 003')
-
+          if (component.nodeName === "RP") {
+            console.warn('deferRenderStamperBinding_ ERROR 001')
             // debugger;
+
           }
+
+          const componentFlushing = component.getAttribute('ytx-flushing');
+          if (componentFlushing) {
+            flushedObserver.observe(component, { subtree: true, childList: true });
+            component.appendChild(document.createComment('.')).remove();
+            if (componentFlushing === '2' || componentFlushing === '1') {
+              // use new data to render the last pending function
+
+            } else if (componentFlushing === '3' || componentFlushing === '2x') {
+              fullRefresh = true;
+
+              // for (const e of component.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
+              //   const bdr = bindingMap.get(e)
+              //   if (!bdr) continue;
+              //   bdr.flushId = genId();
+              //   e.parentNode.appendChild(document.createComment('.')).remove();
+              //   // e.remove();
+              // }
+              // component.setAttribute('ytx-flushing', '3');
+              // flushedFn();
+              // if (component.hasAttribute('ytx-flushing')) {
+              //   console.log('ytx-flushing', component.getAttribute('ytx-flushing'));
+              //   console.warn('deferRenderStamperBinding_ ERROR 002')
+              // }
+            } else {
+              console.warn('deferRenderStamperBinding_ ERROR 003')
+
+              // debugger;
+            }
+          }
+        } catch (e) {
+          console.warn(e);
         }
 
-        bdr.stampingContainerId = component.parentNode.id;
+
+        const node = component;
+        forceCancel(node);
+
+        bdr.stampingContainerId = containerId;
         component.setAttribute('ytx-flushing', '0');
         component.setAttribute('ytx-flushing', '2');
+
+
+
         // return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
       }
     }
