@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.3
+// @version     0.30.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5057,10 +5057,6 @@
       const component = producer.createComponent7409_(typeOrConfig, data, canReuse);
       // if (component[syb5]) cleanComponent(component);
       component[syb5] = producer[syb4];
-      if(!data){
-        console.log(binder.randomId, data)
-        console.log(binder.randomId, node)
-      }
       component[syb1] = data[syb1];
       component[syb2] = q[syb2] = genId();
       const cnt = insp(component);
@@ -5178,11 +5174,12 @@
     });
 
     const containerChildernTaskFn1 = (eTask) => {
-      const { nodeWr, targetId, targetWr } = eTask;
+      const { nodeWr, targetId, targetWr, bdrFlushId } = eTask;
       const node = kRef(nodeWr);
       if (!node.parentNode || !node.parentNode.id) return;
       const bdr = node ? bindingMap.get(node) : null;
       if (!bdr) return;
+      if (bdrFlushId !== bdr.flushId) return;
       const producer = kRef(bdr.producer);
       if (!producer) return;
       const target = kRef(targetWr);
@@ -5195,11 +5192,12 @@
     };
 
     const containerChildernTaskFn2 = (eTask) => {
-      const { nodeWr, targetId, targetWr } = eTask;
+      const { nodeWr, targetId, targetWr, bdrFlushId } = eTask;
       const node = kRef(nodeWr);
       if (!node || !node.parentNode || !node.parentNode.id) return;
       const bdr = bindingMap.get(node);
       if (!bdr) return;
+      if (bdrFlushId !== bdr.flushId) return;
       const producer = kRef(bdr.producer);
       if (!producer) return;
       const target = kRef(targetWr);
@@ -5258,11 +5256,14 @@
 
           if (!node[wk]) node[wk] = mWeakRef(node);
           if (!target[wk]) target[wk] = mWeakRef(target);
+
+          const bdrFlushId = bdr.flushId = genId();
           if (bdr.created) {
             eTasks.push({
               nodeWr: node[wk],
               targetId: target.id,
               targetWr: target[wk],
+              bdrFlushId,
               fn: containerChildernTaskFn1
             });
           } else if(node.nodeName === 'RP') {
@@ -5270,6 +5271,7 @@
               nodeWr: node[wk],
               targetId: target.id,
               targetWr: target[wk],
+              bdrFlushId,
               fn: containerChildernTaskFn2
             });
           }
@@ -5284,13 +5286,13 @@
 
           let bdr = bindingMap.get(node);
           if (!bdr) continue;
+          bdr.flushId = genId();
           bindingMap.delete(node);
           let typeOrConfig = bdr ? kRef(bdr.typeOrConfig) : null;
           if (typeOrConfig) {
             if (typeof typeOrConfig === 'object' && typeOrConfig[syb6]) p = 'e';
             if (!p) p = '1';
           }
-          // console.log('bdr_clear_01', bdr.randomId);
           bdr.producer = bdr.typeOrConfig = bdr.data = null;
           node.removeAttribute('ytx-flushing');
           for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
@@ -5321,6 +5323,73 @@
 
     });
 
+    const flushTaskFn = (mTask) => {
+
+      const { containerWr, nodeWr, stampingContainerId, bdrFlushId } = mTask;
+      const node = kRef(nodeWr);
+      if (!node) return;
+      const flushingVal = node.getAttribute('ytx-flushing');
+      if (flushingVal !== '2x') return;
+
+      let skip = false;
+      const f = () => {
+
+        const bdr = bindingMap.get(node);
+        if (!bdr) return;
+        if (bdrFlushId !== bdr.flushId) {
+          skip = true;
+          return;
+        }
+        const producer = kRef(bdr.producer);
+        if (!producer) return;
+
+        if (bdr.stampingContainerId !== stampingContainerId) return;
+
+        const container = kRef(containerWr);
+        if (!container) return;
+        if (container.id !== stampingContainerId) return;
+
+        const typeOrConfig = getTypeOfConfig(bdr.typeOrConfig);
+
+        let data = kRef(bdr.data);
+        bdr.data = null;
+        let taskB = { component: node, typeOrConfig: typeOrConfig, data: data };
+        flushedObserver.observe(node, { subtree: true, childList: true });
+        producer.deferredBindingTasks_.push(taskB);
+        producer.flushRenderStamperComponentBindings7409_();
+        producer.deferredBindingTasks_.length = 0;
+        taskB.component = taskB.typeOrConfig = taskB.data = null;
+
+      }
+      let ok = false;
+      try {
+        f();
+        ok = true;
+      } catch (e) {
+        console.warn(e);
+      } finally {
+
+      }
+
+      if (!skip) {
+        if (node.isConnected === true) {
+          node.setAttribute('ytx-flushing', '0');
+          node.setAttribute('ytx-flushing', '3');
+          node.appendChild(document.createComment('-')).remove();
+        } else {
+          node.setAttribute('ytx-flushing', '0');
+          node.setAttribute('ytx-flushing', '3');
+          node.appendChild(document.createComment('-')).remove();
+          for (const e of component.querySelectorAll('rp[yt-element-placholder]')) {
+            bindingMap.remove(e);
+            e.remove();
+          }
+          flushedFn();
+        }
+      }
+
+    };
+
     const flushObserver = new MutationObserver((mutations) => {
 
       let targets = new Set();
@@ -5350,6 +5419,7 @@
           if (stampingContainerId !== container.id) continue;
 
           target.setAttribute('ytx-flushing', '2x');
+          const bdrFlushId = bdr.flushId = genId();
 
           let p = containerMap.get(container);
           const [typeOrConfig, p_] = getTypeOfConfig(bdr.typeOrConfig, true);
@@ -5365,65 +5435,9 @@
           eTasks.push({
             containerWr: container[wk],
             nodeWr: node[wk],
-            fn: (mTask) => {
-
-              const { containerWr, nodeWr } = mTask;
-              const node = kRef(nodeWr);
-              if (!node) return;
-              const flushingVal = node.getAttribute('ytx-flushing');
-              if (flushingVal !== '2x') return;
-              
-
-              const f = () => {
-
-                const bdr = bindingMap.get(node);
-                if (!bdr) return;
-                const producer = kRef(bdr.producer);
-                if (!producer) return;
-
-                if (bdr.stampingContainerId !== stampingContainerId) return;
-
-                const container = kRef(containerWr);
-                if (!container) return;
-                if (container.id !== stampingContainerId) return;
-
-                let data = kRef(bdr.data);
-                // console.log('bdr_clear_02', bdr.randomId, node);
-                bdr.data = null;
-                let taskB = { component: node, typeOrConfig: typeOrConfig, data: data };
-                flushedObserver.observe(node, { subtree: true, childList: true });
-                producer.deferredBindingTasks_.push(taskB);
-                producer.flushRenderStamperComponentBindings7409_();
-                producer.deferredBindingTasks_.length = 0;
-                taskB.component = taskB.typeOrConfig = taskB.data = null;
-
-              }
-              let ok = false;
-              try {
-                f();
-                ok = true;
-              } catch (e) {
-                console.warn(e);
-              } finally {
-
-              }
-
-              if (node.isConnected === true) {
-                node.setAttribute('ytx-flushing', '0');
-                node.setAttribute('ytx-flushing', '3');
-                node.appendChild(document.createComment('-')).remove();
-              } else {
-                node.setAttribute('ytx-flushing', '0');
-                node.setAttribute('ytx-flushing', '3');
-                node.appendChild(document.createComment('-')).remove();
-                for (const e of component.querySelectorAll('rp[yt-element-placholder]')) {
-                  bindingMap.remove(e);
-                  e.remove();
-                }
-                flushedFn();
-              }
-
-            }
+            stampingContainerId,
+            bdrFlushId,
+            fn: flushTaskFn
           })
 
         }
@@ -5477,12 +5491,11 @@
       const oldBdr = bindingMap.get(component);
       if (oldBdr) {
         oldBdr.abandon = true;
-        // console.log('bdr_clear_03', oldBdr.randomId);
         oldBdr.producer = oldBdr.typeOrConfig = oldBdr.data = null;
+        oldBdr.flushId = genId();
       }
       const bdr = { typeOrConfig: typeOrConfig, data: data[wk], producer: producer[wk] };
-      bdr.randomId = genId();
-      // console.log('bdr_set_01', bdr.randomId);
+      bdr.flushId = genId();
       bindingMap.set(component, bdr);
 
       return bdr;
