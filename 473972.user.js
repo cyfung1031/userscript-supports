@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.10
+// @version     0.30.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5575,7 +5575,7 @@
       if (!producer[wk]) producer[wk] = mWeakRef(producer);
       const oldBdr = bindingMap.get(component);
       if (oldBdr) {
-        oldBdr.abandon = true;
+        forceCancel(component);
         oldBdr.producer = oldBdr.typeOrConfig = oldBdr.data = null;
         oldBdr.flushId = genId();
       }
@@ -5731,17 +5731,18 @@
         for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
           if (e.hasAttribute('ytx-flushing')) {
             e.appendChild(document.createComment('.')).remove();
+            e.removeAttribute('ytx-flushing');
           }
           const bdr = bindingMap.get(e)
-          if (!bdr) continue;
-          bdr.flushId = genId();
+          if (bdr) {
+            bdr.flushId = genId();
+            const producer = kRef(bdr.producer);
+            if (producer && producer.__stampTaskMap488__) producer.__stampTaskMap488__.clear();
+          }
+          if (e.hasAttribute('yt-element-placholder')) e.remove();
         }
 
-        for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
-          e.remove();
-        }
-        for (const e of node.querySelectorAll('[ytx-stamping], [ytx-flushing]')) {
-          e.removeAttribute('ytx-flushing');
+        for (const e of node.querySelectorAll('[ytx-stamping]')) {
           e.removeAttribute('ytx-stamping');
         }
 
