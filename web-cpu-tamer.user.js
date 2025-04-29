@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.5
+// @version             2025.101.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -240,11 +240,11 @@ SOFTWARE.
 
   setTimeout = function (f, d = void 0, ...args) {
     let r;
-    const g = (...args) => {
+    const g = (typeof f === 'function') ? (...args) => {
       h1(r).then((act) => {
         act && f(...args);
       }).catch(errCatch);
-    }
+    } : f;
     if (d >= 1) d -= dOffset;
     r = setTimeout_(g, d, ...args);
     return r;
@@ -252,11 +252,11 @@ SOFTWARE.
 
   setInterval = function (f, d = void 0, ...args) {
     let r;
-    const g = (...args) => {
+    const g = (typeof f === 'function') ? (...args) => {
       h1(r).then((act) => {
         act && f(...args);
       }).catch(errCatch);
-    }
+    } : f;
     if (d >= 1) d -= dOffset;
     r = setInterval_(g, d, ...args);
     return r;
