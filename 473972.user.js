@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.4
+// @version     0.30.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -613,6 +613,53 @@
         cProto.__stampDX38__ = true;
 
         if (cProto.stampDomArray_.length === 6) {
+          const pendingFinishContainers = new Map();
+          const producerMap2 = new WeakMap();
+          const mutObs = new MutationObserver((mutations) => {
+            if (pendingFinishContainers.size === 0) return;
+            let dirtyProducers = new Map();
+            pendingFinishContainers.forEach((p, containerWr) => {
+              const container = kRef(containerWr);
+              if (!container) return pendingFinishContainers.delete(containerWr);
+              const producerWr = producerMap2.get(container);
+              if (!producerWr) return pendingFinishContainers.delete(containerWr);
+              const producer = kRef(producerWr);
+              if (!producer) return pendingFinishContainers.delete(containerWr);
+              let dirtyVal = dirtyProducers.get(producer);
+              if (dirtyVal === false) return;
+              if (!dirtyVal) {
+                const hostElement = producer.hostElement;
+                if (!hostElement) return pendingFinishContainers.delete(containerWr);
+                if (hostElement.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
+                  dirtyProducers.set(producer, false);
+                  return;
+                }
+              }
+              pendingFinishContainers.delete(containerWr);
+              if (!dirtyVal) dirtyProducers.set(producer, (dirtyVal = new Set()));
+              let o = dirtyVal;
+              if (p === 'e') {
+                o.add(container);
+              }
+            });
+            if (dirtyProducers.size === 0) return;
+            dirtyProducers.forEach((o, producer) => {
+              if (o instanceof Set) {
+                const hostElement = producer.hostElement;
+                hostElement.removeAttribute('ytx-debug-0173');
+                producer.markDirty && producer.markDirty();
+                for (const container of o) {
+                  dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+                    container
+                  });
+                }
+                o.clear();
+              }
+            });
+            dirtyProducers.clear();
+            dirtyProducers = null;
+          });
+
 
           cProto.stampDomArray8581_ = cProto.stampDomArray_;
 
@@ -634,22 +681,26 @@
             if (this.flushRenderStamperComponentBindings_ !== b) {
               this.flushRenderStamperComponentBindings_ = b;
             }
-            if (e_ && e_.message !== '82919') throw e;
+            if (e_ && e_.message !== '82919') throw e_;
             if (e_ && e_.message === '82919') {
-              let producer = this;
-              queueMicrotask_(() => {
+              if (this.__byPass7409__ === true) {
+                const producer = this;
+                const container = producer.getStampContainer_(containerId);
                 const hostElement = producer.hostElement;
-                if (hostElement instanceof Node) {
-                  const container = producer.getStampContainer_(containerId);
-                  if (!container.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-                    producer.markDirty && producer.markDirty();
-                    bEventCb && dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
-                      container
-                    });
-                  }
+                hostElement.setAttribute('ytx-debug-0173', '')
+                if (!producer[wk]) producer[wk] = mWeakRef(producer);
+                if (!container[wk]) container[wk] = mWeakRef(container);
+                producerMap2.set(container, producer[wk]);
+                const currentVal = pendingFinishContainers.get(container[wk]);
+                const newVal = bEventCb ? 'e' : '1';
+                if (newVal === 'e' && currentVal !== newVal) {
+                  pendingFinishContainers.set(container[wk], newVal);
+                } else if (newVal === '1' && !currentVal) {
+                  pendingFinishContainers.set(container[wk], newVal);
                 }
-                producer = null;
-              });
+                mutObs.observe(hostElement, { subtree: true, childList: true });
+                hostElement.appendChild(document.createComment('-')).remove();
+              }
             }
             return r;
           }
@@ -5527,9 +5578,10 @@
     const testCntByPass = (cnt) => {
       const hostElement = cnt.hostElement;
       if (hostElement instanceof Node) {
-        if (byPassList.has(hostElement.nodeName) || !cnt.stampDomArray_ || cnt.visibleItems || cnt.activeItems_ || cnt.tickerItems) {
+        if (byPassList.has(hostElement.nodeName) || !cnt.stampDomArray_ || cnt.visibleItems || cnt.activeItems_ || cnt.tickerItems || cnt.updatePanel || cnt.updateChildVisibilityProperties || cnt.onYtRendererstamperFinished) {
           const cProto = Reflect.getPrototypeOf(cnt);
           if (cProto.is && cProto.is === cnt.is) {
+            cProto.__byPass7409__ = true;
             cProto.createComponent_ = cProto.createComponent7409_;
             cProto.deferRenderStamperBinding_ = cProto.deferRenderStamperBinding7409_;
             cProto.flushRenderStamperComponentBindings_ = cProto.flushRenderStamperComponentBindings7409_;
@@ -5537,7 +5589,19 @@
           }
           return true;
         }
-        if (hostElement.querySelector('[id] > *:not(:empty)')) return true;
+        const stampDom = cnt.stampDom;
+        if (!stampDom) return true;
+        for (let key in stampDom) {
+          const stamp = stampDom[key];
+          if (typeof (stamp || 0) === 'object' && typeof (stamp.id || 0) === 'string') {
+            let e0 = stamp.id.charCodeAt(0);
+            if ((e0 >= 97 && e0 <= 122) || (e0 >= 65 && e0 <= 90)) {
+              const element = hostElement.querySelector(`#${stamp.id}`);
+              if (!element) continue;
+              if (element instanceof Node && element.firstElementChild) return true;
+            }
+          }
+        }
         // if(hostElement.closest('[ytx-flushing="2x"], [ytx-flushing="3"]')) return true;
         return testCntInvisible(cnt); // invisible state in the initial flushing
       } else {
