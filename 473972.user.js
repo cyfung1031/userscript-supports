@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.11
+// @version     0.30.12
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -664,6 +664,9 @@
           cProto.stampDomArray8581_ = cProto.stampDomArray_;
 
           cProto.stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+
+            if (this.__stampTaskMap488__ instanceof Map) this.__stampTaskMap488__.delete(containerId);
+
             const b = this.flushRenderStamperComponentBindings_;
             this.flushRenderStamperComponentBindings_ = function () {
               b.call(this);
@@ -5347,7 +5350,7 @@
           // bdr.producer = bdr.typeOrConfig = bdr.data = null;
 
 
-          forceCancel(node);
+          forceCancel(node, false);
 
 
           node.removeAttribute('ytx-flushing');
@@ -5498,6 +5501,8 @@
           if (stampingContainerId !== container.id) continue;
 
           if (target.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
+            console.log('need forceCancel 003');
+            forceCancel(target, false);
             target.setAttribute('ytx-flushing', '0');
             target.setAttribute('ytx-flushing', '2');
             continue;
@@ -5575,7 +5580,7 @@
       if (!producer[wk]) producer[wk] = mWeakRef(producer);
       const oldBdr = bindingMap.get(component);
       if (oldBdr) {
-        forceCancel(component);
+        forceCancel(component, true);
         oldBdr.producer = oldBdr.typeOrConfig = oldBdr.data = null;
         oldBdr.flushId = genId();
       }
@@ -5723,7 +5728,7 @@
 
     const bindingMap = new WeakMap();
 
-    const forceCancel = (component) => {
+    const forceCancel = (component, dismissFinish) => {
 
       const node = component;
       if (node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
@@ -5737,7 +5742,7 @@
           if (bdr) {
             bdr.flushId = genId();
             const producer = kRef(bdr.producer);
-            if (producer && producer.__stampTaskMap488__) producer.__stampTaskMap488__.clear();
+            if (producer && (producer.__stampTaskMap488__ instanceof Map)) producer.__stampTaskMap488__.clear();
           }
           if (e.hasAttribute('yt-element-placholder')) e.remove();
         }
@@ -5747,6 +5752,22 @@
         }
 
       }
+
+      if (dismissFinish) {
+        const bdr = bindingMap.get(node);
+        if (bdr) {
+          const parentNode = node.parentNode;
+          const parentNodeId = parentNode ? parentNode.id : null;
+          const stampingContainerId = bdr.stampingContainerId;
+          const producer = kRef(bdr.producer);
+          const taskMap = producer ? producer.__stampTaskMap488__ : null;
+          if (taskMap instanceof Map) {
+            parentNodeId && taskMap.delete(parentNodeId);
+            stampingContainerId && taskMap.delete(stampingContainerId);
+          }
+        }
+      }
+
     }
 
 
@@ -5764,7 +5785,6 @@
       if (component && component.parentNode && component.parentNode.id && this.getComponentName_(typeOrConfig, data) === component.is && component.isConnected === true) {
         const containerId = component.parentNode.id;
         
-        let fullRefresh = false;
         try {
 
           if (component.nodeName === "RP") {
@@ -5781,21 +5801,8 @@
               // use new data to render the last pending function
 
             } else if (componentFlushing === '3' || componentFlushing === '2x') {
-              fullRefresh = true;
-
-              // for (const e of component.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
-              //   const bdr = bindingMap.get(e)
-              //   if (!bdr) continue;
-              //   bdr.flushId = genId();
-              //   e.parentNode.appendChild(document.createComment('.')).remove();
-              //   // e.remove();
-              // }
-              // component.setAttribute('ytx-flushing', '3');
-              // flushedFn();
-              // if (component.hasAttribute('ytx-flushing')) {
-              //   console.log('ytx-flushing', component.getAttribute('ytx-flushing'));
-              //   console.warn('deferRenderStamperBinding_ ERROR 002')
-              // }
+       
+              // will trigger forceCancel
             } else {
               console.warn('deferRenderStamperBinding_ ERROR 003')
 
@@ -5808,7 +5815,7 @@
 
 
         const node = component;
-        forceCancel(node);
+        forceCancel(node, true);
 
         bdr.stampingContainerId = containerId;
         component.setAttribute('ytx-flushing', '0');
