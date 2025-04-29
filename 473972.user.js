@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.5
+// @version     0.30.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5432,7 +5432,7 @@
           node.setAttribute('ytx-flushing', '3');
           node.appendChild(document.createComment('-')).remove();
           for (const e of component.querySelectorAll('rp[yt-element-placholder]')) {
-            bindingMap.remove(e);
+            bindingMap.delete(e);
             e.remove();
           }
           flushedFn();
@@ -5554,25 +5554,10 @@
 
 
     const byPassList = new Set([
+      // for YouTube Tabview Totara (instance data setter)
       "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
       "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
-      "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",  // for YouTube Tabview Totara
-
-      // for immediate rendering
-      // "YT-THUMBNAIL-VIEW-MODEL",
-      // "YT-THUMBNAIL-OVERLAY-BADGE-VIEW-MODEL",
-      // "YT-THUMBNAIL-BADGE-VIEW-MODEL",
-      // "BADGE-SHAPE",
-      // "YT-COLLECTIONS-STACK",
-      // "YT-COLLECTION-THUMBNAIL-VIEW-MODEL",
-      // "YT-LOCKUP-VIEW-MODEL"
-
-      // avoid duplicate icons
-      "YTD-VIDEO-OWNER-RENDERER",
-      "YTD-CHANNEL-NAME",
-      "YTD-BADGE-SUPPORTED-RENDERER",
-      "YT-ICON"
-
+      "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",
     ]);
 
     const testCntByPass = (cnt) => {
@@ -5591,10 +5576,10 @@
         }
         const stampDom = cnt.stampDom;
         if (!stampDom) return true;
-        for (let key in stampDom) {
+        for (const key of Object.getOwnPropertyNames(stampDom)) {
           const stamp = stampDom[key];
           if (typeof (stamp || 0) === 'object' && typeof (stamp.id || 0) === 'string') {
-            let e0 = stamp.id.charCodeAt(0);
+            const e0 = stamp.id.charCodeAt(0);
             if ((e0 >= 97 && e0 <= 122) || (e0 >= 65 && e0 <= 90)) {
               const element = hostElement.querySelector(`#${stamp.id}`);
               if (!element) continue;
@@ -5613,7 +5598,7 @@
       const hostElement = cnt.hostElement;
       if (!hostElement) return true;
       // [hidden] test required?
-      return !!((hostElement && hostElement.closest('[hidden], noscript, defs')) || (hostElement && hostElement.isConnected === false))
+      return !!((hostElement && hostElement.closest('noscript, defs')) || (hostElement && hostElement.isConnected === false))
     }
 
     const doStampMapFix = function(){
@@ -5731,7 +5716,7 @@
 
           } else if (componentFlushing === '3' || componentFlushing === '2x'){
             for(const e of component.querySelectorAll('rp[yt-element-placholder]')){
-              bindingMap.remove(e);
+              bindingMap.delete(e);
               e.remove();
             }
             flushedFn();
