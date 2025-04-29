@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.1
+// @version     0.30.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1979,10 +1979,29 @@
 
   FIX_removeChild && (() => {
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
+      const fragD = document.createDocumentFragment();
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
         if (typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
-          this.removeChild062(child);
+          let ok = false;
+          try {
+            this.removeChild062(child);
+            ok = true;
+          } catch (e) {
+
+          }
+          if (!ok) {
+            try {
+              fragD.appendChild(child)
+            } catch (e) {
+              console.warn(e);
+            }
+            try {
+              child.remove();
+            } catch (e) {
+              console.warn(e);
+            }
+          }
         } else if ((child instanceof Element) && child.is === 'tp-yt-paper-tooltip') {
           // tooltip bug
         } else {
