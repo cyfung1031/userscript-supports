@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.2
+// @version     0.30.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5502,6 +5502,13 @@
       // "YT-COLLECTIONS-STACK",
       // "YT-COLLECTION-THUMBNAIL-VIEW-MODEL",
       // "YT-LOCKUP-VIEW-MODEL"
+
+      // avoid duplicate icons
+      "YTD-VIDEO-OWNER-RENDERER",
+      "YTD-CHANNEL-NAME",
+      "YTD-BADGE-SUPPORTED-RENDERER",
+      "YT-ICON"
+
     ]);
 
     const testCntByPass = (cnt) => {
