@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.0
+// @version     0.30.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5310,11 +5310,12 @@
         targets.add(target);
       }
 
+      let eTasks = [];
+
       let containerMap = new Map();
       for (const target of targets) {
 
         if (target.getAttribute('ytx-flushing') === '2') {
-
 
           const container = target.parentNode;
           if (!container || !container.id) continue;
@@ -5326,7 +5327,8 @@
           const producer = kRef(bdr.producer);
           if (!producer) continue;
 
-          if (bdr.stampingContainerId !== container.id) continue;
+          const stampingContainerId = bdr.stampingContainerId;
+          if (stampingContainerId !== container.id) continue;
 
           target.setAttribute('ytx-flushing', '2x');
 
@@ -5338,18 +5340,72 @@
             containerMap.set(container, p);
           }
 
-          let data = kRef(bdr.data);
-          // console.log('bdr_clear_02', bdr.randomId, node);
-          bdr.data = null;
-          let taskB = { component: node, typeOrConfig: typeOrConfig, data: data };
-          flushedObserver.observe(node, { subtree: true, childList: true });
-          producer.deferredBindingTasks_.push(taskB);
-          producer.flushRenderStamperComponentBindings7409_();
-          producer.deferredBindingTasks_.length = 0;
-          taskB.component = taskB.typeOrConfig = taskB.data = null;
-          node.setAttribute('ytx-flushing', '0');
-          node.setAttribute('ytx-flushing', '3');
-          node.appendChild(document.createComment('-')).remove();
+
+          if (!container[wk]) container[wk] = mWeakRef(container[wk]);
+          if (!node[wk]) node[wk] = mWeakRef(node[wk]);
+          eTasks.push({
+            containerWr: container[wk],
+            nodeWr: node[wk],
+            fn: (mTask) => {
+
+              const { containerWr, nodeWr } = mTask;
+              const node = kRef(nodeWr);
+              if (!node) return;
+              const flushingVal = node.getAttribute('ytx-flushing');
+              if (flushingVal !== '2x') return;
+              
+
+              const f = () => {
+
+                const bdr = bindingMap.get(node);
+                if (!bdr) return;
+                const producer = kRef(bdr.producer);
+                if (!producer) return;
+
+                if (bdr.stampingContainerId !== stampingContainerId) return;
+
+                const container = kRef(containerWr);
+                if (!container) return;
+                if (container.id !== stampingContainerId) return;
+
+                let data = kRef(bdr.data);
+                // console.log('bdr_clear_02', bdr.randomId, node);
+                bdr.data = null;
+                let taskB = { component: node, typeOrConfig: typeOrConfig, data: data };
+                flushedObserver.observe(node, { subtree: true, childList: true });
+                producer.deferredBindingTasks_.push(taskB);
+                producer.flushRenderStamperComponentBindings7409_();
+                producer.deferredBindingTasks_.length = 0;
+                taskB.component = taskB.typeOrConfig = taskB.data = null;
+
+              }
+              let ok = false;
+              try {
+                f();
+                ok = true;
+              } catch (e) {
+                console.warn(e);
+              } finally {
+
+              }
+
+              if (node.isConnected === true) {
+                node.setAttribute('ytx-flushing', '0');
+                node.setAttribute('ytx-flushing', '3');
+                node.appendChild(document.createComment('-')).remove();
+              } else {
+                node.setAttribute('ytx-flushing', '0');
+                node.setAttribute('ytx-flushing', '3');
+                node.appendChild(document.createComment('-')).remove();
+                for (const e of component.querySelectorAll('rp[yt-element-placholder]')) {
+                  bindingMap.remove(e);
+                  e.remove();
+                }
+                flushedFn();
+              }
+
+            }
+          })
 
         }
 
@@ -5367,6 +5423,14 @@
 
 
       });
+
+
+
+      if (eTasks.length >= 1) {
+        Promise.resolve(eTasks).then((eTasks) => executeTaskBatch(eTasks, false));
+      }
+
+      eTasks = null;
 
 
 
@@ -5407,8 +5471,8 @@
 
 
     const byPassList = new Set([
-      // "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
-      // "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
+      "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
+      "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
       "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",  // for YouTube Tabview Totara
 
       // for immediate rendering
@@ -5446,7 +5510,7 @@
       const hostElement = cnt.hostElement;
       if (!hostElement) return true;
       // [hidden] test required?
-      return !!((hostElement && hostElement.closest('noscript, defs')) || (hostElement && hostElement.isConnected === false))
+      return !!((hostElement && hostElement.closest('[hidden], noscript, defs')) || (hostElement && hostElement.isConnected === false))
     }
 
     const doStampMapFix = function(){
