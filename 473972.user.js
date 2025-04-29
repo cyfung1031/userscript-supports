@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.6
+// @version     0.30.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5720,8 +5720,10 @@
               e.remove();
             }
             flushedFn();
-            console.log('ytx-flushing', component.getAttribute('ytx-flushing'));
-            console.warn('deferRenderStamperBinding_ ERROR 002')
+            if (component.hasAttribute('ytx-flushing')) {
+              console.log('ytx-flushing', component.getAttribute('ytx-flushing'));
+              console.warn('deferRenderStamperBinding_ ERROR 002')
+            }
           } else {
             console.warn('deferRenderStamperBinding_ ERROR 003')
 
