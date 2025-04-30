@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.30.12
+// @version     0.31.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -661,10 +661,13 @@
           });
 
 
+          /*
           cProto.stampDomArray8581_ = cProto.stampDomArray_;
 
           cProto.stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
+            const lastByPass01 = this.__lastByPass__
+            
             if (this.__stampTaskMap488__ instanceof Map) this.__stampTaskMap488__.delete(containerId);
 
             const b = this.flushRenderStamperComponentBindings_;
@@ -684,9 +687,13 @@
             if (this.flushRenderStamperComponentBindings_ !== b) {
               this.flushRenderStamperComponentBindings_ = b;
             }
+
+            const lastByPass02 = this.__lastByPass__
             if (e_ && e_.message !== '82919') throw e_;
             if (e_ && e_.message === '82919') {
-              if (this.__byPass7409__ === true) {
+
+              if (lastByPass01 !== lastByPass02 && (lastByPass02 & 1)) {
+                console.log(123288, this.hostElement.nodeName)
                 const producer = this;
                 const container = producer.getStampContainer_(containerId);
                 const hostElement = producer.hostElement;
@@ -707,6 +714,7 @@
             }
             return r;
           }
+          */
 
 
           if (MemoryFix_Flag002 & 1) {
@@ -4766,6 +4774,566 @@
 
 
 
+  const createStampDomFnsB_ = ()=>{
+
+    const config = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0);
+
+    if (config.DEFERRED_DETACH === true) config.DEFERRED_DETACH = false;
+    if (config.REUSE_COMPONENTS === true) config.REUSE_COMPONENTS = false;
+    
+
+    const rq0 = document.createElement('rp');
+    rq0.setAttribute('yt-element-placholder', '');
+
+    let activeStampContainerId = '';
+
+    const componentBasedTaskPool = new WeakMap();
+
+    const getStampContainer_ = function (containerId){
+
+      this.__activeContainerId929__ = containerId;
+
+      return this.getStampContainer7409_(containerId);
+
+    }
+
+    const createComponent_ = function (componentConfig, data, canReuse) {
+
+      const containerId = this.__activeContainerId929__;
+
+      const r = rq0.cloneNode(false);
+
+      r.is = 'aa-bb-cc-dd';
+
+      return r;
+
+    }
+
+    const eTasks = [];
+
+    let executing = false;
+
+    const executeTasks = async () => {
+
+      if(!eTasks.length) return;
+      if (executing) return;
+      executing = true;
+
+      try {
+
+        let eTask;
+        let t0 = performance.now();
+        while (eTask = eTasks.shift()) {
+          eTask.fn(eTask);
+          const t1 = performance.now();
+          if (t1 - t0 > 10) {
+            await nextBrowserTick_();
+            t0 = t1;
+          } else {
+            await Promise.resolve();
+          }
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+
+      executing = false;
+
+    }
+
+
+    const processTask = (mTask)=>{
+      let {component} = mTask;
+      component = kRef(component);
+      const pTask = component ? componentBasedTaskPool.get(component) : null;
+      if(!pTask) return;
+      let {step, producer, containerId, typeOrConfig, data, flushing, selfProducer} = pTask;
+      producer = kRef(producer);
+      selfProducer = kRef(selfProducer);
+
+      const resolveSelfAndCheckParent = ()=>{
+        const node = component;
+
+        node.removeAttribute('ytx-flushing');
+        const parentComponent = node.closest('[ytx-flushing]');
+        if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
+          eTasks.push({
+            component: parentComponent[wk],
+            fn: processTask
+          })
+        }
+
+        if(producer){
+
+          const parentComponent = producer.hostElement;
+          if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
+            eTasks.push({
+              component: parentComponent[wk],
+              fn: processTask
+            })
+          }
+
+        }
+
+        
+        if(selfProducer){
+
+          const parentComponent = selfProducer.hostElement;
+          if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
+            eTasks.push({
+              component: parentComponent[wk],
+              fn: processTask
+            })
+          }
+
+        }
+
+
+      }
+      if(pTask.step === 'creation'){
+
+        if (!producer) return;
+        if(component.parentNode && component.parentNode.id === containerId && component.parentNode === producer.getStampContainer7409_(containerId) ){
+          pTask.step = 'flushStamper';
+
+          const aNode = producer.createComponent7409_(typeOrConfig, data, false);
+          const qNode = component;
+
+          aNode.setAttribute('ytx-stamp', 'flusher');
+          aNode.setAttribute('ytx-flushing', '2')
+          if(!aNode[wk]) aNode[wk] = mWeakRef(aNode);
+
+          const container = producer.getStampContainer7409_(containerId);
+          const containerApi = container.__domApi || container;
+
+          const frag = document.createDocumentFragment();
+          frag.appendChild(aNode);
+          containerApi.insertBefore(frag, qNode);
+          containerApi.removeChild(qNode);
+
+          componentBasedTaskPool.delete(qNode)
+          componentBasedTaskPool.set(aNode, pTask)
+
+
+          eTasks.push({
+            component: aNode[wk],
+            fn: processTask
+          })
+
+
+        } 
+      } else if(pTask.step === 'flushStamper'){
+
+        if (!producer) return;
+        pTask.step = 'flushStamperWait';
+        pTask.typeOrConfig = null;
+        pTask.data = null;
+
+        const node = component;
+        node.setAttribute('ytx-flushing', '3');
+        
+        let taskB = { component: component, typeOrConfig: typeOrConfig, data: data };
+        // flushedObserver.observe(node, { subtree: true, childList: true });
+        producer.deferredBindingTasks_.push(taskB);
+        producer.flushRenderStamperComponentBindings7409_();
+
+        node.setAttribute('ytx-flushing', '4');
+
+
+        if(!node.querySelector('[ytx-flushing]')){
+          
+
+          eTasks.push({
+            component: component[wk],
+            fn: processTask
+          })
+        }
+
+
+
+      } else if (pTask.step === 'flushStamperWait'){
+        if (!producer) return;
+
+        // producer undetermined
+
+        const node = component;
+
+        if(!node.querySelector('[ytx-flushing]')){
+
+          pTask.step = 'idleContainer';
+
+          resolveSelfAndCheckParent();
+
+
+        }
+
+
+      } else if (pTask.step === 'waitContainersRenderFinish'){
+
+        const node = component;
+
+        if(!node.querySelector('[ytx-flushing]')){
+        pTask.step = 'idleProducer';
+        node.setAttribute('ytx-flushing', 's-2')
+        }
+        // const selfProducer = kRef(pTask.selfProducer);
+
+
+      } 
+
+
+      if(selfProducer && flushing && flushing.length > 0){
+
+        const node = component;
+        if(!node.querySelector('[ytx-flushing]')){
+
+          // pTask.step = 'idleProducer';
+
+          // node.setAttribute('ytx-flushing', 's-2')
+
+          let shouldMarkDirty = false;
+
+          const m = new Set();
+
+
+          // console.log(644221399, node, [...flushing])
+
+          const producer = selfProducer;
+
+          for(const [containerId, bEvent, hasData] of flushing){
+            if(hasData){
+              shouldMarkDirty = true;
+              if(bEvent){
+                const container = producer.getStampContainer7409_(containerId);
+                // console.log(644221499, container)
+                m.add(container);
+              }
+            }
+          }
+          // flushing.clear();
+          flushing.length = 0;
+
+          if (shouldMarkDirty) {
+            producer.markDirty && producer.markDirty();
+            let q = true;
+            for (const container of m) {
+              if(!q) producer.markDirty && producer.markDirty();
+              q = false;
+              dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
+                container
+              });
+            }
+          }
+
+          if(node.getAttribute('ytx-flushing') === 's-2') node.setAttribute('ytx-flushing', 's-3');
+
+
+          resolveSelfAndCheckParent();
+
+          //... event
+          
+        }
+      }
+
+    }
+
+    const childrenObs = new MutationObserver((mutations) => {
+      const nodes = new Set();
+      for(const mutation of mutations){
+        if(mutation.addedNodes && mutation.addedNodes.length >= 1){
+          for(const addedNode of mutation.addedNodes){
+            nodes.add(addedNode);
+          }
+        }
+        if(mutation.removedNodes && mutation.removedNodes.length >= 1){
+          for(const removedNode of mutation.removedNodes){
+            nodes.add(removedNode);
+          }
+        }
+        nodes.add(mutation.target);
+      }
+      if (!nodes.size) return;
+      const flushDom = new Set();
+      for (let node of nodes) {
+        if (node.nodeType !== 1) {
+          node = node.parentNode;
+        }
+        if (node && node.nodeType === 1) {
+          flushDom.add(node.closest('[ytx-flushing]'));
+        }
+      }
+      for (const node of flushDom) {
+        if (node && node[wk]) {
+          eTasks.push({
+            component: node[wk],
+            fn: processTask
+          });
+        }
+      }
+      executeTasks();
+    });
+
+    // Element.prototype.ssk1 = function(){
+    //   return componentBasedTaskPool.get(this)
+    // }
+    // Element.prototype.ssk2= function(){
+    //   eTasks.push({
+    //     component: this[wk],
+    //     fn: processTask
+    //   });
+    //   executeTasks();
+    // }
+
+    // setInterval(()=>{
+
+    //   if(!executing){
+
+    //     for(const p of document.querySelectorAll('[ytx-flushing]')){
+    //       eTasks.push({
+    //         component: p[wk],
+    //         fn: processTask
+    //       });
+    //     }
+
+    //     executeTasks();
+    //   }
+    // }, 500)
+
+    const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+
+      const containerId = this.__activeContainerId929__;
+      if(!component[wk]) component[wk] = mWeakRef(component);
+      if(!this[wk]) this[wk] = mWeakRef(this);
+
+      const pTask = componentBasedTaskPool.get(component);
+
+      if(pTask){
+
+        component.setAttribute('ytx-flushing', 'c-1');
+
+
+        
+
+        for(const e of component.querySelectorAll('[ytx-flushing]')){
+          const pTask = componentBasedTaskPool.get(e);
+          if(pTask) {
+            pTask.step = 'abandon';
+            if(pTask.flushing) pTask.flushing.length = 0 ;
+            pTask.flushing = null;
+
+            pTask.typeOrConfig = null
+            pTask.data = null
+            
+            // console.log(2377)
+            /*
+            pTask.producer = null
+            pTask.containerId = null
+            pTask.typeOrConfig = null
+            pTask.data = null
+            pTask.flushing = null;
+            */
+          }
+          // e.removeAttribute('ytx-flushing')
+        }
+
+        if(pTask.flushing) pTask.flushing.length = 0;
+
+        // console.log(123, component.querySelectorAll('[ytx-flushing]'))
+
+
+        Object.assign(pTask, {
+          step: 'flushStamper',
+          producer: this[wk],
+          containerId: containerId,
+          typeOrConfig: typeOrConfig,
+          data: data
+        });
+
+        // let q = false;
+
+        if(component.isConnected){
+          // const container = this.getStampContainer7409_(containerId);
+          // if(container && container.isConnected){
+  
+          //   // const containerApi = container.__domApi || container;
+    
+          //   // let p = document.createElement('rp');
+          //   // containerApi.insertBefore(p, component).replaceWith(component);
+          //   // p.remove();
+          //   // q = true;
+          // }
+
+          // use direct dom interface.
+          let p = document.createElement('rp');
+          component.parentNode.insertBefore(p, component).replaceWith(component);
+          p.remove();
+
+        }
+
+
+        // if(!q){
+        //   processTask({
+        //     component: component[wk],
+        //     fn: processTask
+        //   })
+        // }
+
+
+        // requestAnimationFrame(()=>{
+
+        //   executeTasks();
+        // })
+
+        
+        eTasks.push({
+          component: component[wk],
+          fn: processTask
+        });
+
+      }else{
+        component.setAttribute('ytx-flushing', '1');
+
+        component.setAttribute('ytx-stamp', 'flusher')
+
+        componentBasedTaskPool.set(component, {
+          step: 'creation',
+          producer: this[wk],
+          containerId: containerId,
+          typeOrConfig: typeOrConfig,
+          data: data
+        })
+  
+        eTasks.push({
+          component: component[wk],
+          fn: processTask
+        });
+      }
+
+      const container = this.getStampContainer7409_(containerId);
+      if (container && !container.__rk75401__) {
+        container.__rk75401__ = true;
+        childrenObs.observe(container, { subtree: false, childList: true });
+      }
+
+      executeTasks();
+
+
+    }
+    flushRenderStamperComponentBindings_ = function (){
+      throw new Error('5ii48')
+    }
+
+    stampDomArray_ =  function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+
+      // console.log(644221001)
+      bReuse = false;
+
+
+      this.__activeContainerId929__ = containerId;
+
+      const producer = this;
+      const hostElement = producer.hostElement;
+      if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+      if(hostElement.getAttribute('ytx-stamp') === 'flusher'){
+
+        hostElement.setAttribute('ytx-stamp', 'flusher|producer');
+      }else if (!hostElement.hasAttribute('ytx-stamp')){
+
+        hostElement.setAttribute('ytx-stamp', 'producer');
+      }
+      const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
+
+      const flushing = pTask? (pTask.flushing || []) : [];
+      // if(!flushing) debugger;
+      flushing.push([containerId, bEventCb, !!dataList]);
+
+      // console.log(644221299, containerId, bEventCb, !!dataList)
+
+      if(pTask){
+
+        // const pTaskProducer = pTask.producer;
+        // const parentProducer = pTaskProducer && pTaskProducer !== this[wk] ? pTaskProducer : null;
+        // const parentProducerContainerId = parentProducer ? pTask.containerId : null;
+
+        Object.assign(pTask, {
+          step: 'waitContainersRenderFinish',
+          selfProducer: this[wk],
+          flushing
+  
+        });
+
+        // if(parentProducer && parentProducerContainerId){
+        //   Object.assign(pTask, {
+        //     parentProducer,
+        //     parentProducerContainerId
+    
+        //   });
+        // }
+
+      } else {
+
+        componentBasedTaskPool.set(hostElement, {
+          step: 'waitContainersRenderFinish',
+          selfProducer: this[wk],
+          flushing
+
+        });
+      }
+
+      hostElement.setAttribute('ytx-flushing', 's-1');
+
+      hostElement.checkEE = ()=>{
+        console.log(componentBasedTaskPool.get(hostElement));
+        
+      }
+
+      let r, e_
+      try{
+
+        this.stampDomArray8581_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
+      }catch(e){
+        e_ = e;
+      }
+
+
+      console.log()
+
+
+      eTasks.push({
+        component: hostElement[wk],
+        fn: processTask
+      })
+
+
+
+      const container = this.getStampContainer7409_(containerId);
+      if (container && !container.__rk75401__) {
+        container.__rk75401__ = true;
+        childrenObs.observe(container, { subtree: false, childList: true });
+      }
+
+      // if (hostElement && !hostElement.__rk75401__) {
+      //   hostElement.__rk75401__ = true;
+      //   childrenObs.observe(hostElement, { subtree: true, childList: true });
+      // }
+
+      // container.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
+        
+      // hostElement.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
+        
+
+      executeTasks();
+
+
+      if(e_ && e_.message !== '5ii48') throw e_;
+
+    }
+
+
+    return {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_};
+
+
+  }
 
   const createStampDomFns_ = ()=>{
 
@@ -5665,14 +6233,33 @@
 
     }
 
-    const getStampContainer_ = function(containerId){
+    let firstActionStamper = null;
+    const bt0 = Date.now();
 
-      if (this) {
-        if (this.__byPass7409__ === undefined) this.__byPass7409__ = testCntByPass(this);
-        if (this.__byPass7409__ || testCntInvisible(this)) {
-          return this.getStampContainer7409_(containerId);
+    const checkByPass = (cnt) => {
+      let byPass = false;
+      if (!firstActionStamper) {
+        firstActionStamper = true;
+        cnt.__firstStamper1299__ = true;
+        // Promise.resolve().then(() => { firstActionStamper = null; });
+        // const cProto = Reflect.getPrototypeOf(cnt);
+        // cProto.__directStampFlush__ = true;
+      }
+      if (cnt.__firstStamper1299__) byPass = true;
+      else {
+        if (cnt.__byPass7409__ === undefined) cnt.__byPass7409__ = testCntByPass(cnt);
+        if (cnt.__byPass7409__ || testCntInvisible(cnt)) {
+          byPass = true;
         }
       }
+      cnt.__lastByPass__ = ((Date.now() - bt0) * 100 + Math.floor(Math.random() * 100)) * 2 + (byPass ? 1 : 0);
+      return byPass;
+    }
+
+    const getStampContainer_ = function(containerId){
+
+      const byPass = checkByPass(this);
+      if (byPass) return this.getStampContainer7409_(containerId);
 
 
       doStampMapFix.call(this);
@@ -5700,14 +6287,10 @@
 
     const doNotCacheMe = `${Math.floor(Math.random() * 100) + 100}`;
 
-    const createComponent_ = function(componentConfig, data, canReuse){
+    const createComponent_ = function (componentConfig, data, canReuse) {
 
-      if (this) {
-        if (this.__byPass7409__ === undefined) this.__byPass7409__ = testCntByPass(this);
-        if (this.__byPass7409__ || testCntInvisible(this)) {
-          return this.createComponent7409_(componentConfig, data, canReuse);
-        }
-      }
+      const byPass = checkByPass(this);
+      if (byPass) return this.createComponent7409_(componentConfig, data, canReuse);
 
       doStampMapFix.call(this);
       canReuse = false;
@@ -5734,17 +6317,19 @@
       if (node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
 
         for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
-          if (e.hasAttribute('ytx-flushing')) {
-            e.appendChild(document.createComment('.')).remove();
-            e.removeAttribute('ytx-flushing');
-          }
           const bdr = bindingMap.get(e)
           if (bdr) {
             bdr.flushId = genId();
             const producer = kRef(bdr.producer);
-            if (producer && (producer.__stampTaskMap488__ instanceof Map)) producer.__stampTaskMap488__.clear();
+            const taskMap = producer ? producer.__stampTaskMap488__ : null;
+            if (taskMap instanceof Map) taskMap.clear();
           }
-          if (e.hasAttribute('yt-element-placholder')) e.remove();
+          if (e.hasAttribute('ytx-flushing')) {
+            e.removeAttribute('ytx-flushing');
+            e.appendChild(document.createComment('.')).remove();
+          } else if (e.hasAttribute('yt-element-placholder')) {
+            e.remove();
+          }
         }
 
         for (const e of node.querySelectorAll('[ytx-stamping]')) {
@@ -5773,12 +6358,8 @@
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
 
-      if (this) {
-        if (this.__byPass7409__ === undefined) this.__byPass7409__ = testCntByPass(this);
-        if (this.__byPass7409__ || testCntInvisible(this)) {
-          return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-        }
-      }
+      const byPass = checkByPass(this);
+      if (byPass) return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
 
       const bdr = setBinding(component, typeOrConfig, data, this);
 
@@ -5830,12 +6411,8 @@
 
     const flushRenderStamperComponentBindings_ = function() {
 
-      if (this) {
-        if (this.__byPass7409__ === undefined) this.__byPass7409__ = testCntByPass(this);
-        if (this.__byPass7409__ || testCntInvisible(this)) {
-          return this.flushRenderStamperComponentBindings7409_();
-        }
-      }
+      const byPass = checkByPass(this);
+      if (byPass) return this.flushRenderStamperComponentBindings7409_();
 
       // if(!this.deferredBindingTasks7530_)  this.deferredBindingTasks7530_ = [];
       // const tasks = this.deferredBindingTasks7530_.slice();
@@ -6617,7 +7194,7 @@
       cProto[pvr] |= 1;
 
 
-      if (FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
+      if (0 && FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
         const b = cProto.stampDomArray_.length === 6
           && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
           && cProto.createComponent_ && cProto.createComponent_.length === 3
@@ -6643,6 +7220,40 @@
           
         }
       }
+
+      if (FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
+        const b = cProto.stampDomArray_.length === 6
+          && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
+          && cProto.createComponent_ && cProto.createComponent_.length === 3
+          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
+          && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
+          && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
+        if (!b) {
+          console.warn("YouTube Coding Changed. createStampDomFns_() is not applied")
+        } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
+          
+          if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsB_();
+          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_} = stampDomArrayFnStore;
+
+          cProto.getStampContainer7409_ = cProto.getStampContainer_;
+          cProto.createComponent7409_ = cProto.createComponent_;
+          cProto.deferRenderStamperBinding7409_ = cProto.deferRenderStamperBinding_;
+          cProto.flushRenderStamperComponentBindings7409_ = cProto.flushRenderStamperComponentBindings_;
+          cProto.stampDomArray7409_ = cProto.stampDomArray8581_ = cProto.stampDomArray_;
+
+          cProto.getStampContainer_ = getStampContainer_;
+          cProto.createComponent_ = createComponent_;
+          cProto.deferRenderStamperBinding_ = deferRenderStamperBinding_;
+          cProto.flushRenderStamperComponentBindings_ = flushRenderStamperComponentBindings_;
+          cProto.stampDomArray_ = stampDomArray_;
+
+          
+          
+        }
+      }
+
+
+      
 
 
       if(cProto._runEffectsForTemplate && !cProto._runEffectsForTemplate6344) {
