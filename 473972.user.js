@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.31.1
+// @version     0.31.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -717,18 +717,18 @@
           */
 
 
-          if (MemoryFix_Flag002 & 1) {
-            cProto.stampDomArray_.bind = sProtos.stampDomArray_$bind || (sProtos.stampDomArray_$bind = function (obj, ...args) {
-              let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
-              return () => {
-                const obj = kRef(wobj);
-                let u = Reflect.apply(this, obj, args);
-                args.length = 0;
-                wobj = null;
-                return u;
-              };
-            });
-          }
+          // if (MemoryFix_Flag002 & 1) {
+          //   cProto.stampDomArray_.bind = sProtos.stampDomArray_$bind || (sProtos.stampDomArray_$bind = function (obj, ...args) {
+          //     let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
+          //     return () => {
+          //       const obj = kRef(wobj);
+          //       let u = Reflect.apply(this, obj, args);
+          //       args.length = 0;
+          //       wobj = null;
+          //       return u;
+          //     };
+          //   });
+          // }
         }
 
       }
@@ -4791,6 +4791,8 @@
 
     const getStampContainer_ = function (containerId){
 
+      // if(this.__byPass828__) return this.getStampContainer7409_(containerId);
+
       this.__activeContainerId929__ = containerId;
 
       return this.getStampContainer7409_(containerId);
@@ -4805,7 +4807,11 @@
 
     const createComponent_ = function (componentConfig, data, canReuse) {
 
+      if(this.__byPass828__ || !this.__byPass348__) return this.createComponent7409_(componentConfig, data, canReuse);
+
       const containerId = this.__activeContainerId929__;
+
+      // console.log(2883007, componentConfig, data, canReuse)
 
       const r = rq0.cloneNode(false);
 
@@ -4848,17 +4854,22 @@
     }
     */
 
+
+
+
+
     let executing = false;
-    let eTasks = [];
+    let eTasks = null;
     let setRkT0;
     let rkT0;
 
     const rxProcessTask = () => {
+
       if (setRkT0) {
         rkT0 = performance.now();
         setRkT0 = false;
       }
-      const eTask = eTasks.shift();
+      const eTask = getETask();
       if (!eTask) {
         executing = false;
         return;
@@ -4876,16 +4887,76 @@
         executing = false;
       }
     };
+
+    const getETask = ()=>{
+
+
+
+
+      const nodeTasks = [];
+
+
+      for (const nodeWr of pendingRxList) {
+        const node = kRef(nodeWr);
+        if (!node) continue;
+        let nodeLevel = levelStore.get(node);
+        if (!nodeLevel) debugger;
+        const pTask = componentBasedTaskPool.get(node);
+        if (!pTask) continue;
+        const processLevel = ['creation', 'flushStamper', 'flushStamperWait', 'idleContainer', 'waitContainersRenderFinish', 'idleProducer'].indexOf(pTask.step) + 1;
+        if (!processLevel) debugger;
+        nodeTasks.push({
+          nodeLevel: nodeLevel,
+          processLevel: processLevel,
+          nodeId: refIDs.get(nodeWr),
+          nodeWr
+        });
+      }
+
+      if(nodeTasks.length === 0) return null;
+
+      nodeTasks.sort((a, b) => {
+        let c;
+        c = a.nodeLevel - b.nodeLevel;
+        if (c) return c;
+        c = a.processLevel - b.processLevel;
+        if (c) return c;
+        return a.nodeId - b.nodeId;
+      });
+
+      // console.log(nodeTasks);
+
+
+      const eTasks = nodeTasks.map(e => ({
+        component: e.nodeWr,
+        fn: processTask
+      }));
+
+      const eTask = eTasks[0];
+      pendingRxList.delete(eTask.component);
+
+      console.log(388, eTask)
+
+      return eTask;
+
+    }
+
     const executeTasks = () => {
-      if (!eTasks.length) return;
-      if (executing) return;
-      executing = true;
-      setRkT0 = true;
-      rxProcessTask();
+
+        // if (!eTasks.length) return;
+        if (executing) return;
+        executing = true;
+        setRkT0 = true;
+
+        rxProcessTask();
     };
 
+    Node.prototype.checkFF = function(){
+      return componentBasedTaskPool.get(this)
+    }
 
     const processTask = (mTask)=>{
+
 
       let {component} = mTask;
       component = kRef(component);
@@ -4894,6 +4965,7 @@
       let {step, producer, containerId, typeOrConfig, data, flushing, selfProducer} = pTask;
       producer = kRef(producer);
       selfProducer = kRef(selfProducer);
+      // console.log(2883034, 'pTask', component, {...pTask})
 
       // console.log(18843992, component, {...pTask})
 
@@ -4906,10 +4978,7 @@
         if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
           if(!s.has(parentComponent[wk])){
             s.add(parentComponent[wk])
-            eTasks.unshift({
-              component: parentComponent[wk],
-              fn: processTask
-            })
+            pendingRxList.add_(parentComponent[wk]);
           }
         }
 
@@ -4919,10 +4988,8 @@
           if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
             if(!s.has(parentComponent[wk])){
               s.add(parentComponent[wk])
-              eTasks.unshift({
-                component: parentComponent[wk],
-                fn: processTask
-              })
+
+              pendingRxList.add_(parentComponent[wk]);
             }
           }
 
@@ -4932,13 +4999,10 @@
         if(selfProducer){
 
           const parentComponent = selfProducer.hostElement;
-          if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
-            if(!s.has(parentComponent[wk])){
+          if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
+            if (!s.has(parentComponent[wk])) {
               s.add(parentComponent[wk])
-              eTasks.unshift({
-                component: parentComponent[wk],
-                fn: processTask
-              })
+              pendingRxList.add_(parentComponent[wk]);
             }
           }
 
@@ -4957,6 +5021,8 @@
           const aNode = producer.createComponent7409_(typeOrConfig, data, false);
           const qNode = component;
 
+          levelStore.set(aNode, levelStore.get(qNode));
+
           aNode.setAttribute('ytx-stamp', 'flusher');
           aNode.setAttribute('ytx-flushing', '2')
           if(!aNode[wk]) aNode[wk] = mWeakRef(aNode);
@@ -4972,11 +5038,7 @@
           componentBasedTaskPool.delete(qNode)
           componentBasedTaskPool.set(aNode, pTask)
 
-
-          eTasks.unshift({
-            component: aNode[wk],
-            fn: processTask
-          })
+          pendingRxList.add_(aNode[wk]);
           return;
 
 
@@ -5001,11 +5063,7 @@
 
         if(!node.querySelector('[ytx-flushing]')){
           
-
-          eTasks.unshift({
-            component: component[wk],
-            fn: processTask
-          })
+          pendingRxList.add_(component[wk]);
           return;
         }
 
@@ -5137,10 +5195,7 @@
       }
       for (const node of flushDom) {
         if (node && node[wk] && componentBasedTaskPool.get(node)) {
-          eTasks.push({
-            component: node[wk],
-            fn: processTask
-          });
+          pendingRxList.add_(node[wk]);
         }
       }
       executeTasks();
@@ -5172,13 +5227,34 @@
     //   }
     // }, 500)
 
+    const levelStore = new WeakMap();
+    const pendingRxList = new Set();
+    const refIDs = new WeakMap();
+    let refIdCounter = 0;
+
+    pendingRxList.add = pendingRxList.addOriginal || pendingRxList.add;
+    pendingRxList.add_ = function(x){
+      this.add(x);
+      if(!refIDs.has(x)) refIDs.set(x, ++refIdCounter);
+    }
+
+
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+      if(this.__byPass828__ || !this.__byPass348__) return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+
+      let producerLevel = levelStore.get(this.hostElement);
+      if(!producerLevel){
+        producerLevel = (levelStore.get(this.hostElement.closest('ytx-stamp')) || 0)+1
+        levelStore.set(this.hostElement, producerLevel );
+      }
 
       const containerId = this.__activeContainerId929__;
       if(!component[wk]) component[wk] = mWeakRef(component);
       if(!this[wk]) this[wk] = mWeakRef(this);
 
       const pTask = componentBasedTaskPool.get(component);
+
+      levelStore.set(component, producerLevel + 1 );
 
       if(pTask && component.nodeName !== "RP"){
 
@@ -5267,10 +5343,7 @@
 
 
         
-        eTasks.unshift({
-          component: component[wk],
-          fn: processTask
-        });
+        pendingRxList.add_(component[wk]);
 
       }else{
         component.setAttribute('ytx-flushing', '1');
@@ -5297,11 +5370,7 @@
           })
         }
 
-  
-        eTasks.push({
-          component: component[wk],
-          fn: processTask
-        });
+        pendingRxList.add_(component[wk]);
       }
 
       const container = this.getStampContainer7409_(containerId);
@@ -5315,14 +5384,29 @@
 
     }
     flushRenderStamperComponentBindings_ = function (){
+      if(this.__byPass828__ || !this.__byPass348__) return this.flushRenderStamperComponentBindings7409_();
       throw new Error('5ii48')
     }
 
+    
     stampDomArray_ =  function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+
+      if(!dataList || !dataList[0]) this.__byPass828__ = true;
+      // this.__byPass828__ = true;
 
       // console.log(644221001)
       bReuse = false;
 
+      // console.log(2883002, ...arguments, this.stampDomArray8581_)
+
+      // return this.stampDomArray8581_(...arguments);
+
+
+      let producerLevel = levelStore.get(this.hostElement);
+      if (!producerLevel) {
+        producerLevel = (levelStore.get(this.hostElement.closest('ytx-stamp')) || 0) + 1
+        levelStore.set(this.hostElement, producerLevel);
+      }
 
       this.__activeContainerId929__ = containerId;
 
@@ -5382,30 +5466,38 @@
         
       }
 
-      let r, e_
-      try{
-
-        this.stampDomArray8581_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-      }catch(e){
-        e_ = e;
-      }
-
-
-      // console.log()
-
-
-      eTasks.unshift({
-        component: hostElement[wk],
-        fn: processTask
-      });
-
-
-
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
         container.__rk75401__ = true;
         childrenObs.observe(container, { subtree: false, childList: true });
       }
+
+      // console.log(2883991);
+      let r, e_
+      try{
+        this.__byPass348__=true;
+        this.stampDomArray8581_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
+      }catch(e){
+        e_ = e;
+      }
+      this.__byPass348__=false;
+      // console.log(2883992);
+
+
+      // console.log()
+
+      pendingRxList.add_(hostElement[wk]);
+
+
+      if(!hostElement.querySelector('[ytx-flushing]')){
+        this.markDirty && this.markDirty();
+        dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+          container
+        });
+        Promise.resolve().then(executeTasks);
+        return;
+      }
+
 
       // if (hostElement && !hostElement.__rk75401__) {
       //   hostElement.__rk75401__ = true;
@@ -5429,1129 +5521,6 @@
 
 
   }
-
-  const createStampDomFns_ = ()=>{
-
-    const config = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0);
-
-    if (config.DEFERRED_DETACH === true) config.DEFERRED_DETACH = false;
-    if (config.REUSE_COMPONENTS === true) config.REUSE_COMPONENTS = false;
-
-    // const convMap = new WeakMap();
-
-    const rq0 = document.createElement('rp');
-    rq0.setAttribute('yt-element-placholder', '');
-
-    const registry = new FinalizationRegistry_((heldValue)=>{
-      // console.log('component clean up', heldValue);
-    });
-
-    const syb1 = Symbol(); // data id
-    const syb2 = Symbol(); // element id
-    const syb3 = Symbol(); // container obs.
-    const syb4 = Symbol(); // producer id
-    const syb5 = Symbol(); // component belong to
-    const syb6 = Symbol(); // bind componentConfig events true
-    const syb7 = Symbol(); // containerElement -> container binding
-    const syb8 = Symbol(); // flag for container flush event
-    const syb9 = Symbol(); // container to producerId
-
-    const producerMap = new Map();
-
-
-    const it0 = Date.now() - 80000000000;
-    const genId = ()=>`${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now()-it0).toString(36)}`;
-
-    const emptyDocument = document.implementation.createHTMLDocument();
-    const emptyHTMLRoot = emptyDocument.firstElementChild;
-
-    const syb0 = Symbol();
-
-    const hashs = new Set();
-    const hashs2 = new Set();
-    hashs.add = Set.prototype.add;
-    hashs.has = Set.prototype.has;
-    hashs.delete = Set.prototype.delete;
-
-    Node.prototype[syb0] = true;
-
-    if (stampDomArray_MemoryFix_Flag001) {
-      {
-        const { set, get, has } = Map.prototype;
-        Map.prototype.setOriginal = Map.prototype.set;
-        Map.prototype.set = function (k, v) {
-          if (k && k[syb0]) {
-            if (!this[wk]) this[wk] = mWeakRef(this);
-            hashs.add(this[wk]);
-          }
-          if (v && v[syb0]) {
-            if (!this[wk]) this[wk] = mWeakRef(this);
-            hashs2.add(this[wk]);
-          }
-          return set.call(this, k, v);
-        }
-      }
-
-      {
-        const { add, has } = Set.prototype;
-        Set.prototype.addOriginal = Set.prototype.add;
-        Set.prototype.add = function (k) {
-          if (k && k[syb0]) {
-            if (!this[wk]) this[wk] = mWeakRef(this);
-            hashs.add(this[wk]);
-          }
-          return add.call(this, k);
-        }
-      };
-
-    }
-
-    const cleanRegister = new FinalizationRegistry_((heldValue) => {
-      // console.log(21399)
-      heldValue();
-    });
-
-    const cleanComponentTasks = [];
-
-    const cleanComponent = stampDomArray_MemoryFix_Flag001 ? (component) => {
-      if (!component || typeof component !== 'object') return;
-      if (!component[wk]) component[wk] = mWeakRef(component);
-      cleanComponentTasks.push(component[wk]);
-    } : () => { };
-
-    if (stampDomArray_MemoryFix_Flag001) {
-      new MutationObserver(() => {
-        if (cleanComponentTasks.length === 0) return;
-        if (document.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) return;
-        const tasks = cleanComponentTasks.slice();
-        cleanComponentTasks.length = 0;
-        // console.log('try clean', tasks.length)
-        for (const componentWr of tasks) {
-          const component = kRef(componentWr);
-          if (!component) continue;
-          cleanComponent_(component);
-        }
-        tasks.length = 0;
-      }).observe(document, { subtree: true, childList: true });
-    }
-
-    const cleanComponent_ = stampDomArray_MemoryFix_Flag001 ? (component) => {
-      if (!component) return;
-      if (component.parentNode) return;
-      if (component.__cleaned9941__) return;
-
-      component.__cleaned9941__ = true;
-      const producerId = component[syb5];
-      const producerCnt = producerId ? kRef(producerMap.get(producerId)) : null;
-      // if(!producerCnt) return;
-      const wrapApi = standardWrap_(component);
-      delete wrapApi.node;
-      const key = wrapApi.__componentIdRemoved__ = component[syb2]
-      const cnt = insp(component);
-
-
-      const componentNodeName = component.nodeName.toLowerCase();
-
-      const cleanMapping = {}
-      if (cnt && cnt.is) {
-
-        window.cleanComponents = window.cleanComponents || [];
-        window.cleanComponents.push({ type: componentNodeName, keyId: key, state: cleanMapping });
-
-        cnt.__testclean__ = {};
-
-
-        for (const [k, pd] of Object.entries(Object.getOwnPropertyDescriptors(cnt))) {
-          if (pd.get) continue;
-          const v = pd.value;
-          if (!v) continue;
-          if (typeof v === 'boolean' || typeof v === 'number' || typeof v === 'string' || typeof v === 'undefined') continue;
-          if (pd.writable === false && pd.configurable === false) continue;
-
-          if (Reflect.getPrototypeOf(cnt)[k] === v) continue;
-          cleanMapping[k] = false;
-          const f = ((k, v) => {
-
-            return () => {
-              cleanMapping[k] = true;
-            };
-          })(k, v);
-          cleanRegister.register(v, f);
-
-          // $
-          // hostElement
-          // observedAttributes
-          // root
-          // __templateInfo
-
-          // signalProxy
-          // provide
-          // polySiParams
-          // polySiInfo
-
-          // polySiContext
-          // observedAttributes
-          // hostElement
-
-
-
-
-
-
-        }
-
-      }
-
-
-      if (typeof cnt.unobserve_ === 'function') {
-        cnt.unobserve_();
-        cnt.unobserve_ = null;
-      }
-
-
-      if (cnt.disconnectedCallback) {
-
-        try {
-          cnt.disconnectedCallback();
-        } catch (e) { }
-
-      }
-
-      if (cnt.root && cnt.root !== emptyHTMLRoot) cnt.root = emptyHTMLRoot;
-      if (typeof cnt.__removeChildren === 'function') {
-        try {
-          cnt.__removeChildren();
-        } catch (e) { }
-      }
-      emptyHTMLRoot.textContent = '';
-
-
-      if (typeof cnt.unregisterRenderer_ === 'function' && typeof (cnt.childCache_ || 0) === 'object') {
-        for (let k in cnt.childCache_) {
-          cnt.unregisterRenderer_(k);
-        }
-        cnt.unregisterRenderer_ = null;
-      }
-
-      if (producerCnt && (producerCnt.childCache_ instanceof Set || (producerCnt.childCache_ instanceof WeakSet))) {
-        producerCnt.childCache_.delete(component);
-      }
-
-      cnt.disablePrescanVisibility = true;
-      if (cnt.signalProxy) {
-        cnt.signalProxy.dispose();
-        if (cnt.signalProxy.options) {
-          if (cnt.signalProxy.options.reactiveProps) {
-            cnt.signalProxy.options.reactiveProps.clear();
-            cnt.signalProxy.options.reactiveProps = null;
-          }
-
-          if (cnt.signalProxy.owner.disposables) {
-            cnt.signalProxy.owner.disposables.length = 0;
-            cnt.signalProxy.owner.disposables = null;
-          }
-          const { model, signalCache } = cnt.signalProxy;
-          if (model) {
-            for (let k in model) {
-              model[k] = null;
-            }
-          }
-
-          if (signalCache) {
-            if (signalCache) {
-              for (let k in signalCache) {
-                signalCache[k] = null;
-              }
-            }
-          }
-
-        }
-
-        cnt.signalProxy = null;
-      }
-      if (typeof cnt.dispose === 'function') {
-        cnt.dispose();
-        cnt.dispose = null;
-      }
-
-      cnt.$ = null;
-      if (cnt.__children && cnt.__children.length > 0) cnt.__children.length = 0;
-      cnt.__children = null;
-      cnt.root = null;
-      cnt.__isUpgradeDisabled = true;
-
-      const { __data } = cnt;
-      if (__data) {
-        for (let k in __data) __data[k] = null;
-        cnt.__data = null;
-      }
-
-      emptyHTMLRoot.textContent = '';
-
-      for (const hash of hashs) {
-        const m = kRef(hash);
-        if (m) {
-          m.delete(cnt);
-          m.delete(component);
-          m.delete(wrapApi);
-        }
-      }
-
-      for (const hash of hashs2) {
-        const m = kRef(hash);
-        if (m) {
-          for (const [k, v] of m.entries()) {
-            if (v === cnt || v === component || v === wrapApi) {
-              m.delete(k);
-            }
-          }
-        }
-      }
-
-      /*
-      
-      _removeEventListenerFromNode 
-      _removeBoundDom
-      _removePropertyEffect
-      __observeEffects
-
-      observedAttributes
-
-      renderJobsMap_
-      localVisibilityObserver_
-      observeHiddenOption
-      observeVisibleOption
-
-      visibilityObserverForChild_
-      prescanObservers
-
-      */
-
-
-
-
-      if (cnt && cnt.is) {
-
-
-
-
-        for (const [k, pd] of Object.entries(Object.getOwnPropertyDescriptors(cnt))) {
-          if (pd.get) continue;
-          const v = pd.value;
-          if (!v) continue;
-          if (typeof v === 'boolean' || typeof v === 'number' || typeof v === 'string' || typeof v === 'undefined') continue;
-          if (pd.writable === false && pd.configurable === false) continue;
-          if (pd.writable === false && pd.configurable) delete cnt[k];
-
-          cnt[k] = null;
-
-        }
-
-      }
-
-
-
-      // const componentIs = component.is;
-      registry.register(wrapApi, `w::${key} [${componentNodeName}]`)
-
-      // if(cnt !== component) Object.setPrototypeOf(cnt, Object.prototype);
-      // if(wrapApi !== component) Object.setPrototypeOf(wrapApi, Object.prototype);
-      Object.setPrototypeOf(component, Reflect.getPrototypeOf(HTMLTitleElement).prototype);
-      // standardWrap_ producerCnt.listner
-
-      // console.log('try clean', `t::${key} [${componentNodeName}]`)
-    } : () => { };
-
-
-    const createFn = (node, binder)=>{
-      const q = node;
-      let {producer, typeOrConfig, data, canReuse} = binder;
-      producer = kRef(producer);
-      typeOrConfig = getTypeOfConfig(typeOrConfig);
-      data = kRef(data);
-
-
-      const component = producer.createComponent7409_(typeOrConfig, data, canReuse);
-      // if (component[syb5]) cleanComponent(component);
-      component[syb5] = producer[syb4];
-      component[syb1] = data[syb1];
-      component[syb2] = q[syb2] = genId();
-      const cnt = insp(component);
-      if (cnt && cnt !== component && !cnt[syb0]) {
-        Reflect.getPrototypeOf(insp(component))[syb0] = true;
-      }
-      const componentNodeName = component.nodeName.toLowerCase();
-      registry.register(component, `c::${component[syb2]} [${componentNodeName}]`);
-      registry.register(q, `q::${q[syb2]} [${componentNodeName}]`);
-      return component;
-    }
-
-    const setupFlush = (container, p) => {
-
-      const producerId = container[syb9];
-      const producer = producerId ? kRef(producerMap.get(producerId)) : null;
-      if (!producer) return;
-      if (!producer.hostElement) return;
-      if (!container || !container.parentNode || !container.nodeName || !container.id) return;
-
-      if (p === 'e' && container.getAttribute('ytx-stamping') !== 'e') {
-        container.setAttribute('ytx-stamping', p);
-      } else if (p === '1' && !container.hasAttribute('ytx-stamping')) {
-        container.setAttribute('ytx-stamping', p);
-      }
-
-      if (!producer.__stampTaskMap488__) producer.__stampTaskMap488__ = new Map();
-      producer.__stampTaskMap488__.set(container.id, container.getAttribute('ytx-stamping'));
-
-    }
-
-    const removeAttrFn = (mTask) => {
-      let { hostElement, producer, containerId } = mTask;
-      hostElement = kRef(hostElement);
-      producer = kRef(producer);
-      if (hostElement.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) return;
-      const container = producer.getStampContainer7409_(containerId);
-      if (!(container instanceof Node)) return;
-      if (!container.isConnected || !hostElement.isConnected) return;
-      dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
-        container
-      });
-    };
-
-    const flushedFn = () => {
-
-
-      let eTasks = [];
-      let pending = new Set();
-
-      const removeAttr = (producer) => {
-
-        if (pending.has(producer)) return;
-
-        const hostElement = producer.hostElement;
-        if (!hostElement) return;
-
-        if (!hostElement.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-
-          const stampingLists = producer.__stampTaskMap488__;
-          const stampingListsNew = new Map(stampingLists || undefined);
-          if (stampingLists) stampingLists.clear();
-
-          pending.add(producer);
-
-          producer.markDirty && producer.markDirty();
-          for (const [containerId, event] of stampingListsNew.entries()) {
-            if (event === 'e') {
-
-              if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
-              if (!producer[wk]) producer[wk] = mWeakRef(producer);
-              eTasks.push({
-                hostElement: hostElement[wk],
-                producer: producer[wk],
-                containerId,
-                fn: removeAttrFn
-              });
-
-            }
-          }
-
-        }
-      }
-
-      let b;
-      do {
-        b = false;
-        for (const node of document.querySelectorAll('[ytx-flushing="3"]')) {
-          if (!node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-            node.removeAttribute('ytx-flushing');
-            b = true;
-          }
-        }
-        for (const node of document.querySelectorAll('[ytx-stamping]')) {
-          if (!node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-            node.removeAttribute('ytx-stamping');
-            const producerId = node[syb9];
-            const producer = producerId ? kRef(producerMap.get(producerId)) : null;
-            if (producer) removeAttr(producer);
-            b = true;
-          }
-        }
-      } while (b);
-
-      if (eTasks.length >= 1) {
-        Promise.resolve(eTasks).then((eTasks) => executeTaskBatch(eTasks, false));
-      }
-      pending.clear();
-      pending = null;
-      eTasks = null;
-    };
-
-    const flushedObserver = new MutationObserver((mutations) => {
-      flushedFn();
-    });
-
-    const containerChildernTaskFn1 = (eTask) => {
-      const { nodeWr, targetId, targetWr, bdrFlushId } = eTask;
-      const node = kRef(nodeWr);
-      if (!node.parentNode || !node.parentNode.id) return;
-      const bdr = node ? bindingMap.get(node) : null;
-      if (!bdr) return;
-      if (bdrFlushId !== bdr.flushId) return;
-      const producer = kRef(bdr.producer);
-      if (!producer) return;
-      const target = kRef(targetWr);
-      if (!target || target.id !== targetId || target !== node.parentNode) return;
-      if (node.getAttribute('ytx-flushing') === '1') {
-        bdr.stampingContainerId = targetId;
-        // console.log('set_flushing_2_02', node.nodeName);
-        node.setAttribute('ytx-flushing', '2');
-      }
-    };
-
-    const containerChildernTaskFn2 = (eTask) => {
-      const { nodeWr, targetId, targetWr, bdrFlushId } = eTask;
-      const node = kRef(nodeWr);
-      if (!node || !node.parentNode || !node.parentNode.id) return;
-      const bdr = bindingMap.get(node);
-      if (!bdr) return;
-      if (bdrFlushId !== bdr.flushId) return;
-      const producer = kRef(bdr.producer);
-      if (!producer) return;
-      const target = kRef(targetWr);
-      if (!target || target.id !== targetId || target !== node.parentNode) return;
-      bindingMap.delete(node);
-      bdr.created = true;
-      const newNode = createFn(node, bdr);
-      if (!newNode[wk]) newNode[wk] = mWeakRef(newNode);
-      if (newNode instanceof Node) {
-        newNode.setAttribute('ytx-flushing', '0');
-        newNode.setAttribute('ytx-flushing', '1');
-      }
-      bindingMap.set(newNode, bdr);
-      const containerId = targetId;
-
-      const container = producer.getStampContainer7409_(containerId);
-      const containerApi = container.__domApi || container;
-
-      const frag = document.createDocumentFragment();
-      frag.appendChild(newNode);
-      containerApi.insertBefore(frag, node);
-      containerApi.removeChild(node);
-
-    };
-
-    const containerChildernObs = new MutationObserver((mutations) => {
-
-
-      let eTasks = [];
-      let nodeList = new Set();
-
-      for (const mutation of mutations) {
-
-        // mutation.removedNodes
-
-        // mutation.addedNodes
-        const target = mutation.target;
-        if (!target.id || !target.parentNode) continue;
-        let p;
-
-        for (const node of mutation.addedNodes) {
-
-          if (node.parentNode !== target) continue;
-          if (nodeList.has(node)) continue;
-          nodeList.add(node);
-          if(node.isConnected === false) continue;
-
-          let bdr = bindingMap.get(node);
-          if (!bdr) continue;
-          let typeOrConfig = bdr ? kRef(bdr.typeOrConfig) : null;
-          let data = bdr ? kRef(bdr.data) : null;
-          if (typeOrConfig) {
-            if (typeof typeOrConfig === 'object' && typeOrConfig[syb6]) p = 'e';
-            if (!p) p = '1';
-          }
-
-          if (!node[wk]) node[wk] = mWeakRef(node);
-          if (!target[wk]) target[wk] = mWeakRef(target);
-
-          const bdrFlushId = bdr.flushId = genId();
-          if (bdr.created) {
-            eTasks.push({
-              nodeWr: node[wk],
-              targetId: target.id,
-              targetWr: target[wk],
-              bdrFlushId,
-              fn: containerChildernTaskFn1
-            });
-          } else if(node.nodeName === 'RP') {
-            eTasks.push({
-              nodeWr: node[wk],
-              targetId: target.id,
-              targetWr: target[wk],
-              bdrFlushId,
-              fn: containerChildernTaskFn2
-            });
-          }
-
-        }
-
-        for (const node of mutation.removedNodes) {
-
-          if (node.parentNode === target) continue;
-          if (nodeList.has(node)) continue;
-          nodeList.add(node);
-
-          let bdr = bindingMap.get(node);
-          if (!bdr) continue;
-          bdr.flushId = genId();
-          bindingMap.delete(node);
-          let typeOrConfig = bdr ? kRef(bdr.typeOrConfig) : null;
-          if (typeOrConfig) {
-            if (typeof typeOrConfig === 'object' && typeOrConfig[syb6]) p = 'e';
-            if (!p) p = '1';
-          }
-          // bdr.producer = bdr.typeOrConfig = bdr.data = null;
-
-
-          forceCancel(node, false);
-
-
-          node.removeAttribute('ytx-flushing');
-          Promise.resolve(node).then(cleanComponent);
-
-        }
-
-        if (p) {
-          setupFlush(target, p);
-        }
-      }
-
-
-      if (eTasks.length >= 1) {
-        Promise.resolve(eTasks).then((eTasks) => executeTaskBatch(eTasks, false));
-      }
-
-      nodeList.clear();
-      nodeList = null;
-      eTasks = null;
-
-
-    });
-
-    const flushTaskFn = (mTask) => {
-
-      const { containerWr, nodeWr, stampingContainerId, bdrFlushId } = mTask;
-      const node = kRef(nodeWr);
-      if (!node) return;
-      const flushingVal = node.getAttribute('ytx-flushing');
-      if (flushingVal !== '2x') return;
-
-      let skip = false;
-      const f = () => {
-
-        const bdr = bindingMap.get(node);
-        if (!bdr) return;
-        if (bdrFlushId !== bdr.flushId) {
-          skip = true;
-          return;
-        }
-        const producer = kRef(bdr.producer);
-        if (!producer) return;
-
-        if (bdr.stampingContainerId !== stampingContainerId) return;
-
-        const container = kRef(containerWr);
-        if (!container) return;
-        if (container.id !== stampingContainerId) return;
-
-        const typeOrConfig = getTypeOfConfig(bdr.typeOrConfig);
-
-        let data = kRef(bdr.data);
-        bdr.data = null;
-        let taskB = { component: node, typeOrConfig: typeOrConfig, data: data };
-        flushedObserver.observe(node, { subtree: true, childList: true });
-        producer.deferredBindingTasks_.push(taskB);
-        producer.flushRenderStamperComponentBindings7409_();
-        producer.deferredBindingTasks_.length = 0;
-        taskB.component = taskB.typeOrConfig = taskB.data = null;
-
-      }
-      let ok = false;
-      try {
-        f();
-        ok = true;
-      } catch (e) {
-        console.warn(e);
-      } finally {
-
-      }
-
-      if (!skip) {
-          node.setAttribute('ytx-flushing', '0');
-          node.setAttribute('ytx-flushing', '3');
-          node.appendChild(document.createComment('-')).remove();
-        // if (node.isConnected === true) {
-        //   node.setAttribute('ytx-flushing', '0');
-        //   node.setAttribute('ytx-flushing', '3');
-        //   node.appendChild(document.createComment('-')).remove();
-        // } else {
-        //   node.setAttribute('ytx-flushing', '0');
-        //   node.setAttribute('ytx-flushing', '3');
-        //   node.appendChild(document.createComment('-')).remove();
-
-
-        //   let bdr = bindingMap.get(node);
-        //   if (bdr) bdr.flushId = genId();
-
-        //   for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
-        //     const bdr = bindingMap.get(e)
-        //     if (!bdr) continue;
-        //     bdr.flushId = genId();
-        //     e.parentNode.appendChild(document.createComment('.')).remove();
-        //     // e.remove();
-        //   }
-
-        //   for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
-        //     e.remove();
-        //   }
-        //   for (const e of node.querySelectorAll('[ytx-flushing]')) {
-        //     e.setAttribute('ytx-flushing', '3');
-        //   }
-
-        //   node.setAttribute('ytx-flushing', '3');
-        //   flushedFn();
-
-
-        //   for (const e of node.querySelectorAll('rp[yt-element-placholder]')) {
-        //     e.remove();
-        //   }
-        //   for (const e of node.querySelectorAll('[ytx-stamping], [ytx-flushing]')) {
-        //     e.removeAttribute('ytx-flushing');
-        //     e.removeAttribute('ytx-stamping');
-        //   }
-
-        // }
-      }
-
-    };
-
-    const flushObserver = new MutationObserver((mutations) => {
-
-      let targets = new Set();
-      for (const mutation of mutations) {
-        const target = mutation.target;
-        targets.add(target);
-      }
-
-      let eTasks = [];
-
-      let containerMap = new Map();
-      for (const target of targets) {
-
-        if (target.getAttribute('ytx-flushing') === '2') {
-
-          const node = target;
-
-          const container = target.parentNode;
-          if (!container || !container.id) continue;
-          if (target.isConnected === false) continue;
-
-          const bdr = bindingMap.get(node);
-          if (!bdr) continue;
-          const producer = kRef(bdr.producer);
-          if (!producer) continue;
-          const stampingContainerId = bdr.stampingContainerId;
-          if (stampingContainerId !== container.id) continue;
-
-          if (target.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-            console.log('need forceCancel 003');
-            forceCancel(target, false);
-            target.setAttribute('ytx-flushing', '0');
-            target.setAttribute('ytx-flushing', '2');
-            continue;
-          }
-          const bdrFlushId = bdr.flushId = genId();
-
-          target.setAttribute('ytx-flushing', '2x');
-
-          let p = containerMap.get(container);
-          const [typeOrConfig, p_] = getTypeOfConfig(bdr.typeOrConfig, true);
-          if (typeOrConfig) {
-            if (p_) p = 'e';
-            if (!p) p = '1';
-            containerMap.set(container, p);
-          }
-
-
-          if (!container[wk]) container[wk] = mWeakRef(container[wk]);
-          if (!node[wk]) node[wk] = mWeakRef(node[wk]);
-          eTasks.push({
-            containerWr: container[wk],
-            nodeWr: node[wk],
-            stampingContainerId,
-            bdrFlushId,
-            fn: flushTaskFn
-          })
-
-        }
-
-      }
-
-
-
-
-      containerMap.forEach((p, container) => {
-
-        if (container.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-
-          setupFlush(container, p)
-        }
-
-
-      });
-
-
-
-      if (eTasks.length >= 1) {
-        Promise.resolve(eTasks).then((eTasks) => executeTaskBatch(eTasks, false));
-      }
-
-      eTasks = null;
-
-
-
-    });
-
-    flushObserver.observe(document, {subtree: true, attributes: true, attributeFilter: ['ytx-flushing']});
-
-
-    const getTypeOfConfig = (typeOrConfig, b = false) => {
-      let p = null;
-      if (typeof typeOrConfig === 'object') typeOrConfig = kRef(typeOrConfig);
-      if (b && typeof typeOrConfig === 'object' && typeOrConfig[syb6]) p = typeOrConfig[syb6];
-      if (typeOrConfig && typeOrConfig.__rawType__) typeOrConfig = typeOrConfig.valueOf();
-      return b ? [typeOrConfig, p] : typeOrConfig;
-    }
-
-    const setBinding = (component, typeOrConfig, data, producer) => {
-
-      if (typeOrConfig && typeof typeOrConfig === 'object' && !typeOrConfig[wk]) {
-        typeOrConfig[wk] = mWeakRef(typeOrConfig);
-        typeOrConfig = typeOrConfig[wk]
-      }
-      if (!data[wk]) data[wk] = mWeakRef(data);
-      if (!producer[wk]) producer[wk] = mWeakRef(producer);
-      const oldBdr = bindingMap.get(component);
-      if (oldBdr) {
-        forceCancel(component, true);
-        oldBdr.producer = oldBdr.typeOrConfig = oldBdr.data = null;
-        oldBdr.flushId = genId();
-      }
-      const bdr = { typeOrConfig: typeOrConfig, data: data[wk], producer: producer[wk] };
-      bdr.flushId = genId();
-      bindingMap.set(component, bdr);
-
-      return bdr;
-    }
-
-
-    const byPassList = new Set([
-      // for YouTube Tabview Totara (instance data setter)
-      "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
-      "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
-      "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",
-    ]);
-
-    const testCntByPass = (cnt) => {
-      const hostElement = cnt.hostElement;
-      if (hostElement instanceof Node) {
-        if (byPassList.has(hostElement.nodeName) || !cnt.stampDomArray_ || cnt.visibleItems || cnt.activeItems_ || cnt.tickerItems || cnt.updatePanel || cnt.updateChildVisibilityProperties || cnt.onYtRendererstamperFinished) {
-          const cProto = Reflect.getPrototypeOf(cnt);
-          if (cProto.is && cProto.is === cnt.is) {
-            cProto.__byPass7409__ = true;
-            cProto.createComponent_ = cProto.createComponent7409_;
-            cProto.deferRenderStamperBinding_ = cProto.deferRenderStamperBinding7409_;
-            cProto.flushRenderStamperComponentBindings_ = cProto.flushRenderStamperComponentBindings7409_;
-            cProto.getStampContainer_ = cProto.getStampContainer7409_;
-          }
-          return true;
-        }
-        const stampDom = cnt.stampDom;
-        if (!stampDom) return true;
-        for (const key of Object.getOwnPropertyNames(stampDom)) {
-          const stamp = stampDom[key];
-          if (typeof (stamp || 0) === 'object' && typeof (stamp.id || 0) === 'string') {
-            const e0 = stamp.id.charCodeAt(0);
-            if ((e0 >= 97 && e0 <= 122) || (e0 >= 65 && e0 <= 90)) {
-              const element = hostElement.querySelector(`#${stamp.id}`);
-              if (!element) continue;
-              if (element instanceof Node && element.firstElementChild) return true;
-            }
-          }
-        }
-        // if(hostElement.closest('[ytx-flushing="2x"], [ytx-flushing="3"]')) return true;
-        return testCntInvisible(cnt); // invisible state in the initial flushing
-      } else {
-        return true;
-      }
-    }
-
-    const testCntInvisible = (cnt) => {
-      const hostElement = cnt.hostElement;
-      if (!hostElement) return true;
-      // [hidden] test required?
-      return !!((hostElement && hostElement.closest('noscript, defs')) || (hostElement && hostElement.isConnected === false))
-    }
-
-    const doStampMapFix = function(){
-    
-      if (!this.stampDom[syb6]) {
-        this.stampDom[syb6] = true;
-        for (const stampDetails of Object.values(this.stampDom)) {
-          const val = stampDetails.events;
-          if (val) {
-            const mapping = (stampDetails.mapping || 0);
-            if (typeof mapping === 'object') {
-              mapping[syb6] = val;
-              for (let [mapKey, mapVal] of Object.entries(mapping)) {
-                if (typeof mapVal !== 'object') {
-                  const rawType = typeof mapVal;
-                  mapVal = mapping[mapKey] = Object(mapVal);
-                  mapVal.__rawType__ = rawType;
-                }
-                if (mapVal && typeof mapVal === 'object') mapVal[syb6] = val;
-              }
-            }
-          }
-        }
-      }
-
-    }
-
-    let firstActionStamper = null;
-    const bt0 = Date.now();
-
-    const checkByPass = (cnt) => {
-      let byPass = false;
-      if (!firstActionStamper) {
-        firstActionStamper = true;
-        cnt.__firstStamper1299__ = true;
-        // Promise.resolve().then(() => { firstActionStamper = null; });
-        // const cProto = Reflect.getPrototypeOf(cnt);
-        // cProto.__directStampFlush__ = true;
-      }
-      if (cnt.__firstStamper1299__) byPass = true;
-      else {
-        if (cnt.__byPass7409__ === undefined) cnt.__byPass7409__ = testCntByPass(cnt);
-        if (cnt.__byPass7409__ || testCntInvisible(cnt)) {
-          byPass = true;
-        }
-      }
-      cnt.__lastByPass__ = ((Date.now() - bt0) * 100 + Math.floor(Math.random() * 100)) * 2 + (byPass ? 1 : 0);
-      return byPass;
-    }
-
-    const getStampContainer_ = function(containerId){
-
-      const byPass = checkByPass(this);
-      if (byPass) return this.getStampContainer7409_(containerId);
-
-
-      doStampMapFix.call(this);
-      // console.log(1233)
-      const containerElement = this.getStampContainer7409_(containerId);
-      if (!this[syb4]) {
-        this[syb4] = genId();
-        if (!this[wk]) this[wk] = mWeakRef(this);
-        producerMap.set(this[syb4], this[wk]);
-      }
-      if (!containerElement[syb9]) containerElement[syb9] = this[syb4];
-      if (!containerElement[wk]) containerElement[wk] = mWeakRef(containerElement);
-
-      if (!containerElement[syb3]) {
-        containerElement[syb3] = true;
-        // stamperFlushedObs.observe(containerElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['ytx-stamping', 'ytx-flushing'] });
-
-        containerChildernObs.observe(containerElement, { subtree: false, childList: true });
-        // stamperFinishedObs.observe(containerElement, { attributes: true, attributeFilter: ['yt-stamping']})
-        // producerFinishedObs.observe(this.hostElement, { attributes: true, attributeFilter: ['yt-stamping']})
-      }
-
-      return containerElement;
-    }
-
-    const doNotCacheMe = `${Math.floor(Math.random() * 100) + 100}`;
-
-    const createComponent_ = function (componentConfig, data, canReuse) {
-
-      const byPass = checkByPass(this);
-      if (byPass) return this.createComponent7409_(componentConfig, data, canReuse);
-
-      doStampMapFix.call(this);
-      canReuse = false;
-      if (!data[syb1]) data[syb1] = genId();
-      if(!this[syb4]) {
-        this[syb4] = genId();
-        if (!this[wk]) this[wk] = mWeakRef(this);
-        producerMap.set(this[syb4], this[wk]);
-      }
-
-      const q = rq0.cloneNode(false);
-
-      q.is = doNotCacheMe;
-
-      return q;
-
-    }
-
-    const bindingMap = new WeakMap();
-
-    const forceCancel = (component, dismissFinish) => {
-
-      const node = component;
-      if (node.querySelector('rp[yt-element-placholder], [ytx-stamping], [ytx-flushing]')) {
-
-        for (const e of node.querySelectorAll('rp[yt-element-placholder], [ytx-flushing]')) {
-          const bdr = bindingMap.get(e)
-          if (bdr) {
-            bdr.flushId = genId();
-            const producer = kRef(bdr.producer);
-            const taskMap = producer ? producer.__stampTaskMap488__ : null;
-            if (taskMap instanceof Map) taskMap.clear();
-          }
-          if (e.hasAttribute('ytx-flushing')) {
-            e.removeAttribute('ytx-flushing');
-            e.appendChild(document.createComment('.')).remove();
-          } else if (e.hasAttribute('yt-element-placholder')) {
-            e.remove();
-          }
-        }
-
-        for (const e of node.querySelectorAll('[ytx-stamping]')) {
-          e.removeAttribute('ytx-stamping');
-        }
-
-      }
-
-      if (dismissFinish) {
-        const bdr = bindingMap.get(node);
-        if (bdr) {
-          const parentNode = node.parentNode;
-          const parentNodeId = parentNode ? parentNode.id : null;
-          const stampingContainerId = bdr.stampingContainerId;
-          const producer = kRef(bdr.producer);
-          const taskMap = producer ? producer.__stampTaskMap488__ : null;
-          if (taskMap instanceof Map) {
-            parentNodeId && taskMap.delete(parentNodeId);
-            stampingContainerId && taskMap.delete(stampingContainerId);
-          }
-        }
-      }
-
-    }
-
-
-    const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
-
-      const byPass = checkByPass(this);
-      if (byPass) return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-
-      const bdr = setBinding(component, typeOrConfig, data, this);
-
-      if (component && component.parentNode && component.parentNode.id && this.getComponentName_(typeOrConfig, data) === component.is && component.isConnected === true) {
-        const containerId = component.parentNode.id;
-        
-        try {
-
-          if (component.nodeName === "RP") {
-            console.warn('deferRenderStamperBinding_ ERROR 001')
-            // debugger;
-
-          }
-
-          const componentFlushing = component.getAttribute('ytx-flushing');
-          if (componentFlushing) {
-            flushedObserver.observe(component, { subtree: true, childList: true });
-            component.appendChild(document.createComment('.')).remove();
-            if (componentFlushing === '2' || componentFlushing === '1') {
-              // use new data to render the last pending function
-
-            } else if (componentFlushing === '3' || componentFlushing === '2x') {
-       
-              // will trigger forceCancel
-            } else {
-              console.warn('deferRenderStamperBinding_ ERROR 003')
-
-              // debugger;
-            }
-          }
-        } catch (e) {
-          console.warn(e);
-        }
-
-
-        const node = component;
-        forceCancel(node, true);
-
-        bdr.stampingContainerId = containerId;
-        component.setAttribute('ytx-flushing', '0');
-        component.setAttribute('ytx-flushing', '2');
-
-
-
-        // return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-      }
-    }
-
-
-    const flushRenderStamperComponentBindings_ = function() {
-
-      const byPass = checkByPass(this);
-      if (byPass) return this.flushRenderStamperComponentBindings7409_();
-
-      // if(!this.deferredBindingTasks7530_)  this.deferredBindingTasks7530_ = [];
-      // const tasks = this.deferredBindingTasks7530_.slice();
-      // this.deferredBindingTasks7530_.length = 0;
-
-      // const producer = this;
-
-      // const stampTasks = this.__stampTasks993__ || (this.__stampTasks993__ = []);
-      // for(const task of tasks){
-      //   if(!task.step){
-      //     task.step = 1;
-      //     stampTasks.push(task);
-      //   }
-      // }
-
-      // let toFlush = false;
-      // for (const task of tasks) {
-      //   const { component } = task;
-      //   if(task.step !== 1) continue;
-      //   if (component.nodeName === 'RP') continue;
-      //   const parentNode = component.parentNode;
-      //   const containerId = parentNode ? parentNode.id : null;
-      //   if (!containerId) continue;
-      //   const container = this.getStampContainer7409_(containerId);
-      //   if (parentNode === container && container.nodeName) {
-      //     task.stampable = containerId;
-      //     task.step = 2;
-      //     incAttr(container);
-      //     toFlush = true;
-      //   }
-      // }
-
-    }
-
-
-
-    return {createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, getStampContainer_}
-
-  }
-
-
-
-
-
 
 
 
@@ -7289,32 +6258,6 @@
       cProto[pvr] |= 1;
 
 
-      if (0 && FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
-        const b = cProto.stampDomArray_.length === 6
-          && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
-          && cProto.createComponent_ && cProto.createComponent_.length === 3
-          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
-          && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
-          && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
-        if (!b) {
-          console.warn("YouTube Coding Changed. createStampDomFns_() is not applied")
-        } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
-          
-          if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFns_();
-          const {createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, getStampContainer_} = stampDomArrayFnStore;
-          cProto.createComponent7409_ = cProto.createComponent_;
-          cProto.deferRenderStamperBinding7409_ = cProto.deferRenderStamperBinding_;
-          cProto.flushRenderStamperComponentBindings7409_ = cProto.flushRenderStamperComponentBindings_;
-          cProto.getStampContainer7409_ = cProto.getStampContainer_;
-
-          cProto.createComponent_ = createComponent_;
-          cProto.deferRenderStamperBinding_ = deferRenderStamperBinding_;
-          cProto.flushRenderStamperComponentBindings_ = flushRenderStamperComponentBindings_;
-          cProto.getStampContainer_ = getStampContainer_;
-          
-          
-        }
-      }
 
       if (FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
         const b = cProto.stampDomArray_.length === 6
