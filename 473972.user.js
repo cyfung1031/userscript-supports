@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.31.3
+// @version     0.31.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4811,18 +4811,27 @@
 
         // console.log(39829004)
         // console.log(new Error().stack)
-        return this.createComponent7409_(componentConfig, data, canReuse);
+        return this.createComponent7409_(componentConfig, data, false);
       }
 
-      const containerId = this.__activeContainerId929__;
+      if(this.__byPass133__){
 
-      // console.log(2883007, componentConfig, data, canReuse)
+        return this.createComponent7409_(componentConfig, data, false);
 
-      const r = rq0.cloneNode(false);
+      }else{
 
-      r.is = genId();
+        const containerId = this.__activeContainerId929__;
 
-      return r;
+        // console.log(2883007, componentConfig, data, canReuse)
+  
+        const r = rq0.cloneNode(false);
+  
+        r.is = 'aa-bb-cc-dd';
+  
+        return r;
+
+      }
+
 
     }
 
@@ -4864,7 +4873,6 @@
 
 
     let executing = false;
-    let eTasks = null;
     let setRkT0;
     let rkT0;
 
@@ -4893,58 +4901,71 @@
       }
     };
 
-    const getETask = ()=>{
-
-
-
-
-      const nodeTasks = [];
-
-
-      for (const nodeWr of pendingRxList) {
-        const node = kRef(nodeWr);
-        if (!node) continue;
-        let nodeLevel = levelStore.get(node);
-        if (!nodeLevel) debugger;
-        const pTask = componentBasedTaskPool.get(node);
-        if (!pTask) continue;
-        const processLevel = ['creation', 'flushStamper', 'flushStamperWait', 'idleContainer', 'waitContainersRenderFinish', 'idleProducer'].indexOf(pTask.step) + 1;
-        if (!processLevel) debugger;
-        nodeTasks.push({
-          nodeLevel: nodeLevel,
-          processLevel: processLevel,
-          nodeId: refIDs.get(nodeWr),
-          nodeWr
-        });
+    const getETask= ()=>{
+      let task;
+      for(const list of pendingRxArrays){
+        if(task = list.shift()) {
+          break;
+        }
       }
-
-      if(nodeTasks.length === 0) return null;
-
-      nodeTasks.sort((a, b) => {
-        let c;
-        c = a.nodeLevel - b.nodeLevel;
-        if (c) return c;
-        c = a.processLevel - b.processLevel;
-        if (c) return c;
-        return a.nodeId - b.nodeId;
-      });
-
-      // console.log(nodeTasks);
-
-
-      const eTasks = nodeTasks.map(e => ({
-        component: e.nodeWr,
-        fn: processTask
-      }));
-
-      const eTask = eTasks[0];
-      pendingRxList.delete(eTask.component);
-
-      // console.log(388, eTask)
-
-      return eTask;
-
+      return task || null;
     }
+
+    // const getETask = ()=>{
+
+
+
+
+    //   const nodeTasks = [];
+
+
+    //   for (const nodeWr of pendingRxList) {
+    //     const node = kRef(nodeWr);
+    //     if (!node) continue;
+    //     let nodeLevel = levelStore.get(node);
+    //     if (!nodeLevel) debugger;
+    //     const pTask = componentBasedTaskPool.get(node);
+    //     if (!pTask) continue;
+    //     const processLevel = ['creation', 'flushStamper', 'flushStamperWait', 'idleContainer', 'waitContainersRenderFinish', 'idleProducer'].indexOf(pTask.step) + 1;
+    //     if (!processLevel) debugger;
+    //     nodeTasks.push({
+    //       nodeLevel: nodeLevel,
+    //       processLevel: processLevel,
+    //       nodeId: refIDs.get(nodeWr),
+    //       nodeWr,
+    //       hasFlushing: !!node.querySelector('[ytx-flushing]')
+    //     });
+    //   }
+
+    //   if(nodeTasks.length === 0) return null;
+
+    //   nodeTasks.sort((a, b) => {
+    //     if(a.hasFlushing && !b.hasFlushing) return 1;
+    //     if(!a.hasFlushing && b.hasFlushing) return -1;
+    //     let c;
+    //     c = a.nodeLevel - b.nodeLevel;
+    //     if (c) return c;
+    //     c = a.processLevel - b.processLevel;
+    //     if (c) return c;
+    //     return a.nodeId - b.nodeId;
+    //   });
+
+    //   // console.log(nodeTasks);
+
+
+    //   const eTasks = nodeTasks.map(e => ({
+    //     component: e.nodeWr,
+    //     fn: processTask
+    //   }));
+
+    //   const eTask = eTasks[0];
+    //   pendingRxList.delete(eTask.component);
+
+    //   // console.log(388, eTask)
+
+    //   return eTask;
+
+    // }
 
     const executeTasks = () => {
 
@@ -4956,8 +4977,17 @@
         rxProcessTask();
     };
 
+    window.m44 = ()=>executeTasks()
+
     Node.prototype.checkFF = function(){
       return componentBasedTaskPool.get(this)
+    }
+
+    const cal = (e, f)=>{
+      f({
+        component: kRef(e)[wk],
+        fn: processTask
+      });
     }
 
     const processTask = (mTask)=>{
@@ -4979,11 +5009,54 @@
 
         const s = new Set();
         node.removeAttribute('ytx-flushing');
+
+
+
+
+
+        if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement && selfProducer.hostElement.isConnected) {
+
+          const node = component;
+
+          let shouldMarkDirty = false;
+
+          const m = new Set();
+
+          const producer = selfProducer;
+
+          for (const [containerId, bEvent, hasData] of flushing) {
+            if (hasData) {
+              shouldMarkDirty = true;
+              if (bEvent) {
+                const container = producer.getStampContainer7409_(containerId);
+                // console.log(644221499, container)
+                m.add(container);
+              }
+            }
+          }
+          flushing.length = 0;
+
+          if (shouldMarkDirty) {
+            producer.markDirty && producer.markDirty();
+            let q = true;
+            for (const container of m) {
+              if (!q) producer.markDirty && producer.markDirty();
+              q = false;
+              dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
+                container
+              });
+            }
+          }
+
+        }
+
+
+
+
         const parentComponent = node.closest('[ytx-flushing]');
         if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
           if(!s.has(parentComponent[wk])){
-            s.add(parentComponent[wk])
-            pendingRxList.add_(parentComponent[wk]);
+            s.add(parentComponent[wk]);
           }
         }
 
@@ -4993,8 +5066,6 @@
           if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
             if(!s.has(parentComponent[wk])){
               s.add(parentComponent[wk])
-
-              pendingRxList.add_(parentComponent[wk]);
             }
           }
 
@@ -5007,13 +5078,24 @@
           if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
             if (!s.has(parentComponent[wk])) {
               s.add(parentComponent[wk])
-              pendingRxList.add_(parentComponent[wk]);
             }
           }
 
         }
 
+
+
+        for(const p of s){
+
+          cal(p, (task) => pendingRxArrays[1].push(task));
+          // pendingRxList.add_(p);
+
+        }
         s.clear();
+
+        // console.log(5992110,node.nodeName, node.getAttribute('ytx-flushing'))
+
+        executeTasks();
 
 
       }
@@ -5043,7 +5125,13 @@
           componentBasedTaskPool.delete(qNode)
           componentBasedTaskPool.set(aNode, pTask)
 
-          pendingRxList.add_(aNode[wk]);
+          
+          cal(aNode, (task) => pendingRxArrays[0].push(task));
+          // pendingRxList.add_(aNode[wk]);
+          
+  
+          executeTasks();
+          
           return;
 
 
@@ -5063,14 +5151,13 @@
         producer.deferredBindingTasks_.push(taskB);
         producer.flushRenderStamperComponentBindings7409_();
 
-        node.setAttribute('ytx-flushing', '4');
+ 
+        cal(node, (task) => pendingRxArrays[3].push(task));
+        // pendingRxList.add_(node[wk]);
 
+        executeTasks();
+        return;
 
-        if(!node.querySelector('[ytx-flushing]')){
-          
-          pendingRxList.add_(component[wk]);
-          return;
-        }
 
 
 
@@ -5096,66 +5183,12 @@
         const node = component;
 
         if(!node.querySelector('[ytx-flushing]')){
-        pTask.step = 'idleProducer';
-        node.setAttribute('ytx-flushing', 's-2')
+          pTask.step = 'idleProducer';
+          resolveSelfAndCheckParent();
         }
         // const selfProducer = kRef(pTask.selfProducer);
 
 
-      } 
-
-
-      if(selfProducer && flushing && flushing.length > 0){
-
-        const node = component;
-        if(!node.querySelector('[ytx-flushing]')){
-
-          // pTask.step = 'idleProducer';
-
-          // node.setAttribute('ytx-flushing', 's-2')
-
-          let shouldMarkDirty = false;
-
-          const m = new Set();
-
-
-          // console.log(644221399, node, [...flushing])
-
-          const producer = selfProducer;
-
-          for(const [containerId, bEvent, hasData] of flushing){
-            if(hasData){
-              shouldMarkDirty = true;
-              if(bEvent){
-                const container = producer.getStampContainer7409_(containerId);
-                // console.log(644221499, container)
-                m.add(container);
-              }
-            }
-          }
-          // flushing.clear();
-          flushing.length = 0;
-
-          if (shouldMarkDirty) {
-            producer.markDirty && producer.markDirty();
-            let q = true;
-            for (const container of m) {
-              if(!q) producer.markDirty && producer.markDirty();
-              q = false;
-              dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
-                container
-              });
-            }
-          }
-
-          if(node.getAttribute('ytx-flushing') === 's-2') node.setAttribute('ytx-flushing', 's-3');
-
-
-          resolveSelfAndCheckParent();
-
-          //... event
-          
-        }
       }
 
       // [...document.querySelectorAll('[ytx-flushing]')].filter(e=>!e.querySelector('[ytx-flushing]')).forEach((node)=>{
@@ -5200,7 +5233,9 @@
       }
       for (const node of flushDom) {
         if (node && node[wk] && componentBasedTaskPool.get(node)) {
-          pendingRxList.add_(node[wk]);
+
+          cal(node, (task) => pendingRxArrays[3].push(task));
+          // pendingRxList.add_(node[wk]);
         }
       }
       executeTasks();
@@ -5233,15 +5268,20 @@
     // }, 500)
 
     const levelStore = new WeakMap();
-    const pendingRxList = new Set();
+    // const pendingRxList = new Set();
     const refIDs = new WeakMap();
     let refIdCounter = 0;
 
-    pendingRxList.add = pendingRxList.addOriginal || pendingRxList.add;
-    pendingRxList.add_ = function(x){
-      this.add(x);
-      if(!refIDs.has(x)) refIDs.set(x, ++refIdCounter);
-    }
+    const pendingRxArrays = [[], [], [], []]; // creation, stampfinish, flush, low
+
+    window.m33 = ()=>pendingRxArrays;
+
+    // pendingRxList.add = pendingRxList.addOriginal || pendingRxList.add;
+    // pendingRxList.add_ = function(x){
+    //   this.add(x);
+    //   if(!refIDs.has(x)) refIDs.set(x, ++refIdCounter);
+    // }
+
 
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
@@ -5263,7 +5303,44 @@
 
       levelStore.set(component, producerLevel + 1 );
 
-      if(pTask && pTask.step !== 'creation'){
+
+      if(this.__byPass133__){
+
+
+        component.setAttribute('ytx-flushing', '2');
+
+        component.setAttribute('ytx-stamp', 'flusher')
+
+
+        if (pTask) {
+
+          Object.assign(pTask, {
+            step: 'flushStamper',
+            producer: this[wk],
+            containerId: containerId,
+            typeOrConfig: typeOrConfig,
+            data: data
+          });
+        } else {
+
+          componentBasedTaskPool.set(component, {
+            step: 'flushStamper',
+            producer: this[wk],
+            containerId: containerId,
+            typeOrConfig: typeOrConfig,
+            data: data
+          })
+        }
+
+
+        cal(component, (task) => pendingRxArrays[0].push(task));
+        // pendingRxList.add_(component[wk]);
+
+      executeTasks();
+
+
+
+      }else if(pTask && pTask.step !== 'creation'){
 
         component.setAttribute('ytx-flushing', 'c-1');
 
@@ -5351,7 +5428,10 @@
 
 
         
-        pendingRxList.add_(component[wk]);
+        cal(component, (task) => pendingRxArrays[0].push(task));
+
+      executeTasks();
+        // pendingRxList.add_(component[wk]);
 
       }else{
         component.setAttribute('ytx-flushing', '1');
@@ -5378,7 +5458,10 @@
           })
         }
 
-        pendingRxList.add_(component[wk]);
+
+        cal(component, (task) => pendingRxArrays[0].push(task));
+        executeTasks();
+        // pendingRxList.add_(component[wk]);
       }
 
       const container = this.getStampContainer7409_(containerId);
@@ -5406,10 +5489,24 @@
     }
 
     stampDomArraySplices_ = function ( stampKey, containerId,indexSplicesObj ){
+      // console.log(1883001, this.hostElement.isConnected);
 
-      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
-      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
-      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+      // this.__byPass133__ = true;
+      
+      let b1 = this.hostElement.closest('[hidden]') || (containerId === 'contents' || containerId === 'content' || containerId === 'header');
+      let b2 = !this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1;
+
+      if(b1 || b2)this.__byPass828__ = true;
+      else this.__byPass828__ = false;
+
+
+      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass133__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass133__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass133__ = true;
+
+      // if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      // if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      // else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
 
       const bEventCb= this.stampDom[stampKey].events;
 
@@ -5473,10 +5570,10 @@
 
       hostElement.setAttribute('ytx-flushing', 's-1');
 
-      hostElement.checkEE = ()=>{
-        console.log(componentBasedTaskPool.get(hostElement));
+      // hostElement.checkEE = ()=>{
+      //   console.log(componentBasedTaskPool.get(hostElement));
         
-      }
+      // }
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5501,13 +5598,14 @@
 
       // console.log()
 
-      if(this.__byPass455__) debugger;
-      pendingRxList.add_(hostElement[wk]);
+      // if(this.__byPass455__) debugger;
+      // pendingRxList.add_(hostElement[wk]);
 
-      let targetChecker = hostElement;
-      // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
-      let checkerResult;
-      checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+
+      // let targetChecker = hostElement;
+      // // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
+      // let checkerResult;
+      // checkerResult = !targetChecker.querySelector('[ytx-flushing]');
       /*
       if(parentStamper && parentStamper.nodeName === "ytd-engagement-panel-section-list-renderer".toUpperCase()){
         targetChecker = parentStamper;
@@ -5520,21 +5618,27 @@
       */
 
 
-      if(checkerResult){
+      cal(hostElement, (task) => pendingRxArrays[2].push(task));
 
-        if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+      executeTasks();
+      // pendingRxList.add_(hostElement[wk]);
+      // if(checkerResult){
 
-        processTask({
-          component: hostElement[wk]
-        })
+      //   if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
 
-        // this.markDirty && this.markDirty();
-        dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
-          container
-        });
-        Promise.resolve().then(executeTasks);
-        return;
-      }
+      //   processTask({
+      //     component: hostElement[wk]
+      //   })
+
+        
+
+      //   // this.markDirty && this.markDirty();
+      //   dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+      //     container
+      //   });
+      //   Promise.resolve().then(executeTasks);
+      //   return;
+      // }
 
 
       // if (hostElement && !hostElement.__rk75401__) {
@@ -5559,9 +5663,22 @@
     
     stampDomArray_ =  function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
-      if(this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
-      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
-      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+
+      // this.__byPass133__ = true;
+
+      let b1 = this.hostElement.closest('[hidden]') || (containerId === 'contents' || containerId === 'content' || containerId === 'header');
+      let b2 = !this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1;
+
+      if(b1 || b2)this.__byPass828__ = true;
+      else this.__byPass828__ = false;
+
+      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass133__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass133__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass133__ = true;
+      
+      // if(this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      // if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      // else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
 
       // if(!dataList || !dataList[0]) {
       //     this.__a388__ = true;
@@ -5643,10 +5760,10 @@
 
       hostElement.setAttribute('ytx-flushing', 's-1');
 
-      hostElement.checkEE = ()=>{
-        console.log(componentBasedTaskPool.get(hostElement));
+      // hostElement.checkEE = ()=>{
+      //   console.log(componentBasedTaskPool.get(hostElement));
         
-      }
+      // }
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5668,12 +5785,14 @@
 
       // console.log()
 
-      pendingRxList.add_(hostElement[wk]);
+      cal(hostElement, (task) => pendingRxArrays[2].push(task));
+      executeTasks();
+      // pendingRxList.add_(hostElement[wk]);
 
-      let targetChecker = hostElement;
-      // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
-      let checkerResult;
-      checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+      // let targetChecker = hostElement;
+      // // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
+      // let checkerResult;
+      // checkerResult = !targetChecker.querySelector('[ytx-flushing]');
       /*
       if(parentStamper && parentStamper.nodeName === "ytd-engagement-panel-section-list-renderer".toUpperCase()){
         targetChecker = parentStamper;
@@ -5686,19 +5805,19 @@
       */
 
 
-      if(checkerResult){
+      // if(checkerResult){
 
-        processTask({
-          component: hostElement[wk]
-        })
+      //   processTask({
+      //     component: hostElement[wk]
+      //   })
 
-        this.markDirty && this.markDirty();
-        dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
-          container
-        });
-        Promise.resolve().then(executeTasks);
-        return;
-      }
+      //   this.markDirty && this.markDirty();
+      //   dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+      //     container
+      //   });
+      //   Promise.resolve().then(executeTasks);
+      //   return;
+      // }
 
 
       // if (hostElement && !hostElement.__rk75401__) {
