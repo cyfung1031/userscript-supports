@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.31.4
+// @version     0.31.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5087,7 +5087,7 @@
 
         for(const p of s){
 
-          cal(p, (task) => pendingRxArrays[1].push(task));
+          cal(p, (task) => pendingRxArrays[2].push(task));
           // pendingRxList.add_(p);
 
         }
@@ -5126,7 +5126,7 @@
           componentBasedTaskPool.set(aNode, pTask)
 
           
-          cal(aNode, (task) => pendingRxArrays[0].push(task));
+          cal(aNode, (task) => pendingRxArrays[1].push(task));
           // pendingRxList.add_(aNode[wk]);
           
   
@@ -5152,7 +5152,7 @@
         producer.flushRenderStamperComponentBindings7409_();
 
  
-        cal(node, (task) => pendingRxArrays[3].push(task));
+        cal(node, (task) => pendingRxArrays[6].push(task));
         // pendingRxList.add_(node[wk]);
 
         executeTasks();
@@ -5234,7 +5234,7 @@
       for (const node of flushDom) {
         if (node && node[wk] && componentBasedTaskPool.get(node)) {
 
-          cal(node, (task) => pendingRxArrays[3].push(task));
+          cal(node, (task) => pendingRxArrays[6].push(task));
           // pendingRxList.add_(node[wk]);
         }
       }
@@ -5272,7 +5272,7 @@
     const refIDs = new WeakMap();
     let refIdCounter = 0;
 
-    const pendingRxArrays = [[], [], [], []]; // creation, stampfinish, flush, low
+    const pendingRxArrays = [[], [], [], [], [], [], [] , []]; // creation, stampfinish, flush, low
 
     window.m33 = ()=>pendingRxArrays;
 
@@ -5333,7 +5333,7 @@
         }
 
 
-        cal(component, (task) => pendingRxArrays[0].push(task));
+        cal(component, (task) => pendingRxArrays[1].push(task));
         // pendingRxList.add_(component[wk]);
 
       executeTasks();
@@ -5428,7 +5428,7 @@
 
 
         
-        cal(component, (task) => pendingRxArrays[0].push(task));
+        cal(component, (task) => pendingRxArrays[1].push(task));
 
       executeTasks();
         // pendingRxList.add_(component[wk]);
@@ -5617,8 +5617,13 @@
       }
       */
 
+      if(hostElement.querySelector('[ytx-flushing]')){
 
-      cal(hostElement, (task) => pendingRxArrays[2].push(task));
+        cal(hostElement, (task) => pendingRxArrays[4].push(task));
+      }else{
+
+        cal(hostElement, (task) => pendingRxArrays[2].push(task));
+      }
 
       executeTasks();
       // pendingRxList.add_(hostElement[wk]);
@@ -5651,7 +5656,7 @@
       // hostElement.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
         
 
-      executeTasks();
+      // executeTasks();
 
 
       if(e_ && e_.message !== '5ii48') throw e_;
@@ -5785,7 +5790,14 @@
 
       // console.log()
 
-      cal(hostElement, (task) => pendingRxArrays[2].push(task));
+
+      if(hostElement.querySelector('[ytx-flushing]')){
+
+        cal(hostElement, (task) => pendingRxArrays[4].push(task));
+      }else{
+
+        cal(hostElement, (task) => pendingRxArrays[2].push(task));
+      }
       executeTasks();
       // pendingRxList.add_(hostElement[wk]);
 
@@ -5830,7 +5842,7 @@
       // hostElement.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
         
 
-      executeTasks();
+      // executeTasks();
 
 
       if(e_ && e_.message !== '5ii48') throw e_;
