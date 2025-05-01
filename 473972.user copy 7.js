@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.31.1
+// @version     0.31.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5267,7 +5267,7 @@
 
 
         
-        eTasks.unshift({
+        eTasks.push({
           component: component[wk],
           fn: processTask
         });
@@ -5391,13 +5391,13 @@
       }
 
 
-      // console.log()
+      console.log()
 
 
-      eTasks.unshift({
+      eTasks.push({
         component: hostElement[wk],
         fn: processTask
-      });
+      })
 
 
 
