@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.31.2
+// @version     0.31.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4807,7 +4807,12 @@
 
     const createComponent_ = function (componentConfig, data, canReuse) {
 
-      if(this.__byPass828__ || !this.__byPass348__) return this.createComponent7409_(componentConfig, data, canReuse);
+      if(this.__byPass828__ || !this.__byPass348__){
+
+        // console.log(39829004)
+        // console.log(new Error().stack)
+        return this.createComponent7409_(componentConfig, data, canReuse);
+      }
 
       const containerId = this.__activeContainerId929__;
 
@@ -4935,7 +4940,7 @@
       const eTask = eTasks[0];
       pendingRxList.delete(eTask.component);
 
-      console.log(388, eTask)
+      // console.log(388, eTask)
 
       return eTask;
 
@@ -5240,7 +5245,9 @@
 
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
-      if(this.__byPass828__ || !this.__byPass348__) return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+      if(this.__byPass828__ || !this.__byPass348__) {
+        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+      }
 
       let producerLevel = levelStore.get(this.hostElement);
       if(!producerLevel){
@@ -5256,7 +5263,7 @@
 
       levelStore.set(component, producerLevel + 1 );
 
-      if(pTask && component.nodeName !== "RP"){
+      if(pTask && pTask.step !== 'creation'){
 
         component.setAttribute('ytx-flushing', 'c-1');
 
@@ -5322,7 +5329,8 @@
 
         if (component.parentNode) {
           let p = document.createComment('.');
-          component.parentNode.insertBefore(p, component).replaceWith(component);
+          component.parentNode.insertBefore(p, component);
+          component.parentNode.insertBefore(component, p);
           p.remove();
         }
 
@@ -5384,14 +5392,188 @@
 
     }
     flushRenderStamperComponentBindings_ = function (){
-      if(this.__byPass828__ || !this.__byPass348__) return this.flushRenderStamperComponentBindings7409_();
+      
+      if(this.__a388__) throw new Error('5ii48')
+      if(this.__byPass828__ || !this.__byPass348__){
+
+
+        // console.log(39829006)
+        // console.log(new Error().stack)
+        return this.flushRenderStamperComponentBindings7409_();
+
+      } 
       throw new Error('5ii48')
+    }
+
+    stampDomArraySplices_ = function ( stampKey, containerId,indexSplicesObj ){
+
+      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+
+      const bEventCb= this.stampDom[stampKey].events;
+
+
+      let producerLevel = levelStore.get(this.hostElement);
+      if (!producerLevel) {
+        producerLevel = (levelStore.get(this.hostElement.closest('ytx-stamp')) || 0) + 1
+        levelStore.set(this.hostElement, producerLevel);
+      }
+
+      this.__activeContainerId929__ = containerId;
+
+      const producer = this;
+      const hostElement = producer.hostElement;
+      if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+      if(hostElement.getAttribute('ytx-stamp') === 'flusher'){
+
+        hostElement.setAttribute('ytx-stamp', 'flusher|producer');
+      }else if (!hostElement.hasAttribute('ytx-stamp')){
+
+        hostElement.setAttribute('ytx-stamp', 'producer');
+      }
+      const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
+
+      const flushing = pTask? (pTask.flushing || []) : [];
+      // if(!flushing) debugger;
+      flushing.push([containerId, bEventCb, null]);
+
+      // console.log(644221299, containerId, bEventCb, !!dataList)
+
+      if(pTask){
+
+        // const pTaskProducer = pTask.producer;
+        // const parentProducer = pTaskProducer && pTaskProducer !== this[wk] ? pTaskProducer : null;
+        // const parentProducerContainerId = parentProducer ? pTask.containerId : null;
+
+        Object.assign(pTask, {
+          step: 'waitContainersRenderFinish',
+          selfProducer: this[wk],
+          flushing
+  
+        });
+
+        // if(parentProducer && parentProducerContainerId){
+        //   Object.assign(pTask, {
+        //     parentProducer,
+        //     parentProducerContainerId
+    
+        //   });
+        // }
+
+      } else {
+
+        componentBasedTaskPool.set(hostElement, {
+          step: 'waitContainersRenderFinish',
+          selfProducer: this[wk],
+          flushing
+
+        });
+      }
+
+      hostElement.setAttribute('ytx-flushing', 's-1');
+
+      hostElement.checkEE = ()=>{
+        console.log(componentBasedTaskPool.get(hostElement));
+        
+      }
+
+      const container = this.getStampContainer7409_(containerId);
+      if (container && !container.__rk75401__) {
+        container.__rk75401__ = true;
+        childrenObs.observe(container, { subtree: false, childList: true });
+      }
+
+
+      // return this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
+
+      // console.log(2883991);
+      let r, e_
+      try{
+        this.__byPass348__=true;
+        this.stampDomArraySplices7409_ ( stampKey, containerId,indexSplicesObj );
+      }catch(e){
+        e_ = e;
+      }
+      this.__byPass348__=false;
+      // console.log(2883992);
+
+
+      // console.log()
+
+      if(this.__byPass455__) debugger;
+      pendingRxList.add_(hostElement[wk]);
+
+      let targetChecker = hostElement;
+      // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
+      let checkerResult;
+      checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+      /*
+      if(parentStamper && parentStamper.nodeName === "ytd-engagement-panel-section-list-renderer".toUpperCase()){
+        targetChecker = parentStamper;
+        let s = targetChecker.querySelectorAll('[ytx-flushing]');
+        checkerResult = ((s.length === 0) || (s.length === 1 & s[0] === hostElement));
+
+      } else {
+        checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+      }
+      */
+
+
+      if(checkerResult){
+
+        if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+
+        processTask({
+          component: hostElement[wk]
+        })
+
+        // this.markDirty && this.markDirty();
+        dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+          container
+        });
+        Promise.resolve().then(executeTasks);
+        return;
+      }
+
+
+      // if (hostElement && !hostElement.__rk75401__) {
+      //   hostElement.__rk75401__ = true;
+      //   childrenObs.observe(hostElement, { subtree: true, childList: true });
+      // }
+
+      // container.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
+        
+      // hostElement.appendChild(document.createComment('.')).remove(); // trigger childrenObs for component reuse
+        
+
+      executeTasks();
+
+
+      if(e_ && e_.message !== '5ii48') throw e_;
+
+      
+
     }
 
     
     stampDomArray_ =  function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
-      if(!dataList || !dataList[0]) this.__byPass828__ = true;
+      if(this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+
+      // if(!dataList || !dataList[0]) {
+      //     this.__a388__ = true;
+      //     try{
+      //    this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList)
+      //     }catch(e){}
+      //     this.__a388__ = false;
+
+          
+      //   //  return;
+
+      // }
       // this.__byPass828__ = true;
 
       // console.log(644221001)
@@ -5488,8 +5670,28 @@
 
       pendingRxList.add_(hostElement[wk]);
 
+      let targetChecker = hostElement;
+      // let parentStamper = hostElement.parentNode ? hostElement.parentNode.closest('[ytx-stamp]') : null;
+      let checkerResult;
+      checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+      /*
+      if(parentStamper && parentStamper.nodeName === "ytd-engagement-panel-section-list-renderer".toUpperCase()){
+        targetChecker = parentStamper;
+        let s = targetChecker.querySelectorAll('[ytx-flushing]');
+        checkerResult = ((s.length === 0) || (s.length === 1 & s[0] === hostElement));
 
-      if(!hostElement.querySelector('[ytx-flushing]')){
+      } else {
+        checkerResult = !targetChecker.querySelector('[ytx-flushing]');
+      }
+      */
+
+
+      if(checkerResult){
+
+        processTask({
+          component: hostElement[wk]
+        })
+
         this.markDirty && this.markDirty();
         dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
           container
@@ -5517,7 +5719,7 @@
     }
 
 
-    return {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_};
+    return {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_};
 
 
   }
@@ -6271,19 +6473,21 @@
         } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
           
           if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsB_();
-          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_} = stampDomArrayFnStore;
+          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_} = stampDomArrayFnStore;
 
           cProto.getStampContainer7409_ = cProto.getStampContainer_;
           cProto.createComponent7409_ = cProto.createComponent_;
           cProto.deferRenderStamperBinding7409_ = cProto.deferRenderStamperBinding_;
           cProto.flushRenderStamperComponentBindings7409_ = cProto.flushRenderStamperComponentBindings_;
           cProto.stampDomArray7409_ = cProto.stampDomArray8581_ = cProto.stampDomArray_;
+          cProto.stampDomArraySplices7409_ = cProto.stampDomArraySplices_;
 
           cProto.getStampContainer_ = getStampContainer_;
           cProto.createComponent_ = createComponent_;
           cProto.deferRenderStamperBinding_ = deferRenderStamperBinding_;
           cProto.flushRenderStamperComponentBindings_ = flushRenderStamperComponentBindings_;
           cProto.stampDomArray_ = stampDomArray_;
+          cProto.stampDomArraySplices_ = stampDomArraySplices_;
 
           
           
