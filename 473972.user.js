@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.32.1
+// @version     0.32.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5164,7 +5164,7 @@
     stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
 
       let kf = false;
-      const kf34 = (Date.now() >> 3);
+      const kf34 = (nativeNow() >> 3);
 
       if (!kf33 || kf34 !== kf33) {
         kf33 = kf34
@@ -5245,7 +5245,7 @@
     stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
       let kf = false;
-      const kf34 = (Date.now() >> 3);
+      const kf34 = (nativeNow() >> 3);
 
       if (!kf33 || kf34 !== kf33) {
         kf33 = kf34
