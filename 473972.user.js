@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.32.2
+// @version     0.32.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4654,7 +4654,6 @@
       if (!pTask0) pTask0 = pTask1; else Object.assign(pTask0, pTask1);
       componentBasedTaskPool.set(component, pTask0);
       const id = taskCounter = (taskCounter & 1073741823) + 1;
-      // if(id === 64 || id === 66) debugger;
       pTask0.taskId = id;
       taskList.push({
         taskId: id,
@@ -4678,7 +4677,6 @@
       selfProducer = kRef(selfProducer);
 
       const resolveSelf = () => {
-
 
         const node = component;
 
@@ -4754,10 +4752,7 @@
           componentBasedTaskPool.delete(node);
         }
 
-
         return [...s];
-
-
 
       }
 
@@ -4778,10 +4773,8 @@
           aNode.setAttribute('ytx-stamp', 'flusher');
           aNode.setAttribute('ytx-flushing', '2')
 
-
           componentBasedTaskPool.delete(qNode);
           componentBasedTaskPool.set(aNode, pTask); // pTask will be obtained and proceeded during "dom change" in the same micro task
-
 
           if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
 
@@ -4792,47 +4785,21 @@
           frag.appendChild(aNode);
           containerApi.insertBefore(frag, qNode);
           containerApi.removeChild(qNode);
+          
+          const pTaskN = componentBasedTaskPool.get(aNode); // pTaskN should be the same as pTask
+          const pTaskNId = pTaskN.taskId; // pTaskNId might be not the same as pTaskId
 
-
-
-
-          if (1) {
-
-
-            // const pTask = componentBasedTaskPool.get(aNode);
-            // const pTaskId = pTask.taskId;
-
+          if (pTaskNId === pTaskId) {
+            // update self componentWr if no added task
             for (const task of taskList) {
               if (task.taskId === pTaskId) {
                 task.componentWr = aNode[wk];
                 break;
               }
             }
-
           }
-
-
-          if (1) {
-
-
-            const pTask = componentBasedTaskPool.get(aNode);
-            const pTaskId = pTask.taskId;
-
-            for (const task of taskList) {
-              if (task.taskId === pTaskId) {
-                task.componentWr = aNode[wk];
-                break;
-              }
-            }
-
-          }
-
-          // if (flushAndProduce) {
-          //   pTask.step = 'flushThenWaitContainersRenderFinish'
-          // }
 
           return true;
-
 
         }
       } else if (pTask.step === 'flushStamper') {
@@ -4873,7 +4840,6 @@
 
       } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish') {
 
-
         if (producer && typeOrConfig) {
 
           pTask.typeOrConfig = null;
@@ -4887,9 +4853,7 @@
           producer.deferredBindingTasks_.push(taskB);
           producer.flushRenderStamperComponentBindings7409_();
           return true;
-
         }
-
 
         const node = component;
 
@@ -4899,7 +4863,6 @@
         }
         // const selfProducer = kRef(pTask.selfProducer);
 
-
       }
 
     }
@@ -4908,74 +4871,63 @@
     const loopTask = () => {
       if (isLooping) return;
       isLooping = true;
-      let i = 0, t0 = 0, resetT0 = true;
+      let i = 0, t0 = 0;
 
       const taskExec = () => {
 
-        if (resetT0) {
-          resetT0 = false;
+        if (!t0) {
           t0 = nativeNow();
         }
 
-        const j = i++;
-        if (j >= taskList.length) {
+        for (let j; (j = i++) < taskList.length;) {
 
-          if (taskList.length > 0) {
-            let u = 0;
-            for (let k = 0, l = taskList.length; k < l; k++) {
-              let clear = true;
-              const task = taskList[k];
-              const taskComponent = kRef(task.componentWr);
-              if (taskComponent) {
-                const pTask = componentBasedTaskPool.get(taskComponent);
-                if (pTask && (pTask.taskId === task.taskId || pTask.taskId === -1)) {
-                  clear = false;
+          const task = taskList[j];
+          const taskComponent = kRef(task.componentWr);
+          if (taskComponent) {
+            const pTask = componentBasedTaskPool.get(taskComponent);
+            if (pTask) {
+              if (pTask.taskId === task.taskId && task.taskId > 0 && pTask.taskId > 0) {
+                if (pTask.taskId === window.me848) debugger;
+
+                let shouldPerformTask = false;
+                if (pTask.step === 'creation' && pTask.typeOrConfig) {
+                  shouldPerformTask = true;
+                } else if (pTask.step === 'flushStamper' && pTask.typeOrConfig) {
+                  shouldPerformTask = true;
+                } else if (pTask.step === 'flushStamperWait' && !taskComponent.querySelector('[ytx-flushing]')) {
+                  shouldPerformTask = true;
+                } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish' && (pTask.typeOrConfig || !taskComponent.querySelector('[ytx-flushing]'))) {
+                  shouldPerformTask = true;
                 }
-              }
-              if (clear) continue;
-              taskList[u++] = taskList[k];
-            }
-            taskList.length = u;
-          }
 
-          isLooping = false;
-          return;
-        }
-
-        const task = taskList[j];
-        const taskComponent = kRef(task.componentWr);
-        if (taskComponent) {
-          const pTask = componentBasedTaskPool.get(taskComponent);
-          if (pTask) {
-            if (pTask.taskId === task.taskId && task.taskId > 0 && pTask.taskId > 0) {
-              if (pTask.taskId === window.me848) debugger;
-
-              let b = (((pTask.step === 'creation' || pTask.step === 'flushStamper' || pTask.step === 'mightFlushAndWaitContainersRenderFinish')) || !taskComponent.querySelector('[ytx-flushing]')) && taskComponent.parentNode;
-              if (b) {
-                const result = performTask(taskComponent, pTask);
-                if (result === true) i--;
-                else if (result instanceof Array) {
-                  if (result.length >= 1) {
-                    const eSet = new Set(result); // weak refs
-                    for (let k = 0, c = i; k < c; k++) {
-                      const task = taskList[k];
-                      const componentWr = task ? task.componentWr : null;
-                      if (componentWr && eSet.has(componentWr)) {
-                        i = k;
-                        break;
+                let b = shouldPerformTask && taskComponent.parentNode;
+                if (b) {
+                  const result = performTask(taskComponent, pTask);
+                  if (result === true) i--;
+                  else if (result instanceof Array) {
+                    if (result.length >= 1) {
+                      const eSet = new Set(result); // weak refs
+                      for (let k = 0, c = i; k < c; k++) {
+                        const task = taskList[k];
+                        const componentWr = task ? task.componentWr : null;
+                        if (componentWr && eSet.has(componentWr)) {
+                          i = k;
+                          break;
+                        }
                       }
                     }
                   }
-                }
 
-                if (performance.now() - t0 > 10) {
-                  resetT0 = true;
-                  nextBrowserTick_(taskExec);
-                } else {
-                  queueMicrotask_(taskExec);
-                }
+                  if (nativeNow() - t0 > 10) {
+                    t0 = 0;
+                    nextBrowserTick_(taskExec);
+                  } else {
+                    queueMicrotask_(taskExec);
+                  }
 
-                return;
+                  return;
+
+                }
 
               }
 
@@ -4984,13 +4936,32 @@
           }
 
         }
-        queueMicrotask_(taskExec);
 
-      }
+        if (taskList.length > 0) {
+          let u = 0;
+          for (let k = 0, l = taskList.length; k < l; k++) {
+            let clear = true;
+            const task = taskList[k];
+            const taskComponent = kRef(task.componentWr);
+            if (taskComponent) {
+              const pTask = componentBasedTaskPool.get(taskComponent);
+              if (pTask && (pTask.taskId === task.taskId || pTask.taskId === -1)) {
+                clear = false;
+              }
+            }
+            if (clear) continue;
+            taskList[u++] = taskList[k];
+          }
+          taskList.length = u;
+        }
+
+        isLooping = false;
+
+      };
 
       queueMicrotask_(taskExec);
 
-    }
+    };
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
 
@@ -5027,52 +4998,38 @@
         }
       }
 
+      const flushNow = () => {
+
+        const pTaskNew = taskPush(component, pTask, {
+          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
+          producer: this[wk],
+          containerId: containerId,
+          typeOrConfig: typeOrConfig,
+          data: data,
+          pq33: 7
+        });
+
+        const pTaskId = pTaskNew.taskId;
+
+        queueMicrotask_(() => {
+          if (pTaskId !== pTaskNew.taskId) return;
+          performTask(component);
+          // if (pTaskId !== pTaskNew.taskId) return;
+          // performTask(component);
+          // if (pTaskId !== pTaskNew.taskId) return;
+          // performTask(component);
+        });
+
+        loopTask();
+
+      };
+
       if (!isLastCreate) {
 
         abandonUnreadySubtree();
 
-        if(isSelfProducer && component.parentNode){
-          // to be reviewed
-
-
-          Object.assign(pTask, {
-            step: 'mightFlushAndWaitContainersRenderFinish',
-            producer: this[wk],
-            containerId: containerId,
-            typeOrConfig: typeOrConfig,
-            data: data,
-            pq33: 7
-          });
-          performTask(component);
-          performTask(component);
-          performTask(component);
-          loopTask();
-
-        }else{
-
-          const pTaskNew = taskPush(component, pTask, {
-            step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
-            producer: this[wk],
-            containerId: containerId,
-            typeOrConfig: typeOrConfig,
-            data: data,
-            pq33: 7
-          });
-  
-          const pTaskId = pTaskNew.taskId;
-  
-          queueMicrotask_(() => {
-            if (pTaskId === pTaskNew.taskId) {
-              performTask(component);
-              performTask(component);
-              performTask(component);
-            }
-          });
-  
-          loopTask();
-          return;
-
-        }
+        flushNow();
+        return;
 
       } else {
         if (pTask) pTask.taskId = 0;
@@ -5084,24 +5041,13 @@
 
       if (pTask && pTask.step !== 'creation') {
 
-        component.setAttribute('ytx-flushing', 'c-1');
+        if(!component.hasAttribute('ytx-flushing')) component.setAttribute('ytx-flushing', '2c');
 
-        if (component.parentNode) {
-          let p = document.createComment('.');
-          component.parentNode.insertBefore(p, component);
-          component.parentNode.insertBefore(component, p);
-          p.remove();
-        }
+        abandonUnreadySubtree();
 
-        taskPush(component, pTask, {
-          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
-          producer: this[wk],
-          containerId: containerId,
-          typeOrConfig: typeOrConfig,
-          data: data,
-          pq33: 32
-        });
-        loopTask();
+        flushNow();
+
+        return;
 
       } else {
 
@@ -5110,8 +5056,6 @@
           component.setAttribute('ytx-stamp', 'flusher');
 
           component.setAttribute('ytx-flushing', '1');
-
-
 
           taskPush(component, pTask, {
             step: 'creation',
@@ -5122,7 +5066,6 @@
           });
           loopTask();
 
-
         } else {
 
 
@@ -5132,18 +5075,7 @@
           aNode.setAttribute('ytx-stamp', 'flusher');
           aNode.setAttribute('ytx-flushing', '2');
 
-
-          taskPush(component, pTask, {
-            step: 'flushStamper',
-            producer: this[wk],
-            containerId: containerId,
-            typeOrConfig: typeOrConfig,
-            data: data,
-            pq33: 588
-          });
-          loopTask();
-          performTask(component);
-
+          flushNow();
 
         }
 
@@ -5159,19 +5091,32 @@
       throw new Error('5ii48')
     }
 
+
+    const directComponentList = new Set([
+       // for YouTube Tabview Totara
+      "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
+      "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
+      "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",
+    ]);
+
+
     let kf33;
+    let kf3b = 0;
 
     stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
 
+      const producer = this;
+      const hostElement = producer.hostElement;
+
       let kf = false;
-      const kf34 = (nativeNow() >> 3);
+      const kf3t = nativeNow();
+      const kf34 = Math.floor((kf3t - kf3b) / 8);
 
       if (!kf33 || kf34 !== kf33) {
-        kf33 = kf34
+        kf33 = kf34;
+        kf3b = kf3t - kf34 * 8;
         kf = true;
       }
-
-      // this.__directProduction533__ = true;
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5179,23 +5124,17 @@
         childrenObs.observe(container, { subtree: false, childList: true });
       }
 
-
-      // if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
-      // else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
-      // else this.__byPass828__ = false;
-
       if (kf) this.__directProduction533__ = true;
-      else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
-      else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
+      else if (!this.isAttached) this.__directProduction533__ = true; // tbc
+      else if (this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directProduction533__ = true;
+      else if (hostElement && directComponentList.has(hostElement.nodeName)) this.__directProduction533__ = true;
+      else if (hostElement && hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
       else this.__directProduction533__ = false;
-
 
       const bEventCb = this.stampDom[stampKey].events;
 
       this.__activeContainerId929__ = containerId;
 
-      const producer = this;
-      const hostElement = producer.hostElement;
       if (!this[wk]) this[wk] = mWeakRef(this);
       if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
       if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
@@ -5203,7 +5142,7 @@
       } else if (!hostElement.hasAttribute('ytx-stamp')) {
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
-      const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
+      const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
 
       const flushing = pTask ? (pTask.flushing || []) : [];
       flushing.push([containerId, bEventCb, null]);
@@ -5244,15 +5183,18 @@
 
     stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
+      const producer = this;
+      const hostElement = producer.hostElement;
+
       let kf = false;
-      const kf34 = (nativeNow() >> 3);
+      const kf3t = nativeNow();
+      const kf34 = Math.floor((kf3t - kf3b) / 8);
 
       if (!kf33 || kf34 !== kf33) {
-        kf33 = kf34
+        kf33 = kf34;
+        kf3b = kf3t - kf34 * 8;
         kf = true;
       }
-
-      // this.__directProduction533__ = true;
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5260,23 +5202,17 @@
         childrenObs.observe(container, { subtree: false, childList: true });
       }
 
-      // if((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__byPass828__ = true;
-      // else if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
-      // else if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
-      // else this.__byPass828__ = false;
-
       if (kf) this.__directProduction533__ = true;
-      else if ((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__directProduction533__ = true;
-      else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
-      else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
+      else if (!this.isAttached) this.__directProduction533__ = true; // tbc
+      else if (this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directProduction533__ = true;
+      else if (hostElement && directComponentList.has(hostElement.nodeName)) this.__directProduction533__ = true;
+      else if (hostElement && hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
       else this.__directProduction533__ = false;
 
       bReuse = false;
 
       this.__activeContainerId929__ = containerId;
 
-      const producer = this;
-      const hostElement = producer.hostElement;
       if (!this[wk]) this[wk] = mWeakRef(this);
       if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
       if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
@@ -5284,7 +5220,7 @@
       } else if (!hostElement.hasAttribute('ytx-stamp')) {
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
-      const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
+      const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
 
       const flushing = pTask ? (pTask.flushing || []) : [];
       flushing.push([containerId, bEventCb, !!dataList]);
