@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.32.0
+// @version     0.32.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4362,104 +4362,11 @@
   // ----------------------------
 
 
-
-  const __refreshData938o__ = {};
-  const __refreshData938__ = function (prop, opt) {
-    const d = this[prop];
-    if (d) {
-      this._setPendingProperty(prop, __refreshData938o__, opt);
-      this._setPendingProperty(prop, d, opt);
-      this._invalidateProperties();
-    }
-  };
-
-  const __refreshData933__ = function (prop, opt) {
-    const d = this[prop];
-    if (d) {
-      this.signalProxy.setWithPath([prop], d);
-    }
-  }
-
-  const setupRefreshData930 = (cnt) => {
-    if (cnt.__refreshData930__ !== undefined) return;
-    const cProto = Reflect.getPrototypeOf(cnt);
-    let r = null;
-    let flag = 0;
-    if (typeof cnt._setPendingProperty === 'function' && typeof cnt._invalidateProperties === 'function' && cnt._setPendingProperty.length === 3 && cnt._invalidateProperties.length === 0) {
-      flag |= 1;
-    }
-    if (typeof cnt.signalProxy !== "undefined") {
-      flag |= 2;
-    }
-    if (typeof (cnt.signalProxy || 0).setWithPath === 'function' && cnt.signalProxy.setWithPath.length === 2) {
-      flag |= 4;
-    }
-    if (r === 1) r = __refreshData938__;
-    // else if (r === 6) r = __refreshData933__;
-    cProto.__refreshData930__ = r;
-    // ytd-comments-header-renderer : no _invalidateProperties (cnt.signalProxy.setWithPath)
-  }
-
   // const pendingStampFlushs = [];
 
   const nativeNow = performance.constructor.prototype.now.bind(performance);
 
   const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
-
-
-  const executeTaskBatch = function (taskArr, firstMarco = true) {
-    if (!(taskArr || 0).length) throw new TypeError(`Illegal invocation`);
-    return new Promise(resolveFinal => {
-      let resolveFn = null;
-      const len = taskArr.length;
-      const results = new Array(len);
-      const makePromise = () => new Promise(resolve => { resolveFn = resolve });
-      let firedCount = 0;
-      const executor = () => {
-        if (taskArr.length !== len) throw new TypeError(`Illegal invocation`);
-        const resolveFn_ = resolveFn;
-        let t0 = 0;
-        let next = 0;
-        taskArr.forEach((task, idx) => {
-          if (typeof (task || 0) !== 'object') throw new TypeError(`Illegal invocation`);
-          if (!task.fired) {
-            queueMicrotask_(() => {
-              if (next || task.fired) return;
-              task.fired = true;
-              const { fn } = task;
-              task.fn = null;
-              if (++firedCount === len) next |= 2;
-              if (!t0) t0 = nativeNow() + 10;
-              results[idx] = fn(task); // sync task only
-              if (nativeNow() > t0) next |= 1;
-            });
-          }
-        });
-        queueMicrotask_(() => resolveFn_(next))
-      }
-      const looper = (next) => {
-        if (!next) throw new TypeError(`Illegal invocation`);
-        if (next & 2) {
-          taskArr.length = 0;
-          if (next & 1) {
-            nextBrowserTick_(() => resolveFinal(results))
-          } else {
-            resolveFinal(results);
-          }
-        } else {
-          const p = makePromise();
-          nextBrowserTick_(executor);
-          p.then(looper);
-        }
-      }
-      const p = makePromise();
-      firstMarco ? nextBrowserTick_(executor) : executor();
-      p.then(looper);
-
-    })
-
-  }
-
 
   FIX_ICON_RENDER && whenCEDefined('yt-icon').then(async () => {
 
@@ -4646,8 +4553,6 @@
     }
 
   });
-
-
 
   const createStampDomFnsB_ = () => {
 
@@ -5003,54 +4908,39 @@
     const loopTask = () => {
       if (isLooping) return;
       isLooping = true;
-
-      let i = 0;
-
-      let t0 = 0;
-
-      let resetT0 = true;
+      let i = 0, t0 = 0, resetT0 = true;
 
       const taskExec = () => {
 
         if (resetT0) {
           resetT0 = false;
-          t0 = performance.now();
+          t0 = nativeNow();
         }
 
         const j = i++;
         if (j >= taskList.length) {
 
-
           if (taskList.length > 0) {
-
             let u = 0;
             for (let k = 0, l = taskList.length; k < l; k++) {
               let clear = true;
               const task = taskList[k];
-              if (task.taskId === -1) {
-
-              } else {
-                const taskComponent = kRef(task.componentWr);
-                if (taskComponent) {
-                  const pTask = componentBasedTaskPool.get(taskComponent);
-                  if (pTask && (pTask.taskId === task.taskId || pTask.taskId === -1)) {
-                    clear = false;
-                  }
+              const taskComponent = kRef(task.componentWr);
+              if (taskComponent) {
+                const pTask = componentBasedTaskPool.get(taskComponent);
+                if (pTask && (pTask.taskId === task.taskId || pTask.taskId === -1)) {
+                  clear = false;
                 }
               }
               if (clear) continue;
               taskList[u++] = taskList[k];
             }
             taskList.length = u;
-
           }
-
-
 
           isLooping = false;
           return;
         }
-
 
         const task = taskList[j];
         const taskComponent = kRef(task.componentWr);
@@ -5061,11 +4951,7 @@
               if (pTask.taskId === window.me848) debugger;
 
               let b = (((pTask.step === 'creation' || pTask.step === 'flushStamper' || pTask.step === 'mightFlushAndWaitContainersRenderFinish')) || !taskComponent.querySelector('[ytx-flushing]')) && taskComponent.parentNode;
-              // if (!b && !taskComponent.parentNode) task.taskId = -1;
               if (b) {
-
-                // console.log(2488001, taskComponent, {...pTask})
-
                 const result = performTask(taskComponent, pTask);
                 if (result === true) i--;
                 else if (result instanceof Array) {
@@ -5141,52 +5027,53 @@
         }
       }
 
-      if (!isLastCreate && isSelfProducer && component.parentNode) {
-        abandonUnreadySubtree();
-        Object.assign(pTask, {
-          step: 'mightFlushAndWaitContainersRenderFinish',
-          producer: this[wk],
-          containerId: containerId,
-          typeOrConfig: typeOrConfig,
-          data: data,
-          pq33: 7
-        });
-        performTask(component);
-        performTask(component);
-        performTask(component);
-        loopTask();
-      } else if (!isLastCreate) {
+      if (!isLastCreate) {
 
-
-        // 
         abandonUnreadySubtree();
 
-
-        const pTaskNew = taskPush(component, pTask, {
-          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
-          producer: this[wk],
-          containerId: containerId,
-          typeOrConfig: typeOrConfig,
-          data: data,
-          pq33: 7
-        });
-
-        const pTaskId = pTaskNew.taskId;
-
-        queueMicrotask_(() => {
-          if (pTaskId === pTaskNew.taskId) {
-            performTask(component);
-            performTask(component);
-            performTask(component);
-          }
-        });
+        if(isSelfProducer && component.parentNode){
+          // to be reviewed
 
 
-        loopTask();
+          Object.assign(pTask, {
+            step: 'mightFlushAndWaitContainersRenderFinish',
+            producer: this[wk],
+            containerId: containerId,
+            typeOrConfig: typeOrConfig,
+            data: data,
+            pq33: 7
+          });
+          performTask(component);
+          performTask(component);
+          performTask(component);
+          loopTask();
 
+        }else{
 
-        // });
-        return;
+          const pTaskNew = taskPush(component, pTask, {
+            step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
+            producer: this[wk],
+            containerId: containerId,
+            typeOrConfig: typeOrConfig,
+            data: data,
+            pq33: 7
+          });
+  
+          const pTaskId = pTaskNew.taskId;
+  
+          queueMicrotask_(() => {
+            if (pTaskId === pTaskNew.taskId) {
+              performTask(component);
+              performTask(component);
+              performTask(component);
+            }
+          });
+  
+          loopTask();
+          return;
+
+        }
+
       } else {
         if (pTask) pTask.taskId = 0;
       }
@@ -5276,17 +5163,13 @@
 
     stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
 
-
       let kf = false;
-      const kf34 = Math.round(Date.now() / 2);
+      const kf34 = (Date.now() >> 3);
 
       if (!kf33 || kf34 !== kf33) {
         kf33 = kf34
         kf = true;
       }
-
-
-      // this.__byPass133__ = true;
 
       // this.__directProduction533__ = true;
 
@@ -5300,7 +5183,6 @@
       // if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
       // else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
       // else this.__byPass828__ = false;
-
 
       if (kf) this.__directProduction533__ = true;
       else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
@@ -5355,7 +5237,6 @@
       triggerDomChange(container);
       triggerDomChange(hostElement);
 
-
       if (e_ && e_.message !== '5ii48') throw e_;
 
     }
@@ -5363,10 +5244,8 @@
 
     stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
-
-
       let kf = false;
-      const kf34 = Math.round(Date.now() / 2);
+      const kf34 = (Date.now() >> 3);
 
       if (!kf33 || kf34 !== kf33) {
         kf33 = kf34
@@ -5374,8 +5253,6 @@
       }
 
       // this.__directProduction533__ = true;
-      // this.__byPass133__ = true;
-
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5383,21 +5260,16 @@
         childrenObs.observe(container, { subtree: false, childList: true });
       }
 
-
-
       // if((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__byPass828__ = true;
       // else if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
       // else if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
       // else this.__byPass828__ = false;
-
-
 
       if (kf) this.__directProduction533__ = true;
       else if ((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__directProduction533__ = true;
       else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
       else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
       else this.__directProduction533__ = false;
-
 
       bReuse = false;
 
@@ -5415,9 +5287,7 @@
       const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
 
       const flushing = pTask ? (pTask.flushing || []) : [];
-      // if(!flushing) debugger;
       flushing.push([containerId, bEventCb, !!dataList]);
-
       hostElement.setAttribute('ytx-flushing', 's-1');
 
       if (pTask) {
@@ -5452,20 +5322,11 @@
 
     }
 
-
     return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
-
 
   }
 
-
-
-
-
-
   const setupDiscreteTasks = (h, rb) => {
-
-
 
     if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
       const f = h.onYtRendererstamperFinished;
