@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.32.0
+// @version     0.31.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4352,11 +4352,11 @@
 
   let marcoPr = new PromiseExternal();
   const trackMarcoCm = document.createComment('1');
-  const trackMarcoCmObs = new MutationObserver(() => {
+  const trackMarcoCmObs = new MutationObserver(()=>{
     marcoPr.resolve();
     marcoPr = new PromiseExternal();
   });
-  trackMarcoCmObs.observe(trackMarcoCm, { characterData: true });
+  trackMarcoCmObs.observe(trackMarcoCm, {characterData: true});
 
 
   // ----------------------------
@@ -4405,7 +4405,7 @@
   const nativeNow = performance.constructor.prototype.now.bind(performance);
 
   const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
-
+  
 
   const executeTaskBatch = function (taskArr, firstMarco = true) {
     if (!(taskArr || 0).length) throw new TypeError(`Illegal invocation`);
@@ -4498,14 +4498,14 @@
     //   return this.detached488(...arguments);
     // }
 
-    if (cProto.__renderIconFix__) return;
+    if(cProto.__renderIconFix__) return;
     cProto.__renderIconFix__ = true;
 
     let taskStack = [];
-    const cmObs = new MutationObserver(() => {
+    const cmObs = new MutationObserver(()=>{
       const tasks = taskStack.slice();
       taskStack.length = 0;
-      for (const task of tasks) {
+      for(const task of tasks){
         task();
       }
     })
@@ -4649,13 +4649,13 @@
 
 
 
-  const createStampDomFnsB_ = () => {
+  const createStampDomFnsB_ = ()=>{
 
     const config = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0);
 
     if (config.DEFERRED_DETACH === true) config.DEFERRED_DETACH = false;
     if (config.REUSE_COMPONENTS === true) config.REUSE_COMPONENTS = false;
-
+    
 
     const rq0 = document.createElement('rp');
     rq0.setAttribute('yt-element-placholder', '');
@@ -4665,15 +4665,15 @@
     const componentBasedTaskPool = new WeakMap();
 
 
-    Node.prototype.checkFF = function () {
+    Node.prototype.checkFF = function(){
       const pTask = componentBasedTaskPool.get(this);
-      if (!pTask) return null;
-      return [pTask, taskList.filter(e => e.taskId === pTask.taskId), taskList.filter(e => e.componentWr === this[wk])];
+      if(!pTask) return null;
+      return [pTask, taskList.filter(e=>e.taskId === pTask.taskId), taskList.filter(e=>e.componentWr === this[wk])];
     }
 
-    Node.prototype.checkGG = function () {
+    Node.prototype.checkGG =function(){
       const pTask = componentBasedTaskPool.get(this);
-      if (!pTask) return null;
+      if(!pTask) return null;
       window.me848 = pTask.taskId;
       debugger;
       loopTask();
@@ -4683,7 +4683,7 @@
       return this[this.length - 1];
     }
 
-    const getStampContainer_ = function (containerId) {
+    const getStampContainer_ = function (containerId){
 
       // if(this.__byPass828__) return this.getStampContainer7409_(containerId);
 
@@ -4693,48 +4693,88 @@
 
     }
 
-
+    
 
     const it0 = Date.now() - 80000000000;
-    const genId = () => `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now() - it0).toString(36)}`;
+    const genId = ()=>`${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now()-it0).toString(36)}`;
+
 
 
     const createComponent_ = function (componentConfig, data, canReuse) {
 
       this.___lastCreate3311__ = data;
 
-
-
-      if (this.__directProduction533__) {
-        const cName = this.getComponentName_(componentConfig, data);
-
-        return document.createElement(cName);
-      }
-
-      if (this.__byPass828__ || !this.__byPass348__) {
+      if(this.__byPass828__ || this.__directComponent__ || !this.__byPass348__){
 
         // console.log(39829004)
         // console.log(new Error().stack)
         return this.createComponent7409_(componentConfig, data, false);
       }
 
+      if(this.__byPass133__ || this.__directComponent__){
 
-      const containerId = this.__activeContainerId929__;
+        return this.createComponent7409_(componentConfig, data, false);
 
-      // console.log(2883007, componentConfig, data, canReuse)
+      }else{
 
-      const r = rq0.cloneNode(false);
+        const containerId = this.__activeContainerId929__;
 
-      r.is = 'aa-bb-cc-dd';
+        // console.log(2883007, componentConfig, data, canReuse)
+  
+        const r = rq0.cloneNode(false);
+  
+        r.is = 'aa-bb-cc-dd';
+  
+        return r;
 
-      return r;
+      }
 
 
     }
 
 
     const childrenObs = new MutationObserver((mutations) => {
+      // const nodes = new Set();
+      // for(const mutation of mutations){
+      //   if(mutation.addedNodes && mutation.addedNodes.length >= 1){
+      //     for(const addedNode of mutation.addedNodes){
+      //       nodes.add(addedNode);
+      //     }
+      //   }
+      //   if(mutation.removedNodes && mutation.removedNodes.length >= 1){
+      //     for(const removedNode of mutation.removedNodes){
+      //       nodes.add(removedNode);
+      //     }
+      //   }
+      //   nodes.add(mutation.target);
+      // }
+      // if (!nodes.size) return;
+      // const flushDom = new Set();
+      // for (let node of nodes) {
+      //   if (node.nodeType !== 1) {
+      //     node = node.parentNode;
+      //   }
+      //   if (node && node.nodeType === 1) {
+      //     flushDom.add(node.closest('[ytx-flushing]'));
+      //   }
+      // }
+      // for (const node of flushDom) {
+      //   if (node && node[wk] && componentBasedTaskPool.get(node)) {
+      //     if(node.querySelector('[ytx-flushing]')){
+
+      //       cal(node, (task) => pendingRxArrays[6].push(task));
+      //     }else{
+
+      //       cal(node, (task) => pendingRxArrays[2].push(task));
+      //     }
+
+      //     // pendingRxList.add_(node[wk]);
+      //   }
+      // }
+      // executeTasks();
+
       loopTask();
+
     });
 
 
@@ -4755,7 +4795,6 @@
         taskId: id,
         componentWr: component[wk]
       })
-      return pTask0;
     }
 
     const domComment_ = document.createComment('y');
@@ -4764,15 +4803,16 @@
     }
 
 
-    const performTask = (component, pTask = undefined) => {
+    const performTask = (component, pTask = undefined)=>{
 
-      if (pTask === undefined) pTask = componentBasedTaskPool.get(component);
-      if (!pTask || !component) return;
-      let { step, producer, containerId, typeOrConfig, data, flushing, selfProducer } = pTask;
+      if(pTask === undefined ) pTask = componentBasedTaskPool.get(component);
+
+      if(!pTask || !component) return;
+      let {step, producer, containerId, typeOrConfig, data, flushing, selfProducer} = pTask;
       producer = kRef(producer);
       selfProducer = kRef(selfProducer);
 
-      const resolveSelf = () => {
+      const resolveSelf = ()=>{
 
 
         const node = component;
@@ -4781,7 +4821,7 @@
 
         // if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement && selfProducer.hostElement.isConnected) {
 
-        if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement) {
+        if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement ){
           const node = component;
 
           let shouldMarkDirty = false;
@@ -4816,31 +4856,31 @@
 
         }
 
-
+        
 
         const s = new Set();
 
         const parentComponent = node.closest('[ytx-flushing]');
-        if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
-          if (!s.has(parentComponent[wk])) {
+        if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
+          if(!s.has(parentComponent[wk])){
             s.add(parentComponent[wk]);
           }
         }
 
         const producerElement = producer ? producer.hostElement : null;
 
-        if (parentComponent && parentComponent !== producerElement) {
+        if(parentComponent && parentComponent !== producerElement){
 
           const parentComponent = producerElement;
-          if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
-            if (!s.has(parentComponent[wk])) {
+          if(parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')  ){
+            if(!s.has(parentComponent[wk])){
               s.add(parentComponent[wk])
             }
           }
 
         }
 
-        for (const p of s) {
+        for(const p of s){
           const node = kRef(p);
           triggerDomChange(node);
         }
@@ -4858,10 +4898,10 @@
 
       if (pTask.step === 'creation') {
 
-        if (flushing) debugger;
+        if(flushing )debugger;
         if (!producer || !typeOrConfig) return;
         if (component.parentNode && component.parentNode.id === containerId && component.parentNode === producer.getStampContainer7409_(containerId)) {
-          pTask.step = 'flushStamper'; pTask.pq33 = 3;
+          pTask.step = 'flushStamper';pTask.pq33 = 3;
 
           // const aNode = producer.createComponent7409_(typeOrConfig, data, false);
 
@@ -4889,8 +4929,24 @@
           containerApi.removeChild(qNode);
 
 
+          // let flushAndProduce = false;
+          if(aNode.getAttribute('ytx-flushing') !== '2' || aNode.getAttribute('ytx-stamp') !== 'flusher' || pTask.taskId !== pTaskId ){
+            // flushAndProduce = true;
+            // if( pTask.taskId!== pTaskId){
 
 
+
+
+            //   debugger;
+            // }
+
+            // console.log(18838002 + (pTask.taskId === pTaskId ? 10: 0) , pTask.taskId, pTaskId)
+            // console.log(18838003, pTask, componentBasedTaskPool.get(aNode));
+          } else {
+            // console.log(18838001 + (pTask.taskId === pTaskId ? 10: 0) , pTask.taskId, pTaskId) 
+          }
+
+          
           if (1) {
 
 
@@ -4930,9 +4986,9 @@
 
 
         }
-      } else if (pTask.step === 'flushStamper') {
+      } else if(pTask.step === 'flushStamper') {
 
-        if (flushing) debugger;
+        if(flushing )debugger;
 
         if (!producer || !typeOrConfig) return;
         pTask.step = 'flushStamperWait';
@@ -4940,24 +4996,25 @@
         pTask.data = null;
 
         const node = component;
-        node.setAttribute('ytx-flushing', '3');
-
+        node.setAttribute('ytx-flushing', '3a');
+        
         let taskB = { component: component, typeOrConfig: typeOrConfig, data: data };
         // flushedObserver.observe(node, { subtree: true, childList: true });
         producer.deferredBindingTasks_.push(taskB);
         producer.flushRenderStamperComponentBindings7409_();
+        if(component.parentNode)triggerDomChange(component.parentNode);
         return true;
 
-      } else if (pTask.step === 'flushStamperWait') {
+      } else if (pTask.step === 'flushStamperWait'){
 
-        if (flushing) debugger;
+        if(flushing )debugger;
         if (!producer) return;
 
         // producer undetermined
 
         const node = component;
 
-        if (!node.querySelector('[ytx-flushing]')) {
+        if(!node.querySelector('[ytx-flushing]')){
 
           pTask.step = 'idleContainer';
 
@@ -4966,21 +5023,22 @@
 
         }
 
-      } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish') {
+      } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish'){
 
 
-        if (producer && typeOrConfig) {
+        if(producer && typeOrConfig){
 
           pTask.typeOrConfig = null;
           pTask.data = null;
-
+  
           const node = component;
-          node.setAttribute('ytx-flushing', '3');
-
+          node.setAttribute('ytx-flushing', '3b');
+          
           let taskB = { component: component, typeOrConfig: typeOrConfig, data: data };
           // flushedObserver.observe(node, { subtree: true, childList: true });
           producer.deferredBindingTasks_.push(taskB);
           producer.flushRenderStamperComponentBindings7409_();
+          if(component.parentNode)triggerDomChange(component.parentNode);
           return true;
 
         }
@@ -4988,7 +5046,7 @@
 
         const node = component;
 
-        if (!node.querySelector('[ytx-flushing]')) {
+        if(!node.querySelector('[ytx-flushing]')){
           pTask.step = 'idleProducer';
           return resolveSelf();
         }
@@ -5000,28 +5058,27 @@
     }
 
     let isLooping = false;
-    const loopTask = () => {
-      if (isLooping) return;
+    const loopTask = ()=>{
+      if(isLooping) return;
       isLooping = true;
 
-      let i = 0;
+      let i =0;
 
-      let t0 = 0;
-
+      let t0 = performance.now();
       let resetT0 = true;
 
-      const taskExec = () => {
+      const taskExec = ()=>{
 
-        if (resetT0) {
+        if(resetT0) {
           resetT0 = false;
           t0 = performance.now();
         }
 
         const j = i++;
-        if (j >= taskList.length) {
+        if(j >= taskList.length){
 
-
-          if (taskList.length > 0) {
+          
+          if(taskList.length > 0 && 0){
 
             let u = 0;
             for (let k = 0, l = taskList.length; k < l; k++) {
@@ -5044,7 +5101,7 @@
             taskList.length = u;
 
           }
-
+          
 
 
           isLooping = false;
@@ -5054,14 +5111,13 @@
 
         const task = taskList[j];
         const taskComponent = kRef(task.componentWr);
-        if (taskComponent) {
+        if(taskComponent) {
           const pTask = componentBasedTaskPool.get(taskComponent);
-          if (pTask) {
-            if (pTask.taskId === task.taskId && task.taskId > 0 && pTask.taskId > 0) {
-              if (pTask.taskId === window.me848) debugger;
+          if(pTask){
+            if(pTask.taskId === task.taskId && task.taskId > 0 && pTask.taskId > 0){
+              if(pTask.taskId === window.me848) debugger;
 
               let b = (((pTask.step === 'creation' || pTask.step === 'flushStamper' || pTask.step === 'mightFlushAndWaitContainersRenderFinish')) || !taskComponent.querySelector('[ytx-flushing]')) && taskComponent.parentNode;
-              // if (!b && !taskComponent.parentNode) task.taskId = -1;
               if (b) {
 
                 // console.log(2488001, taskComponent, {...pTask})
@@ -5082,10 +5138,12 @@
                   }
                 }
 
-                if (performance.now() - t0 > 10) {
+                if(performance.now() - t0 > 10){
+                  // taskExec();
                   resetT0 = true;
                   nextBrowserTick_(taskExec);
-                } else {
+                }else{
+                  // taskExec();
                   queueMicrotask_(taskExec);
                 }
 
@@ -5098,51 +5156,28 @@
           }
 
         }
+        // taskExec();
         queueMicrotask_(taskExec);
 
       }
 
+      // taskExec();
       queueMicrotask_(taskExec);
 
     }
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
 
-      const isLastCreate = this.___lastCreate3311__ === data; // false for native element. true for RP or native element
+      const isLastCreate = this.___lastCreate3311__ === data;
 
-      this.___lastCreate3311__ = -0.125;
-
+      this.___lastCreate3311__ = -1.3213;
 
       const containerId = this.__activeContainerId929__;
-      if (!component[wk]) component[wk] = mWeakRef(component);
-      if (!this[wk]) this[wk] = mWeakRef(this);
+      if(!component[wk]) component[wk] = mWeakRef(component);
+      if(!this[wk]) this[wk] = mWeakRef(this);
 
       const pTask = componentBasedTaskPool.get(component);
-
-      const isSelfProducer = (pTask && pTask.selfProducer && pTask.flushing);
-
-
-      const abandonUnreadySubtree = () => {
-        for (const e of component.querySelectorAll('[ytx-flushing]')) {
-          const pTask = componentBasedTaskPool.get(e);
-          if (pTask) {
-            pTask.step = 'abandon';
-            pTask.taskId = 0;
-            if (pTask.flushing) pTask.flushing.length = 0;
-            pTask.flushing = null;
-
-            pTask.typeOrConfig = null
-            pTask.data = null
-
-            componentBasedTaskPool.delete(e);
-          }
-          e.removeAttribute('ytx-flushing');
-          if (e.nodeName === 'RP') e.remove();
-        }
-      }
-
-      if (!isLastCreate && isSelfProducer && component.parentNode) {
-        abandonUnreadySubtree();
+      if(isLastCreate && pTask && pTask.selfProducer && component.nodeName !== "RP" && pTask.taskId > 0 && component.parentNode) {
         Object.assign(pTask, {
           step: 'mightFlushAndWaitContainersRenderFinish',
           producer: this[wk],
@@ -5151,53 +5186,10 @@
           data: data,
           pq33: 7
         });
-        performTask(component);
-        performTask(component);
-        performTask(component);
         loopTask();
-      } else if (!isLastCreate) {
+        performTask(component);
+      } else if (!isLastCreate && pTask && pTask.selfProducer && component.nodeName !== "RP" && component.parentNode) {
 
-
-        // 
-        abandonUnreadySubtree();
-
-
-        const pTaskNew = taskPush(component, pTask, {
-          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
-          producer: this[wk],
-          containerId: containerId,
-          typeOrConfig: typeOrConfig,
-          data: data,
-          pq33: 7
-        });
-
-        const pTaskId = pTaskNew.taskId;
-
-        queueMicrotask_(() => {
-          if (pTaskId === pTaskNew.taskId) {
-            performTask(component);
-            performTask(component);
-            performTask(component);
-          }
-        });
-
-
-        loopTask();
-
-
-        // });
-        return;
-      } else {
-        if (pTask) pTask.taskId = 0;
-      }
-
-      if (this.__byPass828__ || !this.__byPass348__) {
-        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-      }
-
-      if (pTask && pTask.step !== 'creation') {
-
-        component.setAttribute('ytx-flushing', 'c-1');
 
         if (component.parentNode) {
           let p = document.createComment('.');
@@ -5206,75 +5198,170 @@
           p.remove();
         }
 
-        taskPush(component, pTask, {
-          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
+        Object.assign(pTask, {
+          step: 'mightFlushAndWaitContainersRenderFinish',
           producer: this[wk],
           containerId: containerId,
           typeOrConfig: typeOrConfig,
           data: data,
-          pq33: 32
+          pq33: 92
         });
         loopTask();
 
+        return;
+
       } else {
+        if (pTask && pTask.selfProducer) {
 
-        if (component.nodeName === "RP") {
+          debugger;
 
-          component.setAttribute('ytx-stamp', 'flusher');
+        }
+        if(pTask) pTask.taskId = 0;
+      }
 
-          component.setAttribute('ytx-flushing', '1');
+      if(this.__byPass828__ || !this.__byPass348__) {
+        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+      }
+
+
+      let indirectComponent = component.nodeName === "RP";
+
+      if(indirectComponent && isLastCreate){
+
+
+        component.setAttribute('ytx-flushing', '1');
+
+        component.setAttribute('ytx-stamp', 'flusher')
+
+
+        taskPush(component, pTask,  {
+          step: 'creation',
+          producer: this[wk],
+          containerId: containerId,
+          typeOrConfig: typeOrConfig,
+          data: data
+        });
+        loopTask();
+        // performTask(component);
+
+      }else if(indirectComponent && !isLastCreate){
+
+        Object.assign(pTask, {
+          step: 'creation',
+          producer: this[wk],
+          containerId: containerId,
+          typeOrConfig: typeOrConfig,
+          data: data,
+          pq33: 88
+        });
+        
+        console.log(1238801)
+
+
+      }else{
 
 
 
-          taskPush(component, pTask, {
-            step: 'creation',
+        component.setAttribute('ytx-flushing', 'c-1');
+
+        if (!isLastCreate && pTask && pTask.selfProducer && pTask.flushing && pTask.flushing.length > 0) {
+          console.log(1238802)
+          // discard all
+          pTask.flushing.length = 0;
+          for (const q of component.querySelectorAll('[ytx-flushing]')) {
+            const pTask = componentBasedTaskPool.get(q);
+            if (pTask) {
+              pTask.step = 'abandon';
+              pTask.taskId = 0;
+              if (pTask.flushing) pTask.flushing.length = 0;
+              pTask.data = pTask.typeOrConfig = pTask.flushing = null;
+              componentBasedTaskPool.delete(q);
+            }
+            q.removeAttribute('ytx-flushing');
+          }
+        }
+
+
+
+        if (component.parentNode) {
+          let p = document.createComment('.');
+          component.parentNode.insertBefore(p, component);
+          component.parentNode.insertBefore(component, p);
+          p.remove();
+        }
+
+        if(pTask && pTask.selfProducer && pTask.flushing && pTask.flushing.length > 0) {
+          console.log(1238803)
+          Object.assign(pTask, {
+            step: 'mightFlushAndWaitContainersRenderFinish',
             producer: this[wk],
             containerId: containerId,
             typeOrConfig: typeOrConfig,
-            data: data
+            data: data,
+            pq33: 7
           });
           loopTask();
-
+          // performTask(component);
 
         } else {
 
+          if (pTask && (pTask.selfProducer || pTask.flushing)) {
 
-          const aNode = component;
-          if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
+            performTask(component);
+          }
 
-          aNode.setAttribute('ytx-stamp', 'flusher');
-          aNode.setAttribute('ytx-flushing', '2');
+          if (pTask && (pTask.selfProducer || pTask.flushing) && pTask.step !=='idleProducer') {
+            debugger;
+          }
 
+          if(pTask && pTask.step === 'idleProducer'){
 
-          taskPush(component, pTask, {
+            pTask.selfProducer = null;
+            pTask.flushing = null;
+          }
+
+          taskPush(component, pTask,  {
             step: 'flushStamper',
             producer: this[wk],
             containerId: containerId,
             typeOrConfig: typeOrConfig,
             data: data,
-            pq33: 588
+            pq33: 2
           });
           loopTask();
           performTask(component);
 
-
         }
 
+
+
       }
+
 
 
     }
-    flushRenderStamperComponentBindings_ = function () {
+    flushRenderStamperComponentBindings_ = function (){
+      
+      if(this.__a388__) throw new Error('5ii48')
+      if(this.__byPass828__ || !this.__byPass348__){
 
-      if (this.__byPass828__ || !this.__byPass348__) {
+
+        // console.log(39829006)
+        // console.log(new Error().stack)
         return this.flushRenderStamperComponentBindings7409_();
-      }
+
+      } 
       throw new Error('5ii48')
     }
 
-    let kf33;
+    // let kf32 = 0;
+    // let kf31 = 0;
 
-    stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
+    // let kf33 = 0;
+
+    let kf = true;
+
+    stampDomArraySplices_ = function ( stampKey, containerId,indexSplicesObj ){
 
 
       let kf = false;
@@ -5285,70 +5372,134 @@
         kf = true;
       }
 
+      // let kf = false;
+      // const kf34 = Math.round(Date.now() / 10);
+
+      // if (!kf33 || kf34 !== kf33) {
+      //   kf33 = kf34
+      //   kf = true;
+      // }
+
+      // kf = false;
+
+      // console.log(2993001, kf)
+
+
+      // console.log(2177002, kf)
 
       // this.__byPass133__ = true;
 
-      // this.__directProduction533__ = true;
+      // return this.stampDomArraySplices7409_(...arguments);
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
         container.__rk75401__ = true;
         childrenObs.observe(container, { subtree: false, childList: true });
       }
-
-
-      // if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
-      // else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
+      
+      // if(this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__byPass828__ = true;
+      // else if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, defs, noscript')) this.__byPass828__ = true;
       // else this.__byPass828__ = false;
 
 
-      if (kf) this.__directProduction533__ = true;
-      else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
-      else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
-      else this.__directProduction533__ = false;
+
+      this.__directComponent__ = false;
+
+      this.__doNative__ = true;
 
 
-      const bEventCb = this.stampDom[stampKey].events;
+
+      if(this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directComponent__ = true;
+      else if(this.hostElement && this.hostElement.closest('defs, noscript')) this.__directComponent__ = true;
+      // else this.__byPass828__ = false;
+
+      if(hf || kf){
+        this.__directComponent__ = true;
+      } else if(this.hostElement){
+
+
+        if(this.hostElement.closest('[hidden], defs, noscript') || (containerId === 'contents' || containerId === 'content' || containerId === 'header')){
+          this.__directComponent__ = true;
+        }else if(!this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1){
+          this.__directComponent__ = true;
+        }
+
+
+      } 
+
+
+      // this.__byPass828__  = true; // ytd-engagement-panel-title-header-renderer
+
+      // if(this.hostElement.nodeName.toLowerCase() === 'ytd-engagement-panel-title-header-renderer') this.__byPass828__ = true;
+
+      // if(this.hostElement.nodeName.toLowerCase() === 'ytd-engagement-panel-section-list-renderer') this.__byPass828__ = true;
+      // if(this.is === 'ytd-shorts') this.__byPass828__ = true;
+     
+
+
+      // if(kf) this.__byPass828__ = true;
+      // this.__directComponent__ = true;
+      // this.__byPass828__ = true;
+
+      // this.__byPass828__ = true;
+      /*
+      
+      let b1 = this.hostElement.closest('[hidden], defs, noscript') || (containerId === 'contents' || containerId === 'content' || containerId === 'header');
+      let b2 = !this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1;
+
+      if(b1 || b2)this.__byPass828__ = true;
+      else this.__byPass828__ = false;
+
+
+      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass133__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass133__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass133__ = true;
+      */
+
+      if(this.__doNative__) this.__directComponent__ = true;
+
+      // if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      // if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      // else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+
+      const bEventCb= this.stampDom[stampKey].events;
 
       this.__activeContainerId929__ = containerId;
 
       const producer = this;
       const hostElement = producer.hostElement;
-      if (!this[wk]) this[wk] = mWeakRef(this);
-      if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
-      if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
+      if(!this[wk]) this[wk] = mWeakRef(this);
+      if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+      if(hostElement.getAttribute('ytx-stamp') === 'flusher'){
         hostElement.setAttribute('ytx-stamp', 'flusher|producer');
-      } else if (!hostElement.hasAttribute('ytx-stamp')) {
+      }else if (!hostElement.hasAttribute('ytx-stamp')){
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
       const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
 
-      const flushing = pTask ? (pTask.flushing || []) : [];
+      const flushing = pTask? (pTask.flushing || []) : [];
       flushing.push([containerId, bEventCb, null]);
       hostElement.setAttribute('ytx-flushing', 's-1');
 
       if (pTask) {
         pTask.taskId = -1;
       }
-      
-      if (hostElement && !hostElement.__rk75401__) {
-        hostElement.__rk75401__ = true;
-        childrenObs.observe(hostElement, { subtree: false, childList: true });
-      }
+
+      childrenObs.observe(hostElement, {subtree: false, childList: true});
 
       let r, e_
-      try {
-        this.__byPass348__ = true;
-        this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
-      } catch (e) {
+      try{
+        this.__byPass348__=true;
+        this.stampDomArraySplices7409_ ( stampKey, containerId,indexSplicesObj );
+      }catch(e){
         e_ = e;
       }
-      this.__byPass348__ = false;
+      this.__byPass348__=false;
 
       taskPush(hostElement, pTask, {
         step: 'mightFlushAndWaitContainersRenderFinish',
         selfProducer: this[wk],
-        flushing
+        flushing        
       });
       loopTask();
 
@@ -5356,12 +5507,38 @@
       triggerDomChange(hostElement);
 
 
-      if (e_ && e_.message !== '5ii48') throw e_;
+      if (this.__doNative__) {
+        if(container && container.children && container.children.length > 0){
+
+          for (const p of container.children) {
+            performTask(p);
+          }
+
+        }
+        performTask(hostElement);
+      }
+      
+
+      if(e_ && e_.message !== '5ii48') throw e_;
 
     }
 
+    let hf = false;
+    // const hff = () => {
+    //   hf = true;
+    //   nextBrowserTick_(() => {
+    //     hf = false;
+    //   });
+    // }
+    // document.addEventListener('pointerdown',hff,true);
+    // document.addEventListener('pointerup',hff,true);
+    // document.addEventListener('keydown',hff,true);
+    // document.addEventListener('keyup',hff,true);
+    // document.addEventListener('keypress',hff,true);
 
-    stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+    
+    let kf33 = 0;
+    stampDomArray_ =  function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
 
 
 
@@ -5373,9 +5550,16 @@
         kf = true;
       }
 
-      // this.__directProduction533__ = true;
+      // kf = false;
+      // console.log(2993001, kf)
+
+
+      // console.log(2177001, kf)
+
+
       // this.__byPass133__ = true;
 
+      // this.__byPass348__ = true;
 
       const container = this.getStampContainer7409_(containerId);
       if (container && !container.__rk75401__) {
@@ -5384,19 +5568,69 @@
       }
 
 
+      
 
-      // if((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__byPass828__ = true;
-      // else if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass828__ = true;
-      // else if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__byPass828__ = true;
+      this.__directComponent__ = false;
+
+      this.__doNative__ = true;
+
+
+
+      if(this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directComponent__ = true;
+      else if(this.hostElement && this.hostElement.closest('defs, noscript')) this.__directComponent__ = true;
       // else this.__byPass828__ = false;
 
+      if(hf || kf){
+        this.__directComponent__ = true;
+      } else if(0 && (!dataList || dataList.length < 5)){
+        this.__directComponent__ = true;
+      } else if(this.hostElement){
 
 
-      if (kf) this.__directProduction533__ = true;
-      else if ((containerId === 'contents' || containerId === 'content' || containerId === 'header')) this.__directProduction533__ = true;
-      else if (this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__directProduction533__ = true;
-      else if (this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
-      else this.__directProduction533__ = false;
+        if(this.hostElement.closest('[hidden], defs, noscript') || (containerId === 'contents' || containerId === 'content' || containerId === 'header')){
+          this.__directComponent__ = true;
+        }else if(!this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1){
+          this.__directComponent__ = true;
+        }
+
+
+      } 
+      
+
+      // if(this.hostElement.nodeName.toLowerCase() === 'ytd-engagement-panel-title-header-renderer') this.__byPass828__ = true;
+
+      // if(this.hostElement.nodeName.toLowerCase() === 'ytd-engagement-panel-section-list-renderer') this.__byPass828__ = true;
+      // if(this.is === 'ytd-shorts' || this.hostElement.closest('[hidden], defs, noscript')) this.__byPass828__ = true;
+
+      // this.__byPass828__ = true;
+     
+
+      // this.__byPass828__  = true; // ytd-engagement-panel-title-header-renderer
+
+      // if(kf) this.__byPass828__ = true;
+
+      // this.__directComponent__ = true;
+      /*
+      
+      let b1 = this.hostElement.closest('[hidden], defs, noscript') || (containerId === 'contents' || containerId === 'content' || containerId === 'header');
+      let b2 = !this.hostElement.isConnected || !this.hostElement.parentNode || this.hostElement.parentNode.nodeType !== 1;
+
+      if(b1 || b2)this.__byPass828__ = true;
+      else this.__byPass828__ = false;
+
+
+      if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass133__ = true;
+      if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass133__ = true;
+      else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass133__ = true;
+      */
+
+      // if(this.hostElement && this.hostElement.closest('ytd-engagement-panel-section-list-renderer')) this.__byPass828__ = true;
+      // if(this.onYtRendererstamperFinished && this.onYtRendererstamperFinished) this.__byPass455__ = true;
+      // else if (this.hostElement.nodeName === 'YTD-RICH-GRID-RENDERER')  this.__byPass455__ = true;
+
+
+
+      if(this.__doNative__) this.__directComponent__ = true;
 
 
       bReuse = false;
@@ -5405,16 +5639,16 @@
 
       const producer = this;
       const hostElement = producer.hostElement;
-      if (!this[wk]) this[wk] = mWeakRef(this);
-      if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
-      if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
+      if(!this[wk]) this[wk] = mWeakRef(this);
+      if(!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
+      if(hostElement.getAttribute('ytx-stamp') === 'flusher'){
         hostElement.setAttribute('ytx-stamp', 'flusher|producer');
-      } else if (!hostElement.hasAttribute('ytx-stamp')) {
+      }else if (!hostElement.hasAttribute('ytx-stamp')){
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
       const pTask = componentBasedTaskPool.get(hostElement) // can be flushStampWait -> waitContainersRenderFinish
 
-      const flushing = pTask ? (pTask.flushing || []) : [];
+      const flushing = pTask? (pTask.flushing || []) : [];
       // if(!flushing) debugger;
       flushing.push([containerId, bEventCb, !!dataList]);
 
@@ -5424,36 +5658,45 @@
         pTask.taskId = -1;
       }
 
-      if (hostElement && !hostElement.__rk75401__) {
-        hostElement.__rk75401__ = true;
-        childrenObs.observe(hostElement, { subtree: false, childList: true });
-      }
+      childrenObs.observe(hostElement, {subtree: false, childList: true});
 
       let r, e_
-      try {
-        this.__byPass348__ = true;
+      try{
+        this.__byPass348__=true;
         this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-      } catch (e) {
+      }catch(e){
         e_ = e;
       }
-      this.__byPass348__ = false;
+      this.__byPass348__=false;
 
       taskPush(hostElement, pTask, {
         step: 'mightFlushAndWaitContainersRenderFinish',
         selfProducer: this[wk],
-        flushing
+        flushing        
       });
       loopTask();
 
       triggerDomChange(container);
       triggerDomChange(hostElement);
 
-      if (e_ && e_.message !== '5ii48') throw e_;
+
+      if (this.__doNative__) {
+        if(container && container.children && container.children.length > 0){
+
+          for (const p of container.children) {
+            performTask(p);
+          }
+
+        }
+        performTask(hostElement);
+      }
+
+      if(e_ && e_.message !== '5ii48') throw e_;
 
     }
 
 
-    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
+    return {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_};
 
 
   }
