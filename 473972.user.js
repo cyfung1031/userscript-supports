@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.35.2
+// @version     0.35.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5700,7 +5700,9 @@
 
         if (cName.length > 13 && (cName === 'ytd-continuation-item-renderer' || cName.includes('-continuation'))) {
 
-          if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
+          ytSchedulerMethods.addImmediateJob(()=>{
+            if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
+          });
 
         } else if (mDeferred) {
 
