@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.6
+// @version             2025.101.7
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -306,27 +306,6 @@ SOFTWARE.
     clearInterval.valueOf = clearInterval_.valueOf.bind(clearInterval_);
     requestAnimationFrame.valueOf = requestAnimationFrame_.valueOf.bind(requestAnimationFrame_);
     cancelAnimationFrame.valueOf = cancelAnimationFrame_.valueOf.bind(cancelAnimationFrame_);
-  }
-
-  if (typeof webkitRequestAnimationFrame === 'function' && typeof navigator === 'object' && typeof navigator.userAgentData === 'object') {
-    const isYouTubePage = location?.hostname?.endsWith('youtube.com');
-    if (isYouTubePage) {
-      try {
-        if (isYouTubePage && navigator?.userAgentData?.brands?.some(e => e?.brand === 'Brave')) {  // fu*k you Brave!
-          let e_;
-          try {
-            setTimeout_.call(1);
-          } catch (e) { e_ = e }
-          if (!`${e_?.stack || "Object.apply"}`.includes("Object.apply")) {
-            let q;
-            q = Object.getOwnPropertyDescriptor(self, 'setTimeout');
-            Object.defineProperty(self, 'setTimeout', { ...q, writable: false });
-            q = Object.getOwnPropertyDescriptor(self, 'setInterval');
-            Object.defineProperty(self, 'setInterval', { ...q, writable: false });
-          }
-        }
-      } catch (e) { }
-    }
   }
 
   // Firemonkey & Violentmonkey in Firefox under non-page context
