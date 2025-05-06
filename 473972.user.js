@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.35.3
+// @version     0.35.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5614,7 +5614,9 @@
 
 
     let q244 = new PromiseExternal();
-    let q248 = [];
+    let q248a = [];
+    let q248b = [];
+    let q248c = [];
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
 
       if(this.__byPass828__) {
@@ -5665,18 +5667,22 @@
         pTaskNew.byPass = false;
         if (flag & 1) {
           performTaskQueued(component);
+          performTaskQueued(component);
+          performTaskQueued(component);
         } else {
+          performTask(component);
+          performTask(component);
           performTask(component);
         }
         return true;
       }
 
-      const flushNow = () => {
+      const flushNow = (component) => {
 
 
 
         const cName = this.getComponentName_(typeOrConfig, data);
-        const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.hostElement.closest('[ytd-playlist-panel-video-renderer]');
+        const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.is === 'ytd-playlist-panel-video-renderer';
         // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
 
         if(mDeferred) {
@@ -5698,88 +5704,82 @@
 
         const componentWr = component[wk];
 
-        if (cName.length > 13 && (cName === 'ytd-continuation-item-renderer' || cName.includes('-continuation'))) {
 
-          ytSchedulerMethods.addImmediateJob(()=>{
-            if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
-          });
+        if(!component.hasAttribute('ytx-flushing')) component.setAttribute('ytx-flushing', '2w');
 
-        } else if (mDeferred) {
+        if (mDeferred ) {
 
-          // if(!q244.__m133__){
-          // q244.__m133__ = true;
+          q248a.push([componentWr, pTaskId]);
+          
 
-          // ytSchedulerMethods.addJob(() => {
-          //   q244.resolve();
-          //   q244 = new PromiseExternal();
-          // }, 0, 2.125);
-
-          // // }
-          // q248.push([componentWr, pTaskId]);
-
-          // q244.then(() => {
-
-          //   if (!q248.length) return;
-          //   let q246 = q248.slice();
-          //   q248 = [];
-
-          //   ytSchedulerMethods.addJob(() => {
-          //     nextBrowserTick_(()=>{
-
-
-          //       for (const [componentWr, pTaskId] of q246) {
-
-          //         const component = kRef(componentWr);
-          //         if (!component) continue;
-  
-          //         const pTaskNew = componentBasedTaskPool.get(component);
-          //         if (!pTaskNew) continue;
-          //         if (pTaskId !== pTaskNew.taskId) continue;
-  
-          //         pTaskNew.byPass = false;
-  
-          //       }
-          //       q246.length = 0;
-          //       q246 = null;
-          //       loopTask();
-
-          //     })
-          //     // requestIdleCallback(()=>{
-
-          //     // });
-          //   }, 0, 2.125);
-
-          // });
-
-
-          q248.push([componentWr, pTaskId]);
-
-
-          nextBrowserTick_(() => {
+          setTimeout(() => {
+            const q248 = q248a;
 
             if (!q248.length) return;
             let q246 = q248.slice();
-            q248 = [];
+            q248.length = 0;
 
             let doLoop = false;
             for (const [componentWr, pTaskId] of q246) {
+              // if(!)
+              // console.log(2188, kRef(componentWr).parentNode)
               if (flushNowTask(componentWr, pTaskId, 1) === true) doLoop = true;
             }
             q246.length = 0;
             q246 = null;
             if (doLoop) loopTask();
 
-          });
+          }, 0);
 
 
         } else {
-          
 
-          // ytSchedulerMethods.addImmediateJob(() => {
-            queueMicrotask_(() => {
-              if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
+          if(!component.parentNode){
+
+            q248b.push([componentWr, pTaskId]);
+
+            (() => {
+
+              const q248 = q248b;
+
+              if (!q248.length) return;
+              let q246 = q248.slice();
+              q248.length = 0;
+  
+              let doLoop = false;
+              for (const [componentWr, pTaskId] of q246) {
+                if (flushNowTask(componentWr, pTaskId, 0) === true) doLoop = true;
+              }
+              q246.length = 0;
+              q246 = null;
+              if (doLoop) loopTask();
+  
+            })();
+
+          } else {
+
+
+            q248c.push([componentWr, pTaskId]);
+
+            nextBrowserTick_(() => {
+              const q248 = q248c;
+
+              if (!q248.length) return;
+              let q246 = q248.slice();
+              q248.length = 0;
+
+              let doLoop = false;
+              for (const [componentWr, pTaskId] of q246) {
+                if (flushNowTask(componentWr, pTaskId, 1) === true) doLoop = true;
+              }
+              q246.length = 0;
+              q246 = null;
+              if (doLoop) loopTask();
+
             });
-          // });
+
+          }
+          
 
         }
 
@@ -5793,7 +5793,7 @@
 
         abandonUnreadySubtree();
 
-        flushNow();
+        flushNow(component);
         return;
 
       } else {
@@ -5810,7 +5810,7 @@
 
         abandonUnreadySubtree();
 
-        flushNow();
+        flushNow(component);
 
         return;
 
@@ -5823,7 +5823,7 @@
           component.setAttribute('ytx-flushing', '1');
 
           const cName = this.getComponentName_(typeOrConfig, data);
-          const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.hostElement.closest('[ytd-playlist-panel-video-renderer]');
+          const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.is === 'ytd-playlist-panel-video-renderer';
           // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
 
           if(mDeferred) {
@@ -5849,7 +5849,7 @@
           aNode.setAttribute('ytx-stamp', 'flusher');
           aNode.setAttribute('ytx-flushing', '2');
 
-          flushNow();
+          flushNow(component);
 
         }
 
