@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.32.3
+// @version     0.35.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -35,6 +35,8 @@
   const FIX_schedulerInstanceInstance = 2 | 4;
   const FIX_yt_player = true; // DONT CHANGE
   const FIX_Animation_n_timeline = true;
+  const FIX_Animation_n_timeline_cinematic = true;
+  const FIX_ytScheduler = true;
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
@@ -80,7 +82,7 @@
   const ENABLE_discreteTasking = false; // removed since 0.20.0
   const FIX_stampDomArray_ = true; // v0.30.0
   const FIX_stampDomArray = FIX_stampDomArray_ && typeof WeakRef === "function" && typeof FinalizationRegistry === "function";
-  const stampDomArray_MemoryFix_Flag001 = false;
+  // const stampDomArray_MemoryFix_Flag001 = false;
   const XFlag = true; // DON'T CHANGE
   
   const MemoryFix_Flag002 = 1 | 2 | 4 | 8 | 0 | 32 | 64 | 0 | 256; 
@@ -1745,6 +1747,322 @@
       return this.bind488(thisArg, ...args);
     }
     Function.prototype.bind588 = 1;
+  }
+
+  const ytSchedulerMethods = {
+    addJob(a, b, c) {
+      const instance = typeof yt !== 'undefined' ? ((yt || 0).scheduler || 0).instance : null;
+      if (instance) {
+        return instance.addJob(a, b, c);
+      } else {
+        return setTimeout(a, c);
+      }
+    },
+    addImmediateJob(a) {
+      const instance = typeof yt !== 'undefined' ? ((yt || 0).scheduler || 0).instance : null;
+      if (instance) {
+        return instance.addImmediateJob(a);
+      } else {
+        a();
+      }
+    },
+    cancelJob(id) {
+      const instance = typeof yt !== 'undefined' ? ((yt || 0).scheduler || 0).instance : null;
+      if (instance) {
+        return instance.cancelJob(id);
+      } else {
+        return clearTimeout(id);
+      }
+    }
+  };
+
+  if (FIX_ytScheduler) {
+
+    let ytSchedulerFixed = 0;
+    // let ytActioned = false;
+    // let pr = new PromiseExternal();
+
+    // const hn = function () {
+
+    //   document.removeEventListener('yt-action', hn, true);
+    //   nextBrowserTick_(() => {
+    //     ytActioned = true;
+    //     pr.resolve();
+    //   });
+
+    // }
+    // document.addEventListener('yt-action', hn, true);
+
+    // let cancelStore = {}; // tbc
+
+    // yt.scheduler.instance.addJob
+    const fixAddJob = (nv) => {
+
+      /*
+      
+          function Z() {
+              var a = w("ytglobal.schedulerInstanceInstance_");
+              if (!a || a.s)
+                  a = new M(I("scheduler") || {}),
+                  x("ytglobal.schedulerInstanceInstance_", a);
+              return a
+          }
+      
+          */
+
+      /*
+      
+      
+          function R(a, b, c, d) {
+              ++a.D;
+              if (c === 10)
+                  return P(a, b),
+                  a.D;
+              var e = a.D;
+              a.h[e] = b;
+              a.l && !d ? a.u.push({
+                  id: e,
+                  priority: c
+              }) : (a.i[c].push(e),
+              a.C || a.l || (a.g !== 0 && S(a) !== a.m && T(a),
+              a.start()));
+              return e
+          }
+      
+          */
+
+      /*
+      
+          function sa(a, b, c) {
+              if (!c)
+                  return c = c === void 0,
+                  -R(Z(), a, b, c);
+              var d = window.setTimeout(function() {
+                  var e = R(Z(), a, b);
+                  W[d] = e
+              }, c);
+              return d
+          }
+      
+          */
+      window.originalAddJob = nv;
+      // const q1 = new PromiseExternal();
+      // const q2 = new PromiseExternal();
+      // let uu = 0;
+      // let q3 = 0;
+      let mof = null;
+      const mo = new MutationObserver((mutation, observer) => {
+        if (mof) {
+          if (mof() === true) {
+            observer.disconnect();
+            mof = null;
+          }
+        }
+      });
+
+      let lenSkip = -1;
+      let lastLen = null;
+
+      const fetchCommentJob = (a, cid) => {
+
+        // if (cid && cancelStore[cid]) return; // tbc
+
+        if (mof) {
+          console.log('[yt-js-engine-tamer] fetchCommentJob done');
+          mof = null;
+        }
+
+        console.log('[yt-js-engine-tamer] fetchCommentJob start');
+
+        let f = a;
+
+        const selector = 'ytd-comments, ytd-comments > *, ytd-comments [id] > *, ytd-comments ytd-continuation-item-renderer';
+
+        let g = () => {
+          const len1 = lastLen = document.querySelectorAll(selector).length;
+          if (!len1) {
+            lenSkip = -1;
+            return false;
+          }
+          f();
+          const len2 = lastLen = document.querySelectorAll(selector).length;
+          if (len2 !== len1) {
+            lenSkip = len2;
+            console.log('[yt-js-engine-tamer] fetchCommentJob done');
+            return true;
+          }
+          return null;
+        }
+
+        const r = g();
+        if (r === true){
+          g = f = null;
+          return;
+        }
+        if (lastLen === lenSkip) {
+          console.log('[yt-js-engine-tamer] fetchCommentJob done');
+          g = f = null;
+          return;
+        }
+        const q1 = lastLen;
+        mof = () => {
+          const q2 = document.querySelectorAll(selector).length;
+          if (q1 === q2) return;
+          setTimeout(g, 80);
+          g = null;
+          return true;
+        }
+        mo.observe(document, { childList: true, subtree: true });
+
+      }
+
+
+
+      return function (a, b, c) {
+
+        if (!c) return nv(a, b, c);
+
+        const c_ = c;
+
+        if (c > 0.2 && (c % 1) === c) c -= 0.125;
+
+        if (!b && c_ === 5000 && `${a}`.includes('.cleanupJob=0')) {
+          try {
+            yt.scheduler.instance.cancelAllJobs();
+            yt.scheduler.instance.dispose();
+            ytglobal.schedulerInstanceInstance_.dispose();
+            console.log('[yt-js-engine-tamer] cleanupJob');
+          } catch (e) { }
+          return  nv(a, b, c);
+        }
+
+        // if(!b && c > 50) c = 50;
+        // console.log(58372,a,b,c)
+        // function(){xxx(xxx)}
+        if (`${a}`.length <= 20 && !b && c_ === 1000 && a.name === '' && /function\(\)\{\w{1,3}\(\w{1,3}\)\}/.test(`${a}`)) {
+
+          /*
+
+            V.setCommentsJobId = _.et(_.r0, function() {
+                F5V(V)
+            }, 1E3)
+
+            */
+
+            const cid = nv(() => { }, b, 1.125);
+            fetchCommentJob(a, cid);
+
+          // queueMicrotask_(a);
+          // nextBrowserTick_(a);
+          // a(); // no need to delay
+          return cid
+
+          // return nv(a, b, 1.125);
+          
+          // const cid = window.setTimeout(() => {
+          //   nextBrowserTick_(() => {
+              
+          //     if (cancelStore[cid]) {
+          //       console.log('task cancelled');
+          //       return;
+          //     }
+          //     a();
+
+          //   });
+          // }, 0.125);
+          
+          // return cid;
+        } else {
+
+
+
+          return nv(a,b,c);
+
+
+          // if (c > 2400) c = 2400;
+          // else if (c > 800) c = 800;
+          // if (c > 0.2 && (c % 1) === c) c -= 0.125;
+          // if (0 && ytActioned && !b) {
+          //   const cid = window.setTimeout(() => {
+          //     nextBrowserTick_(() => {
+          //       if (cancelStore[cid]) {
+          //         console.log('task cancelled');
+          //         return;
+          //       }
+          //       a();
+          //     });
+          //   }, c);
+          //   return cid;
+          // } else {
+          //   return nv(a, b, c);
+          // }
+
+        }
+      }
+    }
+
+    const fixCancelJob = (nv) => {
+
+
+      window.originalCancelJob = nv;
+      return function (a) {
+        if (a < 0) return nv(a);
+        // cancelStore[a] = true; // tbc
+        nv(a);
+      }
+    }
+
+    const sk44 = Symbol();
+    Object.defineProperty(Object.prototype, 'addJob', {
+      get() {
+        return this[sk44];
+      },
+      set(nv) {
+        if (typeof nv === 'function' && !(ytSchedulerFixed & 1) && typeof yt !== 'undefined' && this === ((yt || 0).scheduler || 0).instance) {
+          ytSchedulerFixed |= 1;
+          nv = fixAddJob(nv);
+        }
+        this[sk44] = nv;
+        return true;
+      },
+      enumerable: false,
+      configurable: true
+    });
+
+
+
+    const sk45 = Symbol();
+    Object.defineProperty(Object.prototype, 'cancelJob', {
+      get() {
+        return this[sk45];
+      },
+      set(nv) {
+        if (typeof nv === 'function' && !(ytSchedulerFixed & 2) && typeof yt !== 'undefined' && this === ((yt || 0).scheduler || 0).instance) {
+          ytSchedulerFixed |= 2;
+          nv = fixCancelJob(nv);
+        }
+        this[sk45] = nv;
+        return true;
+      },
+      enumerable: false,
+      configurable: true
+    });
+
+
+
+    if (typeof yt !== 'undefined' && this === ((yt || 0).scheduler || 0).instance) {
+      const { addJob, cancelJob } = yt.scheduler.instance;
+      if (addJob) {
+        yt.scheduler.instance.addJob = null;
+        yt.scheduler.instance.addJob = addJob;
+      }
+      if (cancelJob) {
+        yt.scheduler.instance.cancelJob = null;
+        yt.scheduler.instance.cancelJob = cancelJob;
+      }
+    }
+
+
   }
 
 
@@ -4577,6 +4895,7 @@
     }
 
     Node.prototype.checkGG = function () {
+      window.me849 = this;
       const pTask = componentBasedTaskPool.get(this);
       if (!pTask) return null;
       window.me848 = pTask.taskId;
@@ -4643,22 +4962,304 @@
     });
 
 
+    class CTaskList {
+      constructor() {
+        this.head = this.tail = null;
+
+        // ref → {prev, next, level}
+        this.nodes = new Map();
+
+        // Per‑level sentinels
+        this.levelHead = [];
+        this.levelTail = [];
+
+        // Sorted list of non‑empty levels for O(log L) neighbour lookup
+        this.nonEmptyLevels = [];
+        this.counter = 0;
+      }
+
+      _ensure(level) {
+        while (this.levelTail.length <= level) {
+          this.levelTail.push(null);
+          this.levelHead.push(null);
+        }
+      }
+
+      // Binary‑search index inside nonEmptyLevels
+      _indexOfLevel(level) {
+        let lo = 0, hi = this.nonEmptyLevels.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (this.nonEmptyLevels[mid] < level) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+
+      _link(ref, prev, next, level) {
 
 
+        this.nodes.set(ref, { prev, next, level });
+
+        if (prev) this.nodes.get(prev).next = ref;
+        else this.head = ref;
+
+        if (next) this.nodes.get(next).prev = ref;
+        else this.tail = ref;
+
+        this.levelTail[level] = ref;
+        if (!this.levelHead[level]) this.levelHead[level] = ref;
+      }
+
+      _detach(ref) {
+        if (!ref || !this.nodes.has(ref)) return;
+
+
+        const { prev, next, level } = this.nodes.get(ref);
+
+        if (prev) this.nodes.get(prev).next = next;
+        else this.head = next;
+
+        if (next) this.nodes.get(next).prev = prev;
+        else this.tail = prev;
+
+        if (this.levelTail[level] === ref) {
+          this.levelTail[level] = prev && this.nodes.get(prev)?.level === level ? prev : null;
+        }
+        if (this.levelHead[level] === ref) {
+          this.levelHead[level] = next && this.nodes.get(next)?.level === level ? next : null;
+        }
+
+        if (this.levelTail[level] === null) {
+          const idx = this.nonEmptyLevels.indexOf(level);
+          if (idx !== -1) this.nonEmptyLevels.splice(idx, 1);
+        }
+
+        this.nodes.delete(ref);
+
+      }
+
+      push(component, level) {
+        if (!component) return;
+
+        // this.checkIntegrity();
+
+        const ref = component[wk] || (component[wk] = new WeakRef(component));
+
+        if (this.nodes.has(ref)) this._detach(ref);
+
+        this._ensure(level);
+
+        if (!this.levelTail[level]) {
+          // First node on this level
+          const idx = this._indexOfLevel(level);
+          const prevLvl = idx ? this.nonEmptyLevels[idx - 1] : null;
+          const nextLvl = idx < this.nonEmptyLevels.length ? this.nonEmptyLevels[idx] : null;
+
+          const prevRef = prevLvl !== null ? this.levelTail[prevLvl] : null;
+          const nextRef = nextLvl !== null ? this.levelHead[nextLvl] : null;
+
+          this._link(ref, prevRef, nextRef, level);
+          this.nonEmptyLevels.splice(idx, 0, level);
+        } else {
+          // Append to existing level
+          const prevRef = this.levelTail[level];
+          const nextRef = this.nodes.get(prevRef).next;
+          this._link(ref, prevRef, nextRef, level);
+        }
+
+        this.counter++;
+        // this.checkIntegrity();
+      }
+
+      remove(component) {
+        const ref = component && component.deref ? component : (component || 0)[wk];
+
+        // this.checkIntegrity();
+        this._detach(ref);
+
+        // this.checkIntegrity();
+      }
+
+      replace(componentOld, componentNew) {
+        if (!componentOld || !componentNew) {
+          throw new Error('replace failed: missing component');
+        }
+
+        if (componentOld === componentNew) {
+          return;
+        }
+
+        const refOld = componentOld[wk];
+        // ensure New has a weak‐ref
+        const refNew = componentNew[wk] || (componentNew[wk] = mWeakRef(componentNew));
+
+
+        if (refOld === refNew) {
+          return;
+        }
+
+        if (!refOld || !this.nodes.has(refOld)) {
+          throw new Error('replace failed: old component not found');
+        }
+
+        // this.checkIntegrity();
+
+        // If new is already in the list somewhere, detach it first
+        if (this.nodes.has(refNew)) {
+          this._detach(refNew);
+        }
+
+        // Pull out old pointers
+        const { prev, next, level } = this.nodes.get(refOld);
+
+        // Link into the main list
+        if (prev) {
+          this.nodes.get(prev).next = refNew;
+        } else {
+          this.head = refNew;
+        }
+
+        if (next) {
+          this.nodes.get(next).prev = refNew;
+        } else {
+          this.tail = refNew;
+        }
+
+        // Link into the per‐level sentinels
+        if (this.levelHead[level] === refOld) {
+          this.levelHead[level] = refNew;
+        }
+        if (this.levelTail[level] === refOld) {
+          this.levelTail[level] = refNew;
+        }
+
+        // Finally re‐key the Map entry
+        this.nodes.set(refNew, { prev, next, level });
+        this.nodes.delete(refOld);
+
+        // this.checkIntegrity();
+      }
+
+      _walk(ref, dir) {
+        if (!ref || !this.nodes.has(ref)) return null;
+
+        let cur = this.nodes.get(ref)[dir];
+        while (cur) {
+          if (cur.deref()) return cur;
+
+          // Clean up collected node
+          const nxt = this.nodes.get(cur)[dir];
+          this._detach(cur);
+          cur = nxt;
+        }
+        return null;
+      }
+
+      nextComp(component) {
+        const ref = component && component.deref ? component : (component || 0)[wk];
+        return this._walk(ref, 'next');
+      }
+
+      prevComp(component) {
+        const ref = component && component.deref ? component : (component || 0)[wk];
+        return this._walk(ref, 'prev');
+      }
+
+      hasComp(component) {
+        const ref = component && component.deref ? component : (component || 0)[wk];
+        return !!(ref && this.nodes.has(ref))
+      }
+
+      count() {
+        return this.counter;
+      }
+
+      countLevels() {
+        const r = [];
+        for (let i = 0; ; i++) {
+          if (!this.levelHead[i] || !this.levelTail[i]) break;
+          let cur = this.levelHead[i];
+          let curs = [];
+          while (cur && this.nodes.get(cur).level === i) {
+            curs.push((cur));
+            cur = taskListP.nextComp(cur);
+          }
+
+          if (curs[0] !== this.levelHead[i]) debugger;
+          if (curs[curs.length - 1] !== this.levelTail[i]) debugger;
+          r.push({
+            head: this.levelHead[i],
+            tail: this.levelTail[i],
+            curs: curs,
+            set: new Set(curs),
+            arrSize: curs.length,
+            setSize: (new Set(curs)).size
+
+          });
+        }
+        return r;
+      }
+
+
+      // // Integrity checker helper
+      // checkIntegrity() {
+      //   const list = this;
+      //   // Global head/tail pointers
+      //   if (list.head !== null) {
+      //     const headNode = list.nodes.get(list.head);
+      //     assert(headNode.prev === null, "Integrity: head.prev must be null");
+      //   }
+      //   if (list.tail !== null) {
+      //     const tailNode = list.nodes.get(list.tail);
+      //     assert(tailNode.next === null, "Integrity: tail.next must be null");
+      //   }
+
+      //   // Per-level head/tail and level consistency
+      //   list.nonEmptyLevels.forEach(level => {
+      //     assert(list.levelHead[level] != null, `Integrity: levelHead[${level}] should not be null`);
+      //     assert(list.levelTail[level] != null, `Integrity: levelTail[${level}] should not be null`);
+      //     const headRef = list.levelHead[level];
+      //     const tailRef = list.levelTail[level];
+      //     const headNode = list.nodes.get(headRef);
+      //     const tailNode = list.nodes.get(tailRef);
+      //     assert(headNode.level === level, `Integrity: levelHead[${level}].level mismatch`);
+      //     assert(tailNode.level === level, `Integrity: levelTail[${level}].level mismatch`);
+      //   });
+
+      //   // nonEmptyLevels sorted ascending
+      //   for (let i = 1; i < list.nonEmptyLevels.length; i++) {
+      //     assert(
+      //       list.nonEmptyLevels[i] > list.nonEmptyLevels[i - 1],
+      //       "Integrity: nonEmptyLevels must be sorted ascending"
+      //     );
+      //   }
+
+      //   this.countLevels();
+      // }
+
+    }
+
+
+    const taskListP = new CTaskList();
     const taskList = [];
     let taskCounter = 0;
+    window.me55 = ()=>taskListP;
 
-    const taskPush = (component, pTask0, pTask1) => {
+    const taskPush = (component, pTask0, pTask1, deferred = false) => {
       component = kRef(component);
       if (!component) return;
       if (!pTask0) pTask0 = pTask1; else Object.assign(pTask0, pTask1);
       componentBasedTaskPool.set(component, pTask0);
       const id = taskCounter = (taskCounter & 1073741823) + 1;
       pTask0.taskId = id;
-      taskList.push({
-        taskId: id,
-        componentWr: component[wk]
-      })
+      if (!pTask1.byPass) pTask0.byPass = false;
+      taskListP.push(component, 0);
+      if (!deferred) nonDeferredTask = component[wk];
+      // taskList.push({
+      //   taskId: id,
+      //   componentWr: component[wk]
+      // })
       return pTask0;
     }
 
@@ -4680,6 +5281,8 @@
 
         const node = component;
 
+        const prevCur = taskListP.prevComp(node);
+
         node.removeAttribute('ytx-flushing');
 
         // if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement && selfProducer.hostElement.isConnected) {
@@ -4694,7 +5297,7 @@
           const producer = selfProducer;
 
           for (const [containerId, bEvent, hasData] of flushing) {
-            if (hasData) {
+            if (hasData || hasData === null) {
               shouldMarkDirty = true;
               if (bEvent) {
                 const container = producer.getStampContainer7409_(containerId);
@@ -4750,9 +5353,11 @@
 
         if (!node.hasAttribute('ytx-flushing') && (!pTask.flushing || !pTask.flushing.length) && !pTask.typeOrConfig && !pTask.data) {
           componentBasedTaskPool.delete(node);
+          taskListP.remove(node);
         }
 
-        return [...s];
+
+        return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head), parents: [...s]};
 
       }
 
@@ -4765,18 +5370,22 @@
 
           // const aNode = producer.createComponent7409_(typeOrConfig, data, false);
 
+          const prevCur = taskListP.prevComp(component);
+
           const pTaskId = pTask.taskId;
           const cName = producer.getComponentName_(typeOrConfig, data);
           const aNode = document.createElement(cName);
           const qNode = component;
 
           aNode.setAttribute('ytx-stamp', 'flusher');
-          aNode.setAttribute('ytx-flushing', '2')
+          aNode.setAttribute('ytx-flushing', '2');
+          if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
+
+          taskListP.replace(qNode, aNode);
 
           componentBasedTaskPool.delete(qNode);
           componentBasedTaskPool.set(aNode, pTask); // pTask will be obtained and proceeded during "dom change" in the same micro task
 
-          if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
 
           const container = component.parentNode;
           const containerApi = container.__domApi || container;
@@ -4786,20 +5395,7 @@
           containerApi.insertBefore(frag, qNode);
           containerApi.removeChild(qNode);
           
-          const pTaskN = componentBasedTaskPool.get(aNode); // pTaskN should be the same as pTask
-          const pTaskNId = pTaskN.taskId; // pTaskNId might be not the same as pTaskId
-
-          if (pTaskNId === pTaskId) {
-            // update self componentWr if no added task
-            for (const task of taskList) {
-              if (task.taskId === pTaskId) {
-                task.componentWr = aNode[wk];
-                break;
-              }
-            }
-          }
-
-          return true;
+          return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
 
         }
       } else if (pTask.step === 'flushStamper') {
@@ -4811,6 +5407,8 @@
         pTask.typeOrConfig = null;
         pTask.data = null;
 
+        const prevCur = taskListP.prevComp(component);
+
         const node = component;
         node.setAttribute('ytx-flushing', '3');
 
@@ -4818,7 +5416,9 @@
         // flushedObserver.observe(node, { subtree: true, childList: true });
         producer.deferredBindingTasks_.push(taskB);
         producer.flushRenderStamperComponentBindings7409_();
-        return true;
+        // try{Polymer.flush()}catch(e){}
+        
+        return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
 
       } else if (pTask.step === 'flushStamperWait') {
 
@@ -4845,6 +5445,8 @@
           pTask.typeOrConfig = null;
           pTask.data = null;
 
+          const prevCur = taskListP.prevComp(component);
+
           const node = component;
           node.setAttribute('ytx-flushing', '3');
 
@@ -4852,7 +5454,8 @@
           // flushedObserver.observe(node, { subtree: true, childList: true });
           producer.deferredBindingTasks_.push(taskB);
           producer.flushRenderStamperComponentBindings7409_();
-          return true;
+          // try{Polymer.flush()}catch(e){}
+          return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
         }
 
         const node = component;
@@ -4865,97 +5468,119 @@
 
       }
 
-    }
+    };
+
+    const performTaskQueued = (component)=>{
+      queueMicrotask_(()=>{
+        performTask(component);
+      });
+    };
 
     let isLooping = false;
+    let nonDeferredTask = null;
+    
+    let loopTaskQ = 0;
     const loopTask = () => {
-      if (isLooping) return;
+      if (isLooping) return ++loopTaskQ;
       isLooping = true;
-      let i = 0, t0 = 0;
-
+      loopTaskQ = 0;
+      let t0 = 0;
+      
+      let cur = taskListP.head;
+      let nextCur = cur;
+ 
       const taskExec = () => {
 
         if (!t0) {
           t0 = nativeNow();
         }
 
-        for (let j; (j = i++) < taskList.length;) {
-
-          const task = taskList[j];
-          const taskComponent = kRef(task.componentWr);
-          if (taskComponent) {
-            const pTask = componentBasedTaskPool.get(taskComponent);
-            if (pTask) {
-              if (pTask.taskId === task.taskId && task.taskId > 0 && pTask.taskId > 0) {
-                if (pTask.taskId === window.me848) debugger;
-
-                let shouldPerformTask = false;
-                if (pTask.step === 'creation' && pTask.typeOrConfig) {
-                  shouldPerformTask = true;
-                } else if (pTask.step === 'flushStamper' && pTask.typeOrConfig) {
-                  shouldPerformTask = true;
-                } else if (pTask.step === 'flushStamperWait' && !taskComponent.querySelector('[ytx-flushing]')) {
-                  shouldPerformTask = true;
-                } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish' && (pTask.typeOrConfig || !taskComponent.querySelector('[ytx-flushing]'))) {
-                  shouldPerformTask = true;
-                }
-
-                let b = shouldPerformTask && taskComponent.parentNode;
-                if (b) {
-                  const result = performTask(taskComponent, pTask);
-                  if (result === true) i--;
-                  else if (result instanceof Array) {
-                    if (result.length >= 1) {
-                      const eSet = new Set(result); // weak refs
-                      for (let k = 0, c = i; k < c; k++) {
-                        const task = taskList[k];
-                        const componentWr = task ? task.componentWr : null;
-                        if (componentWr && eSet.has(componentWr)) {
-                          i = k;
-                          break;
-                        }
-                      }
-                    }
-                  }
-
-                  if (nativeNow() - t0 > 10) {
-                    t0 = 0;
-                    nextBrowserTick_(taskExec);
-                  } else {
-                    queueMicrotask_(taskExec);
-                  }
-
-                  return;
-
-                }
-
-              }
-
-            }
-
-          }
-
+        if (nonDeferredTask && nextCur && taskListP.nodes.has(nextCur) && taskListP.nodes.get(nextCur).level === 1) {
+          nextCur = nonDeferredTask
         }
 
-        if (taskList.length > 0) {
-          let u = 0;
-          for (let k = 0, l = taskList.length; k < l; k++) {
-            let clear = true;
-            const task = taskList[k];
-            const taskComponent = kRef(task.componentWr);
+        nonDeferredTask = null;
+
+      
+          for (;cur = nextCur; ) {
+
+            nextCur = taskListP.nextComp(cur);
+            const nextCur0 = nextCur;
+
+            const taskComponent = kRef(cur);
             if (taskComponent) {
+              if(taskComponent === window.me849) debugger;
               const pTask = componentBasedTaskPool.get(taskComponent);
-              if (pTask && (pTask.taskId === task.taskId || pTask.taskId === -1)) {
-                clear = false;
+              if (pTask) {
+                if (pTask.taskId > 0 && !pTask.byPass) {
+                  if (pTask.taskId === window.me848) debugger;
+
+                  let shouldPerformTask = false;
+                  if (pTask.step === 'creation' && pTask.typeOrConfig) {
+                    shouldPerformTask = true;
+                  } else if (pTask.step === 'flushStamper' && pTask.typeOrConfig) {
+                    shouldPerformTask = true;
+                  } else if (pTask.step === 'flushStamperWait' && !taskComponent.querySelector('[ytx-flushing]')) {
+                    shouldPerformTask = true;
+                  } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish' && (pTask.typeOrConfig || !taskComponent.querySelector('[ytx-flushing]'))) {
+                    shouldPerformTask = true;
+                  }
+
+                  let b = shouldPerformTask && taskComponent.parentNode;
+                  if (b) {
+
+                      const result = performTask(taskComponent, pTask);
+                      let kbb = false;
+                      if(typeof result ==='object' && result.nextCur === nextCur0){
+
+                      } else if(taskListP.nextComp(cur) === null && taskListP.nextComp(cur) !== nextCur0) {
+                        kbb = true;
+                      }
+                      if (typeof result === 'object' && result.parents instanceof Array) {
+
+                        const nextCur_ = result.nextCur;
+                        nextCur = nextCur_;
+                        const parents = result.parents;
+                        if (parents.length >= 1) {
+                          const eSet = new Set(parents); // weak refs
+                          eSet.add(nextCur_)
+                          for (let cur_ = taskListP.head; cur_; cur_ = taskListP.nextComp(cur_)) {
+                            if (eSet.has(cur_)) {
+                              nextCur = cur_;
+                              break;
+                            }
+                          }
+                        }
+
+
+                      } else if(typeof result === 'object' && result.nextCur){
+                        nextCur = result.nextCur;
+                      }
+
+
+                      if (nativeNow() - t0 > 10) {
+                        t0 = 0;
+                        nextBrowserTick_(taskExec);
+                      } else {
+                        queueMicrotask_(taskExec);
+                      }
+
+            
+                      return;
+
+                  }
+
+                }
+
               }
+
             }
-            if (clear) continue;
-            taskList[u++] = taskList[k];
+
           }
-          taskList.length = u;
-        }
 
         isLooping = false;
+
+        if(loopTaskQ > 0) nextBrowserTick_(loopTask);
 
       };
 
@@ -4963,7 +5588,15 @@
 
     };
 
+
+    let q244 = new PromiseExternal();
+    let q248 = [];
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+
+      if(this.__byPass828__) {
+
+        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+      }
 
       const isLastCreate = this.___lastCreate3311__ === data; // false for native element. true for RP or native element
 
@@ -4992,13 +5625,40 @@
             pTask.data = null
 
             componentBasedTaskPool.delete(e);
+            taskListP.remove(e);
           }
           e.removeAttribute('ytx-flushing');
           if (e.nodeName === 'RP') e.remove();
         }
       }
 
+      const flushNowTask = (componentWr, pTaskId, flag) => {
+        const component = kRef(componentWr);
+        if (!component) return;
+        const pTaskNew = componentBasedTaskPool.get(component);
+        if (!pTaskNew) return;
+        if (pTaskId !== pTaskNew.taskId) return;
+        pTaskNew.byPass = false;
+        if (flag & 1) {
+          performTaskQueued(component);
+        } else {
+          performTask(component);
+        }
+        return true;
+      }
+
       const flushNow = () => {
+
+
+
+        const cName = this.getComponentName_(typeOrConfig, data);
+        const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.hostElement.closest('[ytd-playlist-panel-video-renderer]');
+        // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
+
+        if(mDeferred) {
+          component.setAttribute('ytx-defer-stamp','');
+          this.hostElement.setAttribute('ytx-defer-stamp','');
+        }
 
         const pTaskNew = taskPush(component, pTask, {
           step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
@@ -5006,19 +5666,98 @@
           containerId: containerId,
           typeOrConfig: typeOrConfig,
           data: data,
+          byPass: true,
           pq33: 7
-        });
+        }, mDeferred ? 1 : 0);
 
         const pTaskId = pTaskNew.taskId;
 
-        queueMicrotask_(() => {
-          if (pTaskId !== pTaskNew.taskId) return;
-          performTask(component);
-          // if (pTaskId !== pTaskNew.taskId) return;
-          // performTask(component);
-          // if (pTaskId !== pTaskNew.taskId) return;
-          // performTask(component);
-        });
+        const componentWr = component[wk];
+
+        if (cName.length > 13 && (cName === 'ytd-continuation-item-renderer' || cName.includes('-continuation'))) {
+
+          if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
+
+        } else if (mDeferred) {
+
+          // if(!q244.__m133__){
+          // q244.__m133__ = true;
+
+          // ytSchedulerMethods.addJob(() => {
+          //   q244.resolve();
+          //   q244 = new PromiseExternal();
+          // }, 0, 2.125);
+
+          // // }
+          // q248.push([componentWr, pTaskId]);
+
+          // q244.then(() => {
+
+          //   if (!q248.length) return;
+          //   let q246 = q248.slice();
+          //   q248 = [];
+
+          //   ytSchedulerMethods.addJob(() => {
+          //     nextBrowserTick_(()=>{
+
+
+          //       for (const [componentWr, pTaskId] of q246) {
+
+          //         const component = kRef(componentWr);
+          //         if (!component) continue;
+  
+          //         const pTaskNew = componentBasedTaskPool.get(component);
+          //         if (!pTaskNew) continue;
+          //         if (pTaskId !== pTaskNew.taskId) continue;
+  
+          //         pTaskNew.byPass = false;
+  
+          //       }
+          //       q246.length = 0;
+          //       q246 = null;
+          //       loopTask();
+
+          //     })
+          //     // requestIdleCallback(()=>{
+
+          //     // });
+          //   }, 0, 2.125);
+
+          // });
+
+
+          q248.push([componentWr, pTaskId]);
+
+
+          nextBrowserTick_(() => {
+
+            if (!q248.length) return;
+            let q246 = q248.slice();
+            q248 = [];
+
+            let doLoop = false;
+            for (const [componentWr, pTaskId] of q246) {
+              if (flushNowTask(componentWr, pTaskId, 1) === true) doLoop = true;
+            }
+            q246.length = 0;
+            q246 = null;
+            if (doLoop) loopTask();
+
+          });
+
+
+        } else {
+          
+
+          // ytSchedulerMethods.addImmediateJob(() => {
+            queueMicrotask_(() => {
+              if (flushNowTask(componentWr, pTaskId, 0) === true) loopTask();
+            });
+          // });
+
+        }
+
+
 
         loopTask();
 
@@ -5057,13 +5796,22 @@
 
           component.setAttribute('ytx-flushing', '1');
 
+          const cName = this.getComponentName_(typeOrConfig, data);
+          const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.hostElement.closest('[ytd-playlist-panel-video-renderer]');
+          // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
+
+          if(mDeferred) {
+            component.setAttribute('ytx-defer-stamp','');
+            this.hostElement.setAttribute('ytx-defer-stamp','');
+          }
+
           taskPush(component, pTask, {
             step: 'creation',
             producer: this[wk],
             containerId: containerId,
             typeOrConfig: typeOrConfig,
             data: data
-          });
+          }, mDeferred ? 1 : 0);
           loopTask();
 
         } else {
@@ -5085,8 +5833,17 @@
     }
     flushRenderStamperComponentBindings_ = function () {
 
-      if (this.__byPass828__ || !this.__byPass348__) {
+      if (!this.__byPass348__) {
         return this.flushRenderStamperComponentBindings7409_();
+      }
+      if (this.__byPass828__) {
+        const wr = this[wk] || (this[wk] = mWeakRef(this));
+        queueMicrotask_(() => {
+          const producer = kRef(wr);
+          if (!producer) return;
+          producer.flushRenderStamperComponentBindings7409_();
+        });
+        throw new Error('5ii48');
       }
       throw new Error('5ii48')
     }
@@ -5103,7 +5860,56 @@
     let kf33;
     let kf3b = 0;
 
+    const sb88 = Symbol();
+
+    const onStampDone = (producer) =>{
+
+
+      const flushing_ = producer[sb88];
+
+      const flushing = flushing_.slice();
+      flushing_.length = 0;
+
+      if (flushing && flushing.length > 0) {
+
+        let shouldMarkDirty = false;
+
+        const m = new Set();
+
+        for (const [containerId, bEvent, hasData] of flushing) {
+          if (hasData || hasData === null) {
+            shouldMarkDirty = true;
+            if (bEvent) {
+              const container = producer.getStampContainer7409_(containerId);
+              // console.log(644221499, container)
+              m.add(container);
+            }
+          }
+        }
+        flushing.length = 0;
+
+        if (shouldMarkDirty) {
+          producer.markDirty && producer.markDirty();
+          let q = true;
+          for (const container of m) {
+            if (!q) producer.markDirty && producer.markDirty();
+            q = false;
+            dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
+              container
+            });
+          }
+        }
+
+      }
+      
+
+
+    }
+
     stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
+      // this.__byPass828__ = true;
+
+      // return this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
 
       const producer = this;
       const hostElement = producer.hostElement;
@@ -5131,6 +5937,12 @@
       else if (hostElement && hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
       else this.__directProduction533__ = false;
 
+      this.__directProduction533__ = true;
+
+      // if (container.is === 'yt-img-shadow') this.__byPass828__ = true;
+
+      // if(this.hostElement.closest('ytd-comments')) this.__byPass828__ = true;
+
       const bEventCb = this.stampDom[stampKey].events;
 
       this.__activeContainerId929__ = containerId;
@@ -5142,6 +5954,32 @@
       } else if (!hostElement.hasAttribute('ytx-stamp')) {
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
+
+
+      if (this.__byPass828__) {
+
+        const flushing = this[sb88] || (this[sb88] = []);
+        flushing.push([containerId, bEventCb, null]);
+  
+        let r, e_
+        try {
+          this.__byPass348__ = true;
+          this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
+        } catch (e) {
+          e_ = e;
+        }
+        this.__byPass348__ = false;
+
+        nextBrowserTick_(() => {
+          onStampDone(this);
+        });
+
+        if (e_ && e_.message !== '5ii48') throw e_;
+        return;
+
+      }
+
+
       const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
 
       const flushing = pTask ? (pTask.flushing || []) : [];
@@ -5149,7 +5987,8 @@
       hostElement.setAttribute('ytx-flushing', 's-1');
 
       if (pTask) {
-        pTask.taskId = -1;
+        // pTask.taskId = -1;
+        pTask.byPass = true;
       }
       
       if (hostElement && !hostElement.__rk75401__) {
@@ -5178,10 +6017,14 @@
 
       if (e_ && e_.message !== '5ii48') throw e_;
 
-    }
-
+    };
 
     stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+      // this.__byPass828__ = true;
+
+
+
+      // return this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
 
       const producer = this;
       const hostElement = producer.hostElement;
@@ -5211,6 +6054,11 @@
 
       bReuse = false;
 
+      this.__directProduction533__ = true;
+
+      // if (container.is === 'yt-img-shadow') this.__byPass828__ = true;
+      // if(this.hostElement.closest('ytd-comments')) this.__byPass828__ = true;
+
       this.__activeContainerId929__ = containerId;
 
       if (!this[wk]) this[wk] = mWeakRef(this);
@@ -5220,6 +6068,32 @@
       } else if (!hostElement.hasAttribute('ytx-stamp')) {
         hostElement.setAttribute('ytx-stamp', 'producer');
       }
+
+
+      if (this.__byPass828__) {
+
+        const flushing = this[sb88] || (this[sb88] = []);
+        flushing.push([containerId, bEventCb, !!dataList]);
+  
+        let r, e_
+        try {
+          this.__byPass348__ = true;
+          this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
+        } catch (e) {
+          e_ = e;
+        }
+        this.__byPass348__ = false;
+
+        nextBrowserTick_(() => {
+          onStampDone(this);
+        });
+
+        if (e_ && e_.message !== '5ii48') throw e_;
+        return;
+
+      }
+
+
       const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
 
       const flushing = pTask ? (pTask.flushing || []) : [];
@@ -5227,7 +6101,8 @@
       hostElement.setAttribute('ytx-flushing', 's-1');
 
       if (pTask) {
-        pTask.taskId = -1;
+        pTask.byPass = true;
+        // pTask.taskId = -1;
       }
 
       if (hostElement && !hostElement.__rk75401__) {
@@ -5256,7 +6131,52 @@
 
       if (e_ && e_.message !== '5ii48') throw e_;
 
-    }
+    };
+
+    const stampDomArrayWB_ = function (objWr, containerId, xxx_) {
+
+      const obj = kRef(objWr);
+      if (!obj) return;
+      const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`];
+      if (xxx !== xxx_) return;
+      const dataList = obj[`__stampDomArrayArgs_dataList__#${containerId}__`];
+      const typeOrConfig = kRef(obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`]);
+      const bReuse = obj[`__stampDomArrayArgs_bReuse__#${containerId}__`];
+      const bEventCb = obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`];
+      const bStableList = obj[`__stampDomArrayArgs_bStableList__#${containerId}__`];
+      // console.log(12388002, containerId, dataList, typeOrConfig, bReuse, bEventCb, bStableList)
+      return obj.stampDomArray_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
+    };
+
+    
+
+    stampDomArray_.bind = function (obj, ...args) {
+      let [dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList] = args;
+      // console.log(12388001, containerId, dataList, typeOrConfig, bReuse, bEventCb, bStableList)
+      if (!obj[wk]) obj[wk] = mWeakRef(obj);
+      obj[`__stampDomArrayArgs_dataList__#${containerId}__`] = dataList;
+      if (!typeOrConfig[wk]) typeOrConfig[wk] = mWeakRef(typeOrConfig);
+      obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`] = typeOrConfig[wk];
+      obj[`__stampDomArrayArgs_bReuse__#${containerId}__`] = bReuse;
+      obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`] = bEventCb;
+      obj[`__stampDomArrayArgs_bStableList__#${containerId}__`] = bStableList;
+
+      // if (!obj[`__stampDomArrayBoundFn__#${containerId}__`]) obj[`__stampDomArrayBoundFn__#${containerId}__`] = stampDomArrayWB_.bind(null, obj[wk], containerId);
+      
+       const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`] = `${Math.random()}_${Date.now()}`;
+      // const p = obj[wk];
+      // queueMicrotask_(()=>{
+      //   const obj = kRef(p);
+      //   if(!obj) return;
+      //   if(!obj.hostElement) return;
+      //   triggerDomChange(obj.hostElement);
+      //   const container = obj.getStampContainer7409_(containerId);
+      //   if(container instanceof Node) triggerDomChange(container);
+      // });
+      // return obj[`__stampDomArrayBoundFn__#${containerId}__`];
+
+      return stampDomArrayWB_.bind(null, obj[wk], containerId, xxx);
+    };
 
     return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
 
@@ -7865,6 +8785,48 @@
       const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
       if (checkOK) {
 
+        let resolveRendering = null;
+
+        let cmPr = new PromiseExternal();
+        const cm = document.createComment('0');
+        const cmObs = new MutationObserver(() => {
+          if (resolveRendering) {
+            resolveRendering();
+            resolveRendering = null;
+          }
+          cmPr.resolve();
+          cmPr = new PromiseExternal();
+        });
+        cmObs.observe(cm, {characterData: true})
+
+        let web_emulated_idle_callback_delay_val = null;
+
+        const getRenderIdleCallbackMs = () => {
+          if (typeof web_emulated_idle_callback_delay_val === 'number') return web_emulated_idle_callback_delay_val;
+          const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+          const delay = (config.EXPERIMENT_FLAGS || 0).web_emulated_idle_callback_delay || (config.EXPERIMENTS_FORCED_FLAGS || 0).web_emulated_idle_callback_delay;
+          if (typeof delay === 'number') web_emulated_idle_callback_delay_val = delay;
+          return web_emulated_idle_callback_delay_val;
+        }
+        let isDelayRenderFn_firstCheck = true;
+        let isDelayRenderFn_key = null;
+      
+        const isDelayRenderFn = (f) => {
+          if (!isDelayRenderFn_firstCheck) return (typeof ytglobal === 'undefined' ? false : ((ytglobal || 0).schedulerInstanceInstance_ || 0)[isDelayRenderFn_key] === f);
+          isDelayRenderFn_firstCheck = false;
+          if (typeof ytglobal === 'undefined') return false;
+          const globalInstance = ((ytglobal || 0).schedulerInstanceInstance_ || 0);
+          if (!globalInstance) return false;
+          for (const entry of Object.entries(Object.getOwnPropertyDescriptors(globalInstance))) {
+            if (entry[1].value === f && entry[1].enumerable && entry[1].writable && entry[1].configurable) {
+              isDelayRenderFn_key = entry[0]
+              console.log('[yt-js-engine-tamer] web_emulated_idle_callback fix applied');
+              return true;
+            }
+          }
+          return false;
+        }
+
         schedulerInstanceInstance_.start993 = schedulerInstanceInstance_.start;
 
         let requestingFn = null;
@@ -7917,12 +8879,14 @@
           set(target, prop, value, receiver) {
             // console.log('set', prop, value)
 
+
             if (value >= 1 && value <= 4) _fnSelectorProp = prop;
             if (value === 12373 && _fnSelectorProp) {
 
               const schedulerTypeSelection = target[_fnSelectorProp];
               const timerIdProp = prop;
 
+              //  console.log(3991, requestingFn, requestingArgs[0], requestingArgs[1])
               // if (schedulerTypeSelection && schedulerTypeSelection >= 1 && schedulerTypeSelection <= 4 && timerIdProp) {
               //   schedulerInstancePropOfTimerType = _fnSelectorProp || '';
               //   schedulerInstancePropOfTimerId = timerIdProp || '';
@@ -7954,10 +8918,46 @@
                 }
               } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
                 // often
-                if (requestingFn === requestIdleCallback) {
-                  target[timerIdProp] = requestIdleCallback.apply(window, requestingArgs);
+                if (requestingFn === requestIdleCallback && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] || 0).timeout === 3000 && isDelayRenderFn(requestingArgs[0])) {
+                  cm.data = (cm.data & 7) + 1;
+                  let renderFn = requestingArgs[0];
+                  const resolveRendering_ = () => {
+                    const renderFn_ = renderFn;
+                    if (renderFn_) {
+                      renderFn = null;
+                      renderFn_();
+                    }
+                  };
+                  resolveRendering = resolveRendering_;
+                  // console.log(299,requestingArgs[0], requestingArgs[0].name)
+                  target[timerIdProp] = requestIdleCallback(resolveRendering_, { timeout: 300 });
+
+                  // cm.data = (cm.data & 7) + 1;
+                  // target[timerIdProp] = Math.random();
+
+                } else if (requestingFn === setTimeout && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] === getRenderIdleCallbackMs()) && isDelayRenderFn(requestingArgs[0])) {
+
+                  cm.data = (cm.data & 7) + 1;
+
+                  let renderFn = requestingArgs[0];
+                  const resolveRendering_ = () => {
+                    const renderFn_ = renderFn;
+                    if (renderFn_) {
+                      renderFn = null;
+                      renderFn_();
+                    }
+                  };
+                  resolveRendering = resolveRendering_;
+
+                  target[timerIdProp] = mkFns[2].call(window, resolveRendering_, 300);
+
+
                 } else {
-                  target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                  if (requestingFn === requestIdleCallback) {
+                    target[timerIdProp] = requestIdleCallback.apply(window, requestingArgs);
+                  } else {
+                    target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                  }
                 }
               } else {
                 target[_fnSelectorProp] = 0;
@@ -8691,6 +9691,17 @@
 
       if (!timeline || !Animation) return;
 
+      const animationsFix = (timeline) => {
+        const animations = (timeline || 0)._animations || 0;
+        const c = animations[0];
+        if (c) {
+          if (c && !c.id && c._isGroup === false && c._holdTime === 0 && c._paused === false && !c._callback && Number.isNaN(c._sequenceNumber) && c.effect.target instanceof HTMLCanvasElement) {
+            animations.shift(); // keep animating but no looping
+            // c.effect.remove();
+          }
+        }
+      }
+
       const aniProto = Animation.prototype;
       // aniProto.sequenceNumber = 0; // native YouTube engine bug - sequenceNumber is not set
 
@@ -8804,6 +9815,7 @@
             var b = timeline;
             b.currentTime = hRes;
             b._discardAnimations();
+            FIX_Animation_n_timeline_cinematic && animationsFix(b);
             if (0 == b._animations.length) {
               restartWebAnimationsNextTickFlag = false;
             } else {
@@ -8867,6 +9879,7 @@
             var b = timeline;
             b.currentTime = hRes;
             b._discardAnimations();
+            FIX_Animation_n_timeline_cinematic && animationsFix(b);
             if (0 == b._animations.length) {
               restartWebAnimationsNextTickFlag = false;
               acs.onanimationiteration = null;
