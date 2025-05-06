@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.35.0
+// @version     0.35.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1862,8 +1862,14 @@
 
       let lenSkip = -1;
       let lastLen = null;
+      let fetchCommentJobTimerId = 0;
 
       const fetchCommentJob = (a, cid) => {
+
+        if (fetchCommentJobTimerId > 0) {
+          clearTimeout(fetchCommentJobTimerId);
+          fetchCommentJobTimerId = 0;
+        }
 
         // if (cid && cancelStore[cid]) return; // tbc
 
@@ -1908,7 +1914,7 @@
         mof = () => {
           const q2 = document.querySelectorAll(selector).length;
           if (q1 === q2) return;
-          setTimeout(g, 80);
+          fetchCommentJobTimerId = setTimeout(g, 80);
           g = null;
           return true;
         }
