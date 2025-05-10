@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.1
+// @version     0.36.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2022,20 +2022,20 @@
         }
 
 
-        if (!b && c_ === 5000 && `${a}`.includes('.cleanupJob=0')) {
-          console.log('[yt-js-engine-tamer] cleanupJob 01');
-          const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
-          pr72 = pr72.then(() => {
-            return pr
-          });
-          try {
-            yt.scheduler.instance.cancelAllJobs();
-            yt.scheduler.instance.dispose();
-            if(ytglobal.schedulerInstanceInstance_) ytglobal.schedulerInstanceInstance_.dispose();
-            console.log('[yt-js-engine-tamer] cleanupJob 02');
-          } catch (e) { }
-          return  nv(g, b, c);
-        }
+        // if (!b && c_ === 5000 && `${a}`.includes('.cleanupJob=0')) {
+        //   console.log('[yt-js-engine-tamer] cleanupJob 01');
+        //   const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
+        //   pr72 = pr72.then(() => {
+        //     return pr
+        //   });
+        //   try {
+        //     yt.scheduler.instance.cancelAllJobs();
+        //     yt.scheduler.instance.dispose();
+        //     if(ytglobal.schedulerInstanceInstance_) ytglobal.schedulerInstanceInstance_.dispose();
+        //     console.log('[yt-js-engine-tamer] cleanupJob 02');
+        //   } catch (e) { }
+        //   return  nv(g, b, c);
+        // }
 
         // if(!b && c > 50) c = 50;
         // console.log(58372,a,b,c)
