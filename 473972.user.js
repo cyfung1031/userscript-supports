@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.3
+// @version     0.36.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -83,7 +83,7 @@
   const FIX_stampDomArray_ = true; // v0.30.0
   const FIX_stampDomArray = FIX_stampDomArray_ && typeof WeakRef === "function" && typeof FinalizationRegistry === "function";
   // const stampDomArray_MemoryFix_Flag001 = false;
-  const XFlag = true; // DON'T CHANGE
+  const XFlag = true; // root issue tbc
   
   const MemoryFix_Flag002 = 1 | 2 | 4 | 8 | 0 | 32 | 64 | 0 | 256; 
   // 32 required for new stampDomArray
@@ -789,7 +789,10 @@
 
 
     const fragQ = document.createDocumentFragment(); // for cleaup removal
-    const fixDetachFn = (tpProto) => {
+
+    const wm = new WeakMap();
+
+    const fixDetachFn = (tpProto) => { // & 32
 
       if (tpProto.dk322) return;
       tpProto.dk322 = true;
@@ -798,39 +801,76 @@
       if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
         tpProto.__detachInstance = function (a) {
           const u = this.__instances[a];
-          if (u && u.root) {
-            const children = u ? u.children : null;
-            if (children && children.length >= 1) {
-              this.__detachInstance994(a);
-            }
-          } else if (u && !u.root) {
-            const children = u ? u.children : null;
-            if (children && children.length >= 1) {
-              for (let i = 0, l = children.length; i < l; i++) {
-                const node = children[i];
-                fragQ.appendChild(node); // for cleanup
-                Promise.resolve(node).then(node => (node.parentNode === fragQ) && !!node.remove());
-              }
-            }
+          if (!u.root) {
+            const uRoot = kRef(wm.get(u));
+            if (uRoot) u.root = uRoot;
           }
+          let P, ok = false;
+          try {
+            this.__detachInstance994(a);
+            ok = true;
+          } catch (e) { }
           return u;
         }
       }
-
-
 
       tpProto.__attachInstance994 = tpProto.__attachInstance;
       if (typeof tpProto.__attachInstance994 === 'function' && tpProto.__attachInstance994.length === 2) {
         tpProto.__attachInstance = function (a, b) {
           const u = this.__instances[a];
           if (u && u.root && b) {
-            fragQ.appendChild(u.root); // for cleanup
+            const root = u.root;
+            if (!root[wk]) root[wk] = mWeakRef(root);
+            wm.set(u, root[wk]);
+            fragQ.appendChild(root); // for cleanup
             return this.__attachInstance994(a, b);
           }
         }
       }
 
     }
+    // const fixDetachFn = (tpProto) => { // & 32
+
+    //   if (tpProto.dk322) return;
+    //   tpProto.dk322 = true;
+
+    //   tpProto.__detachInstance994 = tpProto.__detachInstance;
+    //   if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
+    //     tpProto.__detachInstance = function (a) {
+    //       const u = this.__instances[a];
+    //       if (u && u.root) {
+    //         const children = u ? u.children : null;
+    //         if (children && children.length >= 1) {
+    //           this.__detachInstance994(a);
+    //         }
+    //       } else if (u && !u.root) {
+    //         const children = u ? u.children : null;
+    //         if (children && children.length >= 1) {
+    //           for (let i = 0, l = children.length; i < l; i++) {
+    //             const node = children[i];
+    //             fragQ.appendChild(node); // for cleanup
+    //             Promise.resolve(node).then(node => (node.parentNode === fragQ) && !!node.remove());
+    //           }
+    //         }
+    //       }
+    //       return u;
+    //     }
+    //   }
+
+
+
+    //   tpProto.__attachInstance994 = tpProto.__attachInstance;
+    //   if (typeof tpProto.__attachInstance994 === 'function' && tpProto.__attachInstance994.length === 2) {
+    //     tpProto.__attachInstance = function (a, b) {
+    //       const u = this.__instances[a];
+    //       if (u && u.root && b) {
+    //         fragQ.appendChild(u.root); // for cleanup
+    //         return this.__attachInstance994(a, b);
+    //       }
+    //     }
+    //   }
+
+    // }
     const ytTemplateDomEntry = (tpProto) => {
 
       console.log('ytTemplateDomEntry triggered')
@@ -1049,6 +1089,31 @@
     const selfRef = {}; // no change. just key
 
 
+    const sb1 = Symbol();
+    Object.defineProperty(Object.prototype, 'root', {
+      get() {
+        return this[sb1];
+      },
+      set(nv){
+        const p = this ? kRef(this) : null;
+        const mv = nv ? kRef(nv) : null;
+
+        if (mv && (mv instanceof Node) && !p.__setupRendered399__) {
+          p.__setupRendered399__ = true;
+          setupRendering.call(p);
+        }
+        if (mv && mv.is && !mv.__setupRendered399__) {
+          mv.__setupRendered399__ = true;
+          setupRendering.call(mv);
+        }
+
+        this[sb1] = nv;
+        return true;
+      }
+    });
+
+
+    /*
     let wm3 = new WeakMap();
 
     Object.defineProperty(Object.prototype, 'root', {
@@ -1087,7 +1152,8 @@
       enumerable: false,
       configurable: true
     });
-
+    
+    */
 
 
   }
@@ -2336,12 +2402,13 @@
     loggerMsg && console.warn(loggerMsg);
   })();
 
+  let __forceRemoveMode__ = false;
   FIX_removeChild && (() => {
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
       const fragD = document.createDocumentFragment();
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
-        if (typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
+        if (__forceRemoveMode__ || typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
           let ok = false;
           try {
             this.removeChild062(child);
@@ -5510,14 +5577,31 @@
 
     }
 
+    const frag385 = document.createDocumentFragment();
+            
+    const cm385 = document.createComment('.');
+
+    const doc385 = document.implementation.createHTMLDocument();
+    const html385 = doc385.firstElementChild;
+    const node385 = html385.appendChild(document.createElement('div'));
+
     const fixContainerApi = (container) => {
       if (container instanceof Node) {
         const containerDomApi = container.__domApi;
         if (containerDomApi && !containerDomApi.removeChild588 && containerDomApi.removeChild) {
           // console.log(123882, container)
           containerDomApi.removeChild588 = containerDomApi.removeChild;
-          containerDomApi.removeChild = function (e) {
-            if (e.parentNode === (this.node || this)) this.removeChild588(e);
+          containerDomApi.removeChild = function (elem) {
+            if (elem.parentNode === (this.node || this)) {
+              for (const s of elem.querySelectorAll('[ytx-flushing]')) {
+                s.setAttribute('ytx-flushing', '0');
+              }
+              __forceRemoveMode__ = true;
+              node385.appendChild(cm385);
+              cm385.replaceWith(elem);
+              node385.textContent = '';
+              __forceRemoveMode__ = false;
+            }
           }
         }
       }
