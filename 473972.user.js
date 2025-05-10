@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.35.4
+// @version     0.36.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1863,6 +1863,7 @@
       let lenSkip = -1;
       let lastLen = null;
       let fetchCommentJobTimerId = 0;
+      let requestFinish = false;
 
       const fetchCommentJobDone = ()=>{
         clearInterval(fetchCommentJobTimerId);
@@ -1874,10 +1875,9 @@
 
         // if (cid && cancelStore[cid]) return; // tbc
 
-        if (fetchCommentJobTimerId > 0) {
-          fetchCommentJobDone();
-          // mof = null;
-        }
+          if(fetchCommentJobTimerId > 0){
+            fetchCommentJobDone();
+          }
 
         // if (mof) {
         //   console.log('[yt-js-engine-tamer] fetchCommentJob done');
@@ -1893,10 +1893,11 @@
         lastLen = -1;
         let u = 0;
         let g = () => {
+          if (requestFinish) lastLen = -1;
           const lastLen_ = lastLen;
           const len1 = lastLen = document.querySelectorAll(selector).length;
           let mm = true;
-          let ff = false;
+          let ff = false; 
           if (len1 !== lastLen_) {
             u = 0;
             f();
@@ -1912,9 +1913,14 @@
               ff = true;
             }
           }
-          if (ff) {
+
+          if (requestFinish) {
+            requestFinish = false;
+            fetchCommentJobDone();
+          } else if (ff){
             fetchCommentJobDone();
           }
+
         }
 
 
@@ -1971,7 +1977,8 @@
 
             */
 
-          const cid = nv(() => { }, b, 1.125);
+            requestFinish = false;
+          const cid = nv(() => { if(fetchCommentJobTimerId > 0) requestFinish = true;}, b, 1000);
 
           // lastLen = null;
           fetchCommentJob(a, cid);
@@ -4706,7 +4713,7 @@
 
   // const pendingStampFlushs = [];
 
-  const nativeNow = performance.constructor.prototype.now.bind(performance);
+  const nativeNow = Reflect.getPrototypeOf(performance).now.bind(performance);
 
   const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
 
@@ -4895,6 +4902,900 @@
     }
 
   });
+
+
+  /**
+   * Compute the Longest Common Subsequence between two arrays.
+   * Returns an array of the LCS elements (in order).
+   */
+  function computeLCS(a, b) {
+    // Input validation
+    if (!Array.isArray(a) || !Array.isArray(b)) {
+      throw new Error('Inputs must be arrays');
+    }
+
+    const n = a.length, m = b.length;
+    // Early termination for trivial cases
+    if (n === 0 || m === 0) return [];
+    // Check for shallow equality
+    if (n === m && a.every((x, i) => x === b[i])) return a.slice();
+
+    // Use smaller dimension for space optimization
+    if (n > m) return computeLCS(b, a); // Ensure n <= m
+
+    // dp[i%2][j] = length of LCS of a[i..] and b[j..]
+    // Use Uint32Array for robustness with long sequences
+    const dp = [
+      new Uint32Array(m + 1),
+      new Uint32Array(m + 1),
+    ];
+    // Store predecessor for backtracking: 0=diagonal, 1=down, 2=right
+    // Optimize space by storing only necessary entries
+    const pred = new Uint8Array(n * m); // Single array for moves
+
+    for (let i = n - 1; i >= 0; i--) {
+      const curr = i % 2;
+      const next = 1 - curr;
+      // Clear current row for reuse
+      dp[curr].fill(0);
+
+      for (let j = m - 1; j >= 0; j--) {
+        const idx = i * m + j;
+        if (a[i] === b[j]) {
+          dp[curr][j] = dp[next][j + 1] + 1;
+          pred[idx] = 0; // Diagonal
+        } else if (dp[next][j] >= dp[curr][j + 1]) {
+          dp[curr][j] = dp[next][j];
+          pred[idx] = 1; // Down
+        } else {
+          dp[curr][j] = dp[curr][j + 1];
+          pred[idx] = 2; // Right
+        }
+      }
+    }
+
+    // Check for potential overflow
+    if (dp[0][0] > 0xFFFFFFFF) {
+      throw new Error('LCS length exceeds safe integer limit');
+    }
+
+    // Backtrack to build the actual LCS
+    const lcs = [];
+    let i = 0, j = 0;
+    while (i < n && j < m) {
+      const idx = i * m + j;
+      const p = pred[idx];
+      if (p === 0) {
+        lcs.push(a[i]);
+        i++; j++;
+      } else if (p === 1) {
+        i++;
+      } else {
+        j++;
+      }
+    }
+    return lcs;
+  }
+
+  /**
+   * Given original[] and modified[], produce an array of splice-ops:
+   *   [ [start0, deleteCount0, addedItems0],
+   *     [start1, deleteCount1, addedItems1],
+   *     … ]
+   * When you do:
+   *   let arr = original.slice();
+   *   for (let [s, d, adds] of ops) arr.splice(s, d, ...adds);
+   * arr will equal modified.
+   */
+  function diffSplices(original, modified) {
+    // Input validation
+    if (!Array.isArray(original) || !Array.isArray(modified)) {
+      throw new Error('Inputs must be arrays');
+    }
+
+    const origLen = original.length;
+    const modLen = modified.length;
+    // Early termination for trivial cases
+    if (origLen === 0 && modLen === 0) return [];
+    if (origLen === 0) return [[0, 0, modified.slice()]];
+    if (modLen === 0) return [[0, origLen, []]];
+
+    // Trim common prefix and suffix
+    let prefixLen = 0;
+    while (prefixLen < origLen && prefixLen < modLen && original[prefixLen] === modified[prefixLen]) {
+      prefixLen++;
+    }
+    let suffixLen = 0;
+    while (
+      suffixLen < origLen - prefixLen &&
+      suffixLen < modLen - prefixLen &&
+      original[origLen - 1 - suffixLen] === modified[modLen - 1 - suffixLen]
+    ) {
+      suffixLen++;
+    }
+
+    // Cache references for speed
+    const orig = original.slice(prefixLen, origLen - suffixLen);
+    const mod = modified.slice(prefixLen, modLen - suffixLen);
+    const lcs = computeLCS(orig, mod);
+    // Pre-allocate ops array, accounting for potential moves
+    const ops = new Array(Math.ceil((orig.length + mod.length) / 1.5));
+    let opCount = 0;
+
+    let i = 0, j = 0, k = 0;
+    let curIndex = prefixLen;
+    const lcsLen = lcs.length;
+
+    while (k < lcsLen) {
+      const match = lcs[k];
+      let deleteCount = 0;
+      const deleted = [];
+      const added = [];
+
+      // 1) Collect deletions up to the next common element
+      while (i < orig.length && orig[i] !== match) {
+        deleted.push(orig[i]);
+        deleteCount++;
+        i++;
+      }
+
+      // 2) Collect insertions up to that same element
+      while (j < mod.length && mod[j] !== match) {
+        added.push(mod[j]);
+        j++;
+      }
+
+      // 3) Check for a move (deleted segment matches inserted segment)
+      let isMove = false;
+      if (deleteCount > 0 && deleteCount === added.length) {
+        isMove = deleted.every((x, idx) => x === added[idx]);
+        if (isMove) {
+          // If a move, split into delete and insert at different indices
+          if (deleteCount > 0) {
+            ops[opCount++] = [curIndex, deleteCount, []]; // Delete at current index
+            ops[opCount++] = [curIndex, 0, added]; // Insert at same index
+            curIndex += added.length; // Advance past inserted items
+          }
+        }
+      }
+
+      // 4) Combine delete and insert into a single operation if not a move
+      if (!isMove && (deleteCount > 0 || added.length > 0)) {
+        ops[opCount++] = [curIndex, deleteCount, added];
+        curIndex += added.length; // Advance past inserted items
+      }
+
+      // 5) Skip over the matching element itself
+      i++;
+      j++;
+      k++;
+      curIndex++;
+    }
+
+    // 6) Handle any trailing deletions and insertions as a single operation
+    const trailingDelete = orig.length - i;
+    const trailingAdd = mod.slice(j);
+    if (trailingDelete > 0 || trailingAdd.length > 0) {
+      // Check for trailing move
+      const trailingDeleted = orig.slice(i);
+      let isMove = false;
+      if (trailingDelete > 0 && trailingDelete === trailingAdd.length) {
+        isMove = trailingDeleted.every((x, idx) => x === trailingAdd[idx]);
+        if (isMove) {
+          ops[opCount++] = [curIndex, trailingDelete, []];
+          ops[opCount++] = [curIndex, 0, trailingAdd];
+        }
+      }
+      if (!isMove) {
+        ops[opCount++] = [curIndex, trailingDelete, trailingAdd];
+      }
+    }
+
+    // 7) Truncate ops array to actual size
+    ops.length = opCount;
+
+    return ops;
+  }
+  // class listPlaceholder {
+  //   constructor(len){
+  //     this.length = len;
+  //   }
+  // }
+
+  
+
+
+//   rendererStamperApplyChangeRecord_: function(path, key, changeRecord) {
+//     var renderJob = this.renderJobsMap_[key],
+//         renderCallback = null;
+
+//     if (path === changeRecord.path) {
+//         let value = changeRecord.value;
+
+//         if (!_.v_(value)) {
+//             value = (value === void 0 || value === null) ? [] : [value];
+//         }
+
+//         let stampDomEntry = this.stampDom[path];
+
+//         if (stampDomEntry.mapping) {
+//             renderCallback = this.stampDomArray_.bind(
+//                 this,
+//                 value,
+//                 key,
+//                 stampDomEntry.mapping,
+//                 stampDomEntry.reuseComponents,
+//                 stampDomEntry.events,
+//                 stampDomEntry.stamperStableList
+//             );
+//         }
+
+//         if (renderJob) renderJob.cancel();
+
+//         let taskManager = stampDomEntry.usePageScheduler ? this.getTaskManager()() : void 0;
+
+//         if (!renderJob && stampDomEntry.initialRenderPriority == void 0) {
+//             if (stampDomEntry.renderPriority != void 0 && !renderJob) {
+//                 renderJob = new _.X6(stampDomEntry.renderPriority, stampDomEntry.waitForSignal, taskManager);
+//                 this.renderJobsMap_[key] = renderJob;
+//             }
+//         } else {
+//             renderJob = new _.X6(stampDomEntry.initialRenderPriority, stampDomEntry.waitForSignal, taskManager);
+//             this.renderJobsMap_[key] = renderJob;
+//             renderCallback = function(callback, job) {
+//                 callback();
+//                 q4C(job, 10);
+//             }.bind(this, renderCallback, renderJob);
+//         }
+//     } else {
+//         renderCallback = (path + ".splices" === changeRecord.path)
+//             ? this.stampDomArraySplices_.bind(this, path, key, changeRecord.value)
+//             : this.forwardRendererStamperChanges_.bind(this, path, key, changeRecord);
+//     }
+
+//     if (renderJob) {
+//         _.vY(renderJob, renderCallback);
+//     } else {
+//         renderCallback();
+//     }
+// }
+
+ 
+
+
+
+  const createStampDomFnsC_ = () => {
+
+    const config = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0);
+
+    if (config.DEFERRED_DETACH === true) config.DEFERRED_DETACH = false;
+    if (config.REUSE_COMPONENTS === true) config.REUSE_COMPONENTS = false;
+
+
+    // const rq0 = document.createElement('rp');
+    // rq0.setAttribute('yt-element-placholder', '');
+
+    const it0 = Date.now() - 80000000000;
+    const genId = () => `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now() - it0).toString(36)}`;
+
+    
+
+    const getStampContainer_ = function (containerId) {
+
+      return this.getStampContainer7409_(containerId);
+
+    }
+
+
+
+
+    const createComponent_ = function (componentConfig, data, canReuse) {
+
+      return this.createComponent7409_(componentConfig, data, canReuse);
+
+    }
+
+
+    const s52 = Symbol();
+
+    const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+
+      if (typeof (data || 0) === 'object') {
+        if (!data[s52]) data[s52] = genId();
+        component[s52] = data[s52];
+        // console.log(component[s52], data);
+      } else {
+        component[s52] = null;
+      }
+
+      return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+
+    }
+
+    // let pr77 = Promise.resolve();
+    
+
+    const flushRenderStamperComponentBindings_ = function () {
+      if (!this.__qsd477__ || !this.deferredBindingTasks_) return this.flushRenderStamperComponentBindings7409_();
+
+      if (this.deferredBindingTasks_.length >= 0) {
+
+        // const deferredBindingTasks_ = this.deferredBindingTasks_;
+
+        const gid = this[`__$$stampFlushKey$$__`] = genId();
+        const g = (() => {
+          if (gid !== this[`__$$stampFlushKey$$__`]) { return; }
+          // if (deferredBindingTasks_.length === 0) return;
+          // let q = this.deferredBindingTasks_;
+          // this.deferredBindingTasks_ = deferredBindingTasks_;
+          this.flushRenderStamperComponentBindings7409_();
+          // deferredBindingTasks_.length = 0;
+          // this.deferredBindingTasks_ = q;
+
+          const s = [...this.__lat457__];
+          this.__lat457__.clear();
+
+          for (const containerWr of s) {
+
+            const container = kRef(containerWr);
+            if (!container) continue;
+
+            // const s = new Set();
+            if (!container.querySelector('[ytx-flushing]')) {
+              if (container.hasAttribute('ytx-flushing')) {
+                const attrVal = container.getAttribute('ytx-flushing');
+                container.removeAttribute('ytx-flushing');
+                // s.add([container, attrVal]);
+                addTask(container, attrVal);
+                // addTaskIm(container, attrVal);
+                let ancestor = container.closest('[ytx-flushing]');
+                while (ancestor) {
+                  if (ancestor.querySelector('[ytx-flushing]')) break;
+                  const attrVal = ancestor.getAttribute('ytx-flushing');
+                  ancestor.removeAttribute('ytx-flushing');
+                  // s.add([ancestor, attrVal]);
+                  addTask(ancestor, attrVal);
+                  // addTaskIm(ancestor, attrVal);
+                  ancestor = ancestor.closest('[ytx-flushing]');
+                }
+              }
+            }
+          }
+          executeTasks();
+
+
+        });
+        
+        g();
+        // const useMicroTaskQueue = this.__qsd477__ === 2;
+        // useMicroTaskQueue ? addTask2(g) : g();
+        // executeTasks();
+
+        // addTask2(g);
+        // executeTasks();
+
+      }
+
+      throw new Error('e5bd8d2f');
+
+    }
+
+    let tasks = [];
+    let excuted = false;
+    const executeTasks = ()=>{
+      if(excuted || tasks.length === 0) return;
+      excuted = true;
+      let t0 = 0;
+      const perform = ()=>{
+        if(!t0) t0 = nativeNow();
+        const task = tasks.shift();
+        if(!task){
+          excuted = false;
+          return;
+        }
+        task.fn(task);
+        const t1 = nativeNow();
+        if(t1 - t0 > 10){
+          t0 = 0;
+          nextBrowserTick_(perform);
+        }else{
+          queueMicrotask_(perform);
+        }
+      }
+      queueMicrotask_(perform);
+    }
+
+    const taskFn = (task) => {
+
+      if(!task) return;
+      const { containerWr, attrVal } = task;
+      const container = kRef(containerWr);
+      if (!container) return;
+      if (attrVal === '0') return;
+      const bEventCb = attrVal === '2';
+      const producerWr = containerMapping.get(container);
+      const producer = kRef(producerWr);
+      if (!producer) return;
+      const hostElement = producer.hostElement;
+      if (!hostElement) return;
+      producer.markDirty && producer.markDirty();
+      bEventCb && dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
+        container
+      });
+
+    }
+
+    const addTask = (container, attrVal) => {
+      if (!container) return;
+      const containerWr = container[wk] || (container[wk] = mWeakRef(container));
+      tasks.push({
+        fn: taskFn,
+        containerWr: containerWr,
+        attrVal
+      });
+      // pr77 = pr77.then(()=>{
+
+      // })
+      // taskFn({
+      //   containerWr: containerWr,
+      //   attrVal
+      //   })
+
+    }
+
+    const addTaskIm =  (container, attrVal) => {
+      if (!container) return;
+      const containerWr = container[wk] || (container[wk] = mWeakRef(container));
+      taskFn({
+        fn: taskFn,
+        containerWr: containerWr,
+        attrVal
+      });
+
+    }
+
+
+    const addTask2 = (f) => {
+      // pr77 = pr77.then(f).catch(console.warn);
+      tasks.push({
+        fn: f
+      });
+
+    }
+
+    // const mo = new MutationObserver((mutations)=>{
+
+    // });
+    // mo.observe(document, {attributeFilter: ['ytx-flushing'], attributes: true, subtree: true, childList: false});
+
+    const containerMapping = new WeakMap();
+
+    // let pr77 = Promise.resolve();
+    // let pr88 = Promise.resolve();
+    const uA4 = function (t, P) {
+      for (let y in t)
+        if (t.hasOwnProperty(y) && P[y])
+          return y;
+      return null
+    }
+
+    const evaluteUseMicroTaskQueue = (ax_, containerId, hostIs_, producer, hostElement)=>{
+
+
+      const ax = ax_;
+      const useMicroTaskQueue = ax ? (ax[2] && ax[2]!==ax[0]) : false;
+      let useMicroTaskQueue2 = ax && ax[1] && ax[2];
+      // const useMicroTaskQueue = false;
+      if (ax && ax[2] && ax[2] === ax[0]) { // short ... execute job
+        ax[2].cancel();
+        useMicroTaskQueue2 = false;
+      }
+      // console.log(1992,containerId, this.hostElement.is)
+
+      const hostIs = hostIs_;
+
+      if (hostIs === 'ytd-masthead' || hostIs === 'ytd-button-renderer' || hostIs === 'yt-button-shape' || hostIs === 'yt-icon-button' || hostIs === 'ytd-notification-topbar-button-renderer' || containerId === 'buttons' || containerId === 'button' || containerId === 'icon' || hostIs === 'yt-interaction' || containerId === 'interaction') return false;
+
+      if (containerId === 'overlays') useMicroTaskQueue2 = true;
+      else if (hostIs === 'ytd-rich-grid-media' || hostIs === 'ytd-rich-grid-renderer') useMicroTaskQueue2 = true;
+      // else if (hostIs === 'ytd-rich-grid-media' || hostIs === 'ytd-rich-grid-renderer') useMicroTaskQueue2 = false;
+      // else if (containerId === 'menu') useMicroTaskQueue2 = true;
+      else if (containerId === 'replies') useMicroTaskQueue2 = true;
+      else if (containerId === 'flexible-item-buttons' && hostIs === 'ytd-menu-renderer') useMicroTaskQueue2 = true;
+      else if(hostIs === 'ytd-menu-popup-renderer') useMicroTaskQueue2 = false;
+      else if ( containerId === 'ghost-comment-section' && hostIs === 'ytd-continuation-item-renderer') useMicroTaskQueue2 = true;
+      else if (hostIs === 'ytd-continuation-item-renderer') useMicroTaskQueue2 = false;
+      else if (hostIs === 'ytd-feed-filter-chip-bar-renderer' ||  hostIs === 'yt-chip-cloud-renderer' || containerId==='filter' || containerId ==='chips' || containerId==='left-arrow-button' ||containerId==='right-arrow-button') useMicroTaskQueue2 =false;
+      // else if (containerId === 'contents' || containerId === 'content' || containerId === 'header') useMicroTaskQueue2 = true;
+      // else if( containerId === 'items') useMicroTaskQueue2 = true;
+      else if (containerId === 'menu' && hostIs === 'ytd-playlist-panel-video-renderer') useMicroTaskQueue2 = true;
+      else if (containerId === 'top-level-buttons-computed' && hostIs === 'ytd-menu-renderer') useMicroTaskQueue2 = false;
+      else if (hostIs === 'ytd-comment-view-model') useMicroTaskQueue2 = true;
+      // else if (hostIs === 'ytd-rich-item-renderer') useMicroTaskQueue2 = true;
+      // else if (hostIs === 'ytd-rich-grid-media') useMicroTaskQueue2 = true;
+      else if (hostIs === 'ytd-video-preview') useMicroTaskQueue2 = true;
+      // else if (hostIs === 'ytd-game-card-renderer')useMicroTaskQueue2 = true;
+
+
+      // console.log(19920030+(useMicroTaskQueue2?1:0), containerId, hostIs)
+
+
+      // console.log(5992,stackAt)
+
+      // console.log(2883, this[`__quu477#${containerId}__`] )
+      // if (useMicroTaskQueue) {
+      //   console.log(stackAt)
+      // }
+
+      // if (useMicroTaskQueue) {
+      //   console.log(1120301)
+      // }
+
+      // if(hostElement.closest('ytd-feed-filter-chip-bar-renderer')) useMicroTaskQueue2 = false;
+
+      return useMicroTaskQueue2;
+
+    }
+
+    const fixContainerApi = (container) => {
+      if (container instanceof Node) {
+        const containerDomApi = container.__domApi;
+        if (containerDomApi && !containerDomApi.removeChild588 && containerDomApi.removeChild) {
+          // console.log(123882, container)
+          containerDomApi.removeChild588 = containerDomApi.removeChild;
+          containerDomApi.removeChild = function (e) {
+            if (e.parentNode === (this.node || this)) this.removeChild588(e);
+          }
+        }
+      }
+    }
+
+    const stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
+
+      const sqq = this[`__$$stampSqq$$#${containerId}__`];
+      if (typeof sqq === 'function') sqq();
+
+      // trigger in rendererStamperApplyChangeRecord_
+
+      // const stackAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
+      // const useMicroTaskQueue = (stackAt.includes('.rendererStamperApplyChangeRecord_'));
+      // const useMicroTaskQueue = stackAt.includes('.<anonymous>') ? true : false;
+      
+      // const stackAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
+
+      // const isRenderJob = this[`__quu477#${containerId}__`] || !!this.renderJobsMap_[containerId];
+      // const useMicroTaskQueue = isRenderJob && !stackAt.includes('scheduler.js') && 0 ? true : false; // avoid immediate job
+
+
+      const ax = this[`__quu477#${containerId}__`];
+      const hostIs = (this.hostElement || 0).is;
+      const useMicroTaskQueue2 = evaluteUseMicroTaskQueue(ax, containerId, hostIs, this, this.hostElement);
+
+      const container = this.getStampContainer7409_(containerId);
+
+      containerMapping.set(container, 
+        (this[wk] || (this[wk] = mWeakRef(this)))
+      );
+
+      if (bEventCb) container.setAttribute('ytx-flushing', '2');
+      else if (!container.hasAttribute('ytx-flushing')) container.setAttribute('ytx-flushing', '1');
+
+      // let dataList_ = dataList;
+      let dataList_ = typeof (dataList || 0) === 'object' ? (dataList.length >= 1 ? dataList.slice() : []) : dataList;
+
+      dataList = null;
+      const gid = this[`__$$stampSID$$#${containerId}__`] = genId();
+      let fq = 0;
+      const f = (() => {
+        if(fq) return;
+        fq = 1;
+        if (gid !== this[`__$$stampSID$$#${containerId}__`]) { return; }
+        this[`__$$stampSFn$$#${containerId}__`] = null;
+        const container = this.getStampContainer7409_(containerId);
+
+        this.__lat457__ = this.__lat457__ || new Set();
+        if(!container[wk]) container[wk] = mWeakRef(container);
+        this.__lat457__.add(container[wk]);
+        fixContainerApi(container);
+
+        // let q = this.deferredBindingTasks_;
+        // this.deferredBindingTasks_ = [];
+        this.__qsd477__ = useMicroTaskQueue2 ? 2 : 1;
+        let e_;
+        try {
+          this.stampDomArray7409_(dataList_, containerId, typeOrConfig, false, bEventCb, bStableList);
+        } catch (e) { e_ = e }
+        this.__qsd477__ = false;
+        dataList_ = typeOrConfig = null;
+        fixContainerApi(container);
+        // this.deferredBindingTasks_ = q;
+        if(e_ && e_.message !== 'e5bd8d2f') throw e_;
+        if (!e_) {
+          // container.setAttribute('ytx-flushing', '0');
+        }
+        // if( container.childElementCount === 0 ){
+        //   container.setAttribute('ytx-flushing', '0');
+        //   this.markDirty && this.markDirty();
+        //   bEventCb && dispatchYtEvent(this.hostElement, "yt-rendererstamper-finished", {
+        //     container
+        //   });
+        // }
+
+
+
+
+      });
+      this[`__$$stampSFn$$#${containerId}__`] = f;
+      this[`__$$stampSqq$$#${containerId}__`] = f;
+      useMicroTaskQueue2 ? addTask2(f) : f();
+      executeTasks();
+
+      // console.log(58801, this.hostElement.parentNode instanceof HTMLElement_);
+
+      return undefined;
+
+    }
+
+    const stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
+
+
+      const sqq = this[`__$$stampSqq$$#${containerId}__`];
+      if (typeof sqq === 'function') sqq();
+
+      // trigger in rendererStamperApplyChangeRecord_
+
+      if (typeof indexSplicesObj === 'object' && indexSplicesObj.indexSplices instanceof Array) {
+      } else {
+        return this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
+      }
+
+
+      // trigger in rendererStamperApplyChangeRecord_
+
+      // const stackAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
+      // const useMicroTaskQueue = (stackAt.includes('.rendererStamperApplyChangeRecord_'));
+      // const useMicroTaskQueue = stackAt.includes('.<anonymous>') ? true : false;
+      
+
+      // const stackAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
+
+      // const isRenderJob = this[`__quu477#${containerId}__`] || !!this.renderJobsMap_[containerId];
+      // const useMicroTaskQueue = isRenderJob && !stackAt.includes('scheduler.js') && 0 ? true : false; // avoid immediate job
+      // const useMicroTaskQueue = this[`__quu477#${containerId}__`] ? true : false;
+
+      const ax = this[`__quu477#${containerId}__`];
+      const hostIs = (this.hostElement || 0).is;
+      const useMicroTaskQueue2 = evaluteUseMicroTaskQueue(ax, containerId, hostIs, this, this.hostElement);
+
+
+      // const stackAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
+      // const useMicroTaskQueue = true;
+      
+      const container = this.getStampContainer7409_(containerId);
+
+      containerMapping.set(container, 
+        (this[wk] || (this[wk] = mWeakRef(this)))
+      );
+      
+      const bEventCb = this.stampDom[stampKey].events;
+      if (bEventCb) container.setAttribute('ytx-flushing', '2');
+      else if (!container.hasAttribute('ytx-flushing')) container.setAttribute('ytx-flushing', '1');
+
+      // let indexSplicesObj_ = indexSplicesObj;
+      // if (typeof indexSplicesObj === 'object' && indexSplicesObj.indexSplices instanceof Array) {
+      //   indexSplicesObj_ = {
+      //     indexSplices: indexSplicesObj.indexSplices.map(slice => {
+      //       const { index, addedCount, removed, object, type } = slice;
+      //       this[`__$$stampSpliceObj$$#${containerId}__`] = (object[wk] || (object[wk] = mWeakRef(object)));
+      //       return { index, addedCount, removed, object, type };
+      //     })
+      //   };
+      // }
+
+
+      indexSplicesObj.indexSplices.forEach(slice => {
+        const object = slice.object;
+        if (!object || typeof object !== 'object') return;
+        // const { index, addedCount, removed, object, type } = slice;
+        this[`__$$stampSpliceObj$$#${containerId}__`] = (object[wk] || (object[wk] = mWeakRef(object)));
+        // return { index, addedCount, removed, object, type };
+      });
+
+      // let indexSplicesObj_ = indexSplicesObj;
+
+      // console.log(128783, indexSplicesObj)
+
+      // let indexSplicesObj_ = indexSplicesObj.map(slice => {
+      //   const { index, addedCount, removed, object, type } = slice;
+      //   return { index, addedCount, removed, object, type };
+      // });
+
+      indexSplicesObj = null;
+
+      if (!this[`__$$stampSID$$#${containerId}__`]) this[`__$$stampSID$$#${containerId}__`] = genId();
+      const gid = this[`__$$stampSID$$#${containerId}__`];
+      let fq = 0;
+      const f = (() => {
+        if(fq) return;
+        fq = 1;
+        if (gid !== this[`__$$stampSID$$#${containerId}__`]) { return; }
+        if (this[`__$$stampSFn$$#${containerId}__`]) this[`__$$stampSFn$$#${containerId}__`]();
+        const container = this.getStampContainer7409_(containerId);
+        if(!container) return;
+
+        // console.log(388 , kRef(this[`__$$stampSpliceObj$$#${containerId}__`]))
+
+        const object = kRef(this[`__$$stampSpliceObj$$#${containerId}__`]);
+        // const elementKeys = new Set(Array.prototype.map.call((container.__domApi || container).children, e=>e[s52]));
+        const mapping = this.stampDom[stampKey].mapping;
+
+        const map = new Map();
+
+        const currentObjKeys = object.map(objEntry => {
+          const mappingKey = uA4(mapping, objEntry);
+          if(!mappingKey) return null;
+          const data = objEntry[mappingKey];
+          if (!data[s52]) data[s52] = genId();
+          map.set(data[s52], objEntry);
+          // return ({
+          //   objEntry,
+          //   data: data,
+          //   mappingKey: mappingKey,
+          //   key: data[s52],
+          //   exist: elementKeys.has(data[s52])
+          // });
+          return data[s52]
+
+        });
+
+        const oldDomKeys = Array.prototype.map.call((container.__domApi || container).children, node=>node[s52]);
+
+        // console.log(currentObjKeys, oldDomKeys, diffSplices(oldDomKeys, currentObjKeys));
+
+        const splices =  diffSplices(oldDomKeys, currentObjKeys);
+
+        // let myObject = object;
+        let indexSplicesObj_ = {
+          indexSplices: splices.map(splice => {
+            const index = splice[0];
+            const removedLen = splice[1];
+            const added = splice[2];
+            const addedCount = added.length;
+            const object = {};
+            object.length = index + addedCount;
+            for (let i = 0; i < addedCount; i++) {
+              object[index + i] = map.get(added[i]);
+            }
+            const removed = {};
+            removed.length = removedLen;
+
+            return { index, removed, object, addedCount }
+          })
+        };
+        map.clear();
+
+
+        this.__lat457__ = this.__lat457__ || new Set();
+        if(!container[wk]) container[wk] = mWeakRef(container);
+        this.__lat457__.add(container[wk]);
+        fixContainerApi(container);
+
+        // console.log(3882, indexSplicesObj_)
+        // let q = this.deferredBindingTasks_;
+        // this.deferredBindingTasks_ = [];
+        this.__qsd477__ = useMicroTaskQueue2 ? 2 : 1;
+        let e_;
+        try {
+          this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj_);
+        } catch (e) { e_ = e; }
+        this.__qsd477__ = false;
+        indexSplicesObj_ = null;
+        stampKey = indexSplicesObj_ = null;
+        fixContainerApi(container);
+        // this.deferredBindingTasks_ = q;
+        if(e_ && e_.message !== 'e5bd8d2f') throw e_;
+        if (!e_) {
+          // container.setAttribute('ytx-flushing', '0');
+        }
+
+
+      });
+      this[`__$$stampSqq$$#${containerId}__`] = f;
+      useMicroTaskQueue2 ? addTask2(f) : f();
+      executeTasks();
+
+      // console.log(58802, this.hostElement.parentNode instanceof HTMLElement_);
+
+      return undefined;
+
+    }
+
+  
+
+    const stampDomArrayWB_ = function (objWr, containerId, xxx_, renderJob0, dt0a) {
+      const dt0 = dt0a[0];
+      const dt1 = Date.now();
+      const obj = kRef(objWr);
+      if (!obj) return;
+      const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`];
+      if (xxx !== xxx_) return;
+      const dataList = obj[`__stampDomArrayArgs_dataList__#${containerId}__`];
+      const typeOrConfig = kRef(obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`]);
+      const bReuse = obj[`__stampDomArrayArgs_bReuse__#${containerId}__`];
+      const bEventCb = obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`];
+      const bStableList = obj[`__stampDomArrayArgs_bStableList__#${containerId}__`];
+      const renderJob1 = obj.renderJobsMap_[containerId]
+      // console.log(3188, dt0, dt1, renderJob0, renderJob1)
+      obj[`__quu477#${containerId}__`] = [renderJob0,  (dt1 - dt0 >= 1), renderJob1];
+      let e_, r;
+      try {
+        r = obj.stampDomArray_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
+      } catch (e) {
+        e_ = e;
+      }
+      obj[`__quu477#${containerId}__`] = false;
+      if (e_) throw e_;
+      return r;
+    };
+
+    
+
+    stampDomArray_.bind = function (obj, ...args) {
+      let [dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList] = args;
+      if (!obj[wk]) obj[wk] = mWeakRef(obj);
+      obj[`__stampDomArrayArgs_dataList__#${containerId}__`] = dataList;
+      const typeOrConfig_ = typeof (typeOrConfig || 0) === 'object' ? (typeOrConfig[wk] || (typeOrConfig[wk] = mWeakRef(typeOrConfig))) : typeOrConfig;
+      obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`] = typeOrConfig_;
+      obj[`__stampDomArrayArgs_bReuse__#${containerId}__`] = bReuse;
+      obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`] = bEventCb;
+      obj[`__stampDomArrayArgs_bStableList__#${containerId}__`] = bStableList;
+       const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`] = `${Math.random()}_${Date.now()}`;
+
+
+      const renderJob = obj.renderJobsMap_[containerId];
+
+      const dt0a = [Date.now()];
+      queueMicrotask_(() => { dt0a[0] = 0 });
+      return stampDomArrayWB_.bind(null, obj[wk], containerId, xxx, renderJob, dt0a);
+    };
+
+    
+    const stampDomArraySplicesWB_ = function (objWr, stampKey, containerId, indexSplicesObj, renderJob0, dt0a) {
+      const dt0 = dt0a[0];
+      const dt1 = Date.now();
+      const obj = kRef(objWr);
+      if (!obj) return;
+      const renderJob1 = obj.renderJobsMap_[containerId];
+      obj[`__quu477#${containerId}__`] = [renderJob0,  (dt1 - dt0 >= 1), renderJob1];
+      let e_, r;
+      try {
+        r = obj.stampDomArraySplices_( stampKey, containerId, indexSplicesObj);
+      } catch (e) {
+        e_ = e;
+      }
+      obj[`__quu477#${containerId}__`] = false;
+      if (e_) throw e_;
+      return r;
+    };
+
+    
+
+    stampDomArraySplices_.bind = function (obj, ...args) {
+      let [stampKey, containerId, indexSplicesObj] = args;
+      if (!obj[wk]) obj[wk] = mWeakRef(obj);
+
+      const renderJob = obj.renderJobsMap_[containerId];
+
+      const dt0a = [Date.now()];
+      queueMicrotask_(() => { dt0a[0] = 0 });
+      return stampDomArraySplicesWB_.bind(null, obj[wk], stampKey, containerId, indexSplicesObj, renderJob, dt0a);
+    };
+
+
+    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
+
+  }
+
 
   const createStampDomFnsB_ = () => {
 
@@ -6949,7 +7850,7 @@
           console.warn("YouTube Coding Changed. createStampDomFns_() is not applied")
         } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
           
-          if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsB_();
+          if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsC_();
           const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_} = stampDomArrayFnStore;
 
           cProto.getStampContainer7409_ = cProto.getStampContainer_;
