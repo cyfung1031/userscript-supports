@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.4
+// @version     0.36.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2408,7 +2408,9 @@
       const fragD = document.createDocumentFragment();
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
-        if (__forceRemoveMode__ || typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
+        if (!child || child.nodeType !== 1) {
+          return this.removeChild062(child);
+        } else if (__forceRemoveMode__ || typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
           let ok = false;
           try {
             this.removeChild062(child);
