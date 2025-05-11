@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.1
+// @version             0.102.2
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1948,7 +1948,8 @@
 
   const valAssign = (elm, attr, val) => {
     if (typeof val === 'number') val = val.toFixed(3);
-    if (!(Math.abs(elm.style.getPropertyValue(attr) - val) < 1e-5)) {
+    const currentVal = elm.style.getPropertyValue(attr);
+    if (currentVal === '' || !(Math.abs(currentVal - val) < 1e-5)) {
       elm.style.setProperty(attr, val);
       return true;
     }
