@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.2
+// @version             0.102.3
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3883,6 +3883,8 @@
 
             const tasks = [];
             let fragAppend = document.createDocumentFragment();
+            let shouldManualScroll = null;
+            let scrollTop1 = null, scrollTop2 = null;
 
             const taskFn = {
               remove: (task) => {
@@ -3915,6 +3917,14 @@
 
                 fragAppend.appendChild(newNode);
 
+
+                const itemScrollerX = (isMessageListRendering && isAtBottom) ? this.itemScroller : null;
+
+
+                if (itemScrollerX) {
+                  if (scrollTop1 === null) scrollTop1 = itemScrollerX.scrollTop;
+                }
+
                 if (nodeAfter) {
                   (parentNode.__domApi || parentNode).insertBefore(fragAppend, nodeAfter);
                 } else {
@@ -3936,11 +3946,12 @@
                   sideProcesses.push(onTickerItemStampNodeAdded());
                 }
 
-                if (isMessageListRendering && isAtBottom) {
-
-                  const itemScroller = this.itemScroller;
-                  if (itemScroller && (!ENABLE_OVERFLOW_ANCHOR || typeof webkitCancelAnimationFrame !== "function" || itemScroller.scrollTop === 0)) itemScroller.scrollTop = 16777216;
-
+                if (itemScrollerX) {
+                  if (scrollTop2 === null) scrollTop2 = itemScrollerX.scrollTop;
+                  if (shouldManualScroll === null) shouldManualScroll = (scrollTop1 >= 0 && scrollTop2 >= 0 && Math.abs(scrollTop2 - scrollTop1) < 6);
+                  if (shouldManualScroll) {
+                    itemScrollerX.scrollTop = scrollTop2 + 16777216;
+                  }
                 }
 
                 return 1
