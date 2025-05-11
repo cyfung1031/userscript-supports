@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.12
+// @version     0.36.13
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -878,7 +878,6 @@
 
       const convertToWeakArr = (arr) => {
 
-
         if (arr.isWeak) return;
 
         for (let i = 0, l = arr.length; i < l; i++) {
@@ -916,17 +915,21 @@
           get() {
             this.dk322 || fixDetachFn(Reflect.getPrototypeOf(this));
             let arr = this.__instances_actual471__;
-            convertToNormalArr(arr);
-            for (let i = arr.length - 1; i >= 0; i--) {
-              if (!arr[i]) arr.splice(i, 1);
+            if (arr && arr.isWeak) {
+              convertToNormalArr(arr);
+              for (let i = arr.length - 1; i >= 0; i--) {
+                if (!arr[i]) arr.splice(i, 1);
+              }
+              Promise.resolve(arr).then(convertToWeakArr);
             }
-            Promise.resolve(arr).then(convertToWeakArr);
             return arr;
           },
           set(nv) {
             this.dk322 || fixDetachFn(Reflect.getPrototypeOf(this));
             this.__instances_actual471__ = nv;
-            Promise.resolve(nv).then(convertToWeakArr);
+            if (nv && !nv.isWeak) {
+              Promise.resolve(nv).then(convertToWeakArr);
+            }
             return true;
           },
           enumerable: false,
