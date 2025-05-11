@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.14
+// @version     0.36.15
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -170,6 +170,8 @@
   const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
 
   const DISABLE_isLowLatencyLiveStream = false; // TBC
+
+  
 
   /*
 
@@ -419,6 +421,22 @@
   let removeTNodeBP = false;
 
 
+  if (Node.isConnectedOverrided === undefined) {
+    const pdConnected = Object.getOwnPropertyDescriptor(Node.prototype, 'isConnected');
+    if (pdConnected && pdConnected.get && pdConnected.configurable) {
+      Node.isConnectedOverrided = null;
+      const get_ = pdConnected.get;
+      const get = function () {
+        const overrided = Node.isConnectedOverrided;
+        if (typeof overrided === 'boolean') return overrided;
+        return get_.call(this);
+      }
+      Object.defineProperty(Node.prototype, 'isConnected', {
+        ...pdConnected,
+        get
+      });
+    }
+  }
 
 
   let FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = false;
@@ -844,7 +862,6 @@
     }
 
 
-    const fragQ = document.createDocumentFragment(); // for cleaup removal
 
     const wm = new WeakMap();
 
@@ -853,18 +870,171 @@
       if (tpProto.dk322) return;
       tpProto.dk322 = true;
 
+      window.__fixTemplateReuse1058__ = true;
+
+
+      tpProto.__ensureTemplatized994 = tpProto.__ensureTemplatized;
+      if (typeof tpProto.__ensureTemplatized994 === 'function' && tpProto.__ensureTemplatized994.length === 0) {
+        tpProto.__ensureTemplatized = function () {
+          // console.log(18470001)
+          return this.__ensureTemplatized994();
+        }
+      }
+
+
+      tpProto.__updateInstances994 = tpProto.__updateInstances;
+      if (typeof tpProto.__updateInstances994 === 'function' && tpProto.__updateInstances994.length === 3) {
+        let bypass= false;
+        tpProto.__updateInstances = function (a, b, c) {
+
+          // const a_ = [...a];
+          if(!bypass && a === this.items && (a||0).length >=1 ){
+
+            bypass = true;
+            // console.log(18470002, a, b,c)
+            let e;
+            for (e = 0; e < b; e++) {
+                let g = this.__instances[e]
+                  , k = c[e]
+                  , m = a[k];
+                if(g && typeof (m||0) === 'object'){
+                  // const q = g._shouldPropertyChange;
+                  // g._shouldPropertyChange = ()=>true;
+                  // g[this.as] = {};
+                  // a_[k]=a[k] = m;
+                  // g[this.as] = m;
+
+                  // use public interface notifyPath instead of internal interface _setPendingProperty
+                  const m_ = a[k] = Object.assign({}, a[k]);
+                  try {
+                    g.notifyPath(this.as, {}); 
+                  } catch (e) { }
+                  try {
+                    g.notifyPath(this.as, m_);
+                  } catch (e) { }
+
+                  // g._setPendingProperty(this.as, {});
+                  // g._setPendingProperty(this.as, m);
+                  // g._setPendingProperty(this.indexAs, e);
+                  // g._setPendingProperty(this.itemsIndexAs, k);
+                  // delete g._shouldPropertyChange;
+                  // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
+                } 
+            }
+            bypass = false;
+
+          }
+          const r = this.__updateInstances994(a,b,c);
+
+        //   for (e = 0; e < b; e++) {
+        //     let g = this.__instances[e]
+        //       , k = c[e]
+        //       , m = a_[k];
+        //     if(g){
+        //       // const q = g._shouldPropertyChange;
+        //       // g._shouldPropertyChange = ()=>true;
+        //       // g[this.as] = m;
+        //       // g._setPendingProperty(this.as, {});
+        //       // g._setPendingProperty(this.as, m);
+        //       // g._setPendingProperty(this.indexAs, e);
+        //       // g._setPendingProperty(this.itemsIndexAs, k);
+        //       // delete g._shouldPropertyChange;
+        //       // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
+        //     } 
+        // }
+
+          return r;
+        }
+      }
+
+      /*
+
+              tpProto.__updateInstances = function (a, b, c) {
+
+          let renew = this.__wasInstanceDetached001 === true;
+          if(renew){
+
+            this.__wasInstanceDetached001 = false;
+          }
+
+          // const a_ = [...a];
+          // if(a === this.items && (a||0).length >=1 ){
+
+          //   // console.log(18470002, a, b,c)
+          //   let e;
+          //   for (e = 0; e < b; e++) {
+          //       let g = this.__instances[e]
+          //         , k = c[e]
+          //         , m = a[k];
+          //       if(g && typeof (m||0) === 'object'){
+          //         // const q = g._shouldPropertyChange;
+          //         // g._shouldPropertyChange = ()=>true;
+          //         // g[this.as] = {};
+          //         // a_[k]=a[k] = m;
+          //         // g[this.as] = m;
+
+          //         // use public interface notifyPath instead of internal interface _setPendingProperty
+          //         try {
+          //           g.notifyPath(this.as, {}); 
+          //         } catch (e) { }
+          //         try {
+          //           g.notifyPath(this.as, m);
+          //         } catch (e) { }
+
+          //         // g._setPendingProperty(this.as, {});
+          //         // g._setPendingProperty(this.as, m);
+          //         // g._setPendingProperty(this.indexAs, e);
+          //         // g._setPendingProperty(this.itemsIndexAs, k);
+          //         // delete g._shouldPropertyChange;
+          //         // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
+          //       } 
+          //   }
+
+          // }
+          const r = this.__updateInstances994(a,b,c);
+
+        //   for (e = 0; e < b; e++) {
+        //     let g = this.__instances[e]
+        //       , k = c[e]
+        //       , m = a_[k];
+        //     if(g){
+        //       // const q = g._shouldPropertyChange;
+        //       // g._shouldPropertyChange = ()=>true;
+        //       // g[this.as] = m;
+        //       // g._setPendingProperty(this.as, {});
+        //       // g._setPendingProperty(this.as, m);
+        //       // g._setPendingProperty(this.indexAs, e);
+        //       // g._setPendingProperty(this.itemsIndexAs, k);
+        //       // delete g._shouldPropertyChange;
+        //       // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
+        //     } 
+        // }
+          if (renew) {
+
+            const q = [...this.items];
+            this.items = [];
+            this.items = q;
+            console.log(129992)
+            // this.items.splice(0, 1, Object.assign({}, this.items[0]));
+          }
+          return r;
+        }
+
+        */
+
       tpProto.__detachInstance994 = tpProto.__detachInstance;
       if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
         tpProto.__detachInstance = function (a) {
           const u = this.__instances[a];
-          if (!u.root) {
-            const uRoot = kRef(wm.get(u));
-            if (uRoot) u.root = uRoot;
+          const children = (u || 0).children;
+          if (children && children.length >= 1) {
+            const pp = document.createDocumentFragment();
+            for (const s of [...children]) {
+              pp.appendChild(s);
+            }
           }
-          let P, ok = false;
           try {
-            this.__detachInstance994(a);
-            ok = true;
+            return this.__detachInstance994(a);
           } catch (e) { }
           return u;
         }
@@ -876,57 +1046,18 @@
           const u = this.__instances[a];
           if (u && u.root && b) {
             const root = u.root;
-            if (!root[wk]) root[wk] = mWeakRef(root);
-            wm.set(u, root[wk]);
-            fragQ.appendChild(root); // for cleanup
-            return this.__attachInstance994(a, b);
+            const pp = document.createDocumentFragment();
+            pp.appendChild(root);
+            root.appendChild(pp);
+            const r = this.__attachInstance994(a, b);
+            if (!this.__chunkingId) this.__chunkingId = 0.25;
+            return r;
           }
         }
       }
 
     }
-    // const fixDetachFn = (tpProto) => { // & 32
 
-    //   if (tpProto.dk322) return;
-    //   tpProto.dk322 = true;
-
-    //   tpProto.__detachInstance994 = tpProto.__detachInstance;
-    //   if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
-    //     tpProto.__detachInstance = function (a) {
-    //       const u = this.__instances[a];
-    //       if (u && u.root) {
-    //         const children = u ? u.children : null;
-    //         if (children && children.length >= 1) {
-    //           this.__detachInstance994(a);
-    //         }
-    //       } else if (u && !u.root) {
-    //         const children = u ? u.children : null;
-    //         if (children && children.length >= 1) {
-    //           for (let i = 0, l = children.length; i < l; i++) {
-    //             const node = children[i];
-    //             fragQ.appendChild(node); // for cleanup
-    //             Promise.resolve(node).then(node => (node.parentNode === fragQ) && !!node.remove());
-    //           }
-    //         }
-    //       }
-    //       return u;
-    //     }
-    //   }
-
-
-
-    //   tpProto.__attachInstance994 = tpProto.__attachInstance;
-    //   if (typeof tpProto.__attachInstance994 === 'function' && tpProto.__attachInstance994.length === 2) {
-    //     tpProto.__attachInstance = function (a, b) {
-    //       const u = this.__instances[a];
-    //       if (u && u.root && b) {
-    //         fragQ.appendChild(u.root); // for cleanup
-    //         return this.__attachInstance994(a, b);
-    //       }
-    //     }
-    //   }
-
-    // }
     const ytTemplateDomEntry = (tpProto) => {
 
       console.log('ytTemplateDomEntry triggered')
