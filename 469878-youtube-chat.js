@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.14
+// @version             0.100.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2120,7 +2120,16 @@
 
   })();
 
-  const wme = document.createComment('1');
+  const __mockChildren__ = { get length() { return 0 } };
+  const mockCommentElement = (x) => {
+    // for flow chat
+    if (x instanceof Node && x.nodeType !== 1 && !x.children) {
+      x.children = __mockChildren__;
+    }
+    return x;
+  }
+
+  const wme = mockCommentElement(document.createComment('1'));
   let wmp = new PromiseExternal();
   const wmo = new MutationObserver(() => {
     wmp.resolve();
@@ -3455,9 +3464,11 @@
       // const newDoc = document.implementation.createHTMLDocument("NewDoc");
       const pSpace = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       document.documentElement.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+      mockCommentElement(document.documentElement.lastChild);
       document.documentElement.lastChild.replaceWith(pSpace);
       const pNode = document.createElement('ns-538');
       pSpace.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+      mockCommentElement(pSpace.lastChild);
       pSpace.lastChild.replaceWith(pNode);
 
       const pDiv = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -3466,12 +3477,14 @@
         pShadow.replaceChildren(pDiv);
       } else {
         pNode.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+        mockCommentElement(pNode.lastChild);
         pNode.lastChild.replaceWith(pDiv);
       }
 
       const pDivNew = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
       pDiv.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+      mockCommentElement(pDiv.lastChild);
       pDiv.lastChild.replaceWith(pDivNew);
 
       pDivNew.addEventListener('load', pDivOnResource, true);
@@ -3549,6 +3562,7 @@
 
           // cnt.__dataOld = cnt.__dataPending = null;
           pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+          mockCommentElement(pDivNew.lastChild);
           pDivNew.lastChild.replaceWith(component);
           // cnt.__dataOld = cnt.__dataPending = null;
 
@@ -3575,6 +3589,7 @@
             // }
             // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
             pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+            mockCommentElement(pDivNew.lastChild);
             pDivNew.lastChild.replaceWith(connectedComponent);
             const attrMap = connectedComponent.attributes;
             const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
@@ -3717,10 +3732,12 @@
             wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
             pDiv.insertAdjacentHTML('afterend', ttpHTML('<!---->'));
+            mockCommentElement(pDiv.nextSibling);
             pDiv.nextSibling.replaceWith(wmList);
             wmRemoved.set(componentName, wmList);
           }
           wmList.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+          mockCommentElement(wmList.lastChild);
           wmList.lastChild.replaceWith(elm);
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
@@ -3800,9 +3817,11 @@
 
                 if (nodeAfter) {
                   nodeAfter.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
+                  mockCommentElement(nodeAfter.previousSibling);
                   nodeAfter.previousSibling.replaceWith(newNode);
                 } else {
                   parentNode.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
+                  mockCommentElement(parentNode.lastChild);
                   parentNode.lastChild.replaceWith(newNode);
                 }
 
@@ -6777,7 +6796,7 @@
 
         let firstRun = ()=>{
           
-          cm = document.createComment('1');
+          cm = mockCommentElement(document.createComment('1'));
           stack = new Set();
           mo = new MutationObserver(()=>{
             const stack_ = stack;
