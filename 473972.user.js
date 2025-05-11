@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.9
+// @version     0.36.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2419,14 +2419,34 @@
           let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
           if (idx >= 0) {
             internalByPass = true;
-            fragD.appendChild4201(child);
-            this.childNodes[idx] === child && this.childNodes.splice(idx, 1);
+            child.parentNode !== fragD && fragD.appendChild4201(child);
+            this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
             fragD.removeChild4201(child);
             internalByPass = false;
             return child;
           }
         }
+        // if (this instanceof Node && child instanceof Node && child.parentNode && child.parentNode.nodeType === 11 && child.parentNode !== this && !this.contains(child)) {
+        //   // force removal
+        //   internalByPass = true;
+        //   child.parentNode !== fragD && fragD.appendChild4201(child);
+        //   fragD.removeChild4201(child);
+        //   internalByPass = false;
+        //   return child;
+        // }
         if (this && child) {
+          if (this.childNodes && this.childNodes.splice) { // tbc
+            let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
+            if (idx >= 0) {
+              internalByPass = true;
+              child.parentNode !== fragD && fragD.appendChild4201(child);
+              this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
+              fragD.removeChild4201(child);
+              internalByPass = false;
+              return child;
+            }
+          }
+
           console.warn('[yt-js-engine-tamer] Node is not removed from parent', { 
             parent: this, child: child, 
             isParent: child.parentNode === this, 
@@ -5459,6 +5479,7 @@
       if (!producer) return;
       const hostElement = producer.hostElement;
       if (!hostElement) return;
+      if (hostElement.isConnected !== true) return; // tbc
       producer.markDirty && producer.markDirty();
       bEventCb && dispatchYtEvent(hostElement, "yt-rendererstamper-finished", {
         container
@@ -5588,6 +5609,8 @@
     }
 
     const frag385 = document.createDocumentFragment();
+    frag385.appendChild4202 = frag385.appendChild;
+    frag385.removeChild4202 = frag385.removeChild;
             
     const cm385 = document.createComment('.');
 
@@ -5602,16 +5625,22 @@
           // console.log(123882, container)
           containerDomApi.removeChild588 = containerDomApi.removeChild;
           containerDomApi.removeChild = function (elem) {
-            if (elem.parentNode === (this.node || this)) {
-              for (const s of elem.querySelectorAll('[ytx-flushing]')) {
-                s.setAttribute('ytx-flushing', '0');
-              }
-              // __forceRemoveMode__ = true;
-              node385.appendChild(cm385);
-              cm385.replaceWith(elem);
-              node385.textContent = '';
-              // __forceRemoveMode__ = false;
+            let r;
+            for (const s of elem.querySelectorAll('[ytx-flushing]')) {
+              s.setAttribute('ytx-flushing', '0');
             }
+            try {
+              r = this.removeChild588(elem);
+            } catch (e) { }
+            if (!r) {
+              frag385.appendChild4202(elem);
+              frag385.removeChild4202(elem);
+              r = elem;
+            }
+            for (const s of elem.querySelectorAll('[ytx-flushing]')) {
+              s.removeAttribute('ytx-flushing');
+            }
+            return r;
           }
         }
       }
