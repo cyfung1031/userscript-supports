@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.100.15
+// @version             0.101.0
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1083,8 +1083,13 @@
         }
           */
 
+        .r6-width-adjustable {
+          min-width: max-content;
+          margin-right: 0 !important;
+        }
 
 
+        /*
         .r6-width-adjustable {
           --r6-min-width: 0;
           min-width: var(--r6-min-width);
@@ -1097,6 +1102,8 @@
         .r6-closing-ticker[class] {
           --r6-min-width: 0;
         }
+
+          */
 
   ` : '';
 
@@ -3545,7 +3552,7 @@
         let addedCounter = 0;
         let removedCounter = 0;
 
-        const createConnectedComponentElm = (insertionObj, L, H, componentName) => {
+        const createNewComponentElm = (insertionObj, L, H, componentName) => {
           // const reusable = false;
           // const componentName = this.getComponentName_(L, H);
           let component;
@@ -3557,14 +3564,6 @@
             component = nullComponents.get(componentName);
           }
           component = component.cloneNode(false);
-
-          // const cnt = insp(component);
-
-          // cnt.__dataOld = cnt.__dataPending = null;
-          pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
-          mockCommentElement(pDivNew.lastChild);
-          pDivNew.lastChild.replaceWith(component);
-          // cnt.__dataOld = cnt.__dataPending = null;
 
           return component;
         }
@@ -3579,8 +3578,8 @@
 
           const wmList = wmRemoved.get(componentName.toLowerCase());
 
-          let connectedComponent = null;
-          if (wmList && (connectedComponent = wmList.firstElementChild)) {
+          let componentNode = null;
+          if (wmList && (componentNode = wmList.firstElementChild)) {
             if (this.telemetry_) this.telemetry_.reuse++;
             // if (!wmPendingList) {
             //   wmPendingList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -3590,9 +3589,9 @@
             // wmPendingList.insertAdjacentElement('beforeend', connectedComponent);
             pDivNew.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
             mockCommentElement(pDivNew.lastChild);
-            pDivNew.lastChild.replaceWith(connectedComponent);
-            const attrMap = connectedComponent.attributes;
-            const defaultAttrs = componentDefaultAttributes.get(connectedComponent);
+            pDivNew.lastChild.replaceWith(componentNode);
+            const attrMap = componentNode.attributes;
+            const defaultAttrs = componentDefaultAttributes.get(componentNode);
             if (defaultAttrs) {
               for (const attr of attrMap) {
                 const name = attr.name;
@@ -3601,21 +3600,35 @@
               }
               if (attrMap.length !== defaultAttrs['"']) {
                 for (const name in defaultAttrs) {
-                  if (!attrMap[name] && name !== '"') connectedComponent.setAttribute(name, defaultAttrs[name]);
+                  if (!attrMap[name] && name !== '"') componentNode.setAttribute(name, defaultAttrs[name]);
                 }
               }
             }
 
           } else {
-            connectedComponent = createConnectedComponentElm(item, L, H, componentName);
+            componentNode = createNewComponentElm(item, L, H, componentName);
             if (this.telemetry_) this.telemetry_.create++;
           }
           if (isTickerRendering) {
-            const container = connectedComponent.firstElementChild;
+            const container = componentNode.firstElementChild;
             if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
           }
 
-          return [item, L, H, connectedComponent];
+          const cnt = insp(componentNode);
+          // if (cnt.__dataInvalid === false) {
+          //   cnt.__dataInvalid = true;
+          // }
+          // if (cnt.__dataEnabled === true) {
+          //   cnt.__dataEnabled = false;
+          // }
+
+          if (cnt.data) {
+            try {
+              cnt.data = H;
+            } catch (e) { }
+          }
+
+          return [item, L, H, componentNode];
 
         };
 
@@ -3641,60 +3654,6 @@
         const imgPromises = [];
 
         const imgPaths = new Set();
-
-        const pnForRenderNewItem = (entry) => {
-          const [item, L, H, connectedComponent] = entry;
-
-          const cnt = insp(connectedComponent);
-          setupRefreshData930(cnt);
-          if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
-            cnt.data = H;
-          } else {
-            const q = this.deferRenderStamperBinding_
-            let q2;
-            if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
-            this.deferRenderStamperBinding_(connectedComponent, L, H);
-            this.flushRenderStamperComponentBindings_();
-            if (typeof q === 'object') {
-              this.deferRenderStamperBinding_ = q;
-              q2.length = 0;
-            }
-          }
-          if (cnt.__refreshData930__ && cnt.data) cnt.__refreshData930__('data', !0); // ensure data is invalidated
-
-          // fix yt-icon issue
-          refreshChildrenYtIcons(connectedComponent);
-
-          // const imgs = connectedComponent.getElementsByTagName('IMG');
-          // if (imgs.length > 0) {
-          //   for (let i = 0, l = imgs.length; i < l; i++) {
-          //     const src = imgs[i].src;
-          //     if (src.includes('://') && !imgPaths.has(src)) {
-          //       imgPaths.add(src);
-          //       imgPromises.push(imageFetch(src));
-          //     }
-          //   }
-          // }
-          componentDefaultAttributes.set(connectedComponent, getAttributes(connectedComponent));
-          return entry;
-        }
-
-        // const pt3 = performance.now();
-        // const newRenderedComponents = await Promise.all(newComponentsEntries.map((entry) => {
-        //   return typeof entry === 'object' && !(entry instanceof Node) ? Promise.resolve(entry).then(pnForRenderNewItem) : entry;
-        // }));
-        const newRenderedComponents = isRenderListEmpty ? [] : await executeTaskBatch(newComponentsEntries.map(entry => ({
-          entry,
-          fn(task) {
-            const { entry } = task;
-            return typeof entry === 'object' && !(entry instanceof Node) ? pnForRenderNewItem(entry) : entry;
-          }
-        })));
-        // const pt4 = performance.now();
-
-
-        // console.log('xxss' , pt2-pt1, pt4-pt3)
-
 
         // wait for network cached images loading
         // let trialMax = 4;
@@ -3813,16 +3772,23 @@
               },
               append: (task) => {
 
-                const { newNode, nodeAfter, parentNode } = task;
-
+                const { newNode, nodeAfter, parentNode, item, L, H } = task;
                 if (nodeAfter) {
-                  nodeAfter.insertAdjacentHTML('beforebegin', ttpHTML('<!---->'));
-                  mockCommentElement(nodeAfter.previousSibling);
-                  nodeAfter.previousSibling.replaceWith(newNode);
+                  const p = document.createDocumentFragment();
+                  p.appendChild(newNode);
+                  (parentNode.__domApi || parentNode).insertBefore(p, nodeAfter);
+                  this.deferRenderStamperBinding_(newNode, L, H);
+                  this.flushRenderStamperComponentBindings_();
+
+                  componentDefaultAttributes.set(newNode, getAttributes(newNode));
                 } else {
-                  parentNode.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
-                  mockCommentElement(parentNode.lastChild);
-                  parentNode.lastChild.replaceWith(newNode);
+                  const p = document.createDocumentFragment();
+                  p.appendChild(newNode);
+                  (parentNode.__domApi || parentNode).appendChild(p);
+                  this.deferRenderStamperBinding_(newNode, L, H);
+                  this.flushRenderStamperComponentBindings_();
+
+                  componentDefaultAttributes.set(newNode, getAttributes(newNode));
                 }
 
                 // nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
@@ -3862,8 +3828,8 @@
 
               const keepIndices = new Array(renderNodeCount);
               let keepIndicesLen = 0, lastKeepIndex = -1, requireSort = false;
-              for (let i = 0, l = newRenderedComponents.length; i < l; i++) {
-                const entry = newRenderedComponents[i];
+              for (let i = 0, l = newComponentsEntries.length; i < l; i++) {
+                const entry = newComponentsEntries[i];
                 if (entry instanceof Node) {
                   const index = indexMap.get(entry);
                   keepIndices[keepIndicesLen++] = [index, entry];
@@ -3881,7 +3847,7 @@
               elNode = firstComponentChildFn(listDom);
 
               if (!isRenderListEmpty) {
-                for (const rcEntry of newRenderedComponents) {
+                for (const rcEntry of newComponentsEntries) {
                   const index = indexMap.get(rcEntry);
                   if (typeof index === 'number') {
                     const indexEntry = keepIndices[dk++];
@@ -3920,13 +3886,17 @@
                     });
 
                   } else {
-                    const [item, L, H, connectedComponent] = rcEntry;
+                    const [item, L, H, componentNode] = rcEntry;
+                    
 
                     tasks.push({
                       type: 'append',
-                      newNode: connectedComponent,
+                      newNode: componentNode,
                       nodeAfter: elNode,
                       parentNode: listDom,
+                      item,
+                      L,
+                      H,
                       fn: taskFn.append
                     });
 
@@ -7464,15 +7434,13 @@
                   stamperDomClass: 'style-scope yt-live-chat-item-list-renderer yt-live-chat-item-list-stampdom',
                   preloadFn
                 });
-                
-                // cProto.notifyPath371 = cProto.notifyPath;
-
+              
 
                 cProto.stampDomArraySplices381_ = cProto.stampDomArraySplices_;
 
                 cProto.stampDomArraySplices_ = function (a, b, c) {
                   if (a === 'visibleItems' && b === 'items' && (c || 0).indexSplices) {
-                    if (this.ec388) {
+                    // if (this.ec388) {
                       const indexSplices = c.indexSplices;
                       if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
                         const indexSplice = indexSplices[0] || indexSplices;
@@ -7481,9 +7449,9 @@
                           if (this.proceedStampDomArraySplices381_(a, b, indexSplice)) return;
                         }
                       }
-                    } else {
-                      console.warn('stampDomArraySplices_ warning', ...arguments);
-                    }
+                    // } else {
+                    //   console.warn('stampDomArraySplices_ warning', ...arguments);
+                    // }
                   }
                   return this.stampDomArraySplices381_(...arguments);
                 }
@@ -9784,39 +9752,19 @@
 
           // const imgCollection = document.getElementsByTagName('IMG');
 
-          if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3 && !cProto.notifyPath371) {
+          if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3) {
 
+            
             rendererStamperFactory(cProto, {
               key: 'proceedStampDomArraySplices371_',
               stamperDomClass: 'style-scope yt-live-chat-ticker-renderer yt-live-chat-ticker-stampdom'
             });
 
-            cProto.notifyPath371 = cProto.notifyPath;
-
-            cProto.notifyPath = function (a, b) {
-              // console.log(a, b);
-              if (a === 'tickerItems.splices' && (b||0).indexSplices && !this.ec388) {
-                const indexSplices = b.indexSplices;
-                if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
-                  const indexSplice = indexSplices[0] || indexSplices;
-                  if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || []).length >= 1)) {
-                    // console.log(1039, a, indexSplice);
-                    this.ec388 = true;
-                    const r = this.notifyPath371(a, b);
-                    this.ec388 = false;
-                    return r;
-                  }
-                }
-              }
-
-              return this.notifyPath371(a, b);
-            }
-
             cProto.stampDomArraySplices371_ = cProto.stampDomArraySplices_;
 
             cProto.stampDomArraySplices_ = function (a, b, c) {
               if (a === 'tickerItems' && b === 'ticker-items' && (c || 0).indexSplices) {
-                if (this.ec388) {
+                // if (this.ec388) {
                   const indexSplices = c.indexSplices;
                   if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
                     const indexSplice = indexSplices[0] || indexSplices;
@@ -9825,9 +9773,9 @@
                       if (this.proceedStampDomArraySplices371_(a, b, indexSplice)) return;
                     }
                   }
-                } else {
-                  console.warn('stampDomArraySplices_ warning', ...arguments);
-                }
+                // } else {
+                //   console.warn('stampDomArraySplices_ warning', ...arguments);
+                // }
               }
               return this.stampDomArraySplices371_(...arguments);
             };
