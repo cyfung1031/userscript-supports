@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.11
+// @version     0.36.12
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2013,7 +2013,7 @@
 
       }
 
-      let pr72 = Promise.resolve();
+      // let pr72 = Promise.resolve();
 
 
       let qa = null;
@@ -2026,10 +2026,10 @@
           // qa();
           nextBrowserTick_(qa);
         }
-        const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
-        pr72 = pr72.then(() => {
-          return pr
-        });
+        // const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
+        // pr72 = pr72.then(() => {
+        //   return pr
+        // });
       }, true);
 
       window.addEventListener("resize", (evt) => {
@@ -2038,22 +2038,22 @@
           // qa();
           nextBrowserTick_(qa);
         }
-        const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
-        pr72 = pr72.then(() => {
-          return pr
-        });
+        // const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
+        // pr72 = pr72.then(() => {
+        //   return pr
+        // });
       }, true);
 
 
       setInterval(() => {
         const f = qa;
         if (typeof f !== 'function') return;
-        // qa = null;
-        pr72 = pr72.then(() => {
-          f();
-        });
+        qa = null;
+        // pr72 = pr72.then(() => {
+        //   f();
+        // });
         // nextBrowserTick_(()=>{
- 
+        f();
         // });
       }, 475.25);
 
@@ -2063,11 +2063,11 @@
 
 
         const f = a;
-        const g = ()=>{
-          pr72 = pr72.then(()=>{
-            f();
-          });
-        }
+        // const g = ()=>{
+        //   pr72 = pr72.then(()=>{
+        //     f();
+        //   });
+        // }
 
         if (!c) return arguments.length < 3 ? nv(f, b) : nv(f, b, c);
 
@@ -2083,8 +2083,8 @@
             // console.log(12883, a)
             return nv(() => {
               if (qa === a) {
-                qa();
                 qa = null;
+                a();
               }
             }, b, c);
           }
@@ -2092,18 +2092,18 @@
 
 
         if (!b && c_ === 5000 && `${a}`.includes('.cleanupJob=0')) {
-          console.log('[yt-js-engine-tamer] cleanupJob 01');
-          const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
-          pr72 = pr72.then(() => {
-            return pr
-          });
-          try {
-            yt.scheduler.instance.cancelAllJobs();
-            yt.scheduler.instance.dispose();
-            if(ytglobal.schedulerInstanceInstance_) ytglobal.schedulerInstanceInstance_.dispose();
-            console.log('[yt-js-engine-tamer] cleanupJob 02');
-          } catch (e) { }
-          return  nv(g, b, c);
+          // console.log('[yt-js-engine-tamer] cleanupJob 01');
+          // const pr = new Promise(resolve => { setTimeout(resolve, 94.25) });
+          // pr72 = pr72.then(() => {
+          //   return pr
+          // });
+          // try {
+            // yt.scheduler.instance.cancelAllJobs();
+            // yt.scheduler.instance.dispose();
+            // if(ytglobal.schedulerInstanceInstance_) ytglobal.schedulerInstanceInstance_.dispose();
+            // console.log('[yt-js-engine-tamer] cleanupJob 02');
+          // } catch (e) { }
+          return  nv(f, b, c);
         }
 
         // if(!b && c > 50) c = 50;
@@ -2149,7 +2149,7 @@
 
 
 
-          return nv(g,b,c);
+          return nv(f,b,c);
 
 
           // if (c > 2400) c = 2400;
