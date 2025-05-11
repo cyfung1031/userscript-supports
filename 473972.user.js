@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.5
+// @version     0.36.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2402,39 +2402,16 @@
     loggerMsg && console.warn(loggerMsg);
   })();
 
-  let __forceRemoveMode__ = false;
+  // let __forceRemoveMode__ = false;
   FIX_removeChild && (() => {
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
       const fragD = document.createDocumentFragment();
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
-        if (!child || child.nodeType !== 1) {
+        try {
           return this.removeChild062(child);
-        } else if (__forceRemoveMode__ || typeof this.__shady_native_removeChild !== 'function' || ((child instanceof Node) && child.parentNode === this)) {
-          let ok = false;
-          try {
-            this.removeChild062(child);
-            ok = true;
-          } catch (e) {
-
-          }
-          if (!ok) {
-            try {
-              fragD.appendChild(child)
-            } catch (e) {
-              console.warn(e);
-            }
-            try {
-              child.remove();
-            } catch (e) {
-              console.warn(e);
-            }
-          }
-        } else if ((child instanceof Element) && child.is === 'tp-yt-paper-tooltip') {
-          // tooltip bug
-        } else {
-          console.warn('[yt-js-engine-tamer] Node is not removed from parent', { parent: this, child: child })
-        }
+        } catch (e) { }
+        console.warn('[yt-js-engine-tamer] Node is not removed from parent', { parent: this, child: child, isParent: child.parentNode === this, isAncestor: this instanceof Node && child instanceof Node && this.contains(child) })
         return child;
       }
     }
@@ -5598,11 +5575,11 @@
               for (const s of elem.querySelectorAll('[ytx-flushing]')) {
                 s.setAttribute('ytx-flushing', '0');
               }
-              __forceRemoveMode__ = true;
+              // __forceRemoveMode__ = true;
               node385.appendChild(cm385);
               cm385.replaceWith(elem);
               node385.textContent = '';
-              __forceRemoveMode__ = false;
+              // __forceRemoveMode__ = false;
             }
           }
         }
