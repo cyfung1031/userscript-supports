@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.6
+// @version     0.36.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2411,7 +2411,23 @@
         try {
           return this.removeChild062(child);
         } catch (e) { }
-        console.warn('[yt-js-engine-tamer] Node is not removed from parent', { parent: this, child: child, isParent: child.parentNode === this, isAncestor: this instanceof Node && child instanceof Node && this.contains(child) })
+        if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && child.parentNode !== fragD && this.contains(child)) { // eg. child = DOM-IF
+          let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
+          if (idx >= 0) {
+            fragD.appendChild(child);
+            this.childNodes[idx] === child && this.childNodes.splice(idx, 1);
+            fragD.removeChild062(child);
+            return child;
+          }
+        }
+        if (this && child) {
+          console.warn('[yt-js-engine-tamer] Node is not removed from parent', { 
+            parent: this, child: child, 
+            isParent: child.parentNode === this, 
+            isParentParent: (child.parentNode || 0).parentNode === this, 
+            parentNode: child.parentNode,
+            isAncestor: this instanceof Node && child instanceof Node && this.contains(child) })
+        }
         return child;
       }
     }
