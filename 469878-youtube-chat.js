@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.101.0
+// @version             0.101.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3552,18 +3552,43 @@
         let addedCounter = 0;
         let removedCounter = 0;
 
-        const createNewComponentElm = (insertionObj, L, H, componentName) => {
+        const countKeys = (H) => {
+
+          const countKeys_ = (H, u, q) => {
+            if (u.has(H)) return q;
+            u.add(H);
+            const pds = Object.getOwnPropertyDescriptors(H);
+            for (const name in pds) {
+              const pd_ = pds[name];
+              const o = pd_.value;
+              if (o && pd_.configurable && pd_.writable && !(o instanceof EventTarget)) {
+                if (typeof o === 'object') {
+                  q.add(name)
+                  countKeys_(o, u, q);
+                }
+              }
+            }
+          };
+          const m = new Set();
+          countKeys_(H, new WeakSet(), m);
+          
+          return `-${m.size}-${[...m].join('.').length}`;
+        }
+
+        const createNewComponentElm = (insertionObj, L, H, componentName, key) => {
           // const reusable = false;
           // const componentName = this.getComponentName_(L, H);
           let component;
-          if (!nullComponents.has(componentName)) {
-            nullComponents.set(componentName, (component = document.createElement(componentName)));
+          // const key = `${componentName}${countKeys(H)}`;
+          if (!nullComponents.has(key)) {
+            nullComponents.set(key, (component = document.createElement(componentName)));
             component.className = stamperDomClass;
             // shadowElm.insertAdjacentElement('beforeend', component);
           } else {
-            component = nullComponents.get(componentName);
+            component = nullComponents.get(key);
           }
           component = component.cloneNode(false);
+          component.setAttribute('cp-data-key', key);
 
           return component;
         }
@@ -3576,7 +3601,10 @@
 
           const componentName = this.getComponentName_(L, H);
 
-          const wmList = wmRemoved.get(componentName.toLowerCase());
+          // const key = `${componentName}${countKeys(H)}`;
+          const key = `${componentName}`;
+
+          const wmList = wmRemoved.get(key);
 
           let componentNode = null;
           if (wmList && (componentNode = wmList.firstElementChild)) {
@@ -3606,7 +3634,7 @@
             }
 
           } else {
-            componentNode = createNewComponentElm(item, L, H, componentName);
+            componentNode = createNewComponentElm(item, L, H, componentName, key);
             if (this.telemetry_) this.telemetry_.create++;
           }
           if (isTickerRendering) {
@@ -3685,24 +3713,45 @@
         const removeStampNode_ = (elNode) => {
           const elm = elNode;
           const cnt = insp(elm);
+          let elemCount1 = elm.querySelectorAll('yt-img-shadow').length;
+          if (cnt.requestRemoval) cnt.requestRemoval();
+          try {
+            (elm.parentNode.__domApi || elm.parentNode).removeChild(elm);
+          } catch (e) { }
+          const frag = document.createDocumentFragment();
+          frag.appendChild(elm);
           const componentName = elm.nodeName.toLowerCase();
-          let wmList = wmRemoved.get(componentName);
+          const key = elm.getAttribute('cp-data-key') || componentName;
+          let wmList = wmRemoved.get(key);
           if (!wmList) {
             wmList = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             wmList.setAttributeNS('http://www.w3.org/2000/svg', 'wm-component', componentName);
             pDiv.insertAdjacentHTML('afterend', ttpHTML('<!---->'));
             mockCommentElement(pDiv.nextSibling);
             pDiv.nextSibling.replaceWith(wmList);
-            wmRemoved.set(componentName, wmList);
+            wmList.setAttribute('data-ck', key)
+            wmRemoved.set(key, wmList);
           }
-          wmList.insertAdjacentHTML('beforeend', ttpHTML('<!---->'));
-          mockCommentElement(wmList.lastChild);
-          wmList.lastChild.replaceWith(elm);
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
 
-          sideProcesses.push(reuseFixDataViewModel(elm));
-          sideProcesses.push(reuseFixYtIconRendering(elm));
+          let elemCount2 = elm.querySelectorAll('yt-img-shadow').length;
+
+          const [p1, p2]=[reuseFixDataViewModel(elm), reuseFixYtIconRendering(elm)]
+          sideProcesses.push(p1);
+          sideProcesses.push(p2);
+
+          if(elemCount1 !== elemCount2) return; // cannot reuse
+
+
+          Promise.all([cnt, elm, wmList, p1, p2]).then((ee) => {
+            const [cnt, elm, wmList] = ee;
+            const frag = document.createDocumentFragment();
+            frag.appendChild(elm);
+            wmList.appendChild(frag);
+          });
+
+
         }
 
         // const removeStampNode = async () => {
@@ -3919,7 +3968,7 @@
             }
 
 
-            executeTaskBatch(tasks).then(resolveDM).catch(console.warn);
+            if (tasks.length >= 1) executeTaskBatch(tasks).then(resolveDM).catch(console.warn);
 
           });
         }).catch(console.warn);
