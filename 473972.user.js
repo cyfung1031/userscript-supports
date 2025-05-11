@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.7
+// @version     0.36.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2405,18 +2405,22 @@
   // let __forceRemoveMode__ = false;
   FIX_removeChild && (() => {
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
-      const fragD = document.createDocumentFragment();
       Node.prototype.removeChild062 = Node.prototype.removeChild;
+      let internalByPass = false;
       Node.prototype.removeChild = function (child) {
         try {
           return this.removeChild062(child);
         } catch (e) { }
-        if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && child.parentNode !== fragD && this.contains(child)) { // eg. child = DOM-IF
+        if (internalByPass) return child;
+        if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && this.contains(child)) { // eg. child = DOM-IF
           let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
           if (idx >= 0) {
+            internalByPass = true;
+            const fragD = document.createDocumentFragment(); // cannot reuse
             fragD.appendChild(child);
             this.childNodes[idx] === child && this.childNodes.splice(idx, 1);
             fragD.removeChild062(child);
+            internalByPass = false;
             return child;
           }
         }
