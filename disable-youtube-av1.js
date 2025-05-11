@@ -22,7 +22,7 @@
 // @name:es             Desactivar AV1 en YouTube
 // @description:es      Desactivar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.3
+// @version             2.4.4
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -148,12 +148,12 @@
 
 
 
-    // This is the setting to disable AV1
-    // localStorage['yt-player-av1-pref'] = '-1';
+    // This is the setting to disable AV1 [ 480p (or below) - AV1, above 480p - VP9 ]
+    // localStorage['yt-player-av1-pref'] = '480';
     try {
       Object.defineProperty(localStorage.constructor.prototype, 'yt-player-av1-pref', {
         get() {
-          if (this === localStorage) return '-1';
+          if (this === localStorage) return '480';
           return this.getItem('yt-player-av1-pref');
         },
         set(nv) {
@@ -164,16 +164,16 @@
         configurable: true
       });
     } catch (e) {
-      // localStorage['yt-player-av1-pref'] = '-1';
+      // localStorage['yt-player-av1-pref'] = '480';
     }
 
-    if (localStorage['yt-player-av1-pref'] !== '-1') {
+    if (localStorage['yt-player-av1-pref'] !== '480') {
 
-      console.warn('Disable YouTube AV1', '"yt-player-av1-pref = -1" is not supported in your browser.');
+      console.warn('Disable YouTube AV1 and VP9', '"yt-player-av1-pref = 480" is not supported in your browser.');
       return;
     }
 
-    console.debug("disable-youtube-av1", "AV1 disabled by yt-player-av1-pref = -1");
+    console.debug("disable-youtube-av1-and-vp9", "AV1 disabled by yt-player-av1-pref = 480");
 
 
   }
