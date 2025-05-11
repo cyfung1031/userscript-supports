@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.13
+// @version     0.36.14
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -168,6 +168,8 @@
   const FIX_ICON_RENDER = true;
 
   const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
+
+  const DISABLE_isLowLatencyLiveStream = false; // TBC
 
   /*
 
@@ -547,6 +549,60 @@
     return b
   };
 
+  if (DISABLE_isLowLatencyLiveStream) {
+    const sm = Symbol();
+    const f = () => {
+      try {
+        const videoDetails = ytInitialPlayerResponse.videoDetails;
+        if (videoDetails && videoDetails.isLowLatencyLiveStream) {
+          videoDetails.isLowLatencyLiveStream = false;
+        }
+        if (videoDetails && videoDetails.latencyClass === 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW') {
+          videoDetails.latencyClass = 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL';
+        }
+        if (videoDetails && videoDetails.latencyClass === 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_ULTRA_LOW') {
+          videoDetails.latencyClass = 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL';
+        }
+      } catch (e) { }
+    }
+    Object.defineProperty(Object.prototype, 'isLowLatencyLiveStream', {
+      get() {
+        const v = this[sm];
+        if (typeof v === 'undefined') return v;
+        f();
+        return v;
+      },
+      set(nv) {
+        f();
+        if (nv === true) nv = false;
+        this[sm] = nv;
+      },
+      enumerable: false,
+      configurable: true
+    });
+
+    const sm3 = Symbol();
+    Object.defineProperty(Object.prototype, 'latencyClass', {
+      get() {
+        const v = this[sm3];
+        if (typeof v === 'undefined') return v;
+        f();
+        return v;
+      },
+      set(nv) {
+        f();
+        if (nv === 'ULTRALOW' || nv === 'LOW') {
+          nv = 'NORMAL';
+        } else if (nv === 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW' || nv === 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_ULTRA_LOW') {
+          nv = 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL';
+        }
+        this[sm3] = nv;
+      },
+      enumerable: false,
+      configurable: true
+    });
+
+  }
 
   if (XFlag) {
 
