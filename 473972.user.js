@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.8
+// @version     0.36.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2405,8 +2405,11 @@
   // let __forceRemoveMode__ = false;
   FIX_removeChild && (() => {
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
-      Node.prototype.removeChild062 = Node.prototype.removeChild;
       let internalByPass = false;
+      const fragD = document.createDocumentFragment();
+      fragD.appendChild4201 = fragD.appendChild;
+      fragD.removeChild4201 = fragD.removeChild;
+      Node.prototype.removeChild062 = Node.prototype.removeChild;
       Node.prototype.removeChild = function (child) {
         try {
           return this.removeChild062(child);
@@ -2416,10 +2419,9 @@
           let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
           if (idx >= 0) {
             internalByPass = true;
-            const fragD = document.createDocumentFragment(); // cannot reuse
-            fragD.appendChild(child);
+            fragD.appendChild4201(child);
             this.childNodes[idx] === child && this.childNodes.splice(idx, 1);
-            fragD.removeChild062(child);
+            fragD.removeChild4201(child);
             internalByPass = false;
             return child;
           }
@@ -5520,7 +5522,6 @@
 
     const evaluteUseMicroTaskQueue = (ax_, containerId, hostIs_, producer, hostElement)=>{
 
-
       const ax = ax_;
       const useMicroTaskQueue = ax ? (ax[2] && ax[2]!==ax[0]) : false;
       let useMicroTaskQueue2 = ax && ax[1] && ax[2];
@@ -5530,6 +5531,16 @@
         useMicroTaskQueue2 = false;
       }
       // console.log(1992,containerId, this.hostElement.is)
+
+      // if (hostElement.nodeType !== 1 || !hostElement.is || hostElement.isConnected === false || !document.body.contains(hostElement)){
+      //   console.log(12773, hostElement.nodeType !== 1, !hostElement.is, hostElement.isConnected === false, !document.body.contains(hostElement))
+      //   return false;
+
+      // }
+
+      if (hostElement.isConnected === false) {
+        return false;
+      }
 
       const hostIs = hostIs_;
 
