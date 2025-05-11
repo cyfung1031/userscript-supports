@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.0
+// @version             0.102.1
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3049,15 +3049,19 @@
     //   refreshChildrenYtIcons(elm);
     // }).catch(console.warn);;
   };
-  const onVisibleItemStampNodeRemoval = (elmId) =>{
+  const tickerMessageRemovalMo = new MutationObserver(() => {
+    const elements = document.querySelectorAll('[ticker-message-removed]:nth-child(n + 40)');
+    for (const s of elements) {
+      insp(s).requestRemoval();
+    }
+  });
+  tickerMessageRemovalMo.observe(document, { subtree: true, attributes: true, attributeFilter: ['ticker-message-removed'] });
+  const onVisibleItemStampNodeRemoval = (elmId) => {
     // set the corresponding ticker [ticker-message-removed]
     return Promise.resolve(elmId).then((elmId) => {
       const tickerElm = document.querySelector(`.style-scope.yt-live-chat-ticker-renderer[id="${elmId}"]`);
       if (tickerElm) {
-        tickerElm.setAttribute('ticker-message-removed', '')
-        if (tickerElm.matches('[ticker-message-removed]:nth-child(n + 40)')) {
-          insp(tickerElm).requestRemoval();
-        }
+        tickerElm.setAttribute('ticker-message-removed', '');
       }
     }).catch(console.warn);;
   };
@@ -3801,7 +3805,11 @@
           let elemCount1 = elm.querySelectorAll('yt-img-shadow').length;
 
           const elParent = elm.parentNode;
-          if (cnt.requestRemoval) cnt.requestRemoval();
+          if (elm.__requestRemovalAt003__) {
+            elm.__requestRemovalAt003__ = 0;
+          } else {
+            if (cnt.requestRemoval) cnt.requestRemoval();
+          }
           try {
             (elParent.__domApi || elParent).removeChild(elm);
           } catch (e) { }
@@ -9397,6 +9405,7 @@
               cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
                 
                 const hostElement = this.hostElement;
+                hostElement.__requestRemovalAt003__ = Date.now();
                 if (this.__advancedTicking038__) {
                   try {
                     const overlayBg = hostElement.querySelector('ticker-bg-overlay[id]');
