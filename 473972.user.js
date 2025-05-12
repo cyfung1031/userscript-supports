@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.36.16
+// @version     0.37.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -30,6 +30,9 @@
 
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
+
+  const HOOK_ACTIVE_MODULES = true; // added in 0.37.0
+  const HOOK_ACTIVE_MODULES_fetchUpdatedMetadata = true; // added in 0.37.0 (make likeCount update)
 
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance = 2 | 4;
@@ -171,6 +174,7 @@
 
   const DISABLE_isLowLatencyLiveStream = false; // TBC
 
+  const FIX_FlexibleItemSizing = true;
   
 
   /*
@@ -2856,35 +2860,6 @@
 
     if (FIX_DOM_IFREPEAT_RenderDebouncerChange) {
 
-      const observablePromise = (proc, timeoutPromise) => {
-        let promise = null;
-        return {
-          obtain() {
-            if (!promise) {
-              promise = new Promise(resolve => {
-                let mo = null;
-                const f = () => {
-                  let t = proc();
-                  if (t) {
-                    mo.disconnect();
-                    mo.takeRecords();
-                    mo = null;
-                    resolve(t);
-                  }
-                }
-                mo = new MutationObserver(f);
-                mo.observe(document, { subtree: true, childList: true })
-                f();
-                timeoutPromise && timeoutPromise.then(() => {
-                  resolve(null)
-                });
-              });
-            }
-            return promise
-          }
-        }
-      }
-
 
       let p = 0;
       qp = observablePromise(() => {
@@ -5052,14 +5027,222 @@
 
   })();
 
+  if (FIX_FlexibleItemSizing) { // for youtube flow chat
 
-  let marcoPr = new PromiseExternal();
-  const trackMarcoCm = document.createComment('1');
-  const trackMarcoCmObs = new MutationObserver(() => {
-    marcoPr.resolve();
-    marcoPr = new PromiseExternal();
-  });
-  trackMarcoCmObs.observe(trackMarcoCm, { characterData: true });
+    const flexibleItemListMo = new MutationObserver((mutations) => {
+      // cnt.onStamperFinished
+      // cnt.maybeUpdateFlexibleMenu
+      const set = new Set();
+      for (const mutation of mutations) {
+        set.add(mutation.target);
+      }
+      for (const s of set) {
+        const cnt = insp(s);
+        if (typeof cnt.maybeUpdateFlexibleMenuImpl === 'function') {
+          cnt.maybeUpdateFlexibleMenuImpl();
+        } else if (typeof cnt.maybeUpdateFlexibleMenu === 'function') {
+          cnt.maybeUpdateFlexibleMenu();
+        } else if (typeof cnt.onStamperFinished === 'function') {
+          cnt.onStamperFinished();
+        }
+      }
+    });
+
+    let checkConfig = true;
+    const flexibleItemDocMo = new MutationObserver(() => {
+      for (const s of document.querySelectorAll('ytd-menu-renderer[has-flexible-items]:not([b289ad])')) {
+        s.setAttribute('b289ad', '');
+        flexibleItemListMo.observe(s, { subtree: false, childList: true });
+        s.appendChild(document.createComment('.')).remove();
+      }
+      if (checkConfig) {
+        const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+        if (config && config.EXPERIMENT_FLAGS) {
+          checkConfig = false;
+          config.EXPERIMENT_FLAGS.web_fix_missing_action_buttons = true;
+        }
+      }
+    });
+    flexibleItemDocMo.observe(document, { subtree: true, childList: true });
+
+  }
+
+
+
+
+  const observablePromise = (proc, timeoutPromise) => {
+    let promise = null;
+    return {
+      obtain() {
+        if (!promise) {
+          promise = new Promise(resolve => {
+            let mo = null;
+            const f = () => {
+              let t = proc();
+              if (t) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+                resolve(t);
+              }
+            }
+            mo = new MutationObserver(f);
+            mo.observe(document, { subtree: true, childList: true })
+            f();
+            timeoutPromise && timeoutPromise.then(() => {
+              resolve(null)
+            });
+          });
+        }
+        return promise
+      }
+    }
+  }
+
+
+  if (HOOK_ACTIVE_MODULES_fetchUpdatedMetadata) {
+    observablePromise(() => {
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      if (config && config.EXPERIMENT_FLAGS) {
+        config.EXPERIMENT_FLAGS.web_watch_get_updated_metadata_manager = true;
+        return true;
+      }
+    }).obtain();
+  }
+
+  if (HOOK_ACTIVE_MODULES) {
+
+    let watchController;
+    const watchControllerObservable = observablePromise(() => {
+      const watchFlexy = document.querySelector('ytd-watch-flexy');
+      if (!watchFlexy) return;
+      return insp(watchFlexy).watchController;
+    }).obtain();
+    (async () => {
+      watchController = await watchControllerObservable;
+
+      const activeModules = watchController.activeModules;
+      if (!activeModules) return;
+
+      for (const activeModule of activeModules) {
+        if (activeModule && typeof activeModule.fetchUpdatedMetadata === 'function' && activeModule.fetchUpdatedMetadata.length === 2) {
+          HOOK_ACTIVE_MODULES_fetchUpdatedMetadata && hookActiveModuleFetchUpdatedMetadata(activeModule);
+        }
+      }
+
+    })();
+
+    let yieldResultWrappingByPass = false;
+    let asyncProto = null;
+    const yieldResultWrapping = (f) => {
+      if (yieldResultWrappingByPass) return [f(), null];
+      yieldResultWrappingByPass = true;
+      let D = null;
+      let promise, e_;
+      if (asyncProto) {
+        Object.defineProperty(asyncProto, 'yieldResult', {
+          get() {
+            return undefined;
+          },
+          set(nv) {
+            delete asyncProto.yieldResult;
+            this.yieldResult = nv;
+            D = this;
+            // console.log(122, this);
+            return true;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        try {
+          promise = f();
+        } catch (e) { e_ = e }
+        delete asyncProto.yieldResult;
+        yieldResultWrappingByPass = false;
+      } else {
+        Object.defineProperty(Object.prototype, 'yieldResult', {
+          get() {
+            return undefined;
+          },
+          set(nv) {
+            delete Object.prototype.yieldResult;
+            this.yieldResult = nv;
+            D = this;
+            // console.log(122, this);
+            return true;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        try {
+          promise = f();
+        } catch (e) { e_ = e }
+        delete Object.prototype.yieldResult;
+        yieldResultWrappingByPass = false;
+        if (D) {
+          asyncProto = Reflect.getPrototypeOf(D);
+        }
+      }
+      if (e_) throw e_;
+      return [promise, D];
+    }
+
+    const hookActiveModuleFetchUpdatedMetadata = (activeModule) => {
+
+      const aProto = Reflect.getPrototypeOf(activeModule);
+
+      if (!aProto || !aProto.fetchUpdatedMetadata || aProto.fetchUpdatedMetadata517) return;
+
+      // console.log(12885)
+      aProto.fetchUpdatedMetadata517 = aProto.fetchUpdatedMetadata;
+      // let qxt=false;
+      aProto.fetchUpdatedMetadata = function (t, P) {
+
+        // if (!qxt) {
+        //   qxt = true;
+        //   var y = watchController.subscribe("WATCH_NEXT_RESPONSE_UPDATED", function (...args) {
+        //     console.log(199001,...args)
+        //   });
+        //   this.addOnDisposeCallback(function (...args) {
+
+        //     console.log(199002,...args)
+        //     watchController.unsubscribeByKey(y)
+        //     qxt = false;
+        //   });
+        // }
+        const [promise, D] = yieldResultWrapping(() => this.fetchUpdatedMetadata517(t, P));
+        if (D) promise.then(() => {
+          const yieldResult = D.yieldResult;
+          if (yieldResult) {
+            const mutations = (((yieldResult || 0).frameworkUpdates || 0).entityBatchUpdate || 0).mutations;
+
+            if (mutations && mutations.length >= 1) {
+              let likeCountEntity = null;
+              for (const mutation of mutations) {
+                if (typeof (mutation.entityKey || 0) === 'string' && (likeCountEntity = (mutation.payload || 0).likeCountEntity)) {
+                  break;
+                }
+              }
+              if (likeCountEntity) {
+                const model = insp(document.querySelector('segmented-like-dislike-button-view-model'));
+                if (model && typeof model.update === 'function' && model.update.length === 0) {
+                  const data = ((model || 0).props || 0).data;
+                  if (data) {
+                    data.likeCountEntity = likeCountEntity;
+                    if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
+                    model.update();
+                  }
+                }
+              }
+            }
+          }
+        }).catch(console.warn);
+        return promise;
+      };
+
+    }
+
+  }
 
 
   // ----------------------------
@@ -9468,34 +9651,6 @@
 
     });
 
-    const observablePromise = (proc, timeoutPromise) => {
-      let promise = null;
-      return {
-        obtain() {
-          if (!promise) {
-            promise = new Promise(resolve => {
-              let mo = null;
-              const f = () => {
-                let t = proc();
-                if (t) {
-                  mo.disconnect();
-                  mo.takeRecords();
-                  mo = null;
-                  resolve(t);
-                }
-              }
-              mo = new MutationObserver(f);
-              mo.observe(document, { subtree: true, childList: true })
-              f();
-              timeoutPromise && timeoutPromise.then(() => {
-                resolve(null)
-              });
-            });
-          }
-          return promise
-        }
-      }
-    }
 
     // let _yt_player_promise = null;
     /*
