@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.2
+// @version     0.37.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5046,7 +5046,9 @@
       // cnt.maybeUpdateFlexibleMenu
       const set = new Set();
       for (const mutation of mutations) {
-        set.add(mutation.target);
+        if (mutation && ((mutation.addedNodes || 0).length > 0 || (mutation.removedNodes || 0).length > 0)) {
+          set.add(mutation.target);
+        }
       }
       for (const s of set) {
         const cnt = insp(s);
@@ -5058,6 +5060,7 @@
           cnt.onStamperFinished();
         }
       }
+      set.clear();
     });
 
     let checkConfig = true;
