@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.3
+// @version             0.102.4
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2169,7 +2169,7 @@
 
   // ================== FOR USE_ADVANCED_TICKING ================
 
-  const timeOriginDT = +new Date(performance.timeOrigin);
+  const timeOriginDT = +new Date(Math.floor(performance.timeOrigin)) - 1000;
   let startResistanceUpdaterStarted = false;
 
   const RESISTANCE_UPDATE_OPT = 3;
@@ -5897,7 +5897,9 @@
         return Math.round((a + b) / (1 + (a * b) / k2));
       }
 
-      const preprocessChatLiveActions = (arr) =>{
+      const preprocessChatLiveActions = (arr, ct_) =>{
+
+        if (!ct_) ct_ = Date.now();
 
         if (!fir) {
 
@@ -5920,7 +5922,7 @@
 
 
 
-        const ct = Date.now();
+        const ct = ct_;
 
         let groups_ = null;
 
@@ -8748,7 +8750,12 @@
 
           if (__LCRInjection__ && cntData && duration > 0 && !('__progressAt__' in cntData)) {
             ct = Date.now();
-            cntData.__liveTimestamp__ = (cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT / 1000;
+
+            if (!cntData.__timestampActionRequest__) {
+              console.log(' 5688001 ');
+              // console.log(`(5688001) ${new Error().stack}`);
+            }
+            cntData.__liveTimestamp__ = (((cntData.__timestampActionRequest__ || ct) - timeOriginDT) / 1000) || Number.MIN_VALUE;
             timestampUnderLiveMode = true;
           } else if (__LCRInjection__ && cntData && duration > 0 && cntData.__progressAt__ > 0) {
             timestampUnderLiveMode = false;
@@ -10918,10 +10925,12 @@
             cProto.preprocessActions82_ = cProto.preprocessActions_;
             cProto.preprocessActions_ = function (arr) {
 
+              const ct_ = Date.now();
+
               arr = this.preprocessActions82_(arr);
 
               try {
-                preprocessChatLiveActions(arr);
+                preprocessChatLiveActions(arr, ct_);
               } catch (e) {
                 console.warn(e);
               }
