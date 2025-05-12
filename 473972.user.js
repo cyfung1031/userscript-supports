@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.3
+// @version     0.37.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5161,41 +5161,86 @@
         itProto.render37 = itProto.render;
         itProto.render = function (t) {
           // (this.xCounter = (this.xCounter & 1073741823)+1)
+          let c33 = '';
+          let r33 = null;
+          let kc = 0;
 
-          if (this && this.hookCounter >= 1 && !this.__unmounted && this.el) {
+          if (this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
+            const el = this.el;
+            const ct = Date.now();
+            const lastFireTime = (el.__lastFireTime491__ || 0);
 
-            if (t && typeof t.numberText === 'string' && Number.isFinite(t.numberValue)) {
+            const fireTimeDiff = lastFireTime > 0 ? ct - lastFireTime : 1e9;
 
-              if (this.__lastNumberValue353__ === t.numberValue && t.shouldAnimate === true) {
-                t.shouldAnimate = false;
+            if (fireTimeDiff < 80 && this.__previousRender61__) {
+              return this.__previousRender61__;
+            }
+
+            const caseInt =
+              (t && typeof t.numberText === 'string' && Number.isFinite(t.numberValue)) ? 1 :
+                (t && typeof t.character === 'string') ? (
+                  (typeof t.previousCharacter === 'string') ? 6 : 2
+                ) : 0;
+
+            if (caseInt === 6 && t.previousCharacter && t.character && this.__previousRender61__ && fireTimeDiff < 9400) {
+              if (this[`__lastCharRender62__${t.previousCharacter}>${t.character}`] === this.__previousRender61__) {
+                return this.__previousRender61__;
               }
-              this.__lastNumberValue353__ = t.numberValue;
-
-              if (this.__lastNumberText353__ === t.numberText && t.shouldAnimate === true) {
-                t.shouldAnimate = false;
+            }
+            if (caseInt === 1 && t.numberText.length > 0 && this.__previousRender61__ && fireTimeDiff < 9400) {
+              if (this[`__lastCharRender65__${t.numberValue}>${t.numberText}`] === this.__previousRender61__) {
+                return this.__previousRender61__;
               }
-              this.__lastNumberText353__ = t.numberText;
+            }
 
-            } else if (t && typeof t.character === 'string') {
+            if (caseInt & 2) {
 
-              if (typeof t.previousCharacter === 'string') {
+              if (caseInt & 4) {
+
+                if (el.__lastCharacter353__ && el.__lastCharacter353__.length === 1 && t.character.length === 1 && t.previousCharacter.length === 1) {
+                  if (t.character !== t.previousCharacter && t.character === el.__lastCharacter353__) {
+                    t.previousCharacter = t.character;
+                    kc = 1;
+                  }
+                }
+
                 if (t && t.character && t.previousCharacter && t.shouldAnimate === true && t.character === t.previousCharacter) {
                   t.shouldAnimate = false;
                 }
               }
 
-              // if (this.__lastCharacter353__ === t.character && t.shouldAnimate === true) {
-              //   t.shouldAnimate = false;
-              // }
 
-              // this.__lastCharacter353__ = t.character;
+              c33 = `__lastCharRender62__${t.previousCharacter}>${t.character}`;
+
+              el.__lastCharacter353__ = t.character;
+
+            } else if (caseInt === 1) {
+
+              if (el.__lastNumberValue353__ === t.numberValue && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              el.__lastNumberValue353__ = t.numberValue;
+
+              if (el.__lastNumberText353__ === t.numberText && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              el.__lastNumberText353__ = t.numberText;
+
+              c33 = `__lastCharRender65__${t.numberValue}>${t.numberText}`;
 
             }
+
+            // console.log(138002, this, t, caseInt, kc, fireTimeDiff);
+
+            el.__lastFireTime491__ = ct;
           }
 
-          // console.log(21399, t.character, t.previousCharacter, (t.xCounter = (t.xCounter & 1073741823)+1), t, (this.xCounter = (this.xCounter & 1073741823)+1) )
-          // console.log(12883, this, t);
-          return this.render37(t)
+          // // console.log(21399, t.character, t.previousCharacter, (t.xCounter = (t.xCounter & 1073741823)+1), t, (this.xCounter = (this.xCounter & 1073741823)+1) )
+          // // console.log(12883, this, t);
+          const r = r33 || this.render37(t);
+          this.__previousRender61__ = r;
+          if (c33) this[c33] = r;
+          return r
         }
 
       }
@@ -5503,10 +5548,30 @@
                   const data = ((model || 0).props || 0).data;
                   if (data) {
                     if (typeof data.likeCountEntity !== 'object') data.likeCountEntity = {};
+                    // console.log(12838, {...data.likeCountEntity}, {...likeCountEntity})
+                    // const shouldModelUpdate = (data.likeCountEntity.key !== likeCountEntity.key); // to be reviewed
+                    const shouldModelUpdate = true;
                     Object.assign(data.likeCountEntity, likeCountEntity);
                     // data.likeCountEntity = likeCountEntity;
-                    if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
-                    model.update();
+                    // if (shouldModelupdate) model.update();
+                    // else {
+                    //   if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
+                    // }
+
+                    if (shouldModelUpdate) {
+                      if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
+                        // console.log('kk1a enqueueUpdate')
+                        model.enqueueUpdate();
+                        // console.log('kk1b enqueueUpdate')
+                      } else if (typeof model.update === 'function' && model.update.length === 0) {
+                        // console.log('kk2a update')
+                        model.update();
+                        // console.log('kk2b update')
+                      } else {
+                        console.warn('[yt-js-engine-tamer] cannot do model update.')
+                      }
+                    }
+
                   }
                 }
               }
