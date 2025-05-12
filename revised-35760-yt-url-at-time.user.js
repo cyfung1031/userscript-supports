@@ -5,7 +5,7 @@
 // @grant       none
 // @description On youtube, use alt+` to set the url to the current timestamp, for easy bookmarking
 // @include     https://www.youtube.com/*
-// @version     0.2.7.001
+// @version     0.2.7.002
 // @copyright   2017, MechaLynx (https://github.com/MechaLynx)
 // @run-at document-idle
 // @author      MechaLynx
@@ -68,7 +68,7 @@ var wait_for_page = window.setInterval(function () {
     // Add CSS for time indicator span
     let time_style = document.createElement('style');
     time_style.setAttribute('name', "yt-url-at-time");
-    time_style.innerHTML = `
+    time_style.textContent = `
       .url-at-time-element-hover:hover{
         cursor: pointer;
       }
