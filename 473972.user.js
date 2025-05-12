@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.0
+// @version     0.37.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2644,12 +2644,23 @@
             }
           }
 
-          console.warn('[yt-js-engine-tamer] Node is not removed from parent', { 
-            parent: this, child: child, 
-            isParent: child.parentNode === this, 
-            isParentParent: (child.parentNode || 0).parentNode === this, 
+          if (child.parentNode !== this && child.parentNode && child.parentNode === child.__shady_parentNode && child.parentNode.nodeType === 11) {
+            if (child.isConnected === false && (this.compareDocumentPosition(child) & (1 | 8 | 16)) === 1) {
+              // just ignore   (!e.root && a.localName !== "slot" || f === a.__shady_native_parentNode) && f.__shady_native_removeChild(a));
+              return child;
+            }
+          }
+
+          console.warn('[yt-js-engine-tamer] Node is not removed from parent', {
+            parent: this, child: child,
+            isParent: child.parentNode === this,
+            isParentParent: (child.parentNode || 0).parentNode === this,
             parentNode: child.parentNode,
-            isAncestor: this instanceof Node && child instanceof Node && this.contains(child) })
+            shadyParent: child.__shady_parentNode,
+            isShadyParent: child.__shady_parentNode === this,
+            isAncestor: this instanceof Node && child instanceof Node && this.contains(child)
+          });
+
         }
         return child;
       }
@@ -5124,11 +5135,20 @@
       const activeModules = watchController.activeModules;
       if (!activeModules) return;
 
-      for (const activeModule of activeModules) {
+      const checkFn = (activeModule) => {
         if (activeModule && typeof activeModule.fetchUpdatedMetadata === 'function' && activeModule.fetchUpdatedMetadata.length === 2) {
           HOOK_ACTIVE_MODULES_fetchUpdatedMetadata && hookActiveModuleFetchUpdatedMetadata(activeModule);
         }
       }
+      if (!activeModules.push8792 && activeModules.push) {
+        activeModules.push8792 = activeModules.push;
+        activeModules.push = function (a, ...args) {
+          checkFn(a);
+          let r = args.length >= 1 ? this.push8792(a, ...args) : this.push8792(a);
+          return r;
+        }
+      }
+      activeModules.forEach(checkFn);
 
     })();
 
@@ -5192,6 +5212,8 @@
       const aProto = Reflect.getPrototypeOf(activeModule);
 
       if (!aProto || !aProto.fetchUpdatedMetadata || aProto.fetchUpdatedMetadata517) return;
+
+      console.log('[yt-js-engine-tamer] hookActiveModuleFetchUpdatedMetadata');
 
       // console.log(12885)
       aProto.fetchUpdatedMetadata517 = aProto.fetchUpdatedMetadata;
