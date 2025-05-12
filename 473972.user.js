@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.1
+// @version     0.37.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -176,6 +176,7 @@
 
   const FIX_FlexibleItemSizing = true;
   
+  const FIX_ROLLING_NUMBER_UPDATE = true;
 
   /*
 
@@ -5121,6 +5122,254 @@
     }).obtain();
   }
 
+  if (FIX_ROLLING_NUMBER_UPDATE) {
+
+
+    observablePromise(() => {
+      if (typeof customElements === 'undefined') return;
+      const ce = customElements.get('yt-animated-rolling-number');
+      if (!ce) return;
+      return ce.prototype;
+    }).obtain().then(async (cProto) => {
+
+      const p = document.createElement('yt-animated-rolling-number');
+
+      const frag = document.createDocumentFragment();
+      frag.appendChild(p);
+      const pDoc = document.implementation.createHTMLDocument();
+      pDoc.body.appendChild(frag);
+
+      let p88 = p;
+
+      const __instance = await observablePromise(() => {
+        const __instance = (p88 || 0).__instance;
+        if (__instance && __instance.render) return __instance;
+      }).obtain();
+      p88 = null;
+
+      const itProto = Reflect.getPrototypeOf(__instance);
+
+      try {
+        p.remove();
+      } catch (e) { }
+
+      if (itProto.render && !itProto.render37 && itProto.render.length === 1) {
+
+        itProto.render37 = itProto.render;
+        itProto.render = function (t) {
+          // (this.xCounter = (this.xCounter & 1073741823)+1)
+
+          if (this && this.hookCounter >= 1 && !this.__unmounted && this.el) {
+
+            if (t && typeof t.numberText === 'string' && Number.isFinite(t.numberValue)) {
+
+              if (this.__lastNumberValue353__ === t.numberValue && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              this.__lastNumberValue353__ = t.numberValue;
+
+              if (this.__lastNumberText353__ === t.numberText && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              this.__lastNumberText353__ = t.numberText;
+
+            } else if (t && typeof t.character === 'string') {
+
+              if (typeof t.previousCharacter === 'string') {
+                if (t && t.character && t.previousCharacter && t.shouldAnimate === true && t.character === t.previousCharacter) {
+                  t.shouldAnimate = false;
+                }
+              }
+
+              // if (this.__lastCharacter353__ === t.character && t.shouldAnimate === true) {
+              //   t.shouldAnimate = false;
+              // }
+
+              // this.__lastCharacter353__ = t.character;
+
+            }
+          }
+
+          // console.log(21399, t.character, t.previousCharacter, (t.xCounter = (t.xCounter & 1073741823)+1), t, (this.xCounter = (this.xCounter & 1073741823)+1) )
+          // console.log(12883, this, t);
+          return this.render37(t)
+        }
+
+      }
+
+
+      /*
+
+      let jArr = null;
+      Array.prototype.push781 =  null;
+      Array.prototype.push782 = function(...args){
+        if(args.length === 1 && typeof (args[0]||0) ==='object' && 'rollUp' in args[0] && Array.prototype.push781){
+
+          jArr= this;
+          // debugger;
+          const f = Array.prototype.push = Array.prototype.push781;
+          Array.prototype.push781 = null;
+          jArr.push381 = jArr.push;
+          jArr.push = Array.prototype.push783;
+          return Array.prototype.push783.call(this, ...args);
+
+        }
+        return Array.prototype.push781.call(this, ...args);
+      }
+      Array.prototype.push783 = function(...args){
+        if(args.length === 1){
+          const o = args[0];
+          if(o.character === o.previousCharacter){
+            o.rollUp = false;
+            o.shouldAnimate = false;
+          }
+          console.log(12399, o)
+        }
+        return this.push381(...args);
+      }
+
+      console.log(123001)
+
+      cProto.update192 = cProto.update;
+      
+
+      cProto.update = function () {
+        Object.assign192 = Object.assign;
+        let targetObject = null;
+        let kThis = this;
+        Object.assign = function (...args) {
+          let r = Object.assign192(...args);;
+          if (args[1] === kThis.props) {
+            targetObject = args[0];
+            fixObject();
+          }
+          return r;
+        }
+        const fixObject = () => {
+
+          console.log(1929, fixObject, this)
+
+          const t = targetObject.forceRollUp;
+          targetObject.forceRollUp919 = t;
+          Object.defineProperty(targetObject, 'forceRollUp', {
+            get() {
+
+
+              if (Array.prototype.push782 !== Array.prototype.push && !Array.prototype.push781) {
+
+                Array.prototype.push781 = Array.prototype.push;
+                Array.prototype.push = Array.prototype.push782;
+                Promise.resolve().then(() => {
+                  if (Array.prototype.push782 === Array.prototype.push && Array.prototype.push781) {
+
+                    Array.prototype.push = Array.prototype.push781;
+
+                    Array.prototype.push781 = null;;
+                  }
+                })
+              }
+              console.log(1233001);
+              // debugger;
+              return this.forceRollUp919
+            },
+            set(nv) {
+              this.forceRollUp919 = nv;
+              console.log(1233002, nv);
+              return true;
+            }
+          });
+        }
+        console.log(1949, this)
+        let r, e_;
+        try {
+          r = this.update192();
+        } catch (e) { e_ = e }
+        Object.assign = Object.assign192;
+        kThis = null;
+        if (e_) throw e_;
+        return r;
+      };
+
+
+
+      cProto.enqueueUpdate192 = cProto.enqueueUpdate;
+
+      cProto.enqueueUpdate = function () {
+        console.log(1948, this);
+        return this.enqueueUpdate192();
+      }
+
+
+      */
+
+
+
+    });
+
+
+    /*
+
+    observablePromise(() => {
+      if(typeof customElements==='undefined')return;
+      const ce = customElements.get('segmented-like-dislike-button-view-model');
+      if(!ce) return;
+      return ce.prototype;
+    }).obtain().then((cProto) => {
+
+
+      cProto.update192 = cProto.update;
+      cProto.update = function () {
+
+        const rolNumNode = this.querySelector('yt-animated-rolling-number');
+        if(rolNumNode && rolNumNode.__instance && rolNumNode.__instance.props){
+          rolNumNode.props = rolNumNode.__instance.props;
+
+          if(!rolNumNode.props.forceRollUp848){
+            rolNumNode.props.forceRollUp848 = true;
+            rolNumNode.props.forceRollUp833= rolNumNode.props.forceRollUp;
+            Object.defineProperty(rolNumNode.props, 'forceRollUp', {
+              get(){
+                debugger;
+                return this.forceRollUp833;
+              },
+              set(nv){
+                this.forceRollUp833 = nv;
+                return true;
+              },
+              enumerable: false,
+              configurable: true
+            });
+
+            Object.defineProperty(rolNumNode.props, 'numberValue', {
+              get(){
+                debugger;
+                return this.numberValue8833;
+              },
+              set(nv){
+                debugger;
+                this.numberValue8833 = nv;
+                return true;
+              },
+              enumerable: false,
+              configurable: true
+            });
+
+          }
+          // rolNumNode.update();
+          return;
+        }
+
+        return this.update192();
+      };
+
+
+
+
+    });
+    
+    */
+  }
+
   if (HOOK_ACTIVE_MODULES) {
 
     let watchController;
@@ -5250,7 +5499,9 @@
                 if (model && typeof model.update === 'function' && model.update.length === 0) {
                   const data = ((model || 0).props || 0).data;
                   if (data) {
-                    data.likeCountEntity = likeCountEntity;
+                    if (typeof data.likeCountEntity !== 'object') data.likeCountEntity = {};
+                    Object.assign(data.likeCountEntity, likeCountEntity);
+                    // data.likeCountEntity = likeCountEntity;
                     if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
                     model.update();
                   }
@@ -5266,6 +5517,82 @@
 
   }
 
+  /*
+  let cid = 0;
+
+  document.addEventListener('transitionrun', function(evt){
+
+    if(!evt || !evt.isTrusted || evt.propertyName !== 'margin-top' || !evt.target) return;
+
+    if (evt.target.nodeName !== 'ANIMATED-ROLLING-CHARACTER') return;
+
+
+
+
+    const target = evt.target;
+    let finish = false;
+    if (target.getAttribute('style-old126') === target.getAttribute('style')) finish = true;
+    else target.setAttribute('style-old126', target.getAttribute('style'));
+
+    target.setAttribute('should-finish', finish ? 'true' : 'false');
+
+
+    const animations = (document.timeline || 0)._animations;
+    if (!animations || !animations.length) return;
+
+    let aa = [...animations].filter(e => e.effect.target.hasAttribute('a85j2'));
+    if (!aa.length) return;
+
+    for (const a of aa) {
+
+      const s = a.effect.target;
+      if (s !== evt.target) continue;
+      if (a.eut33 && Date.now() - a.eut33 < 600) continue;
+      a.eut33 = Date.now();
+
+      if (finish) a.finish();
+
+
+    }
+
+    // console.log(1848);
+  }, true);
+  */
+
+
+  /*
+  let rnf33 = 0;
+
+  const rollingNumberFindMo = new MutationObserver(()=>{
+    for(const s of document.querySelectorAll('animated-rolling-character[style]:not([a85j2])')){
+
+      if(rnf33===0) {
+        rnf33= 1;
+
+
+        if (!document.getElementById('rnf33_script')) {
+          const style = document.createElement('style');
+          style.id = 'rnf33_script';
+          style.textContent = `
+            .rolling-no-move{
+              transition-duration: 0.0001s !important;
+              animation-duration: 0.0001s !important;
+            }
+          `;
+          (document.head || document.documentElement).appendChild(style);
+        }
+
+      }
+
+      s.setAttribute('a85j2','');
+      s.classList.add('rolling-no-move');
+      s.setAttribute('style-old126', s.getAttribute('style'));
+      
+    }
+
+  });
+  rollingNumberFindMo.observe(document, {subtree: true, childList: true})
+  */
 
   // ----------------------------
 
