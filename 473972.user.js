@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.4
+// @version     0.37.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2650,6 +2650,11 @@
               // just ignore   (!e.root && a.localName !== "slot" || f === a.__shady_native_parentNode) && f.__shady_native_removeChild(a));
               return child;
             }
+          }
+
+          if (child && child.is === 'tp-yt-paper-tooltip' && !child.parentNode && !child.__shady_parentNode) {
+            // skip
+            return child;
           }
 
           console.warn('[yt-js-engine-tamer] Node is not removed from parent', {
