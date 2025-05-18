@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.4
+// @version             0.102.5
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -68,6 +68,7 @@
   const ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING = true;     // TRUE to boost chat messages rendering (DONT CHANGE)
   const ENABLE_TICKERS_BOOSTED_STAMPING = true;           // TRUE to boost chat messages rendering (DONT CHANGE)
   const DISABLE_DYNAMIC_TICKER_WIDTH = true;              // We use the opacity change instead
+  const FIX_REMOVE_TICKER_ITEM_BY_ID = true;              // TRUE by default
 
   /// -------------------------------------------------------------------------
 
@@ -3156,27 +3157,6 @@
       return null;
     }
   };
-
-  let xoIcjPr = null;
-  const xoIcjId = `xoIcj${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-  const xoIcjPost = window.postMessage.bind(window, xoIcjId);
-  window.addEventListener('message', (evt) => {
-    if ((evt || 0).data === xoIcjId) {
-      const t = xoIcjPr;
-      if (t !== null) {
-        xoIcjPr = null;
-        t.resolve();
-      }
-    }
-  });
-  const timelineResolve = async () => {
-    let t = xoIcjPr;
-    if (t === null) {
-      t = xoIcjPr = new PromiseExternal();
-      xoIcjPost();
-    }
-    await t.then();
-  }
 
   cleanContext(win).then(__CONTEXT__ => {
     if (!__CONTEXT__) return null;
@@ -8364,6 +8344,45 @@
 
       // const wmList = new Set;
 
+      true && (new MutationObserver((mutations) => {
+
+        const s = new Set();
+        for (const mutation of mutations) {
+          if (mutation.type === 'attributes') {
+            s.add(mutation.target);
+          }
+        }
+        for (const target of s) {
+          const p = target && target.isConnected === true ? target.getAttribute('q92wb') : '';
+          if (p === '1') {
+            target.setAttribute('q92wb', '2');
+            const cnt = insp(target);
+            const dataId = ((cnt || 0).data || 0).id;
+            if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
+              target.id = dataId;
+              cnt.requestRemoval49();
+              target.setAttribute('q92wb', '3');
+            }
+          } else if (p === '3') {
+            target.setAttribute('q92wb', '4');
+            const cnt = insp(target);
+            const dataId = ((cnt || 0).data || 0).id;
+            if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
+              target.id = dataId;
+              const parentComponent = target.closest('yt-live-chat-ticker-renderer') || cnt.parentComponent;
+              const parentCnt = insp(parentComponent);
+              if(parentComponent && parentCnt && parentCnt.removeTickerItemById){
+                parentCnt.removeTickerItemById(dataId);
+                target.setAttribute('q92wb', '5');
+              }
+            }
+          }
+        }
+        s.clear();
+
+      })).observe(document, { attributes: true, attributeFilter: ['q92wb'], subtree: true });
+      
+
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
 
         mightFirstCheckOnYtInit();
@@ -8891,61 +8910,39 @@
 
 
 
-        const timeFn748 = async (cnt) => {
+        const timeFn749 = (cnt) => {
+          cnt = kRef(cnt);
+          if (!cnt) return;
+          cnt.__startCountdownAdv477__ = Date.now();
 
-
-          if (cnt.data) {
-            const data = cnt.data;
-            cnt[`_pr7_${data.id}`] = new PromiseExternal();
-            cnt[`_pr9_${data.id}`] = new PromiseExternal();
-          } else {
-            cnt[`_pr7_${data.id}`] = null;
-            cnt[`_pr9_${data.id}`] = null;
-          }
-
-
-          if (cnt && cnt.data) {
-            const data = cnt.data;
-            const pr = cnt[`_pr7_${data.id}`]
-            const pr9 = cnt[`_pr9_${data.id}`]
-            if (pr) await pr;
-            if (cnt[`_pr7_${data.id}`] === pr) cnt[`_pr7_${data.id}`] = null;
-            const parentComponent = cnt.parentComponent;
-            if (parentComponent) {
-              const pr = insp(parentComponent).ec389pr;
-              if (pr) await pr;
-            }
-            pr9.resolve();
-          }
-
-          if(
-            cnt 
-            && (cnt.hostElement && cnt.isAttached && cnt.hostElement.isConnected ) 
+          if (
+            cnt
+            && (cnt.hostElement && cnt.isAttached && cnt.hostElement.isConnected)
             && cnt.parentComponent // startCountdown is triggered by dataChanged; // not yet attached to the actual dom tree
             && cnt.__ticker_attachmentId__
-          ){
-  
-            Promise.resolve(cnt).then(u37fn);
+          ) {
 
-          }
-
-
-
-
-          
-          if (cnt.data) {
             const data = cnt.data;
-            if (cnt.hostElement && cnt.isAttached, cnt.hostElement?.isConnected && cnt.parentComponent) {
-              const pr = cnt[`_pr7_${data.id}`];
-              if (pr) {
-                cnt[`_pr7_${data.id}`] = null;
-                pr.resolve();
-              }
-            }
-          }
-          cnt.pz483 = ((cnt.pz483 || 0) & 1073741823) + 1;
+            const dataId = data ? ((cnt || 0).data || 0).id : null;
+            const elemId = ((cnt || 0).hostElement || 0).id;
 
-        };
+            if (dataId && dataId === elemId) {
+
+              const attachId = cnt.__ticker_attachmentId__;
+              const uid = `${attachId}!${dataId}`;
+
+              if (data.__wsi6c__ !== uid) {
+                data.__wsi6c__ = uid;
+                Promise.resolve(cnt).then(u37fn);
+                return true;
+              }
+
+            }
+
+          }
+
+          return false;
+        }
 
         let tagI = 0;
         for (const tag of tagsItemRenderer) { // ##tag##
@@ -9228,40 +9225,21 @@
             cProto.__isTickerItem58__ = 1;
             cProto.attached747 = cProto.attached;
             cProto.attached = function () {
-              Promise.resolve().then(()=>{
-                if(this.hostElement && this.isAttached && this.hostElement.isConnected && this.parentComponent){
-                  const data = this.data;
-                  if(data){
-                    const pr = this[`_pr7_${data.id}`]
-                    if(pr){
-                      this[`_pr7_${data.id}`] = null;
-                      pr.resolve();
-                    } 
-                  }
-
+              const hostElement = (this || 0).hostElement;
+              if (hostElement && hostElement.hasAttribute('q92wb')) hostElement.removeAttribute('q92wb');
+              if (hostElement && hostElement.__requestRemovalAt003__) hostElement.__requestRemovalAt003__ = 0;
+              Promise.resolve().then(() => {
+                if (this.hostElement && this.isAttached && this.hostElement.isConnected && this.parentComponent) {
+                  if (this.__startCountdownAdv477__) Promise.resolve(this).then(timeFn749);
                 }
               }).catch(console.warn);
               return this.attached747();
             };
             
-            cProto.setContainerWidth371 = cProto.setContainerWidth;
-            cProto.setContainerWidthPr9 = function(){
-              if (this.pz485 !== this.pz483) {
-                this.pz485 = this.pz483;
-                const cnt = this;
-                if (cnt && cnt.data) {
-                  const data = cnt.data;
-                  const pr9 = cnt[`_pr9_${data.id}`]
-                  if (pr9) {
-                    return pr9;
-                  }
-                }
-              }
-            }
             cProto.startCountdown = dProto.startCountdownAdv || (dProto.startCountdownAdv = function (a, b) {
 
 
-              timeFn748(kRef(this));
+              timeFn749(this);
 
              
 
@@ -9404,25 +9382,10 @@
 
 
             if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
-              const removalList = [];
-              let removalRes = false;
-              const removalFn = () => {
-                if (removalList.length === 0) return;
-                for (const cnt of removalList) {
-                  let r;
-                  try {
-                    r = cnt?.requestRemoval49();
-                  } catch (e) { }
-                  if (r !== undefined && removalRes === false) {
-                    removalRes = true;
-                    console.log(`[yt-chat-ticker] requestRemoval49 returns ${r}`);
-                  }
-                }
-                removalList.length = 0;
-              };
+
               cProto.requestRemoval49 = cProto.requestRemoval;
               cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
-                
+
                 const hostElement = this.hostElement;
                 hostElement.__requestRemovalAt003__ = Date.now();
                 if (this.__advancedTicking038__) {
@@ -9520,8 +9483,7 @@
                   //   setTimeout(wf, 8000);
                   // }
 
-                  removalList.push(this);
-                  timelineResolve().then(removalFn);
+                  hostElement.setAttribute('q92wb', '1');
                 }
               });
 
@@ -9567,12 +9529,7 @@
             if (!cProto.setStandardContainerWidth8447) {
               cProto.setStandardContainerWidth8447 = dProto.setStandardContainerWidthAdv || (dProto.setStandardContainerWidthAdv =  async function (kName) {
 
-                if (typeof this.setContainerWidthPr9 === 'function') {
-                  const pr9 = this.setContainerWidthPr9();
-                  if (pr9) {
-                    await pr9;
-                  }
-                }
+                if (this.__startCountdownAdv477__) Promise.resolve(this).then(timeFn749);
 
                 const hostElement = (this || 0).hostElement;
                 const container = this.$.container;
@@ -9904,6 +9861,42 @@
           if (!cProto || !cProto.attached) {
             console1.warn(`proto.attached for ${tag} is unavailable.`);
             return;
+          }
+
+          if (FIX_REMOVE_TICKER_ITEM_BY_ID && typeof cProto.splice === 'function' && typeof cProto.markDirty === 'function' && typeof cProto.removeTickerItemById === 'function' && !cProto.removeTickerItemById737) {
+            cProto.removeTickerItemById737 = cProto.removeTickerItemById;
+            cProto.removeTickerItemById = function (a) {
+              if (this.tickerItemsQuery !== '#ticker-items') return this.removeTickerItemById737(a);
+              const hostElement = this.hostElement;
+              if (!hostElement || !a) return this.removeTickerItemById737(a);
+              let ticker;
+              try {
+                ticker = hostElement.querySelector(`#${a}`);
+              } catch (e) { }
+              if (!ticker) ticker = hostElement.querySelector(`[id="${a}"]`);
+              if (!ticker) return this.removeTickerItemById737(a);
+              const u = (insp(ticker).data || 0).id || a;
+              if (!u) return this.removeTickerItemById737(a);
+              const tickerItems = this.tickerItems;
+              let j = -1;
+              for (let i = 0, l = tickerItems.length; i < l; i++) {
+                const obj = tickerItems[i];
+                if (!obj || typeof obj !== 'object') continue;
+                const key = firstObjectKey(obj);
+                if (!key) continue;
+                const dataObj = obj[key];
+                const dataId = (dataObj || 0).id;
+                if (dataId === u) {
+                  j = i;
+                  break;
+                }
+              }
+              if (j >= 0) {
+                this.splice("tickerItems", j, 1);
+                this.markDirty();
+              }
+              this.highlightId === a && (this.highlightId = void 0);
+            }
           }
 
           // const imgCollection = document.getElementsByTagName('IMG');
