@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.5
+// @version     0.37.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -158,7 +158,7 @@
   // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
 
-
+  const FIX_DOM_IF_DETACH = true;
   const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
   const FIX_DOM_IF_TEMPLATE = true;
   // const FIX_DOM_REPEAT_TEMPLATE = true; // to be implemented
@@ -1186,6 +1186,22 @@
 
       if (!kMap.get(yProto)) kMap.set(yProto, `protoKey1_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`);
       yProto[kMap.get(yProto)] = true;
+
+      if (FIX_DOM_IF_DETACH && !yProto.disconnectedCallback277 && yProto.disconnectedCallback && typeof yProto._readyClients === 'function' && typeof yProto._canApplyPropertyDefault === 'function' && typeof yProto._attachDom === 'function' && !yProto.is && typeof yProto.constructor._finalizeTemplate === 'function') {
+        const disconnectedCallback277 = yProto.disconnectedCallback;
+        yProto.disconnectedCallback277 = true;
+        yProto.disconnectedCallback = function () {
+          disconnectedCallback277.call(this);
+          if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function') {
+            const children = (this.__instance.children || 0).length;
+            if (children >= 1) {
+              try {
+                this.__teardownInstance();
+              } catch (e) { }
+            }
+          }
+        }
+      }
 
       if (MemoryFix_Flag002 & 32) {
         if (!yProto.dk322 && (yProto.__attachInstance || yProto.__detachInstance)) {
@@ -3025,6 +3041,7 @@
           nv = null; // avoid (this.if == this._lastIf) primitive type conversion (object vs false)
 
           this.__xiWB8__ = 2;
+          // this.restamp = true;
 
           const cProto = this.__proto__;
           if (cProto && !cProto.__xiWB7__) {
@@ -3099,6 +3116,34 @@
               console.log('FIX_DOM_IF - __ensureTemplate')
 
             }
+            /*
+
+            if (FIX_DOM_IF_TEMPLATE && !cProto.disconnectedCallback847 && cProto.disconnectedCallback && cProto.__teardownInstance) {
+              cProto.disconnectedCallback847 = cProto.disconnectedCallback;
+              cProto.disconnectedCallback = function () {
+
+                console.log(1949001, 'disconnectedCallback')
+                this.disconnectedCallback847();
+                try {
+                  this.__teardownInstance();
+                  console.log(1949002, '__teardownInstance 00D')
+                } catch (e) { }
+              }
+            }
+
+            if (FIX_DOM_IF_TEMPLATE && !cProto.connectedCallback847 && cProto.connectedCallback && cProto.__teardownInstance) {
+              cProto.connectedCallback847 = cProto.connectedCallback;
+              cProto.connectedCallback = function () {
+
+                console.log(1949003, 'connectedCallback')
+                try {
+                  this.__teardownInstance();
+                  console.log(1949004, '__teardownInstance 00C')
+                } catch (e) { }
+                this.connectedCallback847();
+              }
+            }
+            */
 
 
             // if(!cProto.__createAndInsertInstance847 && typeof cProto.__createAndInsertInstance === 'function' && cProto.__createAndInsertInstance.length === 1 && `${cProto.__createAndInsertInstance}`.length >20){
@@ -6158,6 +6203,20 @@
     const s52 = Symbol();
 
     const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+
+      // if(component.querySelectorAll('dom-if').length > 0){
+
+      //   // console.log(1233, component.isConnected, component.parentNode, component.querySelectorAll('dom-if'))
+      //   if (component.isConnected === false) {
+      //     for (const s of component.querySelectorAll('dom-if')) {
+      //       try {
+      //         console.log(1299);
+      //         insp(s).__teardownInstance();
+      //       } catch (e) { }
+      //     }
+      //   }
+
+      // }
 
       if (typeof (data || 0) === 'object') {
         if (!data[s52]) data[s52] = genId();
