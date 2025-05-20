@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.7
+// @version     0.37.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1192,12 +1192,18 @@
         yProto.disconnectedCallback277 = true;
         yProto.disconnectedCallback = function () {
           disconnectedCallback277.call(this);
-          if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function' && !this.restamp && !this.id && this.__ctor && (this.parentNode || 0).nodeType === 11 && this.isConnected === false) {
-            const children = (this.__instance.children || 0).length;
-            if (children >= 1) {
-              try {
-                this.__teardownInstance();
-              } catch (e) { }
+          if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function') {
+            const shadyParent = (this.__shady_parentNode || 0);
+            const actualParent = (this.parentNode || 0);
+            if (shadyParent !== actualParent && shadyParent.nodeType === 11 && actualParent.nodeType === 11) {
+              // if (!this.restamp && !this.id && this.__ctor && this.isConnected === false) {
+                const children = (this.__instance.children || 0).length;
+                if (children >= 1) {
+                  try {
+                    this.__teardownInstance();
+                  } catch (e) { }
+                }
+              // }
             }
           }
         }
