@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.6
+// @version     0.37.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1192,7 +1192,7 @@
         yProto.disconnectedCallback277 = true;
         yProto.disconnectedCallback = function () {
           disconnectedCallback277.call(this);
-          if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function') {
+          if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function' && !this.restamp && !this.id && this.__ctor && (this.parentNode || 0).nodeType === 11 && this.isConnected === false) {
             const children = (this.__instance.children || 0).length;
             if (children >= 1) {
               try {
