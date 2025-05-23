@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.5
+// @version             0.102.6
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1713,7 +1713,12 @@
   //   return { accurateTiming, isAccurateTimingUsable }
   // })();
 
-
+  const toUniqueArr = (arr) => {
+    const s = new Set(arr);
+    const r = [...s];
+    s.clear();
+    return r;
+  }
 
   let qWidthAdjustable = null;
 
@@ -1728,6 +1733,7 @@
   const reuseId = `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
 
   const reuseStore = new Map();
+  reuseStore.set = reuseStore.setOriginal || reuseStore.set;
 
   let onPageContainer = null;
 
@@ -2066,41 +2072,41 @@
   // }
 
 
-  const imageFetchCache = new Set();
-  const imageFetch = function (imageLink) {
-    return new Promise(resolve => {
-      let img = null;
-      for (const cacheWR of imageFetchCache) {
-        let p = kRef(cacheWR);
-        if (!p) {
-          imageFetchCache.delete(cacheWR);
-        } else if (img.busy588 === false) {
-          img = p;
-          break;
-        }
-      }
-      if (!img) {
-        img = new Image_();
-        imageFetchCache.add(mWeakRef(img));
-      }
-      img.busy588 = true;
+  // const imageFetchCache = new Set();
+  // const imageFetch = function (imageLink) {
+  //   return new Promise(resolve => {
+  //     let img = null;
+  //     for (const cacheWR of imageFetchCache) {
+  //       let p = kRef(cacheWR);
+  //       if (!p) {
+  //         imageFetchCache.delete(cacheWR);
+  //       } else if (img.busy588 === false) {
+  //         img = p;
+  //         break;
+  //       }
+  //     }
+  //     if (!img) {
+  //       img = new Image_();
+  //       imageFetchCache.add(mWeakRef(img));
+  //     }
+  //     img.busy588 = true;
 
-      window.mkek = imageFetchCache.size;
-      let f = () => {
-        resolve && resolve();
-        resolve = null;
-        img.onload = null;
-        img.onerror = null;
-        img.busy588 = false;
-        img = null;
-      }
-      img.onload = f;
-      img.onerror = f;
-      img.src = imageLink;
-      f = null;
-      imageLink = null;
-    });
-  };
+  //     window.mkek = imageFetchCache.size;
+  //     let f = () => {
+  //       resolve && resolve();
+  //       resolve = null;
+  //       img.onload = null;
+  //       img.onerror = null;
+  //       img.busy588 = false;
+  //       img = null;
+  //     }
+  //     img.onload = f;
+  //     img.onerror = f;
+  //     img.src = imageLink;
+  //     f = null;
+  //     imageLink = null;
+  //   });
+  // };
 
 
   const autoTimerFn = (() => {
@@ -3518,11 +3524,13 @@
       pDivNew.addEventListener('error', pDivOnResource, true);
 
       const wmRemoved = new Map();
+      wmRemoved.set = wmRemoved.setOriginal || wmRemoved.set;
 
       // const wmMapToItem = new WeakMap();
       // let wmPendingList = null;
 
       const nullComponents = new Map();
+      nullComponents.set = nullComponents.setOriginal || nullComponents.set;
 
       const componentDefaultAttributes = new WeakMap();
 
@@ -4287,7 +4295,9 @@
           return founds;
         */
         const contentSet = new Set(content);
-        return base.map(baseEntry => contentSet.has(baseEntry));
+        const r = base.map(baseEntry => contentSet.has(baseEntry));
+        contentSet.clear();
+        return r
 
       }
 
@@ -5160,6 +5170,7 @@
       const mutFn = (items) => {
         let seqIndex = -1;
         const elementSet = new Set();
+        elementSet.add = elementSet.addOriginal || elementSet.add;
         for (let node = nLastElem(items); node !== null; node = nPrevElem(node)) { // from bottom
           let found = node.hasAttribute('wsr93') ? (node.hasAttribute('yt-chat-item-seq') ? 2 : 1) : 0;
           if (found === 1) node.removeAttribute('wsr93'); // reuse -> wsr93: hidden after re-attach
@@ -6550,6 +6561,7 @@
 
 
         const mapper = new Map();
+        mapper.set = mapper.setOriginal || mapper.set;
 
         // without delaying. get the time of request
         // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
@@ -6666,12 +6678,10 @@
 
         {
 
-
           const mapper = new Map();
-
+          mapper.set = mapper.setOriginal || mapper.set;
 
           const idxices = [];
-
 
           let mArr1 = arr.filter((aItem,idx) => {
 
@@ -7503,6 +7513,7 @@
               let waitFor = [];
               /** @type {Set<string>} */
               const imageLinks = new Set();
+              imageLinks.add = imageLinks.addOriginal || imageLinks.add;
 
               if (ENABLE_PRELOAD_THUMBNAIL || EMOJI_IMAGE_SINGLE_THUMBNAIL || AUTHOR_PHOTO_SINGLE_THUMBNAIL) {
                 for (const item of acItems) {
@@ -7536,6 +7547,7 @@
                 }
 
               }
+              imageLinks.clear();
 
               return async () => {
                 if (waitFor.length > 0) {
@@ -12793,7 +12805,8 @@
                 }
               };
 
-              const lcrs = [...new Set([lcrDummy, ...document.querySelectorAll('yt-live-chat-renderer')])];
+              
+              const lcrs = toUniqueArr([lcrDummy, ...document.querySelectorAll('yt-live-chat-renderer')]);
               for (const lcr of lcrs) {
                 const cnt = insp(lcr);
                 const hostElement = cnt.hostElement;
