@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.4
+// @version            3.3.5
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -2819,9 +2819,10 @@ inIframeFn() || (async () => {
 
             // blacklisted scripts / hidden scripts / install button
 
-            const isPageUnderScript = location.pathname.includes('/scripts/');
-            const pageType_ = /\/([a-z-]+)$/.exec(window.location.pathname);
-            const pageType = pageType_ ? pageType_[1] : '';
+            const isPageScriptBySite = location.pathname.includes('/scripts/by-site/');
+            const isPageUnderScript = isPageScriptBySite ? false : location.pathname.includes('/scripts/');
+            const pageType_ = isPageScriptBySite ? 'scripts' : /\/([a-z-]+)$/.exec(location.pathname);
+            const pageType = typeof pageType_ === 'string' ? pageType_ : (pageType_ ? pageType_[1] : '');
             const isDiscussionListPage = !isPageUnderScript && (pageType === 'discussions' || (pageType_ && /\/discussions\/[a-z-]+$/.test(location.pathname)));
             const isFeedbackListPage = isPageUnderScript && pageType === 'feedback';
             const isScriptListPage = !isPageUnderScript && pageType === 'scripts';
