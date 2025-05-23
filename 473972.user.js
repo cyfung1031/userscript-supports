@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.37.8
+// @version     0.40.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -33,7 +33,7 @@
 
   const HOOK_ACTIVE_MODULES = true; // added in 0.37.0
   const HOOK_ACTIVE_MODULES_fetchUpdatedMetadata = true; // added in 0.37.0 (make likeCount update)
-
+  
   const NATIVE_CANVAS_ANIMATION = false; // for #cinematics
   const FIX_schedulerInstanceInstance = 2 | 4;
   const FIX_yt_player = true; // DONT CHANGE
@@ -157,6 +157,18 @@
   // Experimental flag "ytpopup_disable_default_html_caching" is disabled by default.
   // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
+
+  const MEMORY_RELEASE_NF00 = true;
+  const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
+  const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
+  const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
+  // const FIX_MEMORY_RELEASE_RUNEFFECT_TEMPLATE = true; // require MEMORY_RELEASE_NF00
+  const FIX_TEMPLATE_BINDING = true;
+  const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
+
+  const USE_fastDomIf = 2; // fastDomIf is seem to be experimental  0 = no change, 1 = enable, 2 = disable
+  const ENHANCE_DOMIF_createAndInsertInstance = true; // root does not need to store in the instance
+  const ENHANCE_DOMIF_TEARDOWN = true; // require MEMORY_RELEASE_NF00
 
   const FIX_DOM_IF_DETACH = true;
   const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
@@ -443,6 +455,56 @@
     }
   }
 
+  const _nmSet = new Set();
+  _nmSet.add = _nmSet.addOriginal || _nmSet.add;
+  const _nmMap = new Set();
+  _nmMap.add = _nmMap.addOriginal || _nmMap.add;
+  const _nmMapV = new Set();
+  _nmMapV.add = _nmMapV.addOriginal || _nmMapV.add;
+  if (MEMORY_RELEASE_MAP_SET_REMOVE_NODE && !Set.prototype.addOriginal && !Map.prototype.setOriginal) {
+    const Node_ = Node;
+    Set.prototype.addOriginal = Set.prototype.add;
+    Set.prototype.add = function (n) {
+      if (n instanceof Node_) {
+        if (!this[wk]) this[wk] = mWeakRef(this);
+        _nmSet.add(this[wk]);
+      }
+      return this.addOriginal(n);
+    };
+    Map.prototype.setOriginal = Map.prototype.set;
+    Map.prototype.set = function (n, v) {
+      if (n instanceof Node_) {
+        if (!this[wk]) this[wk] = mWeakRef(this);
+        _nmMap.add(this[wk]);
+      }
+      if (v instanceof Node_) {
+        if (!this[wk]) this[wk] = mWeakRef(this);
+        _nmMapV.add(this[wk]);
+      }
+      return this.setOriginal(n, v);
+    };
+  }
+
+  window.showNM00 = () => {
+    const nmSet = [..._nmSet].map(e => kRef(e)).filter(e => !!e);
+    const nmMap = [..._nmMap].map(e => kRef(e)).filter(e => !!e);
+    const nmMapV = [..._nmMapV].map(e => kRef(e)).filter(e => !!e);
+    return { nmSet, nmMap, nmMapV };
+  };
+
+  window.testNM00 = (x) => {
+    const nmSet = [..._nmSet].map(e => kRef(e)).filter(e => !!e);
+    const nmMap = [..._nmMap].map(e => kRef(e)).filter(e => !!e);
+    const nmMapV = [..._nmMapV].map(e => kRef(e)).filter(e => !!e);
+    for (const s of nmSet) if (s.has(x)) return 1;
+    for (const m of nmMap) if (m.has(x)) return 2;
+    for (const m of nmMapV) {
+      for (const [u, v] of m.entries()) {
+        if (v === x) return 4;
+      }
+    }
+    return 0;
+  };
 
   let FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = false;
 
@@ -452,16 +514,13 @@
 
     FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = true;
 
-
     if (typeof mainCnt.createComponent_ !== 'function' || mainCnt.createComponent_.length != 3) {
       console.warn('FORCE_NO_REUSEABLE_ELEMENT_POOL_fn failed.')
       return;
     }
 
-
     const mapGet = Map.prototype.get;
     const setHas = Set.prototype.has;
-
 
     /** @type {Map | null} */
     let qcMap = null;
@@ -627,6 +686,960 @@
 
   }
 
+  class PlainHTMLElement extends HTMLTitleElement {
+
+  }
+
+  const removeShady = function (shady) {
+    if (!shady || typeof shady !== 'object') return;
+    const props = [...Object.getOwnPropertyNames(shady), ...Object.getOwnPropertySymbols(shady)];
+    for (const prop of props) {
+      const node = shady[prop];
+      if (typeof (node || 0) !== 'object') continue;
+      if (node.nodeType >= 1 && node.isConnected === false) _removedElements.addNode(node);
+    }
+  }
+
+  let _removedElements = new Set();
+  _removedElements.add = _removedElements.addOriginal || _removedElements.add;
+  _removedElements.addNode = MEMORY_RELEASE_NF00 ? function (node) {
+    if (!node || node === _emptyElement || node.__keepInstance038__) return;
+    if (!node[wk]) node[wk] = mWeakRef(node);
+    return this.add(node[wk]);
+  } : () => { };
+
+  let __removedElements = new Set();
+  __removedElements.add = __removedElements.addOriginal || __removedElements.add;
+  __removedElements.addNode = MEMORY_RELEASE_NF00 ? function (node) {
+    if (!node || node === _emptyElement || node.__keepInstance038__) return;
+    if (!node[wk]) node[wk] = mWeakRef(node);
+    return this.add(node[wk]);
+  } : () => { };
+
+  const _emptyElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const _emptyTipsElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const _emptyVisibilityElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+  const nf00 = new FinalizationRegistry_((x) => {
+    if (MEMORY_RELEASE_NF00_SHOW_MESSAGE) console.log(`NF00: node[${x}] fully removed`);
+  });
+  let ud00 = 0;
+  const ng00 = new Set();
+  nf00.registerNode = function (node) {
+    if (node && node.nodeType >= 1) {
+      if (!node.t792) {
+        node.t792 = (ud00 = (ud00 & 1073741823) + 1);
+        const x = `${node.nodeName.toLowerCase()}#${node.t792}`;
+        this.register(node, x);
+        if (MEMORY_RELEASE_NF00_SHOW_MESSAGE) console.log(`NF00: try remove node[${x}]`);
+        ng00.add(mWeakRef(node));
+      }
+    }
+  }
+  window.showNg00 = () => {
+    const ng01 = new Set();
+    ng01.add = ng01.addOriginal || ng01.add;
+    for (const e of ng00) {
+      const f = kRef(e);
+      if (!f) continue;
+      ng01.add(f);
+    }
+    const ng02 = [...ng01];
+    ng01.clear();
+    console.log(ng02);
+    window.showNg01 = [...ng02];
+  }
+  window.showTemplates00 = () => {
+    const result = {};
+    const elements = document.querySelectorAll('*');
+    for (const element of elements) {
+      const tag = element.nodeName.toLocaleLowerCase();
+      const r = result[tag] || [];
+      const cnt = insp(element);
+      if (cnt !== element) {
+        if (cnt.templateInfo) {
+          r.push(['cnt0', cnt.templateInfo, element]);
+        }
+        if (element._templateInfo) {
+          r.push(['cnt1', cnt._templateInfo, element]);
+        }
+        if (element.__templateInfo) {
+          r.push(['cnt2', cnt.__templateInfo, element]);
+        }
+      }
+      if (element.templateInfo) {
+        r.push(['elm0', element.templateInfo, element]);
+      }
+      if (element._templateInfo) {
+        r.push(['elm1', element._templateInfo, element]);
+      }
+      if (element.__templateInfo) {
+        r.push(['elm2', element.__templateInfo, element]);
+      }
+      if (r.length >= 1) result[tag] = r;
+    }
+    const strCmp = (a, b) => {
+      if (a === b) return 0;
+      let u = [a, b].sort();
+      return u[0] === a ? -1 : 1;
+    }
+    const counting1 = Object.entries(result).map(e => [e[0], [...new Set(e[1].map(t => t[0]))].join('|')]).sort((a, b) => {
+      return strCmp(`${a[1]}.${a[0]}`, `${b[1]}.${b[0]}`);
+    });
+
+    const counting2 = Object.entries(result).map(e => [e[0], [...new Set(e[1].map(t => t[1]))]]);
+
+    const counting3 = Object.entries(result).map(e => {
+      const a = [...new Set(e[1].map(t => t[1]))];
+      const b = [...new Set(a.map(e => e.nodeList || e))];
+
+      const r = [e[0], b];
+      return r;
+    });
+
+    return {result, counting1, counting2, counting3};
+  };
+
+  window.showFrag00 = function(){
+
+    const result = {};
+    const elements = document.querySelectorAll('*');
+    for (const element of elements) {
+      const tag = element.nodeName.toLocaleLowerCase();
+      const r = result[tag] || [];
+      const cnt = insp(element);
+      if (cnt !== element) {
+        if (cnt.templateInfo) {
+          r.push(['cnt0', cnt.templateInfo, element]);
+        }
+        if (element._templateInfo) {
+          r.push(['cnt1', cnt._templateInfo, element]);
+        }
+        if (element.__templateInfo) {
+          r.push(['cnt2', cnt.__templateInfo, element]);
+        }
+      }
+      if (element.templateInfo) {
+        r.push(['elm0', element.templateInfo, element]);
+      }
+      if (element._templateInfo) {
+        r.push(['elm1', element._templateInfo, element]);
+      }
+      if (element.__templateInfo) {
+        r.push(['elm2', element.__templateInfo, element]);
+      }
+      if (r.length >= 1) result[tag] = r;
+    }
+    return result;
+
+  }
+
+  if (MEMORY_RELEASE_NF00) {
+
+    setInterval(() => {
+      const nodesSet = new Set();
+      nodesSet.add = nodesSet.addOriginal || nodesSet.add;
+
+      for (const nodeWr of __removedElements) {
+        __removedElements.delete(nodeWr);
+        const node = kRef(nodeWr);
+        if (node && node.nodeType >= 1 && node.isConnected === false) {
+          nodesSet.add(node);
+          if (node.querySelectorAll) {
+            for (const p of node.querySelectorAll('*')) {
+              nodesSet.add(p);
+            }
+          }
+        }
+      }
+      for (const nodeWr of _removedElements) {
+        _removedElements.delete(nodeWr);
+        const node = kRef(nodeWr);
+        if (node && node.isConnected === false) {
+          __removedElements.add(nodeWr);
+        }
+      }
+
+      if(nodesSet.size === 0) return;
+
+      const nmSet = [..._nmSet].map(e => kRef(e)).filter(e => !!e);
+      const nmMap = [..._nmMap].map(e => kRef(e)).filter(e => !!e);
+      const nmMapV = [..._nmMapV].map(e => kRef(e)).filter(e => !!e);
+
+      for (const node of nodesSet) {
+        if (node === _emptyElement || node.__keepInstance038__ || node.t792) continue;
+        const hasToolTips = !!((insp(node).$ || 0).tooltip);
+
+        if (node && node.__shady_getRootNode) {
+          const k = node.__shady_getRootNode();
+          if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
+          if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
+        }
+        if (node && node.getRootNode) {
+          const k = node.getRootNode();
+          if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
+          if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
+        }
+
+        if (node.__instances) {
+          for (const k of node.__instances) {
+            if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
+            if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
+          }
+          // node.__instances.length = 0;
+        }
+        if (node && node.nodeType === 1 && insp(node).__teardownInstance) {
+          try {
+            insp(node).__teardownInstance();
+          } catch (e) { }
+        } else if (node && node.nodeType === 1 && node.__teardownInstance) {
+          try {
+            (node).__teardownInstance();
+          } catch (e) { }
+        }
+        if (node && node.nodeType === 1 && node.__detachAndRemoveInstance && (node.__instances || 0).length >= 1) {
+          for (let i = node.__instances.length - 1; i >= 0; i--) {
+            node.__detachAndRemoveInstance(i)
+          }
+        }
+        if (node && insp(node).unobserveNodes) {
+          insp(node).unobserveNodes();
+        }
+        if (node && (node).unobserveNodes) {
+          (node).unobserveNodes();
+        }
+        if (node && node.nodeType === 1 && node.is === void 0 && typeof node.dispose === 'function') {
+          node.dispose();
+        }
+        if (node && node.nodeType === 1 && typeof node.unobserve_ === 'function') {
+          node.unobserve_();
+        }
+
+        if (node && node.nodeType === 1 && node.is === void 0 && typeof insp(node).dispose === 'function') {
+          insp(node).dispose();
+        }
+        if (node && node.nodeType === 1 && typeof insp(node).unobserve_ === 'function') {
+          insp(node).unobserve_();
+        }
+
+        if (node && node.nodeType === 1 && typeof insp(node).unlinkPaths === 'function' && insp(node).__dataLinkedPaths) {
+          for (let k in __dataLinkedPaths) {
+            insp(node).unlinkPaths(k);
+          }
+        }
+        const visibilityMonitorKeys = insp(node).visibilityMonitorKeys || node.visibilityMonitorKeys;
+        if (visibilityMonitorKeys) {
+          for (const entry of visibilityMonitorKeys) {
+            if (entry.element) { entry.element = null }
+          }
+          visibilityMonitorKeys.length = 0;
+        }
+        if (node.__instances) {
+          for (const k of node.__instances) {
+            if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
+            if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
+          }
+          node.__instances.length = 0;
+        }
+        const sp = node.__shady_parentNode;
+        if (sp && sp.nodeType >= 1 && sp.isConnected === false) _removedElements.addNode(sp);
+        FULLY_REMOVE_ALL_EVENT_LISTENERS && node.removeAllEventListener001();
+        if (node && node.remove) node.remove();
+
+        /*
+        if (node._templateInfo && node._templateInfo.content) {
+          const templateInfoContent = node._templateInfo.content;
+          if (templateInfoContent.nodeType >= 1 && templateInfoContent.isConnected === false) {
+            _removedElements.addNode(templateInfoContent);
+          }
+          try{
+            node._templateInfo.content = null;
+          }catch(e){}
+        }
+        */
+        if (node.__domApi) {
+          node.__domApi = null;
+        }
+        if (node.__shady) {
+          const shady = node.__shady;
+          node.__shady = null;
+          removeShady(shady);
+        }
+
+
+        const ceRoot = node.__CE_shadowRoot;
+        if (ceRoot) {
+
+          node.__CE_shadowRoot = null;
+          if (ceRoot.nodeType >= 1 && ceRoot.isConnected === false) {
+            _removedElements.addNode(ceRoot);
+          }
+
+        }
+
+        // xTeardownTemplateInfo
+        const snChildNodes = node.__shady_native_childNodes;
+        if (snChildNodes.length > 0) {
+          for (const node of snChildNodes) {
+            if (node && node.nodeType >= 1 && node.isConnected === false) {
+              _removedElements.addNode(node);
+            }
+          }
+          snChildNodes.length = 0;
+        }
+        node.__shady_native_childNodes = null;
+
+
+        const __templateInfo = node.__templateInfo;
+        if (__templateInfo) {
+          node.__templateInfo = null;
+          // xTeardownTemplateInfo(__templateInfo);
+        }
+
+        if (hasToolTips && insp(node).$) {
+          insp(node).$.tooltip = _emptyTipsElement;
+        }
+
+        if (node && node.nodeType >= 1) {
+          const pd = Object.getOwnPropertyDescriptor(node, 'visibilityMonitorKeys');
+          if (pd && pd.value && pd.value.length >= 1) {
+            const arr = pd.value;
+            for (let i = 0; i < arr.length; i++) {
+              arr[i].element = _emptyVisibilityElement;
+              arr[i] = null;
+            }
+          }
+        }
+
+        if (node.__dataHost) {
+          try {
+            delete node.__dataHost
+          } catch (e) { }
+          try {
+            node.__dataHost = null;
+          } catch (e) { }
+        }
+
+        if (node.root) {
+          try {
+            delete node.root
+          } catch (e) { }
+          try {
+            node.root = null;
+          } catch (e) { }
+        }
+
+        if (node.children && node.children.splice) {
+          try {
+            delete node.children
+          } catch (e) { }
+          try {
+            node.children = null;
+          } catch (e) { }
+        }
+
+        if (node.__shady && typeof node.__shady === 'object') { 
+          try {
+            node.__shady = null;
+          } catch (e) { }
+        }
+
+        if (node.nodeType === 1) Reflect.setPrototypeOf(node, PlainHTMLElement.prototype);
+
+        for (const prop of Object.getOwnPropertyNames(node)) {
+          if (prop === 'host' && typeof (node.host || 0) === 'object') {
+            if (node.nodeType === 11) {
+              const nodeHost = node.host;
+              if (nodeHost && nodeHost.nodeType >= 1) {
+                node.host = _emptyElement;
+                if (nodeHost.isConnected === false && nodeHost !== _emptyElement) {
+                  _removedElements.addNode(nodeHost);
+                }
+              } else {
+                node.host = null;
+              }
+            } else {
+              node.host = null;
+            }
+            continue;
+          }
+          const pd = Object.getOwnPropertyDescriptor(node, prop);
+          if (pd.value) {
+            const v = pd.value;
+            if (typeof (v || 0) === 'object') node[prop] = null;
+            else if (typeof (v || 0) === 'function') delete node[prop];
+          }
+        }
+
+        for (const prop of Object.getOwnPropertySymbols(node)) {
+          const v = node[prop];
+          if (typeof (v || 0) === 'object' && !v.deref) node[prop] = null;
+        }
+
+        if (node.__shady_native_childNodes) {
+          node.__shady_native_childNodes = _emptyElement.childNodes;
+        }
+        if (node.__shady_children) {
+          node.__shady_children = _emptyElement.children;
+        }
+
+        for (const s of nmSet) s.delete(node);
+        for (const m of nmMap) m.delete(node);
+
+        nf00.registerNode(node);
+
+
+
+        // console.log(1883001, node)
+        // console.log(3772001, node, node.countEvent767())
+      }
+
+      nodesSet.clear();
+
+    }, 400);
+
+  }
+
+
+  if (FULLY_REMOVE_ALL_EVENT_LISTENERS && !EventTarget.prototype.addEventListener828 && !EventTarget.prototype.removeAllEventListener001) {
+    const handlerMap = new WeakMap();
+    EventTarget.prototype.addEventListener828 = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (type, handler, option = void 0) {
+      let hds = handlerMap.get(this);
+      if (!hds) handlerMap.set(this, (hds = new Set()));
+      hds.add([type, handler, option]);
+      return this.addEventListener828(type, handler, option);
+    }
+    EventTarget.prototype.removeEventListener828 = EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.removeEventListener = function (type, handler, option = void 0) {
+      let hds = handlerMap.get(this);
+      if (hds) {
+        for (const entry of hds) {
+          if (entry[0] === type && entry[1] === handler && entry[2] === option) {
+            hds.delete(entry);
+            break;
+          }
+        }
+      }
+      return this.removeEventListener828(type, handler, option);
+    }
+    EventTarget.prototype.countEvent767 = function(){
+      return handlerMap.get(this);
+    }
+    EventTarget.prototype.removeAllEventListener001 = function(){
+      let hds = handlerMap.get(this);
+      if (hds) {
+        handlerMap.delete(this);
+        for (const [type, handler, option] of hds) {
+          this.removeEventListener828(type, handler, option);
+        }
+        hds.clear();
+      }
+    }
+  }
+
+  const globalSetup = (key, setup)=>{
+    let symb = Symbol();
+    Object.defineProperty(Object.prototype, key, {
+      get() {
+        return this[symb];
+      },
+      set(nv) {
+        if (typeof nv !== 'function') {
+          this[symb] = nv;
+          return true;
+        }
+        if (!(symb in this)) {
+          setup(this);
+        }
+        this[symb] = nv;
+        return true;
+      },
+      configurable: true,
+      enumerable: false
+    });
+  }
+
+  const toActualNode = (e) => {
+    return e && e.getNode592177 ? e.getNode592177() : e;
+  }
+
+  const removeAllChildNodes = (o)=>{
+    if ((o instanceof Node) && o.nodeType >= 1) {
+      let t, q = null;
+      while ((t = o.firstChild) && t !== q) {
+        try {
+          _removedElements.addNode(t);
+          t.__keepInstance038__ = false;
+          t.remove();
+          q = t;
+        } catch (e) { }
+      }
+      try {
+        _removedElements.addNode(o);
+        o.__keepInstance038__ = false;
+        o.remove();
+      } catch (e) { }
+    }
+  }
+
+  const stampedNodes = new Map();  /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
+  stampedNodes.set = stampedNodes.setOriginal || stampedNodes.set;
+  const stampedFragment = new Map();  /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
+  stampedFragment.set = stampedFragment.setOriginal || stampedFragment.set;
+
+  if (FIX_TEMPLATE_BINDING) {
+    const templateMap = new Map(); /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
+    templateMap.set = templateMap.setOriginal || templateMap.set;
+    // const parsedTemplate = new Map();
+
+
+    const it0 = Date.now() - 80000000000;
+    const genId = () => `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now() - it0).toString(36)}`;
+
+
+    /*
+    
+
+        M.prototype._bindTemplate = function(N, R) {
+            var X = this.constructor._parseTemplate(N)
+              , A = this.__preBoundTemplateInfo == X;
+            if (!A)
+                for (var l in X.propertyEffects)
+                    this._createPropertyAccessor(l);
+            R ? (X = Object.create(X),
+            X.wasPreBound = A,
+            this.__templateInfo ? (N = N._parentTemplateInfo || this.__templateInfo,
+            R = N.lastChild,
+            X.parent = N,
+            N.lastChild = X,
+            (X.previousSibling = R) ? R.nextSibling = X : N.firstChild = X) : this.__templateInfo = X) : this.__preBoundTemplateInfo = X;
+            return X
+        }
+        ;
+    */
+
+    /*
+        ** this.constructor._parseTemplate **
+          d._parseTemplate = function(N, R) {
+              if (!N._templateInfo) {
+                  var X = N._templateInfo = {};
+                  X.nodeInfoList = [];
+                  X.nestedTemplate = !!R;
+                  X.stripWhiteSpace = R && R.stripWhiteSpace || N.hasAttribute && N.hasAttribute("strip-whitespace");
+                  this._parseTemplateContent(N, X, {
+                      parent: null
+                  })
+              }
+              return N._templateInfo
+          }
+
+    */
+
+    // let initied1 = false;
+    // let _parseTemplateByPass = false;
+    const setup1 = (qxx) => {
+      // if(initied1) return;
+      // initied1 = true;
+      const proto = qxx;
+      const constructor = proto.constructor;
+      const _bindTemplate = proto._bindTemplate;
+      // console.log(12883, proto, constructor)
+
+
+      const _parseTemplate = constructor._parseTemplate;
+      if (typeof _parseTemplate === 'function' && _parseTemplate.length === 2 && !constructor._parseTemplate322) {
+
+        FIX_TEMPLATE_BINDING_SHOW_MESSAGE && console.log('Hack00: _parseTemplate', _parseTemplate);
+        constructor._parseTemplate322 = _parseTemplate;
+        const parsedResults = new WeakMap();
+
+        const _templateInfoPd = {
+          get() {
+            if (!this || !this[wk]) return undefined;
+            const r = parsedResults.get(this[wk]);
+            return r;
+          },
+          set(nv) {
+            delete this._templateInfo;
+            this._templateInfo = nv;
+            console.warn('_templateInfoPd set');
+            return true;
+          },
+          enumerable: true,
+          configurable: true
+        };
+        constructor._parseTemplate = function (N, R) {
+          if (!N) return _parseTemplate.call(this, N, R);
+          if (!N[wk]) N[wk] = mWeakRef(N);
+          let r = parsedResults.get(N[wk]);
+          if (r) return r;
+          r = _parseTemplate.call(this, N, R);
+          if (r && !parsedResults.has(N[wk])) {
+            parsedResults.set(N[wk], r);
+            r.iAm68 = '_templateInfo';
+            N.iHave68 = '_templateInfo';
+            if (N._templateInfo && N._templateInfo === r) {
+              delete N._templateInfo;
+              if (!N._templateInfo) {
+                Object.defineProperty(N, '_templateInfo', _templateInfoPd);
+              }
+            }
+          }
+          return r;
+        }
+      }
+      if (typeof _bindTemplate === 'function' && _bindTemplate.length === 2 && !proto._bindTemplate322) {
+
+        FIX_TEMPLATE_BINDING_SHOW_MESSAGE && console.log('Hack00: _bindTemplate', _bindTemplate);
+        proto._bindTemplate322 = _bindTemplate;
+        proto._bindTemplate = function (N, R) {
+          // R = boolean true or undefined
+          // N = template elemenet
+          let M = N;
+          if (typeof (N || 0) === 'object' && N instanceof HTMLTemplateElement && (N.content || 0).nodeType === 11) {
+            let componentIs = '';
+            try {
+              componentIs = this ? this.is : '';
+            } catch (e) { }
+            if (typeof (componentIs || 0) === 'string') {
+              if (!templateMap.has(componentIs)) {
+                templateMap.set(componentIs, N);
+                // const parser = this.constructor;
+                // console.log(3882, parser._parseTemplate)
+                /*
+                if (parser._parseTemplate && !parser._parseTemplate477 && parser._parseTemplate.length === 2) {
+                  parser._parseTemplate477 = parser._parseTemplate;
+                  const _parseTemplate477 = parser._parseTemplate477;
+                  parser._parseTemplate = function (N, R) {
+                    if (!_parseTemplateByPass && N && N[wk]) {
+                      const u = parsedTemplate.get(N[wk]);
+                      if (u) {
+                        console.log(1838, u)
+                        return u;
+                      }
+                    }
+                    return _parseTemplate477.call(this, N, R);
+                  };
+                }
+                if (parser._parseTemplate && parser._parseTemplate477) {
+                  if (N && !N[wk]) N[wk] = mWeakRef(N);
+                  if (!parsedTemplate.has(N[wk])) {
+                    _parseTemplateByPass = true;
+                    parsedTemplate.set(N[wk], parser._parseTemplate477(N));
+                    _parseTemplateByPass = false;
+                  }
+                }
+                */
+              } else {
+                M = templateMap.get(componentIs);
+              }
+            }
+          }
+          let r_ = null;
+          // Promise.resolve(N).then((N) => {
+          //   console.log(3488,N.templateInfo, N.templateInfo === r_);
+          // })
+          const r = _bindTemplate.call(this, M, R);
+          r_ = r;
+          return r;
+        }
+      }
+
+      const _runEffectsForTemplate = proto._runEffectsForTemplate;
+      const gxx = (window.gxxC572 || (window.gxxC572 = new Set()));
+      if (typeof _runEffectsForTemplate === 'function' && _runEffectsForTemplate.length === 4 && !proto._runEffectsForTemplate322) {
+        proto._runEffectsForTemplate322 = _runEffectsForTemplate;
+
+        // note: fastDomIf does not work well with runEffects ... 
+        // so no runEffects actaully?
+        const runner = (Tw, Nw, Rw, Xw, Aw) => {
+
+          try {
+
+
+            // console.log(988003)
+            const T = kRef(Tw); // this
+            const N = kRef(Nw); // __templateInfo
+            if (!T || !N) return;
+
+            // console.log(988004)
+            const R = kRef(Rw); // __data
+            const X = kRef(Xw); // temp Data ?
+            const A = kRef(Aw); // boolean ?
+            if (typeof (X || 0) === 'object') gxx.delete(X);
+            if (typeof (A || 0) === 'object') gxx.delete(A);
+
+            // console.log(988005)
+            const nodeList_ = N.nodeList;
+
+            // console.log(988006, nodeList_)
+            const nodeList = nodeList_ ? nodeList_.map(e => toActualNode(e)) : nodeList_;
+
+            // console.log(988007, nodeList)
+
+            const Nx = {
+              propertyEffects: N.propertyEffects,
+              nodeList: nodeList,
+              firstChild: kRef(N.firstChild)
+            };
+
+            // if (kRef(N.firstChild)) {
+            //   console.log(977001, Nx)
+            // }
+
+            // console.log(988009, Nx, R, X, A)
+
+
+            {
+
+
+              const o = Nx;
+              const { propertyEffects, nodeList, firstChild } = o;
+              if (propertyEffects && nodeList && nodeList.length >= 0) {
+                for (const [effectKey, propertyEffectArr] of Object.entries(propertyEffects)) {
+                  for (let i = propertyEffectArr.length - 1; i >= 0; i--) {
+                    const propertyEffect = propertyEffectArr[i];
+                    const info = (propertyEffect || 0).info;
+                    if (info && typeof info.index === 'number' && !nodeList[info.index]) {
+                      propertyEffectArr.splice(i, 1);
+                    }
+                  }
+                }
+              }
+
+            }
+
+
+            // console.log({T, Nx, R, X , A })
+
+            _runEffectsForTemplate.call(T, Nx, R, X, A);
+
+
+          } catch (err) {
+            debugger;
+            console.warn(err);
+          }
+
+        };
+
+
+        proto._runEffectsForTemplate = function (N, R, X, A) {
+
+          // console.log(988001)
+          /*
+           N {wasPreBound: true, nodeList: Array(23)}
+
+           R  {showInput: false, narrow: false, menuStrings: {…}, pageDarkTheme: true, theater: false, …}
+           X {showInput: undefined, narrow: undefined, menuStrings: undefined, pageDarkTheme: undefined, theater: undefined, …}
+           A  false
+           */
+
+          const Nw = (!N || typeof N !== 'object') ? N : (N[wk] || (N[wk] = mWeakRef(N))); // __templateInfo
+          const Xw = (!X || typeof X !== 'object') ? X : (X[wk] || (X[wk] = mWeakRef(X)));
+
+          const Rw = (!R || typeof R !== 'object') ? R : (R[wk] || (R[wk] = mWeakRef(R))); // __data
+          const Aw = (!A || typeof A !== 'object') ? A : (A[wk] || (A[wk] = mWeakRef(A)));
+
+          if (typeof (X || 0) === 'object') gxx.add(X);
+          if (typeof (A || 0) === 'object') gxx.add(A);
+
+          const Tw = (!this || typeof this !== 'object') ? this : (this[wk] || (this[wk] = mWeakRef(this)));
+
+
+          if (N.runEffects) {
+            N.runEffects(() => {
+              runner(Tw, Nw, Rw, Xw, Aw);
+            }, R, A);
+          } else {
+            runner(Tw, Nw, Rw, Xw, Aw);
+          }
+
+          // console.log(988002)
+
+          // const N_ = 
+
+          // var l = this
+          //   , k = function (T, W) {
+          //     XK(l, N.propertyEffects, T, X, W, N.nodeList);
+          //     for (var w = N.firstChild; w; w = w.nextSibling)
+          //       l._runEffectsForTemplate(w, T, X, W)
+          //   };
+          // N.runEffects ? N.runEffects(k, R, A) : k(R, A)
+        }
+
+      }
+
+    }
+    globalSetup('_removeBoundDom', setup1);
+
+
+    /*
+
+        M.prototype._stampTemplate = function(N, R) {
+            R = R || this._bindTemplate(N, !0);
+            aU.push(this);
+            N = d.prototype._stampTemplate.call(this, N, R);
+            aU.pop();
+            R.nodeList = N.nodeList;
+            if (!R.wasPreBound)
+                for (var X = R.childNodes = [], A = N.firstChild; A; A = A.nextSibling)
+                    X.push(A);
+            N.templateInfo = R;
+            X = R.nodeList;
+            A = R.nodeInfoList;
+            if (A.length)
+                for (var l = 0; l < A.length; l++) {
+                    var k = X[l]
+                      , T = A[l].bindings;
+                    if (T)
+                        for (var W = 0; W < T.length; W++) {
+                            var w = T[W]
+                              , p = k
+                              , h = w;
+                            if (h.isCompound) {
+                                for (var I = p.__dataCompoundStorage || (p.__dataCompoundStorage = {}), O = h.parts, y = Array(O.length), c = 0; c < O.length; c++)
+                                    y[c] = O[c].literal;
+                                O = h.target;
+                                I[O] = y;
+                                h.literal && h.kind == "property" && (O === "className" && (p = (0,
+                                _.FK)(p)),
+                                p[O] = h.literal)
+                            }
+                            gM2(k, this, w)
+                        }
+                    k.__dataHost = this
+                }
+            this.__dataClientsReady && (this._runEffectsForTemplate(R, this.__data, null, !1),
+            this._flushClients());
+            return N
+        }
+        ;
+
+    */
+
+
+
+    class WeakNodeC {
+      constructor(eid) {
+        this.eid = eid;
+      }
+      addEventListener(type, listener, option = void 0) {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        return node.addEventListener(type, listener, option);
+      }
+      removeEventListener(type, listener, option = void 0) {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        return node.removeEventListener(type, listener, option);
+      }
+      getNode592177() {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        return node;
+      }
+      set __dataHost(nv) {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        node.__dataHost = nv;
+        return true;
+      }
+      get __dataHost() {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        return node.__dataHost;
+      }
+
+      set __dataCompoundStorage(nv) {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        node.__dataCompoundStorage = nv;
+        return true;
+
+      }
+      get __dataCompoundStorage() {
+        const nodeWr = stampedNodes.get(this.eid);
+        const node = kRef(nodeWr);
+        if (!node) return;
+        return node.__dataCompoundStorage;
+
+      }
+    }
+
+    // let initied2 = false;
+    const setup2 = (qxx) => {
+      // if(initied2) return;
+      // initied2 = true;
+      const proto = qxx;
+      const constructor = proto.constructor;
+      const _stampTemplate = proto._stampTemplate;
+      // console.log(12883, proto, constructor)
+      if (typeof _stampTemplate === 'function' && _stampTemplate.length === 2 && !proto._stampTemplate374) {
+        proto._stampTemplate374 = _stampTemplate;
+        proto._stampTemplate = function (N, R) {
+          // R = boolean true or binded template
+          // N = template elemenet
+          let M = N;
+          if (typeof (N || 0) === 'object' && N instanceof HTMLTemplateElement && (N.content || 0).nodeType === 11) {
+            let componentIs = '';
+            try {
+              componentIs = this ? this.is : '';
+            } catch (e) { }
+            if (typeof (componentIs || 0) === 'string') {
+              // if (!templateMap.has(componentIs)) {
+              //   templateMap.set(componentIs, N);
+              // } else {
+              //   M = templateMap.get(componentIs);
+              // }
+            }
+          }
+          let r_ = null;
+          // Promise.resolve(N).then((N) => {
+          //   console.log(3488,N.templateInfo, N.templateInfo === r_);
+          // })
+          const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
+          r_ = r;
+
+          if (r && r.nodeType === 11) {
+
+            const fid = genId();
+
+            r.__fragId57__ = fid;
+            if (!r[wk]) r[wk] = mWeakRef(r);
+            stampedFragment.set(fid, r[wk]);
+
+            if (r.nodeList) {
+              const nl = r.nodeList;
+              nl.__belongFragId57__ = fid;
+              for (let i = 0, l = nl.length; i < l; i++) {
+                const t = nl[i];
+                if (t && t.nodeType >= 1) {
+                  if (!t[wk]) t[wk] = mWeakRef(t);
+                  const eid = `${fid}::${i}`;
+                  nl[i] = new WeakNodeC(eid);
+                  stampedNodes.set(eid, t[wk]);
+                  t.__weakNodeCId57__ = eid;
+                }
+              }
+            }
+
+          }
+
+          return r;
+        }
+      }
+    }
+
+    globalSetup('_addMethodEventListenerToNode', setup2);
+
+  }
+
   if (XFlag) {
 
     const cMap = new Set();
@@ -709,57 +1722,95 @@
         }
       }
 
-      if (MemoryFix_Flag002 & 4) {
-        if (cProto._runEffectsForTemplate && !cProto.__runEffectDX38__) {
-          cProto.__runEffectDX38__ = true;
+      // if (false && (MemoryFix_Flag002 & 4)) {
+      //   if (cProto._runEffectsForTemplate && !cProto.__runEffectDX38__ && !cProto._runEffectsForTemplate3858 && !cProto._runEffectsForTemplate3857) {
+      //     cProto.__runEffectDX38__ = true;
 
-          if (cProto._runEffectsForTemplate.length === 4) {
-            cProto._runEffectsForTemplate3858 = cProto._runEffectsForTemplate;
-            cProto._runEffectsForTemplate = sProtos._runEffectsForTemplate || (sProtos._runEffectsForTemplate = function (c, d, e, g) {
-              if (c && c.runEffects) {
-                let wr = wrObj(c, ['propertyEffects', 'nodeList', 'firstChild']);
-                // console.log(12837)
-                if (!this[wk]) this[wk] = mWeakRef(this);
-                if ((typeof (e || 0) === "object") && !e[wk]) e[wk] = mWeakRef(e);
-                let cntWr = this[wk];
-                let eWr = (typeof (e || 0) === "object") ? e[wk] : e;
-                c.runEffects((n, r) => {
-                  // console.log(12838)
-                  const cnt = kRef(cntWr);
-                  const e = kRef(eWr);
-                  if (cnt) {
-                    cnt._runEffectsForTemplate3858(wr, n, e, r);
-                  }
-                  wr = cntWr = d = e = g = null;
-                }, d, g);
-              } else {
-                let { propertyEffects, nodeList, firstChild } = c;
-                let o = { propertyEffects, nodeList, firstChild }
-                this._runEffectsForTemplate3858(o, d, e, g);
-                o.propertyEffects = o.nodeList = o.firstChild = null;
-                propertyEffects = nodeList = firstChild = null;
-                o = null;
-              }
+      //     if (cProto._runEffectsForTemplate.length === 4) {
+      //       cProto._runEffectsForTemplate3858 = cProto._runEffectsForTemplate;
+      //       if (FIX_MEMORY_RELEASE_RUNEFFECT_TEMPLATE) {
+      //         cProto._runEffectsForTemplate3857 = function (o, d, e, g) {
+      //           const { propertyEffects, nodeList, firstChild } = o;
+      //           if (propertyEffects && nodeList && nodeList.length >= 0) {
+      //             for (const [effectKey, propertyEffectArr] of Object.entries(propertyEffects)) {
+      //               for (let i = propertyEffectArr.length - 1; i >= 0; i--) {
+      //                 const propertyEffect = propertyEffectArr[i];
+      //                 const info = (propertyEffect || 0).info;
+      //                 if (info && typeof info.index === 'number' && !nodeList[info.index]) {
+      //                   propertyEffectArr.splice(i, 1);
+      //                 }
+      //               }
+      //             }
+      //           }
+      //           return this._runEffectsForTemplate3858(o, d, e, g);
+      //         }
+      //       } else {
+      //         cProto._runEffectsForTemplate3857 = cProto._runEffectsForTemplate3858;
+      //       }
+      //       cProto._runEffectsForTemplate = sProtos._runEffectsForTemplate || (sProtos._runEffectsForTemplate = function (c, d, e, g) {
+      //         if (c && c.runEffects) {
+      //           // const kNodeList = [...c.nodeList].map(e=>{
+      //           //   if(e && e.nodeType >= 1){
+      //           //     return e[wk] || (e[wk] = mWeakRef(e));
+      //           //   }else{
+      //           //     return e;
+      //           //   }
+      //           // });
+      //           let wr = wrObj(c, ['propertyEffects', 'nodeList', 'firstChild']);
+      //           // console.log(12837)
+      //           if (!this[wk]) this[wk] = mWeakRef(this);
+      //           if ((typeof (e || 0) === "object") && !e[wk]) e[wk] = mWeakRef(e);
+      //           let cntWr = this[wk];
+      //           let eWr = (typeof (e || 0) === "object") ? e[wk] : e;
+      //           c.runEffects((n, r) => {
+      //             // console.log(12838)
+      //             const cnt = kRef(cntWr);
+      //             const e = kRef(eWr);
+      //             if (cnt) {
+      //               cnt._runEffectsForTemplate3857(wr, n, e, r);
+      //             }
+      //             wr = cntWr = d = e = g = null;
+      //           }, d, g);
+      //         } else if (typeof (c || 0) === 'object') {
+      //           let { propertyEffects, nodeList, firstChild } = c;
+      //           let o = { propertyEffects, nodeList, firstChild }
+      //           // console.log(37271, propertyEffects, nodeList, firstChild);
+      //           this._runEffectsForTemplate3857(o, d, e, g);
+      //           o.propertyEffects = o.nodeList = o.firstChild = null;
+      //           propertyEffects = nodeList = firstChild = null;
+      //           o = null;
+      //         }
 
-            });
-
-            cProto._runEffectsForTemplate.bind = sProtos._runEffectsForTemplate$bind || (sProtos._runEffectsForTemplate$bind = function (obj, ...args) {
-              // console.log(12993, args)
-              let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
-              return () => {
-                const obj = kRef(wobj);
-                let u = Reflect.apply(this, obj, args);
-                args.length = 0;
-                wobj = null;
-                return u;
-              };
-            });
-          }
-
-        }
-      }
+      //         /*
+      //          B5A = function(M, d, N, R, X, A, l) {
+      //       l = l[X.index];
 
 
+      //       !(l[X.index])
+
+
+      //       m.fn(M, T, N, R, m.info, X, A),
+
+      //       !(A[m.info.index])
+
+      //       */
+      //       });
+
+      //       cProto._runEffectsForTemplate.bind = sProtos._runEffectsForTemplate$bind || (sProtos._runEffectsForTemplate$bind = function (obj, ...args) {
+      //         // console.log(12993, args)
+      //         let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
+      //         return () => {
+      //           const obj = kRef(wobj);
+      //           let u = Reflect.apply(this, obj, args);
+      //           args.length = 0;
+      //           wobj = null;
+      //           return u;
+      //         };
+      //       });
+      //     }
+
+      //   }
+      // }
 
 
 
@@ -788,39 +1839,39 @@
 
       /*
       
-                  a.prototype._initializeProperties = function() {
-                      if (Em && this.hasAttribute("disable-upgrade"))
-                          this.__isUpgradeDisabled = !0;
-                      else {
-                          var e = Object.getPrototypeOf(this);
-                          e.hasOwnProperty("__hasRegisterFinished") || (this._registered(),
-                          e.__hasRegisterFinished = !0);
-                          b.prototype._initializeProperties.call(this);
-                          this.root = this;
-                          this.created();
-                          fpb && !this._legacyForceObservedAttributes && (this.hasAttributes() ? this._takeAttributes() : this.parentNode || (this.__needsAttributesAtConnected = !0));
-                          this._applyListeners()
-                      }
-                  }
+          a.prototype._initializeProperties = function() {
+              if (Em && this.hasAttribute("disable-upgrade"))
+                  this.__isUpgradeDisabled = !0;
+              else {
+                  var e = Object.getPrototypeOf(this);
+                  e.hasOwnProperty("__hasRegisterFinished") || (this._registered(),
+                  e.__hasRegisterFinished = !0);
+                  b.prototype._initializeProperties.call(this);
+                  this.root = this;
+                  this.created();
+                  fpb && !this._legacyForceObservedAttributes && (this.hasAttributes() ? this._takeAttributes() : this.parentNode || (this.__needsAttributesAtConnected = !0));
+                  this._applyListeners()
+              }
+          }
       
-                  */
+      */
       /*
       
-              bOa = function(a, b, c) {
-                  var d = bya(a.prototype, $Na, a.prototype.behaviors);
-                  d.prototype.is = b;
-                  d.prototype.localName = b;
-                  c && aOa(d, c);
-                  return function(e) {
-                      e && (d.prototype.hostElement = e);
-                      var g = new d;
-                      g.root = g;
-                      g.hostElement = e;
-                      return g
-                  }
+          bOa = function(a, b, c) {
+              var d = bya(a.prototype, $Na, a.prototype.behaviors);
+              d.prototype.is = b;
+              d.prototype.localName = b;
+              c && aOa(d, c);
+              return function(e) {
+                  e && (d.prototype.hostElement = e);
+                  var g = new d;
+                  g.root = g;
+                  g.hostElement = e;
+                  return g
               }
+          }
       
-              */
+      */
 
 
     }
@@ -868,7 +1919,7 @@
 
 
 
-    const wm = new WeakMap();
+    // const wm = new WeakMap();
 
     const fixDetachFn = (tpProto) => { // & 32
 
@@ -890,6 +1941,11 @@
       tpProto.__updateInstances994 = tpProto.__updateInstances;
       if (typeof tpProto.__updateInstances994 === 'function' && tpProto.__updateInstances994.length === 3) {
         let bypass= false;
+        // tpProto._stampTemplate994 = tpProto._stampTemplate;
+        // tpProto._stampTemplate = function(N,R){
+        //   console.log(3882, [...N.nodeList])
+        //   return this._stampTemplate994(N,R);
+        // }
         tpProto.__updateInstances = function (a, b, c) {
 
           // const a_ = [...a];
@@ -1031,6 +2087,7 @@
       if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
         tpProto.__detachInstance = function (a) {
           const u = this.__instances[a];
+          if (u && !u.__keepInstance038__) u.__keepInstance038__ = true;
           const children = (u || 0).children;
           if (children && children.length >= 1) {
             const pp = document.createDocumentFragment();
@@ -1049,6 +2106,7 @@
       if (typeof tpProto.__attachInstance994 === 'function' && tpProto.__attachInstance994.length === 2) {
         tpProto.__attachInstance = function (a, b) {
           const u = this.__instances[a];
+          if (u && !u.__keepInstance038__) u.__keepInstance038__ = true;
           if (u && u.root && b) {
             const root = u.root;
             const pp = document.createDocumentFragment();
@@ -1110,7 +2168,9 @@
             if (arr && arr.isWeak) {
               convertToNormalArr(arr);
               for (let i = arr.length - 1; i >= 0; i--) {
-                if (!arr[i]) arr.splice(i, 1);
+                const t = arr[i];
+                if (!t) arr.splice(i, 1);
+                else if (!t.__keepInstance038__) t.__keepInstance038__ = true;
               }
               Promise.resolve(arr).then(convertToWeakArr);
             }
@@ -1196,6 +2256,7 @@
             const shadyParent = (this.__shady_parentNode || 0);
             const actualParent = (this.parentNode || 0);
             if (shadyParent !== actualParent && shadyParent.nodeType === 11 && actualParent.nodeType === 11) {
+              // && (shadyParent.compareDocumentPosition(actualParent) & (1|8|16) === 1)
               // if (!this.restamp && !this.id && this.__ctor && this.isConnected === false) {
                 const children = (this.__instance.children || 0).length;
                 if (children >= 1) {
@@ -1208,6 +2269,68 @@
           }
         }
       }
+
+
+      // if(yProto.constructor._contentForTemplate && yProto.constructor._parseTemplateNodeAttribute && yProto.constructor._parseTemplateNestedTemplate && !yProto.constructor.y366){
+
+      //   yProto.constructor.y366 = 1;
+
+      // const _stampTemplate366 = yProto._stampTemplate;
+      //   yProto._stampTemplate = function(N, R){
+      //     console.log(12773, N, R);
+      //     return _stampTemplate366.call(this, N, R);
+      //   }
+
+      // }
+      
+      /*
+      if(yProto._bindTemplate && !yProto._bindTemplate371) {
+        yProto._bindTemplate371 = true;
+        const _bindTemplate371 = yProto._bindTemplate;
+        yProto._bindTemplate = function(a, b){
+          const R = _bindTemplate371.call(this, a, b);
+          const X = R.nodeList || 0;
+          const A = R.nodeInfoList || 0;
+          // if(X && A && X.length === A.length){
+          //   for(let i =0, l=A.length;i<l; i++){
+          //     if()
+          //   }
+          // }
+          const l = Math.max((X.length || 0), (A.length || 0));
+          const e = {};
+          for (let i = 0; i < l; i++) {
+            if (X && !X[i]) X[i] = e;
+            if (A && !A[i]) A[i] = e;
+          }
+
+
+          return R;
+        }
+      }
+
+      if(yProto._stampTemplate && !yProto._stampTemplate371) {
+        yProto._stampTemplate371 = true;
+        const _stampTemplate371 = yProto._stampTemplate;
+        yProto._stampTemplate = function(a, b){
+          const R = _stampTemplate371.call(this, a, b);
+          const X = R.nodeList || 0;
+          const A = R.nodeInfoList || 0;
+          // if(X && A && X.length === A.length){
+          //   for(let i =0, l=A.length;i<l; i++){
+          //     if()
+          //   }
+          // }
+          const l = Math.max((X.length || 0), (A.length || 0));
+          const e = {};
+          for (let i = 0; i < l; i++) {
+            if (X && !X[i]) X[i] = e;
+            if (A && !A[i]) A[i] = e;
+          }
+          return R;
+        }
+      }
+      */
+
 
       if (MemoryFix_Flag002 & 32) {
         if (!yProto.dk322 && (yProto.__attachInstance || yProto.__detachInstance)) {
@@ -1306,8 +2429,25 @@
 
     }
 
-    const selfRef = {}; // no change. just key
+    // const selfRef = {}; // no change. just key
 
+    /*
+
+    jF = function(M) {
+            var d = YNV.call(this) || this;
+            d._configureProperties(M);
+            d.root = d._stampTemplate(d.__dataHost);
+            var N = [];
+            d.children = N;
+            for (var R = d.root.firstChild; R; R = R.nextSibling)
+                N.push(R),
+                R.__templatizeInstance = d;
+            d.__templatizeOwner && d.__templatizeOwner.__hideTemplateChildren__ && d._showHideChildren(!0);
+            N = d.__templatizeOptions;
+            (M && N.instanceProps || !N.instanceProps) && d._enableProperties();
+            return d
+        };
+        */
 
     const sb1 = Symbol();
     Object.defineProperty(Object.prototype, 'root', {
@@ -3034,6 +4174,205 @@
       // }
 
       // console.log('FIX_DOM_IF_RenderDebouncerChange X3')
+
+    }
+
+    const setupPolymerAdv = () => {
+      // here we can obtain the Polymer faster.
+      // reserved for future use.
+    }
+
+
+    if (USE_fastDomIf) {
+      // 0 = no effect. 1 = enable. 2 = disable
+      // fastDomIf because it delayed the rendering process?
+      Object.defineProperty(Object.prototype, 'fastDomIf', {
+        get() {
+          if (this === window.Polymer) {
+            const v = USE_fastDomIf === 1 ? true : false;
+            this.fastDomIf = v;
+            delete Object.prototype.fastDomIf;
+            setupPolymerAdv(this);
+            return v;
+          }
+        },
+        set(nv) {
+          return false;
+        }
+      });
+    }
+
+    let setupDomIfDone = false;
+    const setupDomIf = (DomIf)=>{
+      setupDomIfDone = true;
+      if(setupDomIfDone) return;
+
+      const fProto = DomIf.prototype;
+
+
+      // Polymer.DomIf
+      // Polymer.DomIf = Polymer.fastDomIf ? ZbL : ESz
+      // Assume ESz by default
+
+      // We don't need to store "root" in DOM-IF
+      if (ENHANCE_DOMIF_createAndInsertInstance && fProto.__createAndInsertInstance && !fProto.__createAndInsertInstance239 && fProto.__createAndInsertInstance.length === 1) {
+        fProto.__createAndInsertInstance239 = fProto.__createAndInsertInstance;
+        fProto.__createAndInsertInstance = function (M) {
+          const r = this.__createAndInsertInstance239(M);
+          const __instance = this.__instance;
+          const __ctor = this.__ctor;
+          if (__instance && __ctor && __instance instanceof __ctor) {
+            for (const sym of Object.getOwnPropertySymbols(__instance)) {
+              const o = __instance[sym];
+              if (o && o.nodeType === 11) {
+                __instance[sym] = null;
+              }
+            }
+          }
+          return r;
+        }
+
+        /*
+
+
+            sX = function(M, d, N) {
+                if (o_ && !vDv(M))
+                    throw Error("Jd");
+                N = N || {};
+                if (M.__templatizeOwner)
+                    throw Error("Kd");
+                M.__templatizeOwner = d;
+                var R = (d ? d.constructor : jF)._parseTemplate(M)
+                  , X = R.templatizeInstanceClass;
+                X || (X = sfi(M, R, N),
+                R.templatizeInstanceClass = X);
+                var A = vDv(M);
+                y9Z(M, R, N, A);
+                N = function() {
+                    return X.apply(this, arguments) || this
+                }
+                ;
+                _.v(N, X);
+                N.prototype._methodHost = A;
+                N.prototype.__dataHost = M;
+                N.prototype.__templatizeOwner = d;
+                N.prototype.__hostProps = R.hostProps;
+                return N
+            }
+
+        */
+      }
+
+      // Polymer.DomIf
+      
+      // We can fully teardown the entire instance (including stampFrag and stampNodes), just keep ctor stamper
+      if (ENHANCE_DOMIF_TEARDOWN && fProto.__teardownInstance && !fProto.__teardownInstance239 && fProto.__teardownInstance.length === 0) {
+        fProto.__teardownInstance239 = fProto.__teardownInstance;
+        fProto.__teardownInstance = function () {
+          const { __instance, __invalidProps } = this;
+          let r, e_;
+          try {
+            r = this.__teardownInstance239();
+          } catch (e) { e_ = e }
+          if (!__instance) return r;
+
+          try {
+
+            //console.log(599901,this.countEvent767());
+            //console.log('__teardownInstance F', __instance, __invalidProps, this._removeEventListenerFromNode, __instance._removeEventListenerFromNode);
+            __instance.__data = null;
+            __instance.__dataClientsReady = __instance.__dataEnabled = __instance.__dataReady = false;
+            __instance.__dataInvalid = true;
+            __instance.__dataHost = __instance.__dataTemp = null;
+            __instance.__isPropertyEffectsClient = false;
+            __instance.__keepInstance038__ = false;
+
+
+            const __templateInfo = __instance.__templateInfo;
+
+            let stampFragId = null;
+            if (__templateInfo && __templateInfo.nodeList) {
+              stampFragId = __templateInfo.nodeList.__belongFragId57__;
+              for (const weakNodeC of __templateInfo.nodeList) {
+                const node = toActualNode(weakNodeC);
+                if (node && node.nodeType >= 1) {
+                  _removedElements.addNode(node);
+                  node.__keepInstance038__ = false;
+                  node.remove();
+                }
+              }
+              __templateInfo.nodeList.length = 0;
+              __templateInfo.nodeList = null;
+            }
+
+            const stampFrag = stampFragId ? kRef(stampedFragment.get(stampFragId)) : null;
+
+            if (stampFrag && stampFrag.nodeType === 11) {
+              _removedElements.addNode(stampFrag);
+              removeAllChildNodes(stampFrag);
+              try {
+                stampFrag.__keepInstance038__ = false;
+                stampFrag.remove();
+              } catch (e) { }
+              stampFrag.__shady = null;
+              stampFrag.$ = null;
+              stampFrag.__fragTeardowned57__ = true;
+              stampFrag.nodeList = null;
+              stampFrag.templateInfo = null;
+
+            }
+
+            for (const sym of Object.getOwnPropertySymbols(__instance)) {
+              const o = __instance[sym];
+              if (o && o.nodeType === 11) {
+                __instance[sym] = null;
+              }
+            }
+
+            const children = (__instance || 0).children;
+            if (children && children.splice) {
+              __instance.children = null;
+              for (const n of children) {
+                if (n && n.nodeType >= 1) {
+                  n.__keepInstance038__ = false;
+                  _removedElements.addNode(n);
+                }
+              }
+              children.length = 0;
+            }
+
+            if (__instance.__templateInfo) __instance.__templateInfo = null;
+
+            if (__instance.root) __instance.root = null;
+
+          } catch (e) {
+            console.error(e);
+          }
+
+          // console.log(3882)
+          if (e_) throw e_;
+          return r;
+        }
+      }
+
+    }
+
+    if (ENHANCE_DOMIF_createAndInsertInstance || ENHANCE_DOMIF_TEARDOWN) {
+
+      Object.defineProperty(Object.prototype, 'DomIf', {
+        get() {
+          return undefined;
+        },
+        set(nv) {
+          if (typeof (nv || 0) !== 'function') return false;
+          delete Object.prototype.DomIf;
+          this.DomIf = nv;
+          setupDomIf(nv);
+          return true;
+        },
+        enumerable: false,
+        configurable: true
+      });
 
     }
 
@@ -6531,6 +7870,7 @@
       const useMicroTaskQueue2 = evaluteUseMicroTaskQueue(ax, containerId, hostIs, this, this.hostElement);
 
       const container = this.getStampContainer7409_(containerId);
+      const pChildren = [...container.children];
 
       containerMapping.set(container, 
         (this[wk] || (this[wk] = mWeakRef(this)))
@@ -6588,6 +7928,12 @@
       this[`__$$stampSqq$$#${containerId}__`] = f;
       useMicroTaskQueue2 ? addTask2(f) : f();
       executeTasks();
+
+      for (const node of pChildren) {
+        if (node.isConnected === false) {
+          _removedElements.addNode(node);
+        }
+      }
 
       // console.log(58801, this.hostElement.parentNode instanceof HTMLElement_);
 
@@ -8935,21 +10281,21 @@
       
 
 
-      if(cProto._runEffectsForTemplate && !cProto._runEffectsForTemplate6344) {
-        cProto._runEffectsForTemplate6344 = cProto._runEffectsForTemplate;
+      // if(false && cProto._runEffectsForTemplate && !cProto._runEffectsForTemplate6344) {
+      //   cProto._runEffectsForTemplate6344 = cProto._runEffectsForTemplate;
 
-        if(cProto._runEffectsForTemplate6344.length === 4){
+      //   if(cProto._runEffectsForTemplate6344.length === 4){
 
-          cProto._runEffectsForTemplate = function (c, d, e, g) {
-            const cnt = this;
-            const { propertyEffects, nodeList, firstChild } = c;
-            cnt._runEffectsForTemplate6344({ propertyEffects, nodeList, firstChild }, d, e, g);
+      //     cProto._runEffectsForTemplate = function (c, d, e, g) {
+      //       const cnt = this;
+      //       const { propertyEffects, nodeList, firstChild } = c;
+      //       cnt._runEffectsForTemplate6344({ propertyEffects, nodeList, firstChild }, d, e, g);
 
-          }
+      //     }
 
-        }
+      //   }
 
-      }
+      // }
 
     }
     if (ENABLE_discreteTasking && !(cProto[pvr] & 2) && (typeof (cProto.is || 0) === 'string' || ('attached' in cProto) || ('isAttached' in cProto))) {
