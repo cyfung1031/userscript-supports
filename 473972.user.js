@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.40.0
+// @version     0.40.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -181,6 +181,7 @@
   const DEBUG_renderDebounceTs = false;
 
   const FIX_ICON_RENDER = true;
+  const FIX_GUIDE_ICON = true;
 
   const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
 
@@ -700,18 +701,15 @@
     }
   }
 
-  let _removedElements = new Set();
+  const _removedElements = new Set();
   _removedElements.add = _removedElements.addOriginal || _removedElements.add;
   _removedElements.addNode = MEMORY_RELEASE_NF00 ? function (node) {
-    if (!node || node === _emptyElement || node.__keepInstance038__) return;
-    if (!node[wk]) node[wk] = mWeakRef(node);
-    return this.add(node[wk]);
-  } : () => { };
-
-  let __removedElements = new Set();
-  __removedElements.add = __removedElements.addOriginal || __removedElements.add;
-  __removedElements.addNode = MEMORY_RELEASE_NF00 ? function (node) {
-    if (!node || node === _emptyElement || node.__keepInstance038__) return;
+    if (!node || node === _emptyElement || node.__keepInstance038__ || node.t792 || node instanceof HTMLTitleElement) return;
+    const rootNode = node.getRootNode();
+    if (rootNode && rootNode.nodeType >= 1 && rootNode !== node) {
+      if (rootNode.isConnected !== node.isConnected) return;
+      this.addNode(rootNode);
+    }
     if (!node[wk]) node[wk] = mWeakRef(node);
     return this.add(node[wk]);
   } : () => { };
@@ -836,6 +834,9 @@
 
   if (MEMORY_RELEASE_NF00) {
 
+    const __removedElements = new Set();
+    __removedElements.add = __removedElements.addOriginal || __removedElements.add;
+
     setInterval(() => {
       const nodesSet = new Set();
       nodesSet.add = nodesSet.addOriginal || nodesSet.add;
@@ -888,45 +889,57 @@
           }
           // node.__instances.length = 0;
         }
-        if (node && node.nodeType === 1 && insp(node).__teardownInstance) {
-          try {
-            insp(node).__teardownInstance();
-          } catch (e) { }
-        } else if (node && node.nodeType === 1 && node.__teardownInstance) {
-          try {
-            (node).__teardownInstance();
-          } catch (e) { }
+        if (node && node.nodeType === 1) {
+          if (typeof insp(node).__teardownInstance === 'function') {
+            try {
+              insp(node).__teardownInstance();
+            } catch (e) { }
+          } else if (typeof node.__teardownInstance === 'function') {
+            try {
+              node.__teardownInstance();
+            } catch (e) { }
+          }
         }
         if (node && node.nodeType === 1 && node.__detachAndRemoveInstance && (node.__instances || 0).length >= 1) {
           for (let i = node.__instances.length - 1; i >= 0; i--) {
             node.__detachAndRemoveInstance(i)
           }
         }
-        if (node && insp(node).unobserveNodes) {
-          insp(node).unobserveNodes();
-        }
-        if (node && (node).unobserveNodes) {
-          (node).unobserveNodes();
-        }
-        if (node && node.nodeType === 1 && node.is === void 0 && typeof node.dispose === 'function') {
-          node.dispose();
-        }
-        if (node && node.nodeType === 1 && typeof node.unobserve_ === 'function') {
-          node.unobserve_();
-        }
 
-        if (node && node.nodeType === 1 && node.is === void 0 && typeof insp(node).dispose === 'function') {
-          insp(node).dispose();
-        }
-        if (node && node.nodeType === 1 && typeof insp(node).unobserve_ === 'function') {
-          insp(node).unobserve_();
-        }
-
-        if (node && node.nodeType === 1 && typeof insp(node).unlinkPaths === 'function' && insp(node).__dataLinkedPaths) {
-          for (let k in __dataLinkedPaths) {
-            insp(node).unlinkPaths(k);
+        if (node && node.nodeType === 1 && node.is === void 0) {
+          if (typeof insp(node).dispose === 'function') {
+            insp(node).dispose();
+          } else if (typeof node.dispose === 'function') {
+            node.dispose();
           }
         }
+
+        if (node && node.nodeType === 1) {
+          if (typeof insp(node).unobserve_ === 'function') {
+            insp(node).unobserve_();
+          } else if (typeof node.unobserve_ === 'function') {
+            node.unobserve_();
+          }
+        }
+
+        if (node) {
+          if (typeof insp(node).unobserveNodes === 'function') {
+            insp(node).unobserveNodes();
+          } else if (typeof node.unobserveNodes === 'function') {
+            node.unobserveNodes();
+          }
+        }
+
+        // if (node && node.nodeType === 1) {
+        //   const cnt = insp(node);
+        //   const paths = cnt.__dataLinkedPaths;
+        //   if (paths && paths.length >= 1 && typeof cnt.unlinkPaths === 'function') {
+        //     for (let k in paths) {
+        //       cnt.unlinkPaths(k);
+        //     }
+        //   }
+        // }
+
         const visibilityMonitorKeys = insp(node).visibilityMonitorKeys || node.visibilityMonitorKeys;
         if (visibilityMonitorKeys) {
           for (const entry of visibilityMonitorKeys) {
@@ -934,12 +947,13 @@
           }
           visibilityMonitorKeys.length = 0;
         }
-        if (node.__instances) {
-          for (const k of node.__instances) {
+        const __instances = node.__instances;
+        if (__instances) {
+          for (const k of __instances) {
             if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
             if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
           }
-          node.__instances.length = 0;
+          __instances.length = 0;
         }
         const sp = node.__shady_parentNode;
         if (sp && sp.nodeType >= 1 && sp.isConnected === false) _removedElements.addNode(sp);
@@ -960,16 +974,15 @@
         if (node.__domApi) {
           node.__domApi = null;
         }
-        if (node.__shady) {
-          const shady = node.__shady;
+        const __shady = node.__shady;
+        if (__shady) {
           node.__shady = null;
-          removeShady(shady);
+          removeShady(__shady);
         }
 
 
         const ceRoot = node.__CE_shadowRoot;
         if (ceRoot) {
-
           node.__CE_shadowRoot = null;
           if (ceRoot.nodeType >= 1 && ceRoot.isConnected === false) {
             _removedElements.addNode(ceRoot);
@@ -1085,6 +1098,8 @@
 
         for (const s of nmSet) s.delete(node);
         for (const m of nmMap) m.delete(node);
+
+        mightTeardownShadyDomWrap(node);
 
         nf00.registerNode(node);
 
@@ -1413,7 +1428,32 @@
 
             // console.log({T, Nx, R, X , A })
 
+            // console.log(1737001, T)
+            // console.log(1737002, Nx)
+
+            // console.log(1737003, R)
+            // console.log(1737004, X)
+            // console.log(1737005, A)
+
+            const hostElement = T.hostElement;
+            const pChildren = (hostElement instanceof Node) ? [...hostElement.childNodes] : null;
+
             _runEffectsForTemplate.call(T, Nx, R, X, A);
+
+            (pChildren || 0).length >= 1 && Promise.resolve(pChildren).then((pChildren) => {
+              for (const node of pChildren) {
+                if (node.isConnected === false) {
+                  let tNode = node;
+                  let pNode;
+                  while ((pNode = tNode.parentNode) && pNode.nodeType >= 1) {
+                    tNode = pNode;
+                  }
+                  _removedElements.addNode(tNode);
+                }
+              }
+              pChildren.length = 0;
+              pChildren = null;
+            });
 
 
           } catch (err) {
@@ -1468,6 +1508,96 @@
           // N.runEffects ? N.runEffects(k, R, A) : k(R, A)
         }
 
+      }
+
+      // const __dataHostSym = Symbol();
+      // const __dataHostPd = {
+      //   get() {
+      //     return kRef(this[__dataHostSym]);
+      //   },
+      //   set(nv) {
+      //     const w = kRef(nv);
+      //     if (!w) this[__dataHostSym] = w;
+      //     else {
+      //       let byPass = !!('parentModel' in this)
+      //       if (!byPass && (w instanceof Node && w.isConnected === true)) {
+      //         if (!w[wk]) w[wk] = mWeakRef(w);
+      //         this[__dataHostSym] = w[wk];
+      //       } else {
+      //         this[__dataHostSym] = w;
+      //       }
+      //     }
+      //     return true;
+      //   },
+      //   enumerable: true,
+      //   configurable: true
+      // };
+
+      // const _registerHost = proto._registerHost;
+      // if (_registerHost && !proto._registerHost322 && _registerHost.length === 0) {
+      //   proto._registerHost322 = _registerHost;
+      //   proto._registerHost = function () {
+      //     if (!this.__regHost322x__) {
+      //       const tProto = Reflect.getPrototypeOf(this);
+      //       if (tProto) {
+      //         tProto.__regHost322x__ = true;
+      //       }
+      //       if (this.__regHost322x__ === true) {
+      //         const q = this.__dataHost;
+      //         delete this.__dataHost;
+      //         delete this[__dataHostSym];
+      //         if (q !== undefined) this[__dataHostSym] = q;
+      //         Object.defineProperty(tProto, '__dataHost', __dataHostPd);
+      //       }
+      //     }
+      //     return _registerHost.call(this);
+      //   }
+      // }
+
+
+
+      const _registerHost = proto._registerHost;
+      if (_registerHost && !proto._registerHost322 && _registerHost.length === 0) {
+        proto._registerHost322 = _registerHost;
+        const map = new WeakMap();
+        map.set = map.setOriginal || map.set;
+        proto._registerHost = function () {
+          if (!map.has(this)) {
+            map.set(this, (this.__dataHost || null));
+            Object.defineProperty(this, '__dataHost', {
+              get() {
+                return kRef(map.get(this)) || null
+              },
+              set(nv) {
+                const w = kRef(nv);
+                if (!w) {
+                  map.set(this, null);
+                } else {
+                  if (!w[wk]) w[wk] = mWeakRef(w);
+                  let byPass = false;
+                  if (this.is === 'ytd-masthead') byPass = true;
+                  if (byPass) {
+                    map.set(this, w);
+                  } else {
+                    map.set(this, w[wk]);
+                  }
+                }
+                return true;
+              },
+              enumerable: true,
+              configurable: true
+            });
+          }
+          let previousDataHost = this.__dataHost;
+          let r = _registerHost.call(this);
+          let currentDataHost = this.__dataHost;
+          if (currentDataHost !== previousDataHost) { // future use only
+            if (previousDataHost && previousDataHost.nodeType >= 1 && previousDataHost.isConnected === false) {
+              _removedElements.addNode(previousDataHost);
+            }
+          }
+          return r;
+        }
       }
 
     }
@@ -4805,6 +4935,8 @@
 
   // WEAKREF_ShadyDOM
 
+  let mightTeardownShadyDomWrap = () => { };
+
   MODIFY_ShadyDOM_OBJ && ((WeakRef) => {
 
     const setupPlainShadyDOM = (b) => {
@@ -4899,6 +5031,11 @@
     }
 
     let previousWrapStore = null;
+
+    mightTeardownShadyDomWrap = (node) => {
+      if (previousWrapStore) previousWrapStore.delete(node);
+      if (shadyDOMNodeWRM) shadyDOMNodeWRM.delete(node);
+    };
 
     const standardWrap = function (a) {
       // if(a && a.deref) a= a.deref();
@@ -7151,6 +7288,11 @@
     }
 
     cProto.handlePropertyChange = function (...a) { // 10+
+
+      const __data = this.__data;
+      if (FIX_GUIDE_ICON && this.id === 'guide-icon' && __data && !__data.icon && typeof this.set === 'function') {
+        this.set('icon', "yt-icons:menu")
+      }
 
       if (!this.__ytIconSetup588__) setupYtIcon(this);
       this.__resolved__ = {
