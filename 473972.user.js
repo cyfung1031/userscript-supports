@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.40.2
+// @version     0.41.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -45,20 +45,15 @@
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
   const CHANGE_appendChild = true; // discussions#236759
   const FIX_bind_self_this = false;　// EXPERIMENTAL !!!!! this affect page switch after live ends
-  const FIX_weakMap_weakRef = false; // EXPERIMENTAL !!!!! Might Incompatible to some userscripts (as the strong relationship is removed)
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
-  // const FIX_error_many_stack_keepAliveDuration = 200; // ms
-  // const FIX_error_many_stack_keepAliveDuration_check_if_n_larger_than = 8;
-
-  const FIX_Iframe_NULL_SRC = false;
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
   const FIX_ytdExpander_childrenChanged = true;
   const FIX_paper_ripple_animate = true;
-  const FIX_avoid_incorrect_video_meta = false; // omit the incorrect yt-animated-rolling-number // 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
-  const FIX_avoid_incorrect_video_meta_emitterBehavior = false; // 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
+  const FIX_avoid_incorrect_video_meta = true; // [legacy feature for rolling number fixing] 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
+  const FIX_avoid_incorrect_video_meta_emitterBehavior = true; // [legacy feature for rolling number fixing] 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
 
   const FIX_doIdomRender = true;
 
@@ -82,7 +77,6 @@
   // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
   const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
 
-  const ENABLE_discreteTasking = false; // removed since 0.20.0
   const FIX_stampDomArray_ = true; // v0.30.0
   const FIX_stampDomArray = FIX_stampDomArray_ && typeof WeakRef === "function" && typeof FinalizationRegistry === "function";
   // const stampDomArray_MemoryFix_Flag001 = false;
@@ -122,6 +116,41 @@
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
 
+  // ------------------------------------------------------------------
+
+  const MEMORY_RELEASE_NF00 = true;
+  const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
+  const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
+  const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
+
+  const FIX_TEMPLATE_BINDING = true;
+  const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
+
+  const USE_fastDomIf = 2; // fastDomIf is seem to be experimental  0 = no change, 1 = enable, 2 = disable
+  const ENHANCE_DOMIF_createAndInsertInstance = true; // root does not need to store in the instance
+  const ENHANCE_DOMIF_TEARDOWN = true; // require MEMORY_RELEASE_NF00
+
+  const FIX_DOM_IF_DETACH = true;
+  const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
+  const FIX_DOM_IF_TEMPLATE = true;
+  // const FIX_DOM_REPEAT_TEMPLATE = true; // to be implemented
+
+  const DEBUG_DBR847 = false;
+  const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
+
+  const FIX_ICON_RENDER = true;
+  const FIX_GUIDE_ICON = true;
+  const FIX_ACTIONS_TOOLTIPS = true;
+
+  const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
+
+  const DISABLE_isLowLatencyLiveStream = false; // TBC
+
+  const FIX_FlexibleItemSizing = true;
+  
+  const FIX_ROLLING_NUMBER_UPDATE = true;
+
+
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
   // example. https://www.youtube.com/channel/UCgPev1KKSCMbnNRsvN83Hag/about
   // first tp-yt-paper-dialog: show once the page is loaded.
@@ -157,75 +186,6 @@
   // Experimental flag "ytpopup_disable_default_html_caching" is disabled by default.
   // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
-
-  const MEMORY_RELEASE_NF00 = true;
-  const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
-  const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
-  const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
-  // const FIX_MEMORY_RELEASE_RUNEFFECT_TEMPLATE = true; // require MEMORY_RELEASE_NF00
-  const FIX_TEMPLATE_BINDING = true;
-  const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
-
-  const USE_fastDomIf = 2; // fastDomIf is seem to be experimental  0 = no change, 1 = enable, 2 = disable
-  const ENHANCE_DOMIF_createAndInsertInstance = true; // root does not need to store in the instance
-  const ENHANCE_DOMIF_TEARDOWN = true; // require MEMORY_RELEASE_NF00
-
-  const FIX_DOM_IF_DETACH = true;
-  const FIX_DOM_IF_REPEAT = true; // semi-experimental (added in 0.17.0)
-  const FIX_DOM_IF_TEMPLATE = true;
-  // const FIX_DOM_REPEAT_TEMPLATE = true; // to be implemented
-  const FIX_DOM_IFREPEAT_RenderDebouncerChange = false; // semi-experimental (added in 0.17.0) // found buggy for chat ticker sizing
-  const DEBUG_DBR847 = false;
-  const DEBUG_xx847 = false;
-  const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
-  const DEBUG_renderDebounceTs = false;
-
-  const FIX_ICON_RENDER = true;
-  const FIX_GUIDE_ICON = true;
-  const FIX_ACTIONS_TOOLTIPS = true;
-
-  const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
-
-  const DISABLE_isLowLatencyLiveStream = false; // TBC
-
-  const FIX_FlexibleItemSizing = true;
-  
-  const FIX_ROLLING_NUMBER_UPDATE = true;
-
-  /*
-
-  FIX_DOM_IFREPEAT_RenderDebouncerChange
-
-  avoid Polymer.flush
-   // https://www.youtube.com/s/desktop/26a583e4/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-    var Is = function() {
-        do {
-            var a = window.ShadyDOM && ShadyDOM.flush();
-            window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush();
-            var b = NNa()
-        } while (a || b)
-    };
-
-    , NNa = function() {
-        var a = !!ts.size;
-        ts.forEach(function(b) {
-            try {
-                b.flush()
-            } catch (c) {
-                setTimeout(function() {
-                    throw c
-                })
-            }
-        });
-        return a
-    };
-
-    // why flush twice after all ts are completed? (!!ts.size => true => loop again)
-    // this coding logic should be incorrect (mistake).
-
-  */
-
 
 
   // ----------------------------- Shortkey Keyboard Control -----------------------------
@@ -704,15 +664,23 @@
 
   const _removedElements = new Set();
   _removedElements.add = _removedElements.addOriginal || _removedElements.add;
-  _removedElements.addNode = MEMORY_RELEASE_NF00 ? function (node) {
-    if (!node || node === _emptyElement || node.__keepInstance038__ || node.t792 || node instanceof HTMLTitleElement) return;
-    const rootNode = node.getRootNode();
-    if (rootNode && rootNode.nodeType >= 1 && rootNode !== node) {
-      if (rootNode.isConnected !== node.isConnected) return;
-      this.addNode(rootNode);
+  _removedElements.addNode_ = MEMORY_RELEASE_NF00 ? function (node) {
+    if (!node || node.__keepInstance038__ || node.t792 || node instanceof HTMLTitleElement || node.nodeName === 'defs' || node.nodeName === 'TITLE') return;
+    if (node && node.nodeType >= 1 && node.nodeType !== 9) {
+      if (!node[wk]) node[wk] = mWeakRef(node);
+      return this.add(node[wk]);
     }
-    if (!node[wk]) node[wk] = mWeakRef(node);
-    return this.add(node[wk]);
+  } : () => { };
+
+  _removedElements.addNode = MEMORY_RELEASE_NF00 ? (node) => {
+    if (!node || node.__keepInstance038__ || node.t792 || node instanceof HTMLTitleElement || node.nodeName === 'defs' || node.nodeName === 'TITLE') return;
+    if (node && node.nodeType >= 1 && node.nodeType !== 9) {
+      const rootNode = node.getRootNode();
+      if (rootNode && rootNode !== node) {
+        if (rootNode.nodeType >= 1 && rootNode.nodeType !== 9) _removedElements.addNode_(rootNode);
+      }
+      _removedElements.addNode_(node);
+    }
   } : () => { };
 
   const _emptyElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -846,10 +814,15 @@
         __removedElements.delete(nodeWr);
         const node = kRef(nodeWr);
         if (node && node.nodeType >= 1 && node.isConnected === false) {
-          nodesSet.add(node);
-          if (node.querySelectorAll) {
-            for (const p of node.querySelectorAll('*')) {
-              nodesSet.add(p);
+          const rootNode = node.getRootNode();
+          if (rootNode && rootNode.nodeType >= 1 && rootNode.nodeType !== 9 && rootNode.isConnected === true) {
+            // do nothing
+          } else {
+            nodesSet.add(node);
+            if (node.querySelectorAll) {
+              for (const p of node.querySelectorAll('*')) {
+                nodesSet.add(p);
+              }
             }
           }
         }
@@ -1185,16 +1158,16 @@
       let t, q = null;
       while ((t = o.firstChild) && t !== q) {
         try {
-          _removedElements.addNode(t);
           t.__keepInstance038__ = false;
           t.remove();
+          _removedElements.addNode(t);
           q = t;
         } catch (e) { }
       }
       try {
-        _removedElements.addNode(o);
         o.__keepInstance038__ = false;
         o.remove();
+        _removedElements.addNode(o);
       } catch (e) { }
     }
   }
@@ -1511,51 +1484,6 @@
 
       }
 
-      // const __dataHostSym = Symbol();
-      // const __dataHostPd = {
-      //   get() {
-      //     return kRef(this[__dataHostSym]);
-      //   },
-      //   set(nv) {
-      //     const w = kRef(nv);
-      //     if (!w) this[__dataHostSym] = w;
-      //     else {
-      //       let byPass = !!('parentModel' in this)
-      //       if (!byPass && (w instanceof Node && w.isConnected === true)) {
-      //         if (!w[wk]) w[wk] = mWeakRef(w);
-      //         this[__dataHostSym] = w[wk];
-      //       } else {
-      //         this[__dataHostSym] = w;
-      //       }
-      //     }
-      //     return true;
-      //   },
-      //   enumerable: true,
-      //   configurable: true
-      // };
-
-      // const _registerHost = proto._registerHost;
-      // if (_registerHost && !proto._registerHost322 && _registerHost.length === 0) {
-      //   proto._registerHost322 = _registerHost;
-      //   proto._registerHost = function () {
-      //     if (!this.__regHost322x__) {
-      //       const tProto = Reflect.getPrototypeOf(this);
-      //       if (tProto) {
-      //         tProto.__regHost322x__ = true;
-      //       }
-      //       if (this.__regHost322x__ === true) {
-      //         const q = this.__dataHost;
-      //         delete this.__dataHost;
-      //         delete this[__dataHostSym];
-      //         if (q !== undefined) this[__dataHostSym] = q;
-      //         Object.defineProperty(tProto, '__dataHost', __dataHostPd);
-      //       }
-      //     }
-      //     return _registerHost.call(this);
-      //   }
-      // }
-
-
 
       const _registerHost = proto._registerHost;
       if (_registerHost && !proto._registerHost322 && _registerHost.length === 0) {
@@ -1717,23 +1645,7 @@
           // R = boolean true or binded template
           // N = template elemenet
           let M = N;
-          if (typeof (N || 0) === 'object' && N instanceof HTMLTemplateElement && (N.content || 0).nodeType === 11) {
-            let componentIs = '';
-            try {
-              componentIs = this ? this.is : '';
-            } catch (e) { }
-            if (typeof (componentIs || 0) === 'string') {
-              // if (!templateMap.has(componentIs)) {
-              //   templateMap.set(componentIs, N);
-              // } else {
-              //   M = templateMap.get(componentIs);
-              // }
-            }
-          }
           let r_ = null;
-          // Promise.resolve(N).then((N) => {
-          //   console.log(3488,N.templateInfo, N.templateInfo === r_);
-          // })
           const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
           r_ = r;
 
@@ -1852,97 +1764,6 @@
 
         }
       }
-
-      // if (false && (MemoryFix_Flag002 & 4)) {
-      //   if (cProto._runEffectsForTemplate && !cProto.__runEffectDX38__ && !cProto._runEffectsForTemplate3858 && !cProto._runEffectsForTemplate3857) {
-      //     cProto.__runEffectDX38__ = true;
-
-      //     if (cProto._runEffectsForTemplate.length === 4) {
-      //       cProto._runEffectsForTemplate3858 = cProto._runEffectsForTemplate;
-      //       if (FIX_MEMORY_RELEASE_RUNEFFECT_TEMPLATE) {
-      //         cProto._runEffectsForTemplate3857 = function (o, d, e, g) {
-      //           const { propertyEffects, nodeList, firstChild } = o;
-      //           if (propertyEffects && nodeList && nodeList.length >= 0) {
-      //             for (const [effectKey, propertyEffectArr] of Object.entries(propertyEffects)) {
-      //               for (let i = propertyEffectArr.length - 1; i >= 0; i--) {
-      //                 const propertyEffect = propertyEffectArr[i];
-      //                 const info = (propertyEffect || 0).info;
-      //                 if (info && typeof info.index === 'number' && !nodeList[info.index]) {
-      //                   propertyEffectArr.splice(i, 1);
-      //                 }
-      //               }
-      //             }
-      //           }
-      //           return this._runEffectsForTemplate3858(o, d, e, g);
-      //         }
-      //       } else {
-      //         cProto._runEffectsForTemplate3857 = cProto._runEffectsForTemplate3858;
-      //       }
-      //       cProto._runEffectsForTemplate = sProtos._runEffectsForTemplate || (sProtos._runEffectsForTemplate = function (c, d, e, g) {
-      //         if (c && c.runEffects) {
-      //           // const kNodeList = [...c.nodeList].map(e=>{
-      //           //   if(e && e.nodeType >= 1){
-      //           //     return e[wk] || (e[wk] = mWeakRef(e));
-      //           //   }else{
-      //           //     return e;
-      //           //   }
-      //           // });
-      //           let wr = wrObj(c, ['propertyEffects', 'nodeList', 'firstChild']);
-      //           // console.log(12837)
-      //           if (!this[wk]) this[wk] = mWeakRef(this);
-      //           if ((typeof (e || 0) === "object") && !e[wk]) e[wk] = mWeakRef(e);
-      //           let cntWr = this[wk];
-      //           let eWr = (typeof (e || 0) === "object") ? e[wk] : e;
-      //           c.runEffects((n, r) => {
-      //             // console.log(12838)
-      //             const cnt = kRef(cntWr);
-      //             const e = kRef(eWr);
-      //             if (cnt) {
-      //               cnt._runEffectsForTemplate3857(wr, n, e, r);
-      //             }
-      //             wr = cntWr = d = e = g = null;
-      //           }, d, g);
-      //         } else if (typeof (c || 0) === 'object') {
-      //           let { propertyEffects, nodeList, firstChild } = c;
-      //           let o = { propertyEffects, nodeList, firstChild }
-      //           // console.log(37271, propertyEffects, nodeList, firstChild);
-      //           this._runEffectsForTemplate3857(o, d, e, g);
-      //           o.propertyEffects = o.nodeList = o.firstChild = null;
-      //           propertyEffects = nodeList = firstChild = null;
-      //           o = null;
-      //         }
-
-      //         /*
-      //          B5A = function(M, d, N, R, X, A, l) {
-      //       l = l[X.index];
-
-
-      //       !(l[X.index])
-
-
-      //       m.fn(M, T, N, R, m.info, X, A),
-
-      //       !(A[m.info.index])
-
-      //       */
-      //       });
-
-      //       cProto._runEffectsForTemplate.bind = sProtos._runEffectsForTemplate$bind || (sProtos._runEffectsForTemplate$bind = function (obj, ...args) {
-      //         // console.log(12993, args)
-      //         let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
-      //         return () => {
-      //           const obj = kRef(wobj);
-      //           let u = Reflect.apply(this, obj, args);
-      //           args.length = 0;
-      //           wobj = null;
-      //           return u;
-      //         };
-      //       });
-      //     }
-
-      //   }
-      // }
-
 
 
       const cProtoConstructor = cProto.constructor;
@@ -2072,11 +1893,6 @@
       tpProto.__updateInstances994 = tpProto.__updateInstances;
       if (typeof tpProto.__updateInstances994 === 'function' && tpProto.__updateInstances994.length === 3) {
         let bypass= false;
-        // tpProto._stampTemplate994 = tpProto._stampTemplate;
-        // tpProto._stampTemplate = function(N,R){
-        //   console.log(3882, [...N.nodeList])
-        //   return this._stampTemplate994(N,R);
-        // }
         tpProto.__updateInstances = function (a, b, c) {
 
           // const a_ = [...a];
@@ -2138,81 +1954,6 @@
           return r;
         }
       }
-
-      /*
-
-              tpProto.__updateInstances = function (a, b, c) {
-
-          let renew = this.__wasInstanceDetached001 === true;
-          if(renew){
-
-            this.__wasInstanceDetached001 = false;
-          }
-
-          // const a_ = [...a];
-          // if(a === this.items && (a||0).length >=1 ){
-
-          //   // console.log(18470002, a, b,c)
-          //   let e;
-          //   for (e = 0; e < b; e++) {
-          //       let g = this.__instances[e]
-          //         , k = c[e]
-          //         , m = a[k];
-          //       if(g && typeof (m||0) === 'object'){
-          //         // const q = g._shouldPropertyChange;
-          //         // g._shouldPropertyChange = ()=>true;
-          //         // g[this.as] = {};
-          //         // a_[k]=a[k] = m;
-          //         // g[this.as] = m;
-
-          //         // use public interface notifyPath instead of internal interface _setPendingProperty
-          //         try {
-          //           g.notifyPath(this.as, {}); 
-          //         } catch (e) { }
-          //         try {
-          //           g.notifyPath(this.as, m);
-          //         } catch (e) { }
-
-          //         // g._setPendingProperty(this.as, {});
-          //         // g._setPendingProperty(this.as, m);
-          //         // g._setPendingProperty(this.indexAs, e);
-          //         // g._setPendingProperty(this.itemsIndexAs, k);
-          //         // delete g._shouldPropertyChange;
-          //         // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
-          //       } 
-          //   }
-
-          // }
-          const r = this.__updateInstances994(a,b,c);
-
-        //   for (e = 0; e < b; e++) {
-        //     let g = this.__instances[e]
-        //       , k = c[e]
-        //       , m = a_[k];
-        //     if(g){
-        //       // const q = g._shouldPropertyChange;
-        //       // g._shouldPropertyChange = ()=>true;
-        //       // g[this.as] = m;
-        //       // g._setPendingProperty(this.as, {});
-        //       // g._setPendingProperty(this.as, m);
-        //       // g._setPendingProperty(this.indexAs, e);
-        //       // g._setPendingProperty(this.itemsIndexAs, k);
-        //       // delete g._shouldPropertyChange;
-        //       // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
-        //     } 
-        // }
-          if (renew) {
-
-            const q = [...this.items];
-            this.items = [];
-            this.items = q;
-            console.log(129992)
-            // this.items.splice(0, 1, Object.assign({}, this.items[0]));
-          }
-          return r;
-        }
-
-        */
 
       tpProto.__detachInstance994 = tpProto.__detachInstance;
       if (typeof tpProto.__detachInstance994 === 'function' && tpProto.__detachInstance994.length === 1) {
@@ -2402,67 +2143,6 @@
       }
 
 
-      // if(yProto.constructor._contentForTemplate && yProto.constructor._parseTemplateNodeAttribute && yProto.constructor._parseTemplateNestedTemplate && !yProto.constructor.y366){
-
-      //   yProto.constructor.y366 = 1;
-
-      // const _stampTemplate366 = yProto._stampTemplate;
-      //   yProto._stampTemplate = function(N, R){
-      //     console.log(12773, N, R);
-      //     return _stampTemplate366.call(this, N, R);
-      //   }
-
-      // }
-      
-      /*
-      if(yProto._bindTemplate && !yProto._bindTemplate371) {
-        yProto._bindTemplate371 = true;
-        const _bindTemplate371 = yProto._bindTemplate;
-        yProto._bindTemplate = function(a, b){
-          const R = _bindTemplate371.call(this, a, b);
-          const X = R.nodeList || 0;
-          const A = R.nodeInfoList || 0;
-          // if(X && A && X.length === A.length){
-          //   for(let i =0, l=A.length;i<l; i++){
-          //     if()
-          //   }
-          // }
-          const l = Math.max((X.length || 0), (A.length || 0));
-          const e = {};
-          for (let i = 0; i < l; i++) {
-            if (X && !X[i]) X[i] = e;
-            if (A && !A[i]) A[i] = e;
-          }
-
-
-          return R;
-        }
-      }
-
-      if(yProto._stampTemplate && !yProto._stampTemplate371) {
-        yProto._stampTemplate371 = true;
-        const _stampTemplate371 = yProto._stampTemplate;
-        yProto._stampTemplate = function(a, b){
-          const R = _stampTemplate371.call(this, a, b);
-          const X = R.nodeList || 0;
-          const A = R.nodeInfoList || 0;
-          // if(X && A && X.length === A.length){
-          //   for(let i =0, l=A.length;i<l; i++){
-          //     if()
-          //   }
-          // }
-          const l = Math.max((X.length || 0), (A.length || 0));
-          const e = {};
-          for (let i = 0; i < l; i++) {
-            if (X && !X[i]) X[i] = e;
-            if (A && !A[i]) A[i] = e;
-          }
-          return R;
-        }
-      }
-      */
-
-
       if (MemoryFix_Flag002 & 32) {
         if (!yProto.dk322 && (yProto.__attachInstance || yProto.__detachInstance)) {
           fixDetachFn(yProto);
@@ -2560,8 +2240,6 @@
 
     }
 
-    // const selfRef = {}; // no change. just key
-
     /*
 
     jF = function(M) {
@@ -2602,49 +2280,6 @@
         return true;
       }
     });
-
-
-    /*
-    let wm3 = new WeakMap();
-
-    Object.defineProperty(Object.prototype, 'root', {
-      get() {
-        const p = this ? kRef(this) : null;
-        const r = p ? wm3.get(p) : null;
-        const r2 = r ? kRef(r) : null;
-        if (r === selfRef) return p;
-        return r2;
-      },
-      set(nv) {
-        const p = this ? kRef(this) : null;
-        const mv = nv ? kRef(nv) : null;
-        if (typeof mv !== 'object') return;
-        if (mv && (mv instanceof Node) && !p.__setupRendered399__) {
-          p.__setupRendered399__ = true;
-          setupRendering.call(p);
-        }
-        if (mv && mv.is && !mv.__setupRendered399__) {
-          mv.__setupRendered399__ = true;
-          setupRendering.call(mv);
-        }
-        if (mv === p) {
-          wm3.set(p, selfRef)
-          return true;
-        }
-        let gv = nv;
-        if (nv && !nv[wk]) {
-          gv = nv[wk] = mWeakRef(nv);
-        }
-        if (p) {
-          wm3.set(p, gv);
-        }
-        return true;
-      },
-      enumerable: false,
-      configurable: true
-    });
-    
-    */
 
 
   }
@@ -3735,76 +3370,6 @@
 
   }
 
-
-  if (FIX_weakMap_weakRef && !window.WeakMapOriginal && typeof window.WeakMap === 'function' && typeof WeakRef === 'function') {
-    const WeakMapOriginal = window.WeakMapOriginal = window.WeakMap;
-    const wm6 = new WeakMapOriginal();
-
-    const skipW = new WeakSet();
-
-
-    window.WeakMap = class WeakMap extends WeakMapOriginal {
-      constructor(iterable = undefined) {
-        super();
-        if (iterable && iterable[Symbol.iterator]) {
-          for (const entry of iterable) {
-            entry && this.set(entry[0], entry[1]);
-          }
-        }
-      }
-      delete(a) {
-        if (!this.has(a)) return false;
-        super.delete(a);
-        return true;
-      }
-      get(a) {
-        const p = super.get(a);
-        if (p && typeof p === 'object' && p.deref && !skipW.has(p)) {
-          let v = kRef(p);
-          if (!v) {
-            super.delete(a);
-          }
-          return v || undefined;
-        }
-        return p;
-      }
-      has(a) {
-        if (!super.has(a)) return false;
-        const p = super.get(a);
-        if (p && typeof p === 'object' && p.deref && !skipW.has(p)) {
-          if (!kRef(p)) {
-            super.delete(a);
-            return false;
-          }
-        }
-        return true;
-      }
-      set(a, b) {
-        let wq = b;
-        if (b && (typeof b === 'function' || typeof b === 'object')) {
-          if (b.deref) {
-            skipW.add(b);
-            wq = b;
-          } else {
-            wq = wm6.get(b);
-            if (!wq) {
-              wq = mWeakRef(b);
-              wm6.set(b, wq);
-            }
-          }
-        }
-        super.set(a, wq);
-        return this;
-      }
-    }
-    Object.defineProperty(window.WeakMap, Symbol.toStringTag, {
-      configurable: true,
-      enumerable: false,
-      value: "WeakMap",
-      writable: false
-    });
-  }
-
   const isWatchPageURL = (url) => {
     url = url || location;
     return location.pathname === '/watch' || location.pathname.startsWith('/live/')
@@ -4145,8 +3710,6 @@
     let renderDebouncePromise = null;
     let qp;
 
-    let cme = 0;
-
     const shadyFlushMO = new MutationObserver(() => {
 
       if (!renderDebounceTs) return;
@@ -4176,146 +3739,6 @@
 
 
     });
-
-    if (FIX_DOM_IFREPEAT_RenderDebouncerChange) {
-
-
-      let p = 0;
-      qp = observablePromise(() => {
-        if (!(p & 1)) {
-
-          if (window.ShadyDOM && ShadyDOM.flush) {
-            p |= 1;
-            if (!ShadyDOM.flush847) {
-
-              ShadyDOM.flush847 = ShadyDOM.flush;
-              ShadyDOM.flush = function () {
-
-                DEBUG_xx847 && console.log('xx847 ShadyDOM.flush')
-                renderDebouncePromise && Promise.resolve().then(() => {
-                  if (renderDebouncePromise) {
-
-                    renderDebouncePromise && renderDebouncePromise.resolve();
-                    renderDebouncePromise = null;
-
-                    DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by ShadyDOM.flush')
-
-                  }
-
-                });
-                let r = this.flush847(...arguments);
-                if (r) {
-                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
-                }
-                return r
-              }
-
-            }
-          }
-        }
-
-        if (!(p & 2)) {
-
-          if (window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush) {
-            p |= 2;
-            const ScopingShim = window.ShadyCSS && window.ShadyCSS.ScopingShim;
-            if (!ScopingShim.flush848) {
-
-              ScopingShim.flush848 = ScopingShim.flush;
-              ScopingShim.flush = function () {
-
-                DEBUG_xx847 && console.log('xx847 ScopingShim.flush')
-
-                renderDebouncePromise && Promise.resolve().then(() => {
-
-                  if (renderDebouncePromise) {
-
-                    renderDebouncePromise && renderDebouncePromise.resolve();
-                    renderDebouncePromise = null;
-
-                    DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by ScopingShim.flush')
-
-
-
-                  }
-
-                });
-                return this.flush848(...arguments);
-              }
-
-            }
-          }
-        }
-        if (p === 3) {
-          p |= 8;
-
-          let r = (window.ShadyDOM && ShadyDOM.flush && ShadyDOM.flush847
-            && window.ShadyCSS && window.ShadyCSS.ScopingShim &&
-            window.ShadyCSS.ScopingShim.flush && window.ShadyCSS.ScopingShim.flush848);
-
-          if (r) {
-            let w = Set.prototype.add;
-            let u = null;
-            Set.prototype.add = function () {
-              u = this;
-              throw new Error();
-            }
-            try {
-              Polymer.enqueueDebouncer()
-            } catch (e) { }
-            Set.prototype.add = w;
-            if (u !== null) {
-              renderDebounceTs = u;
-              if (DEBUG_renderDebounceTs) {
-                renderDebounceTs.add58438 = renderDebounceTs.add;
-                renderDebounceTs.add = function () {
-                  console.log('renderDebounceTs.add')
-                  console.log(traceStack((new Error()).stack))
-                  // debugger;
-                  return this.add58438(...arguments)
-                }
-
-                renderDebounceTs.delete58438 = renderDebounceTs.delete;
-                renderDebounceTs.delete = function () {
-                  console.log('renderDebounceTs.delete')
-                  const stack = `${(new Error()).stack}`
-                  let isCallbackRemoval = false;
-                  if (stack) {
-                    let t = stack.replace(/[^\r\n]+renderDebounceTs\.delete[^\r\n]+/, '').replace('://','');
-                    const s = t.split(':');
-                    if (s.length === 3 && +s[1] > 0 && +s[2] > 0) {
-                      isCallbackRemoval = true;
-                    }
-                  }
-                  if (isCallbackRemoval) {
-                    return this.delete58438(...arguments)
-                  }
-                  console.log(traceStack((new Error()).stack))
-                  // debugger;
-                  return this.delete58438(...arguments)
-                }
-              }
-              DEBUG_renderDebounceTs && (window.renderDebounceTs = renderDebounceTs);
-              console.log('renderDebounceTs', renderDebounceTs, `debug=${DEBUG_renderDebounceTs}`);
-            }
-          }
-
-          return true;
-        }
-      })
-
-      // if(window.ShadyDOM && ShadyDOM.flush){
-      //   console.log('FIX_DOM_IF_RenderDebouncerChange X1')
-
-      // }
-      // if(window.ShadyCSS && window.ShadyCSS.ScopingShim && window.ShadyCSS.ScopingShim.flush){
-
-      //   console.log('FIX_DOM_IF_RenderDebouncerChange X2')
-      // }
-
-      // console.log('FIX_DOM_IF_RenderDebouncerChange X3')
-
-    }
 
     const setupPolymerAdv = () => {
       // here we can obtain the Polymer faster.
@@ -4436,9 +3859,9 @@
               for (const weakNodeC of __templateInfo.nodeList) {
                 const node = toActualNode(weakNodeC);
                 if (node && node.nodeType >= 1) {
-                  _removedElements.addNode(node);
                   node.__keepInstance038__ = false;
                   node.remove();
+                  _removedElements.addNode(node);
                 }
               }
               __templateInfo.nodeList.length = 0;
@@ -4448,10 +3871,10 @@
             const stampFrag = stampFragId ? kRef(stampedFragment.get(stampFragId)) : null;
 
             if (stampFrag && stampFrag.nodeType === 11) {
+              stampFrag.__keepInstance038__ = false;
               _removedElements.addNode(stampFrag);
               removeAllChildNodes(stampFrag);
               try {
-                stampFrag.__keepInstance038__ = false;
                 stampFrag.remove();
               } catch (e) { }
               stampFrag.__shady = null;
@@ -4601,70 +4024,8 @@
               console.log('FIX_DOM_IF - __ensureTemplate')
 
             }
-            /*
-
-            if (FIX_DOM_IF_TEMPLATE && !cProto.disconnectedCallback847 && cProto.disconnectedCallback && cProto.__teardownInstance) {
-              cProto.disconnectedCallback847 = cProto.disconnectedCallback;
-              cProto.disconnectedCallback = function () {
-
-                console.log(1949001, 'disconnectedCallback')
-                this.disconnectedCallback847();
-                try {
-                  this.__teardownInstance();
-                  console.log(1949002, '__teardownInstance 00D')
-                } catch (e) { }
-              }
-            }
-
-            if (FIX_DOM_IF_TEMPLATE && !cProto.connectedCallback847 && cProto.connectedCallback && cProto.__teardownInstance) {
-              cProto.connectedCallback847 = cProto.connectedCallback;
-              cProto.connectedCallback = function () {
-
-                console.log(1949003, 'connectedCallback')
-                try {
-                  this.__teardownInstance();
-                  console.log(1949004, '__teardownInstance 00C')
-                } catch (e) { }
-                this.connectedCallback847();
-              }
-            }
-            */
 
 
-            // if(!cProto.__createAndInsertInstance847 && typeof cProto.__createAndInsertInstance === 'function' && cProto.__createAndInsertInstance.length === 1 && `${cProto.__createAndInsertInstance}`.length >20){
-
-            //   cProto.__createAndInsertInstance847 = cProto.__createAndInsertInstance;
-
-            //   cProto.__createAndInsertInstance = function (a) {
-            //     Promise.resolve().then(()=>{
-            //       console.log('__createAndInsertInstance')
-            //       window.lm5 = window.lm5 || [];
-            //       window.lm5.push([mWeakRef(this), mWeakRef(this.__instance)])
-            //     });
-            //     return this.__createAndInsertInstance847(a);
-            //   }
-
-            // }
-
-
-            // if(!cProto._bindTemplate847 && typeof cProto._bindTemplate === 'function' && cProto._bindTemplate.length === 2){
-
-            //   cProto._bindTemplate847 = cProto._bindTemplate;
-
-            //   cProto._bindTemplate = function (a, b) {
-            //     return this._bindTemplate847(kRef(a), b); // might throw Error as a -> null inside _bindTemplate847
-            //   }
-
-            // }
-            // if(!cProto._stampTemplate847 && typeof cProto._stampTemplate === 'function' && cProto._stampTemplate.length === 2){
-
-            //   cProto._stampTemplate847 = cProto._stampTemplate;
-
-            //   cProto._stampTemplate = function (a, b) {
-            //     return this._stampTemplate847(kRef(a), b); // might throw Error as a -> null inside _stampTemplate847
-            //   }
-
-            // }
             console.log('FIX_DOM_IF OK', Object.keys(cProto))
           }
 
@@ -4704,11 +4065,6 @@
 
             // console.log(5881, this.__observeEffects)
           }
-          if (FIX_DOM_IFREPEAT_RenderDebouncerChange) {
-            f();
-            Promise.resolve().then(f);
-            // afterward, don't care adding fn directly (the fn is already modified)
-          }
 
         }
         this[s81] = nv;
@@ -4732,101 +4088,6 @@
             qp = null;
             shadyFlushMO.observe(document.documentElement, { attributes: ['nw3a24np'] });
           }
-          if (FIX_DOM_IFREPEAT_RenderDebouncerChange && !cProto.__debounceRender847 && typeof cProto.__debounceRender === 'function' && !(`${cProto.__debounceRender}`.includes("{}"))) {
-
-            cProto.__debounceRender847 = cProto.__debounceRender;
-
-            if (cProto.__debounceRender.length === 2) {
-
-              cProto.__debounceRender = function (a, b) {
-
-                if (!renderDebounceTs) return this.__debounceRender847(a, b);
-
-                b = b === void 0 ? 0 : b;
-
-                /*
-                        b = b === void 0 ? 0 : b;
-                        this.__renderDebouncer = us(this.__renderDebouncer, b > 0 ? Rr.after(b) : Tr, a.bind(this));
-                        vs(this.__renderDebouncer)
-                */
-
-                this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-
-                if (!renderDebouncePromise) {
-                  renderDebouncePromise = new PromiseExternal();
-                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
-                }
-
-                renderDebouncePromise.then(async () => {
-                  if (b > 0) await delayPn(b);
-
-                  const f = this.__dsIRYqw1__;
-                  if (f === cme) return;
-                  this.__dsIRYqw1__ = cme;
-                  a.call(this);
-                  DEBUG_DBR847 && console.log(`__DBR847__ done 01 (delay=${b})`, this.__DBR848__)
-
-                });
-
-                DEBUG_DBR847 && console.log(`__DBR847__ add 01 (delay=${b})`, this.__DBR848__)
-              }
-
-            } else if (cProto.__debounceRender.length === 0) {
-
-
-              cProto.__debounceRender = function () {
-
-                if (!renderDebounceTs) return this.__debounceRender847();
-
-                this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-                /*
-                        var a = this;
-                        this.__renderDebouncer = us(this.__renderDebouncer, Tr, function() {
-                            return a.__render()
-                        });
-                        vs(this.__renderDebouncer)
-                */
-
-                if (!renderDebouncePromise) {
-                  renderDebouncePromise = new PromiseExternal();
-                  document.documentElement.setAttribute('nw3a24np', (cme = (cme % 511 + 1)));
-                }
-                renderDebouncePromise.then(() => {
-                  const f = this.__dsIRYqw1__;
-                  if (f === cme) return;
-                  this.__dsIRYqw1__ = cme;
-                  this.__render()
-                  DEBUG_DBR847 && console.log('__DBR847__ done 02', this.__DBR848__)
-                });
-                DEBUG_DBR847 && console.log('__DBR847__ add 02', this.__DBR848__)
-
-
-              }
-            }
-          }
-
-
-
-          // if(FIX_DOM_IFREPEAT_RenderDebouncerChange && !cProto.render847 && typeof cProto.render === 'function' && cProto.render.length === 0 && !(`${cProto.render}`.includes("{}"))){
-          //   cProto.render847 = cProto.render;
-          //   cProto.render = function(){
-
-          //     this.__DBR848__ = this.__DBR848__ || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
-          //     try{
-          //       this.render847();
-          //     }catch(e){}
-          //     // if(this.__DBR847__){
-          //     //   this.__DBR847__.resolve();
-          //     //   DEBUG_DBR847 && console.log('__DBR847__ resolve', this.__DBR848__)
-          //     // }
-
-          //     // renderDebouncePromise && renderDebouncePromise.resolve()
-          //     // renderDebouncePromise = null;
-          //     // DEBUG_DBR847 && console.log('__DBR847__ renderDebouncePromise.resolve by render', this.__DBR848__)
-
-          //   }
-          //   console.log('FIX_DOM_IF - render', `${cProto.render847}`, cProto.render847)
-          // }
 
         }
         this[s85] = nv;
@@ -5871,39 +5132,6 @@
 
     };
 
-    // const p_a_jt = { // API
-
-    //   playVideo(a) { // without spinner effect
-
-    //     if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE) {
-
-    //       const mediaPlayerElement = kRef(mediaPlayerElementWR);
-    //       if (mediaPlayerElement && !mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
-    //         want_control_video = true;
-    //         // Promise.resolve().then(()=> mediaPlayerElement.focus() );
-    //       }
-
-    //     }
-    //     return this.playVideo91(a);
-
-    //   },
-
-    //   pauseVideo(a) { // without spinner effect
-
-    //     if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE) {
-
-    //       const mediaPlayerElement = kRef(mediaPlayerElementWR);
-    //       if (mediaPlayerElement && mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
-    //         want_control_video = true;
-    //         // Promise.resolve().then(()=> mediaPlayerElement.focus() );
-    //       }
-
-    //     }
-    //     return this.pauseVideo91(a);
-
-    //   }
-    // };
-
     let flagSpeedMaster = null;
     const getSpeedMasterControlFlag = () => {
 
@@ -6472,7 +5700,7 @@
 
 
   // const qm47 = Symbol();
-  const qm57 = Symbol();
+  // const qm57 = Symbol();
   const qm53 = Symbol();
   const qn53 = Symbol();
 
@@ -6787,177 +6015,8 @@
 
       }
 
-
-      /*
-
-      let jArr = null;
-      Array.prototype.push781 =  null;
-      Array.prototype.push782 = function(...args){
-        if(args.length === 1 && typeof (args[0]||0) ==='object' && 'rollUp' in args[0] && Array.prototype.push781){
-
-          jArr= this;
-          // debugger;
-          const f = Array.prototype.push = Array.prototype.push781;
-          Array.prototype.push781 = null;
-          jArr.push381 = jArr.push;
-          jArr.push = Array.prototype.push783;
-          return Array.prototype.push783.call(this, ...args);
-
-        }
-        return Array.prototype.push781.call(this, ...args);
-      }
-      Array.prototype.push783 = function(...args){
-        if(args.length === 1){
-          const o = args[0];
-          if(o.character === o.previousCharacter){
-            o.rollUp = false;
-            o.shouldAnimate = false;
-          }
-          console.log(12399, o)
-        }
-        return this.push381(...args);
-      }
-
-      console.log(123001)
-
-      cProto.update192 = cProto.update;
-      
-
-      cProto.update = function () {
-        Object.assign192 = Object.assign;
-        let targetObject = null;
-        let kThis = this;
-        Object.assign = function (...args) {
-          let r = Object.assign192(...args);;
-          if (args[1] === kThis.props) {
-            targetObject = args[0];
-            fixObject();
-          }
-          return r;
-        }
-        const fixObject = () => {
-
-          console.log(1929, fixObject, this)
-
-          const t = targetObject.forceRollUp;
-          targetObject.forceRollUp919 = t;
-          Object.defineProperty(targetObject, 'forceRollUp', {
-            get() {
-
-
-              if (Array.prototype.push782 !== Array.prototype.push && !Array.prototype.push781) {
-
-                Array.prototype.push781 = Array.prototype.push;
-                Array.prototype.push = Array.prototype.push782;
-                Promise.resolve().then(() => {
-                  if (Array.prototype.push782 === Array.prototype.push && Array.prototype.push781) {
-
-                    Array.prototype.push = Array.prototype.push781;
-
-                    Array.prototype.push781 = null;;
-                  }
-                })
-              }
-              console.log(1233001);
-              // debugger;
-              return this.forceRollUp919
-            },
-            set(nv) {
-              this.forceRollUp919 = nv;
-              console.log(1233002, nv);
-              return true;
-            }
-          });
-        }
-        console.log(1949, this)
-        let r, e_;
-        try {
-          r = this.update192();
-        } catch (e) { e_ = e }
-        Object.assign = Object.assign192;
-        kThis = null;
-        if (e_) throw e_;
-        return r;
-      };
-
-
-
-      cProto.enqueueUpdate192 = cProto.enqueueUpdate;
-
-      cProto.enqueueUpdate = function () {
-        console.log(1948, this);
-        return this.enqueueUpdate192();
-      }
-
-
-      */
-
-
-
     });
 
-
-    /*
-
-    observablePromise(() => {
-      if(typeof customElements==='undefined')return;
-      const ce = customElements.get('segmented-like-dislike-button-view-model');
-      if(!ce) return;
-      return ce.prototype;
-    }).obtain().then((cProto) => {
-
-
-      cProto.update192 = cProto.update;
-      cProto.update = function () {
-
-        const rolNumNode = this.querySelector('yt-animated-rolling-number');
-        if(rolNumNode && rolNumNode.__instance && rolNumNode.__instance.props){
-          rolNumNode.props = rolNumNode.__instance.props;
-
-          if(!rolNumNode.props.forceRollUp848){
-            rolNumNode.props.forceRollUp848 = true;
-            rolNumNode.props.forceRollUp833= rolNumNode.props.forceRollUp;
-            Object.defineProperty(rolNumNode.props, 'forceRollUp', {
-              get(){
-                debugger;
-                return this.forceRollUp833;
-              },
-              set(nv){
-                this.forceRollUp833 = nv;
-                return true;
-              },
-              enumerable: false,
-              configurable: true
-            });
-
-            Object.defineProperty(rolNumNode.props, 'numberValue', {
-              get(){
-                debugger;
-                return this.numberValue8833;
-              },
-              set(nv){
-                debugger;
-                this.numberValue8833 = nv;
-                return true;
-              },
-              enumerable: false,
-              configurable: true
-            });
-
-          }
-          // rolNumNode.update();
-          return;
-        }
-
-        return this.update192();
-      };
-
-
-
-
-    });
-    
-    */
   }
 
   if (HOOK_ACTIVE_MODULES) {
@@ -7127,87 +6186,7 @@
 
   }
 
-  /*
-  let cid = 0;
-
-  document.addEventListener('transitionrun', function(evt){
-
-    if(!evt || !evt.isTrusted || evt.propertyName !== 'margin-top' || !evt.target) return;
-
-    if (evt.target.nodeName !== 'ANIMATED-ROLLING-CHARACTER') return;
-
-
-
-
-    const target = evt.target;
-    let finish = false;
-    if (target.getAttribute('style-old126') === target.getAttribute('style')) finish = true;
-    else target.setAttribute('style-old126', target.getAttribute('style'));
-
-    target.setAttribute('should-finish', finish ? 'true' : 'false');
-
-
-    const animations = (document.timeline || 0)._animations;
-    if (!animations || !animations.length) return;
-
-    let aa = [...animations].filter(e => e.effect.target.hasAttribute('a85j2'));
-    if (!aa.length) return;
-
-    for (const a of aa) {
-
-      const s = a.effect.target;
-      if (s !== evt.target) continue;
-      if (a.eut33 && Date.now() - a.eut33 < 600) continue;
-      a.eut33 = Date.now();
-
-      if (finish) a.finish();
-
-
-    }
-
-    // console.log(1848);
-  }, true);
-  */
-
-
-  /*
-  let rnf33 = 0;
-
-  const rollingNumberFindMo = new MutationObserver(()=>{
-    for(const s of document.querySelectorAll('animated-rolling-character[style]:not([a85j2])')){
-
-      if(rnf33===0) {
-        rnf33= 1;
-
-
-        if (!document.getElementById('rnf33_script')) {
-          const style = document.createElement('style');
-          style.id = 'rnf33_script';
-          style.textContent = `
-            .rolling-no-move{
-              transition-duration: 0.0001s !important;
-              animation-duration: 0.0001s !important;
-            }
-          `;
-          (document.head || document.documentElement).appendChild(style);
-        }
-
-      }
-
-      s.setAttribute('a85j2','');
-      s.classList.add('rolling-no-move');
-      s.setAttribute('style-old126', s.getAttribute('style'));
-      
-    }
-
-  });
-  rollingNumberFindMo.observe(document, {subtree: true, childList: true})
-  */
-
   // ----------------------------
-
-
-  // const pendingStampFlushs = [];
 
   const nativeNow = Reflect.getPrototypeOf(performance).now.bind(performance);
 
@@ -7913,6 +6892,10 @@
 
       // }
 
+      if (producer.hasFlexibleItems === true) {
+        return false;
+      }
+
       if (hostElement.isConnected === false || hostElement.closest('[hidden]')) {
         return false;
       }
@@ -8348,1319 +7331,6 @@
       return stampDomArraySplicesWB_.bind(null, obj[wk], stampKey, containerId, indexSplicesObj, renderJob, dt0a);
     };
 
-
-    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
-
-  }
-
-
-  const createStampDomFnsB_ = () => {
-
-    const config = ((win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0);
-
-    if (config.DEFERRED_DETACH === true) config.DEFERRED_DETACH = false;
-    if (config.REUSE_COMPONENTS === true) config.REUSE_COMPONENTS = false;
-
-
-    const rq0 = document.createElement('rp');
-    rq0.setAttribute('yt-element-placholder', '');
-
-    let activeStampContainerId = '';
-
-    const componentBasedTaskPool = new WeakMap();
-
-
-    Node.prototype.checkFF = function () {
-      const pTask = componentBasedTaskPool.get(this);
-      if (!pTask) return null;
-      return [pTask, taskList.filter(e => e.taskId === pTask.taskId), taskList.filter(e => e.componentWr === this[wk])];
-    }
-
-    Node.prototype.checkGG = function () {
-      window.me849 = this;
-      const pTask = componentBasedTaskPool.get(this);
-      if (!pTask) return null;
-      window.me848 = pTask.taskId;
-      debugger;
-      loopTask();
-    }
-
-    NodeList.prototype.last = function () {
-      return this[this.length - 1];
-    }
-
-    const getStampContainer_ = function (containerId) {
-
-      // if(this.__byPass828__) return this.getStampContainer7409_(containerId);
-
-      this.__activeContainerId929__ = containerId;
-
-      return this.getStampContainer7409_(containerId);
-
-    }
-
-
-
-    const it0 = Date.now() - 80000000000;
-    const genId = () => `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${(Date.now() - it0).toString(36)}`;
-
-
-    const createComponent_ = function (componentConfig, data, canReuse) {
-
-      this.___lastCreate3311__ = data;
-
-
-
-      if (this.__directProduction533__) {
-        const cName = this.getComponentName_(componentConfig, data);
-
-        return document.createElement(cName);
-      }
-
-      if (this.__byPass828__ || !this.__byPass348__) {
-
-        // console.log(39829004)
-        // console.log(new Error().stack)
-        return this.createComponent7409_(componentConfig, data, false);
-      }
-
-
-      const containerId = this.__activeContainerId929__;
-
-      // console.log(2883007, componentConfig, data, canReuse)
-
-      const r = rq0.cloneNode(false);
-
-      r.is = 'aa-bb-cc-dd';
-
-      return r;
-
-
-    }
-
-
-    const childrenObs = new MutationObserver((mutations) => {
-      loopTask();
-    });
-
-
-    class CTaskList {
-      constructor() {
-        this.head = this.tail = null;
-
-        // ref → {prev, next, level}
-        this.nodes = new Map();
-
-        // Per‑level sentinels
-        this.levelHead = [];
-        this.levelTail = [];
-
-        // Sorted list of non‑empty levels for O(log L) neighbour lookup
-        this.nonEmptyLevels = [];
-        this.counter = 0;
-      }
-
-      _ensure(level) {
-        while (this.levelTail.length <= level) {
-          this.levelTail.push(null);
-          this.levelHead.push(null);
-        }
-      }
-
-      // Binary‑search index inside nonEmptyLevels
-      _indexOfLevel(level) {
-        let lo = 0, hi = this.nonEmptyLevels.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (this.nonEmptyLevels[mid] < level) lo = mid + 1;
-          else hi = mid;
-        }
-        return lo;
-      }
-
-      _link(ref, prev, next, level) {
-
-
-        this.nodes.set(ref, { prev, next, level });
-
-        if (prev) this.nodes.get(prev).next = ref;
-        else this.head = ref;
-
-        if (next) this.nodes.get(next).prev = ref;
-        else this.tail = ref;
-
-        this.levelTail[level] = ref;
-        if (!this.levelHead[level]) this.levelHead[level] = ref;
-      }
-
-      _detach(ref) {
-        if (!ref || !this.nodes.has(ref)) return;
-
-
-        const { prev, next, level } = this.nodes.get(ref);
-
-        if (prev) this.nodes.get(prev).next = next;
-        else this.head = next;
-
-        if (next) this.nodes.get(next).prev = prev;
-        else this.tail = prev;
-
-        if (this.levelTail[level] === ref) {
-          this.levelTail[level] = prev && this.nodes.get(prev)?.level === level ? prev : null;
-        }
-        if (this.levelHead[level] === ref) {
-          this.levelHead[level] = next && this.nodes.get(next)?.level === level ? next : null;
-        }
-
-        if (this.levelTail[level] === null) {
-          const idx = this.nonEmptyLevels.indexOf(level);
-          if (idx !== -1) this.nonEmptyLevels.splice(idx, 1);
-        }
-
-        this.nodes.delete(ref);
-
-      }
-
-      push(component, level) {
-        if (!component) return;
-
-        // this.checkIntegrity();
-
-        const ref = component[wk] || (component[wk] = new WeakRef(component));
-
-        if (this.nodes.has(ref)) this._detach(ref);
-
-        this._ensure(level);
-
-        if (!this.levelTail[level]) {
-          // First node on this level
-          const idx = this._indexOfLevel(level);
-          const prevLvl = idx ? this.nonEmptyLevels[idx - 1] : null;
-          const nextLvl = idx < this.nonEmptyLevels.length ? this.nonEmptyLevels[idx] : null;
-
-          const prevRef = prevLvl !== null ? this.levelTail[prevLvl] : null;
-          const nextRef = nextLvl !== null ? this.levelHead[nextLvl] : null;
-
-          this._link(ref, prevRef, nextRef, level);
-          this.nonEmptyLevels.splice(idx, 0, level);
-        } else {
-          // Append to existing level
-          const prevRef = this.levelTail[level];
-          const nextRef = this.nodes.get(prevRef).next;
-          this._link(ref, prevRef, nextRef, level);
-        }
-
-        this.counter++;
-        // this.checkIntegrity();
-      }
-
-      remove(component) {
-        const ref = component && component.deref ? component : (component || 0)[wk];
-
-        // this.checkIntegrity();
-        this._detach(ref);
-
-        // this.checkIntegrity();
-      }
-
-      replace(componentOld, componentNew) {
-        if (!componentOld || !componentNew) {
-          throw new Error('replace failed: missing component');
-        }
-
-        if (componentOld === componentNew) {
-          return;
-        }
-
-        const refOld = componentOld[wk];
-        // ensure New has a weak‐ref
-        const refNew = componentNew[wk] || (componentNew[wk] = mWeakRef(componentNew));
-
-
-        if (refOld === refNew) {
-          return;
-        }
-
-        if (!refOld || !this.nodes.has(refOld)) {
-          throw new Error('replace failed: old component not found');
-        }
-
-        // this.checkIntegrity();
-
-        // If new is already in the list somewhere, detach it first
-        if (this.nodes.has(refNew)) {
-          this._detach(refNew);
-        }
-
-        // Pull out old pointers
-        const { prev, next, level } = this.nodes.get(refOld);
-
-        // Link into the main list
-        if (prev) {
-          this.nodes.get(prev).next = refNew;
-        } else {
-          this.head = refNew;
-        }
-
-        if (next) {
-          this.nodes.get(next).prev = refNew;
-        } else {
-          this.tail = refNew;
-        }
-
-        // Link into the per‐level sentinels
-        if (this.levelHead[level] === refOld) {
-          this.levelHead[level] = refNew;
-        }
-        if (this.levelTail[level] === refOld) {
-          this.levelTail[level] = refNew;
-        }
-
-        // Finally re‐key the Map entry
-        this.nodes.set(refNew, { prev, next, level });
-        this.nodes.delete(refOld);
-
-        // this.checkIntegrity();
-      }
-
-      _walk(ref, dir) {
-        if (!ref || !this.nodes.has(ref)) return null;
-
-        let cur = this.nodes.get(ref)[dir];
-        while (cur) {
-          if (cur.deref()) return cur;
-
-          // Clean up collected node
-          const nxt = this.nodes.get(cur)[dir];
-          this._detach(cur);
-          cur = nxt;
-        }
-        return null;
-      }
-
-      nextComp(component) {
-        const ref = component && component.deref ? component : (component || 0)[wk];
-        return this._walk(ref, 'next');
-      }
-
-      prevComp(component) {
-        const ref = component && component.deref ? component : (component || 0)[wk];
-        return this._walk(ref, 'prev');
-      }
-
-      hasComp(component) {
-        const ref = component && component.deref ? component : (component || 0)[wk];
-        return !!(ref && this.nodes.has(ref))
-      }
-
-      count() {
-        return this.counter;
-      }
-
-      countLevels() {
-        const r = [];
-        for (let i = 0; ; i++) {
-          if (!this.levelHead[i] || !this.levelTail[i]) break;
-          let cur = this.levelHead[i];
-          let curs = [];
-          while (cur && this.nodes.get(cur).level === i) {
-            curs.push((cur));
-            cur = taskListP.nextComp(cur);
-          }
-
-          if (curs[0] !== this.levelHead[i]) debugger;
-          if (curs[curs.length - 1] !== this.levelTail[i]) debugger;
-          r.push({
-            head: this.levelHead[i],
-            tail: this.levelTail[i],
-            curs: curs,
-            set: new Set(curs),
-            arrSize: curs.length,
-            setSize: (new Set(curs)).size
-
-          });
-        }
-        return r;
-      }
-
-
-      // // Integrity checker helper
-      // checkIntegrity() {
-      //   const list = this;
-      //   // Global head/tail pointers
-      //   if (list.head !== null) {
-      //     const headNode = list.nodes.get(list.head);
-      //     assert(headNode.prev === null, "Integrity: head.prev must be null");
-      //   }
-      //   if (list.tail !== null) {
-      //     const tailNode = list.nodes.get(list.tail);
-      //     assert(tailNode.next === null, "Integrity: tail.next must be null");
-      //   }
-
-      //   // Per-level head/tail and level consistency
-      //   list.nonEmptyLevels.forEach(level => {
-      //     assert(list.levelHead[level] != null, `Integrity: levelHead[${level}] should not be null`);
-      //     assert(list.levelTail[level] != null, `Integrity: levelTail[${level}] should not be null`);
-      //     const headRef = list.levelHead[level];
-      //     const tailRef = list.levelTail[level];
-      //     const headNode = list.nodes.get(headRef);
-      //     const tailNode = list.nodes.get(tailRef);
-      //     assert(headNode.level === level, `Integrity: levelHead[${level}].level mismatch`);
-      //     assert(tailNode.level === level, `Integrity: levelTail[${level}].level mismatch`);
-      //   });
-
-      //   // nonEmptyLevels sorted ascending
-      //   for (let i = 1; i < list.nonEmptyLevels.length; i++) {
-      //     assert(
-      //       list.nonEmptyLevels[i] > list.nonEmptyLevels[i - 1],
-      //       "Integrity: nonEmptyLevels must be sorted ascending"
-      //     );
-      //   }
-
-      //   this.countLevels();
-      // }
-
-    }
-
-
-    const taskListP = new CTaskList();
-    const taskList = [];
-    let taskCounter = 0;
-    window.me55 = ()=>taskListP;
-
-    const taskPush = (component, pTask0, pTask1, deferred = false) => {
-      component = kRef(component);
-      if (!component) return;
-      if (!pTask0) pTask0 = pTask1; else Object.assign(pTask0, pTask1);
-      componentBasedTaskPool.set(component, pTask0);
-      const id = taskCounter = (taskCounter & 1073741823) + 1;
-      pTask0.taskId = id;
-      if (!pTask1.byPass) pTask0.byPass = false;
-      taskListP.push(component, 0);
-      if (!deferred) nonDeferredTask = component[wk];
-      // taskList.push({
-      //   taskId: id,
-      //   componentWr: component[wk]
-      // })
-      return pTask0;
-    }
-
-    const domComment_ = document.createComment('y');
-    const triggerDomChange = (node) => {
-      node.appendChild(domComment_).remove();
-    }
-
-
-    const performTask = (component, pTask = undefined) => {
-
-      if (pTask === undefined) pTask = componentBasedTaskPool.get(component);
-      if (!pTask || !component) return;
-      let { step, producer, containerId, typeOrConfig, data, flushing, selfProducer } = pTask;
-      producer = kRef(producer);
-      selfProducer = kRef(selfProducer);
-
-      const resolveSelf = () => {
-
-        const node = component;
-
-        const prevCur = taskListP.prevComp(node);
-
-        node.removeAttribute('ytx-flushing');
-
-        // if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement && selfProducer.hostElement.isConnected) {
-
-        if (selfProducer && flushing && flushing.length > 0 && selfProducer.hostElement) {
-          const node = component;
-
-          let shouldMarkDirty = false;
-
-          const m = new Set();
-
-          const producer = selfProducer;
-
-          for (const [containerId, bEvent, hasData] of flushing) {
-            if (hasData || hasData === null) {
-              shouldMarkDirty = true;
-              if (bEvent) {
-                const container = producer.getStampContainer7409_(containerId);
-                // console.log(644221499, container)
-                m.add(container);
-              }
-            }
-          }
-          flushing.length = 0;
-
-          if (shouldMarkDirty) {
-            producer.markDirty && producer.markDirty();
-            let q = true;
-            for (const container of m) {
-              if (!q) producer.markDirty && producer.markDirty();
-              q = false;
-              dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
-                container
-              });
-            }
-          }
-
-        }
-
-
-
-        const s = new Set();
-
-        const parentComponent = node.closest('[ytx-flushing]');
-        if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
-          if (!s.has(parentComponent[wk])) {
-            s.add(parentComponent[wk]);
-          }
-        }
-
-        const producerElement = producer ? producer.hostElement : null;
-
-        if (parentComponent && parentComponent !== producerElement) {
-
-          const parentComponent = producerElement;
-          if (parentComponent && componentBasedTaskPool.has(parentComponent) && parentComponent[wk] && !parentComponent.querySelector('[ytx-flushing]')) {
-            if (!s.has(parentComponent[wk])) {
-              s.add(parentComponent[wk])
-            }
-          }
-
-        }
-
-        for (const p of s) {
-          const node = kRef(p);
-          triggerDomChange(node);
-        }
-
-        if (!node.hasAttribute('ytx-flushing') && (!pTask.flushing || !pTask.flushing.length) && !pTask.typeOrConfig && !pTask.data) {
-          componentBasedTaskPool.delete(node);
-          taskListP.remove(node);
-        }
-
-
-        return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head), parents: [...s]};
-
-      }
-
-      if (pTask.step === 'creation') {
-
-        if (flushing) debugger;
-        if (!producer || !typeOrConfig) return;
-        if (component.parentNode && component.parentNode.id === containerId && component.parentNode === producer.getStampContainer7409_(containerId)) {
-          pTask.step = 'flushStamper'; pTask.pq33 = 3;
-
-          // const aNode = producer.createComponent7409_(typeOrConfig, data, false);
-
-          const prevCur = taskListP.prevComp(component);
-
-          const pTaskId = pTask.taskId;
-          const cName = producer.getComponentName_(typeOrConfig, data);
-          const aNode = document.createElement(cName);
-          const qNode = component;
-
-          aNode.setAttribute('ytx-stamp', 'flusher');
-          aNode.setAttribute('ytx-flushing', '2');
-          if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
-
-          taskListP.replace(qNode, aNode);
-
-          componentBasedTaskPool.delete(qNode);
-          componentBasedTaskPool.set(aNode, pTask); // pTask will be obtained and proceeded during "dom change" in the same micro task
-
-
-          const container = component.parentNode;
-          const containerApi = container.__domApi || container;
-
-          const frag = document.createDocumentFragment();
-          frag.appendChild(aNode);
-          containerApi.insertBefore(frag, qNode);
-          containerApi.removeChild(qNode);
-          
-          return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
-
-        }
-      } else if (pTask.step === 'flushStamper') {
-
-        if (flushing) debugger;
-
-        if (!producer || !typeOrConfig) return;
-        pTask.step = 'flushStamperWait';
-        pTask.typeOrConfig = null;
-        pTask.data = null;
-
-        const prevCur = taskListP.prevComp(component);
-
-        const node = component;
-        node.setAttribute('ytx-flushing', '3');
-
-        let taskB = { component: component, typeOrConfig: typeOrConfig, data: data };
-        // flushedObserver.observe(node, { subtree: true, childList: true });
-        producer.deferredBindingTasks_.push(taskB);
-        producer.flushRenderStamperComponentBindings7409_();
-        // try{Polymer.flush()}catch(e){}
-        
-        return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
-
-      } else if (pTask.step === 'flushStamperWait') {
-
-        if (flushing) debugger;
-        if (!producer) return;
-
-        // producer undetermined
-
-        const node = component;
-
-        if (!node.querySelector('[ytx-flushing]')) {
-
-          pTask.step = 'idleContainer';
-
-          return resolveSelf();
-
-
-        }
-
-      } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish') {
-
-        if (producer && typeOrConfig) {
-
-          pTask.typeOrConfig = null;
-          pTask.data = null;
-
-          const prevCur = taskListP.prevComp(component);
-
-          const node = component;
-          node.setAttribute('ytx-flushing', '3');
-
-          let taskB = { component: component, typeOrConfig: typeOrConfig, data: data };
-          // flushedObserver.observe(node, { subtree: true, childList: true });
-          producer.deferredBindingTasks_.push(taskB);
-          producer.flushRenderStamperComponentBindings7409_();
-          // try{Polymer.flush()}catch(e){}
-          return {nextCur: (prevCur ? taskListP.nextComp(prevCur) || taskListP.head: taskListP.head)};
-        }
-
-        const node = component;
-
-        if (!node.querySelector('[ytx-flushing]')) {
-          pTask.step = 'idleProducer';
-          return resolveSelf();
-        }
-        // const selfProducer = kRef(pTask.selfProducer);
-
-      }
-
-    };
-
-    const performTaskQueued = (component)=>{
-      queueMicrotask_(()=>{
-        performTask(component);
-      });
-    };
-
-    let isLooping = false;
-    let nonDeferredTask = null;
-    
-    let loopTaskQ = 0;
-    const loopTask = () => {
-      if (isLooping) return ++loopTaskQ;
-      isLooping = true;
-      loopTaskQ = 0;
-      let t0 = 0;
-      
-      let cur = taskListP.head;
-      let nextCur = cur;
- 
-      const taskExec = () => {
-
-        if (!t0) {
-          t0 = nativeNow();
-        }
-
-        if (nonDeferredTask && nextCur && taskListP.nodes.has(nextCur) && taskListP.nodes.get(nextCur).level === 1) {
-          nextCur = nonDeferredTask
-        }
-
-        nonDeferredTask = null;
-
-      
-          for (;cur = nextCur; ) {
-
-            nextCur = taskListP.nextComp(cur);
-            const nextCur0 = nextCur;
-
-            const taskComponent = kRef(cur);
-            if (taskComponent) {
-              if(taskComponent === window.me849) debugger;
-              const pTask = componentBasedTaskPool.get(taskComponent);
-              if (pTask) {
-                if (pTask.taskId > 0 && !pTask.byPass) {
-                  if (pTask.taskId === window.me848) debugger;
-
-                  let shouldPerformTask = false;
-                  if (pTask.step === 'creation' && pTask.typeOrConfig) {
-                    shouldPerformTask = true;
-                  } else if (pTask.step === 'flushStamper' && pTask.typeOrConfig) {
-                    shouldPerformTask = true;
-                  } else if (pTask.step === 'flushStamperWait' && !taskComponent.querySelector('[ytx-flushing]')) {
-                    shouldPerformTask = true;
-                  } else if (pTask.step === 'mightFlushAndWaitContainersRenderFinish' && (pTask.typeOrConfig || !taskComponent.querySelector('[ytx-flushing]'))) {
-                    shouldPerformTask = true;
-                  }
-
-                  let b = shouldPerformTask && taskComponent.parentNode;
-                  if (b) {
-
-                      const result = performTask(taskComponent, pTask);
-                      let kbb = false;
-                      if(typeof result ==='object' && result.nextCur === nextCur0){
-
-                      } else if(taskListP.nextComp(cur) === null && taskListP.nextComp(cur) !== nextCur0) {
-                        kbb = true;
-                      }
-                      if (typeof result === 'object' && result.parents instanceof Array) {
-
-                        const nextCur_ = result.nextCur;
-                        nextCur = nextCur_;
-                        const parents = result.parents;
-                        if (parents.length >= 1) {
-                          const eSet = new Set(parents); // weak refs
-                          eSet.add(nextCur_)
-                          for (let cur_ = taskListP.head; cur_; cur_ = taskListP.nextComp(cur_)) {
-                            if (eSet.has(cur_)) {
-                              nextCur = cur_;
-                              break;
-                            }
-                          }
-                        }
-
-
-                      } else if(typeof result === 'object' && result.nextCur){
-                        nextCur = result.nextCur;
-                      }
-
-
-                      if (nativeNow() - t0 > 10) {
-                        t0 = 0;
-                        nextBrowserTick_(taskExec);
-                      } else {
-                        queueMicrotask_(taskExec);
-                      }
-
-            
-                      return;
-
-                  }
-
-                }
-
-              }
-
-            }
-
-          }
-
-        isLooping = false;
-
-        if(loopTaskQ > 0) nextBrowserTick_(loopTask);
-
-      };
-
-      queueMicrotask_(taskExec);
-
-    };
-
-
-    let q244 = new PromiseExternal();
-    let q248a = [];
-    let q248b = [];
-    let q248c = [];
-    const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
-
-      if(this.__byPass828__) {
-
-        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-      }
-
-      const isLastCreate = this.___lastCreate3311__ === data; // false for native element. true for RP or native element
-
-      this.___lastCreate3311__ = -0.125;
-
-
-      const containerId = this.__activeContainerId929__;
-      if (!component[wk]) component[wk] = mWeakRef(component);
-      if (!this[wk]) this[wk] = mWeakRef(this);
-
-      const pTask = componentBasedTaskPool.get(component);
-
-      const isSelfProducer = (pTask && pTask.selfProducer && pTask.flushing);
-
-
-      const abandonUnreadySubtree = () => {
-        for (const e of component.querySelectorAll('[ytx-flushing]')) {
-          const pTask = componentBasedTaskPool.get(e);
-          if (pTask) {
-            pTask.step = 'abandon';
-            pTask.taskId = 0;
-            if (pTask.flushing) pTask.flushing.length = 0;
-            pTask.flushing = null;
-
-            pTask.typeOrConfig = null
-            pTask.data = null
-
-            componentBasedTaskPool.delete(e);
-            taskListP.remove(e);
-          }
-          e.removeAttribute('ytx-flushing');
-          if (e.nodeName === 'RP') e.remove();
-        }
-      }
-
-      const flushNowTask = (componentWr, pTaskId, flag) => {
-        const component = kRef(componentWr);
-        if (!component) return;
-        const pTaskNew = componentBasedTaskPool.get(component);
-        if (!pTaskNew) return;
-        if (pTaskId !== pTaskNew.taskId) return;
-        pTaskNew.byPass = false;
-        if (flag & 1) {
-          performTaskQueued(component);
-          performTaskQueued(component);
-          performTaskQueued(component);
-        } else {
-          performTask(component);
-          performTask(component);
-          performTask(component);
-        }
-        return true;
-      }
-
-      const flushNow = (component) => {
-
-
-
-        const cName = this.getComponentName_(typeOrConfig, data);
-        const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.is === 'ytd-playlist-panel-video-renderer';
-        // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
-
-        if(mDeferred) {
-          component.setAttribute('ytx-defer-stamp','');
-          this.hostElement.setAttribute('ytx-defer-stamp','');
-        }
-
-        const pTaskNew = taskPush(component, pTask, {
-          step: isSelfProducer ? 'mightFlushAndWaitContainersRenderFinish' : 'flushStamper',
-          producer: this[wk],
-          containerId: containerId,
-          typeOrConfig: typeOrConfig,
-          data: data,
-          byPass: true,
-          pq33: 7
-        }, mDeferred ? 1 : 0);
-
-        const pTaskId = pTaskNew.taskId;
-
-        const componentWr = component[wk];
-
-
-        if(!component.hasAttribute('ytx-flushing')) component.setAttribute('ytx-flushing', '2w');
-
-        if (mDeferred ) {
-
-          q248a.push([componentWr, pTaskId]);
-          
-
-          setTimeout(() => {
-            const q248 = q248a;
-
-            if (!q248.length) return;
-            let q246 = q248.slice();
-            q248.length = 0;
-
-            let doLoop = false;
-            for (const [componentWr, pTaskId] of q246) {
-              // if(!)
-              // console.log(2188, kRef(componentWr).parentNode)
-              if (flushNowTask(componentWr, pTaskId, 1) === true) doLoop = true;
-            }
-            q246.length = 0;
-            q246 = null;
-            if (doLoop) loopTask();
-
-          }, 0);
-
-
-        } else {
-
-          if(!component.parentNode){
-
-            q248b.push([componentWr, pTaskId]);
-
-            (() => {
-
-              const q248 = q248b;
-
-              if (!q248.length) return;
-              let q246 = q248.slice();
-              q248.length = 0;
-  
-              let doLoop = false;
-              for (const [componentWr, pTaskId] of q246) {
-                if (flushNowTask(componentWr, pTaskId, 0) === true) doLoop = true;
-              }
-              q246.length = 0;
-              q246 = null;
-              if (doLoop) loopTask();
-  
-            })();
-
-          } else {
-
-
-            q248c.push([componentWr, pTaskId]);
-
-            nextBrowserTick_(() => {
-              const q248 = q248c;
-
-              if (!q248.length) return;
-              let q246 = q248.slice();
-              q248.length = 0;
-
-              let doLoop = false;
-              for (const [componentWr, pTaskId] of q246) {
-                if (flushNowTask(componentWr, pTaskId, 1) === true) doLoop = true;
-              }
-              q246.length = 0;
-              q246 = null;
-              if (doLoop) loopTask();
-
-            });
-
-          }
-          
-
-        }
-
-
-
-        loopTask();
-
-      };
-
-      if (!isLastCreate) {
-
-        abandonUnreadySubtree();
-
-        flushNow(component);
-        return;
-
-      } else {
-        if (pTask) pTask.taskId = 0;
-      }
-
-      if (this.__byPass828__ || !this.__byPass348__) {
-        return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
-      }
-
-      if (pTask && pTask.step !== 'creation') {
-
-        if(!component.hasAttribute('ytx-flushing')) component.setAttribute('ytx-flushing', '2c');
-
-        abandonUnreadySubtree();
-
-        flushNow(component);
-
-        return;
-
-      } else {
-
-        if (component.nodeName === "RP") {
-
-          component.setAttribute('ytx-stamp', 'flusher');
-
-          component.setAttribute('ytx-flushing', '1');
-
-          const cName = this.getComponentName_(typeOrConfig, data);
-          const mDeferred = cName === 'ytd-playlist-panel-video-renderer' || this.is === 'ytd-playlist-panel-video-renderer';
-          // const mDeferred = typeof cName === 'string' && cName.length >= 17 && (cName === 'ytd-playlist-panel-video-renderer' || cName === 'ytd-menu-renderer' || cName.startsWith('ytd-thumbnail-overlay-'));
-
-          if(mDeferred) {
-            component.setAttribute('ytx-defer-stamp','');
-            this.hostElement.setAttribute('ytx-defer-stamp','');
-          }
-
-          taskPush(component, pTask, {
-            step: 'creation',
-            producer: this[wk],
-            containerId: containerId,
-            typeOrConfig: typeOrConfig,
-            data: data
-          }, mDeferred ? 1 : 0);
-          loopTask();
-
-        } else {
-
-
-          const aNode = component;
-          if (!aNode[wk]) aNode[wk] = mWeakRef(aNode);
-
-          aNode.setAttribute('ytx-stamp', 'flusher');
-          aNode.setAttribute('ytx-flushing', '2');
-
-          flushNow(component);
-
-        }
-
-      }
-
-
-    }
-    flushRenderStamperComponentBindings_ = function () {
-
-      if (!this.__byPass348__) {
-        return this.flushRenderStamperComponentBindings7409_();
-      }
-      if (this.__byPass828__) {
-        const wr = this[wk] || (this[wk] = mWeakRef(this));
-        queueMicrotask_(() => {
-          const producer = kRef(wr);
-          if (!producer) return;
-          producer.flushRenderStamperComponentBindings7409_();
-        });
-        throw new Error('5ii48');
-      }
-      throw new Error('5ii48')
-    }
-
-
-    const directComponentList = new Set([
-       // for YouTube Tabview Totara
-      "YTD-STRUCTURED-DESCRIPTION-CONTENT-RENDERER",
-      "YTD-VIDEO-DESCRIPTION-HEADER-RENDERER",
-      "YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER",
-    ]);
-
-
-    let kf33;
-    let kf3b = 0;
-
-    const sb88 = Symbol();
-
-    const onStampDone = (producer) =>{
-
-
-      const flushing_ = producer[sb88];
-
-      const flushing = flushing_.slice();
-      flushing_.length = 0;
-
-      if (flushing && flushing.length > 0) {
-
-        let shouldMarkDirty = false;
-
-        const m = new Set();
-
-        for (const [containerId, bEvent, hasData] of flushing) {
-          if (hasData || hasData === null) {
-            shouldMarkDirty = true;
-            if (bEvent) {
-              const container = producer.getStampContainer7409_(containerId);
-              // console.log(644221499, container)
-              m.add(container);
-            }
-          }
-        }
-        flushing.length = 0;
-
-        if (shouldMarkDirty) {
-          producer.markDirty && producer.markDirty();
-          let q = true;
-          for (const container of m) {
-            if (!q) producer.markDirty && producer.markDirty();
-            q = false;
-            dispatchYtEvent(producer.hostElement, "yt-rendererstamper-finished", {
-              container
-            });
-          }
-        }
-
-      }
-      
-
-
-    }
-
-    stampDomArraySplices_ = function (stampKey, containerId, indexSplicesObj) {
-      // this.__byPass828__ = true;
-
-      // return this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
-
-      const producer = this;
-      const hostElement = producer.hostElement;
-
-      let kf = false;
-      const kf3t = nativeNow();
-      const kf34 = Math.floor((kf3t - kf3b) / 8);
-
-      if (!kf33 || kf34 !== kf33) {
-        kf33 = kf34;
-        kf3b = kf3t - kf34 * 8;
-        kf = true;
-      }
-
-      const container = this.getStampContainer7409_(containerId);
-      if (container && !container.__rk75401__) {
-        container.__rk75401__ = true;
-        childrenObs.observe(container, { subtree: false, childList: true });
-      }
-
-      if (kf) this.__directProduction533__ = true;
-      else if (!this.isAttached) this.__directProduction533__ = true; // tbc
-      else if (this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directProduction533__ = true;
-      else if (hostElement && directComponentList.has(hostElement.nodeName)) this.__directProduction533__ = true;
-      else if (hostElement && hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
-      else this.__directProduction533__ = false;
-
-      this.__directProduction533__ = true;
-
-      // if (container.is === 'yt-img-shadow') this.__byPass828__ = true;
-
-      // if(this.hostElement.closest('ytd-comments')) this.__byPass828__ = true;
-
-      const bEventCb = this.stampDom[stampKey].events;
-
-      this.__activeContainerId929__ = containerId;
-
-      if (!this[wk]) this[wk] = mWeakRef(this);
-      if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
-      if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
-        hostElement.setAttribute('ytx-stamp', 'flusher|producer');
-      } else if (!hostElement.hasAttribute('ytx-stamp')) {
-        hostElement.setAttribute('ytx-stamp', 'producer');
-      }
-
-
-      if (this.__byPass828__) {
-
-        const flushing = this[sb88] || (this[sb88] = []);
-        flushing.push([containerId, bEventCb, null]);
-  
-        let r, e_
-        try {
-          this.__byPass348__ = true;
-          this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
-        } catch (e) {
-          e_ = e;
-        }
-        this.__byPass348__ = false;
-
-        nextBrowserTick_(() => {
-          onStampDone(this);
-        });
-
-        if (e_ && e_.message !== '5ii48') throw e_;
-        return;
-
-      }
-
-
-      const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
-
-      const flushing = pTask ? (pTask.flushing || []) : [];
-      flushing.push([containerId, bEventCb, null]);
-      hostElement.setAttribute('ytx-flushing', 's-1');
-
-      if (pTask) {
-        // pTask.taskId = -1;
-        pTask.byPass = true;
-      }
-      
-      if (hostElement && !hostElement.__rk75401__) {
-        hostElement.__rk75401__ = true;
-        childrenObs.observe(hostElement, { subtree: false, childList: true });
-      }
-
-      let r, e_
-      try {
-        this.__byPass348__ = true;
-        this.stampDomArraySplices7409_(stampKey, containerId, indexSplicesObj);
-      } catch (e) {
-        e_ = e;
-      }
-      this.__byPass348__ = false;
-
-      taskPush(hostElement, pTask, {
-        step: 'mightFlushAndWaitContainersRenderFinish',
-        selfProducer: this[wk],
-        flushing
-      });
-      loopTask();
-
-      triggerDomChange(container);
-      triggerDomChange(hostElement);
-
-      if (e_ && e_.message !== '5ii48') throw e_;
-
-    };
-
-    stampDomArray_ = function (dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList) {
-      // this.__byPass828__ = true;
-
-
-
-      // return this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-
-      const producer = this;
-      const hostElement = producer.hostElement;
-
-      let kf = false;
-      const kf3t = nativeNow();
-      const kf34 = Math.floor((kf3t - kf3b) / 8);
-
-      if (!kf33 || kf34 !== kf33) {
-        kf33 = kf34;
-        kf3b = kf3t - kf34 * 8;
-        kf = true;
-      }
-
-      const container = this.getStampContainer7409_(containerId);
-      if (container && !container.__rk75401__) {
-        container.__rk75401__ = true;
-        childrenObs.observe(container, { subtree: false, childList: true });
-      }
-
-      if (kf) this.__directProduction533__ = true;
-      else if (!this.isAttached) this.__directProduction533__ = true; // tbc
-      else if (this.onYtRendererstamperFinished && this.updateChildVisibilityProperties) this.__directProduction533__ = true;
-      else if (hostElement && directComponentList.has(hostElement.nodeName)) this.__directProduction533__ = true;
-      else if (hostElement && hostElement.closest('ytd-engagement-panel-section-list-renderer, [hidden], defs, noscript')) this.__directProduction533__ = true;
-      else this.__directProduction533__ = false;
-
-      bReuse = false;
-
-      this.__directProduction533__ = true;
-
-      // if (container.is === 'yt-img-shadow') this.__byPass828__ = true;
-      // if(this.hostElement.closest('ytd-comments')) this.__byPass828__ = true;
-
-      this.__activeContainerId929__ = containerId;
-
-      if (!this[wk]) this[wk] = mWeakRef(this);
-      if (!hostElement[wk]) hostElement[wk] = mWeakRef(hostElement);
-      if (hostElement.getAttribute('ytx-stamp') === 'flusher') {
-        hostElement.setAttribute('ytx-stamp', 'flusher|producer');
-      } else if (!hostElement.hasAttribute('ytx-stamp')) {
-        hostElement.setAttribute('ytx-stamp', 'producer');
-      }
-
-
-      if (this.__byPass828__) {
-
-        const flushing = this[sb88] || (this[sb88] = []);
-        flushing.push([containerId, bEventCb, !!dataList]);
-  
-        let r, e_
-        try {
-          this.__byPass348__ = true;
-          this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-        } catch (e) {
-          e_ = e;
-        }
-        this.__byPass348__ = false;
-
-        nextBrowserTick_(() => {
-          onStampDone(this);
-        });
-
-        if (e_ && e_.message !== '5ii48') throw e_;
-        return;
-
-      }
-
-
-      const pTask = componentBasedTaskPool.get(hostElement); // can be flushStamperWait -> mightFlushAndWaitContainersRenderFinish
-
-      const flushing = pTask ? (pTask.flushing || []) : [];
-      flushing.push([containerId, bEventCb, !!dataList]);
-      hostElement.setAttribute('ytx-flushing', 's-1');
-
-      if (pTask) {
-        pTask.byPass = true;
-        // pTask.taskId = -1;
-      }
-
-      if (hostElement && !hostElement.__rk75401__) {
-        hostElement.__rk75401__ = true;
-        childrenObs.observe(hostElement, { subtree: false, childList: true });
-      }
-
-      let r, e_
-      try {
-        this.__byPass348__ = true;
-        this.stampDomArray7409_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-      } catch (e) {
-        e_ = e;
-      }
-      this.__byPass348__ = false;
-
-      taskPush(hostElement, pTask, {
-        step: 'mightFlushAndWaitContainersRenderFinish',
-        selfProducer: this[wk],
-        flushing
-      });
-      loopTask();
-
-      triggerDomChange(container);
-      triggerDomChange(hostElement);
-
-      if (e_ && e_.message !== '5ii48') throw e_;
-
-    };
-
-    const stampDomArrayWB_ = function (objWr, containerId, xxx_) {
-
-      const obj = kRef(objWr);
-      if (!obj) return;
-      const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`];
-      if (xxx !== xxx_) return;
-      const dataList = obj[`__stampDomArrayArgs_dataList__#${containerId}__`];
-      const typeOrConfig = kRef(obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`]);
-      const bReuse = obj[`__stampDomArrayArgs_bReuse__#${containerId}__`];
-      const bEventCb = obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`];
-      const bStableList = obj[`__stampDomArrayArgs_bStableList__#${containerId}__`];
-      // console.log(12388002, containerId, dataList, typeOrConfig, bReuse, bEventCb, bStableList)
-      return obj.stampDomArray_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
-    };
-
-    
-
-    stampDomArray_.bind = function (obj, ...args) {
-      let [dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList] = args;
-      // console.log(12388001, containerId, dataList, typeOrConfig, bReuse, bEventCb, bStableList)
-      if (!obj[wk]) obj[wk] = mWeakRef(obj);
-      obj[`__stampDomArrayArgs_dataList__#${containerId}__`] = dataList;
-      if (!typeOrConfig[wk]) typeOrConfig[wk] = mWeakRef(typeOrConfig);
-      obj[`__stampDomArrayArgs_typeOrConfig__#${containerId}__`] = typeOrConfig[wk];
-      obj[`__stampDomArrayArgs_bReuse__#${containerId}__`] = bReuse;
-      obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`] = bEventCb;
-      obj[`__stampDomArrayArgs_bStableList__#${containerId}__`] = bStableList;
-
-      // if (!obj[`__stampDomArrayBoundFn__#${containerId}__`]) obj[`__stampDomArrayBoundFn__#${containerId}__`] = stampDomArrayWB_.bind(null, obj[wk], containerId);
-      
-       const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`] = `${Math.random()}_${Date.now()}`;
-      // const p = obj[wk];
-      // queueMicrotask_(()=>{
-      //   const obj = kRef(p);
-      //   if(!obj) return;
-      //   if(!obj.hostElement) return;
-      //   triggerDomChange(obj.hostElement);
-      //   const container = obj.getStampContainer7409_(containerId);
-      //   if(container instanceof Node) triggerDomChange(container);
-      // });
-      // return obj[`__stampDomArrayBoundFn__#${containerId}__`];
-
-      return stampDomArrayWB_.bind(null, obj[wk], containerId, xxx);
-    };
 
     return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
 
@@ -10450,13 +8120,9 @@
       // }
 
     }
-    if (ENABLE_discreteTasking && !(cProto[pvr] & 2) && (typeof (cProto.is || 0) === 'string' || ('attached' in cProto) || ('isAttached' in cProto))) {
-      cProto[pvr] |= 2;
-      setupDiscreteTasks(cProto);
-    }
   };
 
-  (ENABLE_discreteTasking || FIX_stampDomArray) && Object.defineProperty(Object.prototype, 'connectedCallback', {
+  (FIX_stampDomArray) && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
       
       const f = this[keyStConnectedCallback];
@@ -10524,30 +8190,6 @@
   let fix_error_many_stack_state = !FIX_error_many_stack ? 0 : skipAdsDetection.has(location.pathname) ? 2 : 1;
 
   if (!JSON || !('parse' in JSON)) fix_error_many_stack_state = 0;
-
-  ; FIX_Iframe_NULL_SRC && !isChatRoomURL && typeof kagi === 'undefined' && (() => {
-
-    const emptyBlobUrl = URL.createObjectURL(new Blob([], { type: 'text/html' }));
-    const lcOpt = { sensitivity: 'base' };
-    document.createElement24 = document.createElement;
-    document.createElement = function (t) {
-      if (typeof t === 'string' && t.length === 6) {
-        if (t.localeCompare('iframe', undefined, lcOpt) === 0) {
-          const p = this.createElement24(t);
-          try {
-            const stack = new Error().stack;
-            const isSearchbox = stack.includes('initializeSearchbox'); // see https://greasyfork.org/scripts/473972-youtube-js-engine-tamer/discussions/217084
-            if (!isSearchbox) {
-              p.src = emptyBlobUrl; // avoid iframe is appended to DOM without any url
-            }
-          } catch (e) { }
-          return p;
-        }
-      }
-      return this.createElement24.apply(this, arguments);
-    };
-
-  })();
 
   ; fix_error_many_stack_state === 1 && (() => {
 
@@ -11912,7 +9554,7 @@
 
     let isAmended_Polymer_RenderStatus = false;
 
-    (ENABLE_discreteTasking || FIX_Polymer_dom || FIX_Polymer_AF || FIX_stampDomArray) && (async () => {
+    (FIX_Polymer_dom || FIX_Polymer_AF || FIX_stampDomArray) && (async () => {
 
       const Polymer = await polymerObservable.obtain();
       if (!Polymer) return;
@@ -12003,31 +9645,6 @@
         const pd6b = Object.getOwnPropertyDescriptor(Document.prototype, 'querySelectorAll');
 
 
-        // getOwnerRoot - to be reviewed
-        if (0 && checkPDFuncValue(pd1) && checkPDFuncGet(pd2) && !domXP.getOwnerRoot15 && typeof domXP.getOwnerRoot === 'function') {
-
-          domXP.getOwnerRoot15 = domXP.getOwnerRoot;
-          domXP.getOwnerRoot = function () {
-            try {
-              const p = this.node;
-
-              if (p instanceof HTMLElement_) {
-                const pp = pd2.get.call(p);
-                if (pp instanceof HTMLElement_ && pp.isConnected === true) {
-                  return pp.getRootNode();
-                }
-
-              }
-            } catch (e) { }
-            return this.getOwnerRoot15();
-          }
-
-          Polymer.__fixedGetOwnerRoot__ = 1;
-        }
-
-
-
-
         if ((!pd3 || checkPDFuncValue(pd3)) && checkPDFuncValue2(pd4) && checkPDFuncValue2(pd4b) && !('querySelector15' in domXP)) {
 
           domXP.querySelector15 = domXP.querySelector;
@@ -12100,7 +9717,7 @@
       }
 
 
-      if (ENABLE_discreteTasking || FIX_stampDomArray) {
+      if (FIX_stampDomArray) {
 
         Polymer.Base.__connInit__ = function () {
           setupYtComponent(this);
