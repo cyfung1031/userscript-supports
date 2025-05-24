@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.0
+// @version     0.41.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -122,6 +122,7 @@
   const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
   const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
   const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
+  const FUZZY_EVENT_LISTENER_REMOVAL = true;
 
   const FIX_TEMPLATE_BINDING = true;
   const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
@@ -1094,32 +1095,43 @@
     const handlerMap = new WeakMap();
     EventTarget.prototype.addEventListener828 = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function (type, handler, option = void 0) {
-      let hds = handlerMap.get(this);
-      if (!hds) handlerMap.set(this, (hds = new Set()));
+      const wr = this[wk] || (this[wk] = mWeakRef(this));
+      let hds = handlerMap.get(wr);
+      if (!hds) handlerMap.set(wr, (hds = new Set()));
       hds.add([type, handler, option]);
       return this.addEventListener828(type, handler, option);
     }
     EventTarget.prototype.removeEventListener828 = EventTarget.prototype.removeEventListener;
     EventTarget.prototype.removeEventListener = function (type, handler, option = void 0) {
-      let hds = handlerMap.get(this);
+      const wr = this[wk] || (this[wk] = mWeakRef(this));
+      let hds = handlerMap.get(wr);
       if (hds) {
         for (const entry of hds) {
-          if (entry[0] === type && entry[1] === handler && entry[2] === option) {
-            hds.delete(entry);
-            break;
+          if (entry[0] === type && entry[1] === handler) {
+            if (entry[2] === option) {
+              hds.delete(entry);
+              // break;
+            } else if (FUZZY_EVENT_LISTENER_REMOVAL) {
+              hds.delete(entry);
+              this.removeEventListener828(type, handler, entry[2]);
+            }
           }
         }
       }
       return this.removeEventListener828(type, handler, option);
     }
     EventTarget.prototype.countEvent767 = function(){
-      return handlerMap.get(this);
+      const wr = this[wk] || (this[wk] = mWeakRef(this));
+      return handlerMap.get(wr);
     }
-    EventTarget.prototype.removeAllEventListener001 = function(){
-      let hds = handlerMap.get(this);
+    EventTarget.prototype.removeAllEventListener001 = function () {
+      const wr = this[wk] || (this[wk] = mWeakRef(this));
+      let hds = handlerMap.get(wr);
       if (hds) {
-        handlerMap.delete(this);
-        for (const [type, handler, option] of hds) {
+        handlerMap.delete(wr);
+        for (const entry of hds) {
+          const [type, handler, option] = entry;
+          entry.length = 0;
           this.removeEventListener828(type, handler, option);
         }
         hds.clear();
