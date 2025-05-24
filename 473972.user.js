@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.40.1
+// @version     0.40.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -182,6 +182,7 @@
 
   const FIX_ICON_RENDER = true;
   const FIX_GUIDE_ICON = true;
+  const FIX_ACTIONS_TOOLTIPS = true;
 
   const FIX_VIDEO_PLAYER_MOUSEHOVER_EVENTS = true; // avoid unnecessary reflows due to cursor moves on the web player.
 
@@ -2648,19 +2649,28 @@
 
   }
 
+  let _cssSheet = null;
+  const addNewCSS = typeof CSSStyleSheet !== 'undefined' && document.adoptedStyleSheets ? (css) => {
+    if (!_cssSheet) {
+      _cssSheet = new CSSStyleSheet();
+      document.adoptedStyleSheets.push(_cssSheet);
+    }
+    _cssSheet.insertRule(`${css}`);
+  } : (css) => {
+    let nonce = document.querySelector('style[nonce]');
+    nonce = nonce ? nonce.getAttribute('nonce') : null;
+    const st = document.createElement('style');
+    if (typeof nonce === 'string') st.setAttribute('nonce', nonce);
+    st.textContent = `${css}`;
+    let parent;
+    if (parent = document.head) parent.appendChild(st);
+    else if (parent = (document.body || document.documentElement)) parent.insertBefore(st, parent.firstChild);
+  }
+
   function getTranslate() {
 
     pLoad.then(() => {
-
-      let nonce = document.querySelector('style[nonce]');
-      nonce = nonce ? nonce.getAttribute('nonce') : null;
-      const st = document.createElement('style');
-      if (typeof nonce === 'string') st.setAttribute('nonce', nonce);
-      st.textContent = ".yt-formatted-string-block-line{display:block;}";
-      let parent;
-      if (parent = document.head) parent.appendChild(st);
-      else if (parent = (document.body || document.documentElement)) parent.insertBefore(st, parent.firstChild);
-
+      addNewCSS(".yt-formatted-string-block-line{display:block;}");
     });
 
     const snCache = new Map();
@@ -10472,6 +10482,12 @@
       window.addEventListener("DOMContentLoaded", resolve, false);
     }
   });
+
+  if (FIX_ACTIONS_TOOLTIPS) {
+    pLoad.then(() => {
+      addNewCSS("#actions .tp-yt-paper-tooltip{white-space:nowrap}");
+    });
+  }
 
   if (FIX_fix_requestIdleCallback_timing && !window.requestIdleCallback471 && typeof window.requestIdleCallback === 'function') {
     window.requestIdleCallback471 = window.requestIdleCallback;
