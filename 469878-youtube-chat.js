@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.6
+// @version             0.102.7
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -10197,6 +10197,7 @@
               const q = b / 1E3 * (rate || 0);
 
               const tickerBarQuery = cnt.__getTickerBarQuery__();
+              if (!tickerBarQuery) return; // memory leakage. to be reviewed
               const sl = tickerBarQuery.scrollLeft;
               // console.log(rate, sl, q)
               if (cnt.lastFrameTimestamp == cnt.scrollStartTime) {
@@ -10225,6 +10226,7 @@
 
               const b = a - (cnt.lastFrameTimestamp || 0);
               const tickerBarQuery = cnt.__getTickerBarQuery__();
+              if (!tickerBarQuery) return; // memory leakage. to be reviewed
               tickerBarQuery.scrollLeft += b / 1E3 * (cnt.scrollRatePixelsPerSecond || 0);
               cnt.maybeClampScroll();
               cnt.updateArrows();
