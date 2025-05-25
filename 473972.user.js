@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.1
+// @version     0.41.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -581,6 +581,39 @@
 
   }
 
+  const renderPathMake = (elements) => {
+    if(!elements) return;
+    if (!elements.length) elements = [elements];
+    const s = new Set();
+    s.add = s.addOriginal || s.add;
+    for (const element of elements) {
+      if (element && element.nodeType >= 1) {
+        s.add(element);
+        if (element.querySelectorAll) {
+          for (const e of element.querySelectorAll('*')) {
+            s.add(e);
+          }
+        }
+      }
+    }
+    const y = [...s];
+    s.clear();
+
+    for (const element of y) {
+      if (element && (element.nodeType >= 1) && !element.__renderPath522__) {
+        let t = element;
+        let w = [element.nodeName.toLowerCase()];
+        if (!element.is) {
+          while (t = t.parentNode) {
+            w.unshift(t.nodeName.toLowerCase())
+            if (t.is) break;
+          }
+        }
+        element.__renderPath522__ = w.join('/');
+      }
+    }
+  }
+
 
   const dispatchYtEvent = function (a, b, c, d) {
     d || (d = {
@@ -714,8 +747,8 @@
     }
     const ng02 = [...ng01];
     ng01.clear();
-    console.log(ng02);
     window.showNg01 = [...ng02];
+    return window.showNg01;
   }
   window.showTemplates00 = () => {
     const result = {};
@@ -1423,6 +1456,7 @@
 
             const hostElement = T.hostElement;
             const pChildren = (hostElement instanceof Node) ? [...hostElement.childNodes] : null;
+            renderPathMake(pChildren);
 
             _runEffectsForTemplate.call(T, Nx, R, X, A);
 
@@ -1434,7 +1468,7 @@
                   while ((pNode = tNode.parentNode) && pNode.nodeType >= 1) {
                     tNode = pNode;
                   }
-                  _removedElements.addNode(tNode);
+                  // _removedElements.addNode(tNode); // rn54001
                 }
               }
               pChildren.length = 0;
@@ -1530,11 +1564,12 @@
             });
           }
           let previousDataHost = this.__dataHost;
+          renderPathMake(previousDataHost)
           let r = _registerHost.call(this);
           let currentDataHost = this.__dataHost;
           if (currentDataHost !== previousDataHost) { // future use only
             if (previousDataHost && previousDataHost.nodeType >= 1 && previousDataHost.isConnected === false) {
-              _removedElements.addNode(previousDataHost);
+              _removedElements.addNode(previousDataHost); // rn54002
             }
           }
           return r;
@@ -3871,9 +3906,10 @@
               for (const weakNodeC of __templateInfo.nodeList) {
                 const node = toActualNode(weakNodeC);
                 if (node && node.nodeType >= 1) {
+                  renderPathMake(node)
                   node.__keepInstance038__ = false;
                   node.remove();
-                  _removedElements.addNode(node);
+                  _removedElements.addNode(node); // rn54011
                 }
               }
               __templateInfo.nodeList.length = 0;
@@ -3884,7 +3920,7 @@
 
             if (stampFrag && stampFrag.nodeType === 11) {
               stampFrag.__keepInstance038__ = false;
-              _removedElements.addNode(stampFrag);
+              _removedElements.addNode(stampFrag); // rn54012
               removeAllChildNodes(stampFrag);
               try {
                 stampFrag.remove();
@@ -3910,7 +3946,7 @@
               for (const n of children) {
                 if (n && n.nodeType >= 1) {
                   n.__keepInstance038__ = false;
-                  _removedElements.addNode(n);
+                  _removedElements.addNode(n); // rn54013
                 }
               }
               children.length = 0;
@@ -7018,6 +7054,7 @@
 
       const container = this.getStampContainer7409_(containerId);
       const pChildren = [...container.children];
+      renderPathMake(pChildren)
 
       containerMapping.set(container, 
         (this[wk] || (this[wk] = mWeakRef(this)))
@@ -7078,7 +7115,7 @@
 
       for (const node of pChildren) {
         if (node.isConnected === false) {
-          _removedElements.addNode(node);
+          _removedElements.addNode(node); // rn54006
         }
       }
 
