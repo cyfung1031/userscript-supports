@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.2
+// @version     0.41.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1455,7 +1455,7 @@
             // console.log(1737005, A)
 
             const hostElement = T.hostElement;
-            const pChildren = (hostElement instanceof Node) ? [...hostElement.childNodes] : null;
+            const pChildren = (hostElement instanceof Node && hostElement.isConnected === true) ? [...hostElement.childNodes] : null;
             renderPathMake(pChildren);
 
             _runEffectsForTemplate.call(T, Nx, R, X, A);
@@ -7053,7 +7053,7 @@
       const useMicroTaskQueue2 = evaluteUseMicroTaskQueue(ax, containerId, hostIs, this, this.hostElement);
 
       const container = this.getStampContainer7409_(containerId);
-      const pChildren = [...container.children];
+      const pChildren = (container instanceof Node && container.isConnected) ? [...container.children] : [];
       renderPathMake(pChildren)
 
       containerMapping.set(container, 
@@ -7113,11 +7113,15 @@
       useMicroTaskQueue2 ? addTask2(f) : f();
       executeTasks();
 
-      for (const node of pChildren) {
-        if (node.isConnected === false) {
-          _removedElements.addNode(node); // rn54006
+      Promise.resolve(pChildren).then(pChildren => {
+        for (const node of pChildren) {
+          if (node.isConnected === false) {
+            _removedElements.addNode(node); // rn54006
+          }
         }
-      }
+        pChildren.length = 0;
+        pChildren = null;
+      });
 
       // console.log(58801, this.hostElement.parentNode instanceof HTMLElement_);
 
