@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.3
+// @version     0.41.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1462,14 +1462,17 @@
 
             (pChildren || 0).length >= 1 && Promise.resolve(pChildren).then((pChildren) => {
               for (const node of pChildren) {
-                if (node.isConnected === false) {
-                  let tNode = node;
-                  let pNode;
-                  while ((pNode = tNode.parentNode) && pNode.nodeType >= 1) {
-                    tNode = pNode;
-                  }
-                  // _removedElements.addNode(tNode); // rn54001
+                if (node.parentNode !== hostElement && node.__weakNodeCId57__) {
+                  _removedElements.addNode(node); // rn54001b
                 }
+                // if (node.isConnected === false) {
+                //   let tNode = node;
+                //   let pNode;
+                //   while ((pNode = tNode.parentNode) && pNode.nodeType >= 1) {
+                //     tNode = pNode;
+                //   }
+                //   // _removedElements.addNode(tNode); // rn54001
+                // }
               }
               pChildren.length = 0;
               pChildren = null;
