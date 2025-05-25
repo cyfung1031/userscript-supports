@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.4
+// @version     0.41.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -60,7 +60,7 @@
   const FIX_Shady = true;
 
   // [[ 2024.04.24 ]]
-  const MODIFY_ShadyDOM_OBJ = true;
+  const MODIFY_ShadyDOM_OBJ = true; // DON'T CHANGE. MUST BE TRUE
   // << if MODIFY_ShadyDOM_OBJ >>
   const WEAKREF_ShadyDOM = true;
   const OMIT_ShadyDOM_EXPERIMENTAL = 1 | 0; // 1 => enable; 2 => composedPath
@@ -123,6 +123,7 @@
   const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
   const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
   const FUZZY_EVENT_LISTENER_REMOVAL = true;
+  const WEAK_CE_ROOT = true; // shadowRoot of the return value of attachShadow on the node
 
   const FIX_TEMPLATE_BINDING = true;
   const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
@@ -599,13 +600,18 @@
     const y = [...s];
     s.clear();
 
+    const f = (elm) => {
+      let x = elm.nodeName.toLowerCase();
+      let y = elm.id;
+      return y ? `${x}#${y}` : `${x}`;
+    }
     for (const element of y) {
       if (element && (element.nodeType >= 1) && !element.__renderPath522__) {
         let t = element;
-        let w = [element.nodeName.toLowerCase()];
+        let w = [f(t)];
         if (!element.is) {
           while (t = t.parentNode) {
-            w.unshift(t.nodeName.toLowerCase())
+            w.unshift(f(t))
             if (t.is) break;
           }
         }
@@ -716,6 +722,27 @@
       _removedElements.addNode_(node);
     }
   } : () => { };
+
+  if (WEAK_CE_ROOT) {
+    Object.defineProperty(Object.prototype, '__CE_shadowRoot', {
+      get() {
+        return kRef(this.__CE_shadowRoot366);
+      },
+      set(nv) {
+        if (typeof nv !== 'object') { // null is okay
+          if (this.__CE_shadowRoot366) this.__CE_shadowRoot366 = null;
+          return false;
+        }
+        if (!nv || typeof nv !== 'object') {
+          this.__CE_shadowRoot366 = nv;
+        } else {
+          if (!nv[wk]) nv[wk] = mWeakRef(nv);
+          this.__CE_shadowRoot366 = nv[wk];
+        }
+        return true;
+      }
+    });
+  }
 
   const _emptyElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   const _emptyTipsElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -1222,6 +1249,72 @@
   const stampedFragment = new Map();  /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
   stampedFragment.set = stampedFragment.setOriginal || stampedFragment.set;
 
+
+  class WeakNodeC extends Node {
+    constructor() {
+    }
+    addEventListener(type, listener, option = void 0) {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      return node.addEventListener(type, listener, option);
+    }
+    removeEventListener(type, listener, option = void 0) {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      return node.removeEventListener(type, listener, option);
+    }
+    getNode592177() {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      return node;
+    }
+
+    set __dataHost(nv) {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      node.__dataHost = nv;
+      return true;
+    }
+    get __dataHost() {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      return node.__dataHost;
+    }
+
+    set __dataCompoundStorage(nv) {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      node.__dataCompoundStorage = nv;
+      return true;
+    }
+    get __dataCompoundStorage() {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      return node.__dataCompoundStorage;
+    }
+
+    set __shady_className(nv) {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      node.__shady_className = nv;
+      debugger;
+      return true;
+    }
+    get __shady_className() {
+      const nodeWr = stampedNodes.get(this.eid);
+      const node = kRef(nodeWr);
+      if (!node) return;
+      return node.__shady_className;
+    }
+  }
+
   if (FIX_TEMPLATE_BINDING) {
     const templateMap = new Map(); /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
     templateMap.set = templateMap.setOriginal || templateMap.set;
@@ -1269,6 +1362,10 @@
           }
 
     */
+
+
+    const exceptionTriggered = new Set();
+    const gxx = (window.gxxC572 || (window.gxxC572 = new Set()));
 
     // let initied1 = false;
     // let _parseTemplateByPass = false;
@@ -1381,7 +1478,6 @@
       }
 
       const _runEffectsForTemplate = proto._runEffectsForTemplate;
-      const gxx = (window.gxxC572 || (window.gxxC572 = new Set()));
       if (typeof _runEffectsForTemplate === 'function' && _runEffectsForTemplate.length === 4 && !proto._runEffectsForTemplate322) {
         proto._runEffectsForTemplate322 = _runEffectsForTemplate;
 
@@ -1458,7 +1554,17 @@
             const pChildren = (hostElement instanceof Node && hostElement.isConnected === true) ? [...hostElement.childNodes] : null;
             renderPathMake(pChildren);
 
-            _runEffectsForTemplate.call(T, Nx, R, X, A);
+            try {
+              _runEffectsForTemplate.call(T, Nx, R, X, A);
+
+            } catch (err) {
+              // debugger;
+              const stack = err.stack;
+              if (!exceptionTriggered.has(stack)) {
+                exceptionTriggered.add(stack);
+                console.warn(`[yt-js-engine-tamer] _runEffectsForTemplate EXCEPTION`+"\n\n", err);
+              }
+            }
 
             (pChildren || 0).length >= 1 && Promise.resolve(pChildren).then((pChildren) => {
               for (const node of pChildren) {
@@ -1480,8 +1586,13 @@
 
 
           } catch (err) {
-            debugger;
-            console.warn(err);
+            // debugger;
+            // const stack = err.stack;
+            // if (!exceptionTriggered.has(stack)) {
+            // exceptionTriggered.add(stack);
+            // console.warn(`[yt-js-engine-tamer] _runEffectsForTemplate EXCEPTION`, err);
+            console.error(err);
+            // }
           }
 
         };
@@ -1627,58 +1738,55 @@
 
     */
 
+    const wnc = new Set();
+
+    const __listWeakNodeC__ = window.__listWeakNodeC__ = () => {
+      const result = __listWeakNodeC0__();
+      return [...result].sort();
+    }
+
+    const __listWeakNodeC0__ = () => {
+      let result = new Set();
+      for (const nodeC of wnc) {
+        for (const k of Object.getOwnPropertyNames(nodeC)) {
+          result.add(k)
+        }
+      }
+      return result;
+    }
+
+    setInterval(() => {
+      if (wnc.size > 0 && __listWeakNodeC0__().size !== 1) console.warn(`[yt-js-engine-tamer] WARNING 0xF04E: ${__listWeakNodeC__()}`);
+    }, 400);
 
 
-    class WeakNodeC {
-      constructor(eid) {
-        this.eid = eid;
-      }
-      addEventListener(type, listener, option = void 0) {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        return node.addEventListener(type, listener, option);
-      }
-      removeEventListener(type, listener, option = void 0) {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        return node.removeEventListener(type, listener, option);
-      }
-      getNode592177() {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        return node;
-      }
-      set __dataHost(nv) {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        node.__dataHost = nv;
-        return true;
-      }
-      get __dataHost() {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        return node.__dataHost;
-      }
+    const dollarStore = new Map();
 
-      set __dataCompoundStorage(nv) {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        node.__dataCompoundStorage = nv;
-        return true;
-
-      }
-      get __dataCompoundStorage() {
-        const nodeWr = stampedNodes.get(this.eid);
-        const node = kRef(nodeWr);
-        if (!node) return;
-        return node.__dataCompoundStorage;
-
-      }
+    const makeDollarClass = (idsJoined, ids) => {
+      const $ = class {};
+      const a = $.prototype;
+      ids.forEach(id => {
+        const p = `## ${id}`;
+        Object.defineProperty(a, id, {
+          get() {
+            return kRef(this[p]);
+          },
+          set(nv) {
+            if (nv instanceof Node) {
+              if (!nv[wk]) nv[wk] = mWeakRef(nv);
+              this[p] = nv[wk];
+            } else {
+              this[p] = nv;
+            }
+            return true;
+          },
+          enumerable: true,
+          configurable: true
+        });
+      });
+      a.__w646__ = true;
+      dollarStore.set(idsJoined, $);
+      return $;
     }
 
     // let initied2 = false;
@@ -1692,39 +1800,64 @@
       if (typeof _stampTemplate === 'function' && _stampTemplate.length === 2 && !proto._stampTemplate374) {
         proto._stampTemplate374 = _stampTemplate;
         proto._stampTemplate = function (N, R) {
-          // R = boolean true or binded template
-          // N = template elemenet
-          let M = N;
-          let r_ = null;
-          const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
-          r_ = r;
 
-          if (r && r.nodeType === 11) {
-
-            const fid = genId();
-
-            r.__fragId57__ = fid;
-            if (!r[wk]) r[wk] = mWeakRef(r);
-            stampedFragment.set(fid, r[wk]);
-
-            if (r.nodeList) {
-              const nl = r.nodeList;
-              nl.__belongFragId57__ = fid;
-              for (let i = 0, l = nl.length; i < l; i++) {
-                const t = nl[i];
-                if (t && t.nodeType >= 1) {
-                  if (!t[wk]) t[wk] = mWeakRef(t);
-                  const eid = `${fid}::${i}`;
-                  nl[i] = new WeakNodeC(eid);
-                  stampedNodes.set(eid, t[wk]);
-                  t.__weakNodeCId57__ = eid;
-                }
+          let e__ = null;
+          try {
+            // R = boolean true or binded template
+            // N = template elemenet
+            let M = N;
+            let r_ = null;
+            const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
+            r_ = r;
+            if (r && r.$ && !r.$.__w646__) {
+              const $ = r.$;
+              const ids = Object.getOwnPropertyNames($)
+              const idsJoined = ids.join(' ');
+              const C = dollarStore.get(idsJoined) || makeDollarClass(idsJoined, ids);
+              const objVals = { ...$ };
+              Reflect.setPrototypeOf($, C.prototype);
+              for (const id of ids) {
+                delete $[id];
+                $[id] = objVals[id];
               }
             }
+            if (r && r.nodeType === 11 && !r.__fragId57__) {
 
-          }
+              const fid = genId();
 
-          return r;
+              r.__fragId57__ = fid;
+              if (!r[wk]) r[wk] = mWeakRef(r);
+              stampedFragment.set(fid, r[wk]);
+
+              if (r.nodeList) {
+                const nl = r.nodeList;
+                nl.__belongFragId57__ = fid;
+                for (let i = 0, l = nl.length; i < l; i++) {
+                  const t = nl[i];
+                  if (t && t.nodeType >= 1 && !(t instanceof ShadowRoot)) {
+                    if (!t[wk]) t[wk] = mWeakRef(t);
+                    const eid = `${fid}::${i}`;
+                    const wn = Object.create(WeakNodeC.prototype);
+                    wn.eid = eid;
+                    wnc.add(wn);
+                    nl[i] = wn;
+                    // we believe the stampedNodes shall be attached to the document DomTree
+                    stampedNodes.set(eid, t[wk]);
+                    t.__weakNodeCId57__ = eid;
+                  } else {
+                    if (t instanceof ShadowRoot) {
+                      console.warn('[yt-js-engine-tamer]', 'ShadowRoot in _stampTemplate');
+                    }
+                  }
+                }
+              }
+
+            }
+
+            return r;
+          } catch (e) { console.error(e); e__ = e; }
+          throw e__;
+
         }
       }
     }
@@ -4360,6 +4493,7 @@
     };
 
     const standardWrap = function (a) {
+      if (a instanceof WeakNodeC) a = a.getNode592177();
       // if(a && a.deref) a= a.deref();
       if(!a) return a;
       if (a instanceof ShadowRoot || a instanceof ShadyDOM.Wrapper) return a;
