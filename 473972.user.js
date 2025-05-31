@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.5
+// @version     0.41.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -127,6 +127,8 @@
 
   const FIX_TEMPLATE_BINDING = true;
   const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
+
+  const FIX_SHADY_METHODS = true;
 
   const USE_fastDomIf = 2; // fastDomIf is seem to be experimental  0 = no change, 1 = enable, 2 = disable
   const ENHANCE_DOMIF_createAndInsertInstance = true; // root does not need to store in the instance
@@ -747,6 +749,7 @@
   const _emptyElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   const _emptyTipsElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   const _emptyVisibilityElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  // const _emptyShady = new (class EmptyShady { });
 
   const nf00 = new FinalizationRegistry_((x) => {
     if (MEMORY_RELEASE_NF00_SHOW_MESSAGE) console.log(`NF00: node[${x}] fully removed`);
@@ -907,7 +910,10 @@
         const hasToolTips = !!((insp(node).$ || 0).tooltip);
 
         if (node && node.__shady_getRootNode) {
-          const k = node.__shady_getRootNode();
+          let k = null;
+          try {
+            k = node.__shady_getRootNode();
+          } catch { }
           if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
           if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
         }
@@ -1009,10 +1015,20 @@
         if (node.__domApi) {
           node.__domApi = null;
         }
+
         const __shady = node.__shady;
         if (__shady) {
-          node.__shady = null;
-          removeShady(__shady);
+          delete node.__shady;
+          if (shadyKey) {
+            const shadyRootNode = __shady[shadyKey];
+            if (shadyRootNode) {
+              // console.log(shadyRootNode);
+              __shady[shadyKey] = null;
+              for (const key of [...Object.getOwnPropertyNames(__shady), ...Object.getOwnPropertySymbols(__shady)]) {
+                shadyRootNode[key] = null;
+              }
+            }
+          }
         }
 
 
@@ -1244,6 +1260,132 @@
     }
   }
 
+  let shadyInited = false;
+  let shadyKey = '';
+  let shadyKeyX = '';
+  const setupShady = () => {
+    shadyInited = true;
+    let p = document.createComment('1');
+    const x = document.implementation.createHTMLDocument();
+    const y = x.firstElementChild;
+    y.appendChild(p);
+    let key = '';
+    p.__shady = new Proxy({}, {
+      get(target, prop) {
+        key = prop;
+        throw new Error();
+      },
+      set(target, prop, val) {
+        throw new Error();
+      }
+    })
+    try {
+      p.__shady_getRootNode()
+    } catch (e) { }
+    
+    let __shady = null;
+    try {
+      p.__shady = null;
+      p.__shady_getRootNode()
+      __shady = p.__shady;
+    } catch (e) {
+
+    }
+    y.removeChild(p);
+
+    if (0 && key && __shady && typeof __shady === 'object' && !('nodeType' in __shady) && !('nodeName' in __shady)) {
+      const sProto = Reflect.getPrototypeOf(__shady);
+      const symb = Symbol('__shady');
+      const symbKeys = ['root', 'firstChild', 'lastChild', 'parentNode', 'nextSibling', 'previousSibling'];
+      Object.defineProperty(sProto, key, {
+        get() {
+          return kRef(this[symb]);
+        },
+        set(nv) {
+          if (typeof (nv || 0) === 'object') {
+            if (!nv[wk]) nv[wk] = mWeakRef(nv);
+            this[symb] = nv[wk];
+          } else {
+            this[symb] = nv;
+          }
+          return true;
+        },
+        enumerable: false,
+        configurable: true
+      });
+      shadyKey = key;
+      console.log('[yt-js-engine-tamer] shadyKey', key);
+
+      let shadyKeyCached = new Set();
+      const fixLastShady = () => {
+        const shady = lastShady;
+        for (const key of Object.keys(shady)) {
+          if (shadyKeyCached.has(key)) continue;
+          shadyKeyCached.add(key);
+          if ((typeof shady[key] === 'object') && !(shady[key] || 0).deref) {
+            if (!shadyKeyX && shady[key] === shady.root) {
+              shadyKeyX = key;
+              const sProto = Reflect.getPrototypeOf(shady);
+              const symb = Symbol();
+              Object.defineProperty(sProto, shadyKeyX, {
+                get() {
+                  return kRef(this[symb])
+                },
+                set(nv) {
+                  if (typeof (nv || 0) === 'object') {
+                    nv = kRef(nv);
+                    if (!nv[wk]) nv[wk] = mWeakRef(nv);
+                    this[symb] = nv[wk];
+                  } else {
+                    this[symb] = nv;
+                  }
+                  return true;
+                },
+                enumerable: false,
+                configurable: true,
+              });
+              delete shady[key];
+              shady[key] = shady.root;
+            };
+            // console.log(12883, shady[key], key);
+            // assignedNodes, assignedSlot, ja, K, childNodes, ... (keep strong ref)
+          }
+        }
+      }
+      let lastShady = null;
+
+      symbKeys.forEach(key => {
+        const symb = Symbol(key);
+
+        Object.defineProperty(sProto, key, {
+          get() {
+            if (this !== lastShady && lastShady) fixLastShady();
+            lastShady = this;
+            return kRef(this[symb]);
+          },
+          set(nv) {
+            if (this !== lastShady && lastShady) fixLastShady();
+            lastShady = this;
+            if (typeof (nv || 0) === 'object') {
+              nv = kRef(nv);
+              if (!nv[wk]) nv[wk] = mWeakRef(nv);
+              this[symb] = nv[wk];
+            } else {
+              this[symb] = nv;
+            }
+            return true;
+          },
+          enumerable: false,
+          configurable: true
+        });
+
+      });
+
+    }
+
+
+  }
+
   const stampedNodes = new Map();  /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
   stampedNodes.set = stampedNodes.setOriginal || stampedNodes.set;
   const stampedFragment = new Map();  /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
@@ -1304,7 +1446,7 @@
       const node = kRef(nodeWr);
       if (!node) return;
       node.__shady_className = nv;
-      debugger;
+      // debugger;
       return true;
     }
     get __shady_className() {
@@ -1801,6 +1943,8 @@
         proto._stampTemplate374 = _stampTemplate;
         proto._stampTemplate = function (N, R) {
 
+          if (!shadyInited) setupShady();
+
           let e__ = null;
           try {
             // R = boolean true or binded template
@@ -1809,6 +1953,9 @@
             let r_ = null;
             const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
             r_ = r;
+            // if (r && r.host) {
+            //   console.log(2883, R.host)
+            // }
             if (r && r.$ && !r.$.__w646__) {
               const $ = r.$;
               const ids = Object.getOwnPropertyNames($)
@@ -1918,6 +2065,30 @@
       if (!kMap.get(cProto)) kMap.set(cProto, `protoKey0_${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}_${Date.now()}`);
       cProto[kMap.get(cProto)] = true;
       // debugger;
+
+      if (FIX_SHADY_METHODS && cProto.appendChild && cProto.cloneNode && cProto.contains && cProto.getRootNode && cProto.insertBefore && cProto.querySelector && cProto.querySelectorAll && cProto.querySelectorAll && cProto.removeAttribute && cProto.removeChild && cProto.replaceChild && cProto.setAttribute && cProto.is === undefined && !(cProto instanceof Node)) {
+        if (!cProto.krmv757) {
+          cProto.krmv757 = true;
+          const props = Object.entries(Object.getOwnPropertyDescriptors(cProto)).filter(a => {
+            const e = a[1];
+            return typeof e.value === 'function' && e.writable === true && e.enumerable === true && e.configurable === true
+          });
+          const keys = props.map(a => a[0]);
+          keys.forEach(key => {
+            if (!(key in HTMLTitleElement.prototype)) return;
+            const bey = `${key}588`;
+            cProto[bey] = cProto[key];
+            cProto[key] = function () {
+              const p = ((this || 0).root || 0).node;
+              if ((p instanceof Element) && p.nodeType === 1) {
+                return p[key](...arguments);
+              } else {
+                return this[bey](...arguments);
+              }
+            }
+          });
+        }
+      }
 
       const constructAt = `\n\n${new Error().stack}\n\n`.replace(/[\r\n]([^\r\n]*?\.user\.js[^\r\n]*?[\r\n]+)+/g, '\n').replace(/[\r\n]([^\r\n.]+[\r\n]+)+/g, '\n').trim().split(/[\r\n]+/)[0];
       constructAts.add(constructAt)
@@ -2449,6 +2620,28 @@
       set(nv){
         const p = this ? kRef(this) : null;
         const mv = nv ? kRef(nv) : null;
+
+        // if (typeof (this.host || 0) === 'object' && !this.host6833) {
+        //   const host = this.host;
+        //   if (!host[wk]) host[wk] = mWeakRef(host);
+        //   this.host6833 = host[wk];
+        //   delete this.host;
+        //   console.log(21883, host)
+        //   Object.defineProperty(this, 'host', {
+        //     get() {
+        //       return kRef(this.host6833);
+        //     },
+        //     set(nv) {
+        //       if (!nv) {
+        //         this.host6833 = nv;
+        //       } else {
+        //         if (!nv[wk]) nv[wk] = mWeakRef(nv);
+        //         this.host6833 = nv[wk];
+        //       }
+        //       return true;
+        //     }, enumerable: false, configurable: true
+        //   });
+        // }
 
         if (mv && (mv instanceof Node) && !p.__setupRendered399__) {
           p.__setupRendered399__ = true;
@@ -7521,8 +7714,24 @@
       return stampDomArraySplicesWB_.bind(null, obj[wk], stampKey, containerId, indexSplicesObj, renderJob, dt0a);
     };
 
+    const flushRenderStamperComponentBindings7419_ = function () {
+      const tasks = this.deferredBindingTasks_;
+      if (!(tasks || 0).length) return;
+      const hostElement = this.hostElement;
+      if ((hostElement instanceof Node) && hostElement.nodeType === 1) {
+        if (hostElement.isConnected === true) {
+          this.flushRenderStamperComponentBindings7409_();
+        }
+      } else if (hostElement) {
+        console.log('flushRenderStamperComponentBindings7419_ 002')
+        this.flushRenderStamperComponentBindings7409_();
+      } else {
+        console.log('flushRenderStamperComponentBindings7419_ 003')
+        tasks.length = 0;
+      }
+    }
 
-    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ };
+    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ , flushRenderStamperComponentBindings7419_};
 
   }
 
@@ -8268,7 +8477,7 @@
         } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
           
           if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsC_();
-          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_} = stampDomArrayFnStore;
+          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_, flushRenderStamperComponentBindings7419_} = stampDomArrayFnStore;
 
           cProto.getStampContainer7409_ = cProto.getStampContainer_;
           cProto.createComponent7409_ = cProto.createComponent_;
@@ -8283,6 +8492,7 @@
           cProto.flushRenderStamperComponentBindings_ = flushRenderStamperComponentBindings_;
           cProto.stampDomArray_ = stampDomArray_;
           cProto.stampDomArraySplices_ = stampDomArraySplices_;
+          cProto.flushRenderStamperComponentBindings7419_ = flushRenderStamperComponentBindings7419_;
 
           
           
