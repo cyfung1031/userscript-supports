@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.6
+// @version     0.41.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2079,12 +2079,12 @@
             const bey = `${key}588`;
             cProto[bey] = cProto[key];
             cProto[key] = function () {
-              const p = ((this || 0).root || 0).node;
-              if ((p instanceof Element) && p.nodeType === 1) {
-                return p[key](...arguments);
-              } else {
+              // const p = ((this || 0).root || 0).node;
+              // if ((p instanceof Element) && p.nodeType === 1) {
+              //   return p[key](...arguments);
+              // } else {
                 return this[bey](...arguments);
-              }
+              // }
             }
           });
         }
