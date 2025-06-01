@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.9
+// @version     0.41.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -708,7 +708,7 @@
   const shadys = new Set();
   shadys.add = shadys.addOriginal || shadys.add;
 
-  // window.showShadys00 = ()=>[...shadys].map(e=>kRef(e));
+  window.showShadys00 = ()=>[...shadys].map(e=>kRef(e));
 
   const _removedElements = new Set();
   _removedElements.add = _removedElements.addOriginal || _removedElements.add;
@@ -2094,6 +2094,20 @@
   if (FIX_FRAGEMENT_HOST && !DocumentFragment.prototype.host577) {
     DocumentFragment.prototype.host577 = true;
     let propsOK = false;
+    const finalizer = new FinalizationRegistry_((frag) => {
+
+      if (!frag.hostCleared55) {
+        frag.hostCleared55 = true;
+        for (const p of [...Object.getOwnPropertyNames(frag), ...Object.getOwnPropertySymbols(frag)]) {
+          const v = frag[p] || 0;
+          if (typeof v === 'object') {
+            frag[p] = null;
+            if (v.length > 0) v.length = 0;
+          }
+        }
+      }
+
+    });
     Object.defineProperty(DocumentFragment.prototype, 'host', {
       get() {
         const r = kRef(this.host677);
@@ -2101,9 +2115,11 @@
         return r;
       },
       set(nv) {
+        nv = kRef(nv);
         if (typeof (nv || 0) === 'object' && nv.nodeType === 1) {
           if (!nv[wk]) nv[wk] = mWeakRef(nv);
           this.host677 = nv[wk];
+          finalizer.register(nv, this);
         } else {
           this.host677 = nv;
         }
