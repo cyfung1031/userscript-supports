@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.10
+// @version     0.41.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5674,7 +5674,7 @@
           flagSpeedMaster = false;
         } else {
 
-          flagSpeedMaster = (p.includes('web_enable_speedmaster=true') && p.includes('web_speedmaster_spacebar_control=true') && p.includes('web_speedmaster_updated_edu=true'));
+          flagSpeedMaster = (p.includes('web_enable_speedmaster=true') && p.includes('web_speedmaster_spacebar_control=true') /* && p.includes('web_speedmaster_updated_edu=true') */ );
 
         }
 
