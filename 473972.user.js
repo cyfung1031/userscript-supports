@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.8
+// @version     0.41.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -129,6 +129,7 @@
   const FIX_TEMPLATE_BINDING_SHOW_MESSAGE = false;
 
   const FIX_SHADY_METHODS = true;
+  const FIX_FRAGEMENT_HOST = true;
 
   const USE_fastDomIf = 2; // fastDomIf is seem to be experimental  0 = no change, 1 = enable, 2 = disable
   const ENHANCE_DOMIF_createAndInsertInstance = true; // root does not need to store in the instance
@@ -704,6 +705,11 @@
     }
   }
 
+  const shadys = new Set();
+  shadys.add = shadys.addOriginal || shadys.add;
+
+  // window.showShadys00 = ()=>[...shadys].map(e=>kRef(e));
+
   const _removedElements = new Set();
   _removedElements.add = _removedElements.addOriginal || _removedElements.add;
   _removedElements.addNode_ = MEMORY_RELEASE_NF00 ? function (node) {
@@ -717,10 +723,12 @@
   _removedElements.addNode = MEMORY_RELEASE_NF00 ? (node) => {
     if (!node || node.__keepInstance038__ || node.t792 || node instanceof HTMLTitleElement || node.nodeName === 'defs' || node.nodeName === 'TITLE') return;
     if (node && node.nodeType >= 1 && node.nodeType !== 9) {
-      const rootNode = node.getRootNode();
-      if (rootNode && rootNode !== node) {
-        if (rootNode.nodeType >= 1 && rootNode.nodeType !== 9) _removedElements.addNode_(rootNode);
-      }
+      try {
+        const rootNode = node.getRootNode();
+        if (rootNode && rootNode !== node) {
+          if (rootNode.nodeType >= 1 && rootNode.nodeType !== 9) _removedElements.addNode_(rootNode);
+        }
+      } catch (e) { }
       _removedElements.addNode_(node);
     }
   } : () => { };
@@ -865,6 +873,33 @@
 
   }
 
+  const detachShadyRef = (node) => {
+
+    const shadyArr = [...shadys];
+    for (let shady of shadyArr) {
+      shady = kRef(shady);
+      if (!shady) continue;
+      const keys = [...Object.getOwnPropertyNames(shady), ...Object.getOwnPropertySymbols(shady)];
+      for (const p of keys) {
+        const v = keys[p];
+        if (!v) continue;
+        if (v instanceof Node) {
+          if (node === v || node.contains(v)) keys[p] = _emptyElement;
+        } else if (typeof v === 'object' && v.splice && v.length > 0) {
+          for (let i = v.length - 1; i >= 0; i--) {
+            const t = v[i];
+            if (t instanceof Node) {
+              if (node === t || node.contains(t)) v.splice(i, 1);
+            }
+          }
+        }
+      }
+    }
+    shadyArr.length = 0;
+
+
+  }
+
   if (MEMORY_RELEASE_NF00) {
 
     const __removedElements = new Set();
@@ -878,7 +913,10 @@
         __removedElements.delete(nodeWr);
         const node = kRef(nodeWr);
         if (node && node.nodeType >= 1 && node.isConnected === false) {
-          const rootNode = node.getRootNode();
+          let rootNode;
+          try {
+            rootNode = node.getRootNode();
+          } catch (e) { }
           if (rootNode && rootNode.nodeType >= 1 && rootNode.nodeType !== 9 && rootNode.isConnected === true) {
             // do nothing
           } else {
@@ -1152,6 +1190,8 @@
 
         mightTeardownShadyDomWrap(node);
 
+        detachShadyRef(node);
+
         nf00.registerNode(node);
 
 
@@ -1293,15 +1333,50 @@
     }
     y.removeChild(p);
 
+
+    if (key && __shady && typeof __shady === 'object' && !('nodeType' in __shady) && !('nodeName' in __shady)) {
+      const sProto = Reflect.getPrototypeOf(__shady);
+      const symb = Symbol('__shady');
+      // const symbKeys = ['root', 'firstChild', 'lastChild', 'parentNode', 'nextSibling', 'previousSibling'];
+      Object.defineProperty(sProto, key, {
+        get() {
+          if(!this[wk]) this[wk] = mWeakRef(this);
+          shadys.add(this[wk]);
+          return kRef(this[symb]);
+        },
+        set(nv) {
+          if(!this[wk]) this[wk] = mWeakRef(this);
+          shadys.add(this[wk]);
+          if (typeof (nv || 0) === 'object') {
+            if (!nv[wk]) nv[wk] = mWeakRef(nv);
+            this[symb] = nv[wk];
+          } else {
+            this[symb] = nv;
+          }
+          return true;
+        },
+        enumerable: false,
+        configurable: true
+      });
+      shadyKey = key;
+      console.log('[yt-js-engine-tamer] shadyKey', key);
+
+    }
+
+
     if (0 && key && __shady && typeof __shady === 'object' && !('nodeType' in __shady) && !('nodeName' in __shady)) {
       const sProto = Reflect.getPrototypeOf(__shady);
       const symb = Symbol('__shady');
       const symbKeys = ['root', 'firstChild', 'lastChild', 'parentNode', 'nextSibling', 'previousSibling'];
       Object.defineProperty(sProto, key, {
         get() {
+          if(!this[wk]) this[wk] = mWeakRef(this);
+          shadys.add(this[wk]);
           return kRef(this[symb]);
         },
         set(nv) {
+          if(!this[wk]) this[wk] = mWeakRef(this);
+          shadys.add(this[wk]);
           if (typeof (nv || 0) === 'object') {
             if (!nv[wk]) nv[wk] = mWeakRef(nv);
             this[symb] = nv[wk];
@@ -1383,6 +1458,8 @@
 
     }
 
+
+    
 
   }
 
@@ -2013,6 +2090,57 @@
 
   }
 
+
+  if (FIX_FRAGEMENT_HOST && !DocumentFragment.prototype.host577) {
+    DocumentFragment.prototype.host577 = true;
+    let propsOK = false;
+    Object.defineProperty(DocumentFragment.prototype, 'host', {
+      get() {
+        const r = kRef(this.host677);
+        if (!propsOK && this.nodeType === 11 && r) setupProps(Reflect.getPrototypeOf(this));
+        return r;
+      },
+      set(nv) {
+        if (typeof (nv || 0) === 'object' && nv.nodeType === 1) {
+          if (!nv[wk]) nv[wk] = mWeakRef(nv);
+          this.host677 = nv[wk];
+        } else {
+          this.host677 = nv;
+        }
+        return true;
+      },
+      enumerable: true,
+      configurable: true
+    });
+
+
+    const setupProps = (fragProto) => {
+
+      propsOK = true;
+
+      ["ownerDocument", "baseURI", "isConnected"].forEach(function (b) {
+
+        const pd = Object.getOwnPropertyDescriptor(fragProto, b);
+        const pdn = Object.getOwnPropertyDescriptor(Node.prototype, b);
+        const get1 = pd && pd.get;
+        const get2 = pdn && pdn.get;
+        if (get1 && get2) {
+          delete fragProto[b];
+          Object.defineProperty(fragProto, b, {
+            get: function () {
+              return this.host ? get1.call(this) : get2.call(this);
+            },
+            configurable: !0
+          });
+
+        }
+
+      });
+    }
+
+  }
+
+
   if (XFlag) {
 
     const cMap = new Set();
@@ -2066,14 +2194,15 @@
       cProto[kMap.get(cProto)] = true;
       // debugger;
 
-      if (FIX_SHADY_METHODS && cProto.appendChild && cProto.cloneNode && cProto.contains && cProto.getRootNode && cProto.insertBefore && cProto.querySelector && cProto.querySelectorAll && cProto.querySelectorAll && cProto.removeAttribute && cProto.removeChild && cProto.replaceChild && cProto.setAttribute && cProto.is === undefined && !(cProto instanceof Node)) {
+      if (FIX_SHADY_METHODS && cProto.appendChild && cProto.cloneNode && cProto.contains && cProto.getRootNode && cProto.insertBefore && cProto.querySelector && cProto.querySelectorAll && cProto.removeAttribute && cProto.removeChild && cProto.replaceChild && cProto.setAttribute && cProto.is === undefined && !(cProto instanceof Node)) {
         if (!cProto.krmv757) {
           cProto.krmv757 = true;
-          const props = Object.entries(Object.getOwnPropertyDescriptors(cProto)).filter(a => {
-            const e = a[1];
-            return typeof e.value === 'function' && e.writable === true && e.enumerable === true && e.configurable === true
-          });
-          const keys = props.map(a => a[0]);
+          // const props = Object.entries(Object.getOwnPropertyDescriptors(cProto)).filter(a => {
+          //   const e = a[1];
+          //   return typeof e.value === 'function' && e.writable === true && e.enumerable === true && e.configurable === true
+          // });
+          // const keys = props.map(a => a[0]);
+          const keys = ['querySelector', 'querySelectorAll'];
           keys.forEach(key => {
             if (!(key in HTMLTitleElement.prototype)) return;
             const bey = `${key}588`;
