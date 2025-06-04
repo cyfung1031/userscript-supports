@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.7
+// @version             0.102.8
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -9878,36 +9878,45 @@
           if (FIX_REMOVE_TICKER_ITEM_BY_ID && typeof cProto.splice === 'function' && typeof cProto.markDirty === 'function' && typeof cProto.removeTickerItemById === 'function' && !cProto.removeTickerItemById737) {
             cProto.removeTickerItemById737 = cProto.removeTickerItemById;
             cProto.removeTickerItemById = function (a) {
-              if (this.tickerItemsQuery !== '#ticker-items') return this.removeTickerItemById737(a);
+              // console.log('removeTickerItemById#01', a);
+              if (this.tickerItemsQuery !== '#ticker-items' || typeof (a || 0) !== 'string') return this.removeTickerItemById737(a);
+              // console.log('removeTickerItemById#02', a);
               const hostElement = this.hostElement;
               if (!hostElement || !a) return this.removeTickerItemById737(a);
-              let ticker;
-              try {
-                ticker = hostElement.querySelector(`#${a}`);
-              } catch (e) { }
-              if (!ticker) ticker = hostElement.querySelector(`[id="${a}"]`);
-              if (!ticker) return this.removeTickerItemById737(a);
-              const u = (insp(ticker).data || 0).id || a;
-              if (!u) return this.removeTickerItemById737(a);
+              // console.log('removeTickerItemById#03', a);
+              const arr = hostElement.querySelectorAll(`[id="${a}"]`);
+              const s = new Set();
+              if (typeof (a || 0) === 'string') s.add(a);
+              for (const elem of arr) {
+                if (!elem) continue;
+                const elemId = elem.id;
+                if (!elemId) continue;
+                s.add(elemId);
+                const data = (insp(elem).data || 0);
+                if (data) {
+                  const u = data.id;
+                  if (u) s.add(u);
+                  else data.id = elemId;
+                }
+              }
               const tickerItems = this.tickerItems;
-              let j = -1;
-              for (let i = 0, l = tickerItems.length; i < l; i++) {
+              let deleteCount = 0;
+              for (let i = tickerItems.length - 1; i >= 0; i--) {
                 const obj = tickerItems[i];
                 if (!obj || typeof obj !== 'object') continue;
                 const key = firstObjectKey(obj);
                 if (!key) continue;
                 const dataObj = obj[key];
                 const dataId = (dataObj || 0).id;
-                if (dataId === u) {
-                  j = i;
-                  break;
+                if (s.has(dataId)) {
+                  this.splice("tickerItems", i, 1);
+                  this.markDirty();
+                  deleteCount++;
                 }
               }
-              if (j >= 0) {
-                this.splice("tickerItems", j, 1);
-                this.markDirty();
-              }
-              this.highlightId === a && (this.highlightId = void 0);
+              // console.log('removeTickerItemById#06', a, deleteCount);
+              s.has(this.highlightId) && (this.highlightId = void 0);
+              // console.log('removeTickerItemById#07', a, deleteCount);
             }
           }
 
