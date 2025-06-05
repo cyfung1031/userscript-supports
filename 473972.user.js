@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.12
+// @version     0.41.13
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -6459,7 +6459,17 @@
           let r33 = null;
           let kc = 0;
 
-          if (this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
+          let dataType = 0;
+
+          if (t && (('data' in t) || ('buttonShapeOverrideables' in t))) {
+            dataType = 1;
+          } else if (t && ('heightPx' in t)) {
+            dataType = 2;
+          } else if (t) {
+            dataType = 3;
+          }
+
+          if (dataType === 3 && this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
             const el = this.el;
             const ct = Date.now();
             const lastFireTime = (el.__lastFireTime491__ || 0);
@@ -6469,6 +6479,8 @@
             if (fireTimeDiff < 80 && this.__previousRender61__) {
               return this.__previousRender61__;
             }
+
+            // console.log(3772, t);
 
             const caseInt =
               (t && typeof t.numberText === 'string' && Number.isFinite(t.numberValue)) ? 1 :
@@ -6527,12 +6539,86 @@
             // console.log(138002, this, t, caseInt, kc, fireTimeDiff);
 
             el.__lastFireTime491__ = ct;
+          } else if (dataType === 2 && this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
+            const el = this.el;
+            const ct = Date.now();
+            const lastFireTime = (el.__lastFireTime493__ || 0);
+
+            const fireTimeDiff = lastFireTime > 0 ? ct - lastFireTime : 1e9;
+
+            if (fireTimeDiff < 80 && this.__previousRender63__) {
+              return this.__previousRender63__;
+            }
+
+            // console.log(3772, t);
+
+            const caseInt =
+              (t && typeof t.numberText === 'string' && Number.isFinite(t.numberValue)) ? 1 :
+                (t && typeof t.character === 'string') ? (
+                  (typeof t.previousCharacter === 'string') ? 6 : 2
+                ) : 0;
+
+            if (caseInt === 6 && t.previousCharacter && t.character && this.__previousRender63__ && fireTimeDiff < 9400) {
+              if (this[`__lastCharRender62__${t.previousCharacter}>${t.character}`] === this.__previousRender63__) {
+                return this.__previousRender63__;
+              }
+            }
+            if (caseInt === 1 && t.numberText.length > 0 && this.__previousRender63__ && fireTimeDiff < 9400) {
+              if (this[`__lastCharRender65__${t.numberValue}>${t.numberText}`] === this.__previousRender63__) {
+                return this.__previousRender63__;
+              }
+            }
+
+            if (caseInt & 2) {
+
+              if (caseInt & 4) {
+
+                if (el.__lastCharacter353__ && el.__lastCharacter353__.length === 1 && t.character.length === 1 && t.previousCharacter.length === 1) {
+                  if (t.character !== t.previousCharacter && t.character === el.__lastCharacter353__) {
+                    t.previousCharacter = t.character;
+                    kc = 1;
+                  }
+                }
+
+                if (t && t.character && t.previousCharacter && t.shouldAnimate === true && t.character === t.previousCharacter) {
+                  t.shouldAnimate = false;
+                }
+              }
+
+
+              c33 = `__lastCharRender62__${t.previousCharacter}>${t.character}`;
+
+              el.__lastCharacter353__ = t.character;
+
+            } else if (caseInt === 1) {
+
+              if (el.__lastNumberValue353__ === t.numberValue && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              el.__lastNumberValue353__ = t.numberValue;
+
+              if (el.__lastNumberText353__ === t.numberText && t.shouldAnimate === true) {
+                t.shouldAnimate = false;
+              }
+              el.__lastNumberText353__ = t.numberText;
+
+              c33 = `__lastCharRender65__${t.numberValue}>${t.numberText}`;
+
+            }
+
+            // console.log(138002, this, t, caseInt, kc, fireTimeDiff);
+
+            el.__lastFireTime493__ = ct;
           }
 
           // // console.log(21399, t.character, t.previousCharacter, (t.xCounter = (t.xCounter & 1073741823)+1), t, (this.xCounter = (this.xCounter & 1073741823)+1) )
           // // console.log(12883, this, t);
           const r = r33 || this.render37(t);
-          this.__previousRender61__ = r;
+          if (dataType === 3) {
+            this.__previousRender61__ = r;
+          } else if (dataType === 2) {
+            this.__previousRender63__ = r;
+          }
           if (c33) this[c33] = r;
           return r
         }
@@ -6640,6 +6726,23 @@
       // console.log(12885)
       aProto.fetchUpdatedMetadata517 = aProto.fetchUpdatedMetadata;
       // let qxt=false;
+      const renderLikeButtonViewModel = (likeButtonViewModel) => {
+        if (!likeButtonViewModel || likeButtonViewModel.isConnected !== true) return;
+        if (likeButtonViewModel.querySelector('yt-animated-rolling-number')) return; // no need to render
+        let likeModelInstance = null, t;
+        if ((t = likeButtonViewModel.__instance) && t.props) likeModelInstance = t;
+        else if ((t = likeButtonViewModel.instance) && t.props) likeModelInstance = t;
+        else if ((t = insp(likeButtonViewModel)) && t.props) likeModelInstance = t;
+        else if ((t = (likeButtonViewModel)) && t.props) likeModelInstance = t;
+        const props = (likeModelInstance || 0).props;
+        if (likeModelInstance && likeModelInstance.render && props) {
+          const data = (props || 0).data;
+          if (data && data.toggleButtonViewModel && props.likeCountEntity) {
+            likeModelInstance.render(props)
+            // likeModelInstance.functionComponent(props);
+          }
+        }
+      }
       aProto.fetchUpdatedMetadata = function (t, P) {
 
         // if (!qxt) {
@@ -6659,16 +6762,17 @@
           const yieldResult = D.yieldResult;
           if (yieldResult) {
             const mutations = (((yieldResult || 0).frameworkUpdates || 0).entityBatchUpdate || 0).mutations;
-
-            if (mutations && mutations.length >= 1) {
+            const mutations_ = mutations.slice(); // array clone
+            if (mutations_ && mutations_.length >= 1) {
               let likeCountEntity = null;
-              for (const mutation of mutations) {
+              for (const mutation of mutations_) {
                 if (typeof (mutation.entityKey || 0) === 'string' && (likeCountEntity = (mutation.payload || 0).likeCountEntity)) {
                   break;
                 }
               }
               if (likeCountEntity) {
-                const model = insp(document.querySelector('segmented-like-dislike-button-view-model'));
+                const modelElement = document.querySelector('segmented-like-dislike-button-view-model');
+                const model = insp(modelElement);
                 if (model && typeof model.update === 'function' && model.update.length === 0) {
                   const data = ((model || 0).props || 0).data;
                   if (data) {
@@ -6682,19 +6786,40 @@
                     // else {
                     //   if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
                     // }
-
                     if (shouldModelUpdate) {
-                      if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
-                        // console.log('kk1a enqueueUpdate')
-                        model.enqueueUpdate();
-                        // console.log('kk1b enqueueUpdate')
-                      } else if (typeof model.update === 'function' && model.update.length === 0) {
-                        // console.log('kk2a update')
-                        model.update();
-                        // console.log('kk2b update')
+                      // if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
+                      //   // console.log('kk1a enqueueUpdate')
+                      //   model.enqueueUpdate();
+                      //   // console.log('kk1b enqueueUpdate')
+                      // } else if (typeof model.update === 'function' && model.update.length === 0) {
+                      //   // console.log('kk2a update')
+                      //   model.update();
+                      //   // console.log('kk2b update')
+                      // } else {
+                      //   console.warn('[yt-js-engine-tamer] cannot do model update.')
+                      // }
+
+                      const likeButtonViewModel = modelElement.querySelector('like-button-view-model[class]');
+                      if (likeButtonViewModel) {
+                        renderLikeButtonViewModel(likeButtonViewModel);
+                        // Promise.resolve(likeButtonViewModel).then(renderLikeButtonViewModel);
                       } else {
-                        console.warn('[yt-js-engine-tamer] cannot do model update.')
+                        // seem not working. to be further reviewed with web_enable_sink_like_button_view_model
+                          
+                        if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
+                          // console.log('kk1a enqueueUpdate')
+                          model.enqueueUpdate();
+                          // console.log('kk1b enqueueUpdate')
+                        } else if (typeof model.update === 'function' && model.update.length === 0) {
+                          // console.log('kk2a update')
+                          model.update();
+                          // console.log('kk2b update')
+                        } else {
+                          console.warn('[yt-js-engine-tamer] cannot do model update.')
+                        }
+
                       }
+
                     }
 
                   }
