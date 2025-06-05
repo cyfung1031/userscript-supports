@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.8
+// @version             0.102.9
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3564,6 +3564,8 @@
 
       cProto[fnKeyH] = async function (cTag, cId, pr00) {
 
+        // console.log(38806)
+
         this.__ensureContainerDomApi7577(cId);
 
         // await the current executing task (if any)
@@ -3591,15 +3593,61 @@
         }
 
         const hostElement = this.hostElement;
-
         let renderNodeCount = 0;
-        const renderList = this[cTag].map((item) => {
+
+        let renderOrdering = {};
+        let doFix = false;
+        const renderEntries = this[cTag].map((item) => {
           const [L, H] = deObjectComponent(item);
+          const componentName = this.getComponentName_(L, H);
+          if (H && H.id && componentName) {
+            if (!H.__renderOrderId422__) {
+              H.__renderOrderId422__ = this.renderOrderId411 = (this.renderOrderId411 & 1073741823) + 1;
+            }
+            let p = renderOrdering[`${componentName}#${H.id}`];
+            if (p) doFix = true;
+            if (!p || p > H.__renderOrderId422__) {
+              renderOrdering[`${componentName}#${H.id}`] = H.__renderOrderId422__;
+            }
+            return [item, L, H, componentName, `${componentName}#${H.id}`]
+          } else {
+            return [item, L, H, componentName, true]
+          }
+        });
+        if (doFix) {
+          for (let i = renderEntries.length - 1; i >= 0; i--) {
+            const e = renderEntries[i];
+            let m = e[4];
+            if (m === true) {
+            } else if (renderOrdering[m] === e[2].__renderOrderId422__) {
+            } else {
+              this[cTag].splice(i, 1);
+              renderEntries.splice(i, 1);
+            }
+          }
+        }
+        renderOrdering = null;
+
+        const renderList = renderEntries.map((e) => {
+          const [item, L, H, componentName] = e;
           const node = kRef(renderMap.get(H));
-          return node && hostElement.contains(node) ? (renderNodeCount++, node) : item;
+          if (node && hostElement.contains(node)) {
+            renderNodeCount++;
+            return node;
+          } else if (node && !hostElement.contains(node)) {
+            renderMap.delete(H);
+            return item;
+          } else {
+            return item;
+          }
         });
 
         const isRenderListEmpty = renderList.length === 0;
+
+        // console.log(1773, this.ec389a, this.ec389r)
+
+        this.ec389a = 0;
+        this.ec389r = 0;
 
 
         // this.ec389 = null;
@@ -4116,7 +4164,11 @@
         this.ec389a += addedCount;
         this.ec389r += removedCount;
 
+        // console.log(38802)
+
         if (shouldExecute) {
+
+        // console.log(38804)
 
           // let shouldScrollAfterFlush = false;
           const pr00 = this.ec389pr;
