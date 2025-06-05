@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.13
+// @version     0.41.14
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3234,6 +3234,15 @@
 
   const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
   const indr = o => insp(o).$ || o.$ || 0;
+  const inup = o => {
+    if (!o) return null;
+    let instance = null, t;
+    if ((t = o.__instance) && t.props) instance = t;
+    else if ((t = o.instance) && t.props) instance = t;
+    else if ((t = insp(o)) && t.props) instance = t;
+    else if ((t = (o)) && t.props) instance = t;
+    return instance;
+  };
 
   const prototypeInherit = (d, b) => {
     const m = Object.getOwnPropertyDescriptors(b);
@@ -6729,11 +6738,7 @@
       const renderLikeButtonViewModel = (likeButtonViewModel) => {
         if (!likeButtonViewModel || likeButtonViewModel.isConnected !== true) return;
         if (likeButtonViewModel.querySelector('yt-animated-rolling-number')) return; // no need to render
-        let likeModelInstance = null, t;
-        if ((t = likeButtonViewModel.__instance) && t.props) likeModelInstance = t;
-        else if ((t = likeButtonViewModel.instance) && t.props) likeModelInstance = t;
-        else if ((t = insp(likeButtonViewModel)) && t.props) likeModelInstance = t;
-        else if ((t = (likeButtonViewModel)) && t.props) likeModelInstance = t;
+        const likeModelInstance = inup(likeButtonViewModel);
         const props = (likeModelInstance || 0).props;
         if (likeModelInstance && likeModelInstance.render && props) {
           const data = (props || 0).data;
@@ -6770,56 +6775,39 @@
                   break;
                 }
               }
-              if (likeCountEntity) {
+              if (typeof (likeCountEntity || 0) === 'object') {
                 const modelElement = document.querySelector('segmented-like-dislike-button-view-model');
                 const model = insp(modelElement);
-                if (model && typeof model.update === 'function' && model.update.length === 0) {
-                  const data = ((model || 0).props || 0).data;
-                  if (data) {
+                const modelInstance = inup(modelElement);
+                if (model && modelInstance) {
+                  const data = ((modelInstance || 0).props || 0).data;
+                  if (typeof (data || 0) === 'object') {
                     if (typeof data.likeCountEntity !== 'object') data.likeCountEntity = {};
                     // console.log(12838, {...data.likeCountEntity}, {...likeCountEntity})
-                    // const shouldModelUpdate = (data.likeCountEntity.key !== likeCountEntity.key); // to be reviewed
-                    const shouldModelUpdate = true;
+                    const shouldModelUpdateInit = (data.likeCountEntity.key !== likeCountEntity.key);
+                    const shouldModelUpdateModel = true;
                     Object.assign(data.likeCountEntity, likeCountEntity);
                     // data.likeCountEntity = likeCountEntity;
                     // if (shouldModelupdate) model.update();
                     // else {
                     //   if (typeof model.notifyPath === 'function' && model.notifyPath.length === 0) model.notifyPath();
                     // }
-                    if (shouldModelUpdate) {
-                      // if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
-                      //   // console.log('kk1a enqueueUpdate')
-                      //   model.enqueueUpdate();
-                      //   // console.log('kk1b enqueueUpdate')
-                      // } else if (typeof model.update === 'function' && model.update.length === 0) {
-                      //   // console.log('kk2a update')
-                      //   model.update();
-                      //   // console.log('kk2b update')
-                      // } else {
-                      //   console.warn('[yt-js-engine-tamer] cannot do model update.')
-                      // }
-
+                    if (shouldModelUpdateModel) {
+                      if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
+                        model.enqueueUpdate();
+                      } else if (typeof model.update === 'function' && model.update.length === 0) {
+                        model.update();
+                      } else {
+                        console.warn('[yt-js-engine-tamer] cannot do model update.')
+                      }
+                    }
+                    if (shouldModelUpdateInit) {
                       const likeButtonViewModel = modelElement.querySelector('like-button-view-model[class]');
                       if (likeButtonViewModel) {
-                        renderLikeButtonViewModel(likeButtonViewModel);
-                        // Promise.resolve(likeButtonViewModel).then(renderLikeButtonViewModel);
-                      } else {
-                        // seem not working. to be further reviewed with web_enable_sink_like_button_view_model
-                          
-                        if (typeof model.enqueueUpdate === 'function' && model.enqueueUpdate.length === 0) {
-                          // console.log('kk1a enqueueUpdate')
-                          model.enqueueUpdate();
-                          // console.log('kk1b enqueueUpdate')
-                        } else if (typeof model.update === 'function' && model.update.length === 0) {
-                          // console.log('kk2a update')
-                          model.update();
-                          // console.log('kk2b update')
-                        } else {
-                          console.warn('[yt-js-engine-tamer] cannot do model update.')
+                        if (!likeButtonViewModel.querySelector('yt-animated-rolling-number')) {
+                          renderLikeButtonViewModel(likeButtonViewModel);
                         }
-
                       }
-
                     }
 
                   }
