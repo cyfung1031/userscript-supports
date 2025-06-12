@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.9
+// @version             0.102.10
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3481,8 +3481,6 @@
 
     const rendererStamperFactory = (cProto, options) => {
 
-
-      let pDivResourceEventCountLast = 0;
       let pDivResourceEventCount = 0; 
 
       const pDivOnResource = function (evt) {
@@ -3562,16 +3560,19 @@
         }
       }
 
+      let fxCounter = 0;
+
       cProto[fnKeyH] = async function (cTag, cId, pr00) {
 
         // console.log(38806)
 
-        this.__ensureContainerDomApi7577(cId);
+        const fxCounter_ = fxCounter = (fxCounter & 1073741823) + 1;
 
         // await the current executing task (if any)
         // and avoid stacking in the same marco task
         await Promise.all([pr00, nextBrowserTick_()]);
-        if (!this.ec389a && !this.ec389r) return;
+        if (fxCounter_ !== fxCounter || !this) return;
+
         const addedCount0 = this.ec389a;
         const removedCount0 = this.ec389r;
 
@@ -3579,7 +3580,19 @@
         this.ec389a = 0;
         this.ec389r = 0;
 
-        const stampDomMap = this.stampDom[cTag].mapping;
+        if (!addedCount0 && !removedCount0) return;
+        const stampDom_ = (this.stampDom || 0)[cTag] || 0;
+        const stampDomMap_ = stampDom_.mapping;
+        const stampDomEvent_ = stampDom_.events;
+        if (!stampDomMap_) return;
+        if (!this.__ensureContainerDomApi7577) return;
+        const hostElement = this.hostElement;
+        if (!hostElement) return;
+
+        spliceTempDisabled = true;
+
+        this.__ensureContainerDomApi7577(cId);
+
         const isTickerRendering = cTag === 'tickerItems';
         const isMessageListRendering = cTag === 'visibleItems';
 
@@ -3587,12 +3600,11 @@
 
         const deObjectComponent = (itemEntry) => {
           const I = firstObjectKey(itemEntry);
-          const L = stampDomMap[I];
+          const L = stampDomMap_[I];
           const H = itemEntry[I];
           return [L, H];
-        }
+        };
 
-        const hostElement = this.hostElement;
         let renderNodeCount = 0;
 
         let renderOrdering = {};
@@ -3615,13 +3627,14 @@
           }
         });
         if (doFix) {
+          const arr = this[cTag];
           for (let i = renderEntries.length - 1; i >= 0; i--) {
             const e = renderEntries[i];
             let m = e[4];
             if (m === true) {
             } else if (renderOrdering[m] === e[2].__renderOrderId422__) {
             } else {
-              this[cTag].splice(i, 1);
+              arr.splice(i, 1);
               renderEntries.splice(i, 1);
             }
           }
@@ -3737,6 +3750,8 @@
           imgPreloadPr = preloadFn(addedItems)();
         }
 
+        spliceTempDisabled = false;
+
         // const pt1 = performance.now();
         // const newComponentsEntries = await Promise.all(renderList.map((item) => {
         //   return typeof item === 'object' && !(item instanceof Node) ? Promise.resolve(item).then(pnForNewItem) : item;
@@ -3804,18 +3819,7 @@
         })));
         // const pt4 = performance.now();
 
-
         // console.log('xxss' , pt2-pt1, pt4-pt3)
-
-
-        // wait for network cached images loading
-        // let trialMax = 4;
-        // while (trialMax--) {
-        //   wme.data = `${(wme.data & 7) + 1}`;
-        //   await wmp;
-        //   if (pDivResourceEventCountLast === pDivResourceEventCount) break;
-        //   pDivResourceEventCountLast = pDivResourceEventCount;
-        // }
 
         this.flushRenderStamperComponentBindings_(); // ensure all deferred flush render tasks clear.
 
@@ -4121,7 +4125,7 @@
         const detail = {
           container: listDom
         };
-        this.stampDom[cTag].events && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+        stampDomEvent_ && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
           bubbles: !0,
           cancelable: !1,
           composed: !0,
@@ -4138,8 +4142,12 @@
 
       }
 
+      let spliceTempDisabled = false;
+
       // proceedStampDomArraySplices371_ // proceedStampDomArraySplices381_
       cProto[key] = function (cTag, cId, indexSplice) {
+
+        if (spliceTempDisabled) return true;
         // console.log('proceedStampDomArraySplices_')
         // assume no error -> no try catch (performance consideration)
         const { index, addedCount, removed } = indexSplice;
@@ -4149,50 +4157,26 @@
           console.warn('proceedStampDomArraySplices_', 'Error 001');
           return false;
         }
-        // const streamArr = this[cTag];
         if (!this.ec389) {
           if (this.ec389a || this.ec389r) {
             console.warn('proceedStampDomArraySplices_', 'Error 002');
             return false;
           }
           this.ec389 = true;
-          this.ec389a = 0;
-          this.ec389r = 0;
-        }
-        const shouldExecute = !this.ec389a && !this.ec389r;
-
-        this.ec389a += addedCount;
-        this.ec389r += removedCount;
-
-        // console.log(38802)
-
-        if (shouldExecute) {
-
-        // console.log(38804)
-
-          // let shouldScrollAfterFlush = false;
-          const pr00 = this.ec389pr;
-          const ec389pr = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
-
-          if (cTag === 'visibleItems') {
-            this.prDelay288 = ec389pr;
-            // this.hasUserJustInteracted12_ = (this.hasUserJustInteracted11_ || (() => false));
-
-            // the first microtask after promise resolved
-            // YYYYYYY
-            // ec389pr.then(async () => {
-            //   if (shouldScrollAfterFlush) {
-            //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-            //     wme.data = `${(wme.data & 7) + 1}`;
-            //     await wmp;
-            //     if (this.atBottom === false && this.allowScroll === true && !this.hasUserJustInteracted12_()) this.scrollToBottom_();
-            //   }
-            // });
-
-          }
-
+          this.ec389a = addedCount;
+          this.ec389r = removedCount;
+        } else {
+          this.ec389a += addedCount;
+          this.ec389r += removedCount;
+          return true;
         }
 
+        const pr00 = this.ec389pr;
+        const pr11 = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
+
+        if (cTag === 'visibleItems') {
+          this.prDelay288 = pr11;
+        }
         return true;
       }
 
@@ -7151,7 +7135,9 @@
           const l = deferSeqFnI;
           deferSeqFnI = 0;
           for (let i = 0; i < l; i++) {
-            Promise.resolve(deferSeqFns[i]).then(deferCallbackLooper);
+            const o = deferSeqFns[i];
+            deferSeqFns[i] = null;
+            Promise.resolve(o).then(deferCallbackLooper);
           }
         };
 
