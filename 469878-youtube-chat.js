@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.13
+// @version             0.102.14
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4127,7 +4127,7 @@
                       fn: taskFn.remove
                     });
 
-                  } else {
+                  } else if (rcEntry && rcEntry.length >= 4) { // bug ?
                     const [item, L, H, connectedComponent] = rcEntry;
 
                     tasks.push({
@@ -11532,6 +11532,15 @@
                 this.data && typeof this.shouldSupportWholeItemClick === 'function' && typeof this.hasModerationOverlayVisible === 'function' &&
                 this.data.contextMenuEndpoint && this.wholeMessageClickable && this.shouldSupportWholeItemClick() && !this.hasModerationOverlayVisible()
               ); // follow .onItemTap(a)
+            },
+            updateMessage374: function () { // conflict with weak dom root?
+              try {
+                this.updateMessage372();
+              } catch (e) { }
+              // const a = this.data.message;
+              // const b = this.$.message || this.hostElement.querySelector('#message');
+              // b.textContent = "";
+              // a && b.appendChild(this.ytLiveChatItemBehavior.createDocumentFragment(a));
             }
           };
 
@@ -11547,6 +11556,17 @@
               if (!cProto || !cProto.attached) {
                 console1.warn(`proto.attached for ${tag} is unavailable.`);
                 return;
+              }
+
+              if (cProto && typeof cProto.updateMessage === 'function' && !cProto.updateMessage373 && cProto.updateMessage.length === 0 && fnIntegrity(cProto.updateMessage)) {
+                const w = fnIntegrity(cProto.updateMessage);
+                if (w !== '0.36.21') {
+                  console.warn('updateMessage signature changed', w, '0.36.21', cProto.updateMessage);
+                } else {
+                  cProto.updateMessage373 = true;
+                  cProto.updateMessage372 = cProto.updateMessage;
+                  cProto.updateMessage = dProto.updateMessage374;
+                }
               }
 
               const dCnt = insp(dummy);
