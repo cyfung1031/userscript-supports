@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.41.14
+// @version     0.42.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -192,18 +192,6 @@
   // Not sure enabling it can make GC or not (Yt Components are usually not GC-able)
   // ----------------------------- POPUP UNIQUE ID ISSUE -----------------------------
 
-
-  // ----------------------------- Shortkey Keyboard Control -----------------------------
-  // dependency: FIX_yt_player
-
-  const FIX_SHORTCUTKEYS = 2; // 0 - no fix; 1 - basic fix; 2 - advanced fix
-  // [0] no fix - not recommended
-  // [1] basic fix - just fix the global focus detection variable
-  // [2] advanced fix - call the shortcut actions directly, auto foucs change, direct control of spacebar behavior, etc
-  // (note) 0 or 1 if you find conflict with other userscripts/plugin
-
-  const CHANGE_SPEEDMASTER_SPACEBAR_CONTROL = 0; // 0 - disable; 1 - force true; 2 - force false
-  const USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER = true; // only for SPEEDMASTER = false & FIX_SHORTCUTKEYS = 2
 
   const PROP_OverReInclusion_AVOID = true;
   const PROP_OverReInclusion_DEBUGLOG = false;
@@ -5360,828 +5348,6 @@
 
   }
 
-  const { pageMediaWatcher, shortcutKeysFixer, keyboardController } = (() => {
-
-    let p_a_objWR = null;
-    let isSpaceKeyImmediate = false; // for ADVANCED_FIX_SHORTCUTKEYS
-    let ytPageReady = 0;
-
-    let isSpeedMastSpacebarControlEnabled = false; // youtube experimental feature // can be forced by CHANGE_SPEEDMASTER_SPACEBAR_CONTROL
-    let isGlobalSpaceControl = true;
-    let mediaPlayerElementWR = null;
-    let focusedElementAtSelection = null;
-
-    // let want_control_video = false;
-
-    let spaceBarControl_keyG = '';
-
-    let lastUserAction = 0;
-
-    const wmKeyControlPhase = new WeakMap();
-
-    let currentSelectionText = null;
-
-    const getCurrentSelectionText = () => {
-      if (currentSelectionText !== null) return currentSelectionText
-      return (currentSelectionText = `${getSelection()}`)
-    }
-
-    const pageMediaWatcher = () => {
-
-      // CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE && document.addEventListener('wheel', () => {
-      //   want_control_video = false;
-      // }, { capture: true, passive: true });
-
-      document.addEventListener('yt-navigate', () => {
-        ytPageReady = 0;
-      });
-      document.addEventListener('yt-navigate-start', () => {
-        ytPageReady = 0;
-      });
-      document.addEventListener('yt-navigate-cache', () => {
-        ytPageReady = 0;
-      });
-
-      document.addEventListener('yt-navigate-finish', () => {
-        ytPageReady = 1;
-      });
-
-      document.addEventListener('durationchange', () => {
-        for (const elm of document.querySelectorAll('#movie_player video[src], #movie_player audio[src]')) {
-          if (elm.duration > 0.01) {
-            if (elm.closest('[hidden]')) continue;
-            mediaPlayerElementWR = mWeakRef(elm);
-            return;
-          }
-        }
-      }, { capture: true, passive: true });
-
-      document.addEventListener('selectionchange', (evt) => {
-        if (!evt || !evt.isTrusted || !(evt instanceof Event)) return;
-        currentSelectionText = null;
-        if (!(evt.target instanceof Node)) return;
-        focusedElementAtSelection = evt.target;
-      }, { capture: true, passive: true })
-
-      document.addEventListener('pointerdown', (evt) => {
-        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
-      }, { capture: true, passive: true });
-
-
-      document.addEventListener('pointerup', (evt) => {
-        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
-      }, { capture: true, passive: true });
-
-
-      document.addEventListener('keydown', (evt) => {
-        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
-      }, { capture: true, passive: true });
-
-      document.addEventListener('keyup', (evt) => {
-        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
-      }, { capture: true, passive: true });
-
-    };
-
-
-    const checkKeyB = (p_a_obj) => {
-
-      const boolList = new Set();
-      const p_a_obj_api = p_a_obj.api;
-
-      const nilFunc0 = function () {
-        return void 0
-      };
-      const mt = new Proxy({}, {
-        get(target, prop) {
-          if (prop === 'get') return nilFunc0;
-          return mt;
-        }
-      });
-      const nilFunc = function () {
-        return mt
-      };
-      const mw = new Proxy({}, {
-        get(target, prop) {
-          if (prop in p_a_obj_api) {
-            if (typeof p_a_obj_api.constructor.prototype[prop] === 'function') return nilFunc;
-            let q = Object.getOwnPropertyDescriptor(p_a_obj_api, prop);
-            if (q && q.value) {
-              if (!q.writable) return q.value;
-              if (typeof q.value === 'string') return '';
-              if (typeof q.value === 'number') return 0;
-              if (typeof q.value === 'boolean') return false;
-              if (q.value && typeof q.value === 'object') return {};
-            }
-          }
-          return undefined;
-        },
-        set(target, prop) {
-          throw 'mwSet';
-        }
-      });
-
-      const mq = new Proxy({}, {
-        get(target, prop) {
-          if (prop === 'api') return mw;
-          if (prop in p_a_obj) {
-            if (typeof p_a_obj.constructor.prototype[prop] === 'function') return nilFunc;
-            let q = Object.getOwnPropertyDescriptor(p_a_obj, prop);
-            if (q && q.value) {
-              if (!q.writable) return q.value;
-              if (typeof q.value === 'string') return '';
-              if (typeof q.value === 'number') return 0;
-              if (typeof q.value === 'boolean') return false;
-              if (q.value && typeof q.value === 'object') return {};
-            }
-          }
-          return undefined;
-        },
-        set(target, prop, val) {
-          if (typeof val === 'boolean') boolList.add(prop)
-          throw `mqSet(${prop},${val})`;
-        }
-      });
-
-      let res = ''
-      try {
-        res = `RESULT::${p_a_obj.handleGlobalKeyUp.call(mq, 9, false, false, false, false, "Tab", "Tab")}`;
-      } catch (e) {
-        res = `ERROR::${e}`;
-      }
-
-      if (boolList.size === 1) {
-        const value = boolList.values().next().value;
-        if (res === `ERROR::mqSet(${value},${true})`) {
-          p_a_obj.__uZWaD__ = value;
-        }
-      }
-
-      console.log('[yt-js-engine-tamer] global shortcut control', { '__uZWaD__': p_a_obj.__uZWaD__ });
-
-    }
-
-
-    let pm_p_a = null;
-
-    const p_a_init = function () {
-      const r = this.init91();
-      const keyBw = this.__cPzfo__ || '__NIL__';
-      const p_a_obj = this[keyBw];
-      if (!p_a_obj) return;
-      try {
-        checkKeyB(p_a_obj);
-      } catch (e) { }
-      p_a_objWR = mWeakRef(p_a_obj);
-      if (FIX_SHORTCUTKEYS > 0) {
-        if (p_a_obj && !p_a_obj.hVhtg) {
-          p_a_obj.hVhtg = 1;
-
-          p_a_obj.handleGlobalKeyUp91 = p_a_obj.handleGlobalKeyUp;
-          p_a_obj.handleGlobalKeyUp = p_a_xt.handleGlobalKeyUp;
-          p_a_obj.handleGlobalKeyDown91 = p_a_obj.handleGlobalKeyDown;
-          p_a_obj.handleGlobalKeyDown = p_a_xt.handleGlobalKeyDown;
-          p_a_obj.__handleGlobalKeyBefore__ = p_a_xt.__handleGlobalKeyBefore__;
-          p_a_obj.__handleGlobalKeyAfter__ = p_a_xt.__handleGlobalKeyAfter__;
-
-        }
-        // if (CAN_TUNE_VOLUMN_AFTER_RESUME_OR_PAUSE && p_a_obj && p_a_obj.api && !p_a_obj.api.hVhtg) {
-        //   const api = p_a_obj.api
-        //   api.hVhtg = 1;
-        //   api.playVideo91 = api.playVideo;
-        //   api.playVideo = p_a_jt.playVideo;
-        //   api.pauseVideo91 = api.pauseVideo;
-        //   api.pauseVideo = p_a_jt.pauseVideo;
-        // }
-      }
-      if (pm_p_a) {
-        pm_p_a.resolve();
-        pm_p_a = null;
-      }
-      return r;
-    };
-
-    const p_a_xt = {
-
-      __handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) {
-
-        if (FIX_SHORTCUTKEYS === 2) {
-
-          // if (flagSpeedMaster !== false && !getGlobalSpacebarControlFlag()) return false;
-
-          if (activeElement) {
-
-            const controlPhaseCache = wmKeyControlPhase.get(activeElement);
-
-            if (controlPhaseCache === 6 && getCurrentSelectionText() !== "") void 0;
-            else if (controlPhaseCache === 1 || controlPhaseCache === 2 || controlPhaseCache === 5) return false;
-            else if ((controlPhaseCache !== 6 || focusedElementAtSelection === document.activeElement) && getCurrentSelectionText() !== "") return false;
-
-          }
-
-          const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
-          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && (isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag());
-          // console.log(582, isDelayedSpaceBar)
-          if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
-
-          if (activeElement && (h === 'Space' || h === 'Enter')) {
-            const controlPhase = wmKeyControlPhase.get(activeElement);
-            if (controlPhase === 4 || controlPhase === 5) return false;
-          }
-          if (focusedElementAtSelection === activeElement && getCurrentSelectionText() !== "") return false;
-          // if (!isSpeedMastSpacebarControlEnabled && a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space') {
-          //   if (!isSpaceKeyImmediate) return false;
-          // }
-        }
-
-      },
-
-      __handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret) {
-
-        if (FIX_SHORTCUTKEYS === 2 && ret && a >= 32 && ytPageReady === 1 && Date.now() - lastUserAction < 40 && activeElement === document.activeElement) {
-
-          const isSpaceBar = a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space';
-          const isDelayedSpaceBar = FIX_SHORTCUTKEYS === 2 && isSpaceBar && !isSpaceKeyImmediate && (isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag());
-          // console.log(583, isDelayedSpaceBar)
-          if (isDelayedSpaceBar) return void 0; // accept delay spacebar under isSpeedMastSpacebarControlEnabled (no rejection)
-
-          const mediaPlayerElement = kRef(mediaPlayerElementWR);
-
-          let mediaWorking = false;
-          if (mediaPlayerElement && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2 && mediaPlayerElement.duration > 0.01) {
-            mediaWorking = true;
-          } else if (mediaPlayerElement && !mediaPlayerElement.paused && !mediaPlayerElement.muted && mediaPlayerElement.duration > 0.01) {
-            mediaWorking = true;
-          }
-          // console.log(182, mediaWorking, mediaPlayerElement.readyState , mediaPlayerElement.networkState)
-          mediaWorking && Promise.resolve().then(() => {
-            if (activeElement === document.activeElement) {
-              return activeElement.blur()
-            } else {
-              return false
-            }
-          }).then((r) => {
-            r !== false && mediaPlayerElement.focus();
-          });
-        }
-      },
-
-
-      handleGlobalKeyUp(a, b, c, d, e, f, h) {
-
-        if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyUp91(a, b, c, d, e, f, h);
-
-        const activeElement = document.activeElement;
-
-        const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
-        if (allow === false) return false;
-
-        const ret = this.handleGlobalKeyUp91(a, b, c, d, e, f, h);
-        // console.log('handleGlobalKeyUp',ret, a, b, c, d, e, f, h);
-
-        typeof this.__handleGlobalKeyAfter__ === 'function' && this.__handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret);
-
-        return ret;
-      },
-      handleGlobalKeyDown(a, b, c, d, e, f, h, l) {
-
-
-        if (BY_PASS_KEYBOARD_CONTROL) return this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
-
-        const activeElement = document.activeElement;
-        // if (a === 32 && b === false && c === false && d === false && e === false && f === ' ' && h === 'Space' && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
-        //   return this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
-        // }
-        const allow = typeof this.__handleGlobalKeyBefore__ === 'function' ? this.__handleGlobalKeyBefore__(a, b, c, d, e, f, h, activeElement) : void 0;
-        if (allow === false) return false;
-
-        const ret = this.handleGlobalKeyDown91(a, b, c, d, e, f, h, l);
-        // console.log('handleGlobalKeyDown',ret, a, b, c, d, e, f, h,l)
-
-        typeof this.__handleGlobalKeyAfter__ === 'function' && this.__handleGlobalKeyAfter__(a, b, c, d, e, f, h, activeElement, ret);
-
-        return ret;
-      }
-
-    };
-
-    let flagSpeedMaster = null;
-    const getSpeedMasterControlFlag = () => {
-
-      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-      isSpeedMastSpacebarControlEnabled = false;
-      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control) {
-        isSpeedMastSpacebarControlEnabled = true;
-      }
-      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control) {
-        isSpeedMastSpacebarControlEnabled = true;
-      }
-
-      if (flagSpeedMaster === null) {
-        const p = (((config || 0).WEB_PLAYER_CONTEXT_CONFIGS || 0).WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH || 0).serializedExperimentFlags;
-        if (!p) {
-          flagSpeedMaster = false;
-        } else {
-
-          flagSpeedMaster = (p.includes('web_enable_speedmaster=true') && p.includes('web_speedmaster_spacebar_control=true') /* && p.includes('web_speedmaster_updated_edu=true') */ );
-
-        }
-
-      }
-      if (!flagSpeedMaster) isSpeedMastSpacebarControlEnabled = false;
-
-      return isSpeedMastSpacebarControlEnabled;
-    }
-
-
-    const getGlobalSpacebarControlFlag = () => {
-
-      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-      isGlobalSpaceControl = false;
-      if (config && config.EXPERIMENT_FLAGS && config.EXPERIMENT_FLAGS.global_spacebar_pause) {
-        isGlobalSpaceControl = true;
-      }
-      if (config && config.EXPERIMENTS_FORCED_FLAGS && config.EXPERIMENTS_FORCED_FLAGS.global_spacebar_pause) {
-        isGlobalSpaceControl = true;
-      }
-
-      return isGlobalSpaceControl;
-    }
-
-    const keyboardController = async (_yt_player) => {
-
-      const keyQT = getQT(_yt_player);
-      const keySV = getSV(_yt_player);
-      const keyDX = getDX(_yt_player);
-      console.log(`[QT,SV,DX]`, [keyQT, keySV, keyDX]);
-
-      if (!keyDX) return;
-      if (keyDX === keyQT || keyDX === keySV) return;
-
-      if (typeof keyDX !== 'string') return;
-
-      let lastAccessKey = '';
-      let lastAccessKeyConfirmed = '';
-      const mb = new Proxy({}, {
-        get(target, prop) {
-          if (prop === 'handleGlobalKeyUp') lastAccessKeyConfirmed = lastAccessKey;
-          throw 'mbGet'
-        },
-        set(target, prop, val) {
-          throw 'mbSet'
-        }
-      });
-      const ma = new Proxy({}, {
-        get(target, prop) {
-          lastAccessKey = prop;
-          return mb
-        },
-        set(target, prop, val) {
-          throw 'maSet'
-        }
-      });
-
-      let keyBw = '';
-      try {
-        _yt_player[keyDX].prototype.handleGlobalKeyUp.call(ma);
-      } catch (e) {
-        if (e === 'mbGet' && typeof lastAccessKeyConfirmed === 'string' && lastAccessKeyConfirmed.length > 0) {
-          keyBw = lastAccessKeyConfirmed;
-        }
-      }
-
-      if (!keyBw) return;
-
-      if (typeof _yt_player[keyDX].prototype.init !== 'function' || _yt_player[keyDX].prototype.init.length !== 0) return;
-
-      pm_p_a = new PromiseExternal();
-
-      _yt_player[keyDX].prototype.__cPzfo__ = keyBw;
-
-      _yt_player[keyDX].prototype.init91 = _yt_player[keyDX].prototype.init;
-
-      _yt_player[keyDX].prototype.init = p_a_init;
-
-      await pm_p_a.then();
-      const p_a_obj = kRef(p_a_objWR);
-
-      const isSpeedMastSpacebarControlEnabledA = getSpeedMasterControlFlag();
-
-
-      if (CHANGE_SPEEDMASTER_SPACEBAR_CONTROL > 0) {
-
-        isSpeedMastSpacebarControlEnabled = CHANGE_SPEEDMASTER_SPACEBAR_CONTROL == 1;
-
-        if (!isSpeedMastSpacebarControlEnabled) {
-
-          if (config && config.EXPERIMENT_FLAGS) {
-            config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = false;
-          }
-          if (config && config.EXPERIMENTS_FORCED_FLAGS) {
-            config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control = false;
-          }
-
-        } else {
-
-          if (config && config.EXPERIMENT_FLAGS) {
-            config.EXPERIMENT_FLAGS.web_speedmaster_spacebar_control = true;
-          }
-          if (config && config.EXPERIMENTS_FORCED_FLAGS) {
-            config.EXPERIMENTS_FORCED_FLAGS.web_speedmaster_spacebar_control = true;
-          }
-
-        }
-
-      }
-
-      const isSpeedMastSpacebarControlEnabledB = getSpeedMasterControlFlag();
-
-
-
-
-      console.log('[yt-js-engine-tamer] speedmaster by space (yt setting)', isSpeedMastSpacebarControlEnabledA, isSpeedMastSpacebarControlEnabledB);
-
-      // console.log(p_a_obj.handleGlobalKeyUp)
-      console.log('[yt-js-engine-tamer] p_a', p_a_obj);
-
-      // console.log(p_a_obj.api)
-
-
-      // QT -> DX(SV) -> p_a
-
-
-      /*
-       *
-       *
-        g.k.handleGlobalKeyUp = function(a, b, c, d, e, f, h) {
-            b = void 0 === b ? !1 : b;
-            c = void 0 === c ? !1 : c;
-            d = void 0 === d ? !1 : d;
-            e = void 0 === e ? !1 : e;
-            var l = g.PT(this);
-            l && l.handleGlobalKeyUp(a, b, c, d, e, f, h)
-        }
-
-      */
-
-      /*
-       *
-       *
-       *
-        g.k.handleGlobalKeyUp = function(a, b, c, d, e, f, h) {
-            return this.Bw ? this.Bw.handleGlobalKeyUp(a, b, c, d, e, f, h) : !1
-        }
-
-      */
-
-
-      // if(!keyDX) return;
-
-      // console.log(4999, keyDX)
-
-    };
-
-
-    const ytResumeFn = function () { // ADVANCED_FIX_SHORTCUTKEYS
-
-      const p_a_obj = kRef(p_a_objWR);
-      // const api = p_a_obj.api;
-
-
-      // console.log(540);
-
-      let boolList = null;
-      let ret;
-      isSpaceKeyImmediate = true;
-      try {
-
-        ret = 0;
-        ret = ret | (p_a_obj.handleGlobalKeyDown(32, false, false, false, false, ' ', 'Space', false) ? 1 : 0);
-        let p_a_objT;
-        if (!spaceBarControl_keyG) { // just in case
-          boolList = new Set();
-          p_a_objT = new Proxy(p_a_obj, {
-            get(target, prop, handler) {
-              const val = target[prop];
-              if (typeof val !== 'boolean') return val;
-              boolList.add(prop);
-              // console.log(555, prop, val);
-              if (typeof prop === 'string' && prop.length <= 3 && val === true && boolList.length === 1) {
-                spaceBarControl_keyG = prop;
-                p_a_obj.__uZWaD__ = spaceBarControl_keyG;
-                val = false;
-              }
-              return val;
-            }
-          });
-
-
-        } else if (p_a_obj[spaceBarControl_keyG] === true) {
-          p_a_obj[spaceBarControl_keyG] = false;
-          p_a_objT = p_a_obj;
-          // console.log(p_a_obj, spaceBarControl_keyG, p_a_obj[spaceBarControl_keyG] )
-        } else {
-
-          p_a_objT = p_a_obj;
-        }
-
-        ret = ret | (p_a_objT.handleGlobalKeyUp(32, false, false, false, false, ' ', 'Space') ? 2 : 0);
-
-
-      } catch (e) {
-        console.log(e)
-      }
-      isSpaceKeyImmediate = false;
-
-      if (boolList && boolList.size === 1) {
-        const value = boolList.values().next().value;
-        spaceBarControl_keyG = value;
-        p_a_obj.__uZWaD__ = spaceBarControl_keyG;
-
-      }
-
-      if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
-
-      return ret;
-    }
-
-    const shortcutKeysFixer = () => {
-
-      let pausePromiseControlJ = 0;
-
-
-      const obtainCurrentControlPhase = (evt, mediaPlayerElement) => {
-
-        let controlPhase = 0;
-        const aElm = document.activeElement;
-
-        if (aElm) {
-
-          const controlPhaseCache = wmKeyControlPhase.get(aElm);
-
-          if (typeof controlPhaseCache === 'number') {
-
-            controlPhase = controlPhaseCache;
-          } else {
-
-            if (aElm instanceof HTMLInputElement) controlPhase = 1;
-            else if (aElm instanceof HTMLTextAreaElement) controlPhase = 1;
-            else if (aElm instanceof HTMLButtonElement) controlPhase = 2;
-            else if (aElm instanceof HTMLIFrameElement) controlPhase = 2;
-            else if (aElm instanceof HTMLImageElement) controlPhase = 2;
-            else if (aElm instanceof HTMLEmbedElement) controlPhase = 2;
-            else {
-              if (aElm instanceof HTMLElement_ && aElm.closest('[role]')) controlPhase = 5;
-              if (aElm instanceof HTMLDivElement) controlPhase = 2;
-              else if (aElm instanceof HTMLAnchorElement) controlPhase = 2;
-              else if (!(aElm instanceof HTMLElement_) && (aElm instanceof Element)) controlPhase = 2; // svg
-            }
-
-            if ((controlPhase === 2 || controlPhase === 5) && (aElm instanceof HTMLElement_) && aElm.contains(mediaPlayerElement)) {
-              controlPhase = 0;
-            }
-
-            if ((controlPhase === 2 || controlPhase === 5) && evt && evt.target && evt.target === aElm) {
-              if (aElm.closest('[contenteditable], input, textarea')) {
-                controlPhase = 5;
-              } else if (aElm.closest('button')) {
-                controlPhase = 4;
-              }
-            }
-
-            if (aElm.closest('#movie_player')) controlPhase = 6;
-
-            wmKeyControlPhase.set(aElm, controlPhase);
-
-          }
-        }
-
-        return controlPhase;
-
-      }
-
-      const isStateControllable = (api) => {
-        let appState = null;
-        let playerState = null;
-        let adState = null;
-        try {
-          appState = api.getAppState();
-          playerState = api.getPlayerState();
-          adState = api.getAdState();
-        } catch (e) { }
-        // ignore playerState -1
-        return appState === 5 && adState === -1 && (playerState === 1 || playerState === 2 || playerState === 3);
-      };
-
-
-      const keyEventListener = (evt) => {
-        if (BY_PASS_KEYBOARD_CONTROL) return;
-
-        if (evt.isTrusted && evt instanceof Event) lastUserAction = Date.now();
-        if (isSpaceKeyImmediate || !evt.isTrusted || !(evt instanceof KeyboardEvent)) return;
-        if (!ytPageReady) return;
-
-        if (evt.defaultPrevented === true) return;
-
-        const p_a_obj = kRef(p_a_objWR);
-
-        if (!p_a_obj) return;
-
-
-        const mediaPlayerElement = kRef(mediaPlayerElementWR);
-        if (!mediaPlayerElement) return;
-
-        // let focusBodyIfSuccess = false;
-
-        const controlPhase = obtainCurrentControlPhase(evt, mediaPlayerElement);
-
-        if (controlPhase === 6 && getCurrentSelectionText() !== "") void 0;
-        else if (controlPhase === 1 || controlPhase === 2 || controlPhase === 5) return;
-        else if ((controlPhase !== 6 || focusedElementAtSelection === document.activeElement) && getCurrentSelectionText() !== "") return;
-
-
-        if (evt.code === 'Space' && !getGlobalSpacebarControlFlag()) return;
-
-        // console.log(`${evt.type}::controlPhase`,controlPhase)
-
-        // if (controlPhase == 4) {
-        //   focusBodyIfSuccess = true;
-        // }
-
-        spaceBarControl_keyG = spaceBarControl_keyG || p_a_obj.__uZWaD__ || ''
-        if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
-
-        if (FIX_SHORTCUTKEYS < 2) return;
-        if (!(!evt.shiftKey && !evt.ctrlKey && !evt.altKey && !evt.metaKey)) return; // ignore if modifier key is pressed -> let other event listener to handle first
-
-        let rr;
-        const isSpaceBar = evt.code === 'Space' && !evt.shiftKey && !evt.ctrlKey && !evt.altKey && !evt.metaKey;
-
-
-
-        let useImprovedPauseResume = false;
-
-        if (USE_IMPROVED_PAUSERESUME_UNDER_NO_SPEEDMASTER && isSpaceBar && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
-
-          const api = p_a_obj.api;
-          const stateControllable = isStateControllable(api);
-          // console.log(2122, appState, playerState, adState)
-
-          if (stateControllable && isWatchPageURL() && mediaPlayerElement.duration > 0.01 && (mediaPlayerElement.readyState === 4 || mediaPlayerElement.readyState === 1) && mediaPlayerElement.networkState === 2) {
-
-            useImprovedPauseResume = true;
-
-          }
-
-
-        }
-
-
-        // force flag: CHANGE_SPEEDMASTER_SPACEBAR_CONTROL
-        if (evt.type === 'keydown') {
-
-          if (useImprovedPauseResume) {
-
-            const isPaused = mediaPlayerElement.paused;
-
-            const cj = ++pausePromiseControlJ;
-            Promise.resolve().then(() => {
-
-              if (cj !== pausePromiseControlJ) return;
-
-              if (mediaPlayerElement.paused !== isPaused) return;
-
-              const ret = ytResumeFn();
-              if (!ret) { // fallback
-                isPaused ? api.playVideo() : api.pauseVideo();
-              }
-
-              /*
-                  let a = void 0;
-                  console.log('Rb', api.Rb())
-                  a = !window._yt_player.nL(api.Rb());
-                  p_a_obj.Wd.kG(a)
-                      a ? api.playVideo() : api.pauseVideo();
-
-              */
-
-
-            });
-            rr = true;
-          } else {
-
-            isSpaceKeyImmediate = true;
-            rr = p_a_obj.handleGlobalKeyDown(evt.keyCode, evt.shiftKey, evt.ctrlKey, evt.altKey, evt.metaKey, evt.key, evt.code, evt.repeat);
-            isSpaceKeyImmediate = false;
-            if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
-
-          }
-
-
-        } else if (evt.type === 'keyup') {
-
-          if (isSpaceBar && useImprovedPauseResume && !(isSpeedMastSpacebarControlEnabled = getSpeedMasterControlFlag())) {
-
-            rr = true;
-          } else {
-
-            isSpaceKeyImmediate = true;
-            rr = p_a_obj.handleGlobalKeyUp(evt.keyCode, evt.shiftKey, evt.ctrlKey, evt.altKey, evt.metaKey, evt.key, evt.code);
-            isSpaceKeyImmediate = false;
-            if (spaceBarControl_keyG && p_a_obj[spaceBarControl_keyG] === true) p_a_obj[spaceBarControl_keyG] = false;
-
-          }
-
-
-          /*
-
-              if (d)
-                  switch (c) {
-                  case 32:
-                  case 13:
-                      if ("BUTTON" === d.tagName || "A" === d.tagName || "INPUT" === d.tagName)
-                          b = !0,
-                          e = !1;
-                      else if (e) {
-                          var m = d.getAttribute("role");
-                          !m || "option" !== m && "button" !== m && 0 !== m.indexOf("menuitem") || (b = !0,
-                          d.click(),
-                          f = !0)
-                      }
-                      break;
-                  case 37:
-                  case 39:
-                  case 36:
-                  case 35:
-                      b = "slider" === d.getAttribute("role");
-                      break;
-                  case 38:
-                  case 40:
-                      m = d.getAttribute("role"),
-                      d = 38 === c ? d.previousSibling : d.nextSibling,
-                      "slider" === m ? b = !0 : e && ("option" === m ? (d && "option" === d.getAttribute("role") && d.focus(),
-                      f = b = !0) : m && 0 === m.indexOf("menuitem") && (d && d.hasAttribute("role") && 0 === d.getAttribute("role").indexOf("menuitem") && d.focus(),
-                      f = b = !0))
-                  }
-              if (e && !f)
-                  switch (c) {
-                  case 38:
-                      f = Math.min(this.api.getVolume() + 5, 100);
-                      XV(this.Wd, f, !1);
-                      this.api.setVolume(f);
-                      h = f = !0;
-                      break;
-                  case 40:
-                      f = Math.max(this.api.getVolume() - 5, 0);
-                      XV(this.Wd, f, !0);
-                      this.api.setVolume(f);
-                      h = f = !0;
-                      break;
-                  case 36:
-                      this.api.Yh() && (this.api.startSeekCsiAction(),
-                      this.api.seekTo(0, void 0, void 0, void 0, 79),
-                      h = f = !0);
-                      break;
-                  case 35:
-                      this.api.Yh() && (this.api.startSeekCsiAction(),
-                      this.api.seekTo(Infinity, void 0, void 0, void 0, 80),
-                      h = f = !0)
-                  }
-          */
-
-        }
-
-
-        if (rr) {
-
-          // focusBodyIfSuccess && Promise.resolve().then(() => {
-          //   activeElement === document.activeElement && activeElement.blur();
-          // });
-
-          evt.preventDefault();
-          evt.stopImmediatePropagation();
-          evt.stopPropagation();
-
-        }
-
-      };
-
-      document.addEventListener('keydown', keyEventListener, { capture: true });
-
-
-      document.addEventListener('keyup', keyEventListener, { capture: true });
-
-    }
-
-    return { pageMediaWatcher, shortcutKeysFixer, keyboardController };
-
-  })();
-
-
-  pageMediaWatcher();
-  FIX_SHORTCUTKEYS > 0 && shortcutKeysFixer();
-
-
   const check_for_set_key_order = (() => {
 
     let mySet = new Set();
@@ -9045,7 +8211,7 @@
 
   // const assertor = (f) => f() || console.assert(false, `${f}`);
 
-  const fnIntegrity = (f, d) => {
+  const fnIntegrity_oldv1 = (f, d) => {
     if (!f || typeof f !== 'function') {
       console.warn('f is not a function', f);
       return;
@@ -9059,6 +8225,33 @@
       } else {
         s++;
       }
+    }
+    let itz = `${f.length}.${s}.${w}`;
+    if (!d) {
+      return itz;
+    } else {
+      return itz === d;
+    }
+  };
+
+  const fnIntegrity = (f, d) => {
+    if (!f || typeof f !== 'function') {
+      console.warn('f is not a function', f);
+      return;
+    }
+    let p = `${f}`, s = 0, j = -1, w = 0, q = ' ';
+    for (let i = 0, l = p.length; i < l; i++) {
+      const t = p[i];
+      if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
+        if (j < i - 1) {
+          w++;
+          if (q === '$') s--;
+        }
+        j = i;
+      } else {
+        s++;
+      }
+      q = t;
     }
     let itz = `${f.length}.${s}.${w}`;
     if (!d) {
@@ -9246,7 +8439,6 @@
 
     for (const [k, v] of Object.entries(_yt_player)) {
 
-
       const p = typeof v === 'function' ? v.prototype : 0;
 
       if (p
@@ -9262,10 +8454,6 @@
 
     }
 
-
-
-
-
     if (arr.length === 0) {
 
       console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
@@ -9277,7 +8465,9 @@
 
   }
 
+  /*
 
+  // QT might be used in future changes
   const getQT = (_yt_player) => {
     const w = 'QT';
 
@@ -9360,12 +8550,9 @@
       return arr[0][0];
     }
 
-
-
   }
 
-
-
+  // SV might be used in future changes
   const getSV = (_yt_player) => {
     const w = 'SV';
 
@@ -9450,13 +8637,9 @@
       return arr[0][0];
     }
 
-
-
   }
 
-
-
-
+  // no DX key
   const getDX = (_yt_player) => {
     const w = 'DX';
 
@@ -9548,6 +8731,7 @@
 
   }
 
+  */
 
 
   const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
@@ -10182,7 +9366,7 @@
       FIX_onLoopRangeChange && generalEvtHandler('onLoopRangeChange', 'onLoopRangeChange57');
       if (FIX_VideoEVENTS_v2) {
         const FIX_VideoEVENTS_DEBUG = 0;
-        generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG); // --
+        // generalEvtHandler('onVideoProgress', 'onVideoProgress57', FIX_VideoEVENTS_DEBUG); // -- // no onVideoProgress in latest YouTube Coding (2025.06.12)
         // generalEvtHandler('onAutoplayBlocked', 'onAutoplayBlocked57', FIX_VideoEVENTS_DEBUG);
         // generalEvtHandler('onLoadProgress', 'onLoadProgress57', FIX_VideoEVENTS_DEBUG); // << CAUSE ISSUE >>
         generalEvtHandler('onFullscreenChange', 'onFullscreenChange57', FIX_VideoEVENTS_DEBUG); // --
@@ -11208,18 +10392,6 @@
       }
 
 
-
-    })();
-
-
-    FIX_yt_player && !isChatRoomURL && FIX_SHORTCUTKEYS > 0 && (async () => {
-      // keyboard shortcut keys controller
-
-      const _yt_player = await _yt_player_observable.obtain();
-
-      if (!_yt_player || typeof _yt_player !== 'object') return;
-
-      keyboardController(_yt_player);
 
     })();
 
