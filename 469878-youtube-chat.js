@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.11
+// @version             0.102.12
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2245,7 +2245,7 @@
 
   const assertor = (f) => f() || (console.assert(false, `${f}`), false);
 
-  const fnIntegrity = (f, d) => {
+  const fnIntegrity_oldv1 = (f, d) => {
 
 
     if (!f || typeof f !== 'function') {
@@ -2263,6 +2263,62 @@
       } else {
         s++;
       }
+    }
+    // if(p.length > 44 && p.length < 50){
+
+    //   (window.skam|| (window.skam=[])).push(p);
+    //   return false;
+    // }
+
+    //     if(p.length >  405 && p.length < 415 ){ //350 450
+
+
+    //  //  [353, 411, 411, 411]
+
+    //       // if(p.length >= 350 && p.length<=450){
+
+    //       //   (window.skam|| (window.skam=[])).push(p.length);
+    //       // }
+    //       (window.skam|| (window.skam=[])).push(p);
+    //       return false;
+    //     }
+
+    // if(p.length < 50) return true; else return false;
+    // return; // M44
+    let itz = `${f.length}.${s}.${w}`;
+    if (!d) {
+      return itz;
+    } else if (itz !== d) {
+      console.warn('fnIntegrity=false', itz);
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+
+  const fnIntegrity = (f, d) => {
+
+
+    if (!f || typeof f !== 'function') {
+      console.warn('f is not a function', f);
+      return;
+    }
+    // return; // M44
+    let p = `${f}`, s = 0, j = -1, w = 0, q = ' ';
+    // return; // M44
+    for (let i = 0, l = p.length; i < l; i++) {
+      let t = p[i];
+      if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
+        if (j < i - 1) {
+          w++;
+          if (q === '$') s--;
+        }
+        j = i;
+      } else {
+        s++;
+      }
+      q = t;
     }
     // if(p.length > 44 && p.length < 50){
 
@@ -3533,6 +3589,7 @@
       const componentDefaultAttributes = new WeakMap();
 
       const fnKeyH = `${key}$$c472`;
+      let spliceTempDisabled = false;
 
       cProto.__ensureContainerDomApi7577 = function (cId) {
         const container = this.getStampContainer_(cId);
@@ -4140,8 +4197,6 @@
 
       }
 
-      let spliceTempDisabled = false;
-
       // proceedStampDomArraySplices371_ // proceedStampDomArraySplices381_
       cProto[key] = function (cTag, cId, indexSplice) {
 
@@ -4155,7 +4210,10 @@
           console.warn('proceedStampDomArraySplices_', 'Error 001');
           return false;
         }
-        if (!this.ec389) {
+        if (this.ec389) {
+          this.ec389a += addedCount;
+          this.ec389r += removedCount;
+        } else {
           if (this.ec389a || this.ec389r) {
             console.warn('proceedStampDomArraySplices_', 'Error 002');
             return false;
@@ -4163,23 +4221,17 @@
           this.ec389 = true;
           this.ec389a = addedCount;
           this.ec389r = removedCount;
-        } else {
-          this.ec389a += addedCount;
-          this.ec389r += removedCount;
-          return true;
+
+          const pr00 = this.ec389pr;
+          const pr11 = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
+
+          if (cTag === 'visibleItems') {
+            this.prDelay288 = pr11;
+          }
         }
 
-        const pr00 = this.ec389pr;
-        const pr11 = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
-
-        if (cTag === 'visibleItems') {
-          this.prDelay288 = pr11;
-        }
         return true;
       }
-
-
-
 
 
     }
@@ -7452,7 +7504,7 @@
 
               const sfi = fnIntegrity(mclp.flushActiveItems_);
 
-              if (sfi === '0.157.56') {
+              if (sfi === '0.156.86') {
 
                 // https://www.youtube.com/s/desktop/2cf5dafc/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
@@ -7481,67 +7533,6 @@
                 //         } else
                 //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
                 // }
-              } else if (sfi === '0.158.86') {
-
-                // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-
-                //   f.flushActiveItems_ = function() {
-                //     var a = this;
-                //     if (this.activeItems_.length > 0)
-                //         if (this.canScrollToBottom_()) {
-                //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
-                //             b && this.splice("visibleItems", 0, b);
-                //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
-                //                 this.preinsertHeight_ = this.items.clientHeight;
-                //             this.activeItems_.unshift("visibleItems");
-                //             try {
-                //                 this.push.apply(this, this.activeItems_)
-                //             } catch (c) {
-                //                 Tm(c)
-                //             }
-                //             this.activeItems_ = [];
-                //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && $u(function() {
-                //                 a.showNewItems_()
-                //             }) : $u(function() {
-                //                 a.refreshOffsetContainerHeight_();
-                //                 a.maybeScrollToBottom_()
-                //             })
-                //         } else
-                //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
-                // }
-
-              } else if (sfi === '0.156.86') {
-                // https://www.youtube.com/s/desktop/f61c8d85/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
-
-                // added "refreshOffsetContainerHeight_"
-
-                //   f.flushActiveItems_ = function() {
-                //     var a = this;
-                //     if (0 < this.activeItems_.length)
-                //         if (this.canScrollToBottom_()) {
-                //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
-                //             b && this.splice("visibleItems", 0, b);
-                //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
-                //                 this.preinsertHeight_ = this.items.clientHeight;
-                //             this.activeItems_.unshift("visibleItems");
-                //             try {
-                //                 this.push.apply(this, this.activeItems_)
-                //             } catch (c) {
-                //                 fm(c)
-                //             }
-                //             this.activeItems_ = [];
-                //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && Mw(function() {
-                //                 a.showNewItems_()
-                //             }) : Mw(function() {
-                //                 a.refreshOffsetContainerHeight_();
-                //                 a.maybeScrollToBottom_()
-                //             })
-                //         } else
-                //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
-                // }
-                // ;
-
               } else if (sfi === '0.150.84') {
                 // https://www.youtube.com/s/desktop/e4d15d2c/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
                 // var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
@@ -7625,15 +7616,11 @@
 
             };
 
-
-
-            if(ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING && `${mclp.flushActiveItems_}`.includes("this.push.apply(this,this.activeItems_)") && `${mclp.flushActiveItems_}`.includes(`this.splice("visibleItems",0,`) && !cProto.notifyPath371){
-              
-
-
+            if (ENABLE_CHAT_MESSAGES_BOOSTED_STAMPING && `${mclp.flushActiveItems_}`.includes("this.push.apply(this,this.activeItems_)") && `${mclp.flushActiveItems_}`.includes(`this.splice("visibleItems",0,`)
+              && !cProto.notifyPath371 && !cProto.proceedStampDomArraySplices381_
+              && !cProto.stampDomArraySplices381_ && !cProto.push377 && !cProto.splice377) {
 
               {
-
 
                 rendererStamperFactory(cProto, {
                   key: 'proceedStampDomArraySplices381_',
@@ -7643,12 +7630,13 @@
                 
                 cProto.notifyPath371 = cProto.notifyPath;
 
-
                 cProto.stampDomArraySplices381_ = cProto.stampDomArraySplices_;
 
-                cProto.stampDomArraySplices_ = function (a, b, c) {
-                  if (a === 'visibleItems' && b === 'items' && (c || 0).indexSplices) {
-                    // if (this.ec388) {
+                if (typeof cProto.stampDomArraySplices381_ === 'function' && cProto.stampDomArraySplices381_.length >= 3) {
+
+                  cProto.stampDomArraySplices_ = function (a, b, c) {
+                    if (a === 'visibleItems' && b === 'items' && (c || 0).indexSplices) {
+                      // if (this.ec388) {
                       const indexSplices = c.indexSplices;
                       if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
                         const indexSplice = indexSplices[0] || indexSplices;
@@ -7657,65 +7645,71 @@
                           if (this.proceedStampDomArraySplices381_(a, b, indexSplice)) return;
                         }
                       }
-                    // } else {
-                    //   console.warn('stampDomArraySplices_ warning', ...arguments);
-                    // }
+                      // } else {
+                      //   console.warn('stampDomArraySplices_ warning', ...arguments);
+                      // }
+                    }
+                    return this.stampDomArraySplices381_(...arguments);
                   }
-                  return this.stampDomArraySplices381_(...arguments);
+                } else {
+                  console.warn('0xF0230 Function Signature Changed');
                 }
 
                 cProto.stampDomArray366_ = cProto.stampDomArray_;
-                cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
-                  const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
-                  const isMessageListRendering = items === this.visibleItems && containerId === 'items';
-                  
-                  if(!isTickerRendering && !isMessageListRendering){
-                    console.log('stampDomArray_ warning 0xF501', ...arguments)
-                    return this.stampDomArray366_(...arguments);
-                  }
 
-                  const container = (this.$ || 0)[containerId];
-                  if (!container) {
-                    console.log('stampDomArray_ warning 0xF502', ...arguments)
-                    return this.stampDomArray366_(...arguments);
-                  }
+                if (typeof cProto.stampDomArray366_ === 'function' && cProto.stampDomArray366_.length >= 5) {
+                  cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
+                    const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
+                    const isMessageListRendering = items === this.visibleItems && containerId === 'items';
 
-                  if (container[sFirstElementChild] === null && items.length === 0) {
+                    if (!isTickerRendering && !isMessageListRendering) {
+                      console.log('stampDomArray_ warning 0xF501', ...arguments)
+                      return this.stampDomArray366_(...arguments);
+                    }
 
-                  } else {
-                    const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
-                    this.proceedStampDomArraySplices381_(cTag, containerId, {
-                      addedCount: items.length,
-                      removedCount: container.childElementCount
-                    });
-                  }
+                    const container = (this.$ || 0)[containerId];
+                    if (!container) {
+                      console.log('stampDomArray_ warning 0xF502', ...arguments)
+                      return this.stampDomArray366_(...arguments);
+                    }
 
-                  const f = () => {
-                    this.markDirty && this.markDirty();
-                    const detail = {
-                      container
+                    if (container[sFirstElementChild] === null && items.length === 0) {
+
+                    } else {
+                      const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
+                      this.proceedStampDomArraySplices381_(cTag, containerId, {
+                        addedCount: items.length,
+                        removedCount: container.childElementCount
+                      });
+                    }
+
+                    const f = () => {
+                      this.markDirty && this.markDirty();
+                      const detail = {
+                        container
+                      };
+                      shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                        bubbles: !0,
+                        cancelable: !1,
+                        composed: !0,
+                        detail
+                      }));
+                      detail.container = null;
                     };
-                    shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-                      bubbles: !0,
-                      cancelable: !1,
-                      composed: !0,
-                      detail
-                    }));
-                    detail.container = null;
+
+                    if (this.ec389pr) {
+                      this.ec389pr.then(f)
+                    } else {
+                      f();
+                    }
+
                   };
-
-                  if (this.ec389pr) {
-                    this.ec389pr.then(f)
-                  } else {
-                    f();
-                  }
-
-                };
+                } else {
+                  console.warn('0xF0230 Function Signature Changed');
+                }
 
                 mclp.push377 = mclp.push;
                 mclp.splice377 = mclp.splice;
-
-
 
                 const emptyArr = [];
                 emptyArr.push = () => 0;
@@ -7725,121 +7719,44 @@
                 emptyArr.splice = () => void 0;
                 emptyArr.slice = function () { return this };
 
-
-                mclp.push = function (cTag, ...fnArgs) {
-                  if (cTag !== 'visibleItems' || !fnArgs.length || !fnArgs[0]) return this.push377(...arguments);
-                  const arr = this.visibleItems;
-                  const len = arr.length;
-                  const newTotalLen = arr.push(...fnArgs);
-                  const addedCount = fnArgs.length;
-                  // console.log('push')
-                  this.proceedStampDomArraySplices381_('visibleItems', 'items', {
-                    index: len, addedCount: addedCount, removedCount: 0
-                  })
-                  return newTotalLen;
+                if (typeof mclp.push377 === 'function' && mclp.push377.length >= 1) {
+                  mclp.push = function (cTag, ...fnArgs) {
+                    if (cTag !== 'visibleItems' || !fnArgs.length || !fnArgs[0]) return this.push377(...arguments);
+                    const arr = this.visibleItems;
+                    const len = arr.length;
+                    const newTotalLen = arr.push(...fnArgs);
+                    const addedCount = fnArgs.length;
+                    // console.log('push')
+                    this.proceedStampDomArraySplices381_('visibleItems', 'items', {
+                      index: len, addedCount: addedCount, removedCount: 0
+                    })
+                    return newTotalLen;
+                  }
+                } else {
+                  console.warn('0xF0230 Function Signature Changed');
                 }
 
-                mclp.splice = function (cTag, ...fnArgs) {
-                  if (cTag !== 'visibleItems' || !fnArgs.length || (fnArgs.length === 2 && !fnArgs[1]) || (fnArgs.length > 2 && !fnArgs[2])) return this.splice377(...arguments);
-                  const arr = this.visibleItems;
-                  const removed = arr.splice(...fnArgs);
-                  const removedCount = removed.length;
-                  const addedCount = (fnArgs.length > 2 ? fnArgs.length - 2 : 0);
-                  if (fnArgs.length >= 2 && removedCount !== fnArgs[1]) {
-                    console.warn(`incorrect splice count. expected = ${fnArgs[1]}; actual = ${removedCount}`);
+                if (typeof mclp.splice377 === 'function' && mclp.splice377.length >= 1) {
+                  mclp.splice = function (cTag, ...fnArgs) {
+                    if (cTag !== 'visibleItems' || !fnArgs.length || (fnArgs.length === 2 && !fnArgs[1]) || (fnArgs.length > 2 && !fnArgs[2])) return this.splice377(...arguments);
+                    const arr = this.visibleItems;
+                    const removed = arr.splice(...fnArgs);
+                    const removedCount = removed.length;
+                    const addedCount = (fnArgs.length > 2 ? fnArgs.length - 2 : 0);
+                    if (fnArgs.length >= 2 && removedCount !== fnArgs[1]) {
+                      console.warn(`incorrect splice count. expected = ${fnArgs[1]}; actual = ${removedCount}`);
+                    }
+                    // console.log('splice')
+                    this.proceedStampDomArraySplices381_('visibleItems', 'items', {
+                      index: fnArgs[0], addedCount: addedCount, removedCount
+                    })
+                    return removed;
                   }
-                  // console.log('splice')
-                  this.proceedStampDomArraySplices381_('visibleItems', 'items', {
-                    index: fnArgs[0], addedCount: addedCount, removedCount
-                  })
-                  return removed;
+                } else {
+                  console.warn('0xF0230 Function Signature Changed');
                 }
 
-
-
-              }
-
-              /*
-              mclp.flushActiveItems66b_ = function () {
-
-                let prWait = null;
-                let shouldProceedNextFlushActiveItems = false;
-
-                try {
-
-
-                  const activeItems_ = this.activeItems_;
-                  const activeItemsCount = activeItems_.length;
-                  const maxItemsToDisplay = this.data.maxItemsToDisplay;
-                  if (activeItemsCount > maxItemsToDisplay) {
-                    activeItems_.splice(0, activeItemsCount - maxItemsToDisplay);
-                  }
-                  const qLen = this.visibleItems.length;
-                  const pr0 = this.prDelay288;
-                  const pr = this.prDelay288 = new PromiseExternal();
-                  this.ec377 = true;
-                  const ec378 = this.ec378 = new Array(qLen).fill(0).map((e, idx) => idx);
-                  this.flushActiveItems66a_();
-                  this.ec377 = false;
-                  this.ec378 = null;
-                  this.prDelay288 = pr0;
-                  this.activeItems_ = typeof activeItems_[0] === 'string' ? activeItems_.slice(1) : activeItems_;
-                  wme.data = `${(wme.data & 7) + 1}`;
-                  const isSuccess = this.renderSplicedList323(ec378, qLen, pr);
-                  if (isSuccess) {
-                    // console.log('19949 - ok')
-                    this.prDelay288 = pr;
-                    shouldProceedNextFlushActiveItems = true;
-
-                    wme.data = `${(wme.data & 7) + 1}`;
-                    prWait = wmp;
-
-                  } else if (activeItemsCount === 0 || !this.canScrollToBottom_()) {
-                    // skip
-                  } else {
-                    const ppr = ((slist, qLen, pr) => {
-                      const deleteCount = (typeof slist[0] === 'number') ? slist[0] : qLen;
-                      let newAt = qLen - deleteCount;
-                      if (newAt > 0 && slist[newAt - 1] !== qLen - 1) return 3;
-                      if (newAt > slist.length) return 4;
-                      if (newAt < slist.length && typeof slist[newAt] === 'number') return 5;
-                      const addedCount = slist.length - newAt;
-                      // if (deleteCount > addedCount) return 6;
-
-                      if (deleteCount === 0 && addedCount === 0) return 7;
-
-                    })(ec378, qLen, pr);
-
-                    console.log('19949 - ng', ppr)
-
-                    const pr2 = this.prDelay288 = new PromiseExternal();
-                    this.flushActiveItems66a_();
-                    pr2.resolve();
-                    shouldProceedNextFlushActiveItems = true;
-
-                    wme.data = `${(wme.data & 7) + 1}`;
-                    prWait = wmp;
-
-                  }
-
-                } catch (e) {
-
-                  console.warn(e);
-                }
-
-
-                const pr5 = this.prDelay288;
-
-                (async ()=>{
-                  await pr5;
-                  await prWait;
-                  flushActiveItemExecuted = false;
-                  if (shouldProceedNextFlushActiveItems && this.activeItems_.length > 0) setTimeout(() => this.flushActiveItems_(), 0);
-                })();
-
-              }
-              */
-
+              }              
 
               mclp.flushActiveItemsFix001_ = function () {
 
@@ -9115,7 +9032,7 @@
               urt++;
               if (fi === '0.8.2' || fi === '0.12.4') {
               } else {
-                assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.12.4'));
+                assertor(() => fnIntegrity(cProto.handlePauseReplay, '0.8.2'));
               }
             } else {
               if (withTimerFn_ > 0) console1.log('Error for setting cProto.handlePauseReplay', tag)
@@ -9988,7 +9905,9 @@
 
           // const imgCollection = document.getElementsByTagName('IMG');
 
-          if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3 && !cProto.notifyPath371) {
+          if (ENABLE_TICKERS_BOOSTED_STAMPING && typeof cProto.notifyPath === 'function' && cProto.notifyPath.length === 2 && typeof cProto.stampDomArraySplices_ === 'function' && cProto.stampDomArraySplices_.length === 3
+            && !cProto.notifyPath371 && !cProto.proceedStampDomArraySplices371_
+            && !cProto.stampDomArraySplices371_ && !cProto.stampDomArray366_) {
 
             rendererStamperFactory(cProto, {
               key: 'proceedStampDomArraySplices371_',
@@ -9997,30 +9916,12 @@
 
             cProto.notifyPath371 = cProto.notifyPath;
 
-            // cProto.notifyPath = function (a, b) {
-            //   // console.log(a, b);
-            //   if (a === 'tickerItems.splices' && (b||0).indexSplices && !this.ec388) {
-            //     const indexSplices = b.indexSplices;
-            //     if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
-            //       const indexSplice = indexSplices[0] || indexSplices;
-            //       if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || []).length >= 1)) {
-            //         // console.log(1039, a, indexSplice);
-            //         this.ec388 = true;
-            //         const r = this.notifyPath371(a, b);
-            //         this.ec388 = false;
-            //         return r;
-            //       }
-            //     }
-            //   }
-
-            //   return this.notifyPath371(a, b);
-            // }
-
             cProto.stampDomArraySplices371_ = cProto.stampDomArraySplices_;
 
-            cProto.stampDomArraySplices_ = function (a, b, c) {
-              if (a === 'tickerItems' && b === 'ticker-items' && (c || 0).indexSplices) {
-                // if (this.ec388) {
+            if (typeof cProto.stampDomArraySplices371_ === 'function' && cProto.stampDomArraySplices371_.length >= 3) {
+              cProto.stampDomArraySplices_ = function (a, b, c) {
+                if (a === 'tickerItems' && b === 'ticker-items' && (c || 0).indexSplices) {
+                  // if (this.ec388) {
                   const indexSplices = c.indexSplices;
                   if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
                     const indexSplice = indexSplices[0] || indexSplices;
@@ -10029,66 +9930,71 @@
                       if (this.proceedStampDomArraySplices371_(a, b, indexSplice)) return;
                     }
                   }
-                // } else {
-                //   console.warn('stampDomArraySplices_ warning', ...arguments);
-                // }
-              }
-              return this.stampDomArraySplices371_(...arguments);
-            };
+                  // } else {
+                  //   console.warn('stampDomArraySplices_ warning', ...arguments);
+                  // }
+                }
+                return this.stampDomArraySplices371_(...arguments);
+              };
+            } else {
+              console.warn('0xF0230 Function Signature Changed');
+            }
 
             cProto.stampDomArray366_ = cProto.stampDomArray_;
-            cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
-              const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
-              const isMessageListRendering = items === this.visibleItems && containerId === 'items';
+            if (typeof cProto.stampDomArray366_ === 'function' && cProto.stampDomArray366_.length >= 5) {
+              cProto.stampDomArray_ = function (items, containerId, componentConfig, rxConfig, shouldCallback, isStableList) {
+                const isTickerRendering = items === this.tickerItems && containerId === 'ticker-items';
+                const isMessageListRendering = items === this.visibleItems && containerId === 'items';
 
-              if(!isTickerRendering && !isMessageListRendering){
-                console.log('stampDomArray_ warning 0xF501', ...arguments)
-                return this.stampDomArray366_(...arguments);
-              }
+                if (!isTickerRendering && !isMessageListRendering) {
+                  console.log('stampDomArray_ warning 0xF501', ...arguments)
+                  return this.stampDomArray366_(...arguments);
+                }
 
-              const container = (this.$ || 0)[containerId];
-              if (!container) {
-                console.log('stampDomArray_ warning 0xF502', ...arguments)
-                return this.stampDomArray366_(...arguments);
-              }
+                const container = (this.$ || 0)[containerId];
+                if (!container) {
+                  console.log('stampDomArray_ warning 0xF502', ...arguments)
+                  return this.stampDomArray366_(...arguments);
+                }
 
-              if (container[sFirstElementChild] === null && items.length === 0){
+                if (container[sFirstElementChild] === null && items.length === 0) {
 
-              }else{
-                const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
-                this.proceedStampDomArraySplices371_(cTag, containerId, {
-                  addedCount: items.length,
-                  removedCount: container.childElementCount
-                });
-              }
+                } else {
+                  const cTag = isTickerRendering ? 'tickerItems' : 'visibleItems';
+                  this.proceedStampDomArraySplices371_(cTag, containerId, {
+                    addedCount: items.length,
+                    removedCount: container.childElementCount
+                  });
+                }
 
-              const f = () => {
-                this.markDirty && this.markDirty();
-                const detail = {
-                  container
+                const f = () => {
+                  this.markDirty && this.markDirty();
+                  const detail = {
+                    container
+                  };
+                  shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
+                    bubbles: !0,
+                    cancelable: !1,
+                    composed: !0,
+                    detail
+                  }));
+                  detail.container = null;
                 };
-                shouldCallback && this.hostElement.dispatchEvent(new CustomEvent("yt-rendererstamper-finished", {
-                  bubbles: !0,
-                  cancelable: !1,
-                  composed: !0,
-                  detail
-                }));
-                detail.container = null;
-              };
-              
-              if (this.ec389pr) {
-                this.ec389pr.then(f)
-              } else {
-                f();
-              }
 
-            };
+                if (this.ec389pr) {
+                  this.ec389pr.then(f)
+                } else {
+                  f();
+                }
+
+              };
+            } else {
+              console.warn('0xF0230 Function Signature Changed');
+            }
 
           }
 
-
-
-          if(typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3 && !cProto.createComponent58_ ){
+          if (typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3 && !cProto.createComponent58_) {
 
             cProto.createComponent58_ = cProto.createComponent_;
             cProto.createComponent_ = function (a, b, c) {
@@ -10100,13 +10006,9 @@
 
             }
 
+          } else {
+            console.warn('0xF0230 Function Signature Changed');
           }
-
-
-
-
-
-
 
 
             /* Dec 2024 */
@@ -10133,7 +10035,7 @@
             */
 
 
-          if(USE_ADVANCED_TICKING && !cProto.handleLiveChatActions47 && typeof cProto.handleLiveChatActions === 'function' && cProto.handleLiveChatActions.length ===1){
+          if (USE_ADVANCED_TICKING && !cProto.handleLiveChatActions47 && typeof cProto.handleLiveChatActions === 'function' && cProto.handleLiveChatActions.length === 1) {
 
             cProto.handleLiveChatActions47 = cProto.handleLiveChatActions;
 
@@ -10141,9 +10043,9 @@
 
               // first loading in livestream. so this is required for sorting.
 
-              try{
+              try {
                 preprocessChatLiveActions(a);
-              }catch(e){
+              } catch (e) {
                 console.warn(e);
               }
               return this.handleLiveChatActions47(a);
@@ -10152,14 +10054,14 @@
 
             console1.log("USE_ADVANCED_TICKING::handleLiveChatActions - OK");
 
-          }else if(USE_ADVANCED_TICKING){
+          } else if (USE_ADVANCED_TICKING) {
 
 
             console1.log("USE_ADVANCED_TICKING::handleLiveChatActions - NG");
 
           }
 
-            // yt-live-chat-ticker-renderer hacks
+          // yt-live-chat-ticker-renderer hacks
 
 
           if (RAF_FIX_keepScrollClamped) {
