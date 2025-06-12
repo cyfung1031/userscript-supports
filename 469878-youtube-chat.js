@@ -7451,7 +7451,37 @@
             if ((_flag0281_ & 0x2) == 0) {
 
               const sfi = fnIntegrity(mclp.flushActiveItems_);
-              if(sfi === '0.158.86'){
+
+              if (sfi === '0.157.56') {
+
+                // https://www.youtube.com/s/desktop/2cf5dafc/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+                //   f.flushActiveItems_ = function() {
+                //     var a = this;
+                //     if (this.activeItems_.length > 0)
+                //         if (this.canScrollToBottom_()) {
+                //             var b = Math.max(this.visibleItems.length + this.activeItems_.length - this.data.maxItemsToDisplay, 0);
+                //             b && this.splice("visibleItems", 0, b);
+                //             if (this.isSmoothScrollEnabled_() || this.dockableMessages.length)
+                //                 this.preinsertHeight_ = this.items.clientHeight;
+                //             this.activeItems_.unshift("visibleItems");
+                //             try {
+                //                 this.push.apply(this, this.activeItems_)
+                //             } catch (c) {
+                //                 $m(c)
+                //             }
+                //             this.activeItems_ = [];
+                //             this.isSmoothScrollEnabled_() ? this.canScrollToBottom_() && wy(function() {
+                //                 a.showNewItems_()
+                //             }) : wy(function() {
+                //                 a.refreshOffsetContainerHeight_();
+                //                 a.maybeScrollToBottom_()
+                //             })
+                //         } else
+                //             this.activeItems_.length > this.data.maxItemsToDisplay && this.activeItems_.splice(0, this.activeItems_.length - this.data.maxItemsToDisplay)
+                // }
+              } else if (sfi === '0.158.86') {
 
                 // https://www.youtube.com/s/desktop/c01ea7e3/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
@@ -7533,7 +7563,7 @@
               } else if (sfi === '0.137.81' || sfi === '0.138.81') {
                 // e.g. https://www.youtube.com/yts/jsbin/live_chat_polymer-vflCyWEBP/live_chat_polymer.js
               } else {
-                assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.158.86'))
+                assertor(() => fnIntegrity(mclp.flushActiveItems_, '0.157.86'))
                  || logFn('mclp.flushActiveItems_', mclp.flushActiveItems_)();
               }
             }
