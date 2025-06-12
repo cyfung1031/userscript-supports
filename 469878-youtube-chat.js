@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.14
+// @version             0.102.15
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4127,7 +4127,7 @@
                       fn: taskFn.remove
                     });
 
-                  } else if (rcEntry && rcEntry.length >= 4) { // bug ?
+                  } else if ((rcEntry || 0).length >= 4) { // bug ?
                     const [item, L, H, connectedComponent] = rcEntry;
 
                     tasks.push({
@@ -11535,8 +11535,10 @@
             },
             updateMessage374: function () { // conflict with weak dom root?
               try {
-                this.updateMessage372();
-              } catch (e) { }
+                return this.updateMessage372();
+              } catch (e) {
+                console.warn(e);
+              }
               // const a = this.data.message;
               // const b = this.$.message || this.hostElement.querySelector('#message');
               // b.textContent = "";
