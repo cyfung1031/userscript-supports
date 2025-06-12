@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.12
+// @version             0.102.13
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3664,36 +3664,38 @@
 
         let renderOrdering = {};
         let doFix = false;
-        const renderEntries = this[cTag].map((item) => {
+        let dataEntries_ = this[cTag];
+        const renderEntries = dataEntries_.map((item) => {
           const [L, H] = deObjectComponent(item);
           const componentName = this.getComponentName_(L, H);
           if (H && H.id && componentName) {
+            const wId = `${componentName}#${H.id}`;
             if (!H.__renderOrderId422__) {
-              H.__renderOrderId422__ = this.renderOrderId411 = (this.renderOrderId411 & 1073741823) + 1;
+              H.__renderOrderId422__ = this.__renderOrderId411__ = (this.__renderOrderId411__ & 1073741823) + 1;
             }
-            let p = renderOrdering[`${componentName}#${H.id}`];
+            let p = renderOrdering[wId];
             if (p) doFix = true;
             if (!p || p > H.__renderOrderId422__) {
-              renderOrdering[`${componentName}#${H.id}`] = H.__renderOrderId422__;
+              renderOrdering[wId] = H.__renderOrderId422__;
             }
-            return [item, L, H, componentName, `${componentName}#${H.id}`]
+            return [item, L, H, componentName, wId];
           } else {
-            return [item, L, H, componentName, true]
+            return [item, L, H, componentName, true];
           }
         });
         if (doFix) {
-          const arr = this[cTag];
           for (let i = renderEntries.length - 1; i >= 0; i--) {
             const e = renderEntries[i];
             let m = e[4];
             if (m === true) {
             } else if (renderOrdering[m] === e[2].__renderOrderId422__) {
             } else {
-              arr.splice(i, 1);
+              dataEntries_.splice(i, 1);
               renderEntries.splice(i, 1);
             }
           }
         }
+        dataEntries_ = null;
         renderOrdering = null;
 
         const renderList = renderEntries.map((e) => {
@@ -3827,7 +3829,7 @@
         const pnForRenderNewItem = (entry) => {
           const [item, L, H, connectedComponent] = entry;
 
-          const cnt = insp(connectedComponent);
+          // const cnt = insp(connectedComponent);
           // setupRefreshData930(cnt);
           // if (typeof cnt.data === 'object' && cnt.__dataEnabled === true && cnt.__dataReady === true && cnt.__dataInvalid === false) {
           //   cnt.data = H;
@@ -4199,7 +4201,6 @@
 
       // proceedStampDomArraySplices371_ // proceedStampDomArraySplices381_
       cProto[key] = function (cTag, cId, indexSplice) {
-
         if (spliceTempDisabled) return true;
         // console.log('proceedStampDomArraySplices_')
         // assume no error -> no try catch (performance consideration)
@@ -4218,20 +4219,21 @@
             console.warn('proceedStampDomArraySplices_', 'Error 002');
             return false;
           }
+          if (typeof (cTag || 0) !== 'string' || typeof (cId || 0) !== 'string') {
+            console.warn('proceedStampDomArraySplices_', 'Error 003');
+            return false;
+          }
           this.ec389 = true;
           this.ec389a = addedCount;
           this.ec389r = removedCount;
-
           const pr00 = this.ec389pr;
           const pr11 = this.ec389pr = this[fnKeyH](cTag, cId, pr00).catch(console.warn);
-
           if (cTag === 'visibleItems') {
             this.prDelay288 = pr11;
           }
         }
-
         return true;
-      }
+      };
 
 
     }
