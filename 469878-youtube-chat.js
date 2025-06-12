@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.10
+// @version             0.102.11
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -3560,18 +3560,16 @@
         }
       }
 
-      let fxCounter = 0;
-
       cProto[fnKeyH] = async function (cTag, cId, pr00) {
 
         // console.log(38806)
-
-        const fxCounter_ = fxCounter = (fxCounter & 1073741823) + 1;
+        if (!this) return;
+        const fxCounter_ = this.fxCounter5355 = (this.fxCounter5355 & 1073741823) + 1;
 
         // await the current executing task (if any)
         // and avoid stacking in the same marco task
         await Promise.all([pr00, nextBrowserTick_()]);
-        if (fxCounter_ !== fxCounter || !this) return;
+        if (fxCounter_ !== this.fxCounter5355) return;
 
         const addedCount0 = this.ec389a;
         const removedCount0 = this.ec389r;
