@@ -22,11 +22,12 @@
 // @name:es             Usar AV1 en YouTube
 // @description:es      Usar AV1 para la reproducción de videos en YouTube
 // @namespace           http://tampermonkey.net/
-// @version             2.4.3
+// @version             2.4.5
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
 // @match               https://www.youtube-nocookie.com/embed/*
+// @match               https://m.youtube.com/*
 // @exclude             https://www.youtube.com/live_chat*
 // @exclude             https://www.youtube.com/live_chat_replay*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -61,58 +62,7 @@
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
-  console.debug("force-youtube-av1", "injected");
-
-
-
-  const flagConfig = () => {
-
-    let firstDa = true;
-    let cid = 0;
-    const { setInterval, clearInterval, setTimeout } = window;
-    const tn = () => {
-
-      const da = (window.ytcfg && window.ytcfg.data_) ? window.ytcfg.data_ : null;
-      if (!da) return;
-
-      const isFirstDa = firstDa;
-      firstDa = false;
-
-      for (const EXPERIMENT_FLAGS of [da.EXPERIMENT_FLAGS, da.EXPERIMENTS_FORCED_FLAGS]) {
-
-        if (EXPERIMENT_FLAGS) {
-          // EXPERIMENT_FLAGS.html5_disable_av1_hdr = false;
-          // EXPERIMENT_FLAGS.html5_prefer_hbr_vp9_over_av1 = false;
-          // EXPERIMENT_FLAGS.html5_account_onesie_format_selection_during_format_filter = false;
-        }
-
-      }
-
-      if (isFirstDa) {
-
-
-        let mo = new MutationObserver(() => {
-
-          mo.disconnect();
-          mo.takeRecords();
-          mo = null;
-          setTimeout(() => {
-            cid && clearInterval.call(window, cid);
-            cid = 0;
-            tn();
-          })
-        });
-        mo.observe(document, { subtree: true, childList: true });
-
-
-      }
-
-
-    };
-    cid = setInterval.call(window, tn);
-
-  };
-
+  console.debug("use-youtube-av1", "injected");
 
   const supportedFormatsConfig = () => {
 
@@ -158,11 +108,9 @@
       mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
     }
 
-
   }
 
   function enableAV1() {
-
 
     // This is the setting to force AV1
     // localStorage['yt-player-av1-pref'] = '8192';
@@ -185,23 +133,15 @@
 
     if (localStorage['yt-player-av1-pref'] !== '8192') {
 
-      console.warn('Use YouTube AV1 is not supported in your browser.');
+      console.warn("use-youtube-av1", 'Use YouTube AV1 is not supported in your browser.');
       return;
     }
 
+    console.debug("use-youtube-av1", "AV1 enabled");
 
-    console.debug("force-youtube-av1", "AV1 enabled");
-
-
-    // flagConfig();
     supportedFormatsConfig();
 
-
-
   }
-
-
-
 
   let promise = null;
 
@@ -226,7 +166,6 @@
     promise = null;
   }
 
-
   const callback = (result) => {
 
     if (result && result.supported && result.smooth) enableAV1();
@@ -236,7 +175,5 @@
   };
 
   (promise || Promise.resolve(0)).catch(callback).then(callback);
-
-
 
 })(Promise);
