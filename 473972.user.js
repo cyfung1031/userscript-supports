@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.0
+// @version     0.42.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -118,7 +118,7 @@
 
   // ------------------------------------------------------------------
 
-  const MEMORY_RELEASE_NF00 = true;
+  const MEMORY_RELEASE_NF00 = false; // need investigation of the implementation (no time) -> disable
   const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
   const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
   const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
