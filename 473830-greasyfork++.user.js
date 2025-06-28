@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.5
+// @version            3.3.6
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -42,6 +42,28 @@
 // @run-at             document-start
 // @inject-into        content
 // ==/UserScript==
+
+/* ---- updated filter ---- */
+
+// reference1: Greasy Fork+
+// reference2: https://greasyfork.org/scripts/12179 and https://greasyfork.org/scripts/13514
+
+const filters = {
+    // NonASCII: /[^\x00-\x7F\s]+/,
+    NonLatin: /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu,        //  /[^\u0000-\u024F\u2000-\u214F\s]+/
+    Rules: [
+        // ----------- game1 -----------
+        /[^a-zA-Z](Aimbot|AntiGame|Agar|agar\.?io|agma\.?io|alis\.io|angel\.io|ExtencionRipXChetoMalo|AposBot|DFxLite|ZTx-Lite|AposFeedingBot|AposLoader|Balz|Blah Blah|Orc Clan Script|Astro\s*Empires|^\s*Attack|^\s*Battle|BiteFight|Blood\s*Wars|Bloble|Bonk|Bots|Bots4|Brawler|\bBvS\b|Business\s*Tycoon|Castle\s*Age|City\s*Ville|chopcoin\.io|Comunio|Conquer\s*Club|CosmoPulse|cursors\.io|Dark\s*Orbit|Dead\s*Frontier|Diep\.io|\bDOA\b|doblons\.io|DotD|Dossergame|Dragons\s*of\s*Atlantis|driftin\.io|Dugout|\bDS[a-z]+\n|elites\.io|Empire\s*Board|eRep(ublik)?|Epicmafia|Epic.*War|ExoPlanet|Falcon Tools|Feuerwache|Farming|FarmVille|Fightinfo|Frontier\s*Ville|Ghost\s*Trapper|Gladiatus|Goalline|Gondal|gota\.io|Grepolis|Hobopolis|\bhwm(\b|_)|Ikariam|\bIT2\b|Jellyneo|Kapi\s*Hospital|Kings\s*Age|Kingdoms?\s*of|knastv(o|oe)gel|Knight\s*Fight|\b(Power)?KoC(Atta?ck)?\b|\bKOL\b|Kongregate|Krunker|Last\s*Emperor|Legends?\s*of|Light\s*Rising|lite\.ext\.io|Lockerz|\bLoU\b|Mafia\s*(Wars|Mofo)|Menelgame|Mob\s*Wars|Mouse\s*Hunt|Molehill\s*Empire|MooMoo|MyFreeFarm|narwhale\.io|Neopets|NeoQuest|Nemexia|\bOGame\b|Ogar(io)?|Pardus|Pennergame|Pigskin\s*Empire|PlayerScripts|pokeradar\.io|Popmundo|Po?we?r\s*(Bot|Tools)|PsicoTSI|Ravenwood|Schulterglatze|Skribbl|slither\.io|slitherplus\.io|slitheriogameplay|SpaceWars|splix\.io|Survivio|\bSW_[a-z]+\n|\bSnP\b|The\s*Crims|The\s*West|torto\.io|Travian|Treasure\s*Isl(and|e)|Tribal\s*Wars|TW.?PRO|Vampire\s*Wars|vertix\.io|War\s*of\s*Ninja|World\s*of\s*Tanks|West\s*Wars|wings\.io|\bWoD\b|World\s*of\s*Dungeons|wtf\s*battles|Wurzelimperium|Yohoho|Zombs)[^a-zA-Z]/iu,
+        // ----------- game2 -----------
+        /\bagar(\.?io)?\b|\bagma(\.?io)?\b|\baimbot\b|\barras(\.?io)?\b|\bbots?\b|\bbubble(\.?am)?\b|\bcheats?\b|\bdiep(\.?io)?\b|\bfreebitco(\.?in)?\b|\bgota(\.?io)?\b|\bhacks?\b|\bkrunker(\.?io)?\b|\blostworld(\.?io)?\b|\bmoomoo(\.?io)?\b|\broblox(\.com)?\b|\bshell\sshockers\b|\bshellshock(\.?io)?\b|\bshellshockers\b|\bskribbl(\.?io)?\b|\bslither(\.?io)?\b|\bsurviv(\.?io)?\b|\btaming(\.?io)?\b|\bvenge(\.?io)?\b|\bvertix(\.?io)?\b|\bzombs(\.?io)?\b/iu
+        // ----------- Social Networks -----------
+        // /Face\s*book|Google(\+| Plus)|\bHabbo|Kaskus|\bLepra|Leprosorium|MySpace|meinVZ|odnoklassniki|Одноклассники|Orkut|sch(ue|ü)ler(VZ|\.cc)?|studiVZ|Unfriend|Valenth|VK|vkontakte|ВКонтакте|Qzone|Twitter|TweetDeck/iu,
+        // ----------- Clutter -----------
+        // /^\s*(.{1,3})\1+\n|^\s*(.+?)\n+\2\n*$|^\s*.{1,5}\n|do\s*n('|o)?t (install|download)|nicht installieren|(just )?(\ban? |\b)test(ing|s|\d|\b)|^\s*.{0,4}test.{0,4}\n|\ntest(ing)?\s*|^\s*(\{@|Smolka|Hacks)|\[\d{4,5}\]|free\s*download|theme|(night|dark) ?(mode)?/iu
+    ],
+};
+
+/* ---- updated filter ---- */
 
 /* global GM_config, VM, GM, WinComm */
 
@@ -308,15 +330,6 @@ const mWindow = isInIframe || (() => {
         }
 
     };
-
-    const blacklist = [
-        '\\bagar((\\.)?io)?\\b', '\\bagma((\\.)?io)?\\b', '\\baimbot\\b', '\\barras((\\.)?io)?\\b', '\\bbot(s)?\\b',
-        '\\bbubble((\\.)?am)?\\b', '\\bcheat(s)?\\b', '\\bdiep((\\.)?io)?\\b', '\\bfreebitco((\\.)?in)?\\b', '\\bgota((\\.)?io)?\\b',
-        '\\bhack(s)?\\b', '\\bkrunker((\\.)?io)?\\b', '\\blostworld((\\.)?io)?\\b', '\\bmoomoo((\\.)?io)?\\b', '\\broblox(\\.com)?\\b',
-        '\\bshell\\sshockers\\b', '\\bshellshock((\\.)?io)?\\b', '\\bshellshockers\\b', '\\bskribbl((\\.)?io)?\\b', '\\bslither((\\.)?io)?\\b',
-        '\\bsurviv((\\.)?io)?\\b', '\\btaming((\\.)?io)?\\b', '\\bvenge((\\.)?io)?\\b', '\\bvertix((\\.)?io)?\\b', '\\bzombs((\\.)?io)?\\b',
-        // '\\p{Extended_Pictographic}'
-    ];
 
 
     const settingsCSS = `
@@ -856,7 +869,8 @@ const mWindow = isInIframe || (() => {
 
 
 
-        const { scriptHandler, scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
+        const { scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
+        let scriptHandler = shObject.scriptHandler;
 
         const wincomm = createInstance(communicationId);
 
@@ -865,6 +879,7 @@ const mWindow = isInIframe || (() => {
         if (external[scriptHandler]) 1;
         else if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey') scriptHandler = 'Violentmonkey';
         else if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') scriptHandler = 'Tampermonkey';
+        else if (external && external.Scriptcat && (scriptHandler || 'ScriptCat') === 'ScriptCat') scriptHandler = 'Scriptcat';
 
         const manager = external[scriptHandler];
 
@@ -962,7 +977,7 @@ const mWindow = isInIframe || (() => {
 
 
 
-    return { fields, logo, locales, blacklist, settingsCSS, pageCSS, contentScriptText }
+    return { fields, logo, locales, settingsCSS, pageCSS, contentScriptText }
 
 
 
@@ -1022,6 +1037,20 @@ const inIframeFn = isInIframe ? async () => {
 } : () => { };
 
 inIframeFn() || (async () => {
+
+    const GMA = {}; // compatible with ScriptCat
+    const makeAsyncFn = (f) => {
+        return async function () {
+            return await f();
+        };
+    }
+    for (const key of ['getValue', 'setValue', 'deleteValue']) {
+        const f = GM[key];
+        if (typeof f === 'function') {
+            if (f.constructor.name === 'AsyncFunction') GMA[key] = f;
+            else GMA[key] = makeAsyncFn(f);
+        }
+    }
 
     let rafPromise = null;
 
@@ -1102,7 +1131,7 @@ inIframeFn() || (async () => {
     };
 
     function fixValue(key, def, test) {
-        return GM.getValue(key, def).then((v) => test(v) || GM.deleteValue(key))
+        return GMA.getValue(key, def).then((v) => test(v) || GMA.deleteValue(key))
     }
 
     const isNaNx = Number.isNaN;
@@ -1112,7 +1141,7 @@ inIframeFn() || (async () => {
         return arrVal.filter(e => typeof e === 'number' && !isNaNx(e))
     }
 
-    const isScriptFirstUse = await GM.getValue('firstUse', true);
+    const isScriptFirstUse = await GMA.getValue('firstUse', true);
     await Promise.all([
         fixValue('hiddenList', [], v => v && typeof v === 'object' && typeof v.length === 'number' && (v.length === 0 || typeof v[0] === 'number')),
         fixValue('lastMilestone', 0, v => v && typeof v === 'number' && v >= 0)
@@ -1187,20 +1216,24 @@ inIframeFn() || (async () => {
     const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
     const fields = mWindow.fields;
     const logo = mWindow.logo;
-    const nonLatins = /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu;
-    const blacklist = createRE((mWindow.blacklist || []).filter(e => !!e).join('|'), 'giu');
-    const hiddenList = numberArr(await GM.getValue('hiddenList', []));
+    const nonLatins = filters.NonLatin;
+    const blacklistRules = filters.Rules;
+    const hiddenList = numberArr(await GMA.getValue('hiddenList', []));
     const lang = document.documentElement.lang;
     const locales = mWindow.locales;
 
     const _isBlackList = (text) => {
         if (!text || typeof text !== 'string') return false;
         if (text.includes('hack') && (text.includes('EXPERIMENT_FLAGS') || text.includes('yt.'))) return false;
-        return blacklist.test(text);
+        const t = ` ${text} `;
+        for (const regexRule of blacklistRules) {
+            if (regexRule.test(t)) return true;
+        }
+        return false;
     }
     const isBlackList = (name, description) => {
         // To be reviewed
-        if (!blacklist) return false;
+        if (!blacklistRules) return false;
         return _isBlackList(name) || _isBlackList(description);
     }
 
@@ -1224,7 +1257,7 @@ inIframeFn() || (async () => {
             open: async (document) => {
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
-                const hiddenSet = new Set(numberArr(await GM.getValue('hiddenList', [])));
+                const hiddenSet = new Set(numberArr(await GMA.getValue('hiddenList', [])));
                 if (hiddenSet.size !== 0) {
                     const unsavedHiddenList = hiddenListStrToArr(gmc.get('hiddenList'));
                     const unsavedHiddenSet = new Set(unsavedHiddenList);
@@ -1265,7 +1298,7 @@ inIframeFn() || (async () => {
             save: async (forgotten) => {
 
                 if (gmc.isOpen) {
-                    await GM.setValue('hiddenList', hiddenListStrToArr(forgotten.hiddenList));
+                    await GMA.setValue('hiddenList', hiddenListStrToArr(forgotten.hiddenList));
 
                     UU.alert('settings saved');
                     gmc.close();
@@ -1474,9 +1507,9 @@ inIframeFn() || (async () => {
         GM.registerMenuCommand('Configure', () => gmc.open());
         GM.registerMenuCommand('Reset Everything', () => {
             Promise.all([
-                GM.deleteValue('hiddenList'),
-                GM.deleteValue('lastMilestone'),
-                GM.deleteValue('firstUse')
+                GMA.deleteValue('hiddenList'),
+                GMA.deleteValue('lastMilestone'),
+                GMA.deleteValue('firstUse')
             ]).then(() => {
                 setTimeout(() => window.location.reload(false), 50);
             })
@@ -1485,7 +1518,7 @@ inIframeFn() || (async () => {
 
     UU.init({ id, logging: gmc.get('logging') });
     UU.log(nonLatins);
-    UU.log(blacklist);
+    UU.log(blacklistRules);
     UU.log(hiddenList);
 
     const _VM = (typeof VM !== 'undefined' ? VM : null) || {
@@ -2318,7 +2351,7 @@ inIframeFn() || (async () => {
 
                 if (!isInHiddenList()) {
                     hiddenList.push(id);
-                    GM.setValue('hiddenList', hiddenList);
+                    GMA.setValue('hiddenList', hiddenList);
 
                     element.classList.add('hidden');
                     updateScriptLink(true);
@@ -2326,7 +2359,7 @@ inIframeFn() || (async () => {
                 } else {
                     const index = hiddenList.indexOf(id);
                     hiddenList.splice(index, 1);
-                    GM.setValue('hiddenList', hiddenList);
+                    GMA.setValue('hiddenList', hiddenList);
 
                     element.classList.remove('hidden');
                     updateScriptLink(false);
@@ -2679,7 +2712,7 @@ inIframeFn() || (async () => {
 
         const [totalInstalls, lastMilestone] = await Promise.all([
             getTotalInstalls(userData),
-            GM.getValue('lastMilestone', 0)]);
+            GMA.getValue('lastMilestone', 0)]);
 
         const milestone = milestones.filter(milestone => totalInstalls >= milestone).pop();
 
@@ -2690,7 +2723,7 @@ inIframeFn() || (async () => {
         if (milestone && milestone >= 0) {
 
 
-            GM.setValue('lastMilestone', milestone);
+            GMA.setValue('lastMilestone', milestone);
 
             const lang = document.documentElement.lang;
             const text = (locales[lang] ? locales[lang].milestone : locales.en.milestone).replace('$1', milestone.toLocaleString());
@@ -2906,7 +2939,7 @@ inIframeFn() || (async () => {
                 milestoneNotificationFn({ userLink, userID });
             }
 
-            if (isScriptFirstUse) GM.setValue('firstUse', false).then(() => {
+            if (isScriptFirstUse) GMA.setValue('firstUse', false).then(() => {
                 gmc.open();
             });
 
