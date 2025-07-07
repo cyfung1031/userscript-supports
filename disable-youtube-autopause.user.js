@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2025.07.07.001
+// @version             2025.07.07.002
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -161,6 +161,8 @@ SOFTWARE.
 
   }
 
+  let detectionOfYouThereRenderer = false;
+  let detectionOfYouThereData = false;
 
   function messageHook() {
 
