@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube AutoPause
 // @name:zh-CN          Disable YouTube AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2024.02.21.0
+// @version             2025.07.07.001
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -161,6 +161,69 @@ SOFTWARE.
 
   }
 
+
+  function messageHook() {
+
+    const listOfMessages = new Set();
+
+    const pageMgrElm = document.querySelector('#page-manager') || 0;
+    try {
+      const playerData = pageMgrElm && (insp(pageMgrElm).data || pageMgrElm.data || insp(pageMgrElm).__data || pageMgrElm.__data || 0);
+      const response = playerData.playerResponse;
+      if (response) listOfMessages.add(response.messages);
+    } catch (e) { }
+
+    const playerElm = document.querySelector('#ytd-player') || 0;
+    const playerApi = playerElm && (insp(playerElm).player_ || playerElm.player_ || insp(playerElm).player || playerElm.player || 0);
+    if (playerApi && typeof playerApi.getPlayerResponse === 'function') {
+      try {
+        const response = playerApi.getPlayerResponse();
+        if (response) listOfMessages.add(response.messages);
+      } catch (e) { }
+    }
+
+    const moviePlayerElm = document.querySelector('#movie_player') || 0;
+    const moviePlayerApi = moviePlayerElm && (insp(moviePlayerElm).getPlayerResponse ? insp(moviePlayerElm) : moviePlayerElm);
+    if (moviePlayerApi && typeof moviePlayerApi.getPlayerResponse === 'function') {
+      try {
+        const response = moviePlayerApi.getPlayerResponse();
+        if (response) listOfMessages.add(response.messages);
+      } catch (e) { }
+    }
+
+    const youThereDataSet = new Set();
+    for (const messages of listOfMessages) {
+      if (messages && messages.length > 0) {
+        for (const message of messages) {
+          if (message.youThereRenderer) {
+            if (!detectionOfYouThereRenderer) {
+              detectionOfYouThereRenderer = true;
+              console.log('Detected message.youThereRenderer');
+            }
+            let youThereData = null;
+            try {
+              youThereData = message.youThereRenderer.configData.youThereData;
+            } catch (e) { }
+            if (youThereData) youThereDataSet.add(youThereData);
+            youThereData = null;
+            break;
+          }
+        }
+      }
+    }
+    if (youThereDataSet.size > 0) {
+      if (!detectionOfYouThereData) {
+        detectionOfYouThereData = true;
+        console.log('Detected youThereData');
+      }
+      for (const youThereData of youThereDataSet) {
+        hookYouThereData(youThereData);
+      }
+      youThereDataSet.clear();
+    }
+
+  }
+
   // e.performDataUpdate -> f.playerData = a.playerResponse;
   // youthereDataChanged_(playerData.messages)
   // youthereDataChanged_ -> b.youThereRenderer && fFb(this.youThereManager_, b.youThereRenderer)
@@ -169,25 +232,8 @@ SOFTWARE.
   function onPageFinished() {
     if (arguments.length === 1) noDelayLogUntil = Date.now() + 3400; // no delay log for video changes
     Promise.resolve(0).then(() => {
-      let messages = null;
-      const pageMgrElm = document.querySelector('#page-manager') || 0;
-      const pageMgrCnt = insp(pageMgrElm);
-      try {
-        messages = pageMgrCnt.data.playerResponse.messages;
-      } catch (e) { }
-      if (messages && messages.length > 0) {
-        for (const message of messages) {
-          if ((message || 0).youThereRenderer) {
-            let youThereData = null;
-            try {
-              youThereData = message.youThereRenderer.configData.youThereData;
-            } catch (e) { }
-            if (youThereData) hookYouThereData(youThereData);
-            youThereData = null;
-            break;
-          }
-        }
-      }
+
+      messageHook();
 
       const ytdFlexyElm = document.querySelector('ytd-watch-flexy') || 0;
       const ytdFlexyCnt = insp(ytdFlexyElm);
