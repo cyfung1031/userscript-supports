@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2025.07.07.001
+// @version             2025.07.07.002
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -189,20 +189,29 @@ SOFTWARE.
 
   function messageHook() {
 
-    const listOfMessages = [];
+    const listOfMessages = new Set();
 
     const playerElm = document.querySelector('#player') || 0;
     try {
-      const playerData = (insp(playerElm).__data || playerElm.__data || 0);
-      if (playerData.playerResponse_) listOfMessages.push(playerData.playerResponse_.messages);
-      if (playerData.playerResponse) listOfMessages.push(playerData.playerResponse.messages);
+      const playerData = playerElm && (insp(playerElm).__data || playerElm.__data || 0);
+      const response = playerData.playerResponse_ || playerData.playerResponse;
+      if (response) listOfMessages.add(response.messages);
     } catch (e) { }
 
-    const playerApi = insp(playerElm).playerApi_ || playerElm.playerApi_ || insp(playerElm).playerApi || playerElm.playerApi || 0;
+    const playerApi = playerElm && (insp(playerElm).playerApi_ || playerElm.playerApi_ || insp(playerElm).playerApi || playerElm.playerApi || 0);
     if (playerApi && typeof playerApi.getPlayerResponse === 'function') {
       try {
         const response = playerApi.getPlayerResponse();
-        if (response) listOfMessages.push(response.messages);
+        if (response) listOfMessages.add(response.messages);
+      } catch (e) { }
+    }
+
+    const moviePlayerElm = document.querySelector('#movie_player') || 0;
+    const moviePlayerApi = moviePlayerElm && (insp(moviePlayerElm).getPlayerResponse ? insp(moviePlayerElm) : moviePlayerElm);
+    if (moviePlayerApi && typeof moviePlayerApi.getPlayerResponse === 'function') {
+      try {
+        const response = moviePlayerApi.getPlayerResponse();
+        if (response) listOfMessages.add(response.messages);
       } catch (e) { }
     }
 
@@ -243,7 +252,6 @@ SOFTWARE.
   let messagesRunnerRid = 0;
 
   function messagesRunner() {
-
 
     messageHook();
 
