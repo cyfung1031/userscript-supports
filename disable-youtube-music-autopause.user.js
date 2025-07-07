@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Disable YouTube Music AutoPause
 // @name:zh-CN          Disable YouTube Music AutoPause
 // @namespace           http://tampermonkey.net/
-// @version             2023.12.01.0
+// @version             2025.07.07.001
 // @license             MIT License
 // @description         "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
 // @description:en      "Video paused. Continue watching?" and "Still watching? Video will pause soon" will not appear anymore.
@@ -176,35 +176,65 @@ SOFTWARE.
     if (evtValue == 1 || evtValue == 3) { // the event is just the state value
       // this is after getPlayerState()
       // in case youThereData is added after onPlayerStateChange
-      if (psChangeRid > 1e9) psChangeRid = 9;
-      let tid = psChangeRid;
+      const tid = psChangeRid = (psChangeRid & 1073741823) + 1;
       requestAnimationFrame(() => { // assume no update of messages in background; delayed to save processing energy
         if (tid !== psChangeRid) return;
         messageHook();
       });
-
     }
   }
 
+  let detectionOfYouThereRenderer = false;
+  let detectionOfYouThereData = false;
+
   function messageHook() {
 
-    let messages = null;
+    const listOfMessages = [];
+
     const playerElm = document.querySelector('#player') || 0;
     try {
-      messages = (insp(playerElm).__data || playerElm.__data || 0).playerResponse_.messages;
+      const playerData = (insp(playerElm).__data || playerElm.__data || 0);
+      if (playerData.playerResponse_) listOfMessages.push(playerData.playerResponse_.messages);
+      if (playerData.playerResponse) listOfMessages.push(playerData.playerResponse.messages);
     } catch (e) { }
-    if (messages && messages.length > 0) {
-      for (const message of messages) {
-        if (message.youThereRenderer) {
-          let youThereData = null;
-          try {
-            youThereData = message.youThereRenderer.configData.youThereData;
-          } catch (e) { }
-          if (youThereData) hookYouThereData(youThereData);
-          youThereData = null;
-          break;
+
+    const playerApi = insp(playerElm).playerApi_ || playerElm.playerApi_ || insp(playerElm).playerApi || playerElm.playerApi || 0;
+    if (playerApi && typeof playerApi.getPlayerResponse === 'function') {
+      try {
+        const response = playerApi.getPlayerResponse();
+        if (response) listOfMessages.push(response.messages);
+      } catch (e) { }
+    }
+
+    const youThereDataSet = new Set();
+    for (const messages of listOfMessages) {
+      if (messages && messages.length > 0) {
+        for (const message of messages) {
+          if (message.youThereRenderer) {
+            if (!detectionOfYouThereRenderer) {
+              detectionOfYouThereRenderer = true;
+              console.log('Detected message.youThereRenderer');
+            }
+            let youThereData = null;
+            try {
+              youThereData = message.youThereRenderer.configData.youThereData;
+            } catch (e) { }
+            if (youThereData) youThereDataSet.add(youThereData);
+            youThereData = null;
+            break;
+          }
         }
       }
+    }
+    if (youThereDataSet.size > 0) {
+      if (!detectionOfYouThereData) {
+        detectionOfYouThereData = true;
+        console.log('Detected youThereData');
+      }
+      for (const youThereData of youThereDataSet) {
+        hookYouThereData(youThereData);
+      }
+      youThereDataSet.clear();
     }
 
   }
@@ -261,10 +291,7 @@ SOFTWARE.
   async function canplayHandlerAsync() {
     noDelayLogUntil = Date.now() + 3400; // no delay log for video changes
 
-    messagesRunnerRid++;
-    let tid = messagesRunnerRid;
-    if (messagesRunnerRid > 1e9) messagesRunnerRid = 9;
-
+    const tid = messagesRunnerRid = (messagesRunnerRid & 1073741823) + 1;
     await Promise.resolve(0);
     if (tid !== messagesRunnerRid) return;
     messagesRunner();
