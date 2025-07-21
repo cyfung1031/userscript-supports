@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.15
+// @version             0.102.16
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8049,15 +8049,16 @@
             mclp.handleLiveChatActions66_ = mclp.handleLiveChatActions_;
 
             mclp.handleLiveChatActions_ = function (arr) {
-
-              try {
-                preprocessChatLiveActions(arr);
-              } catch (e) {
-                console.warn(e);
+              if ((arr || 0).length >= 1) {
+                try {
+                  preprocessChatLiveActions(arr);
+                } catch (e) {
+                  console.warn(e);
+                }
+                this.handleLiveChatActions66_(arr);
+              } else if ((this.activeItems_ || 0).length >= 1) {
+                this.flushActiveItems_();
               }
-
-              this.handleLiveChatActions66_(arr);
-
               resistanceUpdateFn_(true);
             }
             console1.log("handleLiveChatActions_", "OK");
