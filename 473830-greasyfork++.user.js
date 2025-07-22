@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.6
+// @version            3.3.7
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -756,33 +756,7 @@ const mWindow = isInIframe || (() => {
             window.ethicalads = { wait: p };
         }
 
-        /*
-         *
-
-        return new Promise((resolve, reject) => {
-          const external = unsafeWindow.external;
-          console.log(334, external)
-          const scriptHandler = GM.info.scriptHandler;
-          if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey' ) {
-            external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
-            return;
-          }
-
-          if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
-            external.Tampermonkey.isInstalled(name, namespace, (data) => {
-              (data.installed) ? resolve(data.version) : resolve();
-            });
-            return;
-          }
-
-          resolve();
-        });
-
-        */
-
         if (document.querySelector('#greasyfork-enhance-basic')) {
-
-
 
             const setScriptOnDisabled = async (style) => {
 
@@ -810,7 +784,6 @@ const mWindow = isInIframe || (() => {
                 setScriptOnDisabled(target)
 
             }, true);
-
 
             const isScriptEnabled = (style) => {
 
@@ -840,34 +813,7 @@ const mWindow = isInIframe || (() => {
             const moHead = new MutationObserver(chHead);
             moHead.observe(document.head, { subtree: false, childList: true });
             chHead();
-
-            /*
-            const outline = document.querySelector('aside.panel > ul.outline');
-            if(outline) {
-              const div = document.createElement('div');
-              //outline.replaceWith(div);
-              //div.appendChild(outline)
-            }
-            */
-
-            //         Promise.resolve().then(()=>{
-            //           let outline = document.querySelector('[greasyfork-enhance-k37*="|basic|"] header + aside.panel ul.outline');
-            //           if(outline){
-            //             let aside = outline.closest('aside.panel');
-            //           let header = aside.parentNode.querySelector('header');
-            //             let p = header.getBoundingClientRect().height;
-
-            //             document.body.parentNode.insertBefore(aside, document.body);
-            //             // outline.style.top='0'
-            //             p+=(parseFloat(getComputedStyle(outline).marginTop.replace('px',''))||0)
-            //             outline.style.marginTop= p.toFixed(2)+'px';
-            //           }
-
-            //         })
-
         }
-
-
 
         const { scriptName, scriptVersion, scriptNamespace, communicationId } = shObject;
         let scriptHandler = shObject.scriptHandler;
@@ -947,9 +893,6 @@ const mWindow = isInIframe || (() => {
 
             wincomm.send('ready', { type });
 
-            // console.log('enableScriptInstallChecker', r)
-
-
         }
 
         const kl = manager.isInstalled.length;
@@ -969,17 +912,9 @@ const mWindow = isInIframe || (() => {
             else if (r1 && r1.result && r1.result.version) enableScriptInstallChecker(r1);
         });
 
-
-
-        // console.log(327, shObject, scriptHandler);
-
     }
 
-
-
     return { fields, logo, locales, settingsCSS, pageCSS, contentScriptText }
-
-
 
 })();
 
@@ -1075,58 +1010,7 @@ inIframeFn() || (async () => {
         return false;
     };
 
-    const installLinkPointerDownHandler = function (e) {
-        if (!e || !e.isTrusted) return;
-        const button = e.target || this;
-        if (button.hasAttribute('acnmd')) return;
-        const href = button.href;
-        if (!href || !isVaildURL(href)) return;
-        if (/\.js[^-.\w\d\s:\/\\]*$/.test(href)) {
-            0 && fetch(href, {
-                method: "GET",
-                cache: 'reload',
-                redirect: "follow"
-            }).then(() => {
-                console.debug('code url reloaded', href);
-            }).catch((e) => {
-                console.debug(e);
-            });
-            const m = /^(https\:\/\/(cn-greasyfork|greasyfork|sleazyfork)\.org\/[_-\w\/]*scripts\/(\d+)[-\w%]*)(\/|$)/.exec(location.href)
-            if (m && m[1]) {
-                const href = `${m[1]}/code`
-                0 && fetch(href, {
-                    method: "GET",
-                    cache: 'reload',
-                    redirect: "follow"
-                }).then(() => {
-                    console.debug('code url reloaded', href);
-                }).catch((e) => {
-                    console.debug(e);
-                });
-            }
-
-            if (m && m[3] && href.includes('.user.js')) {
-                const href = `https://${location.hostname}/scripts/${m[3]}-fetching/code/${crypto.randomUUID()}.user.js?version_=${Date.now()}`
-                0 && fetch(href, {
-                    method: "GET",
-                    cache: 'reload',
-                    redirect: "follow"
-                }).then(() => {
-                    console.debug('code url reloaded', href);
-                }).catch((e) => {
-                    console.debug(e);
-                });
-            }
-
-
-        }
-
-        button.setAttribute('acnmd', '');
-    };
-
     const setupInstallLink = (button) => {
-        if (!button || button.className !== 'install-link' || button.nodeName !== "A" || !button.href) return button;
-        button.addEventListener('pointerdown', installLinkPointerDownHandler);
         return button;
     };
 
@@ -1273,7 +1157,6 @@ inIframeFn() || (async () => {
 
                     }
 
-
                 }
 
                 const resize = (target) => {
@@ -1314,8 +1197,6 @@ inIframeFn() || (async () => {
     const valHideRecentUsersWithin_ = Math.floor(+gmc.get('hideRecentUsersWithin'));
     const valHideRecentUsersWithin = valHideRecentUsersWithin_ > 168 ? 168 : valHideRecentUsersWithin_ > 0 ? valHideRecentUsersWithin_ : 0;
 
-
-
     /**
      * 
      * Inserts element into the sorted array arr while maintaining order based on a comparator.
@@ -1349,8 +1230,6 @@ inIframeFn() || (async () => {
     function findFirstIndex(arr, targetTime) {
         return binarySearchLeft(arr, targetTime, e => e[1]);
     }
-
-    
 
     /**
      * Finds the insertion point for element in arr to maintain sorted order.
@@ -1558,8 +1437,8 @@ inIframeFn() || (async () => {
 
 
     function fixLibraryCodeURL(code_url) {
-        if (/\/scripts\/(\d+)(\-[^\/]+)\/code\//.test(code_url)) {
-            code_url = code_url.replace(/\/scripts\/(\d+)(\-[^\/]+)\/code\//, '/scripts/$1/code/');
+        if (/\/scripts\/(\d+)(-[^/]+)\/code\//.test(code_url)) {
+            code_url = code_url.replace(/\/scripts\/(\d+)(-[^/]+)\/code\//, '/scripts/$1/code/');
             let qm = code_url.indexOf('?');
             let s1 = code_url.substring(0, qm);
             let s2 = code_url.substring(qm + 1);
@@ -2385,26 +2264,6 @@ inIframeFn() || (async () => {
         return setupInstallLink(insertButtonHTML(element, '.badge-js, .badge-css', `<a class="install-link" href="${url}" style-54998></a>`));
     };
 
-    async function digestMessage(message, algo) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(message);
-        const hash = await crypto.subtle.digest(algo, data);
-        return hash;
-    }
-
-    function qexString(buffer) {
-        const byteArray = new Uint8Array(buffer);
-        const len = byteArray.length;
-        const hexCodes = new Array(len * 2);
-        const chars = 'a4b3c5d7e6f9h2t';
-        for (let i = 0, j = 0; i < len; i++) {
-            const byte = byteArray[i];
-            hexCodes[j++] = chars[byte >> 4];
-            hexCodes[j++] = chars[byte & 0x0F];
-        };
-        return hexCodes.join('');
-    }
-
     const encodeFileName = (s) => {
         if (!s || typeof s !== 'string') return s;
         s = s.replace(/[.!~*'"();\/\\?@&=$,#]/g, '-').replace(/\s+/g, ' ');
@@ -2424,7 +2283,6 @@ inIframeFn() || (async () => {
     const showInstallButton = async (scriptID, element) => {
 
         await getRafPromise().then();
-        // if(document.querySelector(`li[data-script-id="${scriptID}"]`))
         let _baseScript = null;
         if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
 
@@ -2434,24 +2292,15 @@ inIframeFn() || (async () => {
             if (!scriptCodeURL || !isVaildURL(scriptCodeURL)) {
 
                 const name = element.getAttribute('data-script-name') || ''
-                // if (!/[^\x00-\x7F]/.test(name)) {
-
-                // const scriptName = useHashedScriptName ? qexString(await digestMessage(`${+scriptID} ${version}`, 'SHA-1')).substring(0, 8) : encodeURI(name);
-                // const token = useHashedScriptName ? `${scriptName.substring(0, 2)}${scriptName.substring(scriptName.length - 2, scriptName.length)}` : String.fromCharCode(Date.now() % 26 + 97) + Math.floor(Math.random() * 19861 + 19861).toString(36);
                 const scriptFilename = element.getAttribute('data-script-type') === 'library' ? `${encodeFileName(name)}.js` : `${encodeFileName(name)}.user.js`;
-                // const scriptFilename = `${scriptName}.user.js`;
 
-                // code_url: `https://${location.hostname}/scripts/${scriptID}-${token}/code/${scriptFilename}`,
-                // code_url: `https://update.${location.hostname}/scripts/${scriptID}.user.js`,
                 scriptCodeURL = `https://update.${location.hostname}/scripts/${scriptID}/${scriptFilename}`
             }
             _baseScript = {
                 id: +scriptID,
-                // name: name,
                 code_url: scriptCodeURL,
                 version: version
             }
-            // }
 
         }
 
@@ -2467,7 +2316,6 @@ inIframeFn() || (async () => {
             }
 
             if (scriptCodeURL && isLibraryURLWithVersion(scriptCodeURL)) {
-
 
                 const code_url = fixLibraryCodeURL(scriptCodeURL);
 
@@ -2488,14 +2336,11 @@ inIframeFn() || (async () => {
 
                     copyText(href);
 
-
                 });
 
             }
 
-
         } else {
-
 
             if (!baseScript || !baseScript.code_url || !baseScript.version) return;
             const button = addInstallButton(element, baseScript.code_url);
@@ -2699,7 +2544,6 @@ inIframeFn() || (async () => {
 
         const { userLink, userID } = o;
 
-
         const milestones = gmc.get('milestoneNotification').replace(/\s/g, '').split(',').map(Number);
 
         if (!userID) return;
@@ -2721,7 +2565,6 @@ inIframeFn() || (async () => {
         if (milestone <= lastMilestone) return;
 
         if (milestone && milestone >= 0) {
-
 
             GMA.setValue('lastMilestone', milestone);
 
@@ -2753,7 +2596,6 @@ inIframeFn() || (async () => {
 
                 const gminfoscript = gminfo.script || 0;
 
-
                 const scriptHandlerObject = {
                     scriptHandler: gminfo.scriptHandler || '',
                     scriptName: gminfoscript.name || '', // not name_i18n
@@ -2762,20 +2604,14 @@ inIframeFn() || (async () => {
                     communicationId
                 };
 
-
                 wincomm.hook('_$GreasyFork$Msg$OnScriptInstallFeedback',
                     {
-
                         ready: (d, evt) => promiseScriptCheckResolve(d),
                         userScriptManagerNotDetected: (d, evt) => promiseScriptCheckResolve(null),
                         'installedVersion.res': wincomm.handleResponse
-
-
-                    })
-
+                    });
 
                 document.head.appendChild(document.createElement('script')).textContent = `;(${mWindow.contentScriptText})(${JSON.stringify(scriptHandlerObject)}, ${WinComm.createInstance});`;
-
 
             }
 
@@ -2783,8 +2619,8 @@ inIframeFn() || (async () => {
 
             setTimeout(() => {
                 getRafPromise().then(() => {
-                    let installBtn = document.querySelector('a[data-script-id][data-script-version]')
-                    let scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
+                    const installBtn = document.querySelector('a[data-script-id][data-script-version]')
+                    const scriptID = installBtn && installBtn.textContent ? +installBtn.getAttribute('data-script-id') : 0;
                     if (scriptID > 0) {
                         getScriptData(scriptID, true);
                     } else {
@@ -2945,14 +2781,13 @@ inIframeFn() || (async () => {
 
             if (fixLibraryScriptCodeLink) {
 
-
-                let xpath = "//code[contains(text(), '.js?version=') or contains(text(), '// @require https://')]";
-                let snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                const xpath = "//code[contains(text(), '.js?version=') or contains(text(), '// @require https://')]";
+                const snapshot = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
                 for (let i = 0; i < snapshot.snapshotLength; i++) {
                     let element = snapshot.snapshotItem(i);
                     if (element.firstElementChild) continue;
-                    element.textContent = element.textContent.replace(/\bhttps:\/\/(cn-greasyfork|greasyfork|sleazyfork)\.org\/scripts\/\d+\-[^\/]+\/code\/[^\.]+\.js\?version=\d+\b/, (_) => {
+                    element.textContent = element.textContent.replace(/\bhttps:\/\/(cn-greasyfork|greasyfork|sleazyfork)\.org\/scripts\/\d+-[^/]+\/code\/[^.]+\.js\?version=\d+\b/, (_) => {
                         return fixLibraryCodeURL(_);
                     });
                     element.parentNode.insertBefore(document.createTextNode('\u200B'), element);
@@ -2960,11 +2795,7 @@ inIframeFn() || (async () => {
                     setClickToSelect(element);
                 }
 
-
             }
-
-
-
 
             if (addAdditionInfoLengthHint && location.pathname.includes('/scripts/') && location.pathname.includes('/versions')) {
 
@@ -3011,9 +2842,7 @@ inIframeFn() || (async () => {
                     updateText(ainfo, span);
                     ainfo.parentNode.insertBefore(span, ainfo.nextSibling);
 
-
                 }
-
 
             }
 
@@ -3021,12 +2850,7 @@ inIframeFn() || (async () => {
             console.log(e);
         }
 
-
-
     }
-
-
-
 
     Promise.resolve().then(() => {
         if (document.readyState !== 'loading') {
