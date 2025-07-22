@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.7
+// @version            3.3.8
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
@@ -1010,7 +1010,18 @@ inIframeFn() || (async () => {
         return false;
     };
 
+    const hackjackByPass = (e) => {
+        e.stopImmediatePropagation();
+        e.stopPropagation();
+    }
     const setupInstallLink = (button) => {
+        if (button.matches('a.install-link[style-54998]') && !button.hasAttribute('7bq5u')) {
+            button.setAttribute('7bq5u', '');
+            // by pass install.js weird hackjack
+            button.addEventListener('click', hackjackByPass);
+            button.addEventListener('mouseover', hackjackByPass);
+            button.addEventListener('touchstart', hackjackByPass);
+        }
         return button;
     };
 
