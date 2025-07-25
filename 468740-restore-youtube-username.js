@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.13
+// @version             0.13.14
 // @license             MIT License
 
 // @author              CY Fung
@@ -3257,6 +3257,19 @@ const Object_ = Object;
         'a.yt-simple-endpoint.style-scope[id][href^="http://www.youtube.com/@"]:not([jkrgy])' // Dec 2024
     ];
 
+    let lazylistMoCid = 0;
+    const lazylistMof = isMobile ? () => {
+        for (const p of document.querySelectorAll('[swqhg]')) p.parentNode.setAttribute('swqht', `${Date.now()}`);
+    } : null;
+    const lazylistMo = isMobile ? new MutationObserver(() => {
+        lazylistMoCid && clearTimeout(lazylistMoCid);
+        lazylistMoCid = setTimeout(lazylistMof, 50); // next marcoTask. wait for yt scheduling
+    }) : null;
+    const configureLazyList = isMobile ? (lazyList) => {
+        lazylistMo.observe(lazyList, { subtree: true, childList: true, attributes: true });
+        lazyList.setAttribute('swqhg', '1'); // trigger the first lazylistMo
+    } : null;
+
     const newAuthorAnchorsProceed = async (newAnchors) => {
 
         const cNewAnchorFirst = newAnchors[0]; // non-null
@@ -3284,6 +3297,11 @@ const Object_ = Object;
             if (isMobile) {
                 const lazyYtmCommentHeader = anchor.closest('lazy-list ytm-comment-renderer');
                 if (lazyYtmCommentHeader) {
+                    const lazyList = lazyYtmCommentHeader.closest('lazy-list');
+                    if (!lazyList.hasAttribute('swqhg')) {
+                        lazyList.setAttribute('swqhg', '0');
+                        configureLazyList(lazyList);
+                    }
                     const cnt = insp(lazyYtmCommentHeader);
                     const data = cnt._commentData || lazyYtmCommentHeader._commentData || cnt.data || lazyYtmCommentHeader.data;
                     if (!data) continue;
@@ -3642,7 +3660,7 @@ const Object_ = Object;
         // mActive = true;
         removeAttrs();
 
-        domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj'] });
+        domObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['jkrgy', 'href', 'dxcpj', 'swqht'] });
         domChecker();
 
     }
