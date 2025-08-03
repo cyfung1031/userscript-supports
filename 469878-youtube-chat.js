@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.16
+// @version             0.102.17
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -8911,7 +8911,11 @@
         const timeFn749 = (cnt) => {
           cnt = kRef(cnt);
           if (!cnt) return;
-          cnt.__startCountdownAdv477__ = Date.now();
+          if (cnt.__startCountdownAdv477__ < 0) return;
+          if (!cnt.__startCountdownAdv477__) {
+            cnt.__startCountdownAdv477__ = Date.now();
+            if (cnt.__advancedTicking038__ === 2) cnt.__advancedTicking038__ = 1;
+          }
 
           if (
             cnt
@@ -9226,9 +9230,10 @@
               const hostElement = (this || 0).hostElement;
               if (hostElement && hostElement.hasAttribute('q92wb')) hostElement.removeAttribute('q92wb');
               if (hostElement && hostElement.__requestRemovalAt003__) hostElement.__requestRemovalAt003__ = 0;
+              if (this.__startCountdownAdv477__ < 0) this.__startCountdownAdv477__ = 0;
               Promise.resolve().then(() => {
                 if (this.hostElement && this.isAttached && this.hostElement.isConnected && this.parentComponent) {
-                  if (this.__startCountdownAdv477__) Promise.resolve(this).then(timeFn749);
+                  if (this.__startCountdownAdv477__ > 0) Promise.resolve(this).then(timeFn749);
                 }
               }).catch(console.warn);
               return this.attached747();
@@ -9260,6 +9265,7 @@
 
               cProto.slideDown43 = cProto.slideDown;
               cProto.slideDown = dProto.slideDownAdv || (dProto.slideDownAdv = async function () {
+                if (this.__startCountdownAdv477__ < 0) return;
 
                 // console.log('calling slideDown', Date.now())
                 if (this.__advancedTicking038__) {
@@ -9383,7 +9389,8 @@
 
               cProto.requestRemoval49 = cProto.requestRemoval;
               cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
-
+                if (this.__startCountdownAdv477__ < 0) return;
+                this.__startCountdownAdv477__ = -1;
                 const hostElement = this.hostElement;
                 hostElement.__requestRemovalAt003__ = Date.now();
                 if (this.__advancedTicking038__) {
@@ -9526,8 +9533,8 @@
 
             if (!cProto.setStandardContainerWidth8447) {
               cProto.setStandardContainerWidth8447 = dProto.setStandardContainerWidthAdv || (dProto.setStandardContainerWidthAdv =  async function (kName) {
-
-                if (this.__startCountdownAdv477__) Promise.resolve(this).then(timeFn749);
+                if (this.__startCountdownAdv477__ < 0) return;
+                if (this.__startCountdownAdv477__ > 0) Promise.resolve(this).then(timeFn749);
 
                 const hostElement = (this || 0).hostElement;
                 const container = this.$.container;
@@ -9621,6 +9628,7 @@
               if (ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH) {
 
                 cProto.setRevampContainerWidth = dProto.setRevampContainerWidthAdv || (dProto.setRevampContainerWidthAdv = async function () {
+                  if (this.__startCountdownAdv477__ < 0) return;
                   const hostElement = this.hostElement;
                   if (((hostElement || 0).style || 0).width) hostElement.style.width = '';
                   return;
@@ -9668,6 +9676,7 @@
               if (ENABLE_TICKERS_BOOSTED_STAMPING && DISABLE_DYNAMIC_TICKER_WIDTH) {
 
                 cProto.setContainerWidth = dProto.setContainerWidthAdv || (dProto.setContainerWidthAdv = async function () {
+                  if (this.__startCountdownAdv477__ < 0) return;
                   const hostElement = this.hostElement;
                   if (((hostElement || 0).style || 0).width) hostElement.style.width = '';
                   return;
