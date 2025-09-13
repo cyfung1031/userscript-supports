@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.11
+// @version             0.3.12
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -1119,7 +1119,14 @@ SOFTWARE.
         display:inline;
         flex-direction:column;
         max-width:100%;
-        vertical-align: baseline;
+        vertical-align: middle;
+        white-space: nowrap; /* only nowrap or pre */
+        margin-left: 5px;
+        margin-right: 5px;
+      }
+      
+      .bst-message-before-content-button-container:empty {
+        display: none;
       }
 
       .bst-message-body{
@@ -1646,7 +1653,20 @@ SOFTWARE.
         color: var(--color-text-button-overlay-hover);
       }
 
+      .bst-message-before-content-button-container yt-button-view-model, 
+      .bst-message-before-content-button-container button-view-model,
       .bst-message-before-content-button-container button {
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+
+      .bst-message-before-content-button-container button {
+        display: inline-flex;
+        gap: 0;
+        flex-direction: row;
+        flex-wrap: nowrap;
         border-radius: 12px;
         position: relative;
         margin: 0;
@@ -1661,10 +1681,11 @@ SOFTWARE.
         text-decoration: none;
         margin: 0;
         padding: 0;
-        padding: 2px 6px;
+        padding: 2px 8px; /* padding: 2px 6px; */
         vertical-align: middle;
         margin-bottom: .1rem;
-        margin-right: 2px;
+        margin-left: 3px;
+        margin-right: 3px; /* margin-right: 2px; */
         contain: content;
       }
 
@@ -1672,7 +1693,8 @@ SOFTWARE.
         pointer-events: none !important;
       }
 
-      .bst-message-before-content-button-container button .yt-spec-button-shape-next__icon {
+      .bst-message-before-content-button-container button .yt-spec-button-shape-next__icon,
+      .bst-message-before-content-button-container button .yt-spec-button-shape-next--icon-button  {
         margin: 0;
         padding: 0;
         border: 0;
@@ -2162,7 +2184,8 @@ SOFTWARE.
       const buttonViewModel = beforeContentButtons[0].buttonViewModel;
       if (!buttonViewModel) return;
 
-      const bvData = Object.assign({}, buttonViewModel, { title: "", trackingParams: "", title_: buttonViewModel.title });
+      // const bvData = Object.assign({}, buttonViewModel, { title: "", trackingParams: "", title_: buttonViewModel.title });
+      const bvData = Object.assign({}, buttonViewModel, { trackingParams: "", title: buttonViewModel.title });
 
       if (!sharedButtonViewModel) {
         sharedButtonViewModel = document.createElement('yt-button-view-model');
@@ -3184,7 +3207,7 @@ SOFTWARE.
 
         if (p2 === 'A' && v2) {
 
-          const text = v1;
+          const text = v1.trim();
           const url = v2;
           const [nofollow, target] = args;
 
@@ -3192,7 +3215,7 @@ SOFTWARE.
 
         }
 
-        return html`<span>${() => v1}</span>`;
+        return html`<span>${() => v1.trim()}</span>`;
 
       } else if (p1 === 'E') {
         const emojiId = v1;
