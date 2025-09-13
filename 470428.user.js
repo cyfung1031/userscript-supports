@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.12
+// @version     1.6.13
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -279,6 +279,8 @@
 
   // h5 flags
   const fOperAcceptList = new Set([
+
+    'json_condensed_response', // https://greasyfork.org/en/scripts/470428-youtube-experiment-flags-tamer/discussions/264999
 
     ...(NO_CINEMATIC_LIGHTING_LABEL ? [
       'web_player_use_cinematic_label', // fallback
@@ -733,6 +735,9 @@
     const { use_maintain_stable_list, use_maintain_reuse_components, use_defer_detach } = o;
 
     const BY_PASS = [
+
+      'wp_lat_b', // https://greasyfork.org/en/scripts/470428-youtube-experiment-flags-tamer/discussions/302399
+      'json_condensed_response', // https://greasyfork.org/en/scripts/470428-youtube-experiment-flags-tamer/discussions/264999
 
       'enable_profile_cards_on_comments',
 
