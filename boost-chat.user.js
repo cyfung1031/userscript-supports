@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.15
+// @version             0.3.20
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -12,7 +12,7 @@
 // @allFrames           true
 // @inject-into         page
 // @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
-// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@b020bbb73dfa65d72b4656596f8e9ff1549becd6/library/solid-js-prod.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@2e28f25d1adf8f535320e79e1b4a3400f82a0caf/library/solid-js-prod.js
 // @description         Full Replacement of YouTube Chat Message List
 // @description:ja      YouTubeチャットメッセージリストの完全置き換え
 // @description:zh-TW   完全替換 YouTube 聊天訊息列表
@@ -382,7 +382,7 @@ SOFTWARE.
 
   const flushPE = createPipeline();
 
-  const mutableWM = new WeakMap();
+  const xItemWM = new WeakMap();
 
   const canScrollIntoViewWithOptions = (() => {
 
@@ -1740,7 +1740,7 @@ SOFTWARE.
   }
 
   /** @type {import('./library/html').SolidJS}.SolidJS */
-  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap } = SolidJS;
+  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap, mapArray, batch, createRoot } = SolidJS;
 
   const { R, W ,rwWrap } = (() => {
 
@@ -1800,9 +1800,10 @@ SOFTWARE.
 
   // -------------------------------------------------------------------------------------------
   let rcKt = 0; // without rcKt, rcSignal() > rcValue => deadlock
+  const rcSet = new Set();
 
   let rcPromise = null;
-  const [rcSignal ,rcSignalSet]=createSignal(1);
+  const [rcSignal, rcSignalSet] = createSignal(1);
   let rcValue = 1;
 
   const rcSignalAdd = (p) => {
@@ -1823,6 +1824,7 @@ SOFTWARE.
       rcPromise && rcPromise.resolve();
       rcPromise = null;
       rcKt = (rcKt & 1073741823) + 1;
+      rcSet.clear();
     }
   });
 
@@ -1845,6 +1847,7 @@ SOFTWARE.
       rcPromise = null;
       rcPromiseT = null;
       rcKt = (rcKt & 1073741823) + 1;
+      rcSet.clear();
     }
   };
 
@@ -1853,39 +1856,6 @@ SOFTWARE.
 
   // -------------------------------------------------------------------------------------------
 
-
-
-  const MEMO = (obj, key, val) => {
-
-    if (key === null) {
-      memoStore.delete(obj);
-      return;
-    } else if (!key) {
-      return memoStore.get(obj);
-    }
-
-    const m = `${key}`;
-    if (val === null) {
-      let s = memoStore.get(obj);
-      if (s && s[m]) s[m] = null;
-    } else if (val) {
-      let s = memoStore.get(obj);
-      if (!s) memoStore.set(obj, s = {});
-      if (!s[m]) {
-        s[m] = createMemo(val);
-      } else {
-        console.warn('MEMO setter: duplicated');
-      }
-      return s[m];
-    } else {
-      let s = memoStore.get(obj);
-      let r = s ? s[m] : null;
-      if (!r) {
-        console.warn('MEMO getter: duplicated');
-      }
-      return r;
-    }
-  }
 
   function getThumbnail(thumbnails, min, max) {
 
@@ -1903,48 +1873,8 @@ SOFTWARE.
 
   }
 
-  function removeEntry(o) {
-
-    /*
-
-
-      aObj.uid = aObj.uid || createMemo(() => { 
-      })
-
-      if (aKey && typeof aKey === 'string') W(aObj).aKey = aKey;
-
-      MEMO(aObj, 'rendererFlag', ()=>{ 
-      });
-
-      MEMO(aObj, 'authorName', () => { 
-      });
- 
-      aObj.getProfilePic = getProfilePic;
-      aObj.getStickerURL = getStickerURL;
-      aObj.bst = bst;
-
- 
-      MEMO(aObj, 'messageXT', () =>{
- 
-      });
-
-
-      */
-
-    if (o.uid) {
-      o.uid = null;
-    }
-
-    MEMO(o, 'rendererFlag', null);
-
-    MEMO(o, 'authorName', null); 
-
-    MEMO(o, 'messageXT', null);
-
-    MEMO(o, null);
-
-    const dataMutable = mutableWM.get(o);
-    dataMutable && dataMutable.removeEntry();
+  function removeEntry(xItem) {
+    xItem?.removeEntryFn?.();
   }
 
   function colorFromDecimal(a) {
@@ -1963,7 +1893,7 @@ SOFTWARE.
 
 
   const formatters = {
-    authorBadges(badge, data) {  // performance concern? (11.0ms)
+    authorBadges(badge, xItem) {  // performance concern? (11.0ms)
 
 
       try {
@@ -1992,7 +1922,7 @@ SOFTWARE.
 
           const icon = ek.icon;
           const type = icon.iconType.toLowerCase();
-          if (type === 'owner' && R(data).bst('shouldHighlight')) {
+          if (type === 'owner' && xItem.getField('shouldHighlight')) {
 
           } else {
 
@@ -2834,242 +2764,190 @@ SOFTWARE.
 
   let timelineResolve;
 
-  const ojWrap = (obj => {
-    return typeof obj === 'function' ? obj : () => obj;
-  });
-  const ojUnwrap = (obj => {
-    return typeof obj === 'function' ? obj() : obj;
-  });
-
-  let convertAObj, showMenu, messageListWR_;
+  let showMenu, messageListWR_;
 
   /** @type {IntersectionObserver} */
   let ioMessageList = null;
 
-  const setupMutable = (bObj_) =>{
+  const subSetup = (bObj_, _wKey, wb) =>{
 
     const bObj = bObj_;
-    if(mutableWM.has(bObj)) return;
 
     let bObjWR = mWeakRef(bObj);
-    let mutableWR;
-    let createdPromise = new PromiseExternal();
-
     let messageEntryWR = null;
+    const [refSignal, setRefSignal] = createSignal(null);
 
-
-    const bObjChange = (val) => {
-      const f = kRef(mutableWR)?.bObjChange
-      if (f) f(val);
+    let bObjChange = (val) => {
+      let bObj = kRef(bObjWR);
+      if (!bObj) return;
+      if (typeof (val || 0) === 'object') {
+        for (const s of ['authorBadges', 'message']) {
+          Reflect.has(val, s) || (val[s] = undefined);
+          Reflect.has(val, s) || (val[s] = undefined);
+        }
+      }
+      Object.assign(W(bObj), val);
     }
 
-    const mutable = {
-      getDataObj() {
-        return kRef(bObjWR);
-      },
-      removeEntryFuncs: new Map(),
-      tooltips: new Map(),
-      createdPromise: createdPromise,
-      removeEntry() {
+    let setupFn = (_messageEntry) => {
 
-        this.removeEntryFuncs.forEach((f) => {
-          f.call(this);
-        });
-        this.removeEntryFuncs.clear();
-        this.tooltips.clear();
+        batch(()=>{
 
-        this.createdPromise = null;
-        this.removeEntryFuncs = null;
-        this.tooltips = null;
-        this.removeEntry = null;
-        this.setupFn = null;
-        this.bObjChange = null;
-
-      },
-      bObjChange(val, aKey) {
-        let bObj = kRef(bObjWR);
-        if (!bObj) return;
-        if (typeof (val || 0) === 'object') {
-          for (const s of ['authorBadges', 'message']) {
-            Reflect.has(val, s) || (val[s] = undefined);
-            Reflect.has(val, s) || (val[s] = undefined);
-          }
-        }
-        convertAObj(val, aKey || val.aKey || undefined);
-        Object.assign(W(bObj), val);
-      },
-      setupFn(_messageEntry) {
-
-        if (messageEntryWR) {
-          console.warn('setupFn warning 01');
-          return;
-        }
-
-        /** @type {HTMLElement} */
-        messageEntryWR = mWeakRef(_messageEntry); 
-        const messageListWR__ = messageListWR_;
-
-        if (!kRef(bObjWR) || !kRef(mutableWR)) {
-          console.warn('setupFn warning 02');
-          return;
-        }
-
-        const [interceptionRatio, interceptionRatioChange] = createSignal(null);
-        const [viewVisible, viewVisibleChange] = createSignal(null);
-        const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
-
-        const baseRemoveFn = () => {
-          const bObj = kRef(bObjWR);
-          const messageEntry = kRef(messageEntryWR);
-          mutableWM.delete(bObj);
-          mutableWM.delete(messageEntry);
-        };
-
-        {
-          const messageEntry = _messageEntry;
-          let mutable = kRef(mutableWR);
-          mutable.viewVisible = viewVisible;
-          mutable.viewVisibleChange = viewVisibleChange;
-          mutable.viewVisibleIdx = viewVisibleIdx;
-          mutable.viewVisibleIdxChange = viewVisibleIdxChange;
-          mutable.interceptionRatioChange = interceptionRatioChange;
-          mutableWM.set(messageEntry, mutable);
-          messageEntry.showMenu = showMenu;
-          mutable.removeEntryFuncs.set('baseRemove', baseRemoveFn);
-          mutable = null;
-        }
-
-
-        const polymerController = {
-          set(prop, val) {
-            if (prop === 'data') {
-              bObjChange(val);
-            }
-          },
-          get data() {
-            return kRef(bObjWR);
-          },
-          set data(val) {
-            bObjChange(val);
-          },
-          get dataRaw() {
-            return kRef(bObjWR);
-          },
-          get dataMutable() {
-            return kRef(mutableWR);
-          },
-          get authorType() {
-            const bObj = kRef(bObjWR);
-            return getAuthorBadgeType(bObj.authorBadges);
-          }
-        };
-
-
-        {
-
-          const messageEntry = _messageEntry;
-          messageEntry.polymerController =polymerController;
-
-        }
-
-        {
-
-          let bObj = kRef(bObjWR);
-
-          if (!!(bObj.aKey && bObj.aKey !== 'liveChatTextMessageRenderer')) {
-
+          {
             const messageEntry = kRef(messageEntryWR);
-            const a = bObj;
-            const entries = Object.entries({
-
-              "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
-              "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
-
-              ...(a.aKey === "liveChatPaidMessageRenderer" ? {
-
-                "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
-                "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
-                "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
-                "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
-                "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
-              } : {
-
-              }),
-
-              ...(a.aKey === "liveChatPaidStickerRenderer" ? {
-                "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
-                "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
-                "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
-              } : {
-
-              })
-
-
-            });
-
-            if (entries.length >= 1) {
-              for (const [key, value] of entries) {
-                if (value) messageEntry.style.setProperty(key, value);
-              }
-            }
-
+            messageEntry && xItemWM.delete(messageEntry);
           }
 
+          /** @type {HTMLElement} */
+          messageEntryWR = mWeakRef(_messageEntry);
+          kRef(wb())?.viewVisiblePosXChange(null);
+          setRefSignal(messageEntryWR);
+        })
+    }
+
+    let removeEntry = () => {
+      removeEntry = null;
+      setupFn = null;
+
+      {
+        const bObj = kRef(bObjWR);
+        const messageEntry = kRef(messageEntryWR);
+        bObj && xItemWM.delete(bObj);
+        messageEntry && xItemWM.delete(messageEntry);
+      }
+
+      bObjChange = null;
+
+    };
+    
+    // let domI = 0;
+
+    const initial = (dom) => {
+      // const domJ = ++domI;
+      const _messageEntry = dom;
+
+      const messageListWR__ = messageListWR_;
+
+      if (!kRef(bObjWR)) {
+        console.warn('setupFn warning 02a');
+        return;
+      }
+
+      const messageList = kRef(messageListWR__);
+      if (!messageList) {
+        console.warn('setupFn warning 02b');
+        return;
+      }
+      // const { visibleCount } = messageList;
+
+      const {viewVisible, viewVisibleChange, viewVisibleIdx, viewVisibleIdxChange, viewVisiblePosXChange, interceptionRatio} =  (kRef(wb()) || {});
+
+      if(!viewVisible || !viewVisibleChange || !viewVisibleIdx || !viewVisibleIdxChange) {
+        console.warn('setupFn warning 02c');
+        return;
+      }
+
+      {
+        const messageEntry = _messageEntry;
+        const xItem = wb();
+        xItem && xItemWM.set(messageEntry, xItem);
+      }
+
+
+      const polymerController = {
+        set(prop, val) {
+          if (prop === 'data') {
+            bObjChange?.(val);
+          }
+        },
+        get data() {
+          return kRef(bObjWR);
+        },
+        set data(val) {
+          bObjChange?.(val);
+        },
+        get dataRaw() {
+          return kRef(bObjWR);
+        },
+        get authorType() {
+          const bObj = kRef(bObjWR);
+          return getAuthorBadgeType(bObj.authorBadges);
         }
+      };
 
-        // change on state
-        createEffect(() => {
 
-          const visible = interceptionRatio();
-          if (visible > 0.9) {
-            viewVisibleChange(1);
-          } else if (visible < 0.1) {
-            viewVisibleChange(0);
-          }
+      {
 
-        });
-
-        // change on state
-        const viewVisiblePos = createMemo(() => {
-          const messageList = kRef(messageListWR__);
-          if (!messageList) return;
-          const viewCount = messageList.visibleCount();
-          const num = viewVisibleIdx();
-          if (num >= 1 && viewCount >= 1) {
-            return (num > (viewCount / 2)) ? 'down' : 'up';
-            // messageEntry.setAttribute('view-pos', (num > (viewCount / 2)) ? 'down' : 'up');
-          } else {
-            return null;
-            // messageEntry.removeAttribute('view-pos');
-          }
-        });
-
-        // change on state -> change on DOM
-        createEffect(() => {
-          const v = viewVisiblePos();
-          const messageEntry = kRef(messageEntryWR);
-          if (v === null) {
-            _removeAttribute.call(messageEntry, 'view-pos');
-          } else {
-            _setAttribute.call(messageEntry, 'view-pos', v);
-          }
-        });
-
-        {
-          const messageEntry = _messageEntry;
-          let mutable = kRef(mutableWR);
-          mutable.viewVisiblePos = viewVisiblePos;
-          ioMessageList && ioMessageList.observe(messageEntry);
-          createdPromise && createdPromise.resolve(messageEntry);
-          createdPromise = null;
-        }
-        rcSignalAdd(1);
+        const messageEntry = _messageEntry;
+        messageEntry.polymerController = polymerController;
 
       }
+
+      {
+
+        let bObj = kRef(bObjWR);
+
+        const xItem = kRef(wb());
+
+        const aKey = xItem?.wKey;
+        const a = bObj;
+
+        const messageEntry = _messageEntry;
+        if (!!(aKey && aKey !== 'liveChatTextMessageRenderer') && a && a === xItem?.wItem) {
+
+          const entries = Object.entries({
+
+            "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
+            "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
+
+            ...(aKey === "liveChatPaidMessageRenderer" ? {
+
+              "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
+              "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
+              "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
+              "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
+              "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
+            } : {
+
+            }),
+
+            ...(aKey === "liveChatPaidStickerRenderer" ? {
+              "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
+              "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
+              "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
+            } : {
+
+            })
+
+
+          });
+
+          if (entries.length >= 1) {
+            for (const [key, value] of entries) {
+              if (value) messageEntry.style.setProperty(key, value);
+            }
+          }
+
+        }
+
+      }
+
+
+      Promise.resolve(_messageEntry).then((messageEntry)=>{
+        ioMessageList && ioMessageList.observe(messageEntry);
+      });
+      // rcSignalAdd(1);
+
+
+
     }
-    mutableWR = mWeakRef(mutable);
-    mutableWM.set(bObj, mutable);
-    
+
+    return {
+      refSignal,
+      initial,
+      removeEntry: removeEntry,
+      setupFn: setupFn
+    };
 
 
   };
@@ -3078,51 +2956,57 @@ SOFTWARE.
 
   let SolidMessageElementTagsSizeCached = 0;
 
-  const SolidMessageListEntry = (props) =>{
+  const SolidMessageListEntry = (xItem) => {
 
+    const key = `${xItem.uid()}:${Date.now()}:${Math.random()}`;
+    rcSet.add(key);
     // rcSignalAdd(1);
     rcValue++;
     const tkt = rcKt;
-    onMount(async () => {
-      if (tkt !== rcKt) return;
-      timelineResolve && (await timelineResolve());
-      if (tkt !== rcKt) return;
-      rcSignalAdd(0);
+    const umc = async () => {
+      if (rcSet.has(key)) {
+        rcSet.delete(key);
+        if (tkt !== rcKt) return;
+        // timelineResolve && (await timelineResolve());
+        // if (tkt !== rcKt) return;
+        rcSignalAdd(0);
+      }
+    };
+    onMount(() => {
+      umc();
     });
     onCleanup(() => {
-      props = null;
+      // xItem = null;
+      umc();
+      xItem?.removeEntryFn?.();
     });
 
-    const data = props.data();
-    const aKey = props.aKey();
-
-    setupMutable(data);
-
-    convertAObj && convertAObj(data, aKey);
+    // const data = xItem.wItem;
+    const aKey = xItem.wKey;
 
     switch (aKey) { // performance concern? (1.5ms)
       case 'liveChatViewerEngagementMessageRenderer':
-        return SolidSystemMessage(props);
+        return SolidSystemMessage(xItem);
       case 'liveChatPaidMessageRenderer':
-        return SolidPaidMessage(props);
+        return SolidPaidMessage(xItem);
       case 'liveChatMembershipItemRenderer':
-        return SolidMembershipMessage(props);
+        return SolidMembershipMessage(xItem);
       case 'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer':
-        return SolidGiftText(props);
+        return SolidGiftText(xItem);
       case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer':
-        return SolidSponsorshipPurchase(props);
+        return SolidSponsorshipPurchase(xItem);
       case 'liveChatPaidStickerRenderer':
         /** https://www.youtube.com/watch?v=97_KLlaUICQ&t=3600s */
         /* https://www.youtube.com/live/BDjEOkw_iOA?t=6636s */
-        return SolidPaidSticker(props);
+        return SolidPaidSticker(xItem);
       case 'liveChatPlaceholderItemRenderer':
-        return SolidMessagePlaceHolder(props);
+        return SolidMessagePlaceHolder(xItem);
 
       case 'liveChatTextMessageRenderer': 
-      return SolidMessageText(props); // liveChatTextMessageRenderer
+      return SolidMessageText(xItem); // liveChatTextMessageRenderer
 
       case 'liveChatOfferClickCountMessageRenderer':
-      // return SolidOfferClick(props); // just append the native element. might have memory leakage
+      // return SolidOfferClick(xItem); // just append the native element. might have memory leakage
 
       default:
 
@@ -3134,7 +3018,7 @@ SOFTWARE.
             console.warn(`SolidMessageElementTags: ${[...SolidMessageElementTags].join(', ')}`);
           }
         }
-        return SolidDefaultElement(props); // just append the native element. might have memory leakage
+        return SolidDefaultElement(xItem); // just append the native element. might have memory leakage
 
     }
 
@@ -3161,30 +3045,7 @@ SOFTWARE.
           </div>
         </div>
       <//>
-      <${For} each=(${() => R(sbSignal())})>${(qItem) => {
-
-
-        let aKeyMemo = createMemo(() => {
-          const wKey = qItem ? firstObjectKey(qItem) : '';
-          const wItem = wKey ? qItem[wKey] : null;
-          let item = wItem ? R(wItem) : null;
-          return item.aKey_ = wKey;
-        });
-        let itemMemo = createMemo(()=>{
-          return qItem[aKeyMemo()];
-        });
-
-
-        onCleanup(() => {
-          removeEntry(itemMemo())
-          qItem = null;
-          aKeyMemo = nullMemo;
-          itemMemo = nullMemo;
-        });
-
-        return html`<${SolidMessageListEntry} data=(${()=>rwWrap(itemMemo())}) aKey=(${()=>aKeyMemo}) />`;
-
-      }}<//>
+      <${For} each=(${sbSingalMap})>${(item) => SolidMessageListEntry(item)}<//>
   `
   };
 
@@ -3192,14 +3053,13 @@ SOFTWARE.
 
   const SolidMessageRenderer = (props) => {
 
-    const data = props.entryData;
-    const messageXT = R(data).bst('messageXM');
+    const xItem = props.entryData;
 
     onCleanup(() => {
       props = null;
     });
 
-    return html`<${For} each=(${() => messageXT()})>${(arr => {
+    return html`<${For} each=(${() => xItem.getField("messageXM")})>${(arr => {
 
       // console.log(1338, arr)
       const [p1, v1, p2, v2, ...args] = arr;
@@ -3213,7 +3073,7 @@ SOFTWARE.
           const url = v2;
           const [nofollow, target] = args;
 
-          return html`<a href="${() => url}" rel="${() => nofollow === 'true' ? 'nofollow' : null}" target="${() => target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => text}</span>`
+          return html`<a href="${() => url}" rel="${() => nofollow === 'true' ? 'nofollow' : null}" target="${() => target === "TARGET_NEW_WINDOW" ? '_blank' : null}">${() => text}</a>`
 
         }
 
@@ -3260,13 +3120,12 @@ SOFTWARE.
 
   };
 
-  const SolidSystemMessage = (props) => {
-    let data = props.data();
+  const SolidSystemMessage = (xItem) => {
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
-    const dataMutable = mutableWM.get(data);
-    if (!dataMutable) return '';
+    const setupFn = xItem.setupFn;
 
     let icon = data.icon;
     let onYtIconCreated = null;
@@ -3281,14 +3140,14 @@ SOFTWARE.
     }
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
       icon = null;
     });
 
     return html`
-  <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <${Show} when=(${() => typeof onYtIconCreated === 'function'})>
@@ -3298,11 +3157,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${()=>data}) />
     <//>
     <div class="bst-message-body">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${()=>xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3353,40 +3212,42 @@ SOFTWARE.
     return sImg;
   }
 
-  const SolidPaidMessage = (props) => {
+  const SolidPaidMessage = (xItem) => {
 
-    let data = props.data();
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null;
+      removeEntry(xItem)
+      xItem = data = null;
     });
 
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
 
+
+    const setupFn = xItem.setupFn;
 
 
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-    <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+    <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
     <div class="bst-name-field bst-message-name-color">
-      <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+      <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
       <div class="bst-message-badges">
-      <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+      <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
       </div>
@@ -3397,11 +3258,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${()=>data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${()=>xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3410,35 +3271,39 @@ SOFTWARE.
 `;
   };
 
-  const SolidMembershipMessage = (props) => {
-    let data = props.data();
+  const SolidMembershipMessage = (xItem) => {
+    let data = xItem.wItem;
+    
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
     });
 
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
 
+    
+    const setupFn = xItem.setupFn;
+
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
-  <div classList=(${() => ({ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": R(data).bst('hasMessageBody') })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
+  <div classList=(${() => ({ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": xItem.getField('hasMessageBody') })})>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
     <div class="bst-message-entry-highlight"></div>
     <div class="bst-message-entry-line">
       <div class="bst-message-head">
-        <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+        <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
         <div class="bst-name-field bst-message-name-color">
-          <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+          <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
           <div class="bst-message-badges">
-          <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+          <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
           </div>
@@ -3451,17 +3316,17 @@ SOFTWARE.
       }}</div>
     </div>
     <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
     </div>
   </div>
-  <${Show} when=(${() => R(data).bst('hasMessageBody')})>
+  <${Show} when=(${() => xItem.getField('hasMessageBody')})>
     <div class="bst-message-entry-body">
       <div class="bst-message-entry-highlight"></div>
       <div class="bst-message-entry-line">
         <div class="bst-message-body">
-        <${SolidMessageRenderer} entryData=(${() => data}) />
+        <${SolidMessageRenderer} entryData=(${() => xItem}) />
         </div>
       </div>
     </div>
@@ -3473,34 +3338,37 @@ SOFTWARE.
 
 
 
-  const SolidGiftText = (props) => {
-    let data = props.data();
+  const SolidGiftText = (xItem) => {
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
     });
 
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
 
+    
+    const setupFn = xItem.setupFn;
+
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+      <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
-        <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+        <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
         <div class="bst-message-badges">
-        <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+        <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
         </div>
@@ -3510,11 +3378,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${() => data}) />
+    <${SolidMessageRenderer} entryData=(${() => xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3526,39 +3394,42 @@ SOFTWARE.
 
 
 
-  const SolidSponsorshipPurchase = (props) => {
+  const SolidSponsorshipPurchase = (xItem) => {
 
-    let data = props.data();
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null;
+      removeEntry(xItem)
+      xItem = data = null;
     });
 
     // const {authorNameTextColor, bodyBackgroundColor, bodyTextColor, headerBackgroundColor, headerTextColor, textInputBackgroundColor,timestampColor} = data;
 
 
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
 
+    
+    const setupFn = xItem.setupFn;
+
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+      <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
-        <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+        <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
         <div class="bst-message-badges">
-        <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+        <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
         </div>
@@ -3568,11 +3439,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${() => data}) />
+    <${SolidMessageRenderer} entryData=(${() => xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3581,35 +3452,38 @@ SOFTWARE.
 `;
   };
 
-  const SolidPaidSticker = (props) => {
+  const SolidPaidSticker = (xItem) => {
     /* https://www.youtube.com/live/BDjEOkw_iOA?si=CGG7boBJvfT2KLFT&t=6636 */
 
-    let data = props.data();
+    let data = xItem.wItem;
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
     });
 
 
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
 
+    
+    const setupFn = xItem.setupFn;
+
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
-  <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${R(data).getStickerURL(80, 256)})` })}"></div>
+  <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${()=>xItem.getStickerURL(80, 256)})` })}"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+      <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
-        <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+        <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
         <div class="bst-message-badges">
-        <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+        <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
         </div>
@@ -3620,11 +3494,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${()=>data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${()=>data}) />
+    <${SolidMessageRenderer} entryData=(${()=>xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3635,41 +3509,44 @@ SOFTWARE.
 
 
 
-  const SolidMessageText = (props) => {
+  const SolidMessageText = (xItem) => {
 
 
-    let data = props.data();
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
     });
     const profileUrl = createMemo(() => {
-      return R(data).getProfilePic(64, -1)
+      return xItem.getProfilePic(64, -1)
     });
+
+    
+    const setupFn = xItem.setupFn;
 
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-${R(data).aKey}`]: true, 'bst-message-entry-holding': entryHolding() === R(data).uid() })}) message-uid="${() => R(data).uid()}" message-id="${() => R(data).id}" ref="${mutableWM.get(data).setupFn}" author-type="${() => R(data).bst('authorType')}">
-  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== R(data).uid() })})>
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-${xItem.wKey}`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
-      <div class="bst-message-time">${() => R(data).bst('timestampText')}</div>
+      <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
       <div class="bst-name-field bst-message-name-color">
         <div class="bst-name-field-box">
         <div>Icon</div>
         <div>Name</div>
         </div>
-        <div class="bst-message-username">${() => R(data).bst('getUsername')}</div>
+        <div class="bst-message-username">${() => xItem.getField("authorName")}</div>
         <div class="bst-message-badges">
-        <${For} each=(${() => R(data).bst('authorBadges')})>${(badge) => {
+        <${For} each=(${() => xItem.getField('authorBadges')})>${(badge) => {
 
-        return formatters.authorBadges(badge, data);
+        return formatters.authorBadges(badge, xItem);
 
       }}<//>
         </div>
@@ -3680,11 +3557,11 @@ SOFTWARE.
     <${SolidBeforeContentButton0} entryData=(${() => data}) />
     <//>
     <div class="bst-message-body bst-message-body-next-to-head">
-    <${SolidMessageRenderer} entryData=(${() => data}) />
+    <${SolidMessageRenderer} entryData=(${() => xItem}) />
     </div>
   </div>
   <div class="bst-message-menu-container">
-    <${Show} when=(${() => R(menuRenderObj).messageUid === R(data).uid() && !R(menuRenderObj).loading })>
+    <${Show} when=(${() => R(menuRenderObj).messageUid === xItem.uid() && !R(menuRenderObj).loading })>
     <${SolidMenuList} items=(${() => R(menuRenderObj).menuListXd()}) />
     <//>
   </div>
@@ -3693,25 +3570,30 @@ SOFTWARE.
 `;
   };
 
-  const SolidMessagePlaceHolder = (props) => {
+  const SolidMessagePlaceHolder = (xItem) => {
 
-    let data = props.data();
+    let data = xItem.wItem;
 
-    const { rendererFlag, authorName, messageXT } = MEMO(data);
+    // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     onCleanup(() => {
-      removeEntry(data)
-      props = data = null; 
+      removeEntry(xItem)
+      xItem = data = null; 
     });
 
-    return html`<bst-live-chat-placeholder ref="${mutableWM.get(data).setupFn}"></bst-live-chat-placeholder>`;
+    
+    const setupFn = xItem.setupFn;
+
+    return html`<bst-live-chat-placeholder ref="${setupFn}"></bst-live-chat-placeholder>`;
 
   };
 
-  const SolidOfferClick = (props)=>{
+  const SolidOfferClick = (xItem)=>{
 
 
-    let data = props.data();
+    let data = xItem.wItem;
+    
+    const setupFn = xItem.setupFn;
  
     const setupFn_ = (elm)=>{
 
@@ -3724,7 +3606,7 @@ SOFTWARE.
 
       elm.appendChild(mElm);
 
-      return mutableWM.get(data).setupFn(elm);
+      return setupFn(elm);
 
 
     }
@@ -3892,10 +3774,12 @@ SOFTWARE.
   // mapToElementTag.set('liveChatOfferClickCountMessageRenderer' ,'yt-live-chat-offer-click-count-message-renderer');
 
 
-  const SolidDefaultElement = (props) => {
+  const SolidDefaultElement = (xItem) => {
 
-    let data = props.data();
-    const aKey = data.aKey;
+    let data = xItem.wItem;
+    const aKey = xItem.wKey;
+    
+    const setupFn = xItem.setupFn;
     let elementTag = '';
 
     if (aKey) {
@@ -3927,11 +3811,11 @@ SOFTWARE.
         mElm.setAttribute('title', 'unknown');
         elm.appendChild(mElm);
       }
-      const r = mutableWM.get(data).setupFn(elm);
+      const r = setupFn(elm);
       data = null;
       elm = null;
       elementTag = '';
-      props = null;
+      xItem = null;
       return r;
     };
 
@@ -4267,7 +4151,254 @@ SOFTWARE.
     
   }
 
+
+  function getUID(aObj) {
+    return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
+  }
   const [sbSignal, sbSignalSet] = createSignal(null);
+
+  function getAuthorBadgeType(authorBadges) {
+    if (!authorBadges || !(authorBadges.length >= 1)) return ''; // performance concern? (1.8ms)
+    for (const badge of authorBadges) {
+      const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
+      if (r) {
+        const b = r ? r.icon ? r.icon.iconType.toLowerCase() : r.customThumbnail ? "member" : "" : ""
+        if (b && "verified" !== b) {
+          return b;
+        }
+      }
+    }
+    return '';
+  }
+
+  function getProfilePic(min, max) {
+    if (!this.wItem) return null;
+    let w = this.getField("authorObject").authorPhoto || 0;
+    w = w.thumbnails || w;
+    if (w) {
+
+      if (w.url) return w.url;
+      if (typeof w === 'string') return w;
+      if (w.length >= 0) {
+        const url = getThumbnail(w, min, max);
+        if (url) return url;
+      }
+    }
+    return null;
+  }
+
+  function getStickerURL(min, max) {
+    if (!this.wItem) return null;
+    const data = R(this.wItem);
+    let w = data.sticker || 0;
+    w = w.thumbnails || w;
+    if (w) {
+
+      if (w.url) return w.url;
+      if (typeof w === 'string') return w;
+      if (w.length >= 0) {
+        const url = getThumbnail(w, min, max);
+        if (url) return url;
+      }
+    }
+    return null;
+  }
+
+  const sbSingalMap = mapArray(sbSignal, (qItem, indexSignal) => {
+
+
+
+    const wKey = qItem ? firstObjectKey(qItem) : '';
+    const wItem = wKey ? qItem[wKey] : null;
+    const [wb, setWb] = createSignal(null);
+    const { refSignal, removeEntry, setupFn, initial } = subSetup(wItem, wKey, wb);
+
+    const uid = createMemo(() => {
+        return getUID(R(wItem));
+      });
+
+    const rendererFlag = createMemo(() => {
+      if (wKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
+      return 0;
+    });
+
+    const authorName = createMemo(()=>{
+        const data = R(wItem);
+        const dx = data && rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer : data;
+        return convertYTtext(dx.authorName);
+      });
+    const messageXT = createMemo(() => {
+      const data = R(wItem);
+      const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
+      return messageFlatten(m1);
+    });
+
+    const messageXM = createMemo(() => {
+      const str = messageXT();
+      return messageUnflatten(str);
+    });
+
+    const getField = (mField) => {
+      const data = R(wItem);
+      switch (mField) {
+        case "rendererFlag": {
+          return rendererFlag();
+        }
+        case "hasMessageBody": {
+          const message = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
+          if (typeof (message || 0) !== 'object') return false;
+          if (message.simpleText) return true;
+          const runs = message.runs;
+          return runs && runs.length && runs[0];
+        }
+        case "authorBadges": {
+          const badges = getField("authorObject").authorBadges;
+          if (typeof (badges || 0) !== 'object') return null; // performance concern? (31.1ms)
+          return badges;
+        }
+        case "authorType": {
+          return getAuthorBadgeType(data.authorBadges);
+        }
+        case "shouldHighlight": {
+          const authorType = getField('authorType');
+          return authorType === 'owner';
+        }
+        case "timestampText": {
+          if (data.timestampText) return convertYTtext(data.timestampText);
+          const ts = +data.timestampUsec / 1000;
+          if (ts > 1107183600000) {
+            const now = Date.now();
+            if (ts < (now + 120000)) {
+              return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); // performance concern? (1.4ms)
+            }
+          }
+          return null;
+        }
+        case 'authorObject': {
+          if (rendererFlag() === 1) {
+            return data?.header?.liveChatSponsorshipsHeaderRenderer;
+          }
+          return data;
+        }
+        case 'authorName': {
+          return authorName();
+        }
+        case 'messageXM': {
+          return messageXM();
+        }
+      }
+      return null;
+    }
+
+    const [viewVisible, viewVisibleChange] = createSignal(null);
+    const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
+
+    const [viewVisiblePosX, viewVisiblePosXChange] = createSignal(null); // 1 to n
+
+    const [interceptionRatio, interceptionRatioChange] = createSignal(null);
+
+    let solidRoot = createRoot(dispose => {
+
+      createMemo(() => {
+        const result = refSignal();
+        const dom = kRef(result);
+        dom && initial(dom);
+        return result;
+      }, null);
+
+      const { visibleCount } = (kRef(messageListWR_) || {});
+
+      if (visibleCount) {
+
+        // change on state
+        createEffect(() => {
+          const visible = interceptionRatio();
+          if (visible > 0.9) {
+            viewVisibleChange(1);
+          } else if (visible < 0.1) {
+            viewVisibleChange(0);
+          }
+        });
+
+        // change on state
+        const viewVisiblePos = createMemo(() => {
+          const viewCount = visibleCount();
+          const num = viewVisibleIdx();
+          if (num >= 1 && viewCount >= 1) {
+            return (num > (viewCount / 2)) ? 'down' : 'up';
+          } else {
+            return null;
+          }
+        });
+
+        // change on state -> change on DOM
+        createEffect(() => {
+          const v = viewVisiblePos();
+          viewVisiblePosXChange(v);
+        });
+
+
+        // change on state -> change on DOM
+        createEffect(() => {
+          const v = viewVisiblePosX();
+          const messageEntry = kRef(refSignal());
+          if (messageEntry) {
+            if (v === null) {
+              _removeAttribute.call(messageEntry, 'view-pos');
+            } else {
+              _setAttribute.call(messageEntry, 'view-pos', v);
+            }
+          }
+        });
+
+      }
+
+
+      return dispose;
+    });
+
+    let removeEntryFn = () => {
+      const xItem = q;
+      removeEntryFn = null;
+      solidRoot?.();
+      solidRoot = null;
+      removeEntry();
+
+      for (const key of Object.keys(xItem)) {
+        delete xItem[key];
+        // switch (typeof xItem[key]) {
+        //   case "object":
+        //   case "function":
+        //     xItem[key] = null;
+        // }
+      }
+    }
+
+    const q =  {
+      wItem: wItem,
+      wKey: wKey,
+      indexSignal: indexSignal,
+      setupFn: setupFn,
+      getProfilePic, 
+      getStickerURL,
+      uid: uid,
+      getField,
+      viewVisible,
+      viewVisibleChange,
+      viewVisibleIdx,
+      viewVisibleIdxChange,
+      viewVisiblePosX,
+      viewVisiblePosXChange,
+      interceptionRatio,
+      interceptionRatioChange,
+      removeEntryFn,
+    };
+
+    const qm = mWeakRef(q);
+    xItemWM.set(wItem, qm);
+    setWb(qm);
+    return q;
+  });
 
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
@@ -4306,11 +4437,10 @@ SOFTWARE.
     const ioMessageListCallback = (entries) => { // performance concern? (6.1ms)
       for (const entry of entries) { // performance concern? (1.1ms)
         const target = entry?.target;
-        const mutable = target ? mutableWM.get(target) : null;
-        const interceptionRatioChange = mutable?.interceptionRatioChange || 0;
+        const xItem = target ? kRef(xItemWM.get(target)) : null;
+        const interceptionRatioChange = xItem?.interceptionRatioChange || 0;
         if (typeof interceptionRatioChange === 'function') {
           if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) { // performance concern? (2.2ms)
-
             interceptionRatioChange(entry.intersectionRatio);
           }
         }
@@ -4562,7 +4692,6 @@ SOFTWARE.
 
       const solidBuild = new VisibleItemList();
 
-
       this.setupVisibleItemsList(solidBuild);
 
       messageList.solidBuild = solidBuild;
@@ -4571,8 +4700,6 @@ SOFTWARE.
         (list.length !== prev) && Promise.resolve().then(resetSelection);
         return list.length;
       }, 0);
-
-      
 
       // createEffect(() => {
       //   solidBuild() && (ezPr !== null) && Promise.resolve([ezPr]).then(h => h[0].resolve());
@@ -4590,7 +4717,7 @@ SOFTWARE.
 
 
       messageList.profileCard = profileCard;
-      sbSignalSet(solidBuild);
+      createMemo(() => (sbSignalSet(R(solidBuild).slice(0)), Math.random()), -1);
       render(SolidMessageList, messageList);
 
       addMessageOverflowAnchorToShadow.call(this, attachRoot);
@@ -4644,8 +4771,8 @@ SOFTWARE.
       }
 
       const onNameFieldClick = (target, messageEntry, nameField) => {
-        const data = mutableWM.get(messageEntry)?.getDataObj();
-        if (!data) return;
+        const xItem = kRef(xItemWM.get(messageEntry));
+        if (!xItem) return;
 
         entryHoldingChange(messageEntry.getAttribute('message-uid') || '');
         // if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
@@ -4658,9 +4785,9 @@ SOFTWARE.
           fTop,
           fBottom,
           showOnTop: messageEntry.getAttribute('view-pos') === 'down',
-          iconUrl: data.getProfilePic(64, -1),
-          username: data.bst('getUsername'),
-          profileUrl: data.bst('authorAboutPage')
+          iconUrl: xItem.getProfilePic(64, -1),
+          username: xItem.getField("authorName"),
+          profileUrl: `https://www.youtube.com/channel/${xItem.wItem.authorExternalChannelId}/about`
         });
 
         console.log('[yt-bst] onNameFieldClick', Object.assign({}, (data)));
@@ -5191,24 +5318,27 @@ SOFTWARE.
 
       ioMessageList = intersectionObserver;
 
-      createEffect(() => {
-        const list = R(solidBuild);
-        let j = 0;
-        for (let i = 0; i < list.length; i++) {
-          const listItem =solidBuildAt(list, i);
-          const mutable = mutableWM.get(listItem);
-          if (typeof mutable?.viewVisible === 'function' && typeof mutable?.viewVisibleIdxChange === 'function') {
-            if (mutable?.viewVisible()) {
-              j++;
-              mutable?.viewVisibleIdxChange(j);
-            } else {
-              mutable?.viewVisibleIdxChange(null);
-            }
-          }
-        }
-        visibleCountChange(j);
+      const visibleSignalList = mapArray(sbSingalMap, (item) => {
+        const { viewVisible, viewVisibleIdxChange } = item;
+        return ({ viewVisible, viewVisibleIdxChange });
       });
 
+      createEffect(() => {
+        const list = visibleSignalList();
+        let counter = 0;
+        batch(() => {
+          for (let i = 0, l = list.length; i < l; i++) {
+            const { viewVisible, viewVisibleIdxChange } = list[i];
+            let idx = null;
+            if (viewVisible()) {
+              counter++;
+              idx = counter;
+            }
+            viewVisibleIdxChange(idx);
+          }
+          visibleCountChange(counter);
+        });
+      });
 
       Promise.resolve().then(() => {
 
@@ -5253,62 +5383,6 @@ SOFTWARE.
 
     // const
     // shadow.appendChild(document.createElement('div')).className = 'bst-message-entry';
-
-
-
-
-
-    function getAuthor(o) {
-      if (MEMO(o, 'rendererFlag')() === 1) {
-        return o?.header?.liveChatSponsorshipsHeaderRenderer;
-      }
-      return o;
-    }
-
-    function getAuthorBadgeType(authorBadges) {
-      if (!authorBadges || !(authorBadges.length >= 1)) return ''; // performance concern? (1.8ms)
-      for (const badge of authorBadges) {
-        const r = badge ? badge.liveChatAuthorBadgeRenderer : null;
-        if (r) {
-          const b = r ? r.icon ? r.icon.iconType.toLowerCase() : r.customThumbnail ? "member" : "" : ""
-          if (b && "verified" !== b) {
-            return b;
-          }
-        }
-      }
-      return '';
-    }
-
-
-    function getProfilePic(min, max) {
-      let w = getAuthor(this)?.authorPhoto || 0;
-      w = w.thumbnails || w;
-      if (w) {
-
-        if (w.url) return w.url;
-        if (typeof w === 'string') return w;
-        if (w.length >= 0) {
-          const url = getThumbnail(w, min, max);
-          if (url) return url;
-        }
-      }
-      return null;
-    }
-
-    function getStickerURL(min, max) {
-      let w = this.sticker || 0;
-      w = w.thumbnails || w;
-      if (w) {
-
-        if (w.url) return w.url;
-        if (typeof w === 'string') return w;
-        if (w.length >= 0) {
-          const url = getThumbnail(w, min, max);
-          if (url) return url;
-        }
-      }
-      return null;
-    }
 
     fixMessages = (messages) => {
 
@@ -5392,57 +5466,6 @@ SOFTWARE.
     */
 
       return res;
-
-
-    }
-
-
-    function bst(prop) {
-
-      if (prop === 'getUsername') {
-        
-        return MEMO(this, 'authorName')();
-      } else if (prop === 'hasMessageBody') {
-
-        const message = MEMO(this, 'rendererFlag')() === 1 ? this.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : this.message;
-        if (typeof (message || 0) !== 'object') return false;
-        if (message.simpleText) return true;
-
-        const runs = message.runs;
-        return runs && runs.length && runs[0];
-
-      } else if(prop === 'messageXM'){
-
-        return MEMO(this, 'messageXM');
-      
-      } else if (prop === 'authorBadges') {
-
-
-        const badges = getAuthor(this)?.authorBadges;
-        if (typeof (badges || 0) !== 'object') return null; // performance concern? (31.1ms)
-        return badges;
-
-      } else if (prop === 'authorType') {
-
-        return  getAuthorBadgeType(this.authorBadges);
-      } else if (prop === 'shouldHighlight') {
-        const authorType = this.bst('authorType');
-        return authorType === 'owner';
-      } else if (prop === 'timestampText') {
-        if (this.timestampText) return convertYTtext(this.timestampText);
-        const ts = +this.timestampUsec / 1000;
-        if (ts > 1107183600000) {
-          const now = Date.now();
-          if (ts < (now + 120000)) {
-            return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); // performance concern? (1.4ms)
-          }
-        }
-        return null;
-      } else if (prop === 'authorExternalChannelId') {
-        return this.authorExternalChannelId;
-      } else if (prop === 'authorAboutPage') {
-        return `https://www.youtube.com/channel/${this.authorExternalChannelId}/about`;
-      }
 
 
     }
@@ -5876,6 +5899,9 @@ f.handleRemoveChatItemAction_ = function(a) {
           visibleItems_.checkIntegrity(listControllerWR);
         }
       }
+      if (typeof solidBuild.setLength === "function") {
+        solidBuild.setLength(solidBuild.length);
+      }
     }
     cProto.bstClearCount = 0;
     cProto.clearList = function () {
@@ -5913,6 +5939,7 @@ f.handleRemoveChatItemAction_ = function(a) {
       // this.items.style.transform = "";
       // this.atBottom || this.scrollToBottom_()
       if(typeof this.fixChatRefCleared === "function") this.fixChatRefCleared();
+      sbSignalSet([]);
     }
 
     /*
@@ -6015,52 +6042,6 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     function getUID(aObj) {
       return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
-    }
-    convertAObj = (aObj, aKey) => {
-
-      if(!aObj || aObj.uid) {
-        console.warn('convertAObj warning')
-      }
-
-      aObj.uid = aObj.uid || createMemo(() => {
-        return getUID(R(aObj));
-      })
-
-      if (aKey && typeof aKey === 'string') W(aObj).aKey = aKey;
-
-      const memo_ = MEMO(aObj);
-
-      const rendererFlag = memo_?.rendererFlag || MEMO(aObj, 'rendererFlag', ()=>{
-        if(R(aObj).aKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
-        return 0;
-      });
-
-      memo_?.authorName || MEMO(aObj, 'authorName', () => {
-        const dx = R(aObj) && rendererFlag() === 1 ? aObj.header?.liveChatSponsorshipsHeaderRenderer : aObj
-        return convertYTtext(dx.authorName);
-      });
- 
-      aObj.getProfilePic = getProfilePic;
-      aObj.getStickerURL = getStickerURL;
-      aObj.bst = bst;
-
-      if(!memo_?.messageXM){
-
-        const messageXT = createMemo(()=>{
-          const data = R(aObj);
-          const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
-          return messageFlatten(m1);
-        })
-  
-        MEMO(aObj, 'messageXM', () =>{
-          const str = messageXT();
-          return messageUnflatten(str);
-        })
-
-      }
-
-
-
     }
 
     let nyhaDPr = null;
@@ -6248,7 +6229,6 @@ f.handleRemoveChatItemAction_ = function(a) {
 
       if (!messageList) return;
       if (DEBUG_windowVars) window.__bstFlush01__ = Date.now();
-
 
       const generatePFC = () => {
 
@@ -6467,6 +6447,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let mg = 0;
         rcKt = (rcKt & 1073741823) + 1;
+        rcSet.clear();
         rcValue = rcSignal();
         const t1 = performance.now();
         let a2 = t1;
@@ -6529,6 +6510,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           rcSignalSet(rcValue);
         }
         rcKt = (rcKt & 1073741823) + 1;
+        rcSet.clear();
         resetSelection();
         if (wasEmpty) messageList.classList.add('bst-listloaded');
 
