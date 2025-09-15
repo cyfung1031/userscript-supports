@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.21
+// @version             0.3.22
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4786,7 +4786,8 @@ SOFTWARE.
           profileUrl: `https://www.youtube.com/channel/${xItem.wItem.authorExternalChannelId}/about`
         });
 
-        console.log('[yt-bst] onNameFieldClick', Object.assign({}, (data)));
+        // console.log('[yt-bst] onNameFieldClick', Object.assign({}, (data)));
+        console.log('[yt-bst] onNameFieldClick');
 
       }
 
