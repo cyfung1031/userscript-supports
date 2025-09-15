@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.24
+// @version             0.3.25
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4103,7 +4103,7 @@ SOFTWARE.
 
       // let domI = 0;
 
-      const initialFn = (dom, wItem_, wKey) => {
+      const initialFn = (dom, wKey, wItem_) => {
         // const domJ = ++domI;
         const _messageEntry = dom;
 
