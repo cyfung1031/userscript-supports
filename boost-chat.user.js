@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.22
+// @version             0.3.23
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2783,196 +2783,8 @@ SOFTWARE.
   let ioMessageList = null;
   let moMessageList = null;
 
-  const subSetup = (bObj_, _wKey, uid, pr) =>{
+  const subSetup = (wItem, wKey, uid, pr) =>{
 
-    const bObj = bObj_;
-
-    let bObjWR = mWeakRef(bObj);
-    let messageEntryWR = null;
-    const [refSignal, setRefSignal] = createSignal(null);
-
-    const [interceptionRatio, interceptionRatioChange] = createSignal(null);
-
-    let bObjChange = (val) => {
-      let bObj = kRef(bObjWR);
-      if (!bObj) return;
-      if (typeof (val || 0) === 'object') {
-        for (const s of ['authorBadges', 'message']) {
-          Reflect.has(val, s) || (val[s] = undefined);
-          Reflect.has(val, s) || (val[s] = undefined);
-        }
-      }
-      Object.assign(W(bObj), val);
-    }
-
-    const prResolveHandler = (evt) => {
-      pr.resolve(evt.target);
-    };
-
-    let setupFn = (dom) => {
-      dom.setAttribute("bst-list-entry", "1");
-      dom.removeEventListener("bst-list-entry-attached", prResolveHandler);
-      dom.addEventListener("bst-list-entry-attached", prResolveHandler);
-    }
-
-    pr.then(dom => {
-      batch(() => {
-        const before = kRef(messageEntryWR);
-        if (before && dom && before === dom) return;
-        if (before) {
-          xItemWM.delete(before);
-          ioMessageList && ioMessageList.unobserve(before);
-        }
-        /** @type {HTMLElement} */
-        messageEntryWR = mWeakRef(dom);
-        interceptionRatioChange(null);
-        initialFn(dom);
-        setRefSignal(uid());
-        if (ioMessageList) {
-          // ioMessageList.unobserve(dom);
-          ioMessageList.observe(dom);
-          dom.setAttribute('bst-list-entry', "3");
-        }
-      });
-    });
-
-    let removeEntry = () => {
-      removeEntry = null;
-      setupFn = null;
-      {
-        const bObj = kRef(bObjWR);
-        const messageEntry = kRef(messageEntryWR);
-        bObj && xItemWM.delete(bObj);
-        if (messageEntry) {
-          xItemWM.delete(messageEntry);
-          ioMessageList && ioMessageList.unobserve(messageEntry);
-        }
-      }
-
-      bObjChange = null;
-
-    };
-    
-    // let domI = 0;
-
-    const initialFn = (dom) => {
-      // const domJ = ++domI;
-      const _messageEntry = dom;
-
-      const messageListWR__ = messageListWR_;
-
-      const wItem = kRef(bObjWR);
-
-      if (!wItem) {
-        console.warn('setupFn warning 02a');
-        return;
-      }
-      const xItem = xItemWM.get(wItem);
-      if (!xItem) {
-        console.warn('setupFn warning 02b');
-        return;
-      }
-
-      const messageList = kRef(messageListWR__);
-      if (!messageList) {
-        console.warn('setupFn warning 02c');
-        return;
-      }
-
-      const bstController = {
-        get bstDataRaw() {
-          return kRef(bObjWR);
-        },
-        get bstXItem(){
-          return xItemWM.get(kRef(bObjWR));
-        }
-      };
-
-      const polymerController = {
-        set(prop, val) {
-          if (prop === 'data') {
-            bObjChange?.(val);
-          }
-        },
-        get data() {
-          return kRef(bObjWR);
-        },
-        set data(val) {
-          bObjChange?.(val);
-        }
-      };
-
-
-      {
-        const messageEntry = _messageEntry;
-        // messageEntry[symbXItem] = bstController;
-        xItemWM.set(messageEntry, bstController);
-        messageEntry.polymerController = polymerController;
-        messageEntry.getBstController = function(){
-          return xItemWM.get(this);
-          //  return this[symbXItem];
-        };
-        // messageEntry.setAttribute("bst-qq", "A+"+Date.now());
-      }
-
-      {
-
-        let bObj = wItem;
-
-        const aKey = xItem?.wKey;
-        const a = bObj;
-
-        const messageEntry = _messageEntry;
-        if (!!(aKey && aKey !== 'liveChatTextMessageRenderer') && a && a === xItem?.wItem) {
-
-          const entries = Object.entries({
-
-            "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
-            "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
-
-            ...(aKey === "liveChatPaidMessageRenderer" ? {
-
-              "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
-              "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
-              "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
-              "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
-              "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
-            } : {
-
-            }),
-
-            ...(aKey === "liveChatPaidStickerRenderer" ? {
-              "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
-              "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
-              "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
-            } : {
-
-            })
-
-
-          });
-
-          if (entries.length >= 1) {
-            for (const [key, value] of entries) {
-              if (value) messageEntry.style.setProperty(key, value);
-            }
-          }
-
-        }
-
-      }
-
-
-    }
-
-    return {
-      refSignal,
-      initialFn,
-      removeEntry,
-      setupFn,
-      interceptionRatio,
-      interceptionRatioChange,
-    };
 
 
   };
@@ -3594,13 +3406,14 @@ SOFTWARE.
 
   const SolidMessagePlaceHolder = (xItem) => {
 
-    let data = xItem.wItem;
+    // let data = xItem.wItem;
 
     // const { rendererFlag, authorName, messageXT } = MEMO(data);
 
     onCleanup(() => {
       removeEntry(xItem)
-      xItem = data = null; 
+      xItem = null;
+      // xItem = data = null; 
     });
 
     
@@ -4178,38 +3991,38 @@ SOFTWARE.
     return '';
   }
 
-  function getProfilePic(min, max) {
-    if (!this.wItem) return null;
-    let w = this.getField("authorObject").authorPhoto || 0;
-    w = w.thumbnails || w;
-    if (w) {
+  // function getProfilePic(min, max) {
+  //   if (!this.wItem) return null;
+  //   let w = this.getField("authorObject").authorPhoto || 0;
+  //   w = w.thumbnails || w;
+  //   if (w) {
 
-      if (w.url) return w.url;
-      if (typeof w === 'string') return w;
-      if (w.length >= 0) {
-        const url = getThumbnail(w, min, max);
-        if (url) return url;
-      }
-    }
-    return null;
-  }
+  //     if (w.url) return w.url;
+  //     if (typeof w === 'string') return w;
+  //     if (w.length >= 0) {
+  //       const url = getThumbnail(w, min, max);
+  //       if (url) return url;
+  //     }
+  //   }
+  //   return null;
+  // }
 
-  function getStickerURL(min, max) {
-    if (!this.wItem) return null;
-    const data = R(this.wItem);
-    let w = data.sticker || 0;
-    w = w.thumbnails || w;
-    if (w) {
+  // function getStickerURL(min, max) {
+  //   if (!this.wItem) return null;
+  //   const data = R(this.wItem);
+  //   let w = data.sticker || 0;
+  //   w = w.thumbnails || w;
+  //   if (w) {
 
-      if (w.url) return w.url;
-      if (typeof w === 'string') return w;
-      if (w.length >= 0) {
-        const url = getThumbnail(w, min, max);
-        if (url) return url;
-      }
-    }
-    return null;
-  }
+  //     if (w.url) return w.url;
+  //     if (typeof w === 'string') return w;
+  //     if (w.length >= 0) {
+  //       const url = getThumbnail(w, min, max);
+  //       if (url) return url;
+  //     }
+  //   }
+  //   return null;
+  // }
 
   const sbSingalMap = mapArray(sbSignal, (qItem, indexSignal) => {
 
@@ -4220,10 +4033,185 @@ SOFTWARE.
       return getUID(R(wItem));
     });
 
+    let removeEntryE, onNameFieldClick;
+
+    const [refSignal, setRefSignal] = createSignal(null);
+    const [interceptionRatio, interceptionRatioChange] = createSignal(null);
     const pr = new PromiseExternal();
+    const prResolveHandler = (evt) => {
+      pr.resolve(evt.target);
+    };
+    let setupFn = (dom) => {
+      dom.setAttribute("bst-list-entry", "1");
+      dom.removeEventListener("bst-list-entry-attached", prResolveHandler);
+      dom.addEventListener("bst-list-entry-attached", prResolveHandler);
+    }
 
-    const { refSignal, removeEntry, setupFn, interceptionRatio, interceptionRatioChange  } = subSetup(wItem, wKey, uid, pr);
+    const wItem0 = wItem;
+    let wItemWR = mWeakRef(wItem0);
+    let wItemChangeVal = (val) => {
+      let bObj = kRef(wItemWR);
+      if (!bObj) return;
+      if (typeof (val || 0) === 'object') {
+        for (const s of ['authorBadges', 'message']) {
+          Reflect.has(val, s) || (val[s] = undefined);
+          Reflect.has(val, s) || (val[s] = undefined);
+        }
+      }
+      Object.assign(W(bObj), val);
+    };
 
+    {
+
+      let messageEntryWR = null;
+      let mpr = [wKey, wItem];
+      pr.then(dom => {
+        batch(() => {
+          const before = kRef(messageEntryWR);
+          if (before && dom && before === dom) return;
+          if (before) {
+            xItemWM.delete(before);
+            ioMessageList && ioMessageList.unobserve(before);
+          }
+          /** @type {HTMLElement} */
+          messageEntryWR = mWeakRef(dom);
+          interceptionRatioChange(null);
+          const [wKey, wItem] = mpr;
+          mpr = null;
+          initialFn(dom, wKey, wItem);
+          setRefSignal(uid());
+          if (ioMessageList) {
+            // ioMessageList.unobserve(dom);
+            ioMessageList.observe(dom);
+            dom.setAttribute('bst-list-entry', "3");
+          }
+        });
+      });
+
+      removeEntryE = () => {
+        removeEntryE = null;
+        setupFn = null;
+        wItemChangeVal = null;
+        const bObj = kRef(wItemWR);
+        const messageEntry = kRef(messageEntryWR);
+        bObj && xItemWM.delete(bObj);
+        if (messageEntry) {
+          xItemWM.delete(messageEntry);
+          ioMessageList && ioMessageList.unobserve(messageEntry);
+        }
+      };
+
+      // let domI = 0;
+
+      const initialFn = (dom, wItem_, wKey) => {
+        // const domJ = ++domI;
+        const _messageEntry = dom;
+
+        const messageListWR__ = messageListWR_;
+
+        const wItem = wItem_;
+
+        if (!wItem) {
+          console.warn('setupFn warning 02a');
+          return;
+        }
+
+        const messageList = kRef(messageListWR__);
+        if (!messageList) {
+          console.warn('setupFn warning 02c');
+          return;
+        }
+
+        const bstController = {
+          get bstDataRaw() {
+            return kRef(wItemWR);
+          },
+          get interceptionRatioChange() {
+            return interceptionRatioChange;
+          },
+          get onNameFieldClick() {
+            return onNameFieldClick;
+          }
+        };
+
+        const polymerController = {
+          set(prop, val) {
+            if (prop === 'data') {
+              wItemChangeVal?.(val);
+            }
+          },
+          get data() {
+            return kRef(wItemWR);
+          },
+          set data(val) {
+            wItemChangeVal?.(val);
+          }
+        };
+
+
+        {
+          const messageEntry = _messageEntry;
+          // messageEntry[symbXItem] = bstController;
+          xItemWM.set(messageEntry, bstController);
+          messageEntry.polymerController = polymerController;
+          messageEntry.getBstController = function () {
+            return xItemWM.get(this);
+            //  return this[symbXItem];
+          };
+          // messageEntry.setAttribute("bst-qq", "A+"+Date.now());
+        }
+
+        {
+
+          let bObj = wItem;
+
+          const aKey = wKey;
+          const a = bObj;
+
+          const messageEntry = _messageEntry;
+          if (!!(aKey && aKey !== 'liveChatTextMessageRenderer') && a && a === wItem) {
+
+            const entries = Object.entries({
+
+              "--yt-live-chat-disable-highlight-message-author-name-color": colorFromDecimal(a.authorNameTextColor),
+              "--yt-live-chat-text-input-background-color": colorFromDecimal(a.textInputBackgroundColor),
+
+              ...(aKey === "liveChatPaidMessageRenderer" ? {
+
+                "--yt-live-chat-paid-message-primary-color": colorFromDecimal(a.bodyBackgroundColor),
+                "--yt-live-chat-paid-message-secondary-color": colorFromDecimal(a.headerBackgroundColor),
+                "--yt-live-chat-paid-message-header-color": colorFromDecimal(a.headerTextColor),
+                "--yt-live-chat-paid-message-timestamp-color": colorFromDecimal(a.timestampColor),
+                "--yt-live-chat-paid-message-color": colorFromDecimal(a.bodyTextColor),
+              } : {
+
+              }),
+
+              ...(aKey === "liveChatPaidStickerRenderer" ? {
+                "--yt-live-chat-paid-sticker-chip-background-color": colorFromDecimal(a.moneyChipBackgroundColor),
+                "--yt-live-chat-paid-sticker-chip-text-color": colorFromDecimal(a.moneyChipTextColor),
+                "--yt-live-chat-paid-sticker-background-color": colorFromDecimal(a.backgroundColor),
+              } : {
+
+              })
+
+
+            });
+
+            if (entries.length >= 1) {
+              for (const [key, value] of entries) {
+                if (value) messageEntry.style.setProperty(key, value);
+              }
+            }
+
+          }
+
+        }
+
+
+      }
+
+    }
 
     const rendererFlag = createMemo(() => {
       if (wKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
@@ -4294,6 +4282,9 @@ SOFTWARE.
         case 'messageXM': {
           return messageXM();
         }
+        case 'profileURL': {
+          return `https://www.youtube.com/channel/${data.authorExternalChannelId}/about`;
+        }
       }
       return null;
     }
@@ -4336,14 +4327,14 @@ SOFTWARE.
     });
 
     let removeEntryFn = () => {
-      const xItem = q;
       removeEntryFn = null;
       // solidRoot?.();
       // solidRoot = null;
-      removeEntry();
+      removeEntryE?.();
+      removeEntryE = null;
 
-      for (const key of Object.keys(xItem)) {
-        delete xItem[key];
+      for (const key of Object.keys(qxItem)) {
+        qxItem[key] = null;
         // switch (typeof xItem[key]) {
         //   case "object":
         //   case "function":
@@ -4352,7 +4343,53 @@ SOFTWARE.
       }
     }
 
-    const q =  {
+    const getProfilePic = (min, max) => {
+      let w = getField("authorObject").authorPhoto || 0;
+      w = w.thumbnails || w;
+      if (w) {
+
+        if (w.url) return w.url;
+        if (typeof w === 'string') return w;
+        if (w.length >= 0) {
+          const url = getThumbnail(w, min, max);
+          if (url) return url;
+        }
+      }
+      return null;
+    }
+    const getStickerURL = (min, max) => {
+      const data = R(wItem);
+      let w = data.sticker || 0;
+      w = w.thumbnails || w;
+      if (w) {
+        if (w.url) return w.url;
+        if (typeof w === 'string') return w;
+        if (w.length >= 0) {
+          const url = getThumbnail(w, min, max);
+          if (url) return url;
+        }
+      }
+      return null;
+    }
+
+    onNameFieldClick = (messageEntry, opts) => {
+      batch(() => {
+        entryHoldingChange(messageEntry.getAttribute('message-uid') || '');
+        // if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
+        Object.assign(W(profileCard), {
+          ...opts,
+          wElement: mWeakRef(messageEntry),
+          showOnTop: messageEntry.getAttribute('view-pos') === 'down',
+          iconUrl: getProfilePic(64, -1),
+          username: getField("authorName"),
+          profileUrl: getField("profileURL")
+        });
+        // console.log('[yt-bst] onNameFieldClick', Object.assign({}, (data)));
+        console.log('[yt-bst] onNameFieldClick');
+      });
+    };
+
+    const qxItem =  {
       wItem,
       wKey,
       indexSignal,
@@ -4365,11 +4402,10 @@ SOFTWARE.
       viewVisibleIdxChange,
       interceptionRatioChange,
       removeEntryFn,
-      refSignal
+      refSignal,
+      onNameFieldClick
     };
-
-    xItemWM.set(wItem, q);
-    return q;
+    return qxItem;
   });
 
   const getBstController = (dom)=>{
@@ -4415,7 +4451,7 @@ SOFTWARE.
     const ioMessageListCallback = (entries, observer) => { // performance concern? (6.1ms)
       for (const entry of entries) { // performance concern? (1.1ms)
         const target = entry?.target;
-        const interceptionRatioChange = getBstController(target)?.bstXItem?.interceptionRatioChange;
+        const interceptionRatioChange = getBstController(target)?.interceptionRatioChange;
         // const xItem = target ? xItemWM.get(target) : null;
         // const interceptionRatioChange = xItem?.interceptionRatioChange || 0;
         target.setAttribute('bst-list-entry', "4");
@@ -4766,28 +4802,12 @@ SOFTWARE.
       }
 
       const onNameFieldClick = (target, messageEntry, nameField) => {
-        const xItem = getBstController(messageEntry)?.bstXItem;
-        // const xItem = xItemWM.get(messageEntry);
-        if (!xItem) return;
-
-        entryHoldingChange(messageEntry.getAttribute('message-uid') || '');
-        // if (this.atBottom === true && this.allowScroll === true && this.contextMenuOpen === false) this.contextMenuOpen = true;
-
+        const onNameFieldClick = getBstController(messageEntry)?.onNameFieldClick;
+        if (!onNameFieldClick) return;
         let r1 = nameField.getBoundingClientRect();
         let fTop = r1.top - messageList.getBoundingClientRect().top;
         let fBottom = fTop + r1.height;
-        Object.assign(W(profileCard), {
-          wElement: mWeakRef(messageEntry),
-          fTop,
-          fBottom,
-          showOnTop: messageEntry.getAttribute('view-pos') === 'down',
-          iconUrl: xItem.getProfilePic(64, -1),
-          username: xItem.getField("authorName"),
-          profileUrl: `https://www.youtube.com/channel/${xItem.wItem.authorExternalChannelId}/about`
-        });
-
-        // console.log('[yt-bst] onNameFieldClick', Object.assign({}, (data)));
-        console.log('[yt-bst] onNameFieldClick');
+        onNameFieldClick(messageEntry, {fTop, fBottom});
 
       }
 
