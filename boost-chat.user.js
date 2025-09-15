@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.23
+// @version             0.3.24
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -4706,20 +4706,28 @@ SOFTWARE.
         return cnt;
       }
 
-
-
-
       // messageList.visibleCount = visibleCount;
-
 
       const solidBuild = new VisibleItemList();
 
       this.setupVisibleItemsList(solidBuild);
 
       messageList.solidBuild = solidBuild;
-      createMemo((prev) => {
+
+      let uxx8 = 0;
+      let kdc = false;
+      const listLength = createMemo((prev) => {
         const list = R(solidBuild);
-        (list.length !== prev) && Promise.resolve().then(resetSelection);
+        const uxx = uxx8 = (uxx8 & 1073741823) + 1;
+        if (list.length !== prev) kdc = true;
+        Promise.resolve(list).then(list => {
+          if (uxx !== uxx8) return;
+          batch(() => {
+            sbSignalSet(list.slice(0));
+            kdc && resetSelection();
+            kdc = false;
+          });
+        });
         return list.length;
       }, 0);
 
@@ -4727,28 +4735,19 @@ SOFTWARE.
       //   solidBuild() && (ezPr !== null) && Promise.resolve([ezPr]).then(h => h[0].resolve());
       // });
 
-      const isListEmpty = createMemo(() => R(solidBuild).length < 1);
+      const isListEmpty = createMemo(() => listLength() < 1);
+      const isEmptyInvalidateFn = (cEmpty) => {
+        this._setPendingProperty('isEmpty', cEmpty, !0) && this._invalidateProperties()
+      };
       createEffect(() => {
         const cEmpty = isListEmpty();
         const change = (cEmpty) ^ (!!this.isEmpty);
         if (change) {
-          this._setPendingProperty('isEmpty', cEmpty, !0) && this._invalidateProperties()
+          Promise.resolve(cEmpty).then(isEmptyInvalidateFn);
         }
       });
 
-
-
       messageList.profileCard = profileCard;
-      let uxx8 = 0;
-      createMemo(() => {
-        const list = R(solidBuild);
-        const uxx = uxx8 = (uxx8 & 1073741823) + 1;
-        Promise.resolve(list).then(list => {
-          if (uxx !== uxx8) return;
-          sbSignalSet(list.slice(0))
-        });
-        return Math.random();
-      }, -1);
       render(SolidMessageList, messageList);
 
       addMessageOverflowAnchorToShadow.call(this, attachRoot);
@@ -4756,8 +4755,6 @@ SOFTWARE.
       {
 
         let mouseEntered = null;
-
-
 
         messageList.addEventListener('mouseenter', function (evt) {
 
