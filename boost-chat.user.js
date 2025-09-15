@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.20
+// @version             0.3.21
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -59,6 +59,22 @@ SOFTWARE.
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
 
+  class WeakMap2 extends WeakMap{
+  }
+
+  const xItemWM = new WeakMap2();
+  xItemWM.get = xItemWM.get;
+  xItemWM.set = xItemWM.set;
+  xItemWM.has = xItemWM.has;
+
+  // const symbXItem = Symbol("bst_xitem");
+
+  const symbURid = Symbol("bst_urid");
+
+  function getUID(aObj) {
+    if (!aObj[symbURid]) aObj[symbURid] = Math.floor(Math.random() * 314159265359 + 314159265359).toString(36);
+    return `${aObj.authorExternalChannelId || ""}:${aObj.timestampUsec || 0}_${aObj[symbURid]}`
+  }
 
 
 
@@ -245,24 +261,24 @@ SOFTWARE.
 
 
 
-  function getCodeLocation() {
-    let p = new Error().stack;
+  // function getCodeLocation() {
+  //   let p = new Error().stack;
 
-    if (p.includes('solid')) return 'solid';
-    if (p.includes('VisibleItemList.')) return 'solid';
-    let q = p.match(/Array\.\w+[^\n\r]+[\r\n]+([^\n\r]+)/)
-    q = q ? q[1] : p
-    return q;
-    // const callstack = new Error().stack.split("\n");
-    // callstack.shift();
-    // while (callstack.length && callstack[0].includes("-extension://")) {
-    //     callstack.shift();
-    // }
-    // if (!callstack.length) {
-    //     return "";
-    // }
-    // return '\n' + callstack[0].trim();
-  }
+  //   if (p.includes('solid')) return 'solid';
+  //   if (p.includes('VisibleItemList.')) return 'solid';
+  //   let q = p.match(/Array\.\w+[^\n\r]+[\r\n]+([^\n\r]+)/)
+  //   q = q ? q[1] : p
+  //   return q;
+  //   // const callstack = new Error().stack.split("\n");
+  //   // callstack.shift();
+  //   // while (callstack.length && callstack[0].includes("-extension://")) {
+  //   //     callstack.shift();
+  //   // }
+  //   // if (!callstack.length) {
+  //   //     return "";
+  //   // }
+  //   // return '\n' + callstack[0].trim();
+  // }
 
 
   const { _setAttribute, _insertBefore, _removeAttribute, replaceWith, appendChild } = (() => {
@@ -382,7 +398,6 @@ SOFTWARE.
 
   const flushPE = createPipeline();
 
-  const xItemWM = new WeakMap();
 
   const canScrollIntoViewWithOptions = (() => {
 
@@ -1742,6 +1757,9 @@ SOFTWARE.
   /** @type {import('./library/html').SolidJS}.SolidJS */
   const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap, mapArray, batch, createRoot } = SolidJS;
 
+
+  const [visibleCount, visibleCountChange] = createSignal();
+
   const { R, W ,rwWrap } = (() => {
 
     /*
@@ -1795,12 +1813,9 @@ SOFTWARE.
   window.MMR = R;
   window.MMW = W;
 
-  const memoStore = new WeakMap();
-
 
   // -------------------------------------------------------------------------------------------
   let rcKt = 0; // without rcKt, rcSignal() > rcValue => deadlock
-  const rcSet = new Set();
 
   let rcPromise = null;
   const [rcSignal, rcSignalSet] = createSignal(1);
@@ -1824,7 +1839,6 @@ SOFTWARE.
       rcPromise && rcPromise.resolve();
       rcPromise = null;
       rcKt = (rcKt & 1073741823) + 1;
-      rcSet.clear();
     }
   });
 
@@ -1847,7 +1861,6 @@ SOFTWARE.
       rcPromise = null;
       rcPromiseT = null;
       rcKt = (rcKt & 1073741823) + 1;
-      rcSet.clear();
     }
   };
 
@@ -2768,14 +2781,17 @@ SOFTWARE.
 
   /** @type {IntersectionObserver} */
   let ioMessageList = null;
+  let moMessageList = null;
 
-  const subSetup = (bObj_, _wKey, wb) =>{
+  const subSetup = (bObj_, _wKey, uid, pr) =>{
 
     const bObj = bObj_;
 
     let bObjWR = mWeakRef(bObj);
     let messageEntryWR = null;
     const [refSignal, setRefSignal] = createSignal(null);
+
+    const [interceptionRatio, interceptionRatioChange] = createSignal(null);
 
     let bObjChange = (val) => {
       let bObj = kRef(bObjWR);
@@ -2789,31 +2805,48 @@ SOFTWARE.
       Object.assign(W(bObj), val);
     }
 
-    let setupFn = (_messageEntry) => {
+    const prResolveHandler = (evt) => {
+      pr.resolve(evt.target);
+    };
 
-        batch(()=>{
-
-          {
-            const messageEntry = kRef(messageEntryWR);
-            messageEntry && xItemWM.delete(messageEntry);
-          }
-
-          /** @type {HTMLElement} */
-          messageEntryWR = mWeakRef(_messageEntry);
-          kRef(wb())?.viewVisiblePosXChange(null);
-          setRefSignal(messageEntryWR);
-        })
+    let setupFn = (dom) => {
+      dom.setAttribute("bst-list-entry", "1");
+      dom.removeEventListener("bst-list-entry-attached", prResolveHandler);
+      dom.addEventListener("bst-list-entry-attached", prResolveHandler);
     }
+
+    pr.then(dom => {
+      batch(() => {
+        const before = kRef(messageEntryWR);
+        if (before && dom && before === dom) return;
+        if (before) {
+          xItemWM.delete(before);
+          ioMessageList && ioMessageList.unobserve(before);
+        }
+        /** @type {HTMLElement} */
+        messageEntryWR = mWeakRef(dom);
+        interceptionRatioChange(null);
+        initialFn(dom);
+        setRefSignal(uid());
+        if (ioMessageList) {
+          // ioMessageList.unobserve(dom);
+          ioMessageList.observe(dom);
+          dom.setAttribute('bst-list-entry', "3");
+        }
+      });
+    });
 
     let removeEntry = () => {
       removeEntry = null;
       setupFn = null;
-
       {
         const bObj = kRef(bObjWR);
         const messageEntry = kRef(messageEntryWR);
         bObj && xItemWM.delete(bObj);
-        messageEntry && xItemWM.delete(messageEntry);
+        if (messageEntry) {
+          xItemWM.delete(messageEntry);
+          ioMessageList && ioMessageList.unobserve(messageEntry);
+        }
       }
 
       bObjChange = null;
@@ -2822,37 +2855,38 @@ SOFTWARE.
     
     // let domI = 0;
 
-    const initial = (dom) => {
+    const initialFn = (dom) => {
       // const domJ = ++domI;
       const _messageEntry = dom;
 
       const messageListWR__ = messageListWR_;
 
-      if (!kRef(bObjWR)) {
+      const wItem = kRef(bObjWR);
+
+      if (!wItem) {
         console.warn('setupFn warning 02a');
+        return;
+      }
+      const xItem = xItemWM.get(wItem);
+      if (!xItem) {
+        console.warn('setupFn warning 02b');
         return;
       }
 
       const messageList = kRef(messageListWR__);
       if (!messageList) {
-        console.warn('setupFn warning 02b');
-        return;
-      }
-      // const { visibleCount } = messageList;
-
-      const {viewVisible, viewVisibleChange, viewVisibleIdx, viewVisibleIdxChange, viewVisiblePosXChange, interceptionRatio} =  (kRef(wb()) || {});
-
-      if(!viewVisible || !viewVisibleChange || !viewVisibleIdx || !viewVisibleIdxChange) {
         console.warn('setupFn warning 02c');
         return;
       }
 
-      {
-        const messageEntry = _messageEntry;
-        const xItem = wb();
-        xItem && xItemWM.set(messageEntry, xItem);
-      }
-
+      const bstController = {
+        get bstDataRaw() {
+          return kRef(bObjWR);
+        },
+        get bstXItem(){
+          return xItemWM.get(kRef(bObjWR));
+        }
+      };
 
       const polymerController = {
         set(prop, val) {
@@ -2865,29 +2899,25 @@ SOFTWARE.
         },
         set data(val) {
           bObjChange?.(val);
-        },
-        get dataRaw() {
-          return kRef(bObjWR);
-        },
-        get authorType() {
-          const bObj = kRef(bObjWR);
-          return getAuthorBadgeType(bObj.authorBadges);
         }
       };
 
 
       {
-
         const messageEntry = _messageEntry;
+        // messageEntry[symbXItem] = bstController;
+        xItemWM.set(messageEntry, bstController);
         messageEntry.polymerController = polymerController;
-
+        messageEntry.getBstController = function(){
+          return xItemWM.get(this);
+          //  return this[symbXItem];
+        };
+        // messageEntry.setAttribute("bst-qq", "A+"+Date.now());
       }
 
       {
 
-        let bObj = kRef(bObjWR);
-
-        const xItem = kRef(wb());
+        let bObj = wItem;
 
         const aKey = xItem?.wKey;
         const a = bObj;
@@ -2933,20 +2963,15 @@ SOFTWARE.
       }
 
 
-      Promise.resolve(_messageEntry).then((messageEntry)=>{
-        ioMessageList && ioMessageList.observe(messageEntry);
-      });
-      // rcSignalAdd(1);
-
-
-
     }
 
     return {
       refSignal,
-      initial,
-      removeEntry: removeEntry,
-      setupFn: setupFn
+      initialFn,
+      removeEntry,
+      setupFn,
+      interceptionRatio,
+      interceptionRatioChange,
     };
 
 
@@ -2958,17 +2983,12 @@ SOFTWARE.
 
   const SolidMessageListEntry = (xItem) => {
 
-    const key = `${xItem.uid()}:${Date.now()}:${Math.random()}`;
-    rcSet.add(key);
+    let dk = rcKt;
     // rcSignalAdd(1);
     rcValue++;
-    const tkt = rcKt;
     const umc = async () => {
-      if (rcSet.has(key)) {
-        rcSet.delete(key);
-        if (tkt !== rcKt) return;
-        // timelineResolve && (await timelineResolve());
-        // if (tkt !== rcKt) return;
+      if (dk === rcKt) {
+        dk = 0;
         rcSignalAdd(0);
       }
     };
@@ -3196,8 +3216,10 @@ SOFTWARE.
       if (cleaned) return;
       const img = mImg();
       if (img) {
-        img.classList.add('bst-profile-img');
-        sImgSet(img);
+        Promise.resolve(img).then(img => {
+          img.classList.add('bst-profile-img');
+          sImgSet(img);
+        });
       }
     });
     onCleanup(() => {
@@ -4024,12 +4046,12 @@ SOFTWARE.
   });
 
   const [atBottom0, atBottom0Set] = createSignal(true);
-  const [atBottom1, atBottom1Set] = createSignal(true);
+  // const [atBottom1, atBottom1Set] = createSignal(true);
   const [bottomPauseAt, bottomPauseAtSet] = createSignal(0); // solely by the atBottom change
   const [bottomKeepAt, bottomKeepAtSet] = createSignal(0);
-  createEffect(() => {
-    atBottom1Set(atBottom0() ? true : false);
-  });
+  // createEffect(() => {
+  //   atBottom1Set(atBottom0() ? true : false);
+  // });
 
   let lcRendererWR = null;
 
@@ -4140,21 +4162,6 @@ SOFTWARE.
     return text;
   };
 
-  const solidBuildAt = (sb, x)=>{
-
-    const qItem = sb[x];
-    const wKey = qItem ? firstObjectKey(qItem) : null;
-    const wItem = wKey ? qItem[wKey] : null;
-    const item = wItem;
-
-    return item;
-    
-  }
-
-
-  function getUID(aObj) {
-    return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
-  }
   const [sbSignal, sbSignalSet] = createSignal(null);
 
   function getAuthorBadgeType(authorBadges) {
@@ -4206,16 +4213,17 @@ SOFTWARE.
 
   const sbSingalMap = mapArray(sbSignal, (qItem, indexSignal) => {
 
-
-
     const wKey = qItem ? firstObjectKey(qItem) : '';
     const wItem = wKey ? qItem[wKey] : null;
-    const [wb, setWb] = createSignal(null);
-    const { refSignal, removeEntry, setupFn, initial } = subSetup(wItem, wKey, wb);
 
     const uid = createMemo(() => {
-        return getUID(R(wItem));
-      });
+      return getUID(R(wItem));
+    });
+
+    const pr = new PromiseExternal();
+
+    const { refSignal, removeEntry, setupFn, interceptionRatio, interceptionRatioChange  } = subSetup(wItem, wKey, uid, pr);
+
 
     const rendererFlag = createMemo(() => {
       if (wKey === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") return 1;
@@ -4290,78 +4298,48 @@ SOFTWARE.
       return null;
     }
 
-    const [viewVisible, viewVisibleChange] = createSignal(null);
     const [viewVisibleIdx, viewVisibleIdxChange] = createSignal(null); // 1 to n
 
-    const [viewVisiblePosX, viewVisiblePosXChange] = createSignal(null); // 1 to n
-
-    const [interceptionRatio, interceptionRatioChange] = createSignal(null);
-
-    let solidRoot = createRoot(dispose => {
-
-      createMemo(() => {
-        const result = refSignal();
-        const dom = kRef(result);
-        dom && initial(dom);
-        return result;
-      }, null);
-
-      const { visibleCount } = (kRef(messageListWR_) || {});
-
-      if (visibleCount) {
-
-        // change on state
-        createEffect(() => {
-          const visible = interceptionRatio();
-          if (visible > 0.9) {
-            viewVisibleChange(1);
-          } else if (visible < 0.1) {
-            viewVisibleChange(0);
-          }
-        });
-
-        // change on state
-        const viewVisiblePos = createMemo(() => {
-          const viewCount = visibleCount();
-          const num = viewVisibleIdx();
-          if (num >= 1 && viewCount >= 1) {
-            return (num > (viewCount / 2)) ? 'down' : 'up';
-          } else {
-            return null;
-          }
-        });
-
-        // change on state -> change on DOM
-        createEffect(() => {
-          const v = viewVisiblePos();
-          viewVisiblePosXChange(v);
-        });
-
-
-        // change on state -> change on DOM
-        createEffect(() => {
-          const v = viewVisiblePosX();
-          const messageEntry = kRef(refSignal());
-          if (messageEntry) {
-            if (v === null) {
-              _removeAttribute.call(messageEntry, 'view-pos');
-            } else {
-              _setAttribute.call(messageEntry, 'view-pos', v);
-            }
-          }
-        });
-
+    const viewVisible = createMemo((prev) => {
+      const visible = interceptionRatio();
+      if (visible > 0.9) {
+        return 1;
+      } else if (visible < 0.1) {
+        return 0;
+      } else {
+        return prev;
       }
+    }, null);
 
+    // change on state
+    const viewVisiblePos = createMemo(() => {
+      const viewCount = visibleCount();
+      const num = viewVisibleIdx();
+      if (num >= 1 && viewCount >= 1) {
+        return (num > (viewCount / 2)) ? 'down' : 'up';
+      } else {
+        return null;
+      }
+    });
 
-      return dispose;
+    // change on state -> change on DOM
+    createEffect(() => {
+      const messageEntry = document.querySelector(`[message-uid="${refSignal()}"]`);
+      const p = interceptionRatio();
+      const v = viewVisiblePos();
+      if (!messageEntry || p === null) return;
+      if (v === null) {
+        _removeAttribute.call(messageEntry, 'view-pos');
+      } else {
+        _setAttribute.call(messageEntry, 'view-pos', v);
+      }
     });
 
     let removeEntryFn = () => {
       const xItem = q;
       removeEntryFn = null;
-      solidRoot?.();
-      solidRoot = null;
+      // solidRoot?.();
+      // solidRoot = null;
       removeEntry();
 
       for (const key of Object.keys(xItem)) {
@@ -4375,30 +4353,30 @@ SOFTWARE.
     }
 
     const q =  {
-      wItem: wItem,
-      wKey: wKey,
-      indexSignal: indexSignal,
-      setupFn: setupFn,
+      wItem,
+      wKey,
+      indexSignal,
+      setupFn,
       getProfilePic, 
       getStickerURL,
-      uid: uid,
+      uid,
       getField,
       viewVisible,
-      viewVisibleChange,
-      viewVisibleIdx,
       viewVisibleIdxChange,
-      viewVisiblePosX,
-      viewVisiblePosXChange,
-      interceptionRatio,
       interceptionRatioChange,
       removeEntryFn,
+      refSignal
     };
 
-    const qm = mWeakRef(q);
-    xItemWM.set(wItem, qm);
-    setWb(qm);
+    xItemWM.set(wItem, q);
     return q;
   });
+
+  const getBstController = (dom)=>{
+    if(!dom || typeof dom !== "object" || dom.nodeType !== 1) return null;
+    // return dom[symbXItem];
+    return xItemWM.get(dom);
+  }
 
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
@@ -4434,26 +4412,35 @@ SOFTWARE.
     let flushPEHoldingUntil = 0; // limit the flushPE holding time (avoid conflict with user action)
     let flushPEHoldingMaxTimelineResolve = 0; // limit the number of `await timelineResolve()`
 
-    const ioMessageListCallback = (entries) => { // performance concern? (6.1ms)
+    const ioMessageListCallback = (entries, observer) => { // performance concern? (6.1ms)
       for (const entry of entries) { // performance concern? (1.1ms)
         const target = entry?.target;
-        const xItem = target ? kRef(xItemWM.get(target)) : null;
-        const interceptionRatioChange = xItem?.interceptionRatioChange || 0;
+        const interceptionRatioChange = getBstController(target)?.bstXItem?.interceptionRatioChange;
+        // const xItem = target ? xItemWM.get(target) : null;
+        // const interceptionRatioChange = xItem?.interceptionRatioChange || 0;
+        target.setAttribute('bst-list-entry', "4");
         if (typeof interceptionRatioChange === 'function') {
+          target.setAttribute('bst-list-entry', "5");
           if (entry.rootBounds && (entry.rootBounds.height > 1 && entry.rootBounds.width > 1)) { // performance concern? (2.2ms)
+            target.setAttribute('bst-list-entry', "6");
             interceptionRatioChange(entry.intersectionRatio);
           }
         }
       }
     };
 
-    const ioMessageListCleanup = () => {
+    const listObserversCleanup = () => {
       if (ioMessageList) {
         ioMessageList.disconnect();
         ioMessageList.takeRecords();
         ioMessageList = null;
       }
-    }
+      if (moMessageList) {
+        moMessageList.disconnect();
+        moMessageList.takeRecords();
+        moMessageList = null;
+      }
+    };
 
     const addMessageOverflowAnchorToShadow = function (attachRoot) {
 
@@ -4555,7 +4542,7 @@ SOFTWARE.
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
       // if(!this.visibleItems__) this.visibleItems__ = [];
-      ioMessageListCleanup();
+      listObserversCleanup();
 
       // this.visibleItemsCount = 0;
       targetElement = targetElement.closest('#item-offset.yt-live-chat-item-list-renderer') || targetElement;
@@ -4684,10 +4671,9 @@ SOFTWARE.
       }
 
 
-      const [visibleCount, visibleCountChange] = createSignal();
 
 
-      messageList.visibleCount = visibleCount;
+      // messageList.visibleCount = visibleCount;
 
 
       const solidBuild = new VisibleItemList();
@@ -4717,7 +4703,16 @@ SOFTWARE.
 
 
       messageList.profileCard = profileCard;
-      createMemo(() => (sbSignalSet(R(solidBuild).slice(0)), Math.random()), -1);
+      let uxx8 = 0;
+      createMemo(() => {
+        const list = R(solidBuild);
+        const uxx = uxx8 = (uxx8 & 1073741823) + 1;
+        Promise.resolve(list).then(list => {
+          if (uxx !== uxx8) return;
+          sbSignalSet(list.slice(0))
+        });
+        return Math.random();
+      }, -1);
       render(SolidMessageList, messageList);
 
       addMessageOverflowAnchorToShadow.call(this, attachRoot);
@@ -4771,7 +4766,8 @@ SOFTWARE.
       }
 
       const onNameFieldClick = (target, messageEntry, nameField) => {
-        const xItem = kRef(xItemWM.get(messageEntry));
+        const xItem = getBstController(messageEntry)?.bstXItem;
+        // const xItem = xItemWM.get(messageEntry);
         if (!xItem) return;
 
         entryHoldingChange(messageEntry.getAttribute('message-uid') || '');
@@ -5316,27 +5312,59 @@ SOFTWARE.
       // (new MutationObserver(lcrAttributeFn)).observe(this.hostElement, { attributes: true });
       // lcrAttributeFn();
 
+      if (ioMessageList) {
+        ioMessageList.disconnect();
+        ioMessageList.takeRecords();
+        ioMessageList = null;
+      }
       ioMessageList = intersectionObserver;
-
-      const visibleSignalList = mapArray(sbSingalMap, (item) => {
-        const { viewVisible, viewVisibleIdxChange } = item;
-        return ({ viewVisible, viewVisibleIdxChange });
+      if (moMessageList) {
+        moMessageList.disconnect();
+        moMessageList.takeRecords();
+        moMessageList = null;
+      }
+      moMessageList = new MutationObserver((entries) => {
+        for (const e of entries) {
+          for (const n of e.addedNodes) {
+            if (n.getAttribute('bst-list-entry') === "1") {
+              n.setAttribute('bst-list-entry', "2");
+              // if (ioMessageList) {
+              //   ioMessageList.unobserve(n);
+              //   ioMessageList.observe(n);
+              //   n.setAttribute('bst-list-entry', "3");
+              // }
+              n.dispatchEvent(new CustomEvent("bst-list-entry-attached"));
+            }
+          }
+        }
       });
 
+      moMessageList.observe(messageList, { subtree: false, childList: true });
+
+      let uxx6 = 0;
       createEffect(() => {
-        const list = visibleSignalList();
+        const list = sbSingalMap();
         let counter = 0;
-        batch(() => {
-          for (let i = 0, l = list.length; i < l; i++) {
-            const { viewVisible, viewVisibleIdxChange } = list[i];
-            let idx = null;
-            if (viewVisible()) {
-              counter++;
-              idx = counter;
-            }
-            viewVisibleIdxChange(idx);
+        const ch = new Array(list.length);
+        for (let i = 0, l = list.length; i < l; i++) {
+          const { viewVisible, viewVisibleIdxChange } = list[i];
+          let idx = null;
+          if (viewVisible()) {
+            counter++;
+            idx = counter;
           }
-          visibleCountChange(counter);
+          ch[i] = { idx, viewVisibleIdxChange };
+        }
+        const uxx = uxx6 = (uxx6 & 1073741823) + 1;
+        Promise.resolve([counter, ch]).then(([counter, ch]) => {
+          batch(() => {
+            if (uxx !== uxx6) return;
+            for (let i = 0, l = ch.length; i < l; i++) {
+              const { viewVisibleIdxChange, idx } = ch[i];
+              viewVisibleIdxChange(idx);
+            }
+            visibleCountChange(counter);
+          });
         });
       });
 
@@ -6040,10 +6068,6 @@ f.handleRemoveChatItemAction_ = function(a) {
     */
 
 
-    function getUID(aObj) {
-      return `${aObj.authorExternalChannelId || `${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`}:${aObj.timestampUsec || 0}`
-    }
-
     let nyhaDPr = null;
     const nyhaDId = `nyhaD${Math.floor(Math.random() * 314159265359 + 314159265359).toString(36)}`;
     const nyhaDPost = window.postMessage.bind(window, nyhaDId);
@@ -6088,7 +6112,7 @@ f.handleRemoveChatItemAction_ = function(a) {
           const cnt = insp(wliveChatTextMessageRenderer);
           cnt.showContextMenu.call({
             data: {
-              contextMenuEndpoint: messageEntry.polymerController.dataRaw.contextMenuEndpoint
+              contextMenuEndpoint: getBstController(messageEntry).bstDataRaw.contextMenuEndpoint
             },
             isAttached: true,
             is: cnt.is,
@@ -6447,7 +6471,6 @@ f.handleRemoveChatItemAction_ = function(a) {
         if (DEBUG_windowVars) window.__bstFlush04__ = Date.now();
         let mg = 0;
         rcKt = (rcKt & 1073741823) + 1;
-        rcSet.clear();
         rcValue = rcSignal();
         const t1 = performance.now();
         let a2 = t1;
@@ -6510,7 +6533,6 @@ f.handleRemoveChatItemAction_ = function(a) {
           rcSignalSet(rcValue);
         }
         rcKt = (rcKt & 1073741823) + 1;
-        rcSet.clear();
         resetSelection();
         if (wasEmpty) messageList.classList.add('bst-listloaded');
 
