@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.1
+// @version     0.42.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -6679,8 +6679,9 @@
 
     const evaluteUseMicroTaskQueue = (ax_, containerId, hostIs_, producer, hostElement)=>{
 
+      const hostIs = hostIs_;
       const ax = ax_;
-      const useMicroTaskQueue = ax ? (ax[2] && ax[2]!==ax[0]) : false;
+      // const useMicroTaskQueue = ax ? (ax[2] && ax[2]!==ax[0]) : false;
       let useMicroTaskQueue2 = ax && ax[1] && ax[2];
       // const useMicroTaskQueue = false;
       if (ax && ax[2] && ax[2] === ax[0]) { // short ... execute job
@@ -6703,7 +6704,9 @@
         return false;
       }
 
-      const hostIs = hostIs_;
+      if (containerId === "edit-dialog" && hostIs === "ytd-comment-view-model" && producer.isReply === true) {
+        return false;
+      }
 
       if (hostIs === 'ytd-masthead' || hostIs === 'ytd-button-renderer' || hostIs === 'yt-button-shape' || hostIs === 'yt-icon-button' || hostIs === 'ytd-notification-topbar-button-renderer' || containerId === 'buttons' || containerId === 'button' || containerId === 'icon' || hostIs === 'yt-interaction' || containerId === 'interaction') return false;
 
