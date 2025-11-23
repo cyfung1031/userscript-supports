@@ -168,40 +168,39 @@ var sortByPCA = (data) => {
 
     const pc = v;
 
-    // 6. Project all points onto the first PC
+    // 6. Project all points onto the first PC and track min/max in one pass
     const scores = new Float64Array(m);
+
+    let min = Infinity;
+    let max = -Infinity;
+
     for (let i = 0; i < m; i++) {
         const base = i * n;
         let s = 0;
+
         for (let j = 0; j < n; j++) {
             s += X[base + j] * pc[j];
         }
+
         scores[i] = s;
+        if (s > max) max = s;
+        if (s < min) min = s;
     }
 
-    // Utility to ensure consistent sign/direction of the principal component (PC) scores
-    const absizer = (scores) => {
-        let max = scores[0], min = scores[0];
-        for (let i = 1, l = scores.length; i < l; i++) {
-            const score = scores[i];
-            if (score > max) max = score;
-            else if (score < min) min = score;
+    // 7. Ensure consistent orientation: flip if negative side dominates
+    if (m > 0 && Math.abs(min) > Math.abs(max)) {
+        for (let i = 0; i < m; i++) {
+            scores[i] = -scores[i];
         }
-        // If the negative side has a larger absolute deviation, flip all signs
-        if (Math.abs(min) > Math.abs(max)) {
-            for (let i = 0, l = scores.length; i < l; i++) {
-                scores[i] = -scores[i];
-            }
-        }
-        return scores;
     }
-
-    // 7. Consistent orientation
-    absizer(scores);
 
     // 8. Sort indices by descending score
     const indices = Array.from({ length: m }, (_, i) => i);
     indices.sort((a, b) => scores[b] - scores[a]);
 
-    return { indices, scores: Array.from(scores) };
+    // Return plain JS array for scores, typed array stays internal
+    return {
+        indices,
+        scores: Array.from(scores)
+    };
 }
