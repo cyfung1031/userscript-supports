@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.31
+// @version             0.3.32
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -1324,7 +1324,7 @@ __DISABLE__ .diff li:hover {
 
     .prettyprint .com {
         color:  #70767d; /* #ff6d6d */ /* !! to be reviewed */
-        color: #d06868;
+        color: #da7c7c;
     }
 
     .prettyprint .typ {
