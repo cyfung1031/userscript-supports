@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.2
+// @version     0.42.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -103,6 +103,8 @@
 
   const DENY_requestStorageAccess = true; // remove document.requestStorageAccess
   const DISABLE_IFRAME_requestStorageAccess = true; // no effect if DENY_requestStorageAccess is true
+
+  const REMOVE_BLANK_DUMMY_IFRAME = true;
 
   const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
 
@@ -5142,6 +5144,18 @@
       prototypeInherit(c.prototype, XMLHttpRequest_.prototype);
       return c;
     })();
+  }
+
+  if (REMOVE_BLANK_DUMMY_IFRAME) {
+    const evtHandler = (evt) => {
+      const target = ((evt || 0).target || 0);
+      if (target.nodeName === "IFRAME" && target.getAttribute("sandbox") === "allow-same-origin") {
+        const src = target.getAttribute("src") || "";
+        if (src.includes("about:blank") && !src.includes("://")) target.remove();
+      }
+    }
+    document.addEventListener("load", evtHandler, { capture: true, passive: true });
+    document.addEventListener("error", evtHandler, { capture: true, passive: true });
   }
 
   // Alternative HACK -> Tabview Youtube
