@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.7
+// @version             2025.101.8
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -184,17 +184,21 @@ SOFTWARE.
     tl = new DocumentTimeline();
   } else if (typeof Animation === 'function') {
     let AnimationConstructor = Animation, e = document.documentElement;
-    if (e) {
-      e = e.animate(null);
-      if (typeof (e || 0) === 'object' && '_animation' in e && e.constructor === Object) {
-        e = e._animation; // for YouTube
+    try {
+      if (e) {
+        e = e.animate(null);
+        if (typeof (e || 0) === 'object' && '_animation' in e && e.constructor === Object) {
+          e = e._animation; // for YouTube
+        }
+        if (typeof (e || 0) === 'object' && 'timeline' in e && typeof e.constructor === 'function') {
+          AnimationConstructor = e.constructor;
+        }
       }
-      if (typeof (e || 0) === 'object' && 'timeline' in e && typeof e.constructor === 'function') {
-        AnimationConstructor = e.constructor;
-      }
+      const ant = new AnimationConstructor();
+      tl = ant.timeline;
+    } catch (err) {
+      // ignored
     }
-    const ant = new AnimationConstructor();
-    tl = ant.timeline;
   }
   if (!tl || !Number.isFinite(tl.currentTime || null)) tl = new PseudoTimeline();
   const tl_ = tl;
