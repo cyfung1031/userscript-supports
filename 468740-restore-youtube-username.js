@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.14
+// @version             0.13.15
 // @license             MIT License
 
 // @author              CY Fung
@@ -430,10 +430,11 @@ const Object_ = Object;
             }
         });
 
-        const retrieveCE = async (nodeName) => {
+        const retrieveCE = async (nodeName, observable) => {
             try {
                 isCustomElementsProvided || (await promiseForCustomYtElementsReady);
                 await customElements.whenDefined(nodeName);
+                if (observable) await observable.obtain();
                 const dummy = document.querySelector(nodeName) || document.createElement(nodeName);
                 const cProto = insp(dummy).constructor.prototype;
                 return cProto;
@@ -445,6 +446,35 @@ const Object_ = Object;
         return { retrieveCE };
 
     })();
+
+    const observablePromise = (proc, timeoutPromise) => {
+        let promise = null;
+        return {
+            obtain() {
+                if (!promise) {
+                    promise = new Promise(resolve => {
+                        let mo = null;
+                        const f = () => {
+                            let t = proc();
+                            if (t) {
+                                mo.disconnect();
+                                mo.takeRecords();
+                                mo = null;
+                                resolve(t);
+                            }
+                        }
+                        mo = new MutationObserver(f);
+                        mo.observe(document, { subtree: true, childList: true })
+                        f();
+                        timeoutPromise && timeoutPromise.then(() => {
+                            resolve(null)
+                        });
+                    });
+                }
+                return promise
+            }
+        }
+    };
 
     const cfg = {};
     class Mutex {
@@ -1872,7 +1902,7 @@ const Object_ = Object;
 
 
         const setupForCommentReplyDialogRenderer = (cProto) => {
-            if (cProto && typeof cProto.showReplyDialog === 'function' && cProto.showReplyDialog.length === 1 && !cProto.showReplyDialog392) {
+            if (cProto && !cProto.showReplyDialog392 && typeof cProto.showReplyDialog === 'function' && cProto.showReplyDialog.length === 1) {
                 cProto.showReplyDialog392 = cProto.showReplyDialog;
                 cProto.showReplyDialog = function (a) {
                     let goDefault = true;
@@ -1894,10 +1924,18 @@ const Object_ = Object;
             }
         };
 
-        retrieveCE('ytd-comment-action-buttons-renderer').then(cProto => {
+        const pageMgrCollection = document.getElementsByTagName("ytd-page-manager");
+        const pageMgrWaitFor = observablePromise(() => {
+            if (!pageMgrCollection.length) return false;
+            if (pageMgrCollection.length !== 1 || !(pageMgrCollection[0] || 0).id) { console.error("pageMgrCollection ERROR !"); }
+            return (pageMgrCollection[0] || 0).id
+        });
+
+        retrieveCE('ytd-comment-action-buttons-renderer', pageMgrWaitFor).then(cProto => {
             setupForCommentReplyDialogRenderer(cProto);
         });
-        retrieveCE('ytd-comment-engagement-bar').then(cProto => {
+
+        retrieveCE('ytd-comment-engagement-bar', pageMgrWaitFor).then(cProto => {
             setupForCommentReplyDialogRenderer(cProto);
         });
 
