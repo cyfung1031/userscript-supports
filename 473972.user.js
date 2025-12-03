@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.3
+// @version     0.42.4
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5641,8 +5641,28 @@
 
       if (itProto.render && !itProto.render37 && itProto.render.length === 1) {
 
+        const rnWeakMap = new WeakMap();
+
         itProto.render37 = itProto.render;
         itProto.render = function (t) {
+
+          const el = this.el;
+          const isHookCounterValid = !("hookCounter" in this) || this.hookCounter >= 1;
+          if (!el || !t || !(isHookCounterValid && !this.__unmounted) || (t.numberText === "" && t.numberValue === undefined)) {
+            rnWeakMap.delete(this);
+            if (el) {
+              el.__lastCharacter353__ = undefined;
+              el.__lastNumberValue353__ = undefined;
+              el.__lastNumberText353__ = undefined;
+              el.__lastFireTime491__ = undefined;
+            }
+            const r = this.render37(t);
+            return r;
+          }
+
+          let rnt = rnWeakMap.get(this);
+          if (!rnt) rnWeakMap.set(this, (rnt = {}));
+
           // (this.xCounter = (this.xCounter & 1073741823)+1)
           let c33 = '';
           let r33 = null;
@@ -5658,15 +5678,15 @@
             dataType = 3;
           }
 
-          if (dataType === 3 && this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
-            const el = this.el;
+          if (dataType === 3) {
+            rnt.__previousRender63__ = undefined;
             const ct = Date.now();
             const lastFireTime = (el.__lastFireTime491__ || 0);
 
             const fireTimeDiff = lastFireTime > 0 ? ct - lastFireTime : 1e9;
 
-            if (fireTimeDiff < 80 && this.__previousRender61__) {
-              return this.__previousRender61__;
+            if (fireTimeDiff < 80 && rnt.__previousRender61__) {
+              return rnt.__previousRender61__;
             }
 
             // console.log(3772, t);
@@ -5677,14 +5697,14 @@
                   (typeof t.previousCharacter === 'string') ? 6 : 2
                 ) : 0;
 
-            if (caseInt === 6 && t.previousCharacter && t.character && this.__previousRender61__ && fireTimeDiff < 9400) {
-              if (this[`__lastCharRender62__${t.previousCharacter}>${t.character}`] === this.__previousRender61__) {
-                return this.__previousRender61__;
+            if (caseInt === 6 && t.previousCharacter && t.character && rnt.__previousRender61__ && fireTimeDiff < 9400) {
+              if (rnt[`lcr62::${t.previousCharacter}>${t.character}`] === rnt.__previousRender61__) {
+                return rnt.__previousRender61__;
               }
             }
-            if (caseInt === 1 && t.numberText.length > 0 && this.__previousRender61__ && fireTimeDiff < 9400) {
-              if (this[`__lastCharRender65__${t.numberValue}>${t.numberText}`] === this.__previousRender61__) {
-                return this.__previousRender61__;
+            if (caseInt === 1 && t.numberText.length > 0 && rnt.__previousRender61__ && fireTimeDiff < 9400) {
+              if (rnt[`lcr65::${t.numberValue}>${t.numberText}`] === rnt.__previousRender61__) {
+                return rnt.__previousRender61__;
               }
             }
 
@@ -5705,7 +5725,7 @@
               }
 
 
-              c33 = `__lastCharRender62__${t.previousCharacter}>${t.character}`;
+              c33 = `lcr62::${t.previousCharacter}>${t.character}`;
 
               el.__lastCharacter353__ = t.character;
 
@@ -5721,22 +5741,22 @@
               }
               el.__lastNumberText353__ = t.numberText;
 
-              c33 = `__lastCharRender65__${t.numberValue}>${t.numberText}`;
+              c33 = `lcr65::${t.numberValue}>${t.numberText}`;
 
             }
 
             // console.log(138002, this, t, caseInt, kc, fireTimeDiff);
 
             el.__lastFireTime491__ = ct;
-          } else if (dataType === 2 && this && t && this.hookCounter >= 1 && !this.__unmounted && this.el) {
-            const el = this.el;
+          } else if (dataType === 2) {
+            rnt.__previousRender61__ = undefined;
             const ct = Date.now();
             const lastFireTime = (el.__lastFireTime493__ || 0);
 
             const fireTimeDiff = lastFireTime > 0 ? ct - lastFireTime : 1e9;
 
-            if (fireTimeDiff < 80 && this.__previousRender63__) {
-              return this.__previousRender63__;
+            if (fireTimeDiff < 80 && rnt.__previousRender63__) {
+              return rnt.__previousRender63__;
             }
 
             // console.log(3772, t);
@@ -5747,14 +5767,14 @@
                   (typeof t.previousCharacter === 'string') ? 6 : 2
                 ) : 0;
 
-            if (caseInt === 6 && t.previousCharacter && t.character && this.__previousRender63__ && fireTimeDiff < 9400) {
-              if (this[`__lastCharRender62__${t.previousCharacter}>${t.character}`] === this.__previousRender63__) {
-                return this.__previousRender63__;
+            if (caseInt === 6 && t.previousCharacter && t.character && rnt.__previousRender63__ && fireTimeDiff < 9400) {
+              if (rnt[`lcr62::${t.previousCharacter}>${t.character}`] === rnt.__previousRender63__) {
+                return rnt.__previousRender63__;
               }
             }
-            if (caseInt === 1 && t.numberText.length > 0 && this.__previousRender63__ && fireTimeDiff < 9400) {
-              if (this[`__lastCharRender65__${t.numberValue}>${t.numberText}`] === this.__previousRender63__) {
-                return this.__previousRender63__;
+            if (caseInt === 1 && t.numberText.length > 0 && rnt.__previousRender63__ && fireTimeDiff < 9400) {
+              if (rnt[`lcr65::${t.numberValue}>${t.numberText}`] === rnt.__previousRender63__) {
+                return rnt.__previousRender63__;
               }
             }
 
@@ -5775,7 +5795,7 @@
               }
 
 
-              c33 = `__lastCharRender62__${t.previousCharacter}>${t.character}`;
+              c33 = `lcr62::${t.previousCharacter}>${t.character}`;
 
               el.__lastCharacter353__ = t.character;
 
@@ -5791,7 +5811,7 @@
               }
               el.__lastNumberText353__ = t.numberText;
 
-              c33 = `__lastCharRender65__${t.numberValue}>${t.numberText}`;
+              c33 = `lcr65::${t.numberValue}>${t.numberText}`;
 
             }
 
@@ -5804,17 +5824,80 @@
           // // console.log(12883, this, t);
           const r = r33 || this.render37(t);
           if (dataType === 3) {
-            this.__previousRender61__ = r;
+            rnt.__previousRender61__ = r;
           } else if (dataType === 2) {
-            this.__previousRender63__ = r;
+            rnt.__previousRender63__ = r;
           }
-          if (c33) this[c33] = r;
-          return r
+          if (c33) rnt[c33] = r;
+          return r;
         }
 
       }
 
     });
+
+    // document.addEventListener('yt-navigate-finish', async () => {
+    //   if (!document.querySelector("#below ytd-watch-metadata[class]")) return;
+    //   const ytdWatchInfoTextElm = await observablePromise(() => {
+    //     const elm = document.querySelector("ytd-watch-info-text#ytd-watch-info-text.style-scope.ytd-watch-metadata");
+    //     if (!elm) return null;
+    //     const cnt = insp(elm);
+    //     if ((cnt.viewCountProps || 0).numberText === "" || (cnt.dateTextProps || 0).numberText === "") return null;
+    //     return elm;
+    //   }).obtain();
+    //   if (!ytdWatchInfoTextElm) return;
+    //   let q = 1;
+    //   // requestAnimationFrame(() => {
+    //   // if (!ytdWatchInfoTextElm.isConnected) return;
+    //   const viewCountRollingNumber = HTMLElement_.prototype.querySelector.call(ytdWatchInfoTextElm, "#view-count yt-animated-rolling-number[style]");
+    //   if (viewCountRollingNumber) {
+    //     q |= 2;
+    //     const ytdWatchInfoTextCnt = insp(ytdWatchInfoTextElm);
+    //     const numberText = (ytdWatchInfoTextCnt.viewCountProps || 0).numberText;
+    //     if (numberText) {
+    //       q |= 4;
+    //       const viewCountRollingNumberCnt = insp(viewCountRollingNumber);
+    //       const setters = viewCountRollingNumberCnt.setters || viewCountRollingNumber.setters || 0;
+    //       if (typeof setters.numberText === "function" && setters.numberText.length === 1) {
+    //         q |= 32;
+    //         const t = `${numberText}`.trim()
+    //         if (t) {
+    //           setters.numberText("");
+    //           Promise.resolve().then(() => {
+    //             setters.numberText(t);
+    //           });
+    //           console.log('[yt-js-engine-tamer] fixed rollingNumber 002 numberText [view-count]');
+    //         }
+    //       }
+    //     }
+    //   }
+    //   const dateRollingNumber = HTMLElement_.prototype.querySelector.call(ytdWatchInfoTextElm, "#date-text yt-animated-rolling-number[style]");
+    //   if (dateRollingNumber) {
+    //     q |= 8;
+    //     const ytdWatchInfoTextCnt = insp(ytdWatchInfoTextElm);
+    //     const numberText = (ytdWatchInfoTextCnt.dateTextProps || 0).numberText;
+    //     if (numberText) {
+    //       q |= 16;
+    //       const dateRollingNumberCnt = insp(dateRollingNumber);
+    //       const setters = dateRollingNumberCnt.setters || dateRollingNumber.setters || 0;
+    //       if (typeof setters.numberText === "function" && setters.numberText.length === 1) {
+
+    //         q |= 64;
+    //         const t = `${numberText}`.trim();
+    //         if (t) {
+    //           setters.numberText("");
+    //           Promise.resolve().then(() => {
+    //             setters.numberText(t);
+    //           });
+    //           console.log('[yt-js-engine-tamer] fixed rollingNumber 002 numberText [date-text]');
+    //         }
+    //       }
+    //     }
+    //   }
+    //   // });
+    //   console.log('[yt-js-engine-tamer] fixed rollingNumber 001', q);
+
+    // });
 
   }
 
