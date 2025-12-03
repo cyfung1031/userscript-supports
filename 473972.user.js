@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.5
+// @version     0.42.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5823,7 +5823,10 @@
           // // console.log(21399, t.character, t.previousCharacter, (t.xCounter = (t.xCounter & 1073741823)+1), t, (this.xCounter = (this.xCounter & 1073741823)+1) )
           // // console.log(12883, this, t);
           const r = r33 || this.render37(t);
-          if (t && ((t.previousCharacter && t.character) || (t.numberText && t.numberValue))) {
+
+          if (t && (t.previousCharacter || t.character) && !((t.previousCharacter && t.character))) {
+            // ignored
+          } else {
             if (dataType === 3) {
               rnt.__previousRender61__ = r;
               rnt.__previousRender63__ = undefined;
@@ -5833,16 +5836,9 @@
             } else {
               rnt.__previousRender61__ = undefined;
               rnt.__previousRender63__ = undefined;
-              if (c33) rnt[c33] = undefined;
-              c33 = '';
             }
-          } else {
-            rnt.__previousRender61__ = undefined;
-            rnt.__previousRender63__ = undefined;
-            if (c33) rnt[c33] = undefined;
-            c33 = '';
+            if (c33) rnt[c33] = r;
           }
-          if (c33) rnt[c33] = r;
           return r;
         }
 
