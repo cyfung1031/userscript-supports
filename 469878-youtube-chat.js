@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.19
+// @version             0.102.20
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2148,30 +2148,23 @@
   });
   wmo.observe(wme, { characterData: true });
 
-
-  // ----- mult-protection -----
-  let removingSet761 = new WeakSet();
+  // ----- ticker removal helpers -----
   let storeTickerIds761 = new Map();
   const storeTickerIdInc761 = (dataId) => {
     if (dataId) {
       const store761 = storeTickerIds761;
       let w = store761.get(dataId) || 0;
-      store761.delete(dataId);
+      if (w) store761.delete(dataId);
       w = (w & 1073741823) + 1;
       store761.set(dataId, w);
-      if (store761.size > 8000) {
-        storeTickerIds761 = new Set([...store761].slice(-4000));
-      }
       return w;
     }
     return 0;
   }
-  let protectionId761_ = `${Math.random()}`;
-  // ----- mult-protection -----
-
+  let stampProcessId761_ = ""; // assign a random protection id during each stamping process
+  // ----- ticker removal helpers -----
 
   let playEventsStack = Promise.resolve();
-
 
   let playerProgressChangedArg1 = null;
   let playerProgressChangedArg2 = null;
@@ -4007,10 +4000,15 @@
 
 
             const tasks = [];
-            const protectionId761 = protectionId761_ = `${Math.random()}`;
+            const stampProcessId761 = stampProcessId761_ = `${Date.now()}.${Math.random()}`;
             let fragAppend = document.createDocumentFragment();
             let shouldManualScroll = null;
             let scrollTop1 = null, scrollTop2 = null;
+
+            const dataProcessTickerRendering = (data) => {
+              if (data.__tickerRemovingId761__) data.__tickerRemovingId761__ = undefined;
+              data.__stampp761__ = stampProcessId761;
+            };
 
             const taskFn = {
               remove: (task) => {
@@ -4043,9 +4041,7 @@
 
                 fragAppend.appendChild(newNode);
 
-
                 const itemScrollerX = (isMessageListRendering && isAtBottom) ? this.itemScroller : null;
-
 
                 if (itemScrollerX) {
                   if (scrollTop1 === null) scrollTop1 = itemScrollerX.scrollTop;
@@ -4057,23 +4053,16 @@
                   (parentNode.__domApi || parentNode).appendChild(fragAppend);
                 }
 
+                if (isTickerRendering && typeof (H || 0).id === "string") dataProcessTickerRendering(H);
                 this.deferRenderStamperBinding_(newNode, L, H);
                 this.flushRenderStamperComponentBindings_();
-
-                if (isTickerRendering) {
-                  const cnt = insp(newNode);
-                  const data = cnt.data;
-                  if (data) {
-                    if (data.__tickerRemovingId761__) data.__tickerRemovingId761__ = undefined;
-                    data.__stampp761__ = protectionId761;
-                  }
-                }
-
 
                 // nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
                 const connectedComponent = newNode;
                 const cnt = insp(connectedComponent);
-                renderMap.set(cnt.data, mWeakRef(connectedComponent));
+                const cntData = cnt.data;
+                if (isTickerRendering && typeof (cntData || 0).id === "string") dataProcessTickerRendering(cntData);
+                renderMap.set(cntData, mWeakRef(connectedComponent));
                 // mutationDelayedRefreshData(cnt); // not included to sideProcesses
                 addedCounter++;
 
@@ -4197,7 +4186,7 @@
 
             const finalizerFn = () => {
               fragAppend = null;
-              protectionId761_ = `${Math.random()}`;
+              stampProcessId761_ = "";
               resolveDM();
             };
             if (tasks.length >= 1) {
@@ -7677,13 +7666,12 @@
                 cProto.stampDomArraySplices381_ = cProto.stampDomArraySplices_;
 
                 if (typeof cProto.stampDomArraySplices381_ === 'function' && cProto.stampDomArraySplices381_.length >= 3) {
-
                   cProto.stampDomArraySplices_ = function (a, b, c) {
                     if (a === 'visibleItems' && b === 'items' && (c || 0).indexSplices) {
                       // if (this.ec388) {
                       const indexSplices = c.indexSplices;
                       if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
-                        const indexSplice = indexSplices[0] || indexSplices;
+                        const indexSplice = indexSplices[0] || indexSplices || 0;
                         if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || []).length >= 1)) {
                           // console.log(1059, a, b, indexSplice);
                           if (this.proceedStampDomArraySplices381_(a, b, indexSplice)) return;
@@ -7694,7 +7682,7 @@
                       // }
                     }
                     return this.stampDomArraySplices381_(...arguments);
-                  }
+                  };
                 } else {
                   console.warn('0xF0230 Function Signature Changed');
                 }
@@ -9276,7 +9264,7 @@
               if (d) {
                 storeTickerIdInc761(d.id);
                 if (d.__tickerRemovingId761__) d.__tickerRemovingId761__ = undefined;
-                d.__stampp761__ = protectionId761_;
+                d.__stampp761__ = stampProcessId761_ || undefined;
               }
               if (hostElement && hostElement.__requestRemovalAt003__) hostElement.__requestRemovalAt003__ = 0;
               if (this.__startCountdownAdv477__ < 0) this.__startCountdownAdv477__ = 0;
@@ -9940,6 +9928,8 @@
 
           let mDelCount = 0;
 
+          let removingSet761 = new WeakSet();
+
           if (FIX_REMOVE_TICKER_ITEM_BY_ID && typeof cProto.splice === 'function' && typeof cProto.markDirty === 'function' && typeof cProto.removeTickerItemById === 'function' && !cProto.removeTickerItemById737 && !cProto.__removeDelayed722__) {
             cProto.removeTickerItemById737 = cProto.removeTickerItemById;
             cProto.__removeDelayed722__ = function () {
@@ -9947,7 +9937,7 @@
               removingSet761 = new WeakSet();
               if (!mDelCount) return;
               mDelCount = 0;
-              const protectionId761 = protectionId761_;
+              const stampProcessId761 = stampProcessId761_ || false; // check whether it is added with the same stamping process
               if (!this || !this.splice || !this.markDirty || !this.tickerItems?.length) return;
               let dirty = false;
               const tickerItems = this.tickerItems;
@@ -9957,11 +9947,12 @@
                   const obj = findObjWithId(tickerItems[i]);
                   if (!obj) continue;
                   const trr761 = obj.__tickerRemovingId761__;
-                  if (trr761) obj.__tickerRemovingId761__ = undefined;
+                  if (!trr761) continue;
+                  obj.__tickerRemovingId761__ = undefined;
                   const dataId = obj.id;
                   if (trr761 === `${dataId}::${store761.get(dataId)}`) {
                     storeTickerIdInc761(dataId);
-                    if (obj.__stampp761__ === protectionId761) continue;
+                    if (stampProcessId761 && obj.__stampp761__ === stampProcessId761) continue;
                     store761.delete(dataId);
                     this.splice("tickerItems", i, 1);
                     dirty = true;
@@ -9978,7 +9969,7 @@
               // console.log('removeTickerItemById#02', a);
               const hostElement = this.hostElement;
               if (!hostElement || !a) return this.removeTickerItemById737(a);
-              const protectionId761 = protectionId761_;
+              const stampProcessId761 = stampProcessId761_ || false;
               // console.log('removeTickerItemById#03', a);
               const arr = hostElement.querySelectorAll(`[id="${a}"]`);
               const s = new Set();
@@ -9987,7 +9978,7 @@
                 if (!elem) continue;
                 const elemId = elem.id;
                 if (!elemId) continue;
-                if ((insp(elem).data || 0).__stampp761__ === protectionId761) continue;
+                if (stampProcessId761 && (insp(elem).data || 0).__stampp761__ === stampProcessId761) continue;
                 s.add(elemId);
                 const data = (insp(elem).data || 0);
                 if (data) {
@@ -9999,28 +9990,25 @@
               const tickerItems = this.tickerItems;
               // let deleteCount = 0;
               let uDelCount = mDelCount;
-              const tempStore761 = new Map();
-              const store761 = storeTickerIds761;
+              const oldStore761 = storeTickerIds761;
+              storeTickerIds761 = new Map();
               for (let i = tickerItems.length - 1; i >= 0; i--) {
                 const obj = findObjWithId(tickerItems[i]);
                 if (!obj) continue;
                 const dataId = obj.id;
-                const p = store761.get(dataId);
-                if (p) tempStore761.set(dataId, p);
-                if (obj.__stampp761__ === protectionId761) continue;
+                const p = storeTickerIds761.get(dataId) || oldStore761.get(dataId);
+                if (p) storeTickerIds761.set(dataId, p);
+                if (stampProcessId761 && obj.__stampp761__ === stampProcessId761) continue;
                 if (s.has(dataId)) {
                   removingSet761.add(tickerItems[i]);
                   const w = storeTickerIdInc761(dataId);
-                  tempStore761.set(dataId, w);
                   const trr761 = `${dataId}::${w}`;
                   obj.__tickerRemovingId761__ = trr761;
                   mDelCount++;
                   // deleteCount++;
                 }
               }
-              if (tempStore761.size < store761.size) {
-                storeTickerIds761 = tempStore761;
-              }
+              oldStore761.clear();
               // console.log('removeTickerItemById#06', a, deleteCount);
               s.has(this.highlightId) && (this.highlightId = void 0);
               // console.log('removeTickerItemById#07', a, deleteCount);
@@ -10050,22 +10038,8 @@
                 if (a === 'tickerItems' && b === 'ticker-items' && (c || 0).indexSplices) {
                   // if (this.ec388) {
                   const indexSplices = c.indexSplices;
-                  // if ((indexSplices.removed || 0).length >= 1) {
-                  //   for (const entry of indexSplices.removed) {
-                  //     removingSet761.delete(entry);
-                  //     const obj = findObjWithId(entry);
-                  //     if(obj && obj.__tickerRemovingId761__) obj.__tickerRemovingId761__ = undefined;
-                  //   }
-                  // }
                   if (indexSplices.length === 1 || typeof indexSplices.length === "undefined") {
-                    const indexSplice = indexSplices[0] || indexSplices;
-                    // const object = indexSplices.object || this.tickerItems;
-                    // for (let i = indexSplice.index; i < indexSplice.index + indexSplice.addedCount; i++) {
-                    //   const entry = object[i];
-                    //   removingSet761.delete(entry);
-                    //   const obj = findObjWithId(entry);
-                    //   if(obj && obj.__tickerRemovingId761__) obj.__tickerRemovingId761__ = undefined;
-                    // }
+                    const indexSplice = indexSplices[0] || indexSplices || 0;
                     if (indexSplice.type === 'splice' && (indexSplice.addedCount >= 1 || (indexSplice.removed || 0).length >= 1)) {
                       // console.log(1059, a, b, indexSplice);
                       if (this.proceedStampDomArraySplices371_(a, b, indexSplice)) return;
