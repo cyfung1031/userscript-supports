@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.17
+// @version             0.102.18
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -122,6 +122,9 @@
 
   // ShadyDom Free is buggy
   const DISABLE_FLAGS_SHADYDOM_FREE = true;
+  
+  // Don't delay dispatchEvent
+  const ENABLE_untrack_fire_custom_event_killswitch = true;
 
   // images <Group#I01>
   const AUTHOR_PHOTO_SINGLE_THUMBNAIL = 1;  // 0 - disable; 1- smallest; 2- largest
@@ -2405,6 +2408,10 @@
         EXPERIMENT_FLAGS.enable_shadydom_free_parent_node = false;
         EXPERIMENT_FLAGS.enable_shadydom_free_children = false;
         EXPERIMENT_FLAGS.enable_shadydom_free_last_child = false;
+      }
+
+      if (ENABLE_untrack_fire_custom_event_killswitch) {
+        EXPERIMENT_FLAGS.untrack_fire_custom_event_killswitch = true;
       }
 
       //   EXPERIMENT_FLAGS.enable_button_behavior_reuse = false;
@@ -8342,43 +8349,43 @@
 
       // const wmList = new Set;
 
-      true && (new MutationObserver((mutations) => {
+      // true && (new MutationObserver((mutations) => {
 
-        const s = new Set();
-        for (const mutation of mutations) {
-          if (mutation.type === 'attributes') {
-            s.add(mutation.target);
-          }
-        }
-        for (const target of s) {
-          const p = target && target.isConnected === true ? target.getAttribute('q92wb') : '';
-          if (p === '1') {
-            target.setAttribute('q92wb', '2');
-            const cnt = insp(target);
-            const dataId = ((cnt || 0).data || 0).id;
-            if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
-              target.id = dataId;
-              cnt.requestRemoval49();
-              target.setAttribute('q92wb', '3');
-            }
-          } else if (p === '3') {
-            target.setAttribute('q92wb', '4');
-            const cnt = insp(target);
-            const dataId = ((cnt || 0).data || 0).id;
-            if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
-              target.id = dataId;
-              const parentComponent = target.closest('yt-live-chat-ticker-renderer') || cnt.parentComponent;
-              const parentCnt = insp(parentComponent);
-              if(parentComponent && parentCnt && parentCnt.removeTickerItemById){
-                parentCnt.removeTickerItemById(dataId);
-                target.setAttribute('q92wb', '5');
-              }
-            }
-          }
-        }
-        s.clear();
+      //   const s = new Set();
+      //   for (const mutation of mutations) {
+      //     if (mutation.type === 'attributes') {
+      //       s.add(mutation.target);
+      //     }
+      //   }
+      //   // for (const target of s) {
+      //   //   const p = target && target.isConnected === true ? target.getAttribute('q92wb') : '';
+      //   //   if (p === '1') {
+      //   //     target.setAttribute('q92wb', '2');
+      //   //     const cnt = insp(target);
+      //   //     const dataId = ((cnt || 0).data || 0).id;
+      //   //     if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
+      //   //       target.id = dataId;
+      //   //       cnt.requestRemoval49();
+      //   //       target.setAttribute('q92wb', '3');
+      //   //     }
+      //   //   } else if (p === '3') {
+      //   //     target.setAttribute('q92wb', '4');
+      //   //     const cnt = insp(target);
+      //   //     const dataId = ((cnt || 0).data || 0).id;
+      //   //     if (cnt && typeof cnt.requestRemoval49 === 'function' && dataId) {
+      //   //       target.id = dataId;
+      //   //       const parentComponent = target.closest('yt-live-chat-ticker-renderer') || cnt.parentComponent;
+      //   //       const parentCnt = insp(parentComponent);
+      //   //       if(parentComponent && parentCnt && parentCnt.removeTickerItemById){
+      //   //         parentCnt.removeTickerItemById(dataId);
+      //   //         target.setAttribute('q92wb', '5');
+      //   //       }
+      //   //     }
+      //   //   }
+      //   // }
+      //   s.clear();
 
-      })).observe(document, { attributes: true, attributeFilter: ['q92wb'], subtree: true });
+      // })).observe(document, { attributes: true, attributeFilter: ['q92wb'], subtree: true });
       
 
       Promise.all(tags.map(tag => customElements.whenDefined(tag))).then(() => {
@@ -9228,7 +9235,7 @@
             cProto.attached747 = cProto.attached;
             cProto.attached = function () {
               const hostElement = (this || 0).hostElement;
-              if (hostElement && hostElement.hasAttribute('q92wb')) hostElement.removeAttribute('q92wb');
+              // if (hostElement && hostElement.hasAttribute('q92wb')) hostElement.removeAttribute('q92wb');
               if (hostElement && hostElement.__requestRemovalAt003__) hostElement.__requestRemovalAt003__ = 0;
               if (this.__startCountdownAdv477__ < 0) this.__startCountdownAdv477__ = 0;
               Promise.resolve().then(() => {
@@ -9385,10 +9392,11 @@
 
 
 
-            if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && cProto.requestRemoval.length === 0) {
+            if (typeof cProto.requestRemoval === 'function' && !cProto.requestRemoval49 && !cProto.__requestRemovalPre48__ && cProto.requestRemoval.length === 0) {
 
               cProto.requestRemoval49 = cProto.requestRemoval;
-              cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
+              cProto.__requestRemovalPre48__ = function (){
+
                 if (this.__startCountdownAdv477__ < 0) return;
                 this.__startCountdownAdv477__ = -1;
                 const hostElement = this.hostElement;
@@ -9488,8 +9496,16 @@
                   //   setTimeout(wf, 8000);
                   // }
 
-                  hostElement.setAttribute('q92wb', '1');
+                  // hostElement.setAttribute('q92wb', '1');
                 }
+              };
+              cProto.requestRemoval = dProto.requestRemovalAdv || (dProto.requestRemovalAdv = function () {
+                try {
+                  this.__requestRemovalPre48__();
+                } catch (e) {
+                  console.warn(e);
+                }
+                return this.requestRemoval49();
               });
 
 
@@ -9870,8 +9886,37 @@
             return;
           }
 
-          if (FIX_REMOVE_TICKER_ITEM_BY_ID && typeof cProto.splice === 'function' && typeof cProto.markDirty === 'function' && typeof cProto.removeTickerItemById === 'function' && !cProto.removeTickerItemById737) {
+          const findObjWithId = (obj) => {
+            while (obj && typeof obj === "object") {
+              if (typeof obj.id === "string") return obj;
+              const key = firstObjectKey(obj);
+              if (!key) break;
+              obj = obj[key];
+            }
+            return null;
+          };
+
+          const removingSet = new WeakSet();
+          let mDelCount = 0;
+
+          if (FIX_REMOVE_TICKER_ITEM_BY_ID && typeof cProto.splice === 'function' && typeof cProto.markDirty === 'function' && typeof cProto.removeTickerItemById === 'function' && !cProto.removeTickerItemById737 && !cProto.__removeDelayed722__) {
             cProto.removeTickerItemById737 = cProto.removeTickerItemById;
+            cProto.__removeDelayed722__ = function () {
+              if (!mDelCount) return;
+              mDelCount = 0;
+              if (!this || !this.splice || !this.markDirty || !this.tickerItems?.length) return;
+              let dirty = false;
+              const tickerItems = this.tickerItems;
+              for (let i = tickerItems.length - 1; i >= 0; i--) {
+                if (removingSet.delete(tickerItems[i]) === true) {
+                  this.splice("tickerItems", i, 1);
+                  dirty = true;
+                }
+              }
+              if (dirty) {
+                this.markDirty();
+              }
+            };
             cProto.removeTickerItemById = function (a) {
               // console.log('removeTickerItemById#01', a);
               if (this.tickerItemsQuery !== '#ticker-items' || typeof (a || 0) !== 'string') return this.removeTickerItemById737(a);
@@ -9895,23 +9940,24 @@
                 }
               }
               const tickerItems = this.tickerItems;
-              let deleteCount = 0;
+              // let deleteCount = 0;
+              let uDelCount = mDelCount;
               for (let i = tickerItems.length - 1; i >= 0; i--) {
-                const obj = tickerItems[i];
-                if (!obj || typeof obj !== 'object') continue;
-                const key = firstObjectKey(obj);
-                if (!key) continue;
-                const dataObj = obj[key];
-                const dataId = (dataObj || 0).id;
+                const obj = findObjWithId(tickerItems[i]);
+                if (!obj) continue;
+                const dataId = obj.id;
                 if (s.has(dataId)) {
-                  this.splice("tickerItems", i, 1);
-                  this.markDirty();
-                  deleteCount++;
+                  removingSet.add(tickerItems[i]);
+                  mDelCount++;
+                  // deleteCount++;
                 }
               }
               // console.log('removeTickerItemById#06', a, deleteCount);
               s.has(this.highlightId) && (this.highlightId = void 0);
               // console.log('removeTickerItemById#07', a, deleteCount);
+              if (!uDelCount && mDelCount) {
+                nextBrowserTick_(() => this.__removeDelayed722__());
+              }
             }
           }
 
