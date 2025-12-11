@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.6
+// @version     0.42.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -6040,7 +6040,7 @@
           const yieldResult = D.yieldResult;
           if (yieldResult) {
             const mutations = (((yieldResult || 0).frameworkUpdates || 0).entityBatchUpdate || 0).mutations;
-            const mutations_ = mutations.slice(); // array clone
+            const mutations_ = mutations ? mutations.slice() : null; // array clone
             if (mutations_ && mutations_.length >= 1) {
               let likeCountEntity = null;
               for (const mutation of mutations_) {
