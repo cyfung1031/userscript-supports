@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.20
+// @version             0.102.21
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -61,6 +61,7 @@
   const USE_ADVANCED_TICKING = true;                      // DONT CHANGE
   // << if USE_ADVANCED_TICKING >>
   const FIX_TIMESTAMP_FOR_REPLAY = true;
+  const FIX_TIMESTAMP_TEXT = true;
   const ATTEMPT_TICKER_ANIMATION_START_TIME_DETECTION = true; // MUST BE true
   const REUSE_TICKER = true;  // for better memory control; currently it is only available in ADVANCED_TICKING; to be further reviewed << NO EFFECT SINCE ENABLE_TICKERS_BOOSTED_STAMPING IS USED >>
   // << end >>
@@ -1740,6 +1741,24 @@
 
   let onPageContainer = null;
 
+  let timestampRef = null;
+
+  const timestampUsecTranslator = (x) => {
+    if (!x || typeof x !== "string") return x;
+    if (timestampRef === null) {
+      // 9 years -> 48.01 bits. 2^(48-53) = 0.03125 for μs
+      timestampRef = Math.floor(+x / 1000 - 9 * 365 * 24 * 60 * 60 * 1000); // store millisecond
+    }
+    if (x.charCodeAt(0) === 57 ? x.length < 16 : x.length < 17) {
+      return x - timestampRef * 1000;
+    } else {
+      return Number(BigInt(x) - BigInt(timestampRef) * 1000n);
+    }
+  };
+
+  const progressTimeRefOrigin = Math.floor(performance.timeOrigin / 1000 / 300_000 - 180) * 300_000; // <integer second>
+  const timeOriginDT = progressTimeRefOrigin; // <integer second>
+
   const customCreateComponent = (component, data, bool)=>{
 
     const componentTag = typeof component === 'string'  ? component : typeof (component||0).component === 'string' ? (component||0).component  : '';
@@ -2185,7 +2204,7 @@
     }
 
     const dntElement = kRef(dntElementWeak);
-    const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT / 1000) : playerProgressChangedArg1;
+    const v = timestampUnderLiveMode ? (Date.now() / 1000 - timeOriginDT) : playerProgressChangedArg1;
     if (dntElement instanceof HTMLElement_ && v >= 0) {
       valAssign(dntElement, '--ticker-current-time', v);
     }
@@ -2193,7 +2212,6 @@
 
   // ================== FOR USE_ADVANCED_TICKING ================
 
-  const timeOriginDT = +new Date(Math.floor(performance.timeOrigin)) - 1000;
   let startResistanceUpdaterStarted = false;
 
   const RESISTANCE_UPDATE_OPT = 3;
@@ -5943,7 +5961,7 @@
 
       };
 
-      const groupsK38=[];
+      const groupsK38 = [];
 
 
       function intervalsOverlap(a1, a2, b1, b2) {
@@ -6007,6 +6025,26 @@
         return Math.round((a + b) / (1 + (a * b) / k2));
       }
 
+      // const formatHMS = (seconds) => {
+      //   seconds = seconds | 0;
+      //   const h = (seconds / 3600) | 0;
+      //   const m = ((seconds - h * 3600) / 60) | 0;
+      //   const s = seconds - h * 3600 - m * 60;
+
+      //   return h
+      //     ? h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s
+      //     : m + ':' + (s < 10 ? '0' : '') + s;
+      // };
+
+      const parseHMS = (str) => {
+        let parts = str.split(':');
+        let s = 0;
+        for (let i = 0; i < parts.length; i++) {
+          s = s * 60 + (+parts[i]);
+        }
+        return s;
+      };
+
       const preprocessChatLiveActions = (arr, ct_) =>{
 
         if (!ct_) ct_ = Date.now();
@@ -6064,7 +6102,7 @@
 
 
 
-          const pushToGroup = (t0mu)=>{
+          const pushToGroup = (t0mu) => {
 
             const t0auDv = t0mu - 1e6; // t0buDv - t0auDv = 2e6
             const t0buDv = t0mu + 1e6;
@@ -6101,7 +6139,7 @@
                   // just in case sth wrong
                   console.warn('logic ERROR');
                   groups[k] = null;
-                  if(deletedStartIndex < 0) deletedStartIndex = k;
+                  if (deletedStartIndex < 0) deletedStartIndex = k;
                   break;
                 } else {
 
@@ -6170,9 +6208,9 @@
                   lastRight = (group[1] += (groupEnd - group[1]) * f1 + (t0buDv - group[1]) * f2);
 
                   group[2] = newN;
-                   // no change of lastK
+                  // no change of lastK
                   groups[k] = null;
-                  if(deletedStartIndex < 0) deletedStartIndex = k;
+                  if (deletedStartIndex < 0) deletedStartIndex = k;
                   continue;
 
                 } else {
@@ -6221,7 +6259,7 @@
 
           }
 
-          let autoTimeStampFrameChoose = 0;
+          // let autoTimeStampFrameChoose = 0;
 
           // console.log('group02332')
           for (let j = 0, l = arr.length; j < l; j++) {
@@ -6231,72 +6269,107 @@
             if (obj === false) continue;
 
             let p = obj.timestampText;
-            let p2, p3=null, p4a=null, p4b=null;
-            if(p&&p.simpleText ) p2 = p.simpleText;
+            let p2, p3 = null, p4a = null, p4b = null;
+            if (p && p.simpleText) p2 = p.simpleText;
 
-            let q = obj.timestampUsec ;
+            let q = timestampUsecTranslator(obj.timestampUsec); // <offsetted μs>
             let q2;
 
-            if(q && +q > 1110553200000000) q2 = +q;
-            if (q2 > 0 && !autoTimeStampFrameChoose) {
-              const q2cc = Math.round(q2 / 1e6);
-              autoTimeStampFrameChoose = q2cc - (q2cc % 10000000);
-              if (q2cc - autoTimeStampFrameChoose < 2000000) autoTimeStampFrameChoose -= 10000000;
+            if(q && q > 1e12) q2 = +q; // <offsetted μs>
+            // if (q2 > 0 && !autoTimeStampFrameChoose) {
+              // const q2cc = Math.round(q2 / 1_000_000); // <integer second>
+              // autoTimeStampFrameChoose = q2cc - (q2cc % 10_000_000);
+              // if (q2cc - autoTimeStampFrameChoose < 2_000_000) autoTimeStampFrameChoose -= 10_000_000;
               // around 10day range
               // exceeded ~10day -> above 10000000
-            }
+            // }
 
           // console.log('group02333', p2, q2)
             // console.log(3775, q2/1e6, autoTimeStampFrameChoose)
 
-            if(p2 && q2){
-
-              let m;
-
-              if (m = /^\s*(-?)(\d+):(\d+)\s*$/.exec(p2)) {
-                let c0z = m[1] ? -1 : 1;
-                let c1 = (+m[2]);
-                let c2 = (+m[3]);
-                if (c0z > 0 && c1 >= 0 && c2 >= 0) {
-
-                  p3 = c1 * 60 + c2;
-                } else if (c0z < 0 && c1 >= 0 && c2 >= 0) {
-                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58
-                  // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
-
-                  p3 = (-c1 * 60) + (-c2);
-
-                }
-                if (p3 !== null) {
-                  // 0:14 -> 13.5s ~ 14.4999s -> [13.5, 14.5)
-                  p4a = p3 - 0.5;
-                  p4b = p3 + 0.5;
-                }
-              } else if (m = /^\s*(-?)(\d+):(\d+):(\d+)\s*$/.exec(p2)) {
-
-                let c0z = m[1] ? -1 : 1;
-                let c1 = (+m[2]);
-                let c2 = (+m[3]);
-                let c3 = (+m[4]);
 
 
+            if (p2 && q2) {
 
-                if (c0z > 0 && c1 >= 0 && c2 >= 0 && c3 >= 0) {
+              // Trim whitespace manually (faster than trim() in hot paths)
+              let str = p2;
+              let start = 0;
+              let end = str.length;
 
-                  p3 = c1 * 60 * 60 + c2 * 60 + c3;
-                } else if (c0z < 0 && c1 >= 0 && c2 >= 0 && c3>=0) {
-                  // -4:43 -> -4:42 -> -4:41 ... -> -4:01 -> -4:00 -> -3:59 -> -3:58
-                  // -> ... -1:01 -> -1:00 -> -0:59 -> ... -> -0:02 -> -0:01 -> -0:00 -> 0:00 -> ...
+              // Skip leading whitespace
+              while (start < end && (str.charCodeAt(start) === 32 || str.charCodeAt(start) === 9)) start++;
+              // Skip trailing whitespace
+              while (end > start && (str.charCodeAt(end - 1) === 32 || str.charCodeAt(end - 1) === 9)) end--;
 
-                  p3 = (-c1 * 60 * 60) + (-c2 * 60) + (-c3);
+              const len = end - start;
 
-                }
-                if (p3 !== null) {
-                  // 0:14 -> 13.5s ~ 14.4999s -> [13.5, 14.5)
-                  p4a = p3 - 0.5;
-                  p4b = p3 + 0.5;
+              if (len > 0) {
+                const s = str;
+
+                let negative = false;
+                let i = start;
+
+                // Check for optional leading '-'
+                if (s.charCodeAt(i) === 45) { // '-'
+                  negative = true;
+                  i++;
                 }
 
+                // Must have at least one digit now
+                if (i < end && s.charCodeAt(i) >= 48 && s.charCodeAt(i) <= 57) {
+
+                  // Parse numbers separated by ':'
+                  const parts = [];
+                  let num = 0;
+
+                  for (; i < end; i++) {
+                    const code = s.charCodeAt(i);
+                    if (code >= 48 && code <= 57) { // '0'-'9'
+                      num = num * 10 + (code - 48);
+                    } else if (code === 58) { // ':'
+                      parts.push(num);
+                      num = 0;
+                    } else {
+                      parts.length = 0;
+                      break; // invalid char
+                    }
+                  }
+                  parts.push(num); // last part
+                  const partCount = parts.length;
+                  // Only support 2 or 3 parts: MM:SS or HH:MM:SS
+                  if (partCount === 2 || partCount === 3) {
+
+                    // Validate all parts >= 0 (already ensured by digit parsing)
+                    // But we still need to ensure no leading zeros issue or overflow — but for performance, skip if trusted
+
+                    let seconds;
+                    if (partCount === 2) {
+                      // MM:SS
+                      const mins = parts[0];
+                      const secs = parts[1];
+                      seconds = mins * 60 + secs;
+                    } else {
+                      // HH:MM:SS
+                      const hours = parts[0];
+                      const mins = parts[1];
+                      const secs = parts[2];
+                      seconds = hours * 3600 + mins * 60 + secs;
+                    }
+
+                    // Apply sign
+                    if (negative) {
+                      seconds = -seconds;
+                    }
+
+                    // p3 = seconds;
+
+                    // Compute half-open interval [seconds - 0.5, seconds + 0.5)
+                    p4a = seconds - 0.5;
+                    p4b = seconds + 0.5;
+
+                  }
+
+                }
 
               }
 
@@ -6306,8 +6379,8 @@
 
               // q2_us = t0_us + dt_us
               // p4a_us <= dt_us < p4b_us
-              let p4au = p4a * 1e6;
-              let p4bu = p4b * 1e6;
+              let p4au = p4a * 1_000_000; // <small μs>
+              let p4bu = p4b * 1_000_000; // <small μs>
 
               // p4a_us <= q2_us - t0_us < p4b_us
 
@@ -6317,12 +6390,12 @@
               // -p4a_us + q2_us >= t0_us > -p4b_us + q2_us
 
 
-              let t0au = q2 - p4bu; // q2_us - p4b_us
-              let t0bu = q2 - p4au; // q2_us - p4a_us
+              let t0au = q2 - p4bu; // q2_us - p4b_us <offsetted μs>
+              let t0bu = q2 - p4au; // q2_us - p4a_us <offsetted μs>
 
               // t0 (t0au, t0bu]
 
-              const t0mu = (t0au+t0bu)/2;
+              const t0mu = (t0au + t0bu) / 2; // <offsetted μs>
 
               // stack[stackL++]=({
               //   id: obj.id,
@@ -6348,13 +6421,13 @@
 
               // console.log('group02334')
               let wobj = additionalInfo.get(obj);
-              if(!wobj) additionalInfo.set(obj, wobj = {});
+              if (!wobj) additionalInfo.set(obj, wobj = {});
 
-              wobj.timestampUsecOriginal = q2;
+              wobj.timestampUsecOriginal = q2; // <offsetted μs>
               // wobj.timestampUsecAdjusted = q2;
-              wobj.t0au = t0au;
-              wobj.t0bu = t0bu;
-              wobj.t0mu = t0mu;
+              wobj.t0au = t0au; // <offsetted μs>
+              wobj.t0bu = t0bu; // <offsetted μs>
+              wobj.t0mu = t0mu; // <offsetted μs>
 
               // arrHash[j] = {
               //   index: j,
@@ -6400,32 +6473,22 @@
 
             }
 
-
-
-
           }
 
           // stack.length = stackL;
-
 
           groups_ = groups;
           // console.log('groups', groups)
 
         }
 
-        // console.log(1237006);
-
-        // console.log(5592,1)
-        const groupMids = FIX_TIMESTAMP_FOR_REPLAY ? groups_.map(group=>{
-
-          const [groupStart, groupEnd ] = group;
-          const groupMid = (groupStart+groupEnd)/2;
-          return groupMid;
-        }): null;
+        const groupMids = FIX_TIMESTAMP_FOR_REPLAY ? groups_.map(group => {
+          // const [groupStart, groupEnd] = group;
+          // const groupMid = (groupStart + groupEnd) / 2;
+          // return groupMid;
+          return (group[0] + group[1]) / 2;
+        }) : null;
         // console.log('groupMids', groupMids)
-
-
-        // console.log(1237007);
 
         const adjustTimestampFn = (obj) => {
 
@@ -6440,7 +6503,6 @@
           if (!wobj) return null;
 
           const { t0mu } = wobj;
-
 
           let i0 = 0;
 
@@ -6472,10 +6534,8 @@
             lowerDiff = -y; // >0, cache
           }
 
-
           const d1 = upperDiff;
           const d2 = lowerDiff;
-
 
           // console.log(5381, index1 ,d1, index2 , d2);
 
@@ -6488,9 +6548,9 @@
             return null;
           }
 
-          const adjusted = wobj.timestampUsecOriginal - wobj.chosenT0;
+          const adjusted = wobj.timestampUsecOriginal - wobj.chosenT0; // <μs>
 
-          wobj.timestampUsecAdjusted = adjusted + 1110553200000000;
+          // wobj.timestampUsecAdjusted = adjusted + 1110553200000;
 
           // console.log('adjusted', `${obj.id}.${obj.timestampUsec}`, wobj.timestampUsecOriginal - wobj.chosenT0);
 
@@ -6498,324 +6558,50 @@
 
           return adjusted;
 
-
-
         };
-
-
-        // console.log(5592,2)
-        // console.log(1237008);
-        // if (FIX_TIMESTAMP_FOR_REPLAY) {
-
-
-        //   try{
-
-        //     // console.log('groupmid',groupMids, groups);
-
-        //     for(let j = 0; j< arr.length;j++){
-        //       if(groupMids.length<1) break;
-
-        //       const aItem = arr[j];
-        //       const obj = toLAObj(aItem);
-        //       if (obj === false) continue;
-
-        //       const wobj = additionalInfo.get(obj);
-        //       if(!wobj) continue;
-
-        //       // wobj.timestampUsecOriginal = q2;
-        //       // wobj.timestampUsecAdjusted = q2;
-        //       // wobj.t0au = t0au;
-        //       // wobj.t0bu = t0bu;
-        //       // wobj.t0mu = t0mu;
-
-        //       const {t0au, t0bu, t0mu} = wobj;
-
-        //       let upper = -1;
-
-        //       for(let i = 0; i <groupMids.length;i++){
-        //         const groupMid = groupMids[i];
-        //         if(groupMid>= t0mu){
-        //           upper = i;
-        //           break;
-        //         }
-        //       }
-        //       let index1, index2;
-        //       if(upper>-1){
-        //         index1 = upper-1;
-        //         index2 = upper;
-        //       }else{
-        //         index1 = groups.length-1;
-        //         index2 = -1;
-        //       }
-        //       let d1 = null;
-        //       if(index1 >=0){
-        //         d1 = Math.abs(groupMids[index1] - t0mu);
-        //       }
-
-        //       let d2 = null;
-        //       if(index2 >=0){
-        //         d2 = Math.abs(groupMids[index2] - t0mu);
-        //       }
-        //       // console.log(5381, index1 ,d1, index2 , d2);
-        //       if(d1 >= 0 && ((d1 <= d2) || (d2 === null)) ){
-
-        //         wobj.chosenT0 = groupMids[index1];
-        //       } else if(d2 >= 0 &&  ((d2 <= d1) || (d1 === null))){
-        //         wobj.chosenT0 = groupMids[index2];
-        //       } else {
-        //         console.warn('logic error');
-        //         continue;
-        //       }
-
-        //       wobj.timestampUsecAdjusted =  wobj.timestampUsecOriginal - wobj.chosenT0 + 1110553200000000;
-
-        //       console.log('adjusted', `${obj.id}.${obj.timestampUsec}`,  wobj.timestampUsecOriginal - wobj.chosenT0);
-
-        //       adjustmentMap.set(`${obj.id}.${obj.timestampUsec}`, wobj.timestampUsecOriginal - wobj.chosenT0);
-        //       // conversionMap.set(obj, arrHash[j].adjustedTime);
-
-        //       // console.log(5382, index, id, t0mu, arrHash[j].adjustedT0, arrHash[j].timestampUsec, arrHash[j].adjustedTime);
-
-        //     }
-
-
-        //   }catch(e){
-        //     console.warn(e);
-        //   }
-
-
-
-
-
-        //   // if(stack.length > 1){
-        //   //   stack.sort((a,b)=>{
-        //   //     return a.t0mu - b.t0mu
-        //   //   });
-        //   //   // small to large
-        //   //   // console.log(34588, stack.map(e=>e.t0as))
-        //   // }
-
-        //   // grouping
-
-
-
-
-        //   // if (stack.length > 0) {
-
-        //   //   try {
-
-        //   //     for (let j = 0, l = stack.length; j < l; j++) {
-        //   //       pushToGroup(stack[j].t0mu);
-
-        //   //     }
-
-        //   //   }catch(e){
-
-        //   //     console.warn(e)
-        //   //   }
-
-        //   //   // console.log(4882, groups.map(e=>e.slice()), stack.slice())
-
-        //   // }
-
-
-
-
-        //   // console.log(376, 'group', groups);
-
-
-        //   // consolidated group
-        //   //  const consolidatedGroups = doConsolidation(groups);
-
-
-
-
-
-
-        //   // if(stack.length > 1){
-
-
-        //   //   // // console.log(341, 'consolidatedGroups', consolidatedGroups ,groups.map(e=>{
-        //   //   // //   return e.map(noTransform);
-        //   //   // //   // return e.map(prettyNum);
-        //   //   // // }))
-
-
-        //   //   // console.log(344, 'groups', groups.map(e=>{
-        //   //   //   return e.map(noTransform);
-        //   //   //   // return e.map(prettyNum);
-        //   //   // }))
-
-        //   //   // // for(const s of stack){
-        //   //   // //   for(const g of consolidatedGroups){
-        //   //   // //     if(s.t0as<=g.cen && s.t0bs >=g.cen ){
-        //   //   // //       s.cen = g.cen;
-        //   //   // //       break;
-        //   //   // //     }
-        //   //   // //   }
-
-        //   //   // // }
-
-        //   //   // console.log(377, stack) // Ms
-
-        //   // }
-
-
-        //   // console.timeEnd('FIX_TIMESTAMP_FOR_REPLAY')
-
-        // }
-
-
-
-
-
-
-
-
-
-        // console.log(5592,5)
-
-
-        // console.log('preprocessChatLiveActions', arr)
-
-
-        const mapper = new Map();
-        mapper.set = mapper.setOriginal || mapper.set;
-
-        // without delaying. get the time of request
-        // (both streaming and replay, but replay relys on progress update so background operation is suppressed)
-
-        for (let j = 0, l = arr.length; j < l; j++) {
-          const aItem = arr[j];
-
-          const obj = toLAObj(aItem);
-          if(obj === false) continue;
-
-          if (obj.id && !obj.__timestampActionRequest__) {
-            // for all item entries
-            obj.__timestampActionRequest__ = ct;
-          }
-
-          if (obj.id && obj.__timestampActionRequest__ > 0 && obj.durationSec > 0 && obj.fullDurationSec) {
-
-            // console.log(948700, obj , obj.id, (obj.fullDurationSec - obj.durationSec) * 1000)
-            const m = obj.__timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000;
-
-            // obj.__t374__ = (obj.fullDurationSec - obj.durationSec) * 1000;
-            // obj.__t375__ = obj.__timestampActionRequest__ - (obj.fullDurationSec - obj.durationSec) * 1000;
-            // console.log(5993, obj)
-            // obj.__orderTime__ = m;
-            mapper.set(aItem, m);
-
-
-          }
-
-        }
-
-        if (mapper.size > 1) {
-
-          const idxices = [];
-
-          // sort ticker
-          let mArr1 = arr.filter((aItem,idx) => {
-
-            if (mapper.has(aItem)) {
-              idxices.push(idx);
-              return true;
-            }
-            return false;
-
-          });
-
-
-          let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
-            return mapper.get(a) - mapper.get(b);
-            // low index = oldest = smallest timestamp
-          });
-
-
-
-          // console.log(948701, arr.slice(0));
-          for(let j = 0, l=mArr1.length;j <l;j++){
-
-            const idx = idxices[j];
-            // arr[idx] = mArr1[j]
-            arr[idx] = mArr2[j];
-
-            // const obj1 = toObj(mArr1[j]);
-            // const obj2 = toObj(mArr2[j]);
-
-            // console.log(948705, idx, obj1 , obj1.id, (obj1.fullDurationSec - obj1.durationSec) * 1000, obj1.__orderTime__)
-
-            // console.log(948706, idx, obj2 , obj2.id, (obj2.fullDurationSec - obj2.durationSec) * 1000, obj2.__orderTime__)
-
-          }
-
-          // console.log(5994,arr)
-
-          // console.log(948702, arr.slice(0));
-          // console.log(948701, arr);
-          // arr = arr.map(aItem => {
-          //   const idx = mArr1.indexOf(aItem);
-          //   if (idx < 0) return aItem;
-          //   return mArr2[idx];
-          // });
-          // console.log(948702, arr);
-
-          // mostly in order, but some not in order
-
-
-          // eg
-
-          /*
-
-
-            948711 68 '1734488590715474'
-            948711 69 '1734488590909853'
-              948711 70 '1734488594763719'
-              948711 71 '1734488602334615' <
-              948711 72 '1734488602267214' <
-              948711 73 '1734488602751771'
-          */
-
-          // arr.filter(aItem=>{
-
-          //   const p = toObj(aItem);
-          //   if(p.timestampUsec) return true;
-
-          // }).forEach((aItem,idx)=>{
-
-          //   const p = toObj(aItem);
-          //   console.log(948711, idx, p.timestampUsec);
-          // })
-
-          // return arr;
-
-        }
 
         // console.log(1237001);
 
         {
-
           const mapper = new Map();
-          mapper.set = mapper.setOriginal || mapper.set;
+          const mapVOT = new Map();
+          const progressOffsets = new Map();
+          let uXt = -Infinity;
+          let sXt = "";
 
-          const idxices = [];
+          // Cache mapSetter
+          const mapSetter = mapper.setOriginal || mapper.set;
+          mapper.set = mapSetter;
+          mapVOT.set = mapSetter;
+          progressOffsets.set = mapSetter;
 
-          let mArr1 = arr.filter((aItem,idx) => {
+          // First pass: Build maps and collect indices
+          const length = arr.length;
+          const mArr1 = new Array(length);
+          const idxices = new Array(length);
+          const objEntries = new Array(length);
+          let mArr1Length = 0;
 
+          for (let idx = 0; idx < length; idx++) {
+            const aItem = arr[idx];
             const obj = toLAObj(aItem);
-            if (!obj) return false;
+
+            if (!obj) continue;
+
+            if (obj.id && !obj.__timestampActionRequest__) {
+              // for all item entries
+              obj.__timestampActionRequest__ = ct;
+            }
 
             const baseText = obj.timestampText;
-            const baseTime = +obj.timestampUsec;
-            if (!baseTime || !baseText) return false;
+            const baseTsUsec = obj.timestampUsec;
+            if (!baseText || !baseTsUsec) continue;
+
             // const timestampUsec = +toLAObj(aItem).timestampUsec; // +false.x = NaN
             // const timestampUsec = +toLAObj(aItem).adjustedTime;
 
             let timestampUsec;
 
-            // console.log(1237002)
             if (FIX_TIMESTAMP_FOR_REPLAY) {
 
               // const adjustmentTime = adjustmentMap.get(`${obj.id}.${obj.timestampUsec}`);
@@ -6834,64 +6620,168 @@
               // }
               // timestampUsec = adjustmentTime;
 
-
-              const adjustmentTime = adjustTimestampFn(obj);
-
+              const adjustmentTime = Math.floor(adjustTimestampFn(obj)); // <μs>
               if (!Number.isFinite(adjustmentTime)) {
-
                 console.warn(`FIX_TIMESTAMP_FOR_REPLAY - no adjustmentTime for ${obj.id}.${obj.timestampUsec}`, obj);
-                return false;
+                continue;
               }
-              timestampUsec = adjustmentTime;
-
-
+              timestampUsec = adjustmentTime; // <μs> (couting from the start of video)
             } else {
 
+              const baseTime = timestampUsecTranslator(baseTsUsec); // <offsetted μs>
               if (!Number.isFinite(baseTime)) {
                 console.warn(`no baseTime for ${obj.id}.${obj.timestampUsec}`, obj);
-
-                return false;
+                continue;
               }
-              timestampUsec = baseTime;
-
+              timestampUsec = baseTime; // <offsetted μs>
             }
 
-            // if(timestampUsec > 0){
-              idxices.push(idx);
-              mapper.set(aItem, timestampUsec)
-              return true;
-            // }
-            // return false;
+            mapper.set(aItem, timestampUsec);
 
-          });
+            const vot = obj.__videoOffsetTimeMsec__;
+            if (vot) {
+              mapVOT.set(vot, timestampUsec);
+            }
+          }
 
-          if(mapper.size > 1){
+          // Second pass: Filter and collect indices (combined with progress offset collection)
+          for (let idx = 0; idx < length; idx++) {
+            const aItem = arr[idx];
+            const obj = toLAObj(aItem);
 
+            if (obj) {
+              let timestampUsec = null;
 
-            // console.log(1237004)
-            let mArr2 = mArr1/*.slice(0)*/.sort((a, b) => {
-              return mapper.get(a) - mapper.get(b);
+              const u = mapper.get(aItem);
+              if (u !== undefined) {
+                timestampUsec = u;
+              } else {
+                const vot = obj.__videoOffsetTimeMsec__;
+                if (vot) {
+                  const mappedTimestamp = mapVOT.get(vot);
+                  if (mappedTimestamp !== undefined) {
+                    mapper.set(aItem, mappedTimestamp);
+                    timestampUsec = mappedTimestamp;
+                  }
+                }
+              }
+
+              if (timestampUsec !== null) {
+                const addIdx = mArr1Length++;
+                idxices[addIdx] = idx;
+                // aItem.__iAmTarget__ = timestampUsec;
+                mArr1[addIdx] = { timestampUsec, aItem };
+
+                // Process progress offsets in the same pass
+                const o = obj;
+                // Quick property check instead of while loop
+
+                if (o.id && o.__progressAt__ > 0) {
+                  const key = `${o.__progressAt__}`;
+                  const currentMax = progressOffsets.get(key);
+
+                  if (!currentMax || timestampUsec > currentMax) {
+                    progressOffsets.set(key, timestampUsec);
+                  }
+
+                  objEntries[addIdx] = { key, o, timestampUsec };
+                } else {
+
+                  objEntries[addIdx] = null;
+                }
+
+              }
+            }
+          }
+          const len = mArr1Length;
+
+          // Trim the array to actual size
+          idxices.length = len;
+          mArr1.length = len;
+          objEntries.length = len;
+
+          // Only sort if necessary
+          if (mapper.size > 1) {
+
+            // Process progress adjustments
+            for (let i = 0; i < len; i++) {
+              const entry = objEntries[i];
+              if (entry) {
+                const { o, timestampUsec, key } = entry;
+                const maxTs = progressOffsets.get(key);
+                if (maxTs !== undefined) {
+                  const k = maxTs - timestampUsec; // >= 0 <μs>
+                  if (k > 0) {
+                    // if (k > 1e-6) {
+                    o.__progressAt__ -= k / 1_000_000;
+                  }
+                }
+              }
+            }
+
+            mArr1.sort((a, b) => {
+              return a.timestampUsec - b.timestampUsec; // <integer μs>
+              // const av = a.timestampUsec; // <integer μs>
+              // const bv = b.timestampUsec; // <integer μs>
+              // const diff = av - bv;
+
+              // More efficient epsilon check
+              // if (diff > 1e-6) return 1;
+              // if (diff < -1e-6) return -1;
+              // return 0;
+
               // low index = oldest = smallest timestamp
             });
 
-
-
-            // console.log(948701, arr.slice(0));
-            for(let j = 0, l=mArr1.length;j <l;j++){
-
-              const idx = idxices[j];
-              arr[idx] = mArr2[j];
-
-              // const obj1 = toObj(mArr1[j]);
-              // const obj2 = toObj(mArr2[j]);
-
-
-              // console.log(948711, idx, obj1 === obj2, obj1, obj1.timestampUsec);
-              // console.log(948712, idx, obj1 === obj2, obj2, obj2.timestampUsec);
+            // Update original array with sorted items
+            for (let j = 0; j < len; j++) {
+              arr[idxices[j]] = mArr1[j].aItem;
             }
-
           }
 
+          // console.log(9126, arr.map((e) => {
+          //   const o = toLAObj(e);
+          //   return {
+          //     tsText: o.timestampText?.simpleText || "",
+          //     tsUsec: o.timestampUsec,
+          //     __progressAt__: o.__progressAt__,
+
+          //     __iAmTarget__: mapper.get(e),
+          //     xInfo: additionalInfo.get(o),
+
+          //   }
+          // }));
+
+          // after sorting, fix the timestamp text
+          if (FIX_TIMESTAMP_TEXT) {
+            for (const aItem of arr) {
+              const obj = toLAObj(aItem);
+              if (obj) {
+                const timestampText = obj.timestampText;
+                const t = timestampText ? timestampText.simpleText || timestampText : null;
+                if (typeof t === "string" && t.length > 0 && t !== sXt) {
+                  const x = parseHMS(t);
+                  if (x < uXt) {
+                    if (typeof timestampText.simpleText === "string") {
+                      timestampText.simpleText = sXt;
+                    } else if (typeof timestampText === "string") {
+                      obj.timestampText = sXt;
+                    }
+                  } else if (x > uXt) {
+                    uXt = x;
+                    sXt = t;
+                  }
+                }
+              }
+            }
+          }
+
+          // idxices.length = 0;
+          // mArr1.length = 0;
+          // objEntries.length = 0;
+          // mapper.clear();
+          // mapVOT.clear();
+          // progressOffsets.clear();
 
         }
 
@@ -6928,7 +6818,11 @@
                     const renderer = item[rendererKey];
                     if (renderer && typeof renderer === 'object') {
                       renderer.__videoOffsetTimeMsec__ = r.videoOffsetTimeMsec;
-                      renderer.__progressAt__ = playerProgressChangedArg1;
+                      if (playerProgressChangedArg1 > 1000) {
+                        renderer.__progressAt__ = playerProgressChangedArg1;
+                      } else {
+                        renderer.__progressAt__ = undefined;
+                      }
 
                       // console.log(48117006)
                     }
@@ -6986,7 +6880,7 @@
             cProto.playerProgressChanged_ = function (a, b, c) {
               // console.log(48117005)
               if (a === 0) a = arguments[0] = Number.MIN_VALUE; // avoid issue dealing with zero value
-              playerProgressChangedArg1 = a;
+              playerProgressChangedArg1 = (+a) + progressTimeRefOrigin;
               playerProgressChangedArg2 = b;
               playerProgressChangedArg3 = c;
               const replayBuffer_ = this.replayBuffer_;
@@ -8802,7 +8696,7 @@
               console.log(' 5688001 ');
               // console.log(`(5688001) ${new Error().stack}`);
             }
-            cntData.__liveTimestamp__ = (((cntData.__timestampActionRequest__ || ct) - timeOriginDT) / 1000) || Number.MIN_VALUE;
+            cntData.__liveTimestamp__ = ((cntData.__timestampActionRequest__ || ct) / 1000 - timeOriginDT) || Number.MIN_VALUE;
             timestampUnderLiveMode = true;
           } else if (__LCRInjection__ && cntData && duration > 0 && cntData.__progressAt__ > 0) {
             timestampUnderLiveMode = false;
