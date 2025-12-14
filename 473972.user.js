@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.7
+// @version     0.42.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4082,96 +4082,132 @@
     };
     let mousemoveCId = 0;
     let mouseoverFn = null;
+
+    const handlerMouseEnter = (evt) => {
+      if (mousemoveCId) return;
+      mousemoveCId = setIntervalX0(cif, 380);
+    };
+
+    const handlerMouseLeave = (evt) => {
+      clearIntervalX0(mousemoveCId);
+      mousemoveCId = 0;
+    };
+
+    const handleEvent4803 = function (evt) {
+      const evt_ = evt;
+      const a = evt.type;
+      const w7 = `__$$${a}$$1937__`;
+      const w8 = `__$$${a}$$1938__`;
+      if (!this[w7] || !this[w8]) return;
+      if (a === 'mousemove') {
+        mouseoverFn && mouseoverFn();
+        if (mousemoveDT + 350 > (mousemoveDT = Date.now())) {
+          (++mousemoveCount > 1e9) && (mousemoveCount = 9);
+        } else {
+          mousemoveCount = 0;
+        }
+        const f = mousemoveFn = () => {
+          if (f !== mousemoveFn) return;
+          mousemoveFn = null;
+          this[w8](evt_);
+        };
+        if (mousemoveCount <= 1) mousemoveFn();
+      } else {
+        if (a === 'mouseout' || a === 'mouseleave') {
+          mousemoveFn = null;
+          mousemoveDT = 0;
+          mousemoveCount = 0;
+          this[w8](evt_);
+          mouseoverFn && mouseoverFn();
+        } else { // mouseover, mouseenter
+          mousemoveFn = null;
+          mousemoveDT = 0;
+          mousemoveCount = 0;
+          mouseoverFn && mouseoverFn(); // just in case
+          const f = mouseoverFn = () => {
+            if (f !== mouseoverFn) return;
+            mouseoverFn = null;
+            this[w8](evt_);
+          }
+          nextBrowserTick_(mouseoverFn);
+        }
+      }
+    };
+    const mouseEventSet = new Set(["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]);
+    const touchEventSet = new Set(["touchstart", "touchend", "touchcancel", "touchmove"]);
+
+    let supportsTouch = () => {
+      const dv = document.defaultView || window || 0;
+      if (dv && 'ontouchcancel' in dv) return true;
+      if (typeof navigator === "object") {
+        const nav = navigator || 0;
+        return nav.maxTouchPoints > 0 || nav.msMaxTouchPoints > 0;
+      }
+      return false;
+    };
+
+    let bTouch = null;
+
     HTMLElement_.prototype.addEventListener4882 = HTMLElement_.prototype.addEventListener;
     HTMLElement_.prototype.addEventListener = function (a, b, c) {
-      if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
-        const bt = `${b}`;
-        if (bt.length >= 61 && bt.length <= 71 && bt.startsWith('function(){try{return ') && bt.includes('.apply(this,arguments)}catch(')) {
-          b[`__$$${a}$$1926__`] = true;
-          this[`__$$${a}$$1937__`] = (this[`__$$${a}$$1937__`] || 0) + 1;
-          if (this[`__$$${a}$$1937__`] > 1073741823) this[`__$$${a}$$1937__`] -= 536870911;
-          // console.log(3928, a, this[`__$$${a}$$1937__`])
-          if (!this[`__$$${a}$$1938__`]) {
-            this[`__$$${a}$$1938__`] = b;
-            if (a === 'mousemove') {
-              this.addEventListener4882('mouseenter', (evt) => {
-                if (mousemoveCId) return;
-                mousemoveCId = setIntervalX0(cif, 380);
-              });
-              this.addEventListener4882('mouseleave', (evt) => {
-                clearIntervalX0(mousemoveCId);
-                mousemoveCId = 0;
-              });
+      if (bTouch !== true && touchEventSet.has(a) && typeof b === "function") {
+        b[`__$$${a}$$1951__`] = true;
+        if (supportsTouch) {
+          bTouch = supportsTouch();
+          supportsTouch = null;
+        }
+        if (!bTouch) return;
+      }
+      if (this.id === 'movie_player') {
+        if (mouseEventSet.has(a) && c === undefined && typeof b === "function") {
+          let bool = false;
+          const w6 = `__$$${a}$$1926__`;
+          if (w6 in b) bool = true;
+          else {
+            const bt = `${b}`;
+            if (bt.length >= 61 && bt.length <= 71 && bt.startsWith('function(){try{return ') && bt.includes('.apply(this,arguments)}catch(')) {
+              bool = true;
             }
-            this.addEventListener4882(a, (evt) => {
-              const evt_ = evt;
-              if (!this[`__$$${a}$$1937__`]) return;
-              if (!this[`__$$${a}$$1938__`]) return;
+          }
+          if (bool) {
+            const w7 = `__$$${a}$$1937__`;
+            const w8 = `__$$${a}$$1938__`;
+            b[w6] = true;
+            this[w7] = (this[w7] || 0) + 1;
+            if (this[w7] > 1073741823) this[w7] -= 536870911;
+            if (!this[w8]) {
+              this[w8] = b;
               if (a === 'mousemove') {
-                mouseoverFn && mouseoverFn();
-                if (mousemoveDT + 350 > (mousemoveDT = Date.now())) {
-                  (++mousemoveCount > 1e9) && (mousemoveCount = 9);
-                } else {
-                  mousemoveCount = 0;
-                }
-                const f = mousemoveFn = () => {
-                  if (f !== mousemoveFn) return;
-                  mousemoveFn = null;
-                  this[`__$$${a}$$1938__`](evt_);
-                };
-                if (mousemoveCount <= 1) mousemoveFn();
-              } else {
-                if (a === 'mouseout' || a === 'mouseleave') {
-                  mousemoveFn = null; 
-                  mousemoveDT = 0;
-                  mousemoveCount = 0;
-                  this[`__$$${a}$$1938__`](evt_);
-                  mouseoverFn && mouseoverFn();
-                } else { // mouseover, mouseenter
-                  mousemoveFn = null;
-                  mousemoveDT = 0;
-                  mousemoveCount = 0;
-                  mouseoverFn && mouseoverFn(); // just in case
-                  const f = mouseoverFn = () => {
-                    if (f !== mouseoverFn) return;
-                    mouseoverFn = null;
-                    this[`__$$${a}$$1938__`](evt_);
-                  }
-                  nextBrowserTick_(mouseoverFn);
-                }
+                this.addEventListener4882('mouseenter', handlerMouseEnter, { capture: false, passive: true });
+                this.addEventListener4882('mouseleave', handlerMouseLeave, { capture: false, passive: true });
               }
-            }, c);
-
-
-            return;
-          } else {
-
+              const f = this[`__handlerEvent4803__`] || (this[`__handlerEvent4803__`] = handleEvent4803.bind(this));
+              this.addEventListener4882(a, f, c);
+            }
             return;
           }
         }
-
       }
       return this.addEventListener4882(a, b, c)
     }
 
-
-
-
     HTMLElement_.prototype.removeEventListener4882 = HTMLElement_.prototype.removeEventListener;
     HTMLElement_.prototype.removeEventListener = function (a, b, c) {
-      if (this.id == 'movie_player' && `${a}`.startsWith('mouse') && c === undefined) {
-
-        if (b[`__$$${a}$$1926__`]) {
-          b[`__$$${a}$$1926__`] = false;
-
-          if (this[`__$$${a}$$1937__`]) this[`__$$${a}$$1937__`] -= 1;
-
-          //  console.log(3929, a, this[`__$$${a}$$1937__`], b[`__$$${a}$$1926__`])
-
+      if (bTouch === false && touchEventSet.has(a) && typeof b === "function") {
+        if (b[`__$$${a}$$1951__`]) {
           return;
-
         }
-
+      }
+      if (this.id == 'movie_player') {
+        if (mouseEventSet.has(a) && c === undefined && typeof b === "function") {
+          const w6 = `__$$${a}$$1926__`;
+          if (b[w6]) {
+            b[w6] = false;
+            const w7 = `__$$${a}$$1937__`;
+            if (this[w7]) this[w7] -= 1;
+            return;
+          }
+        }
       }
       return this.removeEventListener4882(a, b, c)
     }
