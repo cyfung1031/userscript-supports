@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.21
+// @version             0.102.22
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -6582,6 +6582,16 @@
           const objEntries = new Array(length);
           let mArr1Length = 0;
 
+          // sort live superchats
+          const mArrLiveSC = new Array(length);
+          const idxicesLiveSC = new Array(length);
+          let mLenLiveSC = 0;
+
+          // sort live chat messages
+          const mArrLiveMsg = new Array(length);
+          const idxicesLiveMsg = new Array(length);
+          let mLenLiveMsg = 0;
+
           for (let idx = 0; idx < length; idx++) {
             const aItem = arr[idx];
             const obj = toLAObj(aItem);
@@ -6593,9 +6603,35 @@
               obj.__timestampActionRequest__ = ct;
             }
 
-            const baseText = obj.timestampText;
             const baseTsUsec = obj.timestampUsec;
-            if (!baseText || !baseTsUsec) continue;
+
+            if (!baseTsUsec) {
+              // ticker
+              const t1 = obj.__timestampActionRequest__; // ms
+              const t0 = t1 - (obj.fullDurationSec - obj.durationSec) * 1000; // ms
+              if (t0 > 1000) { // not NaN
+                const k = mLenLiveSC++;
+                idxicesLiveSC[k] = idx;
+                mArrLiveSC[k] = { t0: t0, t1: t1, aItem, obj };
+              }
+              continue;
+            }
+
+            const baseText = obj.timestampText;
+            if (!baseText) {
+              // live chat messages
+
+              const baseTime = timestampUsecTranslator(baseTsUsec); // <offsetted μs>
+              if (baseTime > 1000) { // not NaN
+                const k = mLenLiveMsg++;
+                idxicesLiveMsg[k] = idx;
+                mArrLiveMsg[k] = { ts: baseTime, aItem, obj };
+              }
+
+              continue;
+            }
+            // timestampText - only for reply
+            // timestampUsec - only for chat message
 
             // const timestampUsec = +toLAObj(aItem).timestampUsec; // +false.x = NaN
             // const timestampUsec = +toLAObj(aItem).adjustedTime;
@@ -6644,64 +6680,99 @@
             }
           }
 
-          // Second pass: Filter and collect indices (combined with progress offset collection)
-          for (let idx = 0; idx < length; idx++) {
-            const aItem = arr[idx];
-            const obj = toLAObj(aItem);
+          // sort ticker orders for livestreams
+          // note: for replay tickers, __videoOffsetTimeMsec__ will override this sorting
+          if (mLenLiveSC >= 2) {
+            const len = mLenLiveSC;
+            mArrLiveSC.length = len;
+            idxicesLiveSC.length = len;
+            // console.log(1213, 'mArrLiveSC', [...mArrLiveSC]);
+            mArrLiveSC.sort((a, b) => {
+              // sort by: (1) start time - earlier first; (2) end time - earlier first
+              return a.t0 - b.t0 || a.t1 - b.t1 || 0;
+            });
+            for (let j = 0; j < len; j++) {
+              arr[idxicesLiveSC[j]] = mArrLiveSC[j].aItem;
+            }
+            // console.log(1213, 'sorted arr for LiveSC', [...arr]);
+          }
 
-            if (obj) {
-              let timestampUsec = null;
+          // sort chat message orders for livestreams
+          if (mLenLiveMsg >= 2) {
+            const len = mLenLiveMsg;
+            mArrLiveMsg.length = len;
+            idxicesLiveMsg.length = len;
+            // console.log(1413, 'mArrLiveMsg', [...mArrLiveMsg]);
+            mArrLiveMsg.sort((a, b) => {
+              // sort by: timestampUsec - earlier first
+              return a.ts - b.ts || 0;
+            });
+            for (let j = 0; j < len; j++) {
+              arr[idxicesLiveMsg[j]] = mArrLiveMsg[j].aItem;
+            }
+            // console.log(1413, 'sorted arr for LiveMsg', [...arr]);
+          }
 
-              const u = mapper.get(aItem);
-              if (u !== undefined) {
-                timestampUsec = u;
-              } else {
-                const vot = obj.__videoOffsetTimeMsec__;
-                if (vot) {
-                  const mappedTimestamp = mapVOT.get(vot);
-                  if (mappedTimestamp !== undefined) {
-                    mapper.set(aItem, mappedTimestamp);
-                    timestampUsec = mappedTimestamp;
-                  }
-                }
-              }
+          if (mapper.size >= 2) {
+            // live_replay, with at least two chat messages of different timestamps
 
-              if (timestampUsec !== null) {
-                const addIdx = mArr1Length++;
-                idxices[addIdx] = idx;
-                // aItem.__iAmTarget__ = timestampUsec;
-                mArr1[addIdx] = { timestampUsec, aItem };
+            // Second pass: Filter and collect indices (combined with progress offset collection)
+            for (let idx = 0; idx < length; idx++) {
+              const aItem = arr[idx];
+              const obj = toLAObj(aItem);
 
-                // Process progress offsets in the same pass
-                const o = obj;
-                // Quick property check instead of while loop
+              if (obj) {
+                let timestampUsec = null;
 
-                if (o.id && o.__progressAt__ > 0) {
-                  const key = `${o.__progressAt__}`;
-                  const currentMax = progressOffsets.get(key);
-
-                  if (!currentMax || timestampUsec > currentMax) {
-                    progressOffsets.set(key, timestampUsec);
-                  }
-
-                  objEntries[addIdx] = { key, o, timestampUsec };
+                const u = mapper.get(aItem);
+                if (u !== undefined) {
+                  timestampUsec = u;
                 } else {
-
-                  objEntries[addIdx] = null;
+                  const vot = obj.__videoOffsetTimeMsec__;
+                  if (vot) {
+                    const mappedTimestamp = mapVOT.get(vot);
+                    if (mappedTimestamp !== undefined) {
+                      // relate the ticker to the chat message order using __videoOffsetTimeMsec__
+                      mapper.set(aItem, mappedTimestamp);
+                      timestampUsec = mappedTimestamp;
+                    }
+                  }
                 }
 
+                if (timestampUsec !== null) {
+                  const addIdx = mArr1Length++;
+                  idxices[addIdx] = idx;
+                  // aItem.__iAmTarget__ = timestampUsec;
+                  mArr1[addIdx] = { timestampUsec, aItem };
+
+                  // Process progress offsets in the same pass
+                  const o = obj;
+                  // Quick property check instead of while loop
+
+                  if (o.id && o.__progressAt__ > 0) {
+                    const key = `${o.__progressAt__}`;
+                    const currentMax = progressOffsets.get(key);
+
+                    if (!currentMax || timestampUsec > currentMax) {
+                      progressOffsets.set(key, timestampUsec);
+                    }
+
+                    objEntries[addIdx] = { key, o, timestampUsec };
+                  } else {
+
+                    objEntries[addIdx] = null;
+                  }
+
+                }
               }
             }
-          }
-          const len = mArr1Length;
 
-          // Trim the array to actual size
-          idxices.length = len;
-          mArr1.length = len;
-          objEntries.length = len;
+            const len = mArr1Length;
 
-          // Only sort if necessary
-          if (mapper.size > 1) {
+            // Trim the array to actual size
+            idxices.length = len;
+            mArr1.length = len;
+            objEntries.length = len;
 
             // Process progress adjustments
             for (let i = 0; i < len; i++) {
@@ -6737,39 +6808,39 @@
             for (let j = 0; j < len; j++) {
               arr[idxices[j]] = mArr1[j].aItem;
             }
-          }
 
-          // console.log(9126, arr.map((e) => {
-          //   const o = toLAObj(e);
-          //   return {
-          //     tsText: o.timestampText?.simpleText || "",
-          //     tsUsec: o.timestampUsec,
-          //     __progressAt__: o.__progressAt__,
+            // console.log(9126, arr.map((e) => {
+            //   const o = toLAObj(e);
+            //   return {
+            //     tsText: o.timestampText?.simpleText || "",
+            //     tsUsec: o.timestampUsec,
+            //     __progressAt__: o.__progressAt__,
 
-          //     __iAmTarget__: mapper.get(e),
-          //     xInfo: additionalInfo.get(o),
+            //     __iAmTarget__: mapper.get(e),
+            //     xInfo: additionalInfo.get(o),
 
-          //   }
-          // }));
+            //   }
+            // }));
 
-          // after sorting, fix the timestamp text
-          if (FIX_TIMESTAMP_TEXT) {
-            for (const aItem of arr) {
-              const obj = toLAObj(aItem);
-              if (obj) {
-                const timestampText = obj.timestampText;
-                const t = timestampText ? timestampText.simpleText || timestampText : null;
-                if (typeof t === "string" && t.length > 0 && t !== sXt) {
-                  const x = parseHMS(t);
-                  if (x < uXt) {
-                    if (typeof timestampText.simpleText === "string") {
-                      timestampText.simpleText = sXt;
-                    } else if (typeof timestampText === "string") {
-                      obj.timestampText = sXt;
+            // after sorting, fix the timestamp text
+            if (FIX_TIMESTAMP_TEXT) {
+              for (const aItem of arr) {
+                const obj = toLAObj(aItem);
+                const timestampText = (obj || 0).timestampText;
+                if (timestampText) {
+                  const t = timestampText.simpleText || timestampText;
+                  if (typeof t === "string" && t.length > 0 && t !== sXt) {
+                    const x = parseHMS(t);
+                    if (x < uXt) {
+                      if (typeof timestampText.simpleText === "string") {
+                        timestampText.simpleText = sXt;
+                      } else if (typeof timestampText === "string") {
+                        obj.timestampText = sXt;
+                      }
+                    } else if (x > uXt) {
+                      uXt = x;
+                      sXt = t;
                     }
-                  } else if (x > uXt) {
-                    uXt = x;
-                    sXt = t;
                   }
                 }
               }
