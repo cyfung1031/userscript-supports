@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.22
+// @version             0.102.23
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1759,7 +1759,7 @@
   const progressTimeRefOrigin = Math.floor(performance.timeOrigin / 1000 / 300_000 - 180) * 300_000; // <integer second>
   const timeOriginDT = progressTimeRefOrigin; // <integer second>
 
-  const customCreateComponent = (component, data, bool)=>{
+  const customCreateComponent = (component, data, bool, onCreateComponentError)=>{
 
     const componentTag = typeof component === 'string'  ? component : typeof (component||0).component === 'string' ? (component||0).component  : '';
     if(componentTag){
@@ -2773,15 +2773,16 @@
         dummy = await new Promise(resolve => {
 
 
-          if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_ && lcaProto.createComponent_.length === 3) {
+          if (typeof lcaProto.createComponent_ === 'function' && !lcaProto.createComponent99_ && (lcaProto.createComponent_.length === 4 || lcaProto.createComponent_.length === 3)) {
             console.log('[yt-chat-lcr] lcaProto.createComponent_ is found');
 
             lcaProto.createComponent99_ = lcaProto.createComponent_;
-            lcaProto.createComponent98_ = function (a, b, c) {
-              const z = customCreateComponent(a,b,c);
-              if(z !== undefined) return z;
+            // onCreateComponentError - see https://github.com/cyfung1031/userscript-supports/issues/99
+            lcaProto.createComponent98_ = function (a, b, c, onCreateComponentError) {
+              const z = customCreateComponent(a, b, c, onCreateComponentError);
+              if (z !== undefined) return z;
               // (3) ['yt-live-chat-renderer', {…}, true]
-              const r = this.createComponent99_(a, b,c);
+              const r = this.createComponent99_(a, b, c, onCreateComponentError);
               const componentTag = (typeof a === 'string' ? a : (a||0).component) || `${(r||0).nodeName}`.toLowerCase();
               if ( componentTag === 'yt-live-chat-renderer' && !bypass) {
                 qt38 = 1;
@@ -10074,14 +10075,14 @@
 
           }
 
-          if (typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3 && !cProto.createComponent58_) {
+          if (typeof cProto.createComponent_ === 'function' && (cProto.createComponent_.length === 4 || cProto.createComponent_.length === 3) && !cProto.createComponent58_) {
 
             cProto.createComponent58_ = cProto.createComponent_;
-            cProto.createComponent_ = function (a, b, c) {
+            cProto.createComponent_ = function (a, b, c, onCreateComponentError) {
 
-              const z = customCreateComponent(a, b, c);
+              const z = customCreateComponent(a, b, c, onCreateComponentError);
               if (z !== undefined) return z;
-              const r = this.createComponent58_(a, b, c);
+              const r = this.createComponent58_(a, b, c, onCreateComponentError);
               return r;
 
             }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube RM3 - Reduce Memory Usage by Reusing Components
 // @namespace   Violentmonkey Scripts
-// @version     0.1.0019
+// @version     0.1.0020
 // @license     MIT
 // @match       https://www.youtube.com/*
 // @match       https://studio.youtube.com/live_chat*
@@ -534,7 +534,8 @@ const rm3 = window.rm3 = {};
 
     let onPageContainer = null;
 
-    const createComponentDefine_ = function (a, b, c) {
+    // onCreateComponentError - see https://github.com/cyfung1031/userscript-supports/issues/99
+    const createComponentDefine_ = function (a, b, c, onCreateComponentError) {
 
       Promise.resolve().then(timeCheck);
 
@@ -834,7 +835,7 @@ const rm3 = window.rm3 = {};
       // if (!(pool instanceof LinkedArray)) throw new Error(); // xx858
 
 
-      const newElement = this.createComponent9512_(a, b, c);
+      const newElement = this.createComponent9512_(a, b, c, onCreateComponentError);
       // if(componentTag.indexOf( 'ticker')>=0)console.log(1883, a,newElement)
 
       try {
@@ -958,7 +959,7 @@ const rm3 = window.rm3 = {};
           const cProto = getProto(r);
           if (cProto.createComponent_ === cnt.createComponent_) {
 
-            if (!cProto.createComponent9512_ && typeof cProto.createComponent_ === 'function' && cProto.createComponent_.length === 3) {
+            if (!cProto.createComponent9512_ && typeof cProto.createComponent_ === 'function' && (cProto.createComponent_.length === 4 || cProto.createComponent_.length === 3)) {
 
               cProto.createComponent9512_ = cProto.createComponent_;
 
@@ -967,7 +968,7 @@ const rm3 = window.rm3 = {};
             }
           } else {
 
-            if (typeof cnt.createComponent_ === 'function' && cnt.createComponent_.length === 3) {
+            if (typeof cnt.createComponent_ === 'function' && (cnt.createComponent_.length === 4 || cnt.createComponent_.length === 3)) {
               cnt.createComponent9512_ = cnt.createComponent_;
 
               cnt.createComponent_ = createComponentDefine_;

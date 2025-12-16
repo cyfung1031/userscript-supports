@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.8
+// @version     0.42.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -471,7 +471,7 @@
 
     FORCE_NO_REUSEABLE_ELEMENT_POOL_fired = true;
 
-    if (typeof mainCnt.createComponent_ !== 'function' || mainCnt.createComponent_.length != 3) {
+    if (typeof mainCnt.createComponent_ !== 'function' || (mainCnt.createComponent_.length !== 3 && mainCnt.createComponent_.length !== 4)) {
       console.warn('FORCE_NO_REUSEABLE_ELEMENT_POOL_fn failed.')
       return;
     }
@@ -6614,10 +6614,10 @@
 
 
 
+    // onCreateComponentError - see https://github.com/cyfung1031/userscript-supports/issues/99
+    const createComponent_ = function (componentConfig, data, canReuse, onCreateComponentError) {
 
-    const createComponent_ = function (componentConfig, data, canReuse) {
-
-      return this.createComponent7409_(componentConfig, data, canReuse);
+      return this.createComponent7409_(componentConfig, data, canReuse, onCreateComponentError);
 
     }
 
@@ -8039,7 +8039,7 @@
       if (FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
         const b = cProto.stampDomArray_.length === 6
           && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
-          && cProto.createComponent_ && cProto.createComponent_.length === 3
+          && cProto.createComponent_ && (cProto.createComponent_.length === 4 || cProto.createComponent_.length === 3)
           && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
           && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
           && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
