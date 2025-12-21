@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.23
+// @version             0.102.24
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1646,6 +1646,38 @@
     }
     return s;
   }
+
+  // YTid 名稱修復器
+  // https://chromewebstore.google.com/detail/ytid-%E5%90%8D%E7%A8%B1%E4%BF%AE%E5%BE%A9%E5%99%A8/ajdaedmmnojooglhpjlgajfhddchhcog
+  // https://addons.mozilla.org/zh-TW/firefox/addon/ytid-%E5%90%8D%E7%A8%B1%E4%BF%AE%E5%BE%A9%E5%99%A8/
+  // https://greasyfork.org/scripts/469878/discussions/317330
+  const fixForYTidRenamer = (node) => {
+    if (!document.querySelector("[data-ytid-handle], [data-ytid-replaced]")) return;
+    const s = new Set();
+    const testFn = (node) => node.hasAttribute("data-ytid-handle") || node.hasAttribute("data-ytid-replaced");
+    if (node && node.nodeType > 0 && testFn(node)) {
+      s.add(node);
+      if (node && node.nodeType === 1) {
+        for (const childNode of node.querySelectorAll("*")) {
+          if (testFn(childNode)) s.add(childNode);
+        }
+      }
+      for (const node of s) {
+        node.removeAttribute("data-ytid-replaced");
+        if (node.dataset) {
+          delete node.dataset.ytidDisplay;
+          delete node.dataset.ytidHandle;
+          delete node.dataset.ytidChannelId;
+          delete node.dataset.ytidBoundHandle;
+          delete node.dataset.ytidCommentKey;
+        }
+      }
+      s.clear();
+    }
+  };
+  document.addEventListener("youtube-chat-element-removed", (event) => {
+    fixForYTidRenamer(event.target);
+  }, true);
 
   // const nextBrowserTick_ = nextBrowserTick;
   // const nextBrowserTick_ = (f) => {
@@ -3962,6 +3994,8 @@
           }
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
+
+          elm.dispatchEvent(new CustomEvent("youtube-chat-element-removed"));
 
           let elemCount2 = elm.querySelectorAll('yt-img-shadow').length;
 
