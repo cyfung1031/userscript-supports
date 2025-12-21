@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.24
+// @version             0.102.25
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1675,7 +1675,10 @@
       s.clear();
     }
   };
-  document.addEventListener("youtube-chat-element-removed", (event) => {
+  document.addEventListener("youtube-chat-element-before-remove", (event) => {
+    fixForYTidRenamer(event.target);
+  }, true);
+  document.addEventListener("youtube-chat-element-after-append", (event) => {
     fixForYTidRenamer(event.target);
   }, true);
 
@@ -3970,6 +3973,8 @@
 
         const removeStampNode_ = (elNode) => {
 
+          elNode.dispatchEvent(new CustomEvent("youtube-chat-element-before-remove"));
+
           const elm = elNode;
           const cnt = insp(elm);
           let elemCount1 = elm.querySelectorAll('yt-img-shadow').length;
@@ -3994,8 +3999,6 @@
           }
           const data = cnt.data;
           if (data) renderMap.delete(cnt.data);
-
-          elm.dispatchEvent(new CustomEvent("youtube-chat-element-removed"));
 
           let elemCount2 = elm.querySelectorAll('yt-img-shadow').length;
 
@@ -4130,6 +4133,8 @@
                     itemScrollerX.scrollTop = scrollTop2 + 16777216;
                   }
                 }
+
+                newNode.dispatchEvent(new CustomEvent("youtube-chat-element-after-append"));
 
                 return 1
               }
