@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.26
+// @version             0.3.27
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -5953,16 +5953,17 @@ f.handleRemoveChatItemAction_ = function(a) {
       }
     }
     cProto.bstClearCount = 0;
+    if (!cProto.clearList0402) cProto.clearList0402 = cProto.clearList;
     cProto.clearList = function () {
       _flushed = 0;
-      
+
       this.bstClearCount = (this.bstClearCount & 1073741823) + 1;
       const activeItems_ = this.activeItems_;
       if (activeItems_) activeItems_.length = 0;
       // this.setupVisibleItemsList();
       const visibleItems = this.visibleItems;
-      if (visibleItems && (visibleItems.length > 0)) { 
-        visibleItems.length = 0; 
+      if (visibleItems && (visibleItems.length > 0)) {
+        visibleItems.length = 0;
         if (messageList) {
           messageList.classList.remove('bst-listloaded');
           const solidBuild = messageList.solidBuild;
@@ -5973,22 +5974,73 @@ f.handleRemoveChatItemAction_ = function(a) {
         // condition check for just in case
         this.setAtBottomTrue();
       }
-      this.dockableMessages = [];
-      this.isSmoothed_ = !0;
-      this.lastSmoothChatMessageAddMs_ = null;
-      this.chatRateMs_ = 1E3;
-      this.lastSmoothScrollClockTime_ = this.lastSmoothScrollUpdate_ = null;
-      this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
-      this.smoothScrollRafHandle_ = null;
-      this.preinsertHeight_ = 0;
-      this.itemIdToDockDurationMap = {};
-      this.$['docked-messages'].clear();
-      this.bannerManager.reset();
-      // this.maybeResizeScrollContainer_([]);
-      // this.items.style.transform = "";
-      // this.atBottom || this.scrollToBottom_()
-      if(typeof this.fixChatRefCleared === "function") this.fixChatRefCleared();
+
+      /*
+        this.dockableMessages = [];
+        this.isSmoothed_ = !0;
+        this.lastSmoothChatMessageAddMs_ = null;
+        this.chatRateMs_ = 1E3;
+        this.lastSmoothScrollClockTime_ = this.lastSmoothScrollUpdate_ = null;
+        this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
+        this.smoothScrollRafHandle_ = null;
+        this.preinsertHeight_ = 0;
+        this.itemIdToDockDurationMap = {};
+        Fz(this.hostElement).querySelector("#docked-messages").clear();
+        if (!this.enableBannerUpdate) {
+            var a;
+            (a = this.JSC$11620_bannerManager) == null || a.reset()
+        }
+        this.maybeResizeScrollContainer_([]);
+        this.items.style.transform = "";
+        this.atBottom || this.scrollToBottom_()
+      */
+
+      const binder = function (...args) {
+        return this[0][this[1]](...args);
+      };
+      const o = new Proxy([this, {
+        activeItems_: [],
+        visibleItems: [],
+        maybeResizeScrollContainer_: () => { },
+        items: document.createElement("div"),
+        atBottom: true,
+        clearList: ()=>{},
+        clearList0402: ()=>{},
+      }], {
+        get(target, p, receiver) {
+          const t = p in target[1] ? target[1] : target[0];
+          const m = t[p]
+          if (typeof m === "function") {
+            return binder.bind([t, p]);
+          }
+          return m;
+        },
+        set(target, p, v, receiver) {
+          return p in target[1] ? Reflect.set(target[1], p, v) : Reflect.set(target[0], p, v)
+        }
+      });
+
+      const r = this.clearList0402 ? this.clearList0402.call(o) : undefined;
+
+      /*
+        this.dockableMessages = [];
+        this.isSmoothed_ = !0;
+        this.lastSmoothChatMessageAddMs_ = null;
+        this.chatRateMs_ = 1E3;
+        this.lastSmoothScrollClockTime_ = this.lastSmoothScrollUpdate_ = null;
+        this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
+        this.smoothScrollRafHandle_ = null;
+        this.preinsertHeight_ = 0;
+        this.itemIdToDockDurationMap = {};
+        this.$['docked-messages'].clear();
+        this.bannerManager.reset();
+        // this.maybeResizeScrollContainer_([]);
+        // this.items.style.transform = "";
+        // this.atBottom || this.scrollToBottom_()
+      */
+      if (typeof this.fixChatRefCleared === "function") this.fixChatRefCleared();
       sbSignalSet([]);
+      return r;
     }
 
     /*
