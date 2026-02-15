@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.29
+// @version             0.3.30
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -3349,7 +3349,7 @@ SOFTWARE.
   <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
-  <div class="bst-message-entry-highlight" style="${() => ({ '--bst-paid-sticker-bg': `url(${()=>xItem.getStickerURL(80, 256)})` })}"></div>
+  <div class="bst-message-entry-highlight" style=(${() => ({ '--bst-paid-sticker-bg': `url(${(xItem.getStickerURL(80, 256))})` })})></div>
   <div class="bst-message-entry-line">
     <div class="bst-message-head">
       <div class="bst-message-time">${() => xItem.getField('timestampText')}</div>
