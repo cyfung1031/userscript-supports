@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.28
+// @version             0.3.29
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -2269,7 +2269,7 @@ SOFTWARE.
 
         ytLiveChatAppCnt.handleOpenPopupAction({
           "openPopupAction": openPopupActionObj,
-        }, div);
+        }, div, div);
       }
 
 
@@ -2277,7 +2277,7 @@ SOFTWARE.
 
       ytLiveChatAppCnt.handleOpenPopupAction({
         "openPopupAction": openPopupActionObj,
-      }, div);
+      }, div, div);
 
     }
 
@@ -2366,7 +2366,12 @@ SOFTWARE.
 
 
       if (!ytLiveChatAppCnt) return;
-      if (!ytLiveChatAppCnt.handleOpenPopupAction || ytLiveChatAppCnt.handleOpenPopupAction.length !== 2) {
+
+      const signatureOK =
+        typeof ytLiveChatAppCnt.handleOpenPopupAction === "function"
+        && (ytLiveChatAppCnt.handleOpenPopupAction.length === 2 || ytLiveChatAppCnt.handleOpenPopupAction.length === 3);
+
+      if (!signatureOK) {
         console.log("ytLiveChatAppCnt.handleOpenPopupAction signature failure");
         return;
       }
