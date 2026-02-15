@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name               YouTube Boost Chat YT名稱修復 Nickname Restoration for YouTube Boost Chat
 // @namespace          UserScripts
-// @version            0.1.1
-// @license            MIT
+// @version            0.1.2
 // @match              https://*.youtube.com/live_chat*
 // @grant              none
-// @author             CY Fung + YT Nickname Restoration
+// @author             CY Fung + lisheng099 + Pekoradaisuki0112 / AI
 // @run-at             document-start
 // @grant              none
 // @unwrap
