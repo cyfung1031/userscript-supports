@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               YouTube Boost Chat YT名稱修復 Nickname Restoration for YouTube Boost Chat
 // @namespace          UserScripts
-// @version            0.1.2
+// @version            0.1.3
 // @match              https://*.youtube.com/live_chat*
 // @grant              none
 // @author             CY Fung + lisheng099 + Pekoradaisuki0112 / AI
@@ -16,6 +16,8 @@
 // @description:zh-CN  YouTube Boost Chat 昵称还原
 // ==/UserScript==
 
+// Credit to https://github.com/lisheng099/YT-Nickname-Restoration-Assistant
+// See https://greasyfork.org/scripts/520755-youtube-boost-chat/discussions/319610
 
 // Nickname Restoration Integration
 const NicknameRestorer = {
