@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.27
+// @version             0.3.28
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -12,7 +12,7 @@
 // @allFrames           true
 // @inject-into         page
 // @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
-// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@2e28f25d1adf8f535320e79e1b4a3400f82a0caf/library/solid-js-prod.js
+// @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@e030949e03534ee010ad47036592b0aff8a532a9/library/solid-js-prod.js
 // @description         Full Replacement of YouTube Chat Message List
 // @description:ja      YouTubeチャットメッセージリストの完全置き換え
 // @description:zh-TW   完全替換 YouTube 聊天訊息列表
@@ -77,6 +77,25 @@ SOFTWARE.
   }
 
 
+  // ----- External -----
+  let getYtAuthorClassicNameByHandle_ = null;
+  // --------------------
+  let ytScheduler_ = null; // placeholder
+  let ytSchedulerPriority = 1; // 0 - minimum; 1 - low priority; 2 .... 9; 10 - highest priority
+  let ytSchedulerDelayMs = 100;
+  // --------------------
+
+  const ytSchedulerDelay = () => {
+    return new Promise((resolve) => {
+      if (ytScheduler_) {
+        ytScheduler_.addJob(() => { resolve() }, ytSchedulerPriority, ytSchedulerDelayMs)
+      } else {
+        setTimeout(() => { resolve() }, ytSchedulerDelayMs);
+      }
+    });
+  }
+
+  const mightUseYtAuthorClassicNameByHandle = true; // if avaliable
 
   let isThisBrowserSupported = true;
   let DO_scrollIntoViewIfNeeded = false;
@@ -1754,8 +1773,22 @@ SOFTWARE.
     `
   }
 
+  const fetchClassicName = async (handle) => {
+    if (!handle?.startsWith("@") || typeof getYtAuthorClassicNameByHandle_ !== "function") return null;
+
+    const info = await getYtAuthorClassicNameByHandle_(handle);
+
+    if (typeof info.cachedName === "string") return info.cachedName;
+
+    if (typeof info.request === "function") {
+      await ytSchedulerDelay();
+      return await info.request(handle);
+    }
+    return null;
+  };
+
   /** @type {import('./library/html').SolidJS}.SolidJS */
-  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, Show, onCleanup, createComputed, createRenderEffect, unwrap, mapArray, batch, createRoot } = SolidJS;
+  const { createSignal, onMount, createStore, html, render, Switch, Match, For, createEffect, createMemo, createResource, Show, onCleanup, createComputed, createRenderEffect, unwrap, mapArray, batch, createRoot } = SolidJS;
 
 
   const [visibleCount, visibleCountChange] = createSignal();
@@ -4221,11 +4254,27 @@ SOFTWARE.
       return 0;
     });
 
-    const authorName = createMemo(()=>{
-        const data = R(wItem);
-        const dx = data && rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer : data;
-        return convertYTtext(dx.authorName);
+    const useYtAuthorClassicNameByHandle = typeof getYtAuthorClassicNameByHandle_ === "function";
+
+    const authorNameRaw = createMemo(() => {
+      const data = R(wItem);
+      const dx = data && rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer : data;
+      return convertYTtext(dx.authorName)?.trim();
+    });
+
+    let authorName;
+    if (useYtAuthorClassicNameByHandle) {
+      // Use createResource: it automatically reacts when authorNameRaw changes
+      const [classicNameResource] = createResource(authorNameRaw, fetchClassicName);
+      // Final Memo: Priority logic
+      authorName = createMemo(() => {
+        // If the resource has a value, use it. Otherwise, use the raw name.
+        return classicNameResource() || authorNameRaw();
       });
+    } else {
+      authorName = authorNameRaw;
+    }
+
     const messageXT = createMemo(() => {
       const data = R(wItem);
       const m1 = rendererFlag() === 1 ? data.header?.liveChatSponsorshipsHeaderRenderer?.primaryText : data.message;
@@ -4577,6 +4626,15 @@ SOFTWARE.
     }
 
     cProto.setupBoostChat = function () {
+      // --------------- External Dependencies ---------------
+      if (mightUseYtAuthorClassicNameByHandle) {
+        getYtAuthorClassicNameByHandle_ = typeof getYtAuthorClassicNameByHandle === "function" ? getYtAuthorClassicNameByHandle : null;
+      }
+      ytScheduler_ = typeof yt !== "undefined" ? yt?.scheduler?.instance : null;
+      if (typeof ytScheduler_?.addJob !== "function" || ytScheduler_.addJob.length < 3) ytScheduler_ = null;
+      
+      // ----------------------------------------------------
+
       this.fixChatRefCleared();
       let targetElement = (this.$.items || this.$['item-offset']);
       if (!targetElement) return;
