@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.30
+// @version             0.3.31
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @grant               none
@@ -896,6 +896,8 @@ SOFTWARE.
 
         overflow-anchor: none;
 
+        --bst-sticker-offset-right: 8px;
+
       }
 
       .bst-message-list[dark] {
@@ -1464,6 +1466,7 @@ SOFTWARE.
         background-repeat: no-repeat;
         background-size: contain;
         background-position: 100% 50%;
+        background-position: calc(100% - var(--bst-sticker-offset-right)) 50%;
         background-color: var(--bst-highlight-color);
         background-size: 6rem;
       }
@@ -1491,6 +1494,7 @@ SOFTWARE.
         background-repeat: no-repeat;
         background-size: contain;
         background-position: 100% 50%;
+        background-position: calc(100% - var(--bst-sticker-offset-right)) 50%;
         background-color: var(--bst-highlight-color);
         background-size: 6rem;
       }
