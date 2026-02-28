@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.9
+// @version     0.42.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -381,6 +381,23 @@
     return y.length > t.length ? t : y;
   }
 
+  const propChecker = (p, o) => {
+    if (p && typeof p === "object") {
+      for (const k of Object.keys(o)) {
+        const v = p[k];
+        const a = o[k];
+        const b1 = typeof v === "function" && (
+          typeof a === "number" ? v.length === a : a.includes(v.length)
+        );
+        if (!b1) {
+          console.warn(`Code Changed: [${(p || 0).is || (p || 0).localName || ((p || 0).nodeName || "").toLowerCase()}] method ${k}`);
+        }
+      }
+    } else {
+      console.warn("propChecker error");
+      return;
+    }
+  };
 
   const isChatRoomURL = location.pathname.startsWith('/live_chat');
 
@@ -4750,18 +4767,6 @@
 
   }
 
-  let domApiConstructor = null;
-  const setupDomApi = (daProto) => {
-
-    daProto.__daHook377__ = true;
-
-    domApiConstructor = daProto.constructor; // TBC
-
-    // TBC
-
-  }
-
-
   // WEAKREF_ShadyDOM
 
   let mightTeardownShadyDomWrap = () => { };
@@ -6624,7 +6629,7 @@
 
     const s52 = Symbol();
 
-    const deferRenderStamperBinding_ = function (component, typeOrConfig, data) {
+    const deferRenderStamperBinding_ = function (component, typeOrConfig, data, containerId) {
 
       // if(component.querySelectorAll('dom-if').length > 0){
 
@@ -6648,7 +6653,7 @@
         component[s52] = null;
       }
 
-      return this.deferRenderStamperBinding7409_(component, typeOrConfig, data);
+      return this.deferRenderStamperBinding7409_(component, typeOrConfig, data, containerId);
 
     }
 
@@ -8034,13 +8039,19 @@
     if (FIX_stampDomArray && !(cProto[pvr] & 1) && 'stampDomArray_' in cProto) {
       cProto[pvr] |= 1;
 
-
-
       if (FIX_stampDomArray && !location.pathname.startsWith('/live_chat') && cProto.stampDomArray_) {
+
+        propChecker(cProto, {
+          "getStampContainer_": 1,
+          "getComponentName_": 2,
+          "deferRenderStamperBinding_": [3, 4],
+          "flushRenderStamperComponentBindings_": 0,
+        });
+
         const b = cProto.stampDomArray_.length === 6
           && cProto.getStampContainer_ && cProto.getStampContainer_.length === 1
           && cProto.createComponent_ && (cProto.createComponent_.length === 4 || cProto.createComponent_.length === 3)
-          && cProto.deferRenderStamperBinding_ && cProto.deferRenderStamperBinding_.length === 3
+          && cProto.deferRenderStamperBinding_ && (cProto.deferRenderStamperBinding_.length === 4 || cProto.deferRenderStamperBinding_.length === 3)
           && cProto.flushRenderStamperComponentBindings_ && cProto.flushRenderStamperComponentBindings_.length === 0
           && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
         if (!b) {

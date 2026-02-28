@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.26
+// @version             0.102.27
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2679,6 +2679,24 @@
     }
   }
 
+  const propChecker = (p, o) => {
+    if (p && typeof p === "object") {
+      for (const k of Object.keys(o)) {
+        const v = p[k];
+        const a = o[k];
+        const b1 = typeof v === "function" && (
+          typeof a === "number" ? v.length === a : a.includes(v.length)
+        );
+        if (!b1) {
+          console.warn(`Code Changed: [${(p || 0).is || (p || 0).localName || ((p || 0).nodeName || "").toLowerCase()}] method ${k}`);
+        }
+      }
+    } else {
+      console.warn("propChecker error");
+      return;
+    }
+  };
+
   // const microNow = () => performance.now() + (performance.timeOrigin || performance.timing.navigationStart);
 
 
@@ -3692,6 +3710,15 @@
       const fnKeyH = `${key}$$c472`;
       let spliceTempDisabled = false;
 
+      propChecker(cProto, {
+        "getStampContainer_": 1,
+        "getComponentName_": 2,
+        "deferRenderStamperBinding_": [3,4],
+        "flushRenderStamperComponentBindings_": 0,
+        "_setPendingPropertyOrPath": 4,
+        "_invalidateProperties": 0,
+      });
+
       cProto.__ensureContainerDomApi7577 = function (cId) {
         const container = this.getStampContainer_(cId);
         if (container && !container.__checkedDomApi33__) {
@@ -3854,6 +3881,8 @@
 
         const listDom = this.getStampContainer_(cId);
 
+        const containerId = cId;
+
         const pnForNewItem = (item) => {
 
           const [L, H] = deObjectComponent(item);
@@ -3898,7 +3927,7 @@
             if (container) container.classList.add('yt-live-chat-ticker-stampdom-container');
           }
 
-          return [item, L, H, connectedComponent];
+          return [item, L, H, connectedComponent, containerId];
 
         };
 
@@ -3928,7 +3957,7 @@
         const imgPaths = new Set();
 
         const pnForRenderNewItem = (entry) => {
-          const [item, L, H, connectedComponent] = entry;
+          const [item, L, H, connectedComponent, containerId] = entry;
 
           // const cnt = insp(connectedComponent);
           // setupRefreshData930(cnt);
@@ -3938,7 +3967,7 @@
             const q = this.deferRenderStamperBinding_
             let q2;
             if (typeof q === 'object') q2 = this.deferRenderStamperBinding_ = [];
-            this.deferRenderStamperBinding_(connectedComponent, L, Object.assign({}, H)); // pre-flush
+            this.deferRenderStamperBinding_(connectedComponent, L, Object.assign({}, H), containerId); // pre-flush
             this.flushRenderStamperComponentBindings_();
             if (typeof q === 'object') {
               this.deferRenderStamperBinding_ = q;
@@ -4119,7 +4148,7 @@
 
                 if (!fragAppend) return;
 
-                const { newNode, nodeAfter, parentNode, L, H } = task;
+                const { newNode, nodeAfter, parentNode, L, H, containerId } = task;
 
                 fragAppend.appendChild(newNode);
 
@@ -4136,7 +4165,7 @@
                 }
 
                 if (isTickerRendering && typeof (H || 0).id === "string") dataProcessTickerRendering(H);
-                this.deferRenderStamperBinding_(newNode, L, H);
+                this.deferRenderStamperBinding_(newNode, L, H, containerId);
                 this.flushRenderStamperComponentBindings_();
 
                 // nodeAfter ? nodeAfter.insertAdjacentElement('beforebegin', newNode) : parentNode.insertAdjacentElement('beforeend', newNode);
@@ -4239,7 +4268,7 @@
                     });
 
                   } else if ((rcEntry || 0).length >= 4) { // bug ?
-                    const [item, L, H, connectedComponent] = rcEntry;
+                    const [item, L, H, connectedComponent, containerId] = rcEntry;
 
                     tasks.push({
                       type: 'append',
@@ -4247,6 +4276,7 @@
                       nodeAfter: elNode,
                       parentNode: listDom,
                       item, L, H,
+                      containerId: containerId,
                       fn: taskFn.append
                     });
 
@@ -11683,10 +11713,29 @@
               } catch (e) {
                 console.warn(e);
               }
+              // 0.24.12
+              // ================
+              // var a;
+              // this.updateMessageElem("#message", (a = this.data) == null ? void 0 : a.message)
+              // ================
+              // 0.36.21
               // const a = this.data.message;
               // const b = this.$.message || this.hostElement.querySelector('#message');
               // b.textContent = "";
               // a && b.appendChild(this.ytLiveChatItemBehavior.createDocumentFragment(a));
+              // ================
+            },
+            updateHoverMessage374: function () { // conflict with weak dom root?
+              try {
+                return this.updateHoverMessage372();
+              } catch (e) {
+                console.warn(e);
+              }
+              // 0.24.12
+              // ================
+              // var a;
+              // this.updateMessageElem("#hover-message", (a = this.data) == null ? void 0 : a.hoverMessage)
+              // ================
             }
           };
 
@@ -11706,12 +11755,23 @@
 
               if (cProto && typeof cProto.updateMessage === 'function' && !cProto.updateMessage373 && cProto.updateMessage.length === 0 && fnIntegrity(cProto.updateMessage)) {
                 const w = fnIntegrity(cProto.updateMessage);
-                if (w !== '0.36.21') {
-                  console.warn('updateMessage signature changed', w, '0.36.21', cProto.updateMessage);
+                if (w !== '0.24.12' && w !== '0.36.21') {
+                  console.warn('updateMessage signature changed', w, '0.24.12', cProto.updateMessage);
                 } else {
                   cProto.updateMessage373 = true;
                   cProto.updateMessage372 = cProto.updateMessage;
                   cProto.updateMessage = dProto.updateMessage374;
+                }
+              }
+
+              if (cProto && typeof cProto.updateHoverMessage === 'function' && !cProto.updateHoverMessage373 && cProto.updateHoverMessage.length === 0 && fnIntegrity(cProto.updateHoverMessage)) {
+                const w = fnIntegrity(cProto.updateHoverMessage);
+                if (w !== '0.25.13') {
+                  console.warn('updateHoverMessage signature changed', w, '0.25.13', cProto.updateHoverMessage);
+                } else {
+                  cProto.updateHoverMessage373 = true;
+                  cProto.updateHoverMessage372 = cProto.updateHoverMessage;
+                  cProto.updateHoverMessage = dProto.updateHoverMessage374;
                 }
               }
 
