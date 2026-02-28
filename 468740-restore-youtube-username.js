@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.15
+// @version             0.13.16
 // @license             MIT License
 
 // @author              CY Fung
@@ -137,6 +137,10 @@ const NUM_CHANNEL_ID_MIN_LEN_old1 = 4; // 4 = @abc
 const NUM_CHANNEL_ID_MIN_LEN_1 = 2; // 4 = @abc -> 2 = @a
 const NUM_CHANNEL_ID_MIN_LEN_2 = 3; // 5 = /@abc -> 3 = /@a 
 
+const FETCH_V1_HOST = "/";
+const FETCH_V1_MODE = "same-origin";
+// const FETCH_V1_HOST = "https://youtubei.googleapis.com/";
+// const FETCH_V1_MODE = "cors";
 
 const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
 function createHTML(s) {
@@ -759,9 +763,9 @@ const Object_ = Object;
             });
         }
 
-        fetch(new Request(`/youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
+        fetch(new Request(`${FETCH_V1_HOST}youtubei/v1/browse?key=${cfg.INNERTUBE_API_KEY}&prettyPrint=false`, {
             "method": "POST",
-            "mode": "same-origin",
+            "mode": FETCH_V1_MODE,
             "credentials": "omit",
 
             referrerPolicy: "no-referrer",
@@ -774,7 +778,7 @@ const Object_ = Object;
 
             "headers": {
                 "Content-Type": "application/json", // content type of the body data in POST request
-                "Accept-Encoding": "gzip, deflate, br", // YouTube Response - br
+                "Accept-Encoding": "br;q=1.0, gzip;q=0.8, deflate;q=0.5", // YouTube Response - br
                 // X-Youtube-Bootstrap-Logged-In: false,
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
@@ -857,7 +861,7 @@ const Object_ = Object;
                 // seems YouTube RSS Feeds server insists its own Cache-Control.
 
                 // "Content-Type": "text/xml; charset=UTF-8",
-                "Accept-Encoding": "gzip, deflate, br", // YouTube Response - gzip
+                "Accept-Encoding": "br;q=1.0, gzip;q=0.8, deflate;q=0.5", // YouTube Response - gzip
                 // X-Youtube-Bootstrap-Logged-In: false,
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
