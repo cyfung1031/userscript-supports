@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.31
+// @version             0.3.32
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
-// @grant               none
 // @author              CY Fung
 // @run-at              document-start
 // @grant               none
@@ -3023,7 +3022,7 @@ SOFTWARE.
     });
 
     return html`
-  <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div class="bst-message-entry bst-viewer-engagement-message" message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <div class="bst-message-entry-highlight"></div>
   <div class="bst-message-entry-line">
@@ -3114,7 +3113,7 @@ SOFTWARE.
 
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
@@ -3169,7 +3168,7 @@ SOFTWARE.
     const setupFn = xItem.setupFn;
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-message-entry-ll`]: true, [`bst-membership-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <div classList=(${() => ({ "bst-message-entry-header": true, "bst-message-entry-followed-by-body": xItem.getField('hasMessageBody') })})>
     <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
@@ -3235,7 +3234,7 @@ SOFTWARE.
     const setupFn = xItem.setupFn;
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-gift-message`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
@@ -3296,7 +3295,7 @@ SOFTWARE.
     const setupFn = xItem.setupFn;
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-sponsorship-purchase`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
@@ -3350,7 +3349,7 @@ SOFTWARE.
     const setupFn = xItem.setupFn;
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-paid-sticker`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight" style=(${() => ({ '--bst-paid-sticker-bg': `url(${(xItem.getStickerURL(80, 256))})` })})></div>
@@ -3409,7 +3408,7 @@ SOFTWARE.
 
 
     return html`
-  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-${xItem.wKey}`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
+  <div classList=(${() => ({ 'bst-message-entry': true, [`bst-${xItem.wKey}`]: true, 'bst-message-entry-holding': entryHolding() === xItem.uid() })}) message-uid="${() => xItem.uid()}" view-pos=(${() => xItem.viewPosAttr()}) message-id="${() => R(data).id}" ref="${setupFn}" author-type="${() => xItem.getField('authorType')}">
   <div classList=(${() => ({ 'bst-message-container': true, 'bst-message-container-f': mf() !== xItem.uid() })})>
   <span class="bst-message-profile-holder"><a class="bst-message-profile-anchor"><${SolidProfileImg} profileImgSrc=(${() => profileUrl}) /></a></span>
   <div class="bst-message-entry-highlight"></div>
@@ -4363,29 +4362,18 @@ SOFTWARE.
       }
     }, null);
 
-    // change on state
-    const viewVisiblePos = createMemo(() => {
+    // change on state -> change on DOM
+    const viewPosAttr = createMemo((prev)=>{
+      const isValid = interceptionRatio() !== null
+
+      // change on state
       const viewCount = visibleCount();
       const num = viewVisibleIdx();
-      if (num >= 1 && viewCount >= 1) {
-        return (num > (viewCount / 2)) ? 'down' : 'up';
-      } else {
-        return null;
-      }
-    });
 
-    // change on state -> change on DOM
-    createEffect(() => {
-      const messageEntry = document.querySelector(`[message-uid="${refSignal()}"]`);
-      const p = interceptionRatio();
-      const v = viewVisiblePos();
-      if (!messageEntry || p === null) return;
-      if (v === null) {
-        _removeAttribute.call(messageEntry, 'view-pos');
-      } else {
-        _setAttribute.call(messageEntry, 'view-pos', v);
-      }
-    });
+      if (!isValid) return prev;
+      if (num >= 1 && viewCount >= 1) return (num > (viewCount / 2)) ? 'down' : 'up';
+      return undefined;
+    }, undefined);
 
     let removeEntryFn = () => {
       removeEntryFn = null;
@@ -4464,6 +4452,7 @@ SOFTWARE.
       interceptionRatioChange,
       removeEntryFn,
       refSignal,
+      viewPosAttr,
       onNameFieldClick
     };
     return qxItem;
