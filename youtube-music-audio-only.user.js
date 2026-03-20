@@ -6,7 +6,7 @@
 // @description:zh-TW   No Video Streaming
 // @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.20
+// @version             0.1.21
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -941,9 +941,10 @@
     const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? (await GM.getValue("isEnable_aWsjF", true)) : null;
     if (typeof isEnable !== 'boolean') throw new DOMException("Please Update your browser", "NotSupportedError");
     if (isEnable) {
-        const element = document.createElement('button');
-        element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
-        element.click();
+        // const element = document.createElement('button');
+        // element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
+        // element.click();
+        GM_addElement(document.head || document.documentElement, "script", {textContent: createHTML(`(${pageInjectionCode})()`)});
     }
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {

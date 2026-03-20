@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.24
+// @version             2.1.25
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -3877,9 +3877,10 @@
     const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? await getEnableValue() : null;
     if (typeof isEnable !== 'boolean') throw new DOMException("Please Update your browser", "NotSupportedError");
     if (isEnable) {
-        const element = document.createElement('button');
-        element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
-        element.click();
+        // const element = document.createElement('button');
+        // element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
+        // element.click();
+        GM_addElement(document.head || document.documentElement, "script", {textContent: createHTML(`(${pageInjectionCode})()`)});
     }
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {
