@@ -6,7 +6,7 @@
 // @description:zh-TW   No Video Streaming
 // @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.21
+// @version             0.1.22
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -944,7 +944,7 @@
         // const element = document.createElement('button');
         // element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
         // element.click();
-        GM_addElement(document.head || document.documentElement, "script", {textContent: createHTML(`(${pageInjectionCode})()`)});
+        GM_addElement(document.head || document.documentElement, "script", {textContent: `(${pageInjectionCode})()`});
     }
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {

@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.25
+// @version             2.1.26
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -3880,7 +3880,7 @@
         // const element = document.createElement('button');
         // element.setAttribute('onclick', createHTML(`(${pageInjectionCode})()`));
         // element.click();
-        GM_addElement(document.head || document.documentElement, "script", {textContent: createHTML(`(${pageInjectionCode})()`)});
+        GM_addElement(document.head || document.documentElement, "script", {textContent: `(${pageInjectionCode})()`});
     }
 
     GM_registerMenuCommand(`Turn ${isEnable ? 'OFF' : 'ON'} YouTube Audio Mode`, async function () {
