@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.16
+// @version             0.13.17
 // @license             MIT License
 
 // @author              CY Fung
@@ -2494,6 +2494,7 @@ const Object_ = Object;
 
     const getDisplayTextDOMForCommentRenderer = (root) => { // mobile
         let displayTextDOM = elementQS(root, '.comment-header .comment-title');
+        displayTextDOM = displayTextDOM || elementQS(root, ".YtmCommentRendererHeader .YtmCommentRendererTitle"); // Mar 2026
         if (displayTextDOM) {
             displayTextDOM = elementQS(displayTextDOM, '.yt-core-attributed-string') || displayTextDOM;
         }
@@ -3292,7 +3293,8 @@ const Object_ = Object;
     const domCheckScheduledSelectors = isMobile ? [
         'a[aria-label^="@"][href*="channel/"]:not([jkrgy])', // old; Before Feb 2024
         'a.comment-icon-container[href*="/@"]:not([jkrgy])', // Feb 2024
-        'a.comment-icon-container[href*="channel/"]:not([jkrgy])' // Mar 2024
+        'a.comment-icon-container[href*="channel/"]:not([jkrgy])', // Mar 2024
+        'a.YtmCommentRendererIconContainer[href*="/@"]:not([jkrgy])' // Mar 2026
     ] : [
         'a[id][href*="channel/"]:not([jkrgy])', // old; Before Feb 2024
         'a.yt-simple-endpoint.style-scope[id][href^="/@"]:not([jkrgy])', // Feb 2024
