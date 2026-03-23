@@ -2,7 +2,7 @@
 // @name                YouTube: Audio Only
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.26
+// @version             2.1.27
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -15,6 +15,7 @@
 // @grant               GM.getValue
 // @grant               GM.listValues
 // @grant               GM.deleteValue
+// @grant               GM_addElement
 // @run-at              document-start
 // @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
 // @license             MIT

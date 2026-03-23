@@ -6,7 +6,7 @@
 // @description:zh-TW   No Video Streaming
 // @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.22
+// @version             0.1.23
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -14,6 +14,7 @@
 // @grant               GM_registerMenuCommand
 // @grant               GM.setValue
 // @grant               GM.getValue
+// @grant               GM_addElement
 // @run-at              document-start
 // @require             https://cdn.jsdelivr.net/gh/cyfung1031/userscript-supports@5d83d154956057bdde19e24f95b332cb9a78fcda/library/default-trusted-type-policy.js
 // @license             MIT
