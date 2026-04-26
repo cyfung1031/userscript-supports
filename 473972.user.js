@@ -10083,7 +10083,7 @@
 
     FIX_yt_player && !isChatRoomURL && (async () => {
 
-      const fOption = 1 | 2 | 4;
+      const fOption = 1 | 4;
 
       const _yt_player = await _yt_player_observable.obtain();
 
