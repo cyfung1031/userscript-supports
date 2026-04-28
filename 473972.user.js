@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.11
+// @version     0.42.12
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -150,6 +150,8 @@
   // example: https://www.youtube.com/channel/UC5WKyq8V6qy1WqKi0jO97QA
   const FIX_RESIZED_HEADER_HEIGHT = true; // ensure performUpdate is called after _interestedResizables get resized * required for delayed rendering
   const ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK = true; // instead of RAF, just use nextTick
+  const ENABLE_SUB_COMPONENT_RELAYOUT = true; // relayout the child components as well
+  // const ENABLE_FAST_SCROLLHANDLER = true; // smoother CSS effect
   // --------
 
   const FIX_ICON_RENDER = true;
@@ -6146,6 +6148,38 @@
 
   // ----------------------------
 
+  // if (ENABLE_FAST_SCROLLHANDLER) {
+  //   const updatedSet = {
+  //     "scroll": new Set(),
+  //     "wheel": new Set(),
+  //   }
+  //   updatedSet.scroll.add = updatedSet.scroll.addOriginal || updatedSet.scroll.add;
+  //   updatedSet.wheel.add = updatedSet.wheel.addOriginal || updatedSet.wheel.add;
+  //   const handlerFn = (e) => {
+  //     const target = e.target;
+  //     const type = e.type;
+  //     // document.querySelector("tp-yt-app-header")?._scrollHandler();
+  //     if (updatedSet[type].has(target)) return;
+  //     updatedSet[type].add(target);
+  //     nextBrowserTick_(() => updatedSet[type].clear());
+  //     for (const element of target.querySelectorAll("tp-yt-app-header")) {
+  //       const t = element;
+  //       const k = insp(t);
+  //       const mc = t._scrollHandler || t._scrollStateChanged ? t : k._scrollHandler || k._scrollStateChanged ? k : null;
+  //       if (mc) {
+  //         if (updatedSet[type].has(mc)) continue;
+  //         const method = typeof mc._scrollHandler === "function" && mc._scrollHandler.length === 0 ? "_scrollHandler" : typeof mc._scrollStateChanged === "function" && mc._scrollStateChanged.length === 0 ? "_scrollStateChanged" : "";
+  //         if (method) {
+  //           updatedSet[type].add(mc);
+  //           mc[method]();
+  //         }
+  //       }
+  //     }
+  //   };
+  //   document.addEventListener("scroll", handlerFn, { passive: true, capture: true });
+  //   document.addEventListener("wheel", handlerFn, { passive: true, capture: true });
+  // }
+
   ;(FIX_RESIZED_HEADER_HEIGHT || ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK) && whenCEDefined('tp-yt-app-header-layout').then(async () => {
 
     dummy = document.createElement('tp-yt-app-header-layout');
@@ -6161,30 +6195,63 @@
       const associationKey = "jtryk";
       let triggerFlag = false;
       let bypass = false;
+      const collectedRelayoutFn = () => {
+        const updatedSet = new Set(); // avoid duplicating calls on layout refresh
+        updatedSet.add = updatedSet.addOriginal || updatedSet.add;
+        triggerFlag = false;
+        const targetComponentElements = document.querySelectorAll(`[${associationKey}]`);
+        // reserved order so the perform layout update on the child components first
+        for (let j = targetComponentElements.length; --j >= 0;) {
+          const k = targetComponentElements[j];
+          const t = insp(k);
+          const methodController = t.performUpdate && t.performUpdate75 ? t : k.performUpdate && k.performUpdate75 ? k : null;
+          if (methodController) {
+            // we are using the conservative approach - just do performUpdate without finding the new resizeobservables
+            bypass = true;
+            if (!methodController.__functionInCall7018__) {
+              methodController.__functionInCall7018__ = true;
+              if (ENABLE_SUB_COMPONENT_RELAYOUT) {
+                // required for updating the style.transform3d for scrolling
+                const elements = k.querySelectorAll("[class]");
+                const mArray = [];
+                for (const element of elements) {
+                  const eK = element;
+                  const eT = insp(eK);
+                  const methodController = eT._updateLayoutStates ? eT : eK._updateLayoutStates ? eK : null;
+                  const _updateLayoutStates = (methodController || 0)._updateLayoutStates;
+                  if (typeof _updateLayoutStates === "function") {
+                    if (_updateLayoutStates.length !== 0) {
+                      console.warn("Unsupported _updateLayoutStates on " + (element.is || element.nodeName));
+                      continue;
+                    }
+                    mArray.push(methodController);
+                  }
+                }
+                for (let mJ = mArray.length; --mJ >= 0;) {
+                  const mT = mArray[mJ];
+                  if (!updatedSet.has(mT)) {
+                    updatedSet.add(mT);
+                    if (mT.performUpdate && typeof mT.performUpdate === "function" && mT.performUpdate.length === 0 && mT.useRaf === true) mT.performUpdate();
+                    else mT._updateLayoutStates();
+                  }
+                }
+              }
+              // with js tamer settings, this will be called few times (e.g. 3 times)
+              if (!updatedSet.has(methodController)) {
+                updatedSet.add(methodController);
+                methodController.performUpdate();
+              }
+              methodController.__functionInCall7018__ = false;
+            }
+            bypass = false;
+          }
+        }
+        updatedSet.clear();
+      };
       const observer = new ResizeObserver((entries) => {
         if (!triggerFlag) {
           triggerFlag = true;
-          nextBrowserTick(() => {
-            triggerFlag = false;
-            const targetComponentElements = document.querySelectorAll(`[${associationKey}]`);
-            // reserved order so the perform layout update on the child components first
-            for (let j = targetComponentElements.length; --j >= 0;) {
-              const k = targetComponentElements[j];
-              const t = insp(k);
-              const methodController = t.performUpdate && t.performUpdate75 ? t : k.performUpdate && k.performUpdate75 ? k : null;
-              if (methodController) {
-                // we are using the conservative approach - just do performUpdate without finding the new resizeobservables
-                bypass = true;
-                if (!methodController.__functionInCall7018__) {
-                  methodController.__functionInCall7018__ = true;
-                  // with js tamer settings, this will be called few times (e.g. 3 times)
-                  methodController.performUpdate();
-                  methodController.__functionInCall7018__ = false;
-                }
-                bypass = false;
-              }
-            }
-          })
+          nextBrowserTick(collectedRelayoutFn);
         }
       });
       cProto.performUpdate75 = cProto.performUpdate;
