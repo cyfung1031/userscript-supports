@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.10
+// @version     0.42.13
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -144,6 +144,15 @@
 
   const DEBUG_DBR847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
+
+  // --------
+  // tp-yt-app-header, tp-yt-app-header-layout, yt-page-header-renderer, yt-page-header-view-model, ...
+  // example: https://www.youtube.com/channel/UC5WKyq8V6qy1WqKi0jO97QA
+  const FIX_RESIZED_HEADER_HEIGHT = true; // ensure performUpdate is called after _interestedResizables get resized * required for delayed rendering
+  const ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK = true; // instead of RAF, just use nextTick
+  const ENABLE_SUB_COMPONENT_RELAYOUT = true; // relayout the child components as well
+  // const ENABLE_FAST_SCROLLHANDLER = true; // smoother CSS effect
+  // --------
 
   const FIX_ICON_RENDER = true;
   const FIX_GUIDE_ICON = true;
@@ -6139,6 +6148,177 @@
 
   // ----------------------------
 
+  // if (ENABLE_FAST_SCROLLHANDLER) {
+  //   const updatedSet = {
+  //     "scroll": new Set(),
+  //     "wheel": new Set(),
+  //   }
+  //   updatedSet.scroll.add = updatedSet.scroll.addOriginal || updatedSet.scroll.add;
+  //   updatedSet.wheel.add = updatedSet.wheel.addOriginal || updatedSet.wheel.add;
+  //   const handlerFn = (e) => {
+  //     const target = e.target;
+  //     const type = e.type;
+  //     // document.querySelector("tp-yt-app-header")?._scrollHandler();
+  //     if (updatedSet[type].has(target)) return;
+  //     updatedSet[type].add(target);
+  //     nextBrowserTick_(() => updatedSet[type].clear());
+  //     for (const element of target.querySelectorAll("tp-yt-app-header")) {
+  //       const t = element;
+  //       const k = insp(t);
+  //       const mc = t._scrollHandler || t._scrollStateChanged ? t : k._scrollHandler || k._scrollStateChanged ? k : null;
+  //       if (mc) {
+  //         if (updatedSet[type].has(mc)) continue;
+  //         const method = typeof mc._scrollHandler === "function" && mc._scrollHandler.length === 0 ? "_scrollHandler" : typeof mc._scrollStateChanged === "function" && mc._scrollStateChanged.length === 0 ? "_scrollStateChanged" : "";
+  //         if (method) {
+  //           updatedSet[type].add(mc);
+  //           mc[method]();
+  //         }
+  //       }
+  //     }
+  //   };
+  //   document.addEventListener("scroll", handlerFn, { passive: true, capture: true });
+  //   document.addEventListener("wheel", handlerFn, { passive: true, capture: true });
+  // }
+
+  ;(FIX_RESIZED_HEADER_HEIGHT || ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK) && whenCEDefined('tp-yt-app-header-layout').then(async () => {
+
+    dummy = document.createElement('tp-yt-app-header-layout');
+
+    let cProto;
+    if (!(dummy instanceof Element)) return;
+    cProto = insp(dummy).constructor.prototype;
+
+    // cProto.__functionInCall7018__ = false; // avoid recursive function call
+
+    if (FIX_RESIZED_HEADER_HEIGHT && !cProto.performUpdate75 && typeof cProto.performUpdate === "function" && cProto.performUpdate.length === 0 && typeof ResizeObserver === "function") {
+
+      const associationKey = "jtryk";
+      let triggerFlag = false;
+      let bypass = false;
+      const collectedRelayoutFn = () => {
+        const updatedSet = new Set(); // avoid duplicating calls on layout refresh
+        updatedSet.add = updatedSet.addOriginal || updatedSet.add;
+        triggerFlag = false;
+        const targetComponentElements = document.querySelectorAll(`[${associationKey}]`);
+        // reserved order so the perform layout update on the child components first
+        for (let j = targetComponentElements.length; --j >= 0;) {
+          const k = targetComponentElements[j];
+          const t = insp(k);
+          const methodController = t.performUpdate && t.performUpdate75 ? t : k.performUpdate && k.performUpdate75 ? k : null;
+          if (methodController) {
+            // we are using the conservative approach - just do performUpdate without finding the new resizeobservables
+            bypass = true;
+            if (!methodController.__functionInCall7018__) {
+              methodController.__functionInCall7018__ = true;
+              if (ENABLE_SUB_COMPONENT_RELAYOUT) {
+                // required for updating the style.transform3d for scrolling
+                const elements = k.querySelectorAll("[class]");
+                const mArray = [];
+                for (const element of elements) {
+                  const eK = element;
+                  const eT = insp(eK);
+                  const methodController = eT._updateLayoutStates ? eT : eK._updateLayoutStates ? eK : null;
+                  const _updateLayoutStates = (methodController || 0)._updateLayoutStates;
+                  if (typeof _updateLayoutStates === "function") {
+                    if (_updateLayoutStates.length !== 0) {
+                      console.warn("Unsupported _updateLayoutStates on " + (element.is || element.nodeName));
+                      continue;
+                    }
+                    mArray.push(methodController);
+                  }
+                }
+                for (let mJ = mArray.length; --mJ >= 0;) {
+                  const mT = mArray[mJ];
+                  if (!updatedSet.has(mT)) {
+                    updatedSet.add(mT);
+                    if (mT.performUpdate && typeof mT.performUpdate === "function" && mT.performUpdate.length === 0 && mT.useRaf === true) mT.performUpdate();
+                    else mT._updateLayoutStates();
+                  }
+                }
+              }
+              // with js tamer settings, this will be called few times (e.g. 3 times)
+              if (!updatedSet.has(methodController)) {
+                updatedSet.add(methodController);
+                methodController.performUpdate();
+              }
+              methodController.__functionInCall7018__ = false;
+            }
+            bypass = false;
+          }
+        }
+        updatedSet.clear();
+      };
+      const observer = new ResizeObserver((entries) => {
+        if (!triggerFlag) {
+          triggerFlag = true;
+          nextBrowserTick(collectedRelayoutFn);
+        }
+      });
+      cProto.performUpdate75 = cProto.performUpdate;
+      cProto.performUpdate = function () {
+        if (!this.header || !this.$ || !this.$.wrapper || !this.$.contentContainer) {
+          console.warn("[yt-js-engine-tamer] Patch Invalid on tp-yt-app-header-layout::performUpdate")
+          return this.performUpdate75();
+        }
+        const r = this.performUpdate75();
+        if (bypass) return r;
+        try {
+          const hostElement = (this.hostElement || this);
+          if (typeof hostElement === "object" && hostElement.nodeType === 1) {
+            if (hostElement.getAttribute(associationKey) === null) {
+              hostElement.setAttribute(associationKey, "");
+              // we are using the conservative approach - just hook on the initial _interestedResizables and assume no change afterwards
+              const resizables = this._interestedResizables
+              if (resizables && resizables.length >= 1) {
+                for (const node of resizables) {
+                  observer.observe(node);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("[yt-js-engine-tamer] Error in tp-yt-app-header-layout::performUpdate", e);
+        }
+        return r;
+      }
+    } else {
+      console.warn("[yt-js-engine-tamer] Patch Failed on tp-yt-app-header-layout::performUpdate");
+    }
+
+    if (ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK && !cProto._updateLayoutStates79 && typeof cProto.performUpdate === "function" && typeof cProto._updateLayoutStates === "function" && cProto.performUpdate.length === 0 && cProto._updateLayoutStates.length === 0) {
+      cProto._updateLayoutStates79 = cProto._updateLayoutStates;
+      cProto._updateLayoutStates = function () {
+        if (typeof this.useRaf !== "boolean" || typeof this.rafId !== "number") {
+          console.warn("[yt-js-engine-tamer] Patch Invalid on tp-yt-app-header-layout::_updateLayoutStates")
+          return this._updateLayoutStates79();
+        }
+        if (this.__functionInCall7018__) return;
+        if (this.useRaf && (!this.rafId || this.rafId < 0)) {
+          // normal path
+          nextBrowserTick(() => {
+            if (!this.__functionInCall7018__) {
+              this.__functionInCall7018__ = true;
+              this.performUpdate();
+              this.__functionInCall7018__ = false;
+            }
+          });
+        } else {
+          // not used
+          if (!this.__functionInCall7018__) {
+            this.__functionInCall7018__ = true;
+            this.performUpdate();
+            this.__functionInCall7018__ = false;
+          }
+        }
+      }
+    } else {
+      console.warn("[yt-js-engine-tamer] Patch Failed on tp-yt-app-header-layout::_updateLayoutStates");
+    }
+
+  });
+
+  // ----------------------------
+
   const nativeNow = Reflect.getPrototypeOf(performance).now.bind(performance);
 
   const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
@@ -10083,7 +10263,7 @@
 
     FIX_yt_player && !isChatRoomURL && (async () => {
 
-      const fOption = 1 | 4;
+      const fOption = 1 | 0 | 4 | 8; // PR#105
 
       const _yt_player = await _yt_player_observable.obtain();
 
@@ -10211,283 +10391,283 @@
         */
       }
 
-      if (fOption & 2) {
-        const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
+      // if (fOption & 2) {
+      //   const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
 
-        if (keyzo) {
+      //   if (keyzo) {
 
-          k = keyzo;
+      //     k = keyzo;
 
-          const attrUpdateFn = g[k];
-          // console.log(5992, attrUpdateFn)
-          g['$$original$$' + k] = attrUpdateFn;
-          const zoTransform = async (a, c) => {
+      //     const attrUpdateFn = g[k];
+      //     // console.log(5992, attrUpdateFn)
+      //     g['$$original$$' + k] = attrUpdateFn;
+      //     const zoTransform = async (a, c) => {
 
-            let transformType = '';
-            let transformValue = 0;
-            let transformUnit = '';
-            let transformTypeI = 0;
+      //       let transformType = '';
+      //       let transformValue = 0;
+      //       let transformUnit = '';
+      //       let transformTypeI = 0;
 
-            const aStyle = a.style;
+      //       const aStyle = a.style;
 
-            let cType = 0;
+      //       let cType = 0;
 
-            const cl = c.length;
+      //       const cl = c.length;
 
-            if (cl >= 8) {
-              // scale(1)
-              if (c.startsWith('scale') && c.charCodeAt(6) === 40 && c.charCodeAt(cl - 1) === 41) {
-                cType = 1;
-                let t = c.charCodeAt(5);
-                if (t === 88 || t === 120) cType = 1 | 4;
-                if (t === 89 || t === 121) cType = 1 | 8;
-              } else if (c.startsWith('translate') && c.charCodeAt(10) === 40 && c.charCodeAt(cl - 1) === 41) {
-                cType = 2;
-                let t = c.charCodeAt(9);
-                if (t === 88 || t === 120) cType = 2 | 4;
-                if (t === 89 || t === 121) cType = 2 | 8;
-              }
-              let w = 0;
-              if (w = (cType === 5) ? 1 : (cType === 9) ? 2 : 0) {
-                let p = c.substring(7, cl - 1);
-                let q = p.length >= 1 ? parseFloat(p) : NaN;
-                if (typeof q === 'number' && !isNaNx(q)) {
-                  transformType = w === 1 ? 'scaleX' : 'scaleY';
-                  transformValue = q;
-                  transformUnit = '';
-                  transformTypeI = 1;
-                } else {
-                  cType = 256;
-                }
-              } else if (w = (cType === 6) ? 1 : (cType === 10) ? 2 : 0) {
-                if (c.endsWith('px)')) {
-                  let p = c.substring(11, cl - 3);
-                  let q = p.length >= 1 ? parseFloat(p) : NaN;
-                  if (typeof q === 'number' && !isNaNx(q)) {
-                    transformType = w === 1 ? 'translateX' : 'translateY';
-                    transformValue = q;
-                    transformUnit = 'px';
-                    transformTypeI = 2;
-                  } else if (p === 'NaN') {
-                    return;
-                  }
-                } else {
-                  cType = 256;
-                }
-              } else if (cType > 0) {
-                cType = 256;
-              }
-            }
-
-
-            if (cType === 256) {
-              console.log('[yt-js-engine-tamer] zoTransform undefined', c);
-            }
-
-            if (transformTypeI === 1) {
-              const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
-              const vz = toFixed2(q, 3);
-              c = `${transformType}(${vz})`;
-              const cv = aStyle.transform;
-              if (c === cv) return;
-              aStyle.transform = c;
-            } else if (transformTypeI === 2) {
-              const q = transformValue;
-              const vz = toFixed2(q, 1);
-              c = `${transformType}(${vz}${transformUnit})`;
-              const cv = aStyle.transform;
-              if (c === cv) return;
-              aStyle.transform = c;
-            } else { // eg empty
-              const cv = aStyle.transform;
-              if (!c && !cv) return;
-              else if (c === cv) return;
-              aStyle.transform = c;
-            }
-
-          };
-
-          const elmTransformTemp = new WeakMap();
-          const elmPropTemps = {
-            'display': new WeakMap(),
-            'width': new WeakMap(),
-            'height': new WeakMap(),
-            'outlineWidth': new WeakMap(),
-            'position': new WeakMap(),
-            'padding': new WeakMap(),
-            "cssText": new WeakMap(),
-            "right": new WeakMap(),
-            "left": new WeakMap(),
-            "top": new WeakMap(),
-            "bottom": new WeakMap(),
-            "transitionDelay": new WeakMap(),
-            "marginLeft": new WeakMap(),
-            "marginTop": new WeakMap(),
-            "marginRight": new WeakMap(),
-            "marginBottom": new WeakMap(),
-          }
-
-          const ns5 = Symbol();
-          const nextModify = (a, c, m, f, immediate) => {
-            const a_ = a;
-            const m_ = m;
-            const noKey = !m_.has(a_);
-            if (immediate || noKey) {
-              m_.set(a_, ns5);
-              f(a_, c);
-              noKey && nextBrowserTick_(() => {
-                const d = m_.get(a_);
-                if (d === undefined) return;
-                m_.delete(a_);
-                if (d !== ns5) f(a_, d);
-              });
-            } else {
-              m_.set(a_, c);
-            }
-          };
-
-          const set66 = new Set();
-          const log77 = new Map();
-          // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
-
-          const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
-
-            // console.log(140000, a, b, c);
-            if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement_) {
-              const num = c;
-              c = `${num}`;
-              if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
-            }
-
-            if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement_) {
-
-              let elmPropTemp = null;
-
-              if (b === "transform") {
-                // div.ytp-hover-progress.ytp-hover-progress-light
-                // div.ytp-play-progress.ytp-swatch-background-color
-
-                nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
-                return;
-
-              } else if (elmPropTemp = elmPropTemps[b]) {
-
-                // if (c.length > 5 && c.includes('.')) {
-                //   console.log(123213, c)
-                // }
-
-                const b_ = b;
-                nextModify(a, c, elmPropTemp, (a, c) => {
-                  const style = a.style;
-                  const cv = style[b_];
-                  if (!cv && !c) return;
-                  if (cv === c) return;
-                  style[b_] = c;
-                }, immediateChange);
-                return;
-
-              } else if (b === "outline-width") {
-
-                const b_ = 'outlineWidth';
-                elmPropTemp = elmPropTemps[b_];
-                nextModify(a, c, elmPropTemp, (a, c) => {
-                  const style = a.style;
-                  const cv = style[b_];
-                  if (!cv && !c) return;
-                  if (cv === c) return;
-                  style[b_] = c;
-                }, immediateChange);
-                return;
-
-              } else if (b === 'maxWidth' || b === 'maxHeight') {
-                // I think these can be directly assigned.
-
-                const b_ = b;
-                const style = a.style;
-                const cv = style[b_];
-                if (!cv && !c) return;
-                if (cv === c) return;
-                style[b_] = c;
-                return;
-
-              } else {
-                // if(immediate && elmPropTemps[b]){
-                //   console.log(5191, b)
-                // }
-                // caption-window
-                // margin-left max-height max-width font-family fill color font-size background white-space margin
-                // text-align background-color
-                // console.log(27304, a, b, c)
-                if (!set66.has(b)) {
-                  set66.add(b);
-                  nextBrowserTick_(() => {
-                    if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
-                      console.log(27304, a, b, c)
-                    }
-                  })
-                }
-              }
-
-              attrUpdateFn.call(this, a, b, c);
-              return;
-            } else if (typeof (b || 0) === 'object') {
-
-              // this is to fix caption positioning
-              // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
-              const immediate = (a.id || 0).length > 14;
-              for (const [k, v] of Object.entries(b)) {
-                modifiedFn.call(this, a, k, v, immediate);
-              }
-
-            } else {
-
-              // a = circle, b = stroke-dasharray, c= "1.8422857142857143 32"
-              // ytp-ad-timed-pie-countdown-inner
-
-              if (typeof b === 'string') {
-
-                let m = log77.get(b);
-                if (!m) {
-                  m = [];
-                  console.log('attrUpdateFn.debug.27304', m);
-                  log77.set(b, m);
-                }
-                m.push([a, b, c]);
-
-              } else {
-                console.log('attrUpdateFn.debug.27306', a, b, c);
-              }
-
-              attrUpdateFn.call(this, a, b, c);
-              return;
-            }
-
-            // console.log(130000, a, b, c);
-
-          };
-          g[k] = modifiedFn;
+      //       if (cl >= 8) {
+      //         // scale(1)
+      //         if (c.startsWith('scale') && c.charCodeAt(6) === 40 && c.charCodeAt(cl - 1) === 41) {
+      //           cType = 1;
+      //           let t = c.charCodeAt(5);
+      //           if (t === 88 || t === 120) cType = 1 | 4;
+      //           if (t === 89 || t === 121) cType = 1 | 8;
+      //         } else if (c.startsWith('translate') && c.charCodeAt(10) === 40 && c.charCodeAt(cl - 1) === 41) {
+      //           cType = 2;
+      //           let t = c.charCodeAt(9);
+      //           if (t === 88 || t === 120) cType = 2 | 4;
+      //           if (t === 89 || t === 121) cType = 2 | 8;
+      //         }
+      //         let w = 0;
+      //         if (w = (cType === 5) ? 1 : (cType === 9) ? 2 : 0) {
+      //           let p = c.substring(7, cl - 1);
+      //           let q = p.length >= 1 ? parseFloat(p) : NaN;
+      //           if (typeof q === 'number' && !isNaNx(q)) {
+      //             transformType = w === 1 ? 'scaleX' : 'scaleY';
+      //             transformValue = q;
+      //             transformUnit = '';
+      //             transformTypeI = 1;
+      //           } else {
+      //             cType = 256;
+      //           }
+      //         } else if (w = (cType === 6) ? 1 : (cType === 10) ? 2 : 0) {
+      //           if (c.endsWith('px)')) {
+      //             let p = c.substring(11, cl - 3);
+      //             let q = p.length >= 1 ? parseFloat(p) : NaN;
+      //             if (typeof q === 'number' && !isNaNx(q)) {
+      //               transformType = w === 1 ? 'translateX' : 'translateY';
+      //               transformValue = q;
+      //               transformUnit = 'px';
+      //               transformTypeI = 2;
+      //             } else if (p === 'NaN') {
+      //               return;
+      //             }
+      //           } else {
+      //             cType = 256;
+      //           }
+      //         } else if (cType > 0) {
+      //           cType = 256;
+      //         }
+      //       }
 
 
-          /*
+      //       if (cType === 256) {
+      //         console.log('[yt-js-engine-tamer] zoTransform undefined', c);
+      //       }
 
-              g.zo = function(a, b, c) {
-                  if ("string" === typeof b)
-                      (b = yo(a, b)) && (a.style[b] = c);
-                  else
-                      for (var d in b) {
-                          c = a;
-                          var e = b[d]
-                            , f = yo(c, d);
-                          f && (c.style[f] = e)
-                      }
-              }
+      //       if (transformTypeI === 1) {
+      //         const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
+      //         const vz = toFixed2(q, 3);
+      //         c = `${transformType}(${vz})`;
+      //         const cv = aStyle.transform;
+      //         if (c === cv) return;
+      //         aStyle.transform = c;
+      //       } else if (transformTypeI === 2) {
+      //         const q = transformValue;
+      //         const vz = toFixed2(q, 1);
+      //         c = `${transformType}(${vz}${transformUnit})`;
+      //         const cv = aStyle.transform;
+      //         if (c === cv) return;
+      //         aStyle.transform = c;
+      //       } else { // eg empty
+      //         const cv = aStyle.transform;
+      //         if (!c && !cv) return;
+      //         else if (c === cv) return;
+      //         aStyle.transform = c;
+      //       }
+
+      //     };
+
+      //     const elmTransformTemp = new WeakMap();
+      //     const elmPropTemps = {
+      //       'display': new WeakMap(),
+      //       'width': new WeakMap(),
+      //       'height': new WeakMap(),
+      //       'outlineWidth': new WeakMap(),
+      //       'position': new WeakMap(),
+      //       'padding': new WeakMap(),
+      //       "cssText": new WeakMap(),
+      //       "right": new WeakMap(),
+      //       "left": new WeakMap(),
+      //       "top": new WeakMap(),
+      //       "bottom": new WeakMap(),
+      //       "transitionDelay": new WeakMap(),
+      //       "marginLeft": new WeakMap(),
+      //       "marginTop": new WeakMap(),
+      //       "marginRight": new WeakMap(),
+      //       "marginBottom": new WeakMap(),
+      //     }
+
+      //     const ns5 = Symbol();
+      //     const nextModify = (a, c, m, f, immediate) => {
+      //       const a_ = a;
+      //       const m_ = m;
+      //       const noKey = !m_.has(a_);
+      //       if (immediate || noKey) {
+      //         m_.set(a_, ns5);
+      //         f(a_, c);
+      //         noKey && nextBrowserTick_(() => {
+      //           const d = m_.get(a_);
+      //           if (d === undefined) return;
+      //           m_.delete(a_);
+      //           if (d !== ns5) f(a_, d);
+      //         });
+      //       } else {
+      //         m_.set(a_, c);
+      //       }
+      //     };
+
+      //     const set66 = new Set();
+      //     const log77 = new Map();
+      //     // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
+
+      //     const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
+
+      //       // console.log(140000, a, b, c);
+      //       if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement_) {
+      //         const num = c;
+      //         c = `${num}`;
+      //         if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
+      //       }
+
+      //       if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement_) {
+
+      //         let elmPropTemp = null;
+
+      //         if (b === "transform") {
+      //           // div.ytp-hover-progress.ytp-hover-progress-light
+      //           // div.ytp-play-progress.ytp-swatch-background-color
+
+      //           nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
+      //           return;
+
+      //         } else if (elmPropTemp = elmPropTemps[b]) {
+
+      //           // if (c.length > 5 && c.includes('.')) {
+      //           //   console.log(123213, c)
+      //           // }
+
+      //           const b_ = b;
+      //           nextModify(a, c, elmPropTemp, (a, c) => {
+      //             const style = a.style;
+      //             const cv = style[b_];
+      //             if (!cv && !c) return;
+      //             if (cv === c) return;
+      //             style[b_] = c;
+      //           }, immediateChange);
+      //           return;
+
+      //         } else if (b === "outline-width") {
+
+      //           const b_ = 'outlineWidth';
+      //           elmPropTemp = elmPropTemps[b_];
+      //           nextModify(a, c, elmPropTemp, (a, c) => {
+      //             const style = a.style;
+      //             const cv = style[b_];
+      //             if (!cv && !c) return;
+      //             if (cv === c) return;
+      //             style[b_] = c;
+      //           }, immediateChange);
+      //           return;
+
+      //         } else if (b === 'maxWidth' || b === 'maxHeight') {
+      //           // I think these can be directly assigned.
+
+      //           const b_ = b;
+      //           const style = a.style;
+      //           const cv = style[b_];
+      //           if (!cv && !c) return;
+      //           if (cv === c) return;
+      //           style[b_] = c;
+      //           return;
+
+      //         } else {
+      //           // if(immediate && elmPropTemps[b]){
+      //           //   console.log(5191, b)
+      //           // }
+      //           // caption-window
+      //           // margin-left max-height max-width font-family fill color font-size background white-space margin
+      //           // text-align background-color
+      //           // console.log(27304, a, b, c)
+      //           if (!set66.has(b)) {
+      //             set66.add(b);
+      //             nextBrowserTick_(() => {
+      //               if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
+      //                 console.log(27304, a, b, c)
+      //               }
+      //             })
+      //           }
+      //         }
+
+      //         attrUpdateFn.call(this, a, b, c);
+      //         return;
+      //       } else if (typeof (b || 0) === 'object') {
+
+      //         // this is to fix caption positioning
+      //         // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
+      //         const immediate = (a.id || 0).length > 14;
+      //         for (const [k, v] of Object.entries(b)) {
+      //           modifiedFn.call(this, a, k, v, immediate);
+      //         }
+
+      //       } else {
+
+      //         // a = circle, b = stroke-dasharray, c= "1.8422857142857143 32"
+      //         // ytp-ad-timed-pie-countdown-inner
+
+      //         if (typeof b === 'string') {
+
+      //           let m = log77.get(b);
+      //           if (!m) {
+      //             m = [];
+      //             console.log('attrUpdateFn.debug.27304', m);
+      //             log77.set(b, m);
+      //           }
+      //           m.push([a, b, c]);
+
+      //         } else {
+      //           console.log('attrUpdateFn.debug.27306', a, b, c);
+      //         }
+
+      //         attrUpdateFn.call(this, a, b, c);
+      //         return;
+      //       }
+
+      //       // console.log(130000, a, b, c);
+
+      //     };
+      //     g[k] = modifiedFn;
 
 
-          */
+      //     /*
+
+      //         g.zo = function(a, b, c) {
+      //             if ("string" === typeof b)
+      //                 (b = yo(a, b)) && (a.style[b] = c);
+      //             else
+      //                 for (var d in b) {
+      //                     c = a;
+      //                     var e = b[d]
+      //                       , f = yo(c, d);
+      //                     f && (c.style[f] = e)
+      //                 }
+      //         }
 
 
-        }
-      }
+      //     */
+
+
+      //   }
+      // }
 
       if (fOption & 4) {
         const keyuG = PERF_471489_ ? getuG(_yt_player) : null;
@@ -10548,7 +10728,106 @@
         }
       }
 
+      if (fOption & 8) {
 
+        /*
+
+          g.JL = function(y, X, l) {
+              if (typeof X === "string")
+                  si(y, l, X);
+              else
+                  for (const a in X)
+                      si(y, X[a], a)
+          }
+          ;
+        */
+
+        let arr = [];
+
+        for (const [k, v] of Object.entries(_yt_player)) {
+
+          if (
+            typeof v === 'function' && v.length === 3 && k.length < 3
+          ) {
+            const vt = `${v}`;
+            if (vt.length < 94 && vt.length > 74 && vt.includes("string") && vt.includes("typeof ") && vt.includes(" in ")) {
+              arr.push(k);
+            }
+          }
+
+        }
+
+        // https://www.youtube.com/s/player/8456c9de/player_es6.vflset/ja_JP/base.js
+        console.log(`[yt-js-engine-tamer] (key-extraction) [JL]`, arr);
+        if (arr.length !== 1) {
+          console.warn("[yt-js-engine-tamer]", "Code Difference in g.JL");
+        } else {
+          let digit = 4;
+
+          const sw = screen.width;
+          const sh = screen.height;
+          const sz = Math.hypot(sw, sh); // diagonal distance
+          const kz = sz * 1.05 + 100; // calc tol
+
+          if (kz * 0.0001 < 0.45) {
+            // digit = 4;
+          } else if (kz * 0.00001 < 0.45) {
+            digit = 5;
+          } else if (kz * 0.000001 < 0.45) {
+            digit = 6;
+          } else if (kz * 0.0000001 < 0.45) {
+            digit = 7;
+            console.warn("g.JL optimzation might not work for screen > 1km long");
+          }
+
+          const u = (a, b, r) => {
+            let c = r[1];
+            if (b === "transform" && typeof c === "string" && typeof a === "object" && a.nodeType === 1) {
+              if (c.length > 16 && c.includes(".")) {
+                r[1] = c = c.replace(/\d*\.\d{8,}/g, (a) => {
+                  let p = +a;
+                  if (p > 0) {
+                    const h = `${p.toFixed(digit)}`;
+                    const k = `${p.toPrecision(digit)}`;
+                    const w = h.length > k.length ? +h : +k;
+                    return `${w}`;
+                  }
+                  return a;
+                });
+              }
+              if (r[0] === 0 && c.toLowerCase() === ((a.style || 0).transform || "").toLowerCase()) {
+                r[0] = 1;
+              }
+            }
+          };
+
+          const k1 = arr[0];
+          const k2 = `__${k1}__e03__`;
+
+          _yt_player[k2] = _yt_player[k1];
+          _yt_player[k1] = function (a, b, c) {
+            const r = [0, c];
+            if (b === "transform") {
+              u(a, b, r);
+              c = r[1];
+            } else if (typeof b === "object") {
+              for (const t in b) {
+                if (t === "transform") {
+                  r[1] = u[t];
+                  u(a, t, r);
+                  u[t] = r[1];
+                } else {
+                  r[0] = 2;
+                }
+              }
+            }
+            if (r[0] === 1) return;
+            return this[k2](a, b, c);
+          };          
+
+        }
+
+      }
 
     })();
 
@@ -12019,13 +12298,13 @@
         cProto = insp(popupContainer).constructor.prototype;
 
 
-        if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || cProto.handleOpenPopupAction.length !== 2) {
+        if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || (cProto.handleOpenPopupAction.length !== 2 && cProto.handleOpenPopupAction.length !== 3)) {
           console.log('FIX_POPUP_UNIQUE_ID NG')
           return;
         }
         cProto.handleOpenPopupAction3868 = cProto.handleOpenPopupAction;
 
-        cProto.handleOpenPopupAction = function (a, b) {
+        cProto.handleOpenPopupAction = function (a, b, bq) {
 
           if (typeof (a || 0) === 'object' && !a.__jOdQA__) {
 
