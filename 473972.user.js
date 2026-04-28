@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.10
+// @version     0.42.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -144,6 +144,13 @@
 
   const DEBUG_DBR847 = false;
   const FIX_DOM_IFREPEAT_RenderDebouncerChange_SET_TO_PROPNAME = true; // default true. false might be required for future change
+
+  // --------
+  // tp-yt-app-header, tp-yt-app-header-layout, yt-page-header-renderer, yt-page-header-view-model, ...
+  // example: https://www.youtube.com/channel/UC5WKyq8V6qy1WqKi0jO97QA
+  const FIX_RESIZED_HEADER_HEIGHT = true; // ensure performUpdate is called after _interestedResizables get resized * required for delayed rendering
+  const ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK = true; // instead of RAF, just use nextTick
+  // --------
 
   const FIX_ICON_RENDER = true;
   const FIX_GUIDE_ICON = true;
@@ -6139,6 +6146,112 @@
 
   // ----------------------------
 
+  ;(FIX_RESIZED_HEADER_HEIGHT || ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK) && whenCEDefined('tp-yt-app-header-layout').then(async () => {
+
+    dummy = document.createElement('tp-yt-app-header-layout');
+
+    let cProto;
+    if (!(dummy instanceof Element)) return;
+    cProto = insp(dummy).constructor.prototype;
+
+    // cProto.__functionInCall7018__ = false; // avoid recursive function call
+
+    if (FIX_RESIZED_HEADER_HEIGHT && !cProto.performUpdate75 && typeof cProto.performUpdate === "function" && cProto.performUpdate.length === 0 && typeof ResizeObserver === "function") {
+
+      const associationKey = "jtryk";
+      let triggerFlag = false;
+      let bypass = false;
+      const observer = new ResizeObserver((entries) => {
+        if (!triggerFlag) {
+          triggerFlag = true;
+          nextBrowserTick(() => {
+            triggerFlag = false;
+            const targetComponentElements = document.querySelectorAll(`[${associationKey}]`);
+            // reserved order so the perform layout update on the child components first
+            for (let j = targetComponentElements.length; --j >= 0;) {
+              const k = targetComponentElements[j];
+              const t = insp(k);
+              const methodController = t.performUpdate && t.performUpdate75 ? t : k.performUpdate && k.performUpdate75 ? k : null;
+              if (methodController) {
+                // we are using the conservative approach - just do performUpdate without finding the new resizeobservables
+                bypass = true;
+                if (!methodController.__functionInCall7018__) {
+                  methodController.__functionInCall7018__ = true;
+                  // with js tamer settings, this will be called few times (e.g. 3 times)
+                  methodController.performUpdate();
+                  methodController.__functionInCall7018__ = false;
+                }
+                bypass = false;
+              }
+            }
+          })
+        }
+      });
+      cProto.performUpdate75 = cProto.performUpdate;
+      cProto.performUpdate = function () {
+        if (!this.header || !this.$ || !this.$.wrapper || !this.$.contentContainer) {
+          console.warn("[yt-js-engine-tamer] Patch Invalid on tp-yt-app-header-layout::performUpdate")
+          return this.performUpdate75();
+        }
+        const r = this.performUpdate75();
+        if (bypass) return r;
+        try {
+          const hostElement = (this.hostElement || this);
+          if (typeof hostElement === "object" && hostElement.nodeType === 1) {
+            if (hostElement.getAttribute(associationKey) === null) {
+              hostElement.setAttribute(associationKey, "");
+              // we are using the conservative approach - just hook on the initial _interestedResizables and assume no change afterwards
+              const resizables = this._interestedResizables
+              if (resizables && resizables.length >= 1) {
+                for (const node of resizables) {
+                  observer.observe(node);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("[yt-js-engine-tamer] Error in tp-yt-app-header-layout::performUpdate", e);
+        }
+        return r;
+      }
+    } else {
+      console.warn("[yt-js-engine-tamer] Patch Failed on tp-yt-app-header-layout::performUpdate");
+    }
+
+    if (ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK && !cProto._updateLayoutStates79 && typeof cProto.performUpdate === "function" && typeof cProto._updateLayoutStates === "function" && cProto.performUpdate.length === 0 && cProto._updateLayoutStates.length === 0) {
+      cProto._updateLayoutStates79 = cProto._updateLayoutStates;
+      cProto._updateLayoutStates = function () {
+        if (typeof this.useRaf !== "boolean" || typeof this.rafId !== "number") {
+          console.warn("[yt-js-engine-tamer] Patch Invalid on tp-yt-app-header-layout::_updateLayoutStates")
+          return this._updateLayoutStates79();
+        }
+        if (this.__functionInCall7018__) return;
+        if (this.useRaf && (!this.rafId || this.rafId < 0)) {
+          // normal path
+          nextBrowserTick(() => {
+            if (!this.__functionInCall7018__) {
+              this.__functionInCall7018__ = true;
+              this.performUpdate();
+              this.__functionInCall7018__ = false;
+            }
+          });
+        } else {
+          // not used
+          if (!this.__functionInCall7018__) {
+            this.__functionInCall7018__ = true;
+            this.performUpdate();
+            this.__functionInCall7018__ = false;
+          }
+        }
+      }
+    } else {
+      console.warn("[yt-js-engine-tamer] Patch Failed on tp-yt-app-header-layout::_updateLayoutStates");
+    }
+
+  });
+
+  // ----------------------------
+
   const nativeNow = Reflect.getPrototypeOf(performance).now.bind(performance);
 
   const queueMicrotask_ = typeof queueMicrotask === 'function' ? queueMicrotask : (f) => (Promise.resolve().then(f), void 0);
@@ -12019,13 +12132,13 @@
         cProto = insp(popupContainer).constructor.prototype;
 
 
-        if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || cProto.handleOpenPopupAction.length !== 2) {
+        if (!cProto || typeof cProto.handleOpenPopupAction !== 'function' || cProto.handleOpenPopupAction3868 || (cProto.handleOpenPopupAction.length !== 2 && cProto.handleOpenPopupAction.length !== 3)) {
           console.log('FIX_POPUP_UNIQUE_ID NG')
           return;
         }
         cProto.handleOpenPopupAction3868 = cProto.handleOpenPopupAction;
 
-        cProto.handleOpenPopupAction = function (a, b) {
+        cProto.handleOpenPopupAction = function (a, b, bq) {
 
           if (typeof (a || 0) === 'object' && !a.__jOdQA__) {
 
