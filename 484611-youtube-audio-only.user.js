@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.3
+// @version             2.3.4
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -330,8 +330,6 @@
                     playerKevlar.externalFullscreen = false;
 
                 }
-
-                removeTempObjectProp01();
 
             }
         }
