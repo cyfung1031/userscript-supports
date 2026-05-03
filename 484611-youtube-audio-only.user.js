@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
+// @version             2.2.0
 // @description         No Video Streaming
 // @namespace           UserScript
-// @version             2.1.27
 // @author              CY Fung
 // @match               https://www.youtube.com/*
 // @match               https://www.youtube.com/embed/*
@@ -3410,14 +3410,14 @@
             // Override video element canPlayType() function
             const proto = (HTMLVideoElement || 0).prototype;
             if (proto && typeof proto.canPlayType == 'function') {
-                proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+                // proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
             }
 
             // Override media source extension isTypeSupported() function
             const mse = window.MediaSource;
             // Check for MSE support before use
             if (mse && typeof mse.isTypeSupported == 'function') {
-                mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+                // mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
             }
 
         };
