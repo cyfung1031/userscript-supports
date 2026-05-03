@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.16
+// @version     0.42.17
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -44,7 +44,7 @@
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
   const CHANGE_appendChild = true; // discussions#236759
-  const FIX_bind_self_this = false;　// EXPERIMENTAL !!!!! this affect page switch after live ends
+  const FIX_bind_self_this = false; // EXPERIMENTAL !!!!! this affect page switch after live ends
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
 
@@ -323,7 +323,7 @@
 
   // const [setTimeoutX0, clearTimeoutX0] = [setTimeout, clearTimeout];
 
-  let BY_PASS_KEYBOARD_CONTROL = false;
+  // let BY_PASS_KEYBOARD_CONTROL = false;
 
 
   // const setImmediate = ((self || 0).jmt || 0).setImmediate;
@@ -419,8 +419,8 @@
   let xdeadc00 = null; // a deteched node with __domApi
   let xlivec00 = null; // a deteched node with __domApi
 
-  let removeTNodeRM = null;
-  let removeTNodeBP = false;
+  // let removeTNodeRM = null;
+  // let removeTNodeBP = false;
 
 
   if (Node.isConnectedOverrided === undefined) {
@@ -959,7 +959,7 @@
 
       const nmSet = [..._nmSet].map(e => kRef(e)).filter(e => !!e);
       const nmMap = [..._nmMap].map(e => kRef(e)).filter(e => !!e);
-      const nmMapV = [..._nmMapV].map(e => kRef(e)).filter(e => !!e);
+      // const nmMapV = [..._nmMapV].map(e => kRef(e)).filter(e => !!e);
 
       for (const node of nodesSet) {
         if (node === _emptyElement || node.__keepInstance038__ || node.t792) continue;
@@ -2031,7 +2031,7 @@
       // if(initied2) return;
       // initied2 = true;
       const proto = qxx;
-      const constructor = proto.constructor;
+      // const constructor = proto.constructor;
       const _stampTemplate = proto._stampTemplate;
       // console.log(12883, proto, constructor)
       if (typeof _stampTemplate === 'function' && _stampTemplate.length === 2 && !proto._stampTemplate374) {
@@ -2355,7 +2355,7 @@
       let g = function () {
         const o = kRef(this);
         if (!o) return;
-        const cnt = insp(o);
+        // const cnt = insp(o);
         // if (cnt === o) return;
         // if (!('ready' in cnt)) return;
         return f.apply(o, arguments);
@@ -12516,7 +12516,7 @@
         }).obtain();
         let collection = document.getElementsByTagName("ytd-button-renderer");
         let ow = new WeakSet();
-        const loopSet = (o) => {
+        const loopSet = (o, parents) => {
           if (!o || typeof o !== "object") return;
           if (ow.has(o)) return;
           ow.add(o);
@@ -12529,11 +12529,11 @@
                   o[key].targetId = "engagement-panel-searchable-transcript";
                 }
               } else if (val.tag === "PAmodern_transcript_view") {
-                if (o[key].tag === "PAmodern_transcript_view") {
+                if (o[key].tag === "PAmodern_transcript_view" && parents.includes("showEngagementPanelEndpoint")) {
                   o[key].tag = "engagement-panel-searchable-transcript";
                 }
               } else {
-                if (!ow.has(val)) loopSet(val);
+                if (!ow.has(val)) loopSet(val, [...parents, key]);
               }
             }
           }
@@ -12545,7 +12545,7 @@
               const cnt = insp(e);
               const command = (cnt.data || 0).command;
               if (command && !ow.has(command)) {
-                loopSet(command);
+                loopSet(command, []);
               }
             }
           }
