@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.2.3
+// @version             2.2.4
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -117,8 +117,8 @@
         // let debugFlg002 = false;
         // let globalPlayer = null;
         const SHOW_VIDEO_STATIC_IMAGE = true;
-        const PATCH_MEDIA_PUBLISH = true;
-        const PATCH_MEDIA_PLAYPAUSE = true;
+        const PATCH_MEDIA_PUBLISH = false;
+        const PATCH_MEDIA_PLAYPAUSE = false;
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
