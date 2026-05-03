@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.2.0
+// @version             2.2.1
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -2630,8 +2630,6 @@
 
                 // youtube embed
 
-                const ytEmbedReady = observablePromise(() => document.querySelector('#player > .ytp-embed')).obtain();
-
                 const embedConfigFix = (async () => {
                     while (true) {
                         const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
@@ -2643,110 +2641,142 @@
                     }
                 });
 
-                ytEmbedReady.then(async (embedPlayer) => {
-
-                    embedConfigFix();
-
-                    const player_ = embedPlayer;
-                    console.log(5919, player_)
-
-                    setupAudioPlaying(player_); // dekstop embed
 
 
-                    if (SHOW_VIDEO_STATIC_IMAGE) {
-
-                        let displayImage = '';
-                        let html5Container = null;
+                const ytEmbedPageReady = observablePromise(() => document.querySelector('audio, video')).obtain();
 
 
-                        const moviePlayer = document.querySelector('#movie_player .html5-video-container .video-stream.html5-main-video, #masthead-player .html5-video-container .video-stream.html5-main-video');
-                        if (moviePlayer) {
-                            html5Container = moviePlayer.closest('.html5-video-container');
+                embedConfigFix();
+
+                let qc2 = false;
+                let nd2 = null;
+
+                const loadStaticImage = () => {
+
+                    let displayImage = '';
+                    let html5Container = null;
+
+
+                    const moviePlayer = document.querySelector('#movie_player .html5-video-container .video-stream.html5-main-video, #masthead-player .html5-video-container .video-stream.html5-main-video');
+                    if (moviePlayer) {
+                        html5Container = moviePlayer.closest('.html5-video-container');
+                    }
+
+                    if (html5Container) {
+
+                        const overlayImage = document.querySelector('#movie_player .ytp-cued-thumbnail-overlay-image[style], #masthead-player .ytp-cued-thumbnail-overlay-image[style]') || document.querySelector('#player-controls .ytmVideoCoverThumbnail[style]');
+                        if (overlayImage) {
+                            const cStyle = window.getComputedStyle(overlayImage);
+                            const cssImageValue = cStyle.backgroundImage;
+                            if (cssImageValue && typeof cssImageValue === 'string' && cssImageValue.startsWith('url(')) {
+                                displayImage = cssImageValue;
+                                overlayImage.setAttribute("yehww14", "");
+                                qc2 = true;
+                            }
                         }
 
-                        if (html5Container) {
+                        if (!displayImage) {
 
-                            const overlayImage = document.querySelector('#movie_player .ytp-cued-thumbnail-overlay-image[style], #masthead-player .ytp-cued-thumbnail-overlay-image[style]');
-                            if (overlayImage) {
-
-                                const cStyle = window.getComputedStyle(overlayImage);
-                                const cssImageValue = cStyle.backgroundImage;
-                                if (cssImageValue && typeof cssImageValue === 'string' && cssImageValue.startsWith('url(')) {
-                                    displayImage = cssImageValue;
-
-                                }
-
+                            const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
+                            let embedded_player_response = null;
+                            if (config_) {
+                                embedded_player_response = ((config_.PLAYER_VARS || 0).embedded_player_response || 0)
                             }
+                            if (embedded_player_response && typeof embedded_player_response === 'string') {
 
-                            if (!displayImage) {
+                                let idx1 = embedded_player_response.indexOf('"defaultThumbnail"');
+                                let idx2 = idx1 >= 0 ? embedded_player_response.lastIndexOf('"defaultThumbnail"') : -1;
 
-                                const config_ = typeof yt !== 'undefined' ? (yt || 0).config_ : 0;
-                                let embedded_player_response = null;
-                                if (config_) {
-                                    embedded_player_response = ((config_.PLAYER_VARS || 0).embedded_player_response || 0)
-                                }
-                                if (embedded_player_response && typeof embedded_player_response === 'string') {
+                                if (idx1 === idx2 && idx1 > 0) {
 
-                                    let idx1 = embedded_player_response.indexOf('"defaultThumbnail"');
-                                    let idx2 = idx1 >= 0 ? embedded_player_response.lastIndexOf('"defaultThumbnail"') : -1;
-
-                                    if (idx1 === idx2 && idx1 > 0) {
-
-                                        let bk = 0;
-                                        let j = -1;
-                                        for (let i = idx1; i < embedded_player_response.length; i++) {
-                                            if (i > idx1 + 40 && bk === 0) {
-                                                j = i;
-                                                break;
-                                            }
-                                            let t = embedded_player_response.charAt(i);
-                                            if (t === '{') bk++;
-                                            else if (t === '}') bk--;
+                                    let bk = 0;
+                                    let j = -1;
+                                    for (let i = idx1; i < embedded_player_response.length; i++) {
+                                        if (i > idx1 + 40 && bk === 0) {
+                                            j = i;
+                                            break;
                                         }
-
-                                        if (j > idx1) {
-
-                                            let defaultThumbnailString = embedded_player_response.substring(idx1, j);
-                                            let defaultThumbnailObject = null;
-
-                                            try {
-                                                defaultThumbnailObject = JSON.parse(`{${defaultThumbnailString}}`);
-
-                                            } catch (e) { }
-
-                                            const thumbnails = ((defaultThumbnailObject.defaultThumbnail || 0).thumbnails || 0);
-
-                                            if (thumbnails && thumbnails.length >= 1) {
-
-                                                let thumbnailUrl = getThumbnailUrlFromThumbnails(thumbnails);
-
-                                                if (thumbnailUrl && thumbnailUrl.length > 3) {
-                                                    displayImage = `url(${thumbnailUrl})`;
-                                                }
-                                            }
-                                        }
-
+                                        let t = embedded_player_response.charAt(i);
+                                        if (t === '{') bk++;
+                                        else if (t === '}') bk--;
                                     }
 
+                                    if (j > idx1) {
+
+                                        let defaultThumbnailString = embedded_player_response.substring(idx1, j);
+                                        let defaultThumbnailObject = null;
+
+                                        try {
+                                            defaultThumbnailObject = JSON.parse(`{${defaultThumbnailString}}`);
+
+                                        } catch (e) { }
+
+                                        const thumbnails = ((defaultThumbnailObject.defaultThumbnail || 0).thumbnails || 0);
+
+                                        if (thumbnails && thumbnails.length >= 1) {
+
+                                            let thumbnailUrl = getThumbnailUrlFromThumbnails(thumbnails);
+
+                                            if (thumbnailUrl && thumbnailUrl.length > 3) {
+                                                displayImage = `url(${thumbnailUrl})`;
+                                            }
+                                        }
+                                    }
 
                                 }
 
 
                             }
 
-                            if (displayImage) {
-
-                                html5Container.style.setProperty('--audio-only-thumbnail-image', `${displayImage}`);
-                            } else {
-                                html5Container.style.removeProperty('--audio-only-thumbnail-image')
-                            }
 
                         }
 
+                        if (displayImage) {
+                            html5Container.style.setProperty('--audio-only-thumbnail-image', `${displayImage}`);
+                            nd2 = `${displayImage}`;
+                        } else {
+                            html5Container.style.removeProperty('--audio-only-thumbnail-image')
+                            nd2 = null;
+                        }
 
                     }
 
-                });
+                };
+
+                if (SHOW_VIDEO_STATIC_IMAGE) {
+
+                    ytEmbedPageReady.then(() => {
+                        loadStaticImage();
+                    });
+
+                    let loadImage = 0;
+
+                    setInterval(() => {
+                        if (loadImage > 0) {
+                            loadImage--;
+                            let t0 = nd2;
+                            loadStaticImage();
+                            if (t0 !== nd2 && nd2) loadImage = 0;
+                        }
+                    }, 500);
+                    document.addEventListener("loadedmetadata", (ev) => {
+                        if (ev.target instanceof HTMLMediaElement) {
+                            loadImage = 8;
+                        }
+                    }, true);
+
+                    new MutationObserver(() => {
+                        if (loadImage > 0 && qc2) {
+                            if (!document.querySelector("[yehww14]")) {
+                                loadStaticImage();
+                            } else {
+                                loadImage = 0;
+                            }
+                        }
+                    }).observe(document.documentElement, { subtree: true, childList: true });
+
+                }
+
 
 
             } else {
@@ -3410,14 +3440,14 @@
             // Override video element canPlayType() function
             const proto = (HTMLVideoElement || 0).prototype;
             if (proto && typeof proto.canPlayType == 'function') {
-                // proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+                proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
             }
 
             // Override media source extension isTypeSupported() function
             const mse = window.MediaSource;
             // Check for MSE support before use
             if (mse && typeof mse.isTypeSupported == 'function') {
-                // mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+                mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
             }
 
         };
