@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.13
+// @version     0.42.14
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -8528,10 +8528,12 @@
   const PERF_471489_ = true;
   // PERF_471489_ is not exactly the same to Youtube Player perf v0.7
   // This script uses a much gentle way to tamer the JS engine instead.
+  const PREF_COLLECT_CSS_TRANSFORMS = false;
+  const PREF_COARSE_CSS_TRANSFORM = true;
 
   // << end >>
 
-  const steppingScaleN = 200; // transform: scaleX(k/N); 0<k<N
+  // const steppingScaleN = 200; // transform: scaleX(k/N); 0<k<N
 
 
 
@@ -10794,7 +10796,7 @@
             return v === u;
           }
 
-          const u = (a, b, r) => {
+          const u = (a, b, r, coarse) => {
             let c = r[1];
             if (b === "transform" && typeof c === "string" && typeof a === "object" && a.nodeType === 1) {
               if (c.length > 16 && c.includes(".")) {
@@ -10803,7 +10805,9 @@
                   if (p > 0) {
                     const h = `${p.toFixed(digit)}`;
                     const k = `${p.toPrecision(digit)}`;
-                    const w = h.length > k.length ? +h : +k;
+                    let w = h.length > k.length ? +h : +k;
+                    if (coarse === 1) w = +w.toFixed(1);
+                    else if (coarse === 2) w = +w.toPrecision(3);
                     return `${w}`;
                   }
                   return a;
@@ -10815,20 +10819,45 @@
             }
           };
 
+          const subTransform = async (m, x, a, b, c) => {
+            const t = a.__transformCount801__ = (a.__transformCount801__ & 1073741823) + 1;
+            await new Promise(resolve => nextBrowserTick_(resolve));
+            if (t !== a.__transformCount801__) return;
+            m[x](a, b, c);
+          }
+
           const k1 = arr[0];
           const k2 = `__${k1}__e03__`;
 
           _yt_player[k2] = _yt_player[k1];
           _yt_player[k1] = function (a, b, c) {
+            let q = c;
             const r = [0, c];
             if (b === "transform") {
-              u(a, b, r);
+              let coarse = 0;
+              if (PREF_COARSE_CSS_TRANSFORM && q.length > 18 && a.nodeName === "DIV") {
+                if (q.length > 22 && q.includes("translate")) {
+                  if (a._transformTarget801__ === undefined) {
+                    a._transformTarget801__ = a.classList.contains("ytp-scrubber-container") ? 1 : 0;
+                  }
+                  coarse = a._transformTarget801__;
+                } else if (q.length > 18 && q.includes("scale")) {
+                  if (a._transformTarget801__ === undefined) {
+                    a._transformTarget801__ = (a.classList.contains("ytp-play-progress") || a.classList.contains("ytp-load-progress")) ? 2 : 0;
+                  }
+                  coarse = a._transformTarget801__;
+                }
+              }
+              u(a, b, r, coarse);
+              // if (r[0] !== 1) {
+              //   console.log("DEBUG_PREF_COARSE_TRANSFORM", b, r, coarse);
+              // }
               c = r[1];
             } else if (typeof b === "object") {
               for (const t in b) {
                 if (t === "transform") {
                   r[1] = u[t];
-                  u(a, t, r);
+                  u(a, t, r, 0);
                   u[t] = r[1];
                 } else {
                   r[0] = 2;
@@ -10836,6 +10865,28 @@
               }
             }
             if (r[0] === 1) return;
+            if (PREF_COLLECT_CSS_TRANSFORMS && b === "transform") {
+              // for onProgress
+              // collect all inline CSS changes into one marco event tick
+              let bool = false;
+              if (q.length > 18 && a.nodeName === "DIV") {
+                if (q.length > 22 && q.includes("translate")) {
+                  if (a._transformTarget801__ === undefined) {
+                    a._transformTarget801__ = a.classList.contains("ytp-scrubber-container") ? 1 : 0;
+                  }
+                  bool = a._transformTarget801__ > 0;
+                } else if (q.length > 18 && q.includes("scale")) {
+                  if (a._transformTarget801__ === undefined) {
+                    a._transformTarget801__ = (a.classList.contains("ytp-play-progress") || a.classList.contains("ytp-load-progress")) ? 2 : 0;
+                  }
+                  bool = a._transformTarget801__ > 0;
+                }
+              }
+              if (bool) {
+                subTransform(this, k2, a, b, c);
+                return;
+              }
+            }
             return this[k2](a, b, c);
           };          
 
