@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.14
+// @version     0.42.15
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -115,6 +115,8 @@
   const FORCE_NO_REUSEABLE_ELEMENT_POOL = true;
 
   const FIX_TRANSCRIPT_SEGMENTS = true; // Based on Tabview Youtube's implementation
+  const FIX_MODERN_TRANSCRIPT_SEGMENTS = false; // placeholder only; requires FIX_XHR_REQUESTING
+  const DISABLE_MODERN_TRANSCRIPT = true; // modern transcript is incomplete feature as of 2026.05.03
 
   const FIX_POPUP_UNIQUE_ID = true; // currently only for channel about popup;
 
@@ -3220,7 +3222,9 @@
       let segments, get_;
       if (activation && pds && (segments = pds.segments) && (get_ = segments.get)) {
         activation = false;
+        console.log('[yt-js-engine-tamer]', "traditional transcript segments getter fixed");
         segments.get = function () {
+          console.log('[yt-js-engine-tamer]', "traditional transcript segments fix applied");
           fixSegments(this);
           return get_.call(this);
         };
@@ -5104,6 +5108,12 @@
     }
   }
 
+  const fixTimedText = (text) => {
+    // FIX_MODERN_TRANSCRIPT_SEGMENTS
+    // TBC
+    return text;
+  };
+
   // avoid REGEXP testPattern execution in Brave's scriptlet for performance boost
   SCRIPTLET_REMOVE_PRUNE_propNeedles && (() => {
     // const xhr = new XMLHttpRequest;
@@ -5132,6 +5142,8 @@
   })();
 
   if (FIX_XHR_REQUESTING) {
+
+    const responseTextStore = new WeakMap();
 
     const URL = window.URL || new Function('return URL')();
     const createObjectURL = URL.createObjectURL.bind(URL);
@@ -5173,6 +5185,29 @@
           }
           if (!skip) {
             this.__xmMc8__ = 1;
+            if (FIX_MODERN_TRANSCRIPT_SEGMENTS && url.includes("youtube.com/api/timedtext?")) {
+              const S = this;
+              S.__xmMc9__ = 1;
+              const pd1 = Object.getOwnPropertyDescriptor(S, "responseText");
+              const pd2 = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(S), "responseText");
+              if (!pd1 && pd2 && pd2.get && !pd2.set && pd2.configurable && pd2.enumerable) {
+                S.__xmMc9__ = 2;
+
+                Object.defineProperty(S, "responseText", {
+                  get: () => {
+                    if (this.__xmMc9__ === 3) return responseTextStore.get(this);
+                    const text = pd2.get.call(this);
+                    if (this.__xmMc9__ === 2) {
+                      this.__xmMc9__ = 3;
+                      responseTextStore.set(this, fixTimedText(text));
+                    }
+                    return text;
+                  },
+                  enumerable: true,
+                  configurable: true
+                });
+              }
+            }
             return super.open(method, url, ...args);
           } else {
             this.__xmMc8__ = 2;
@@ -12471,6 +12506,51 @@
 
       });
 
+      if (DISABLE_MODERN_TRANSCRIPT) {
+        observablePromise(() => {
+          const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+          if (config && config.EXPERIMENT_FLAGS) {
+            config.EXPERIMENT_FLAGS.web_video_companion_modern_transcript = false;
+            return true;
+          }
+        }).obtain();
+        let collection = document.getElementsByTagName("ytd-button-renderer");
+        let ow = new WeakSet();
+        const loopSet = (o) => {
+          if (!o || typeof o !== "object") return;
+          if (ow.has(o)) return;
+          ow.add(o);
+          const pds = Object.getOwnPropertyDescriptors(o);
+          for (const [key, pd] of Object.entries(pds)) {
+            const val = pd.value;
+            if (pd.writable === true && pd.configurable && pd.enumerable && val && typeof val === "object") {
+              if (val.targetId === "PAmodern_transcript_view") {
+                if (o[key].targetId === "PAmodern_transcript_view") {
+                  o[key].targetId = "engagement-panel-searchable-transcript";
+                }
+              } else if (val.tag === "PAmodern_transcript_view") {
+                if (o[key].tag === "PAmodern_transcript_view") {
+                  o[key].tag = "engagement-panel-searchable-transcript";
+                }
+              } else {
+                if (!ow.has(val)) loopSet(val);
+              }
+            }
+          }
+        };
+
+        new MutationObserver(() => {
+          for (const e of collection) {
+            if ((e.className || "").includes("-transcript-")) {
+              const cnt = insp(e);
+              const command = (cnt.data || 0).command;
+              if (command && !ow.has(command)) {
+                loopSet(command);
+              }
+            }
+          }
+        }).observe(document, { subtree: true, childList: true });
+      }
 
       FIX_TRANSCRIPT_SEGMENTS && !isChatRoomURL && whenCEDefined('yt-formatted-string').then(async () => {
 
