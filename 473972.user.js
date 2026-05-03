@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.17
+// @version     0.42.18
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -106,7 +106,7 @@
 
   const REMOVE_BLANK_DUMMY_IFRAME = true;
 
-  const DISABLE_COOLDOWN_SCROLLING = true; // YT cause scroll hang in MacOS
+  const DISABLE_COOLDOWN_SCROLLING = 3; // YT cause scroll hang in MacOS - 1 for enable, 2 for css hack
 
   const FIX_removeChild = true;
   const FIX_fix_requestIdleCallback_timing = true;
@@ -5244,7 +5244,7 @@
   }
 
   // Alternative HACK -> Tabview Youtube
-  if (DISABLE_COOLDOWN_SCROLLING && typeof EventTarget.prototype.addEventListener52178 !== 'function' && typeof EventTarget.prototype.addEventListener === 'function') {
+  if ((DISABLE_COOLDOWN_SCROLLING & 1) && typeof EventTarget.prototype.addEventListener52178 !== 'function' && typeof EventTarget.prototype.addEventListener === 'function') {
 
     // ---- << this.overscrollConfig HACK >>  -----
 
@@ -5444,6 +5444,12 @@
     };
 
     // ---- << this.overscrollConfig HACK >>  -----
+
+    if ((DISABLE_COOLDOWN_SCROLLING & 2) && !isChatRoomURL) {
+      pLoad.then(() => {
+        addNewCSS("ytd-live-chat-frame#chat{overscroll-behavior:contain;}");
+      });
+    }
 
   }
 
