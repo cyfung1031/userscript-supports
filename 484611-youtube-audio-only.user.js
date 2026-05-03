@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.2.2
+// @version             2.2.3
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -3423,34 +3423,41 @@
                 }
             }
 
-            // return a custom MIME type checker that can defer to the original function
+            let types = new Set();
             function makeModifiedTypeChecker(origChecker) {
-                // Check if a video type is allowed
                 return function (type) {
-                    let res = undefined;
-                    if (type === undefined) res = false;
-                    else {
-                        res = typeTest.call(this, type);
+                    const res = origChecker.apply(this, arguments);
+                    if (res) {
+                        if (type && typeof type === "string" && type.includes("audio/")) types.add(type);
                     }
-                    if (res === undefined) res = origChecker.apply(this, arguments);
                     return res;
                 };
             }
 
-            /*
-                // Override video element canPlayType() function
-                const proto = (HTMLVideoElement || 0).prototype;
-                if (proto && typeof proto.canPlayType == 'function') {
-                    proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
-                }
+            // Override video element canPlayType() function
+            const proto = (HTMLVideoElement || 0).prototype;
+            if (proto && typeof proto.canPlayType == 'function') {
+                proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+            }
 
-                // Override media source extension isTypeSupported() function
-                const mse = window.MediaSource;
-                // Check for MSE support before use
-                if (mse && typeof mse.isTypeSupported == 'function') {
-                    mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
-                }
-            */
+            // Override media source extension isTypeSupported() function
+            const mse = window.MediaSource;
+            // Check for MSE support before use
+            if (mse && typeof mse.isTypeSupported == 'function') {
+                mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+            }
+
+            const msep = (mse || 0).prototype || 0;
+
+            if (msep && typeof msep.addSourceBuffer == 'function' && !msep.addSourceBuffer078) {
+                msep.addSourceBuffer078 = msep.addSourceBuffer;
+                msep.addSourceBuffer = function (type, ...rest) {
+                    if (type.includes("video/")) return;
+                    console.log("[yt-audio-only] Media Codec:", type, [...types]);
+                    return this.addSourceBuffer078(type, ...rest);
+                };
+            }
+
 
         };
 
