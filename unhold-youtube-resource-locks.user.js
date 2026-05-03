@@ -30,7 +30,7 @@ SOFTWARE.
 // @name:zh-TW          Unhold YouTube Resource Locks
 // @name:zh-CN          Unhold YouTube Resource Locks
 // @namespace           http://tampermonkey.net/
-// @version             2024.03.27.0
+// @version             2026.05.03.0
 // @license             MIT License
 // @description         Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
 // @description:en      Release YouTube's used IndexDBs & Disable WebLock to make background tabs able to sleep
@@ -123,8 +123,8 @@ SOFTWARE.
       };
       async function releaseOnIdleHandler() {
         // console.log('OCK1', openCount, store.length);
-        if (!cidxx) return
-        cidxx = 0
+        if (!cidxx) return;
+        cidxx = 0;
         DEBUG_LOG && console.log('CLEANING - 01 - BEGIN', openCount);
         for (const request of [...dbSet.values()]) {
 
@@ -148,14 +148,15 @@ SOFTWARE.
 
         DEBUG_LOG && console.log('CLEANING - 02 - BEGIN', openCount);
         for (const entry of store) {
-          let [kdb, databaseId, eventType, event_type] = entry
-          entry.length = 0
-          let db = kRef(kdb)
-          kdb = null
-
-          DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
-          db.close();
-          db = null;
+          let [kdb, databaseId, eventType, event_type] = entry;
+          entry.length = 0;
+          let db = kRef(kdb);
+          kdb = null;
+          if (db) {
+            DEBUG_LOG && console.log(db, databaseId, eventType, event_type);
+            db.close();
+            db = null;
+          }
           openCount--;
           // consoleX.log(openCount, databaseId)
           message({ databaseId: databaseId, action: 'close', time: Date.now() });
@@ -210,9 +211,9 @@ SOFTWARE.
 
       function makeAddEventListener(databaseId) {
         DEBUG_LOG && console.log('makeAddEventListener1', databaseId)
-        return function (eventType, handler) {
+        return function (eventType, handler, ...rest) {
           DEBUG_LOG && console.log('makeAddEventListener2', databaseId)
-          if (arguments.length === 2 && eventType === 'error' || eventType === 'success') {
+          if (arguments.length === 2 && (eventType === 'error' || eventType === 'success')) {
             DEBUG_LOG && console.log(31, databaseId, eventType);
             let gx = funcHooks.get(handler);
             if (!gx) {
@@ -221,13 +222,13 @@ SOFTWARE.
             }
             return this[addEventListenerKey](eventType, gx);
           }
-          return this[addEventListenerKey](...arguments);
+          return this[addEventListenerKey](eventType, handler, ...rest);
         }
       }
 
       function makeRemoveEventListener(databaseId) {
         return function (eventType, handler) {
-          if (arguments.length === 2 && eventType === 'error' || eventType === 'success') {
+          if (arguments.length === 2 && (eventType === 'error' || eventType === 'success')) {
             const gx = funcHooks.get(handler);
             DEBUG_LOG && console.log(30, 'removeEventListener', databaseId, eventType);
             const ret = this[removeEventListenerKey](eventType, gx || handler);
@@ -239,8 +240,8 @@ SOFTWARE.
       }
 
       function makeOpen() {
-        return function (databaseId) {
-          const request = this[openKey](databaseId); // IDBRequest
+        return function (databaseId, version = undefined) {
+          const request = this[openKey](databaseId, version); // IDBRequest
           request[addEventListenerKey] = request.addEventListener;
           request.addEventListener = makeAddEventListener(databaseId);
           request[removeEventListenerKey] = request.removeEventListener;
