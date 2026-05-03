@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
+// @version             0.2.0
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
 // @description:zh-TW   No Video Streaming
 // @description:zh-CN   No Video Streaming
 // @namespace           UserScript
-// @version             0.1.23
 // @author              CY Fung
 // @match               https://music.youtube.com/*
 // @exclude             /^https?://\S+\.(txt|png|jpg|jpeg|gif|xml|svg|manifest|log|ini)[^\/]*$/
@@ -924,14 +924,14 @@
             // Override video element canPlayType() function
             const proto = (HTMLVideoElement || 0).prototype;
             if (proto && typeof proto.canPlayType == 'function') {
-                proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+                // proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
             }
 
             // Override media source extension isTypeSupported() function
             const mse = window.MediaSource;
             // Check for MSE support before use
             if (mse && typeof mse.isTypeSupported == 'function') {
-                mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+                // mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
             }
 
         };
