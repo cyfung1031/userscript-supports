@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @version             0.2.2
+// @version             0.2.3
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
@@ -29,8 +29,6 @@
 
 (async function () {
     'use strict';
-
-
 
     const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
     function createHTML(s) {
@@ -945,7 +943,7 @@
 
         };
 
-        // supportedFormatsConfig(); // avoid issue due to failure on only video source (like ads)
+        supportedFormatsConfig();
     }
 
     const isEnable = (typeof GM !== 'undefined' && typeof GM.getValue === 'function') ? (await GM.getValue("isEnable_aWsjF", true)) : null;
