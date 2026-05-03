@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.15
+// @version     0.42.16
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -12506,7 +12506,7 @@
 
       });
 
-      if (DISABLE_MODERN_TRANSCRIPT) {
+      if (DISABLE_MODERN_TRANSCRIPT && !isChatRoomURL) {
         observablePromise(() => {
           const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
           if (config && config.EXPERIMENT_FLAGS) {
