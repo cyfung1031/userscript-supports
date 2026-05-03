@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.2.1
+// @version             2.2.2
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -3437,18 +3437,20 @@
                 };
             }
 
-            // Override video element canPlayType() function
-            const proto = (HTMLVideoElement || 0).prototype;
-            if (proto && typeof proto.canPlayType == 'function') {
-                proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
-            }
+            /*
+                // Override video element canPlayType() function
+                const proto = (HTMLVideoElement || 0).prototype;
+                if (proto && typeof proto.canPlayType == 'function') {
+                    proto.canPlayType = makeModifiedTypeChecker(proto.canPlayType);
+                }
 
-            // Override media source extension isTypeSupported() function
-            const mse = window.MediaSource;
-            // Check for MSE support before use
-            if (mse && typeof mse.isTypeSupported == 'function') {
-                mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
-            }
+                // Override media source extension isTypeSupported() function
+                const mse = window.MediaSource;
+                // Check for MSE support before use
+                if (mse && typeof mse.isTypeSupported == 'function') {
+                    mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
+                }
+            */
 
         };
 
