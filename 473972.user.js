@@ -10780,6 +10780,20 @@
             console.warn("g.JL optimzation might not work for screen > 1km long");
           }
 
+          const isEqualTransform = (v, u) => {
+            v = v.toLowerCase();
+            u = u.toLowerCase();
+            if (u.includes("e-0")) {
+              const m = (/\d[.\d]*e-\d+/.exec(u) || 0)[0];
+              const d = +m;
+              if (d > 0) {
+                u = u.replace(m, d);
+              }
+            }
+            if (v.endsWith("(nanpx)")) v = "";
+            return v === u;
+          }
+
           const u = (a, b, r) => {
             let c = r[1];
             if (b === "transform" && typeof c === "string" && typeof a === "object" && a.nodeType === 1) {
@@ -10795,7 +10809,7 @@
                   return a;
                 });
               }
-              if (r[0] === 0 && c.toLowerCase() === ((a.style || 0).transform || "").toLowerCase()) {
+              if (r[0] === 0 && isEqualTransform(c, (a.style || 0).transform || "")) {
                 r[0] = 1;
               }
             }
@@ -11861,7 +11875,7 @@
           //   return this.handleServiceRequest717_(a,b,c,d);
           // }
 
-          function extraArguments322(a, b, c) {
+          const extraArguments322 = (a, b, c) => {
             let is = (a || 0).is;
             let videoId = ((b || 0).updatedMetadataEndpoint || 0).videoId;
             let continuation = (c || 0).continuation;
@@ -11869,7 +11883,7 @@
             if (typeof videoId !== 'string') videoId = null;
             if (typeof continuation !== 'string') continuation = null;
             return { is, videoId, continuation };
-          }
+          };
 
           cProto.sendServiceAjax717_ = cProto.sendServiceAjax_;
           cProto.sendServiceAjax_ = function (a, b, c, d) {
