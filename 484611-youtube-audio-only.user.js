@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.1
+// @version             2.3.2
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -409,12 +409,6 @@
             return { remapString };
         })();
 
-
-        function removeTempObjectProp01() {
-            delete Object.prototype['kevlar_non_watch_unified_player'];
-            delete Object.prototype['kevlar_unified_player'];
-        }
-
         function ytConfigFix(config__) {
             const config_ = config__;
 
@@ -434,75 +428,12 @@
                     playerKevlar.enableCsiLogging = false;
                     playerKevlar.externalFullscreen = false;
 
-                    if (typeof playerKevlar.serializedExperimentFlags === 'string') {
-                        playerKevlar.serializedExperimentFlags = '';
-                        // playerKevlar.serializedExperimentFlags = playerKevlar.serializedExperimentFlags.replace(/[-\w]+=(\[\]|[.-\d]+|[_a-z]+|)(&|$)/g,'').replace(/&$/,'')
-                    }
-
-                    if (typeof playerKevlar.serializedExperimentIds === 'string') {
-                        playerKevlar.serializedExperimentIds = '';
-                        // playerKevlar.serializedExperimentIds = playerKevlar.serializedExperimentIds.replace(/\d+\s*(,\s*|$)/g,'')
-                    }
-
                 }
 
                 removeTempObjectProp01();
 
-                let configs = config_.WEB_PLAYER_CONTEXT_CONFIGS || {};
-                for (const [key, entry] of Object.entries(configs)) {
-
-                    if (entry && typeof entry.serializedExperimentFlags === 'string' && entry.serializedExperimentFlags.length > 16) {
-                        // prevent idle playback failure
-                        entry.serializedExperimentFlags = entry.serializedExperimentFlags.replace(/\b(html5_check_for_idle_network_interval_ms|html5_trigger_loader_when_idle_network|html5_sabr_fetch_on_idle_network_preloaded_players|html5_autonav_cap_idle_secs|html5_autonav_quality_cap|html5_disable_client_autonav_cap_for_onesie|html5_idle_rate_limit_ms|html5_sabr_fetch_on_idle_network_preloaded_players|html5_webpo_idle_priority_job|html5_server_playback_start_policy|html5_check_video_data_errors_before_playback_start|html5_check_unstarted|html5_check_queue_on_data_loaded)=([-_\w]+)(\&|$)/g, (_, a, b, c) => {
-                            return a + '00' + '=' + b + c;
-                        });
-
-                    }
-
-                }
-
-                const EXPERIMENT_FLAGS = config_.EXPERIMENT_FLAGS;
-
-                if (EXPERIMENT_FLAGS) {
-                    EXPERIMENT_FLAGS.kevlar_unified_player = true;
-                    EXPERIMENT_FLAGS.kevlar_non_watch_unified_player = true;
-                }
-
-
-                const EXPERIMENTS_FORCED_FLAGS = config_.EXPERIMENTS_FORCED_FLAGS;
-
-                if (EXPERIMENTS_FORCED_FLAGS) {
-                    EXPERIMENTS_FORCED_FLAGS.kevlar_unified_player = true;
-                    EXPERIMENTS_FORCED_FLAGS.kevlar_non_watch_unified_player = true;
-                }
-
             }
         }
-
-        Object.defineProperty(Object.prototype, 'kevlar_non_watch_unified_player', {
-            get() {
-                // console.log(501, this.constructor.prototype)
-                return true;
-            },
-            set(nv) {
-                return true;
-            },
-            enumerable: false,
-            configurable: true
-        });
-
-
-        Object.defineProperty(Object.prototype, 'kevlar_unified_player', {
-            get() {
-                // console.log(501, this.constructor.prototype)
-                return true;
-            },
-            set(nv) {
-                return true;
-            },
-            enumerable: false,
-            configurable: true
-        });
 
         // let prr = new PromiseExternal();
         // const prrPipeline = createPipeline();
