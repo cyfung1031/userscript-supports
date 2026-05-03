@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.0
+// @version             2.3.1
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -1363,70 +1363,9 @@
 
             const { internalAppPTFn } = (() => {
 
-                const flags_ = {}
-                let qma = 0;
-                const flagOn_ = (flags, key, bool) => {
-                    flags_[key] = flags[key];
-                    flags[key] = typeof flags[key] === 'boolean' ? bool : `${bool}`;
-                }
-                const flagOn = () => {
-                    // return;
-                    const internalApp = internalAppXM();
-                    if (!key_yn) return;
-                    const flags = internalApp?.[key_yn]?.experiments?.flags || 0;
-                    if (!flags) return;
-                    if (qma < 0) return;
-                    qma++;
-                    if (qma > 1) return;
-                    flagOn_(flags, 'html5_enable_ssap_autoplay_debug_logging', false);
-                    // flagOn_(flags, 'enable_visit_advertiser_support_on_ipad_mweb', false);
-                    // flagOn_(flags, 'html5_shorts_onesie_mismatched_fix', false);
-                    // flagOn_(flags, 'html5_early_media_for_drm', false);
-                    // flagOn_(flags, 'allow_vp9_1080p_mq_enc', false);
-                    // flagOn_(flags, 'html5_onesie_preload_use_content_owner', false);
-                    flagOn_(flags, 'html5_exponential_memory_for_sticky', false);
-                    // flagOn_(flags, 'html5_perf_cap_override_sticky', false);
-                    // flagOn_(flags, 'html5_perserve_av1_perf_cap', false);
-                    // flagOn_(flags, 'html5_disable_low_pipeline', false);
-                    flagOn_(flags, 'html5_publish_all_cuepoints', false);
-                    flagOn_(flags, 'html5_ultra_low_latency_subsegment_readahead', false);
-                    // flagOn_(flags, 'html5_disable_move_pssh_to_moov', false);
-                    flagOn_(flags, 'html5_sunset_aac_high_codec_family', false);
-                    // flagOn_(flags, 'html5_enable_ssap_seteos', false);
-
-                    // flagOn_(flags, 'html5_catch_errors_for_rollback', false);
-                    // flagOn_(flags, 'html5_sabr_enable_utc_seek_requests', false);
-                    // flagOn_(flags, 'html5_sabr_enable_live_clock_offset', false);
-                    // flagOn_(flags, 'html5_disable_client_resume_policy_for_sabr', false);
-                    flagOn_(flags, 'html5_trigger_loader_when_idle_network', false);
-
-                    flagOn_(flags, 'web_key_moments_markers', false);
-                    flagOn_(flags, 'embeds_use_parent_visibility_in_ve_logging', false);
-                    flagOn_(flags, 'html5_onesie', false);
-                    qma = 1;
-                }
-
-                const flagOff = () => {
-
-                    // return;
-                    const internalApp = internalAppXM();
-                    if (!key_yn) return;
-                    const flags = internalApp?.[key_yn]?.experiments?.flags || 0;
-                    if (!flags) return;
-                    if (qma <= 0) return;
-                    qma--;
-                    if (qma > 1) return;
-                    for (const [key, value] of Object.entries(flags_)) {
-                        flags[key] = value;
-                    }
-                    qma = 0;
-                }
-
-
                 const internalAppPTFn = (internalAppPT_) => {
 
                     const internalAppPT = internalAppPT_;
-
 
                     if (internalAppPT && internalAppPT.playVideo && !internalAppPT.playVideo9391) {
                         internalAppPT.playVideo9391 = internalAppPT.playVideo;
@@ -1435,12 +1374,12 @@
                             updateInternalAppFn(this);
                             console.log(`[yt-audio-only] internalApp.playVideo; skipPlayPause=${skipPlayPause}`);
                             try {
-                                flagOn();
+                                // flagOn();
                                 return this.playVideo9391(...arguments);
                             } catch (e) {
                                 console.warn(e);
                             } finally {
-                                flagOff();
+                                // flagOff();
                             }
                         }
                         internalAppPT.playVideo.toString = internalAppPT.playVideo9391.toString.bind(internalAppPT.playVideo9391);
@@ -1458,12 +1397,12 @@
                             updateInternalAppFn(this);
                             console.log(`[yt-audio-only] internalApp.pauseVideo; skipPlayPause=${skipPlayPause}`);
                             try {
-                                flagOn();
+                                // flagOn();
                                 return this.pauseVideo9391(...arguments);
                             } catch (e) {
                                 console.warn(e);
                             } finally {
-                                flagOff();
+                                // flagOff();
                             }
                         }
                         internalAppPT.pauseVideo.toString = internalAppPT.pauseVideo9391.toString.bind(internalAppPT.pauseVideo9391);
@@ -1480,12 +1419,12 @@
                             updateInternalAppFn(this);
                             console.log(`[yt-audio-only] internalApp.stopVideo; skipPlayPause=${skipPlayPause ? 1 : 0}`);
                             try {
-                                flagOn();
+                                // flagOn();
                                 return this.stopVideo9391(...arguments);
                             } catch (e) {
                                 console.warn(e);
                             } finally {
-                                flagOff();
+                                // flagOff();
                             }
                         }
                         internalAppPT.stopVideo.toString = internalAppPT.stopVideo9391.toString.bind(internalAppPT.stopVideo9391);
@@ -1513,19 +1452,7 @@
 
                         internalAppPT.sendAbandonmentPing = function () {
 
-
-
-
-
                             console.log('[yt-audio-only] sendAbandonmentPing');
-
-                            const internalApp = this;
-                            const iaMedia = internalApp ? internalApp.mediaElement : null;
-                            if (iaMedia) {
-                                iaMedia.__publishStatus17__ = 0;
-                                iaMedia.__publishStatus18__ = 0;
-                            }
-
 
                             dirtyMark = 1 | 2 | 4 | 8;
 
@@ -2409,50 +2336,6 @@
             configurable: true
 
         });
-
-
-        let s1 = Symbol();
-        let s2 = Symbol();
-        Object.defineProperty(Object.prototype, 'defraggedFromSubfragments', {
-            get() {
-                // console.log(501, this.constructor.prototype)
-                return undefined;
-            },
-            set(nv) {
-                return true;
-            },
-            enumerable: false,
-            configurable: true
-        });
-
-        Object.defineProperty(Object.prototype, 'hasSubfragmentedFmp4', {
-            get() {
-                // console.log(502, this.constructor.prototype)
-                return this[s1];
-            },
-            set(nv) {
-                if (typeof nv === 'boolean') this[s1] = false;
-                else this[s1] = undefined;
-                return true;
-            },
-            enumerable: false,
-            configurable: true
-        });
-
-        Object.defineProperty(Object.prototype, 'hasSubfragmentedWebm', {
-            get() {
-                // console.log(503, this.constructor.prototype)
-                return this[s2];
-            },
-            set(nv) {
-                if (typeof nv === 'boolean') this[s2] = false;
-                else this[s2] = undefined;
-                return true;
-            },
-            enumerable: false,
-            configurable: true
-        });
-
 
         const supportedFormatsConfig = () => {
 
