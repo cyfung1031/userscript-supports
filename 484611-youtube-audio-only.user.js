@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.2
+// @version             2.3.3
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -309,105 +309,6 @@
 
 
         }
-
-
-        const { remapString } = (() => {
-
-            function shuffleArray(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-                return array;
-            }
-
-            /**
-             * Create a deterministic "random" mapping from 'a'..'z' -> shuffled letters.
-             * Returns a Map for O(1) lookups.
-             */
-            function createRandomAlphabetMap() {
-                const baseAlphabet = "abcdefghijklmnopqrstuvwxyz";
-                const letters = baseAlphabet.split("");
-
-
-                // Shuffle letters with that seeded generator
-                const shuffledLetters = shuffleArray(letters);
-
-                // Build the Map
-                const map = new Map();
-                for (let i = 0, l = baseAlphabet.length; i < l; i++) {
-                    map.set(baseAlphabet[i], shuffledLetters[i]);
-                    map.set(baseAlphabet[i].toUpperCase(), shuffledLetters[i].toUpperCase());
-                }
-                return map;
-            }
-
-            // Create the random map once at initialization
-            let randomAlphabetMap = null;
-
-            /**
-             * Remaps alphabetic letters in a string according to randomAlphabetMap.
-             * Preserves the case of letters and leaves non-alphabet characters unchanged.
-             */
-            function remapString(input) {
-                if (!randomAlphabetMap) return input;
-                let result = new Array(input.length);
-                let i = 0;
-                for (const char of input) {
-                    result[i++] = randomAlphabetMap.get(char) || char;
-                }
-                return result.join('');
-            }
-
-            const listA = [
-                "error",
-                "internalvideodatachange",
-                "statechange",
-                "SEEK_TO",
-                "videoelementevent",
-                "onLoadedMetadata",
-                "progresssync",
-                "onVideoProgress",
-                "SEEK_COMPLETE",
-                "playbackstarted",
-                "onLoadProgress",
-                "nonfatalerror",
-                "internalAbandon",
-                "internalvideoformatchange",
-                "internalaudioformatchange",
-                "playbackready",
-                "mediasourceattached",
-                "beginseeking",
-                "endseeking"
-            ];
-
-            const mdA = listA.join('|');
-
-            loop1:
-            for (let tryCount = 8; tryCount > 0; tryCount--) {
-                randomAlphabetMap = createRandomAlphabetMap();
-                const listB = listA.map(remapString);
-                const mdB = listB.join('|');
-                for (const a of listA) {
-                    if (mdB.includes(a)) {
-                        randomAlphabetMap = null;
-                        continue loop1;
-                    }
-                }
-                for (const b of listB) {
-                    if (mdA.includes(b)) {
-                        randomAlphabetMap = null;
-                        continue loop1;
-                    }
-                }
-                break;
-            }
-            if (!randomAlphabetMap) {
-                console.error('randomAlphabetMap is not available.')
-            }
-
-            return { remapString };
-        })();
 
         function ytConfigFix(config__) {
             const config_ = config__;
