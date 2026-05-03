@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @version             0.2.1
+// @version             0.2.2
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
@@ -907,16 +907,13 @@
                 }
             }
 
-            // return a custom MIME type checker that can defer to the original function
+            let types = new Set();
             function makeModifiedTypeChecker(origChecker) {
-                // Check if a video type is allowed
                 return function (type) {
-                    let res = undefined;
-                    if (type === undefined) res = false;
-                    else {
-                        res = typeTest.call(this, type);
+                    const res = origChecker.apply(this, arguments);
+                    if (res) {
+                        if (type && typeof type === "string" && type.includes("audio/")) types.add(type);
                     }
-                    if (res === undefined) res = origChecker.apply(this, arguments);
                     return res;
                 };
             }
@@ -933,6 +930,18 @@
             if (mse && typeof mse.isTypeSupported == 'function') {
                 mse.isTypeSupported = makeModifiedTypeChecker(mse.isTypeSupported);
             }
+
+            const msep = (mse || 0).prototype || 0;
+
+            if (msep && typeof msep.addSourceBuffer == 'function' && !msep.addSourceBuffer078) {
+                msep.addSourceBuffer078 = msep.addSourceBuffer;
+                msep.addSourceBuffer = function (type, ...rest) {
+                    if (type.includes("video/")) return;
+                    console.log("[yt-music-audio-only] Media Codec:", type, [...types]);
+                    return this.addSourceBuffer078(type, ...rest);
+                };
+            }
+
 
         };
 
