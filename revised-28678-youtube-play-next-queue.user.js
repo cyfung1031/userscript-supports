@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Play Next Queue
-// @version      2.5.1
+// @version      2.5.2
 // @description  Don't like the youtube autoplay suggestion? This script can create a queue with videos you want to play after your current video has finished!
 // @author       Cpt_mathix
 // @match        https://www.youtube.com/*
@@ -551,7 +551,7 @@
             }
 
             // clear current content
-            queue.innerHTML = "";
+            clearChildren(queue);
 
             initQueueRenderedObserver();
 
@@ -622,24 +622,27 @@
             openToast("Youtube Play Next Queue hidden while playlist, mix or native youtube queue is active.");
 
             // clear current content
-            queue.innerHTML = "";
+            clearChildren(queue);
             queue.parentNode.setAttribute("hidden", "");
         }
 
         // The "remove queue and all its videos" button
         function initRemoveQueueButton(anchor) {
-            let html = "<div class=\"queue-button remove-queue\">Remove Queue</div>";
-            anchor.innerHTML = html;
+            clearChildren(anchor);
+            let removeQueueButton = document.createElement("div");
+            removeQueueButton.classList.add("queue-button", "remove-queue");
+            removeQueueButton.textContent = "Remove Queue";
+            anchor.appendChild(removeQueueButton);
 
             if (!anchor.querySelector(".flex-whitebox")) {
                 anchor.classList.add("flex-none");
                 anchor.insertAdjacentHTML("afterend", "<div class=\"flex-whitebox\"></div>");
             }
 
-            anchor.querySelector('.remove-queue').addEventListener("click", function handler(e) {
+            removeQueueButton.addEventListener("click", function handler(e) {
                 e.preventDefault();
                 script.queue.reset();
-                this.parentNode.innerHTML = "Up next";
+                this.parentNode.textContent = "Up next";
             });
         }
 
@@ -847,6 +850,17 @@ ytd-thumbnail-overlay-toggle-button-renderer[aria-label=Queued] { display: none;
         function forEach(array, callback, scope) {
             for (let i = 0; i < array.length; i++) {
                 callback.call(scope, array[i], i);
+            }
+        }
+
+        function clearChildren(node) {
+            if (typeof node.replaceChildren === "function") {
+                node.replaceChildren();
+            } else {
+                let t;
+                while (t = node.firstChild) {
+                    node.removeChild(t);
+                }
             }
         }
 
