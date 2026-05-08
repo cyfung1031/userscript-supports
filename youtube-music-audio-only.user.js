@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @version             0.2.3
+// @version             0.2.4
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
@@ -27,7 +27,7 @@
 //
 // ==/UserScript==
 
-(async function () {
+(async function (URL_) {
     'use strict';
 
     const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
@@ -115,7 +115,7 @@
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
-        const URL = window.URL || new Function('return URL')();
+        const URL = URL_;
         const createObjectURL = URL.createObjectURL.bind(URL);
 
         /** @type {globalThis.PromiseConstructor} */
@@ -1164,4 +1164,4 @@
     })
 
 
-})();
+})(typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL);
