@@ -61,11 +61,8 @@ var pangu = (() => {
     let _nativeText;
 
     try {
-      const q = document.createElement('template');
-      q.innerHTML = '<nil-01></nil-01>T';
-      const c = q.content;
-      _nativeHTMLElement = c.firstChild.constructor;
-      _nativeText = c.lastChild.constructor;
+      _nativeHTMLElement = Reflect.getPrototypeOf(HTMLFontElement);
+      _nativeText = document.createTextNode("T").constructor;
     } catch (e) { }
 
     const HTMLElementNative = _nativeHTMLElement || HTMLElement; // prevent modified by YouTube Polymer
