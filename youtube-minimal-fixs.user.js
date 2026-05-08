@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         YouTube Minimal Fixs
-// @version      0.7.10
+// @version      0.7.11
 // @description  This is to fix various features of YouTube Minimal on PC
 // @namespace    http://tampermonkey.net/
 // @author       CY Fung
@@ -51,7 +51,7 @@ SOFTWARE.
 
     const { Promise } = __CONTEXT__;
 
-    let [window] = new Function('return [window]')();
+    let [window] = [document.documentElement.getRootNode().defaultView];
 
     if (window.document.addEventListener399) return;
     window.document.addEventListener399 = window.document.addEventListener
