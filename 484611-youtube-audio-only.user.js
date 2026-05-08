@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.4
+// @version             2.3.5
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -28,7 +28,7 @@
 //
 // ==/UserScript==
 
-(async function () {
+(async function (URL_) {
     'use strict';
 
 
@@ -120,7 +120,7 @@
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
-        const URL = window.URL || new Function('return URL')();
+        const URL = URL_;
         const createObjectURL = URL.createObjectURL.bind(URL);
 
         /** @type {globalThis.PromiseConstructor} */
@@ -3163,5 +3163,5 @@
 
 
 
-})();
+})(typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL);
 
