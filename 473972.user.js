@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.19
+// @version     0.42.20
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -8237,16 +8237,7 @@
 
   const dmf = new WeakMap();
 
-
   let nativeHTMLElement = Reflect.getPrototypeOf(HTMLFontElement);
-
-  try {
-
-    const q = document.createElement('template');
-    q.innerHTML = '<ytz-null361></ytz-null361>';
-    nativeHTMLElement = q.content.firstChild.constructor
-
-  } catch (e) { }
 
   if (!nativeHTMLElement.prototype.connectedCallback) {
     nativeHTMLElement.prototype.connectedCallback79 = nativeHTMLElement.prototype.connectedCallback;
