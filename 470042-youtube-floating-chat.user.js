@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube: Floating Chat Window on Fullscreen
 // @namespace           UserScript
-// @version             0.5.5
+// @version             0.5.6
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -146,6 +146,74 @@
         }
 
     }, { capture: true, passive: false });
+
+    function createSvgElement(doc, tag, attrs = {}, children = []) {
+        const el = doc.createElementNS("http://www.w3.org/2000/svg", tag);
+
+        for (const [name, value] of Object.entries(attrs)) {
+            el.setAttribute(name, value);
+        }
+
+        el.append(...children);
+        return el;
+    }
+
+    function createSvgDefs(doc) {
+        const filter03 = createSvgElement(doc, "filter", {
+            id: "stroke-text-svg-filter-03",
+        }, [
+            createSvgElement(doc, "feColorMatrix", {
+                type: "matrix",
+                in: "SourceGraphic",
+                values: "0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 1 0",
+                result: "white-text",
+            }),
+            createSvgElement(doc, "feMorphology", {
+                in: "white-text",
+                result: "DILATED",
+                operator: "dilate",
+                radius: "2",
+            }),
+            createSvgElement(doc, "feFlood", {
+                "flood-color": "transparent",
+                "flood-opacity": "1",
+                result: "PINK",
+                id: "floodColor-03",
+            }),
+            createSvgElement(doc, "feComposite", {
+                in: "PINK",
+                in2: "DILATED",
+                operator: "in",
+                result: "OUTLINE",
+            }),
+            createSvgElement(doc, "feMerge", {}, [
+                createSvgElement(doc, "feMergeNode", { in: "OUTLINE" }),
+                createSvgElement(doc, "feMergeNode", { in: "SourceGraphic" }),
+            ]),
+        ]);
+
+        const filter04 = createSvgElement(doc, "filter", {
+            id: "stroke-text-svg-filter-04",
+        }, [
+            createSvgElement(doc, "feMorphology", {
+                operator: "dilate",
+                radius: "2",
+            }),
+            createSvgElement(doc, "feComposite", {
+                operator: "xor",
+                in: "SourceGraphic",
+            }),
+        ]);
+
+        return createSvgElement(doc, "svg", {
+            version: "1.1",
+            xmlns: "http://www.w3.org/2000/svg",
+            "xmlns:xlink": "http://www.w3.org/1999/xlink",
+            style: "display:none;",
+        }, [
+            createSvgElement(doc, "defs", {}, [filter03, filter04]),
+        ]);
+    }
 
     const svgDefs = () => `
         <svg version="1.1" xmlns="//www.w3.org/2000/svg" xmlns:xlink="//www.w3.org/1999/xlink" style="display:none;">
@@ -944,9 +1012,7 @@
 
                 iframeDoc.head.appendChild(document.createElement('style')).textContent = createStyleTextForIframe();
 
-                const tm = document.createElement('template');
-                tm.innerHTML = svgDefs();
-                iframeDoc.body.appendChild(tm.content)
+                iframeDoc.body.appendChild(createSvgDefs(iframeDoc));
 
                 if (iframeFullscreenChangedBinded) document.removeEventListener('fullscreenchange', iframeFullscreenChangedBinded, false);
                 iframeFullscreenChangedBinded = iframeFullscreenChanged.bind(iframeDoc);
