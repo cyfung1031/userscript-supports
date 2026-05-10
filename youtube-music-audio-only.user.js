@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @version             0.2.4
+// @version             0.2.5
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
@@ -27,7 +27,7 @@
 //
 // ==/UserScript==
 
-(async function (URL_) {
+(async function () {
     'use strict';
 
     const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
@@ -115,8 +115,8 @@
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
-        const URL = URL_;
-        const createObjectURL = URL.createObjectURL.bind(URL);
+        const hURL = typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL;
+        const createObjectURL = hURL.createObjectURL.bind(hURL);
 
         /** @type {globalThis.PromiseConstructor} */
         const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -1164,4 +1164,4 @@
     })
 
 
-})(typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL);
+})();

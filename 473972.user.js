@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.21
+// @version     0.42.22
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -26,7 +26,7 @@
 //
 // ==/UserScript==
 
-((URL_) => {
+(() => {
 
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
@@ -5153,8 +5153,8 @@
 
     const responseTextStore = new WeakMap();
 
-    const URL = URL_;
-    const createObjectURL = URL.createObjectURL.bind(URL);
+    const hURL = typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL;
+    const createObjectURL = hURL.createObjectURL.bind(hURL);
 
     XMLHttpRequest = (() => {
       const XMLHttpRequest_ = XMLHttpRequest;
@@ -12612,4 +12612,4 @@
 
 
 
-})(typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL);
+})();

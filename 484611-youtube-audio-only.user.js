@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.5
+// @version             2.3.6
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -28,7 +28,7 @@
 //
 // ==/UserScript==
 
-(async function (URL_) {
+(async function () {
     'use strict';
 
 
@@ -120,8 +120,8 @@
 
         if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
-        const URL = URL_;
-        const createObjectURL = URL.createObjectURL.bind(URL);
+        const hURL = typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL;
+        const createObjectURL = hURL.createObjectURL.bind(hURL);
 
         /** @type {globalThis.PromiseConstructor} */
         const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -3163,5 +3163,5 @@
 
 
 
-})(typeof URL === "function" ? URL : document.documentElement.getRootNode().defaultView.URL);
+})();
 
