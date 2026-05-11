@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.20
+// @version             0.14.0
 // @license             MIT License
 
 // @author              CY Fung
@@ -2591,6 +2591,31 @@ const Object_ = Object;
         // $0.polymerController.$['action-buttons'].polymerController.__data.replyButtonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer.editableText
     }
 
+    const wmDomName = new WeakMap(); // link the dom to the desired display name. to check whether the dom is proceeded.
+    const commentEntityProcess = new WeakMap(); // to store the promise or true value for the commentEntity.author
+
+    const commentEntityReassign = async (cnt, promiseOrTrue) => {
+        if (promiseOrTrue !== true) await promiseOrTrue;
+        cnt.commentEntity.properties = Object.assign({}, cnt.commentEntity.properties);
+        cnt.commentEntity.author = Object.assign({}, cnt.commentEntity.author);
+        cnt.commentEntity = Object.assign({}, cnt.commentEntity);
+    }
+
+    const PromiseExternal = ((resolve_, reject_) => {
+        const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
+        return class PromiseExternal extends Promise {
+            constructor(cb = h) {
+                super(cb);
+                if (cb === h) {
+                    /** @type {(value: any) => void} */
+                    this.resolve = resolve_;
+                    /** @type {(reason?: any) => void} */
+                    this.reject = reject_;
+                }
+            }
+        };
+    })();
+
     const domCheckAsync = isMobile ? async (anchor, hrefAttribute, mt) => {
 
         let sHandleName = null;
@@ -2763,12 +2788,18 @@ const Object_ = Object;
                 const { title, langTitle, externalId } = fetchResult;
                 const titleForDisplay = langTitle || title;
                 if (externalId !== mt) return; // channel id must be the same
+                if (currentDisplayed === titleForDisplay) return; // just in case
 
                 // anchor href might be changed by external
                 if (!anchorIntegrityCheck(anchor, hrefAttribute)) return;
 
+                // here is just to update the commentEntityAuthor
                 if (commentEntityAuthor.displayName === currentDisplayed && commentEntityAuthor.channelId === mt) {
                     commentEntityAuthor.displayName = titleForDisplay;
+
+                    const promise = new PromiseExternal();
+
+                    commentEntityProcess.set(commentEntityAuthor, promise);
 
                     if (commentEntity.properties) {
                         if (commentEntity.properties.authorButtonA11y === currentDisplayed) {
@@ -2815,14 +2846,23 @@ const Object_ = Object;
                     const funcPromises = [];
                     commentReplyDialogRenderer && fixCommentReplyDialogRenderer(commentReplyDialogRenderer, funcPromises);
 
-
                     if (funcPromises.length >= 1) {
                         await Promise.all(funcPromises);
                     }
 
-                    parentNodeController.commentEntity = Object.assign({}, parentNodeController.commentEntity);
-
+                    promise.resolve();
+                    commentEntityProcess.set(commentEntityAuthor, true); // resolved
                 }
+
+                // when user leaves a new comment, YouTube will attach mutliple comment DOMs.
+                // so when the first dom is set with the revised commentEntity, the 2nd+ dom still need to do the commentEntityReassign
+                // check parentNodeController (DOM) instead of commentEntityAuthor (shared JS object)
+                const promiseOrTrue = commentEntityProcess.get(commentEntityAuthor);
+                if (promiseOrTrue && wmDomName.get(parentNodeController) !== commentEntityAuthor.displayName) {
+                    wmDomName.set(parentNodeController, commentEntityAuthor.displayName);
+                    commentEntityReassign(parentNodeController, promiseOrTrue);
+                }
+
             } else {
 
                 const authorText = (parentNodeController.data || 0).authorText;
