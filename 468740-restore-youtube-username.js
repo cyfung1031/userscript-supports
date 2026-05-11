@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.18
+// @version             0.13.19
 // @license             MIT License
 
 // @author              CY Fung
@@ -2805,9 +2805,11 @@ const Object_ = Object;
 
                     const actionButtonsCnt = insp((parentNodeController.$ || 0)['action-buttons'] || 0);
                     if (actionButtonsCnt) {
-
                         try {
-                            commentReplyDialogRenderer = actionButtonsCnt.__data.replyButtonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                            const replyButtonRenderer = (actionButtonsCnt.__data || 0).replyButtonRenderer || actionButtonsCnt.replyButtonRenderer || 0;
+                            if (replyButtonRenderer) {
+                                commentReplyDialogRenderer = replyButtonRenderer.navigationEndpoint.createCommentReplyDialogEndpoint.dialog.commentReplyDialogRenderer;
+                            }
                         } catch (e) { }
                     }
                     const funcPromises = [];
