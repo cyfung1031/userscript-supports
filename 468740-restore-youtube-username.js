@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.0
+// @version             0.14.1
 // @license             MIT License
 
 // @author              CY Fung
@@ -1239,17 +1239,22 @@ const Object_ = Object;
 
     const isUCBrowserId = (browseId) => {
         return typeof browseId === 'string' && browseId.length === 24 && browseId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(browseId);
-    }
+    };
+
+    const urlTextEqual = (txt, url) => {
+        if (url.includes("%") && !txt.includes("%")) txt = encodeURI(txt);
+        return txt.toLowerCase() === url.toLowerCase();
+    };
 
     const browseEndpointBaseUrlType = (browseEndpoint, displayText) => {
         if (isDisplayAsHandle(displayText) && isUCBrowserId(browseEndpoint.browseId) && typeof browseEndpoint.canonicalBaseUrl === 'string') {
-            if (`/${displayText}` === browseEndpoint.canonicalBaseUrl) return 1 | 2;
+            if (urlTextEqual(`/${displayText}`, browseEndpoint.canonicalBaseUrl)) return 1 | 2;
             if (`/channel/${browseEndpoint.browseId}` === browseEndpoint.canonicalBaseUrl) return 1 | 4;
             if (browseEndpoint.canonicalBaseUrl.includes(`/${browseEndpoint.browseId}`)) return 1 | 8;
             return 1;
         }
         return 0;
-    }
+    };
 
     /**
      *
@@ -1267,7 +1272,7 @@ const Object_ = Object;
                 }
             }
         }
-    }
+    };
 
     /**
      *
@@ -1279,13 +1284,17 @@ const Object_ = Object;
         if (ytElm instanceof Element) {
             const anchors = elementQSA(ytElm, 'a[id][href][jkrgy]');
             // const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
-            if ((anchors || 0).length >= 1 && ((insp(ytElm).commentEntity || 0).author || 0).jkrgx !== 1) {
-                for (const anchor of anchors) {
-                    anchor.removeAttribute('jkrgy');
+            if ((anchors || 0).length >= 1) {
+                const cnt = insp(ytElm);
+                const author = ((cnt.commentEntity || 0).author || 0);
+                if (!wmDomName.has(cnt) || !author || !commentEntityProcess.has(author)) {
+                    for (const anchor of anchors) {
+                        anchor.removeAttribute('jkrgy');
+                    }
                 }
             }
         }
-    }
+    };
 
     /**
      *
@@ -2594,12 +2603,64 @@ const Object_ = Object;
     const wmDomName = new WeakMap(); // link the dom to the desired display name. to check whether the dom is proceeded.
     const commentEntityProcess = new WeakMap(); // to store the promise or true value for the commentEntity.author
 
+    const ytPropSet = (cnt, key, p) => {
+        const q = Object.assign({}, p);
+        let b = 0;
+        if (typeof cnt._setPendingProperty === "function" && typeof cnt._invalidateProperties === "function" && cnt._setPendingProperty.length >= 2 && cnt._invalidateProperties.length === 0) {
+
+            b |= cnt._setPendingProperty(key, q, true);
+            b |= cnt._setPendingProperty(key, p, true);
+            b && cnt._invalidateProperties();
+        } else if (typeof cnt._setPendingPropertyOrPath === "function" && typeof cnt._invalidateProperties === "function" && cnt._setPendingPropertyOrPath.length >= 2 && cnt._invalidateProperties.length === 0) {
+
+            b |= cnt._setPendingPropertyOrPath(key, q, true);
+            b |= cnt._setPendingPropertyOrPath(key, p, true);
+            b && cnt._setPendingPropertyOrPath();
+        } else {
+            cnt[key] = q;
+        }
+    }
+
+    const collectedCnts = [];
+
+    const key = `jyt-${Date.now()}-${Math.random().toString(36)}`
+
+    const bcSend = new BroadcastChannel(key);
+    const bcReceive = new BroadcastChannel(key);
+    bcReceive.addEventListener("message", () => {
+        if (!collectedCnts.length) return;
+        const s = collectedCnts.slice();
+        collectedCnts.length = 0;
+        for (const cnt of s) {
+            try {
+                // cnt.markDirty();
+                // cnt.markDirtyVisibilityObserver();
+
+                if (cnt.contentText && typeof cnt._setPendingPropertyOrPath === "function") {
+                    try {
+                        const p = cnt.commentEntity.properties.content;
+                        ytPropSet(cnt, "commentEntity.properties.content", p);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+
+                ytPropSet(cnt, "commentEntity", cnt.commentEntity);
+                cnt.reduxPropertiesRecomputeTrigger++;
+                // resolveCommand
+
+                // cnt._invalidateProperties();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    });
+
     const commentEntityReassign = async (cnt, promiseOrTrue) => {
         if (promiseOrTrue !== true) await promiseOrTrue;
-        cnt.commentEntity.properties = Object.assign({}, cnt.commentEntity.properties);
-        cnt.commentEntity.author = Object.assign({}, cnt.commentEntity.author);
-        cnt.commentEntity = Object.assign({}, cnt.commentEntity);
-    }
+        collectedCnts.push(cnt);
+        bcSend.postMessage({});
+    };
 
     const PromiseExternal = ((resolve_, reject_) => {
         const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
@@ -2818,7 +2879,8 @@ const Object_ = Object;
                                 //     content: Object.assign({}, parentNodeController.commentEntity.properties.content)
                                 // });
 
-                                commentEntity.properties.content = Object.assign({}, content);
+                                // commentEntity.properties.content = Object.assign({}, content);
+                                
                             } catch (e) {
                                 console.log(e);
                             }
