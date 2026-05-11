@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.22
+// @version     0.42.23
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3530,6 +3530,9 @@
 
   if (FIX_ytScheduler) {
 
+    const clearInterval_ = clearInterval;
+    const setInterval_ = setInterval;
+
     let ytSchedulerFixed = 0;
     // let ytActioned = false;
     // let pr = new PromiseExternal();
@@ -3612,89 +3615,60 @@
       //   }
       // });
 
-      let lenSkip = -1;
-      let lastLen = null;
-      let fetchCommentJobTimerId = 0;
-      let requestFinish = false;
+      // let lenSkip = -1;
+      let fcjLastLen = null;
+      let fcjTimerId = 0;
+      let fcjRequestFinish = false;
+      let fcjCheckLater = 0;
+      let fcjFn;
 
-      const fetchCommentJobDone = ()=>{
-        clearInterval(fetchCommentJobTimerId);
-        fetchCommentJobTimerId = 0;
+      const fetchCommentJobDone = () => {
+        fcjRequestFinish = false;
+        clearInterval_(fcjTimerId);
+        fcjTimerId = 0;
+        fcjCheckLater = 0;
         console.log('[yt-js-engine-tamer] fetchCommentJob done');
       }
 
-      const fetchCommentJob = (a, cid) => {
-
-        // if (cid && cancelStore[cid]) return; // tbc
-
-          if(fetchCommentJobTimerId > 0){
-            fetchCommentJobDone();
-          }
-
-        // if (mof) {
-        //   console.log('[yt-js-engine-tamer] fetchCommentJob done');
-        //   mof = null;
-        // }
-
-        let f = a;
+      const fetchCommentJobTimerFn = () => {
+        if (!fcjTimerId) return;
+        if (fcjRequestFinish) fcjLastLen = -1;
 
         const selector = 'ytd-comments, ytd-comments > *, ytd-comments [id] > *, ytd-comments ytd-continuation-item-renderer';
 
-        console.log('[yt-js-engine-tamer] fetchCommentJob start');
-
-        lastLen = -1;
-        let u = 0;
-        let g = () => {
-          if (requestFinish) lastLen = -1;
-          const lastLen_ = lastLen;
-          const len1 = lastLen = document.querySelectorAll(selector).length;
-          let mm = true;
-          let ff = false; 
-          if (len1 !== lastLen_) {
-            u = 0;
-            f();
-            const len2 = lastLen = document.querySelectorAll(selector).length;
-            if (len2 !== len1) {
-              ff = true;
-              mm = false;
-            }
+        const len0 = fcjLastLen;
+        const len1 = fcjLastLen = document.querySelectorAll(selector).length;
+        let sFinal = false;
+        if (len1 !== len0) {
+          fcjCheckLater = 0;
+          fcjFn();
+          const len2 = fcjLastLen = document.querySelectorAll(selector).length;
+          if (len2 !== len1) {
+            sFinal = true;
           }
-          if (mm) {
-            ++u;
-            if (u > 10 || document.querySelector('ytd-comments:not([hidden]) [id]')) {
-              ff = true;
-            }
-          }
-
-          if (requestFinish) {
-            requestFinish = false;
-            fetchCommentJobDone();
-          } else if (ff){
-            fetchCommentJobDone();
-          }
-
         }
+        if (!sFinal) {
+          ++fcjCheckLater;
+          if (fcjCheckLater > 10 || document.querySelector('ytd-comments:not([hidden]) [id]')) {
+            sFinal = true;
+          }
+        }
+        if (fcjRequestFinish || sFinal) {
+          if (fcjTimerId > 0) {
+            fetchCommentJobDone();
+          }
+        }
+      };
 
-
-        fetchCommentJobTimerId = setInterval(g, 80);
-        // g(9);
-        // if (lastLen === lenSkip) {
-        //   console.log('[yt-js-engine-tamer] fetchCommentJob done');
-        //   g = f = null;
-        //   return;
-        // }
-        // console.log('[yt-js-engine-tamer] fetchCommentJob done');
-        // const q1 = lastLen;
-        // mof = () => {
-        //   const q2 = document.querySelectorAll(selector).length;
-        //   if (q1 === q2) return;
-        //   fetchCommentJobTimerId = setTimeout(g, 80);
-        //   g = null;
-        //   return true;
-        // }
-        // mo.observe(document, { childList: true, subtree: true });
-
-      }
+      const fetchCommentJob = (a, cid) => {
+        if (fcjTimerId > 0) {
+          fetchCommentJobDone();
+        }
+        fcjFn = a;
+        fcjLastLen = -1;
+        console.log('[yt-js-engine-tamer] fetchCommentJob start');
+        fcjTimerId = setInterval_(fetchCommentJobTimerFn, 78.0975);
+      };
 
       // let pr72 = Promise.resolve();
 
@@ -3802,10 +3776,10 @@
 
             */
 
-            requestFinish = false;
-          const cid = nv(() => { if(fetchCommentJobTimerId > 0) requestFinish = true;}, b, 1000);
+            fcjRequestFinish = false;
+          const cid = nv(() => { if(fcjTimerId > 0) fcjRequestFinish = true;}, b, 1000);
 
-          // lastLen = null;
+          // fcjLastLen = null;
           fetchCommentJob(a, cid);
 
           // queueMicrotask_(a);
