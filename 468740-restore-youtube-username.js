@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.13.19
+// @version             0.13.20
 // @license             MIT License
 
 // @author              CY Fung
@@ -1320,7 +1320,7 @@ const Object_ = Object;
 
         const currentDisplayTrimmed = currentDisplayed.trim(); // @IORIMATSUNAGA
         const currentDisplayTrimmedLowerCase = currentDisplayTrimmed.toLowerCase(); // @iorimatsunaga
-        const currentDisplayTrimmedLowerCaseForURL = encodeURI(currentDisplayTrimmedLowerCase);
+        const currentDisplayTrimmedLowerCaseForURL = encodeURI(currentDisplayTrimmedLowerCase).toLowerCase();
         let match = false;
         if (verified123) {
             match = true;
