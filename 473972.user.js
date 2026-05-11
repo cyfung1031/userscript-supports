@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.23
+// @version     0.42.24
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -3534,21 +3534,64 @@
     const setInterval_ = setInterval;
 
     let ytSchedulerFixed = 0;
-    // let ytActioned = false;
-    // let pr = new PromiseExternal();
 
-    // const hn = function () {
 
-    //   document.removeEventListener('yt-action', hn, true);
-    //   nextBrowserTick_(() => {
-    //     ytActioned = true;
-    //     pr.resolve();
-    //   });
+    let fcjLastLen = null;
+    let fcjTimerId = 0;
+    let fcjRequestFinish = false;
+    let fcjCheckLater = 0;
+    let fcjFn;
 
-    // }
-    // document.addEventListener('yt-action', hn, true);
+    const fetchCommentJobDone = () => {
+      fcjRequestFinish = false;
+      clearInterval_(fcjTimerId);
+      fcjTimerId = 0;
+      fcjCheckLater = 0;
+      console.log('[yt-js-engine-tamer] fetchCommentJob done');
+    }
 
-    // let cancelStore = {}; // tbc
+    const fetchCommentJobTimerFn = () => {
+      if (!fcjTimerId) return;
+      if (fcjRequestFinish) fcjLastLen = -1;
+
+      const selector = 'ytd-comments, ytd-comments > *, ytd-comments [id] > *, ytd-comments ytd-continuation-item-renderer';
+
+      const len0 = fcjLastLen;
+      const len1 = fcjLastLen = document.querySelectorAll(selector).length;
+      let sFinal = false;
+      if (len1 !== len0) {
+        fcjCheckLater = 0;
+        fcjFn();
+        const len2 = fcjLastLen = document.querySelectorAll(selector).length;
+        if (len2 !== len1) {
+          sFinal = true;
+        }
+      }
+      if (!sFinal) {
+        ++fcjCheckLater;
+        if (fcjCheckLater > 10 || document.querySelector('ytd-comments:not([hidden]) [id]')) {
+          sFinal = true;
+        }
+      }
+      if (fcjRequestFinish || sFinal) {
+        if (fcjTimerId > 0) {
+          fetchCommentJobDone();
+        }
+      }
+    };
+
+    const fetchCommentJob = (a, cid) => {
+      if (fcjTimerId > 0) {
+        fetchCommentJobDone();
+      }
+      fcjFn = a;
+      fcjLastLen = -1;
+      console.log('[yt-js-engine-tamer] fetchCommentJob start');
+      fcjTimerId = setInterval_(fetchCommentJobTimerFn, 78.0975);
+    };
+
+    const fcjNvFn = () => { if (fcjTimerId > 0) fcjRequestFinish = true; };
+
 
     // yt.scheduler.instance.addJob
     const fixAddJob = (nv) => {
@@ -3601,76 +3644,6 @@
       
           */
       window.originalAddJob = nv;
-      // const q1 = new PromiseExternal();
-      // const q2 = new PromiseExternal();
-      // let uu = 0;
-      // let q3 = 0;
-      // let mof = null;
-      // const mo = new MutationObserver((mutation, observer) => {
-      //   if (mof) {
-      //     if (mof() === true) {
-      //       observer.disconnect();
-      //       mof = null;
-      //     }
-      //   }
-      // });
-
-      // let lenSkip = -1;
-      let fcjLastLen = null;
-      let fcjTimerId = 0;
-      let fcjRequestFinish = false;
-      let fcjCheckLater = 0;
-      let fcjFn;
-
-      const fetchCommentJobDone = () => {
-        fcjRequestFinish = false;
-        clearInterval_(fcjTimerId);
-        fcjTimerId = 0;
-        fcjCheckLater = 0;
-        console.log('[yt-js-engine-tamer] fetchCommentJob done');
-      }
-
-      const fetchCommentJobTimerFn = () => {
-        if (!fcjTimerId) return;
-        if (fcjRequestFinish) fcjLastLen = -1;
-
-        const selector = 'ytd-comments, ytd-comments > *, ytd-comments [id] > *, ytd-comments ytd-continuation-item-renderer';
-
-        const len0 = fcjLastLen;
-        const len1 = fcjLastLen = document.querySelectorAll(selector).length;
-        let sFinal = false;
-        if (len1 !== len0) {
-          fcjCheckLater = 0;
-          fcjFn();
-          const len2 = fcjLastLen = document.querySelectorAll(selector).length;
-          if (len2 !== len1) {
-            sFinal = true;
-          }
-        }
-        if (!sFinal) {
-          ++fcjCheckLater;
-          if (fcjCheckLater > 10 || document.querySelector('ytd-comments:not([hidden]) [id]')) {
-            sFinal = true;
-          }
-        }
-        if (fcjRequestFinish || sFinal) {
-          if (fcjTimerId > 0) {
-            fetchCommentJobDone();
-          }
-        }
-      };
-
-      const fetchCommentJob = (a, cid) => {
-        if (fcjTimerId > 0) {
-          fetchCommentJobDone();
-        }
-        fcjFn = a;
-        fcjLastLen = -1;
-        console.log('[yt-js-engine-tamer] fetchCommentJob start');
-        fcjTimerId = setInterval_(fetchCommentJobTimerFn, 78.0975);
-      };
-
-      // let pr72 = Promise.resolve();
 
 
       let qa = null;
@@ -3720,11 +3693,6 @@
 
 
         const f = a;
-        // const g = ()=>{
-        //   pr72 = pr72.then(()=>{
-        //     f();
-        //   });
-        // }
 
         if (!c) return arguments.length < 3 ? nv(f, b) : nv(f, b, c);
 
@@ -3776,10 +3744,8 @@
 
             */
 
-            fcjRequestFinish = false;
-          const cid = nv(() => { if(fcjTimerId > 0) fcjRequestFinish = true;}, b, 1000);
-
-          // fcjLastLen = null;
+          fcjRequestFinish = false;
+          const cid = nv(fcjNvFn, b, 1000);
           fetchCommentJob(a, cid);
 
           // queueMicrotask_(a);
@@ -3788,52 +3754,17 @@
           return cid
 
           // return nv(a, b, 1.125);
-          
-          // const cid = window.setTimeout(() => {
-          //   nextBrowserTick_(() => {
-              
-          //     if (cancelStore[cid]) {
-          //       console.log('task cancelled');
-          //       return;
-          //     }
-          //     a();
 
-          //   });
-          // }, 0.125);
-          
           // return cid;
         } else {
 
-
-
-          return nv(f,b,c);
-
-
-          // if (c > 2400) c = 2400;
-          // else if (c > 800) c = 800;
-          // if (c > 0.2 && (c % 1) === c) c -= 0.125;
-          // if (0 && ytActioned && !b) {
-          //   const cid = window.setTimeout(() => {
-          //     nextBrowserTick_(() => {
-          //       if (cancelStore[cid]) {
-          //         console.log('task cancelled');
-          //         return;
-          //       }
-          //       a();
-          //     });
-          //   }, c);
-          //   return cid;
-          // } else {
-          //   return nv(a, b, c);
-          // }
+          return nv(f, b, c);
 
         }
       }
     }
 
     const fixCancelJob = (nv) => {
-
-
       window.originalCancelJob = nv;
       return function (a) {
         if (a < 0) return nv(a);
