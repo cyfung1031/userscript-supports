@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.4
+// @version             0.14.5
 // @license             MIT License
 
 // @author              CY Fung
@@ -2636,33 +2636,58 @@ const Object_ = Object;
         }
     }
 
-    function swapPairs(str) {
-        return str.replace(/[a-zA-Z0-9]/g, (ch) => {
-            const code = ch.charCodeAt(0);
-            // lowercase a-z (97-122): pair within a-y/b-z
-            if (code >= 97 && code <= 121) return String.fromCharCode(code + (code % 2 === 1 ? 1 : -1));
-            // uppercase A-Z (65-90): pair within A-Y/B-Z
-            if (code >= 65 && code <= 89) return String.fromCharCode(code + (code % 2 === 1 ? 1 : -1));
-            // digits 0-9 (48-57): pair within 0-8/1-9
-            if (code >= 48 && code <= 57) return String.fromCharCode(code + (code % 2 === 0 ? 1 : -1));
-            return ch;
-        });
-    }
+    // Fully paired alphabet + digits.
+    const SWAP_TABLE = (() => {
+        const t = new Uint16Array(128);
+        for (let i = 0; i < 128; i++) t[i] = i;
+        // lowercase a..z: a↔b, c↔d, …, y↔z
+        for (let i = 97; i <= 121; i += 2) { t[i] = i + 1; t[i + 1] = i; }
+        // uppercase A..Z: A↔B, C↔D, …, Y↔Z
+        for (let i = 65; i <= 89; i += 2) { t[i] = i + 1; t[i + 1] = i; }
+        // digits 0..9: 0↔1, 2↔3, …, 8↔9
+        for (let i = 48; i <= 56; i += 2) { t[i] = i + 1; t[i + 1] = i; }
+        return t;
+    })();
 
-    function objTransform(obj) {
+    const fromCharCode = String.fromCharCode;
+
+    const swapPairs = (str) => {
+        const len = str.length;
+        const codes = new Uint16Array(len);
+        for (let i = 0; i < len; i++) {
+            const code = str.charCodeAt(i);
+            codes[i] = code < 128 ? SWAP_TABLE[code] : code;
+        }
+        return fromCharCode.apply(null, codes);
+        // if (len < 10000) return String.fromCharCode.apply(null, codes);
+        // let result = '';
+        // for (let i = 0; i < len; i += 10000) {
+        //     result += String.fromCharCode.apply(null, codes.subarray(i, i + 10000));
+        // }
+        // return result;
+    };
+
+    const objTransform = (obj) => {
         if (obj === null || typeof obj !== 'object') return obj;
         if (Array.isArray(obj)) return obj.map(objTransform);
         const out = {};
         for (const key of Object.keys(obj)) {
             const value = obj[key];
-            if (typeof value === 'string' && key.length > 4 && /^"\w+(id|key)":"([\w-.]+)"$/i.test(`"${key}":"${value}"`)) {
-                out[key] = swapPairs(value);
-            } else {
-                out[key] = objTransform(value);
+            const type = typeof value;
+            let newValue = value;
+            if (typeof value === "object") {
+                newValue = objTransform(value);
+            } else if (typeof value === "string") {
+                if (key.length >= 5 && key.length <= 40 && value.length >= 3 && value.length <= 80) {
+                    if ((key.endsWith("Key") || key.endsWith("Id")) && !value.includes("%")) {
+                        newValue = swapPairs(value);
+                    }
+                }
             }
+            out[key] = newValue;
         }
         return out;
-    }
+    };
 
     const commentEntitySet = (cnt) =>{
         const p = cnt.commentEntity;
