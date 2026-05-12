@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.1
+// @version             0.14.2
 // @license             MIT License
 
 // @author              CY Fung
@@ -1258,13 +1258,15 @@ const Object_ = Object;
 
     /**
      *
+     * for isCommentViewModel == 0
+     * 
      * @param {Element} ytElm
      */
     const resetWhenDataChanged = (ths) => {
         const cnt = insp(ths);
         const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
         if (ytElm instanceof Element) {
-            const anchors = elementQSA(ytElm, 'a[id][href][jkrgy]');
+            const anchors = elementQSA(ytElm, 'a[href][jkrgy]');
             // const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
             if ((anchors || 0).length >= 1 && (insp(ytElm).data || 0).jkrgx !== 1) {
                 for (const anchor of anchors) {
@@ -1276,18 +1278,24 @@ const Object_ = Object;
 
     /**
      *
+     * for isCommentViewModel > 0
+     * 
      * @param {Element} ytElm
      */
     const resetWhenPropChanged = (ths) => {
         const cnt = insp(ths);
         const ytElm = cnt.hostElement instanceof Element ? cnt.hostElement : cnt instanceof Element ? cnt : ths;
         if (ytElm instanceof Element) {
-            const anchors = elementQSA(ytElm, 'a[id][href][jkrgy]');
+            const anchors = elementQSA(ytElm, 'a[href][jkrgy]');
             // const anchors = elementQSA(ytElm, 'a[id][href*="channel/"][jkrgy]');
             if ((anchors || 0).length >= 1) {
                 const cnt = insp(ytElm);
-                const author = ((cnt.commentEntity || 0).author || 0);
-                if (!wmDomName.has(cnt) || !author || !commentEntityProcess.has(author)) {
+                const commentEntityAuthor = ((cnt.commentEntity || 0).author || 0);
+                const entityDisplay = commentEntityAuthor ? commentEntityProcess.get(commentEntityAuthor) : null;
+                const domDisplay = wmDomName.get(cnt);
+                if (entityDisplay && typeof entityDisplay.then === "function") {
+                    // ignore Promise
+                } else if (typeof domDisplay !== "string" || typeof entityDisplay !== "string" || domDisplay !== entityDisplay) {
                     for (const anchor of anchors) {
                         anchor.removeAttribute('jkrgy');
                     }
@@ -2656,8 +2664,8 @@ const Object_ = Object;
         }
     });
 
-    const commentEntityReassign = async (cnt, promiseOrTrue) => {
-        if (promiseOrTrue !== true) await promiseOrTrue;
+    const commentEntityReassign = async (cnt, promiseOrText) => {
+        if (typeof promiseOrText !== "string") await promiseOrText;
         collectedCnts.push(cnt);
         bcSend.postMessage({});
     };
@@ -2890,7 +2898,7 @@ const Object_ = Object;
                     }
 
                     if (commentEntityAuthor && parentNodeController.isAttached === true && parentNode.isConnected === true) {
-                        commentEntityAuthor.jkrgx = 1;
+                        // commentEntityAuthor.jkrgx = 1;
                         addCSSRulesIfRequired();
                     }
 
@@ -2913,16 +2921,16 @@ const Object_ = Object;
                     }
 
                     promise.resolve();
-                    commentEntityProcess.set(commentEntityAuthor, true); // resolved
+                    commentEntityProcess.set(commentEntityAuthor, titleForDisplay); // resolved
                 }
 
                 // when user leaves a new comment, YouTube will attach mutliple comment DOMs.
                 // so when the first dom is set with the revised commentEntity, the 2nd+ dom still need to do the commentEntityReassign
                 // check parentNodeController (DOM) instead of commentEntityAuthor (shared JS object)
-                const promiseOrTrue = commentEntityProcess.get(commentEntityAuthor);
-                if (promiseOrTrue && wmDomName.get(parentNodeController) !== commentEntityAuthor.displayName) {
+                const promiseOrText = commentEntityProcess.get(commentEntityAuthor);
+                if (promiseOrText !== undefined && wmDomName.get(parentNodeController) !== commentEntityAuthor.displayName) {
                     wmDomName.set(parentNodeController, commentEntityAuthor.displayName);
-                    commentEntityReassign(parentNodeController, promiseOrTrue);
+                    commentEntityReassign(parentNodeController, promiseOrText);
                 }
 
             } else {
