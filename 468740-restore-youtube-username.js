@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.2
+// @version             0.14.3
 // @license             MIT License
 
 // @author              CY Fung
@@ -800,6 +800,7 @@ const Object_ = Object;
                 resultInfo.title = '';
                 resultInfo.langTitle = title;
 
+                // 2026/05/12: ownerProfileUrl, ownerChannelName might not be avaliable
                 if (cfg.ownerProfileUrl && cfg.ownerChannelName && cfg.ownerChannelName !== title) {
                     let matched = false;
 
@@ -820,6 +821,9 @@ const Object_ = Object;
                         resultInfo.title = cfg.ownerChannelName;
                     }
                 }
+                // resultInfo.title might be empty string
+
+                
 
             }
 
@@ -838,7 +842,6 @@ const Object_ = Object;
      */
     let fetchRSSFailed = false;
     const fetcherRSS = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
-
         let signal = timeoutSignal(4000);
         fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
             // YouTube RSS Response - public, max-age=900
@@ -1849,7 +1852,8 @@ const Object_ = Object;
                             let runs = ((md || 0).contentText || 0).runs;
                             if (!runs || !runs[idx]) return;
                             if (runs[idx].text !== text) return;
-                            runs[idx].text = text.replace(textTrimmed, `@${fetchResult.title}`); // HyperLink always @SomeOne
+                            const wTitle = fetchResult.langTitle || fetchResult.title;
+                            runs[idx].text = text.replace(textTrimmed, `@${wTitle}`); // HyperLink always @SomeOne
                             md.contentText = Object.assign({}, md.contentText);
                         })();
                     }
@@ -1990,7 +1994,9 @@ const Object_ = Object;
                             let runs = (editableText || 0).runs;
                             if (!runs || !runs[idx]) return;
                             if (runs[idx].text !== text) return;
-                            runs[idx].text = text.replace(textTrimmed, `@${fetchResult.title}`); // HyperLink always @SomeOne
+
+                            const wTitle = fetchResult.langTitle || fetchResult.title;
+                            runs[idx].text = text.replace(textTrimmed, `@${wTitle}`); // HyperLink always @SomeOne
                             commentReplyDialogRenderer.editableText = Object.assign({}, commentReplyDialogRenderer.editableText);
                         })();
                     }
@@ -2149,7 +2155,8 @@ const Object_ = Object;
                 if (fetchResult && o.channelId === channelId) {
                     const textTrimmed = verifyAndConvertHandle(o.handle, fetchResult);
                     if (textTrimmed) {
-                        o.display = `@${fetchResult.title}`;
+                        const wTitle = fetchResult.langTitle || fetchResult.title;
+                        o.display = `@${wTitle}`;
                         o.newText = o.oldText.replace(o.handle, o.display);
                         o.nLen = o.newText.length;
                         o.nOffset = o.nLen - o.oLen;
@@ -3150,6 +3157,7 @@ const Object_ = Object;
             playerMicroformatRenderer = window.ytInitialPlayerResponse.microformat.playerMicroformatRenderer
         } catch (e) { }
         if (playerMicroformatRenderer && playerMicroformatRenderer.ownerChannelName && playerMicroformatRenderer.ownerProfileUrl) {
+            // 2026/05/12: ownerProfileUrl, ownerChannelName might not be avaliable
             cfg.ownerChannelName = playerMicroformatRenderer.ownerChannelName;
             cfg.ownerProfileUrl = playerMicroformatRenderer.ownerProfileUrl.replace(/[\S]+youtube.com\//, 'youtube.com/');
         }
