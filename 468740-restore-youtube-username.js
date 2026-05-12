@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.3
+// @version             0.14.4
 // @license             MIT License
 
 // @author              CY Fung
@@ -2636,6 +2636,41 @@ const Object_ = Object;
         }
     }
 
+    function swapPairs(str) {
+        return str.replace(/[a-zA-Z0-9]/g, (ch) => {
+            const code = ch.charCodeAt(0);
+            // lowercase a-z (97-122): pair within a-y/b-z
+            if (code >= 97 && code <= 121) return String.fromCharCode(code + (code % 2 === 1 ? 1 : -1));
+            // uppercase A-Z (65-90): pair within A-Y/B-Z
+            if (code >= 65 && code <= 89) return String.fromCharCode(code + (code % 2 === 1 ? 1 : -1));
+            // digits 0-9 (48-57): pair within 0-8/1-9
+            if (code >= 48 && code <= 57) return String.fromCharCode(code + (code % 2 === 0 ? 1 : -1));
+            return ch;
+        });
+    }
+
+    function objTransform(obj) {
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(objTransform);
+        const out = {};
+        for (const key of Object.keys(obj)) {
+            const value = obj[key];
+            if (typeof value === 'string' && key.length > 4 && /^"\w+(id|key)":"([\w-.]+)"$/i.test(`"${key}":"${value}"`)) {
+                out[key] = swapPairs(value);
+            } else {
+                out[key] = objTransform(value);
+            }
+        }
+        return out;
+    }
+
+    const commentEntitySet = (cnt) =>{
+        const p = cnt.commentEntity;
+        const q = objTransform(p);
+        cnt.commentEntity = q;
+        cnt.commentEntity = p;
+    };
+
     const collectedCnts = [];
 
     const key = `jyt-${Date.now()}-${Math.random().toString(36)}`
@@ -2651,18 +2686,17 @@ const Object_ = Object;
                 // cnt.markDirty();
                 // cnt.markDirtyVisibilityObserver();
 
-                if (cnt.contentText && typeof cnt._setPendingPropertyOrPath === "function") {
-                    try {
-                        const p = cnt.commentEntity.properties.content;
-                        ytPropSet(cnt, "commentEntity.properties.content", p);
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }
+                // if (cnt.contentText && typeof cnt._setPendingPropertyOrPath === "function") {
+                //     try {
+                //         const p = cnt.commentEntity.properties.content;
+                //         ytPropSet(cnt, "commentEntity.properties.content", p);
+                //     } catch (e) {
+                //         console.error(e);
+                //     }
+                // }
 
-                ytPropSet(cnt, "commentEntity", cnt.commentEntity);
-                cnt.reduxPropertiesRecomputeTrigger++;
-                // resolveCommand
+                // ytPropSet(cnt, "commentEntity", cnt.commentEntity);
+                commentEntitySet(cnt);
 
                 // cnt._invalidateProperties();
             } catch (e) {
