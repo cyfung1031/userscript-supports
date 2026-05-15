@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.6
+// @version             2.3.7
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -2201,10 +2201,259 @@
 
             const msep = (mse || 0).prototype || 0;
 
+            // -------------------------------------------------------------
+            // Fake video SourceBuffer factory
+            // -------------------------------------------------------------
+            // Why this exists (fixes live-stream audio-only playback):
+            //
+            // YouTube's base.js sets up TWO source buffers (audio + video) for
+            // every playback session. For manifestless live streams (24/7
+            // radios, channel/live URLs, etc.) the player gates initial
+            // playback on an "initial sync" promise that only resolves once
+            // BOTH videoTrack.S and audioTrack.S are no longer -1. Those
+            // values only leave -1 when the player observes an `updateend`
+            // event on each track's underlying SourceBuffer (the player's
+            // segment state machine advances on `updateend`).
+            //
+            // Previously this script returned `undefined` for video
+            // addSourceBuffer calls. That left the video track without any
+            // EventTarget, no `updateend` ever fired, the sync promise never
+            // resolved, the player gave up and entered a stopVideo /
+            // pauseVideo / setMediaElement / playVideo loop -- the symptom
+            // observed in the console (a second `Media Codec` line never
+            // appears the way it does for VOD).
+            //
+            // VOD continued to work because the manifestless-live sync gate
+            // is only armed when `Pa.isManifestless && !policy.N` (base.js
+            // line ~2701), so for normal videos, no `updateend` is required
+            // from the video buffer for playback to progress.
+            //
+            // Fix: instead of returning `undefined`, return a minimal stub
+            // that quacks like a SourceBuffer and fires `updateend` after
+            // each `appendBuffer`/`remove` call. The stub silently drops
+            // the bytes, but the player's state machine advances and live
+            // playback proceeds with audio only. No video bandwidth is
+            // actually consumed by the browser's decoder since the bytes
+            // are never passed to it.
+            // -------------------------------------------------------------
+            // Toggle to silence the stub's per-call logs while keeping
+            // creation + error logs. Set to false once you've confirmed
+            // the stub is working to avoid console noise on live streams.
+            const FAKE_SB_DEBUG = true;
+            // Monotonic id so multiple stubs (e.g. format switches) can be
+            // told apart in the console.
+            let fakeSbCounter = 0;
+
+            const makeFakeVideoSourceBuffer = (mimeType) => {
+                // Real SourceBuffers are EventTargets; use the native one
+                // so addEventListener/removeEventListener work identically.
+                const sb = new EventTarget();
+
+                // Mode is read/set by some YouTube code paths
+                let mode = 'segments';
+                let timestampOffset = 0;
+                let appendWindowStart = 0;
+                let appendWindowEnd = Infinity;
+                let updating = false;
+
+                // Per-stub diagnostics
+                const sbId = ++fakeSbCounter;
+                const createdAt = Date.now();
+                const stats = {
+                    appendCalls: 0,
+                    appendBytes: 0,
+                    removeCalls: 0,
+                    abortCalls: 0,
+                    changeTypeCalls: 0,
+                    updateendDispatched: 0,
+                    listeners: { updatestart: 0, update: 0, updateend: 0, error: 0 },
+                };
+                const tag = `[yt-audio-only][fake-sb#${sbId}]`;
+                const dlog = (...args) => { if (FAKE_SB_DEBUG) console.log(tag, ...args); };
+
+                // Wrap addEventListener/removeEventListener so we can see
+                // exactly which events the player subscribes to. This is
+                // the key signal that the player has actually adopted the
+                // stub as `$$.vG` (base.js line 4676 attaches updateend +
+                // error handlers in the $$ constructor).
+                const _add = sb.addEventListener.bind(sb);
+                const _remove = sb.removeEventListener.bind(sb);
+                sb.addEventListener = function (type, handler, options) {
+                    if (stats.listeners[type] !== undefined) stats.listeners[type]++;
+                    dlog('addEventListener', type, 'total now:', stats.listeners[type]);
+                    return _add(type, handler, options);
+                };
+                sb.removeEventListener = function (type, handler, options) {
+                    if (stats.listeners[type] !== undefined) {
+                        stats.listeners[type] = Math.max(0, stats.listeners[type] - 1);
+                    }
+                    dlog('removeEventListener', type, 'remaining:', stats.listeners[type]);
+                    return _remove(type, handler, options);
+                };
+
+                // Fake TimeRanges that claims [0, Infinity] is buffered.
+                // `ST(B, q)` in base.js walks start(i)..end(i) and returns
+                // the index whose range contains `q`. With [0, Infinity]
+                // any non-negative `q` is "buffered", which makes `tA`
+                // (the buffered-time probe) succeed and prevents the player
+                // from issuing redundant video segment requests.
+                let bufferedReads = 0;
+                const fakeBuffered = Object.freeze({
+                    length: 1,
+                    start(i) {
+                        if (i !== 0) throw new DOMException('Index out of range', 'IndexSizeError');
+                        return 0;
+                    },
+                    end(i) {
+                        if (i !== 0) throw new DOMException('Index out of range', 'IndexSizeError');
+                        // Use a large but finite number to avoid surprising
+                        // any code that does arithmetic with this value.
+                        return 1e9;
+                    },
+                });
+
+                // Fire updateend on a microtask boundary, like a real SB
+                // does after a synchronous segment append on a fast path.
+                // Real SourceBuffer also fires `updatestart` and `update`.
+                const fireUpdateCycle = (reason) => {
+                    updating = true;
+                    dlog('updating -> true (', reason, ')');
+                    // Synchronous-ish: dispatch in a microtask so the call
+                    // site that just invoked appendBuffer() has unwound.
+                    Promise.resolve().then(() => {
+                        try { sb.dispatchEvent(new Event('updatestart')); } catch (e) { dlog('dispatch updatestart err', e); }
+                        try { sb.dispatchEvent(new Event('update')); } catch (e) { dlog('dispatch update err', e); }
+                        updating = false;
+                        try { sb.dispatchEvent(new Event('updateend')); } catch (e) { dlog('dispatch updateend err', e); }
+                        stats.updateendDispatched++;
+                        dlog('updateend dispatched (', reason, ') total:', stats.updateendDispatched);
+                    });
+                };
+
+                // Define properties matching the SourceBuffer interface.
+                Object.defineProperties(sb, {
+                    mode: {
+                        get() { return mode; },
+                        set(v) { dlog('mode set ->', v); mode = String(v); },
+                        configurable: true,
+                    },
+                    timestampOffset: {
+                        // base.js `supports(1)` probes for `timestampOffset !== undefined`,
+                        // so this getter must return a real number (not undefined).
+                        get() { return timestampOffset; },
+                        set(v) {
+                            const nv = +v || 0;
+                            if (nv !== timestampOffset) dlog('timestampOffset set ->', nv);
+                            timestampOffset = nv;
+                        },
+                        configurable: true,
+                    },
+                    appendWindowStart: {
+                        get() { return appendWindowStart; },
+                        set(v) {
+                            const nv = +v || 0;
+                            if (nv !== appendWindowStart) dlog('appendWindowStart set ->', nv);
+                            appendWindowStart = nv;
+                        },
+                        configurable: true,
+                    },
+                    appendWindowEnd: {
+                        get() { return appendWindowEnd; },
+                        set(v) {
+                            const nv = (v === Infinity || isFinite(+v)) ? +v : Infinity;
+                            if (nv !== appendWindowEnd) dlog('appendWindowEnd set ->', nv);
+                            appendWindowEnd = nv;
+                        },
+                        configurable: true,
+                    },
+                    updating: {
+                        get() { return updating; },
+                        configurable: true,
+                    },
+                    buffered: {
+                        get() {
+                            bufferedReads++;
+                            // Log only the first few reads to avoid spamming
+                            // the console -- the player reads `buffered` on
+                            // every animation frame in steady state.
+                            if (FAKE_SB_DEBUG && bufferedReads <= 5) {
+                                dlog('buffered read #', bufferedReads, '(reporting [0, 1e9])');
+                            } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
+                                dlog('buffered read #6 -- further reads suppressed');
+                            }
+                            return fakeBuffered;
+                        },
+                        configurable: true,
+                    },
+                    // Some paths read `writeHead`; report 0 to mean "nothing written".
+                    writeHead: {
+                        get() { return 0; },
+                        configurable: true,
+                    },
+                    // Identify the stub for debugging.
+                    __ytAudioOnlyFakeVideoSB__: { value: true, configurable: false },
+                    __ytAudioOnlyType__: { value: String(mimeType || ''), configurable: false },
+                    __ytAudioOnlyId__: { value: sbId, configurable: false },
+                    __ytAudioOnlyStats__: { get() { return { ...stats, bufferedReads, ageMs: Date.now() - createdAt }; }, configurable: true },
+                });
+
+                sb.appendBuffer = function (data) {
+                    stats.appendCalls++;
+                    const len = (data && data.byteLength) || (data && data.length) || 0;
+                    stats.appendBytes += len;
+                    dlog('appendBuffer #', stats.appendCalls, 'bytes:', len, 'total:', stats.appendBytes);
+                    // Real SBs throw InvalidStateError when already updating.
+                    // We just coalesce: fire one updateend per call regardless.
+                    fireUpdateCycle('appendBuffer');
+                };
+                // Legacy fallback that base.js falls through to:
+                //   this.vG.appendBuffer ? this.vG.appendBuffer(B) : this.vG.append(B)
+                sb.append = sb.appendBuffer;
+
+                sb.remove = function (start, end) {
+                    stats.removeCalls++;
+                    dlog('remove #', stats.removeCalls, 'range:', start, '->', end);
+                    fireUpdateCycle('remove');
+                };
+
+                sb.abort = function () {
+                    stats.abortCalls++;
+                    dlog('abort #', stats.abortCalls);
+                    // No-op. Real abort cancels in-flight append; we have none.
+                };
+
+                sb.changeType = function (newType) {
+                    stats.changeTypeCalls++;
+                    dlog('changeType #', stats.changeTypeCalls, '->', newType);
+                    // No-op. We accept any new type.
+                };
+
+                // One-shot summary log so even with FAKE_SB_DEBUG=false
+                // you can see the stub was created.
+                console.log(`[yt-audio-only] fake video SourceBuffer #${sbId} created for ${mimeType}; inspect via window.__ytAudioOnlyLastFakeSB__.__ytAudioOnlyStats__`);
+                // Expose the most recent stub for ad-hoc inspection.
+                try { window.__ytAudioOnlyLastFakeSB__ = sb; } catch (e) { }
+
+                return sb;
+            };
+
             if (msep && typeof msep.addSourceBuffer == 'function' && !msep.addSourceBuffer078) {
                 msep.addSourceBuffer078 = msep.addSourceBuffer;
                 msep.addSourceBuffer = function (type, ...rest) {
-                    if (type.includes("video/")) return;
+                    if (typeof type === 'string' && type.includes("video/")) {
+                        // Return a stub instead of undefined so the player's
+                        // video track gets a real EventTarget and its segment
+                        // state machine can advance on updateend events. This
+                        // is required for manifestless live streams; harmless
+                        // for VOD.
+                        console.log("[yt-audio-only] Media Codec (stub):", type);
+                        try {
+                            return makeFakeVideoSourceBuffer(type);
+                        } catch (e) {
+                            console.warn("[yt-audio-only] fake video SB factory failed:", e);
+                            return; // fall back to old behavior on error
+                        }
+                    }
                     console.log("[yt-audio-only] Media Codec:", type, [...types]);
                     return this.addSourceBuffer078(type, ...rest);
                 };
@@ -3164,4 +3413,3 @@
 
 
 })();
-
