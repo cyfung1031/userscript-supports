@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.6
+// @version             0.14.7
 // @license             MIT License
 
 // @author              CY Fung
@@ -1183,7 +1183,11 @@ const Object_ = Object;
                 // console.log(6882, y, r)
                 fetchProfileCardPath = (r && r[0]) || "";
 
-                if (fetchProfileCardPath !== '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
+                if (fetchProfileCardPath === ".profileCard.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel") {
+                    //
+                } else if (fetchProfileCardPath === '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
+                    //
+                } else {
                     console.warn("fetchProfileCardPath Changed", fetchProfileCardPath);
                 }
             }
@@ -1191,7 +1195,10 @@ const Object_ = Object;
             if (fetchProfileCardPath === null) {
                 updateY();
             } else if (fetchProfileCardPath) {
-                if (!y && fetchProfileCardPath === '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
+
+                if (!y && fetchProfileCardPath === ".profileCard.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel") {
+                    y = resJson.profileCard.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel;
+                } else if (!y && fetchProfileCardPath === '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
                     y = resJson.updateCommand.elementsCommand.updateActionSheetCommand.listOption[0].type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel;
                 } else {
                     updateY();
