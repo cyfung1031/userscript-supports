@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.7
+// @version             0.14.8
 // @license             MIT License
 
 // @author              CY Fung
@@ -232,6 +232,10 @@ const Object_ = Object;
     const IGNORE_NO_NAME = false;
 
     const NETWORK_TIMEOUT_DURATION = 4000;
+
+    // const MOCK_VISITOR_DATA = "CgtkUXc0dzlXZ1hjUSiAicfKBg%3D%3D"; // "dQw4w9WgXcQ" @ new Date('2025-12-29T00:00:00.000Z') [V1]
+
+    const MOCK_VISITOR_DATA = "CgtqTlFYQUM5SVZSdyiAicfKBjIKCgJVUxIEGgAgIQ%3D%3D" //  videoId "jNQXAC9IVRw", '2025-12-29T00:00:00.000Z', count: 33, country: "US" [V2]
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -781,7 +785,7 @@ const Object_ = Object;
         const requestBody = {
             "context": {
                 "client": {
-                    "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
+                    "visitorData": MOCK_VISITOR_DATA, // [optional] fake visitorData to avoid dynamic visitorData generated in response
                     "clientName": "MWEB", // "WEB", "MWEB"
                     "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
                     "originalUrl": `https://m.youtube.com/channel/${channelId}`,
@@ -1082,7 +1086,7 @@ const Object_ = Object;
         const requestBody = {
             "context": {
                 "client": {
-                    "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
+                    "visitorData": MOCK_VISITOR_DATA, // [optional] fake visitorData to avoid dynamic visitorData generated in response
                     "clientName": "MWEB", // "WEB", "MWEB"
                     "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
                     "originalUrl": `https://m.youtube.com/channel/${channelId}`,
@@ -1111,8 +1115,10 @@ const Object_ = Object;
                 // }
             },
             "profileOwnerExternalChannelId": `${channelId}`,
-            "profileCardContext": "gvXcwwY2EhhVQ0d2bHZaTXRWaWZkWC1PMFZBTS1NeUEaGlVnd0g2N3k4ZlRrZFdHZXFFamw0QWFBQkFn", // Ponzq5_iS3Y: "UCGvlvZMtVifdX-O0VAM-MyA", "UgwH67y8fTkdWGeqEjl4AaABAg"
-            "shouldUseProfileBottomSheet": false
+            "profileCardContext": "gvXcwwY2EhhVQ3FyY2pzcG5abGRhRWgyaUtyVTBHdEEaGlVnd0g2N3k4ZlRrZFdHZXFFamw0QWFBQkFn", // Ponzq5_iS3Y: "UCqrcjspnZldaEh2iKrU0GtA", "UgwH67y8fTkdWGeqEjl4AaABAg"
+            "shouldUseProfileBottomSheet": false,
+            "sheetId": "", // https://github.com/2KGT/repo/blob/c068cb3e0753bce2478eb1bd891020a69cff17da/headers/YouTubeHeader/YTIProfileCardCommand.h
+            // "engagementPanelIdentifierForDismissal" : false, // https://github.com/2KGT/repo/blob/c068cb3e0753bce2478eb1bd891020a69cff17da/headers/YouTubeHeader/YTIProfileCardCommand.h
         };
 
         if (USE_LANG_SPECIFIC_NAME && cfg.HL && cfg.GL) {
