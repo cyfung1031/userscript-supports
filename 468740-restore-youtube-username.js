@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.5
+// @version             0.14.6
 // @license             MIT License
 
 // @author              CY Fung
@@ -142,6 +142,18 @@ const FETCH_V1_MODE = "same-origin";
 // const FETCH_V1_HOST = "https://youtubei.googleapis.com/";
 // const FETCH_V1_MODE = "cors";
 
+const contextClientOverride1 = {
+    "clientName": "WEB", // smaller size
+    "platform": "DESKTOP",
+    "clientFormFactor": "UNKNOWN_FORM_FACTOR",
+};
+
+const contextClientOverride2 = {
+    "clientName": "MWEB", // "WEB", "MWEB"
+    "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
+    "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR", "AUTOMOTIVE_FORM_FACTOR", "UNKNOWN_FORM_FACTOR"
+};
+
 const defaultPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.defaultPolicy) || { createHTML: s => s };
 function createHTML(s) {
   return defaultPolicy.createHTML(s);
@@ -209,6 +221,7 @@ const Object_ = Object;
     // const JUST_REMOVE_AT_FOR_EXPANDED_LANG = true;
 
     const USE_RSS_FETCHER = true; // might 404
+    const USE_PROFILECARD_FETCHER = true;
     const USE_TIMEOUT_SIGNAL = false;
     const USE_CHANNEL_META = true;
     const CHANGE_FOR_SHORTS_CHANNEL_NAME = false;
@@ -217,6 +230,8 @@ const Object_ = Object;
     const FIX_RTL_ISSUE = true;
 
     const IGNORE_NO_NAME = false;
+
+    const NETWORK_TIMEOUT_DURATION = 4000;
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
@@ -243,6 +258,42 @@ const Object_ = Object;
     } : () => { };
 
     const insp = o => o ? (o.polymerController || o.inst || o || 0) : (o || 0);
+
+    const pathFinder = (o, checkFn)=>{
+        let ws = new WeakSet();
+        let r = 0; // 3 stop all; 1 stop other
+        const results = [];
+        const pathFinderLoop = (obj, path) => {
+            if (r & 1) return;
+            if (obj === null || typeof obj !== 'object') return;
+            if (ws.has(obj)) return;
+            ws.add(obj);
+            if (Array.isArray(obj)) {
+                for (let i = 0; i < obj.length; i++) {
+                    const e = obj[i];
+                    if (typeof e === 'object' && e !== null) {
+                        pathFinderLoop(e, `${path}.${i}`);
+                    }
+                }
+            } else {
+                const w = checkFn(obj, path);
+                if (w) {
+                    results.push(path);
+                    r |= w;
+                }
+                if (r & 2) return;
+                for (const key of Object.keys(obj)) {
+                    const value = obj[key];
+                    if (typeof value === "object" && value !== null) {
+                        pathFinderLoop(value, `${path}.${key}`);
+                    }
+                }
+            }
+        };
+        pathFinderLoop(o, "");
+        ws = null;
+        return results;
+    };
 
     const fxOperator = (proto, propertyName) => {
         let propertyDescriptorGetter = null;
@@ -725,7 +776,7 @@ const Object_ = Object;
      */
     const fetcherBrowseAPI = (channelId, onDownloaded, onResulted, onError) => {
 
-        let signal = timeoutSignal(4000);
+        let signal = timeoutSignal(NETWORK_TIMEOUT_DURATION);
 
         const requestBody = {
             "context": {
@@ -737,9 +788,10 @@ const Object_ = Object;
                     "playerType": "UNIPLAYER",
                     "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
                     "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR"
-                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
                     "mainAppWebInfo": {
                         "graftUrl": `/channel/${channelId}`,
+                        "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN",
                         "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
                         "isWebNativeShareAvailable": true
                     }
@@ -751,7 +803,11 @@ const Object_ = Object;
                     "useSsl": true,
                     "internalExperimentFlags": [],
                     "consistencyTokenJars": []
-                }
+                },
+                // "adSignalsInfo": {
+                //     "params": [
+                //     ]
+                // }
             },
             "browseId": `${channelId}`
         };
@@ -842,7 +898,7 @@ const Object_ = Object;
      */
     let fetchRSSFailed = false;
     const fetcherRSS = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
-        let signal = timeoutSignal(4000);
+        let signal = timeoutSignal(NETWORK_TIMEOUT_DURATION);
         fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`, {
             // YouTube RSS Response - public, max-age=900
 
@@ -869,7 +925,7 @@ const Object_ = Object;
                 // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
                 // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
 
-                "Accept": "text/xml",
+                "Accept": "application/atom+xml, application/xml;q=0.9, text/xml;q=0.8",
             }
         }).then(res => {
 
@@ -889,8 +945,8 @@ const Object_ = Object;
             if (resText && typeof resText === 'string' && resText.includes('<feed') && !resText.includes('<!DOCTYPE')) {
 
             } else {
+                // fetchRSSFailed = true;
                 if (onDownloaded) {
-
                     onDownloaded();
                     onDownloaded = null;
                 }
@@ -986,14 +1042,16 @@ const Object_ = Object;
                     else {
                         handleObj.justPossible = false; // ignore @handle checking
 
+                        const channelUrl = `http://www.youtube.com/${encodeURI(handleText)}`;
+
                         res = {
                             "title": name,
                             "externalId": mt,
                             "ownerUrls": [
-                                `http://www.youtube.com/${handleText}`
+                                channelUrl
                             ],
                             "channelUrl": uri,
-                            "vanityChannelUrl": `http://www.youtube.com/${handleText}`
+                            "vanityChannelUrl": channelUrl
                         };
 
                         if (USE_LANG_SPECIFIC_NAME) {
@@ -1013,6 +1071,178 @@ const Object_ = Object;
         }).catch(onError);
 
 
+
+    }
+
+    let fetchProfileCardFailed = false;
+    let fetchProfileCardPath = null;
+    const fetcherProfileCard = location.origin !== 'https://www.youtube.com' ? null : (channelId, onDownloaded, onResulted, onError) => {
+        let signal = timeoutSignal(NETWORK_TIMEOUT_DURATION);
+
+        const requestBody = {
+            "context": {
+                "client": {
+                    "visitorData": "Cgs0aVg0VjFWM0U0USi0jvOkBg%3D%3D", // [optional] fake visitorData to avoid dynamic visitorData generated in response
+                    "clientName": "MWEB", // "WEB", "MWEB"
+                    "clientVersion": `${cfg.INNERTUBE_CLIENT_VERSION || '2.20230614.01.00'}`, // same as WEB version
+                    "originalUrl": `https://m.youtube.com/channel/${channelId}`,
+                    "playerType": "UNIPLAYER",
+                    "platform": "MOBILE", // "DESKTOP", "MOBILE", "TABLET"
+                    "clientFormFactor": "SMALL_FORM_FACTOR", // "LARGE_FORM_FACTOR", "SMALL_FORM_FACTOR"
+                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "mainAppWebInfo": {
+                        "graftUrl": `/channel/${channelId}`,
+                        "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN",
+                        "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                        "isWebNativeShareAvailable": true
+                    }
+                },
+                "user": {
+                    "lockedSafetyMode": false
+                },
+                "request": {
+                    "useSsl": true,
+                    "internalExperimentFlags": [],
+                    "consistencyTokenJars": []
+                },
+                // "adSignalsInfo": {
+                //     "params": [
+                //     ]
+                // }
+            },
+            "profileOwnerExternalChannelId": `${channelId}`,
+            "profileCardContext": "gvXcwwY2EhhVQ0d2bHZaTXRWaWZkWC1PMFZBTS1NeUEaGlVnd0g2N3k4ZlRrZFdHZXFFamw0QWFBQkFn", // Ponzq5_iS3Y: "UCGvlvZMtVifdX-O0VAM-MyA", "UgwH67y8fTkdWGeqEjl4AaABAg"
+            "shouldUseProfileBottomSheet": false
+        };
+
+        if (USE_LANG_SPECIFIC_NAME && cfg.HL && cfg.GL) {
+            Object.assign(requestBody.context.client, {
+                "hl": cfg.HL,
+                "gl": cfg.GL,
+            });
+        }
+
+        Object.assign(requestBody.context.client, contextClientOverride1);
+
+        fetch(new Request(`${FETCH_V1_HOST}youtubei/v1/account/get_profile_card?prettyPrint=false`, {
+            "method": "POST",
+            "mode": FETCH_V1_MODE,
+            "credentials": "omit",
+
+            referrerPolicy: "no-referrer",
+            cache: "default", // no effect on POST request
+            // cache: "force-cache",
+            redirect: "error", // there shall be no redirection in this API request
+            integrity: "",
+            keepalive: false,
+            signal,
+
+            "headers": {
+                "Content-Type": "application/json", // content type of the body data in POST request
+                "Accept-Encoding": "br;q=1.0, gzip;q=0.8, deflate;q=0.5", // YouTube Response - br
+                // X-Youtube-Bootstrap-Logged-In: false,
+                // X-Youtube-Client-Name: 1, // INNERTUBE_CONTEXT_CLIENT_NAME
+                // X-Youtube-Client-Version: "2.20230622.06.00" // INNERTUBE_CONTEXT_CLIENT_VERSION
+
+                "Accept": "application/json",
+            },
+            "body": JSON.stringify(requestBody)
+        })).then(res => {
+            signal && signal.clearTimeout && signal.clearTimeout();
+            signal = null;
+            if (onDownloaded) {
+                onDownloaded();
+                onDownloaded = null;
+            }
+            return res.json();
+        }).then(resJson => {
+            
+            const doReject = ()=>{
+                // fetchProfileCardFailed = true;
+                if (onDownloaded) {
+                    onDownloaded();
+                    onDownloaded = null;
+                }
+                onResulted(-1);
+                return;
+            }
+
+            let y = null;
+
+            const updateY = () => {
+
+                const r = pathFinder(resJson, (x) => {
+                    if ("channelDisplayName" in x && "channelHandle" in x) {
+                        if (typeof x.channelDisplayName === "string" && typeof x.channelHandle === "string") {
+                            y = x;
+                            return 3;
+                        }
+                    }
+                });
+
+                // console.log(6882, y, r)
+                fetchProfileCardPath = (r && r[0]) || "";
+
+                if (fetchProfileCardPath !== '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
+                    console.warn("fetchProfileCardPath Changed", fetchProfileCardPath);
+                }
+            }
+
+            if (fetchProfileCardPath === null) {
+                updateY();
+            } else if (fetchProfileCardPath) {
+                if (!y && fetchProfileCardPath === '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel') {
+                    y = resJson.updateCommand.elementsCommand.updateActionSheetCommand.listOption[0].type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel;
+                } else {
+                    updateY();
+                }
+                // '.updateCommand.elementsCommand.updateActionSheetCommand.listOption.0.type.componentType.model.youtubeModel.viewModel.profileCardViewModel.profileIdentityInfo.profileIdentityInfoViewModel'
+            }
+            if (!y) {
+                return doReject();
+            }
+            let allChannelIds = new Set();
+            pathFinder(y, (o) => {
+                if ("browseId" in o && typeof o.browseId === "string") {
+                    allChannelIds.add(o.browseId);
+                }
+            });
+            if (allChannelIds.size !== 1 || !allChannelIds.has(channelId)) {
+                return doReject();
+            }
+            allChannelIds.clear();
+            allChannelIds = null;
+            // console.log(2388, y, channelId, y.channelDisplayName, y.channelHandle);
+
+            const handleText = y.channelHandle;
+            const channelDisplayName = y.channelDisplayName;
+
+            const channelUrl = `http://www.youtube.com/${encodeURI(handleText)}`;
+
+            channelIdToHandle.set(channelId, {
+                handleText: channelDisplayName,
+                justPossible: false
+            });
+
+            const res = {
+                "title": channelDisplayName,
+                "externalId": channelId,
+                "ownerUrls": [
+                    channelUrl,
+                ],
+                "channelUrl": channelUrl,
+                "vanityChannelUrl": channelUrl,
+            };
+
+            if (USE_LANG_SPECIFIC_NAME) {
+                const langPreferredDisplayName = langPreferredDisplayNameMap.get(handleText);
+                if (langPreferredDisplayName && name !== langPreferredDisplayName) res.langTitle = langPreferredDisplayName;
+            }
+
+            onResulted(res);
+            onResulted = null;
+
+        }).catch(onError);
 
     }
 
@@ -1067,7 +1297,8 @@ const Object_ = Object;
 
             const retry = () => {
 
-                fetchRSSFailed = true;
+                if (mobj.fetcher === fetcherRSS) fetchRSSFailed = true;
+                else if (mobj.fetcher === fetcherProfileCard) fetchProfileCardFailed = true;
 
                 bResult.fetchingState = 2;
 
@@ -1140,7 +1371,7 @@ const Object_ = Object;
 
 
                     console.warn(e);
-                    if (mobj.fetcher === fetcherRSS) {
+                    if (mobj.fetcher === fetcherRSS || mobj.fetcher === fetcherProfileCard) {
                         retry();
 
                     } else {
@@ -1156,7 +1387,9 @@ const Object_ = Object;
 
             // note: when setResult(null), the fetch will be requested again if the same username appears. (multiple occurrences)
             // consider the network problem might be fixed in the 2nd attempt, the name will be changed in the 2nd attempt but ignore 1st attempt.
-            mobj.fetcher = USE_RSS_FETCHER && fetcherRSS && !fetchRSSFailed && channelIdToHandle.has(channelId) ? fetcherRSS : fetcherBrowseAPI;
+            mobj.fetcher = USE_RSS_FETCHER && fetcherRSS && !fetchRSSFailed && channelIdToHandle.has(channelId) ? fetcherRSS :
+             USE_PROFILECARD_FETCHER && fetcherProfileCard && !fetchProfileCardFailed ? fetcherProfileCard :
+            fetcherBrowseAPI;
             mobj.fetcher(channelId, mobj.fetchOnDownload, mobj.fetchOnSuccess, mobj.fetchOnFail);
 
         });
@@ -2667,8 +2900,12 @@ const Object_ = Object;
         // return result;
     };
 
+    let objTransWs = null;
+
     const objTransform = (obj) => {
         if (obj === null || typeof obj !== 'object') return obj;
+        if (objTransWs.has(obj)) return;
+        objTransWs.add(obj)
         if (Array.isArray(obj)) return obj.map(objTransform);
         const out = {};
         for (const key of Object.keys(obj)) {
@@ -2691,7 +2928,9 @@ const Object_ = Object;
 
     const commentEntitySet = (cnt) =>{
         const p = cnt.commentEntity;
+        objTransWs = new WeakSet();
         const q = objTransform(p);
+        objTransWs = null;
         cnt.commentEntity = q;
         cnt.commentEntity = p;
     };
