@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.8
+// @version             2.3.9
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -2310,7 +2310,7 @@
             // logging floods the console (this was the "continuous logging"
             // that exposed the issue). A throttled summary (below) gives
             // visibility without the flood; flip to true only for deep debug.
-            const FAKE_SB_DEBUG = false;
+            const FAKE_SB_DEBUG = true;
             // Throttled one-line summary (at most once per interval) so you
             // can still see that video bytes are being dropped without spam.
             const FAKE_SB_SUMMARY = true;
