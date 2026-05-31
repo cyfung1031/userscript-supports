@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.7
+// @version             2.3.8
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -102,6 +102,8 @@
 
 
     if (location.pathname === '/live_chat' || location.pathname === 'live_chat_replay') return;
+    
+    const winAddEventListener = typeof unsafeWindow === "object" ? unsafeWindow.addEventListener.bind(unsafeWindow) : window.addEventListener.bind(window);
 
     const kEventListener = (evt) => {
         if (document.documentElement.hasAttribute('forceRefresh032')) {
@@ -109,7 +111,7 @@
             evt.stopPropagation();
         }
     }
-    window.addEventListener('beforeunload', kEventListener, false);
+    winAddEventListener('beforeunload', kEventListener, false);
 
     const pageInjectionCode = function () {
 
@@ -152,7 +154,6 @@
         const kRef = (wr => (wr && wr.deref) ? wr.deref() : wr);
 
         const isIterable = (x) => Symbol.iterator in Object(x);
-
 
         let skipPlayPause = 0;
         let dirtyMark = 1 | 2 | 4 | 8;
@@ -329,6 +330,28 @@
                     playerKevlar.enableCsiLogging = false;
                     playerKevlar.externalFullscreen = false;
 
+                    playerKevlar.deviceIsAudioOnly = true;          // ← new
+
+                    const usp = new URLSearchParams("?" + yt.config_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH.serializedExperimentFlags);
+                    usp.set("html5_onesie_audio_only_playback", "true");
+                    usp.set("allow_vb_audio_formats", "true");
+                    usp.set("allow_vb_audio_formats_with_mta", "true");
+                    usp.set("ws_use_centralized_hqa_filter", "true");
+                    usp.set("web_cinematic_watch_settings", "false");
+                    usp.set("web_l3_storyboard", "false")
+                    playerKevlar.serializedExperimentFlags = `${usp}`.replace(/^\?+/g,"");
+
+                }
+
+                const EXPERIMENT_FLAGS = (config_ || 0).EXPERIMENT_FLAGS;
+
+                if(EXPERIMENT_FLAGS){
+                    EXPERIMENT_FLAGS.kevlar_watch_cinematics = false;
+                    EXPERIMENT_FLAGS.mweb_cinematic_watch = false;
+                }
+
+                if (config_.PLAYER_CONFIG) {
+                    config_.PLAYER_CONFIG.deviceIsAudioOnly = true; // ← new
                 }
 
             }
@@ -752,6 +775,7 @@
                     // videoData
                     // stopVideo
                     // pauseVideo 
+                    window.ytInternalAppPT = internalAppXT;
 
                 }
                 updateInternalAppFn_();
@@ -914,6 +938,7 @@
                     // console.log('updatePlayerDapFn')
                     playerDapUT.add(x);
                     playerDapXT = x;
+                    window.ytPlayerDapXT = playerDapXT;
                 }
                 updatePlayerDapFn_(x);
 
@@ -1193,6 +1218,10 @@
 
             const { internalAppPTFn } = (() => {
 
+                const fixMediaElement = (p) => {
+
+                }
+
                 const internalAppPTFn = (internalAppPT_) => {
 
                     const internalAppPT = internalAppPT_;
@@ -1293,8 +1322,10 @@
                     if (!internalAppPT.setMediaElement661 && typeof internalAppPT.setMediaElement === 'function') {
                         internalAppPT.setMediaElement661 = internalAppPT.setMediaElement;
                         internalAppPT.setMediaElement = function (p) {
+                            window.ytInternalAppPT = this;
                             dirtyMark = 1 | 2 | 4 | 8;
                             updateInternalAppFn(this);
+                            fixMediaElement(p);
                             console.log('setMediaElement', p)
                             const mediaEm = p && key_mediaElementT ? p[key_mediaElementT] : null;
                             if (mediaEm) mediaEm.__lastTouch582__ = Date.now();
@@ -1634,6 +1665,14 @@
                     }
                     cProto.createMainAppPlayer_ = function (a, b, c) {
                         configFixBeforeCreate();
+                        // Force audio-only on the per-instance config passed in.
+                        try {
+                            if (a && typeof a === 'object') {
+                                a.deviceIsAudioOnly = true;
+                                if (a.attrs && typeof a.attrs === 'object') a.attrs.deviceIsAudioOnly = true;
+                                if (a.args && typeof a.args === 'object') a.args.audio_only = '1';
+                            }
+                        } catch (e) { }
                         let r = this.createMainAppPlayer932_(a, b, c);
                         try {
                             (async () => {
@@ -1833,19 +1872,19 @@
             //         mo.observe(document, {subtree: true, childList: true})
             //       })
 
-            //       window.addEventListener('onReady', (evt) => {
+            //       winAddEventListener('onReady', (evt) => {
             //         console.log(6811)
             //       }, true);
 
-            //       window.addEventListener('localmediachange', (evt) => {
+            //       winAddEventListener('localmediachange', (evt) => {
             //         console.log(6812)
             //       }, true);
 
-            //       window.addEventListener('onVideoDataChange', (evt) => {
+            //       winAddEventListener('onVideoDataChange', (evt) => {
             //         console.log(6813)
             //       }, true);
 
-            window.addEventListener('state-navigateend', async (evt) => {
+            winAddEventListener('state-navigateend', async (evt) => {
 
                 delayPn(200).then(() => {
                     if (!getAppJSON()) {
@@ -1974,76 +2013,76 @@
 
 
 
-            // window.addEventListener('player-initialized', (evt) => {
+            // winAddEventListener('player-initialized', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('renderer-module-load-start', (evt) => {
+            // winAddEventListener('renderer-module-load-start', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('video-data-change', (evt) => {
+            // winAddEventListener('video-data-change', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('player-state-change', (evt) => {
+            // winAddEventListener('player-state-change', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('updateui', (evt) => {
+            // winAddEventListener('updateui', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('renderer-module-load-end', (evt) => {
-            //   console.log(evt.type)
-            // }, true)
-
-            // window.addEventListener('player-autonav-pause', (evt) => {
+            // winAddEventListener('renderer-module-load-end', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-
-
-            // window.addEventListener('player-ad-state-change', (evt) => {
+            // winAddEventListener('player-autonav-pause', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('player-detailed-error', (evt) => {
+
+
+            // winAddEventListener('player-ad-state-change', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('player-error', (evt) => {
+            // winAddEventListener('player-detailed-error', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('on-play-autonav-video', (evt) => {
+            // winAddEventListener('player-error', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('on-play-previous-autonav-video', (evt) => {
+            // winAddEventListener('on-play-autonav-video', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('player-fullscreen-change', (evt) => {
+            // winAddEventListener('on-play-previous-autonav-video', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('player-fullscreen-toggled', (evt) => {
+            // winAddEventListener('player-fullscreen-change', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('player-dom-paused', (evt) => {
+            // winAddEventListener('player-fullscreen-toggled', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
-            // window.addEventListener('yt-show-toast', (evt) => {
+            // winAddEventListener('player-dom-paused', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('yt-innertube-command', (evt) => {
+
+            // winAddEventListener('yt-show-toast', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('yt-update-c3-companion', (evt) => {
+            // winAddEventListener('yt-innertube-command', (evt) => {
             //   console.log(evt.type)
             // }, true)
-            // window.addEventListener('video-progress', (evt) => {
+            // winAddEventListener('yt-update-c3-companion', (evt) => {
+            //   console.log(evt.type)
+            // }, true)
+            // winAddEventListener('video-progress', (evt) => {
             //   // console.log(evt.type)
             // }, true)
-            // window.addEventListener('localmediachange', (evt) => {
+            // winAddEventListener('localmediachange', (evt) => {
             //   console.log(evt.type)
             // }, true)
 
@@ -2110,6 +2149,41 @@
             if (prepared) return;
             prepared = true;
 
+
+            if (!window.__YtAudioDataSetFix__ && typeof _yt_player !== 'undefined' && _yt_player && typeof _yt_player === 'object') {
+
+                for (const [k, v] of Object.entries(_yt_player)) {
+                    const p = typeof v === 'function' ? v.prototype : 0;
+                    if (!p || !p.setData) continue;
+                    if (typeof p.setData !== 'function') continue;
+                    if (p.setData.length < 1) continue;
+                    if (typeof p.getAudioTrack !== 'function') continue;
+                    if (p.setData.__YtAudioDataSetFix__) continue;
+                    p.setData8117 = p.setData;
+                    p.setData = function (B, ...args) {
+                        const heartbeatParams = ((B || 0).raw_player_response || 0).heartbeatParams;
+                        if (heartbeatParams) {
+                            heartbeatParams.softFailOnError = true;
+                            // heartbeatParams.useInnertubeHeartbeatsForDrm = false;
+                            heartbeatParams.maxRetries = 2;
+                            if (typeof heartbeatParams.intervalMilliseconds === "string" || typeof heartbeatParams.intervalMilliseconds === "number") {
+                                const l = +heartbeatParams.intervalMilliseconds;
+                                if (l > 1 && l < 3600000) {
+                                    let d = 3600000;
+                                    heartbeatParams.intervalMilliseconds = typeof heartbeatParams.intervalMilliseconds === "string" ? `${d}` : d;
+                                }
+                            }
+                            console.log("[yt-audio-only] setData heartbeatParams", heartbeatParams);
+                        }
+                        return this.setData8117(B, ...args);
+                    };
+                    p.setData.__YtAudioDataSetFix__ = true;
+                    window.__YtAudioDataSetFix__ = true;
+                    console.log("[yt-audio-only]", "__YtAudioDataSetFix__");
+                }
+            }
+
+
             if (typeof _yt_player !== 'undefined' && _yt_player && typeof _yt_player === 'object') {
 
                 for (const [k, v] of Object.entries(_yt_player)) {
@@ -2168,12 +2242,6 @@
         });
 
         const supportedFormatsConfig = () => {
-
-            function typeTest(type) {
-                if (typeof type === 'string' && type.startsWith('video/')) {
-                    return false;
-                }
-            }
 
             let types = new Set();
             function makeModifiedTypeChecker(origChecker) {
@@ -2237,17 +2305,66 @@
             // are never passed to it.
             // -------------------------------------------------------------
             // Toggle to silence the stub's per-call logs while keeping
-            // creation + error logs. Set to false once you've confirmed
-            // the stub is working to avoid console noise on live streams.
-            const FAKE_SB_DEBUG = true;
+            // creation + error logs. Kept OFF: on a live stream the player
+            // appends a new video chunk every few tens of ms, so per-append
+            // logging floods the console (this was the "continuous logging"
+            // that exposed the issue). A throttled summary (below) gives
+            // visibility without the flood; flip to true only for deep debug.
+            const FAKE_SB_DEBUG = false;
+            // Throttled one-line summary (at most once per interval) so you
+            // can still see that video bytes are being dropped without spam.
+            const FAKE_SB_SUMMARY = true;
+            const FAKE_SB_SUMMARY_INTERVAL_MS = 5000;
             // Monotonic id so multiple stubs (e.g. format switches) can be
             // told apart in the console.
             let fakeSbCounter = 0;
 
-            const makeFakeVideoSourceBuffer = (mimeType) => {
+            const makeFakeVideoSourceBuffer = (mimeType, mediaSource) => {
                 // Real SourceBuffers are EventTargets; use the native one
                 // so addEventListener/removeEventListener work identically.
                 const sb = new EventTarget();
+
+                // -------------------------------------------------------------
+                // Mirror the REAL audio SourceBuffer instead of lying.
+                //
+                // The previous approach reported a huge static buffered range
+                // ([0, 2**48-1]) so the player would never re-request video
+                // segments. That fixed the manifestless-live stopVideo loop
+                // (because `updateend` now fires) but introduced a NEW bug on
+                // live streams: base.js derives the live seekable window / UX
+                // duration / live-head ("isLiveHeadPlayable") from per-track
+                // SourceBuffer state (`buffered`, and `writeHead` via
+                // `fv(){return this.hX?.writeHead||0}`). A video track that
+                // claims it is buffered to ~2**48s while the audio track holds
+                // the real (small) live window makes the timeline math produce
+                // a garbage/negative duration and collapses live detection ->
+                // "not live", negative clock, and audio never advances.
+                //
+                // Fix: report whatever the REAL audio SourceBuffer reports.
+                // Audio and video share the same presentation timeline for YT
+                // live, so mirroring keeps every track-vs-track computation
+                // consistent. It also still avoids redundant video fetches:
+                // because audio buffers ahead of the playhead, the mirrored
+                // video range is "ahead" too, so the player does not request
+                // video segments -- and any it does request are dropped by the
+                // no-op appendBuffer below, so no video bandwidth is used.
+                // -------------------------------------------------------------
+                const getAudioSibling = () => {
+                    try {
+                        const a = mediaSource && mediaSource.__ytAOAudioSB__;
+                        if (a && a !== sb && !a.__ytAudioOnlyFakeVideoSB__ && typeof a === 'object') return a;
+                    } catch (e) { }
+                    return null;
+                };
+                // An empty TimeRanges to fall back to before the audio SB
+                // exists. Empty is safe: the manifestless-live sync gate clears
+                // on `updateend` (fired below), not on buffered content, and
+                // the real audio track is empty at this same moment too.
+                const EMPTY_BUFFERED = Object.freeze({
+                    length: 0,
+                    start() { throw new DOMException('Index out of range', 'IndexSizeError'); },
+                    end() { throw new DOMException('Index out of range', 'IndexSizeError'); },
+                });
 
                 // Mode is read/set by some YouTube code paths
                 let mode = 'segments';
@@ -2292,25 +2409,9 @@
                 };
 
                 // Fake TimeRanges that claims [0, Infinity] is buffered.
-                // `ST(B, q)` in base.js walks start(i)..end(i) and returns
-                // the index whose range contains `q`. With [0, Infinity]
-                // any non-negative `q` is "buffered", which makes `tA`
-                // (the buffered-time probe) succeed and prevents the player
-                // from issuing redundant video segment requests.
+                // The mirrored buffered range comes from the audio sibling
+                // (see getAudioSibling above). No static range is used.
                 let bufferedReads = 0;
-                const fakeBuffered = Object.freeze({
-                    length: 1,
-                    start(i) {
-                        if (i !== 0) throw new DOMException('Index out of range', 'IndexSizeError');
-                        return 0;
-                    },
-                    end(i) {
-                        if (i !== 0) throw new DOMException('Index out of range', 'IndexSizeError');
-                        // Use a large but finite number to avoid surprising
-                        // any code that does arithmetic with this value.
-                        return 1e9;
-                    },
-                });
 
                 // Fire updateend on a microtask boundary, like a real SB
                 // does after a synchronous segment append on a fast path.
@@ -2373,21 +2474,44 @@
                     buffered: {
                         get() {
                             bufferedReads++;
-                            // Log only the first few reads to avoid spamming
-                            // the console -- the player reads `buffered` on
-                            // every animation frame in steady state.
-                            if (FAKE_SB_DEBUG && bufferedReads <= 5) {
-                                dlog('buffered read #', bufferedReads, '(reporting [0, 1e9])');
-                            } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
-                                dlog('buffered read #6 -- further reads suppressed');
+                            const a = getAudioSibling();
+                            if (a) {
+                                try {
+                                    const b = a.buffered;
+                                    if (b && typeof b.length === 'number') {
+                                        if (FAKE_SB_DEBUG && bufferedReads <= 5) {
+                                            dlog('buffered read #', bufferedReads, '(mirroring audio SB:',
+                                                b.length ? `[${b.start(0)}, ${b.end(b.length - 1)}]` : 'empty', ')');
+                                        } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
+                                            dlog('buffered read #6 -- further reads suppressed');
+                                        }
+                                        return b;
+                                    }
+                                } catch (e) {
+                                    if (FAKE_SB_DEBUG) dlog('audio buffered read err', e);
+                                }
                             }
-                            return fakeBuffered;
+                            if (FAKE_SB_DEBUG && bufferedReads <= 5) {
+                                dlog('buffered read #', bufferedReads, '(audio SB not ready -> empty)');
+                            }
+                            return EMPTY_BUFFERED;
                         },
                         configurable: true,
                     },
-                    // Some paths read `writeHead`; report 0 to mean "nothing written".
+                    // base.js reads `this.hX?.writeHead||0`. Mirror the audio
+                    // SB's writeHead so it stays consistent with the mirrored
+                    // buffered range; fall back to 0 before audio SB exists.
                     writeHead: {
-                        get() { return 0; },
+                        get() {
+                            const a = getAudioSibling();
+                            if (a) {
+                                try {
+                                    const w = a.writeHead;
+                                    if (typeof w === 'number' && isFinite(w)) return w;
+                                } catch (e) { }
+                            }
+                            return 0;
+                        },
                         configurable: true,
                     },
                     // Identify the stub for debugging.
@@ -2397,11 +2521,21 @@
                     __ytAudioOnlyStats__: { get() { return { ...stats, bufferedReads, ageMs: Date.now() - createdAt }; }, configurable: true },
                 });
 
+                let lastSummaryAt = 0;
                 sb.appendBuffer = function (data) {
                     stats.appendCalls++;
                     const len = (data && data.byteLength) || (data && data.length) || 0;
                     stats.appendBytes += len;
                     dlog('appendBuffer #', stats.appendCalls, 'bytes:', len, 'total:', stats.appendBytes);
+                    if (FAKE_SB_SUMMARY) {
+                        const now = Date.now();
+                        if (now - lastSummaryAt > FAKE_SB_SUMMARY_INTERVAL_MS) {
+                            lastSummaryAt = now;
+                            console.log(`[yt-audio-only][fake-sb#${sbId}] dropped ${stats.appendCalls} video appends, ` +
+                                `${(stats.appendBytes / 1048576).toFixed(2)} MB so far (video segments are still being ` +
+                                `fetched for this live stream; set BLOCK_VIDEO_TRACK_AT_SOURCE=true to stop them).`);
+                        }
+                    }
                     // Real SBs throw InvalidStateError when already updating.
                     // We just coalesce: fire one updateend per call regardless.
                     fireUpdateCycle('appendBuffer');
@@ -2434,6 +2568,8 @@
                 // Expose the most recent stub for ad-hoc inspection.
                 try { window.__ytAudioOnlyLastFakeSB__ = sb; } catch (e) { }
 
+                sb.__ms__ = this;
+
                 return sb;
             };
 
@@ -2445,17 +2581,25 @@
                         // video track gets a real EventTarget and its segment
                         // state machine can advance on updateend events. This
                         // is required for manifestless live streams; harmless
-                        // for VOD.
+                        // for VOD. The stub mirrors this MediaSource's audio
+                        // SourceBuffer (captured below) for buffered/writeHead.
                         console.log("[yt-audio-only] Media Codec (stub):", type);
                         try {
-                            return makeFakeVideoSourceBuffer(type);
+                            return makeFakeVideoSourceBuffer(type, this);
                         } catch (e) {
                             console.warn("[yt-audio-only] fake video SB factory failed:", e);
                             return; // fall back to old behavior on error
                         }
                     }
+                    const realSB = this.addSourceBuffer078(type, ...rest);
+                    if (typeof type === 'string' && type.includes("audio/")) {
+                        // Remember the real audio SourceBuffer on the owning
+                        // MediaSource so the fake video SB created on the same
+                        // MediaSource can mirror its buffered range + writeHead.
+                        try { this.__ytAOAudioSB__ = realSB; } catch (e) { }
+                    }
                     console.log("[yt-audio-only] Media Codec:", type, [...types]);
-                    return this.addSourceBuffer078(type, ...rest);
+                    return realSB;
                 };
             }
 
@@ -2933,7 +3077,7 @@
 
     let messageCount = 0;
     let busy = false;
-    window.addEventListener('message', (evt) => {
+    winAddEventListener('message', (evt) => {
 
         const v = ((evt || 0).data || 0).ZECxh;
         if (typeof v === 'boolean') {
@@ -2962,7 +3106,7 @@
         if (document.readyState !== 'loading') {
             resolve();
         } else {
-            window.addEventListener("DOMContentLoaded", resolve, false);
+            winAddEventListener("DOMContentLoaded", resolve, false);
         }
     });
 
@@ -3216,6 +3360,14 @@
             }
 
             #global-loader ytw-scrim {
+                display: none;
+            }
+
+            yt-player-storyboard img {
+                display: none;
+            }
+
+            yt-player-storyboard .ytPlayerStoryboardStoryboardImageWrapper {
                 display: none;
             }
 
