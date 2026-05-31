@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.9
+// @version             2.3.10
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -2319,259 +2319,498 @@
             // told apart in the console.
             let fakeSbCounter = 0;
 
-            const makeFakeVideoSourceBuffer = (mimeType, mediaSource) => {
-                // Real SourceBuffers are EventTargets; use the native one
-                // so addEventListener/removeEventListener work identically.
-                const sb = new EventTarget();
+            function makeFakeVideoSourceBuffer(mimeType, mediaSource) {
+                const sbId = ++fakeSbCounter;
+                const logPrefix = `[yt-audio-only] FakeSB #${sbId}:`;
 
-                // -------------------------------------------------------------
-                // Mirror the REAL audio SourceBuffer instead of lying.
-                //
-                // The previous approach reported a huge static buffered range
-                // ([0, 2**48-1]) so the player would never re-request video
-                // segments. That fixed the manifestless-live stopVideo loop
-                // (because `updateend` now fires) but introduced a NEW bug on
-                // live streams: base.js derives the live seekable window / UX
-                // duration / live-head ("isLiveHeadPlayable") from per-track
-                // SourceBuffer state (`buffered`, and `writeHead` via
-                // `fv(){return this.hX?.writeHead||0}`). A video track that
-                // claims it is buffered to ~2**48s while the audio track holds
-                // the real (small) live window makes the timeline math produce
-                // a garbage/negative duration and collapses live detection ->
-                // "not live", negative clock, and audio never advances.
-                //
-                // Fix: report whatever the REAL audio SourceBuffer reports.
-                // Audio and video share the same presentation timeline for YT
-                // live, so mirroring keeps every track-vs-track computation
-                // consistent. It also still avoids redundant video fetches:
-                // because audio buffers ahead of the playhead, the mirrored
-                // video range is "ahead" too, so the player does not request
-                // video segments -- and any it does request are dropped by the
-                // no-op appendBuffer below, so no video bandwidth is used.
-                // -------------------------------------------------------------
-                const getAudioSibling = () => {
-                    try {
-                        const a = mediaSource && mediaSource.__ytAOAudioSB__;
-                        if (a && a !== sb && !a.__ytAudioOnlyFakeVideoSB__ && typeof a === 'object') return a;
-                    } catch (e) { }
-                    return null;
+                const dlog = (...args) => {
+                    if (FAKE_SB_DEBUG) console.log(logPrefix, ...args);
                 };
-                // An empty TimeRanges to fall back to before the audio SB
-                // exists. Empty is safe: the manifestless-live sync gate clears
-                // on `updateend` (fired below), not on buffered content, and
-                // the real audio track is empty at this same moment too.
-                const EMPTY_BUFFERED = Object.freeze({
-                    length: 0,
-                    start() { throw new DOMException('Index out of range', 'IndexSizeError'); },
-                    end() { throw new DOMException('Index out of range', 'IndexSizeError'); },
+
+                const elog = (...args) => {
+                    console.error(logPrefix, ...args);
+                };
+
+                const fake = Object.create(SourceBuffer.prototype);
+                const eventTarget = new EventTarget();
+
+                let isUpdating = false;
+                let currentMode = 'segments';
+                let tsOffset = 0;
+                let windowStart = 0;
+                let windowEnd = Infinity;
+                let bufferedReads = 0;
+                let droppedBytes = 0;
+                let lastSummaryAt = 0;
+
+                const stats = {
+                    id: sbId,
+                    mimeType,
+                    createdAt: Date.now(),
+                    listeners: {
+                        updatestart: 0,
+                        update: 0,
+                        updateend: 0,
+                        abort: 0,
+                        error: 0
+                    },
+                    appendBufferCount: 0,
+                    removeCount: 0,
+                    abortCount: 0,
+                    writeHeadCount: 0,
+                    changeTypeCount: 0,
+                    bufferedReadCount: 0,
+                    droppedBytes: 0,
+                    lastAppendByteLength: 0,
+                    lastRemoveRange: null,
+                    lastChangeType: null,
+                    lastEventType: null,
+                    lastError: null,
+                    get updating() {
+                        return isUpdating;
+                    },
+                    get mode() {
+                        return currentMode;
+                    },
+                    get timestampOffset() {
+                        return tsOffset;
+                    },
+                    get appendWindowStart() {
+                        return windowStart;
+                    },
+                    get appendWindowEnd() {
+                        return windowEnd;
+                    }
+                };
+
+                Object.defineProperty(fake, '__ytAudioOnlyStats__', {
+                    value: stats,
+                    enumerable: false,
+                    configurable: true
                 });
 
-                // Mode is read/set by some YouTube code paths
-                let mode = 'segments';
-                let timestampOffset = 0;
-                let appendWindowStart = 0;
-                let appendWindowEnd = Infinity;
-                let updating = false;
+                const queueTask = typeof queueMicrotask === 'function'
+                    ? queueMicrotask
+                    : (fn) => Promise.resolve().then(fn);
 
-                // Per-stub diagnostics
-                const sbId = ++fakeSbCounter;
-                const createdAt = Date.now();
-                const stats = {
-                    appendCalls: 0,
-                    appendBytes: 0,
-                    removeCalls: 0,
-                    abortCalls: 0,
-                    changeTypeCalls: 0,
-                    updateendDispatched: 0,
-                    listeners: { updatestart: 0, update: 0, updateend: 0, error: 0 },
+                const byteLengthOf = (buf) => {
+                    if (!buf) return 0;
+                    if (typeof buf.byteLength === 'number') return buf.byteLength;
+                    if (typeof buf.length === 'number') return buf.length;
+                    return 0;
                 };
-                const tag = `[yt-audio-only][fake-sb#${sbId}]`;
-                const dlog = (...args) => { if (FAKE_SB_DEBUG) console.log(tag, ...args); };
 
-                // Wrap addEventListener/removeEventListener so we can see
-                // exactly which events the player subscribes to. This is
-                // the key signal that the player has actually adopted the
-                // stub as `$$.vG` (base.js line 4676 attaches updateend +
-                // error handlers in the $$ constructor).
-                const _add = sb.addEventListener.bind(sb);
-                const _remove = sb.removeEventListener.bind(sb);
-                sb.addEventListener = function (type, handler, options) {
+                const maybePrintSummary = () => {
+                    if (!FAKE_SB_SUMMARY) return;
+
+                    const now = Date.now();
+                    if (now - lastSummaryAt < FAKE_SB_SUMMARY_INTERVAL_MS) return;
+                    lastSummaryAt = now;
+
+                    console.log(
+                        `[yt-audio-only] FakeSB #${sbId} summary: ` +
+                        `append=${stats.appendBufferCount}, ` +
+                        `remove=${stats.removeCount}, ` +
+                        `abort=${stats.abortCount}, ` +
+                        `writeHead=${stats.writeHeadCount}, ` +
+                        `changeType=${stats.changeTypeCount}, ` +
+                        `bufferedReads=${stats.bufferedReadCount}, ` +
+                        `droppedBytes=${stats.droppedBytes}`
+                    );
+                };
+
+                const getAudioSibling = () => {
+                    try {
+                        if (mediaSource && mediaSource.__ytAOAudioSB__) {
+                            return mediaSource.__ytAOAudioSB__;
+                        }
+
+                        const list = mediaSource && mediaSource.sourceBuffers;
+                        if (list) {
+                            for (let i = 0; i < list.length; i++) {
+                                const sb = list[i];
+                                if (sb && sb !== fake && !sb.__ytAudioOnlyStats__) return sb;
+                            }
+                        }
+                    } catch (e) {
+                        dlog('getAudioSibling error:', e);
+                    }
+
+                    return null;
+                };
+
+                const getAudioSiblingProp = (prop, fallback) => {
+                    try {
+                        const audioSb = getAudioSibling();
+                        if (audioSb) return audioSb[prop];
+                    } catch (e) {
+                        dlog(`audio ${prop} read error:`, e);
+                    }
+
+                    return fallback;
+                };
+
+                const setAudioSiblingProp = (prop, value) => {
+                    try {
+                        const audioSb = getAudioSibling();
+                        if (audioSb) audioSb[prop] = value;
+                    } catch (e) {
+                        dlog(`audio ${prop} write error:`, e);
+                    }
+                };
+
+                const emptyTimeRanges = {
+                    length: 0,
+                    start() {
+                        throw new DOMException(
+                            "Failed to execute 'start' on 'TimeRanges': The index provided is greater than or equal to the number of ranges.",
+                            "IndexSizeError"
+                        );
+                    },
+                    end() {
+                        throw new DOMException(
+                            "Failed to execute 'end' on 'TimeRanges': The index provided is greater than or equal to the number of ranges.",
+                            "IndexSizeError"
+                        );
+                    }
+                };
+
+                const makeEvent = (type) => {
+                    const ev = new Event(type);
+
+                    try {
+                        Object.defineProperties(ev, {
+                            target: {
+                                value: fake,
+                                configurable: true
+                            },
+                            currentTarget: {
+                                value: fake,
+                                configurable: true
+                            },
+                            srcElement: {
+                                value: fake,
+                                configurable: true
+                            }
+                        });
+                    } catch (e) { }
+
+                    return ev;
+                };
+
+                const triggerEvent = (type) => {
+                    stats.lastEventType = type;
+
+                    const ev = makeEvent(type);
+
+                    const directHandler = fake[`on${type}`];
+                    if (typeof directHandler === 'function') {
+                        try {
+                            directHandler.call(fake, ev);
+                        } catch (err) {
+                            stats.lastError = err;
+                            elog(`Error in on${type} handler:`, err);
+                        }
+                    }
+
+                    try {
+                        eventTarget.dispatchEvent(ev);
+                    } catch (err) {
+                        stats.lastError = err;
+                        elog(`Error dispatching ${type}:`, err);
+                    }
+
+                    dlog('event fired:', type);
+                };
+
+                const beginOperation = (methodName) => {
+                    if (isUpdating) {
+                        throw new DOMException(
+                            `Failed to execute '${methodName}' on 'SourceBuffer': This SourceBuffer is still processing an 'appendBuffer' or 'remove' operation.`,
+                            "InvalidStateError"
+                        );
+                    }
+
+                    isUpdating = true;
+                };
+
+                const finishOperationAsync = () => {
+                    queueTask(() => {
+                        triggerEvent('updatestart');
+
+                        queueTask(() => {
+                            isUpdating = false;
+                            triggerEvent('update');
+                            triggerEvent('updateend');
+                            maybePrintSummary();
+                        });
+                    });
+                };
+
+                const _add = eventTarget.addEventListener.bind(eventTarget);
+                fake.addEventListener = function (type, handler, options) {
                     if (stats.listeners[type] !== undefined) stats.listeners[type]++;
-                    dlog('addEventListener', type, 'total now:', stats.listeners[type]);
+                    dlog('addEventListener', type, 'count:', stats.listeners[type]);
                     return _add(type, handler, options);
                 };
-                sb.removeEventListener = function (type, handler, options) {
+
+                const _remove = eventTarget.removeEventListener.bind(eventTarget);
+                fake.removeEventListener = function (type, handler, options) {
                     if (stats.listeners[type] !== undefined) {
                         stats.listeners[type] = Math.max(0, stats.listeners[type] - 1);
                     }
+
                     dlog('removeEventListener', type, 'remaining:', stats.listeners[type]);
                     return _remove(type, handler, options);
                 };
 
-                // Fake TimeRanges that claims [0, Infinity] is buffered.
-                // The mirrored buffered range comes from the audio sibling
-                // (see getAudioSibling above). No static range is used.
-                let bufferedReads = 0;
+                fake.dispatchEvent = function (evt) {
+                    dlog('dispatchEvent called externally:', evt && evt.type);
+                    return eventTarget.dispatchEvent(evt);
+                };
 
-                // Fire updateend on a microtask boundary, like a real SB
-                // does after a synchronous segment append on a fast path.
-                // Real SourceBuffer also fires `updatestart` and `update`.
-                const fireUpdateCycle = (reason) => {
-                    updating = true;
-                    dlog('updating -> true (', reason, ')');
-                    // Synchronous-ish: dispatch in a microtask so the call
-                    // site that just invoked appendBuffer() has unwound.
-                    Promise.resolve().then(() => {
-                        try { sb.dispatchEvent(new Event('updatestart')); } catch (e) { dlog('dispatch updatestart err', e); }
-                        try { sb.dispatchEvent(new Event('update')); } catch (e) { dlog('dispatch update err', e); }
-                        updating = false;
-                        try { sb.dispatchEvent(new Event('updateend')); } catch (e) { dlog('dispatch updateend err', e); }
-                        stats.updateendDispatched++;
-                        dlog('updateend dispatched (', reason, ') total:', stats.updateendDispatched);
+                Object.defineProperties(fake, {
+                    updating: {
+                        get: () => isUpdating,
+                        configurable: true,
+                        enumerable: true
+                    },
+                    mode: {
+                        get: () => currentMode,
+                        set: (val) => {
+                            if (isUpdating) {
+                                throw new DOMException(
+                                    "Failed to set 'mode' on 'SourceBuffer': This SourceBuffer is still processing an operation.",
+                                    "InvalidStateError"
+                                );
+                            }
+
+                            if (val !== 'segments' && val !== 'sequence') {
+                                throw new TypeError(
+                                    "Failed to set 'mode' on 'SourceBuffer': The provided value is not a valid SourceBuffer mode."
+                                );
+                            }
+
+                            currentMode = val;
+                            dlog('mode set:', val);
+                        },
+                        configurable: true,
+                        enumerable: true
+                    },
+                    timestampOffset: {
+                        get: () => getAudioSiblingProp('timestampOffset', tsOffset),
+                        set: (val) => {
+                            if (isUpdating) {
+                                throw new DOMException(
+                                    "Failed to set 'timestampOffset' on 'SourceBuffer': This SourceBuffer is still processing an operation.",
+                                    "InvalidStateError"
+                                );
+                            }
+
+                            tsOffset = val;
+                            setAudioSiblingProp('timestampOffset', val);
+                            dlog('timestampOffset set:', val);
+                        },
+                        configurable: true,
+                        enumerable: true
+                    },
+                    appendWindowStart: {
+                        get: () => getAudioSiblingProp('appendWindowStart', windowStart),
+                        set: (val) => {
+                            if (isUpdating) {
+                                throw new DOMException(
+                                    "Failed to set 'appendWindowStart' on 'SourceBuffer': This SourceBuffer is still processing an operation.",
+                                    "InvalidStateError"
+                                );
+                            }
+
+                            windowStart = val;
+                            setAudioSiblingProp('appendWindowStart', val);
+                            dlog('appendWindowStart set:', val);
+                        },
+                        configurable: true,
+                        enumerable: true
+                    },
+                    appendWindowEnd: {
+                        get: () => getAudioSiblingProp('appendWindowEnd', windowEnd),
+                        set: (val) => {
+                            if (isUpdating) {
+                                throw new DOMException(
+                                    "Failed to set 'appendWindowEnd' on 'SourceBuffer': This SourceBuffer is still processing an operation.",
+                                    "InvalidStateError"
+                                );
+                            }
+
+                            windowEnd = val;
+                            setAudioSiblingProp('appendWindowEnd', val);
+                            dlog('appendWindowEnd set:', val);
+                        },
+                        configurable: true,
+                        enumerable: true
+                    },
+                    buffered: {
+                        get: () => {
+                            bufferedReads++;
+                            stats.bufferedReadCount = bufferedReads;
+
+                            try {
+                                const audioSb = getAudioSibling();
+                                if (audioSb && audioSb.buffered) {
+                                    const b = audioSb.buffered;
+
+                                    if (FAKE_SB_DEBUG && bufferedReads <= 5) {
+                                        let rangeText = 'empty';
+                                        try {
+                                            rangeText = b.length ? `[${b.start(0)}, ${b.end(b.length - 1)}]` : 'empty';
+                                        } catch (e) {
+                                            rangeText = 'unreadable';
+                                        }
+
+                                        dlog('buffered read #', bufferedReads, '(mirroring audio SB:', rangeText, ')');
+                                    } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
+                                        dlog('buffered read #6 -- further reads suppressed');
+                                    }
+
+                                    return b;
+                                }
+                            } catch (e) {
+                                dlog('audio buffered read err', e);
+                            }
+
+                            if (FAKE_SB_DEBUG && bufferedReads <= 5) {
+                                dlog('buffered read #', bufferedReads, '(audio fallback empty TimeRanges used)');
+                            } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
+                                dlog('buffered read #6 -- further fallback reads suppressed');
+                            }
+
+                            return emptyTimeRanges;
+                        },
+                        configurable: true,
+                        enumerable: true
+                    }
+                });
+
+                ['updatestart', 'update', 'updateend', 'abort', 'error'].forEach(type => {
+                    let internalValue = null;
+
+                    Object.defineProperty(fake, `on${type}`, {
+                        get: () => internalValue,
+                        set: (fn) => {
+                            internalValue = typeof fn === 'function' ? fn : null;
+                            dlog(`on${type} direct handler set:`, !!internalValue);
+                        },
+                        configurable: true,
+                        enumerable: true
+                    });
+                });
+
+                fake.appendBuffer = function (buf) {
+                    beginOperation('appendBuffer');
+
+                    const len = byteLengthOf(buf);
+
+                    stats.appendBufferCount++;
+                    stats.lastAppendByteLength = len;
+                    droppedBytes += len;
+                    stats.droppedBytes = droppedBytes;
+
+                    dlog('appendBuffer called; dropping fake video segment bytes:', len);
+
+                    finishOperationAsync();
+                };
+
+                fake.remove = function (start, end) {
+                    beginOperation('remove');
+
+                    stats.removeCount++;
+                    stats.lastRemoveRange = [start, end];
+
+                    dlog(`remove window clear requested range: [${start}, ${end}]`);
+
+                    finishOperationAsync();
+                };
+
+                fake.abort = function () {
+                    stats.abortCount++;
+                    dlog('abort track requested');
+
+                    if (isUpdating) {
+                        isUpdating = false;
+                        triggerEvent('abort');
+                        triggerEvent('updateend');
+                    } else {
+                        triggerEvent('abort');
+                    }
+
+                    maybePrintSummary();
+                };
+
+                fake.changeType = function (type) {
+                    if (isUpdating) {
+                        throw new DOMException(
+                            "Failed to execute 'changeType' on 'SourceBuffer': This SourceBuffer is still processing an operation.",
+                            "InvalidStateError"
+                        );
+                    }
+
+                    stats.changeTypeCount++;
+                    stats.lastChangeType = type;
+
+                    dlog(`changeType conversion requested to: ${type}`);
+                };
+
+                fake.writeHead = function (...args) {
+                    stats.writeHeadCount++;
+                    dlog('writeHead method called with parameters:', ...args);
+                    maybePrintSummary();
+                    return true;
+                };
+
+                fake.appendBufferAsync = function (buf) {
+                    dlog('appendBufferAsync called');
+
+                    return new Promise((resolve, reject) => {
+                        try {
+                            const done = () => {
+                                fake.removeEventListener('updateend', done);
+                                resolve();
+                            };
+
+                            fake.addEventListener('updateend', done);
+                            fake.appendBuffer(buf);
+                        } catch (e) {
+                            reject(e);
+                        }
                     });
                 };
 
-                // Define properties matching the SourceBuffer interface.
-                Object.defineProperties(sb, {
-                    mode: {
-                        get() { return mode; },
-                        set(v) { dlog('mode set ->', v); mode = String(v); },
-                        configurable: true,
-                    },
-                    timestampOffset: {
-                        // base.js `supports(1)` probes for `timestampOffset !== undefined`,
-                        // so this getter must return a real number (not undefined).
-                        get() { return timestampOffset; },
-                        set(v) {
-                            const nv = +v || 0;
-                            if (nv !== timestampOffset) dlog('timestampOffset set ->', nv);
-                            timestampOffset = nv;
-                        },
-                        configurable: true,
-                    },
-                    appendWindowStart: {
-                        get() { return appendWindowStart; },
-                        set(v) {
-                            const nv = +v || 0;
-                            if (nv !== appendWindowStart) dlog('appendWindowStart set ->', nv);
-                            appendWindowStart = nv;
-                        },
-                        configurable: true,
-                    },
-                    appendWindowEnd: {
-                        get() { return appendWindowEnd; },
-                        set(v) {
-                            const nv = (v === Infinity || isFinite(+v)) ? +v : Infinity;
-                            if (nv !== appendWindowEnd) dlog('appendWindowEnd set ->', nv);
-                            appendWindowEnd = nv;
-                        },
-                        configurable: true,
-                    },
-                    updating: {
-                        get() { return updating; },
-                        configurable: true,
-                    },
-                    buffered: {
-                        get() {
-                            bufferedReads++;
-                            const a = getAudioSibling();
-                            if (a) {
-                                try {
-                                    const b = a.buffered;
-                                    if (b && typeof b.length === 'number') {
-                                        if (FAKE_SB_DEBUG && bufferedReads <= 5) {
-                                            dlog('buffered read #', bufferedReads, '(mirroring audio SB:',
-                                                b.length ? `[${b.start(0)}, ${b.end(b.length - 1)}]` : 'empty', ')');
-                                        } else if (FAKE_SB_DEBUG && bufferedReads === 6) {
-                                            dlog('buffered read #6 -- further reads suppressed');
-                                        }
-                                        return b;
-                                    }
-                                } catch (e) {
-                                    if (FAKE_SB_DEBUG) dlog('audio buffered read err', e);
-                                }
-                            }
-                            if (FAKE_SB_DEBUG && bufferedReads <= 5) {
-                                dlog('buffered read #', bufferedReads, '(audio SB not ready -> empty)');
-                            }
-                            return EMPTY_BUFFERED;
-                        },
-                        configurable: true,
-                    },
-                    // base.js reads `this.hX?.writeHead||0`. Mirror the audio
-                    // SB's writeHead so it stays consistent with the mirrored
-                    // buffered range; fall back to 0 before audio SB exists.
-                    writeHead: {
-                        get() {
-                            const a = getAudioSibling();
-                            if (a) {
-                                try {
-                                    const w = a.writeHead;
-                                    if (typeof w === 'number' && isFinite(w)) return w;
-                                } catch (e) { }
-                            }
-                            return 0;
-                        },
-                        configurable: true,
-                    },
-                    // Identify the stub for debugging.
-                    __ytAudioOnlyFakeVideoSB__: { value: true, configurable: false },
-                    __ytAudioOnlyType__: { value: String(mimeType || ''), configurable: false },
-                    __ytAudioOnlyId__: { value: sbId, configurable: false },
-                    __ytAudioOnlyStats__: { get() { return { ...stats, bufferedReads, ageMs: Date.now() - createdAt }; }, configurable: true },
-                });
+                fake.removeAsync = function (start, end) {
+                    dlog('removeAsync called');
 
-                let lastSummaryAt = 0;
-                sb.appendBuffer = function (data) {
-                    stats.appendCalls++;
-                    const len = (data && data.byteLength) || (data && data.length) || 0;
-                    stats.appendBytes += len;
-                    dlog('appendBuffer #', stats.appendCalls, 'bytes:', len, 'total:', stats.appendBytes);
-                    if (FAKE_SB_SUMMARY) {
-                        const now = Date.now();
-                        if (now - lastSummaryAt > FAKE_SB_SUMMARY_INTERVAL_MS) {
-                            lastSummaryAt = now;
-                            console.log(`[yt-audio-only][fake-sb#${sbId}] dropped ${stats.appendCalls} video appends, ` +
-                                `${(stats.appendBytes / 1048576).toFixed(2)} MB so far (video segments are still being ` +
-                                `fetched for this live stream; set BLOCK_VIDEO_TRACK_AT_SOURCE=true to stop them).`);
+                    return new Promise((resolve, reject) => {
+                        try {
+                            const done = () => {
+                                fake.removeEventListener('updateend', done);
+                                resolve();
+                            };
+
+                            fake.addEventListener('updateend', done);
+                            fake.remove(start, end);
+                        } catch (e) {
+                            reject(e);
                         }
-                    }
-                    // Real SBs throw InvalidStateError when already updating.
-                    // We just coalesce: fire one updateend per call regardless.
-                    fireUpdateCycle('appendBuffer');
-                };
-                // Legacy fallback that base.js falls through to:
-                //   this.vG.appendBuffer ? this.vG.appendBuffer(B) : this.vG.append(B)
-                sb.append = sb.appendBuffer;
-
-                sb.remove = function (start, end) {
-                    stats.removeCalls++;
-                    dlog('remove #', stats.removeCalls, 'range:', start, '->', end);
-                    fireUpdateCycle('remove');
+                    });
                 };
 
-                sb.abort = function () {
-                    stats.abortCalls++;
-                    dlog('abort #', stats.abortCalls);
-                    // No-op. Real abort cancels in-flight append; we have none.
-                };
+                window.__ytAudioOnlyLastFakeSB__ = fake;
 
-                sb.changeType = function (newType) {
-                    stats.changeTypeCalls++;
-                    dlog('changeType #', stats.changeTypeCalls, '->', newType);
-                    // No-op. We accept any new type.
-                };
+                console.log(
+                    `[yt-audio-only] fake video SourceBuffer #${sbId} created for ${mimeType}; ` +
+                    `inspect via window.__ytAudioOnlyLastFakeSB__.__ytAudioOnlyStats__`
+                );
 
-                // One-shot summary log so even with FAKE_SB_DEBUG=false
-                // you can see the stub was created.
-                console.log(`[yt-audio-only] fake video SourceBuffer #${sbId} created for ${mimeType}; inspect via window.__ytAudioOnlyLastFakeSB__.__ytAudioOnlyStats__`);
-                // Expose the most recent stub for ad-hoc inspection.
-                try { window.__ytAudioOnlyLastFakeSB__ = sb; } catch (e) { }
-
-                sb.__ms__ = this;
-
-                return sb;
-            };
+                return fake;
+            }
 
             if (msep && typeof msep.addSourceBuffer == 'function' && !msep.addSourceBuffer078) {
                 msep.addSourceBuffer078 = msep.addSourceBuffer;
