@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.10
+// @version             2.3.11
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -2520,7 +2520,7 @@
                         elog(`Error dispatching ${type}:`, err);
                     }
 
-                    dlog('event fired:', type);
+                    // dlog('event fired:', type);
                 };
 
                 const beginOperation = (methodName) => {
@@ -2714,7 +2714,7 @@
                     droppedBytes += len;
                     stats.droppedBytes = droppedBytes;
 
-                    dlog('appendBuffer called; dropping fake video segment bytes:', len);
+                    // dlog('appendBuffer called; dropping fake video segment bytes:', len);
 
                     finishOperationAsync();
                 };
