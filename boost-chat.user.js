@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.32
+// @version             0.3.33
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @author              CY Fung
@@ -4464,6 +4464,48 @@ SOFTWARE.
     return xItemWM.get(dom);
   }
 
+  const patchConfigExprFlags = (keyValues, fn) => {
+    const m = ((yt || 0).config_ || 0).EXPERIMENT_FLAGS || {};
+    let err, r;
+    const w = Object.entries(keyValues).map((x) => ({
+      key: x[0],
+      original: m[x[0]],
+      tempVal: x[1]
+    }));
+    try {
+      for (const entry of w) {
+        if (entry.tempVal != null) {
+          if (m[entry.key] !== entry.tempVal) {
+            m[entry.key] = entry.tempVal;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(e)
+    }
+    try {
+      r = fn();
+    } catch (e) {
+      err = e;
+    }
+    try {
+      for (const entry of w) {
+        const ori = entry.original;
+        if (m[entry.key] !== ori) {
+          if (ori == null) {
+            delete m[entry.key];
+          } else {
+            m[entry.key] = ori;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(e)
+    }
+    if (err) throw err;
+    return r;
+  }
+
   whenCEDefined('yt-live-chat-item-list-renderer').then(() => {
     let dummy;
     let cProto;
@@ -6239,33 +6281,38 @@ f.handleRemoveChatItemAction_ = function(a) {
 
 
           const cnt = insp(wliveChatTextMessageRenderer);
-          cnt.showContextMenu.call({
-            data: {
-              contextMenuEndpoint: getBstController(messageEntry).bstDataRaw.contextMenuEndpoint
-            },
-            isAttached: true,
-            is: cnt.is,
-            __showContextMenu_forceNativeRequest__: true,
-            showContextMenu37: cnt.showContextMenu37,
-            showContextMenu47: cnt.showContextMenu47,
-            showContextMenu47_: cnt.showContextMenu47_,
-            showContextMenu_: cnt.showContextMenu_,
-            showContextMenu: cnt.showContextMenu,
+          patchConfigExprFlags({
+            "live_chat_web_debounce_context_menu_requests": false
+          }, () => {
+            cnt.showContextMenu.call({
+              data: {
+                contextMenuEndpoint: getBstController(messageEntry).bstDataRaw.contextMenuEndpoint
+              },
+              isAttached: true,
+              is: cnt.is,
+              __showContextMenu_forceNativeRequest__: true,
+              showContextMenu37: cnt.showContextMenu37,
+              showContextMenu47: cnt.showContextMenu47,
+              showContextMenu47_: cnt.showContextMenu47_,
+              showContextMenu_: cnt.showContextMenu_,
+              showContextMenu: cnt.showContextMenu,
+              fetchContextMenu: cnt.fetchContextMenu,
 
-            handleGetContextMenuResponse_: function (a) {
-              a.isSuccess = true;
-              menuMenuCache.set(messageUid, a);
-              resolve(a);
-            },
-            handleGetContextMenuError: function (a) {
+              handleGetContextMenuResponse_: function (a) {
+                a.isSuccess = true;
+                menuMenuCache.set(messageUid, a);
+                resolve(a);
+              },
+              handleGetContextMenuError: function (a) {
 
-              a.isFailure = true;
-              menuMenuCache.set(messageUid, a);
-              resolve(a);
+                a.isFailure = true;
+                menuMenuCache.set(messageUid, a);
+                resolve(a);
 
-            }
-          }, undefined);
+              }
+            }, undefined);
 
+          });
 
 
         });
