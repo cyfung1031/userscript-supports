@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.33
+// @version             0.3.34
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @author              CY Fung
@@ -4465,7 +4465,7 @@ SOFTWARE.
   }
 
   const patchConfigExprFlags = (keyValues, fn) => {
-    const m = ((yt || 0).config_ || 0).EXPERIMENT_FLAGS || {};
+    const m = typeof yt !== "undefined" ? ((yt || 0).config_ || 0).EXPERIMENT_FLAGS || {} : {};
     let err, r;
     const w = Object.entries(keyValues).map((x) => ({
       key: x[0],
