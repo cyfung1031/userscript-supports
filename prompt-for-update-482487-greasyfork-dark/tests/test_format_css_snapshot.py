@@ -84,6 +84,30 @@ def main():
         assert result.returncode == 0, result.stdout + result.stderr
         assert "/* source rule comment */" in output.read_text()
 
+        excluded_comment_source = Path(directory) / "excluded-comment-source.css"
+        excluded_comment_source.write_text(
+            "/* mention :root and @media (prefers-color-scheme: dark) in a comment */\n"
+            ":root{--light: white}\n.x{margin:auto 0}"
+        )
+        output = Path(directory) / "excluded-comment-output.css"
+        result = subprocess.run(
+            [
+                "python3",
+                str(FORMATTER),
+                "--source-css",
+                str(excluded_comment_source),
+                "--owner-snapshot",
+                str(commented_owner),
+                "--output",
+                str(output),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "--light: white" not in output.read_text()
+        assert "/* mention :root" in output.read_text()
+
     print("PASS: CSS snapshot formatter examples")
 
 

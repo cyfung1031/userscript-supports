@@ -153,12 +153,30 @@ def remove_excluded_branches_keep_comments(css: str) -> str:
         re.compile(r"@media\s*\([^)]*prefers-color-scheme\s*:\s*dark[^)]*\)\s*\{"),
     )
     while True:
-        matches = [match for pattern in patterns if (match := pattern.search(css))]
+        masked = mask_comments(css)
+        matches = [match for pattern in patterns if (match := pattern.search(masked))]
         if not matches:
             return css
         match = min(matches, key=lambda item: item.start())
         closing = matching_brace(css, match.end() - 1)
         css = css[: match.start()] + css[closing + 1 :]
+
+
+def mask_comments(css: str) -> str:
+    chars = list(css)
+    index = 0
+    while index < len(chars) - 1:
+        if chars[index : index + 2] == ["/", "*"]:
+            end = css.find("*/", index + 2)
+            if end < 0:
+                raise ValueError("unterminated CSS comment")
+            for position in range(index, end + 2):
+                if chars[position] not in "\n\r":
+                    chars[position] = " "
+            index = end + 2
+        else:
+            index += 1
+    return "".join(chars)
 
 
 def parse_blocks(css: str) -> list[Block]:
