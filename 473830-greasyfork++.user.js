@@ -254,7 +254,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Status nicht verfügbar"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Listen:",
                                 "blacklisted": "Gefilterte Skripte ({count})",
                                 "hidden": "Ausgeblendete Skripte ({count})"
                         },
@@ -335,7 +335,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Status unavailable"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Lists:",
                                 "blacklisted": "Filtered scripts ({count})",
                                 "hidden": "Hidden scripts ({count})"
                         },
@@ -416,7 +416,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Estado no disponible"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Listas:",
                                 "blacklisted": "Scripts filtrados ({count})",
                                 "hidden": "Scripts ocultos ({count})"
                         },
@@ -497,7 +497,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "État indisponible"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Listes :",
                                 "blacklisted": "Scripts filtrés ({count})",
                                 "hidden": "Scripts masqués ({count})"
                         },
@@ -578,7 +578,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Stato non disponibile"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Elenchi:",
                                 "blacklisted": "Script filtrati ({count})",
                                 "hidden": "Script nascosti ({count})"
                         },
@@ -659,7 +659,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Estado indisponível"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Listas:",
                                 "blacklisted": "Scripts filtrados ({count})",
                                 "hidden": "Scripts ocultos ({count})"
                         },
@@ -740,7 +740,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Status indisponível"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} Listas:",
                                 "blacklisted": "Scripts filtrados ({count})",
                                 "hidden": "Scripts ocultos ({count})"
                         },
@@ -821,7 +821,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "Статус недоступен"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} списки:",
                                 "blacklisted": "Отфильтрованные скрипты ({count})",
                                 "hidden": "Скрытые скрипты ({count})"
                         },
@@ -902,7 +902,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "状态不可用"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} 列表：",
                                 "blacklisted": "已筛选脚本（{count}）",
                                 "hidden": "已隐藏脚本（{count}）"
                         },
@@ -983,7 +983,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "狀態無法取得"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} 清單：",
                                 "blacklisted": "已篩選腳本（{count}）",
                                 "hidden": "已隱藏腳本（{count}）"
                         },
@@ -1064,7 +1064,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "状態を確認できません"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} リスト:",
                                 "blacklisted": "フィルターされたスクリプト（{count}）",
                                 "hidden": "非表示のスクリプト（{count}）"
                         },
@@ -1145,7 +1145,7 @@ const mWindow = isInIframe || (() => {
                                 "unavailable": "상태를 확인할 수 없음"
                         },
                         "listPanel": {
-                                "title": "{name}",
+                                "title": "{name} 목록:",
                                 "blacklisted": "필터링된 스크립트 ({count})",
                                 "hidden": "숨긴 스크립트 ({count})"
                         },
@@ -2458,8 +2458,8 @@ inIframeFn() || (async () => {
     // https://violentmonkey.github.io/vm-shortcut/
     const shortcuts = [
         ['ctrlcmd-alt-keys', () => avoidDuplicationF() && gmc.open()],
-        ['ctrlcmd-alt-keyb', () => avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
-        ['ctrlcmd-alt-keyh', () => avoidDuplicationF() && toggleListDisplayingItem('hidden')]
+        ['ctrlcmd-alt-keyb', () => gmc.get('hideBlacklistedScripts') && avoidDuplicationF() && toggleListDisplayingItem('blacklisted')],
+        ['ctrlcmd-alt-keyh', () => gmc.get('hideHiddenScript') && avoidDuplicationF() && toggleListDisplayingItem('hidden')]
     ]
     for (const [scKey, scFn] of shortcuts) {
         _VM.shortcut.register(scKey, scFn);
@@ -2490,19 +2490,29 @@ inIframeFn() || (async () => {
     };
 
 
-    const toggleListDisplayingItem = (t) => {
+    const listViewTypes = ['blacklisted', 'hidden'];
+    const syncListOptionState = (type, isShown) => {
+        const anchorId = type === 'blacklisted' ? 'hyperlink-35389' : 'hyperlink-40361';
+        const anchor = document.getElementById(anchorId);
+        const item = anchor?.closest('.list-option');
+        item?.classList.toggle('list-current', isShown);
+        anchor?.setAttribute('aria-pressed', String(isShown));
+    };
 
-        const m = document.documentElement;
+    const toggleListDisplayingItem = (type) => {
+        if (!listViewTypes.includes(type)) return false;
+        const setting = type === 'blacklisted' ? 'hideBlacklistedScripts' : 'hideHiddenScript';
+        if (!gmc.get(setting)) return false;
 
-        const p = t + '-shown';
-        let currentIsShown = m.hasAttribute(p)
-        if (!currentIsShown) {
-            m.setAttribute(p, '')
-        } else {
-            m.removeAttribute(p)
+        const root = document.documentElement;
+        const willShow = !root.hasAttribute(`${type}-shown`);
+        for (const viewType of listViewTypes) root.removeAttribute(`${viewType}-shown`);
+        if (willShow) root.setAttribute(`${type}-shown`, '');
+        for (const viewType of listViewTypes) {
+            syncListOptionState(viewType, willShow && viewType === type);
         }
-
-    }
+        return willShow;
+    };
 
     const createListOptionGroup = () => {
         const firstOptionGroup = document.querySelector('.list-option-groups > div');
@@ -2511,9 +2521,9 @@ inIframeFn() || (async () => {
         const group = document.createElement('div');
         group.className = 'list-option-group';
         group.id = `${id}-options`;
-        const heading = document.createElement('span');
-        heading.textContent = `${GM.info.script.name} Lists:`;
-        group.appendChild(heading);
+        group.appendChild(document.createTextNode(mWindow.formatMessage(strings.listPanel.title, {
+            name: GM.info.script.name
+        })));
         const list = document.createElement('ul');
         const makeOption = (type, anchorId) => {
             const item = document.createElement('li');
@@ -2521,25 +2531,24 @@ inIframeFn() || (async () => {
             const anchor = document.createElement('a');
             anchor.href = '#';
             anchor.id = anchorId;
+            anchor.setAttribute('role', 'button');
+            const isShown = document.documentElement.hasAttribute(`${type}-shown`);
+            item.classList.toggle('list-current', isShown);
+            anchor.setAttribute('aria-pressed', String(isShown));
             item.appendChild(anchor);
-            list.appendChild(item);
+            item.addEventListener('click', event => {
+                event.preventDefault();
+                toggleListDisplayingItem(type);
+            });
+            return item;
         };
-        makeOption('blacklisted', 'hyperlink-35389');
-        makeOption('hidden', 'hyperlink-40361');
+        const options = [];
+        if (gmc.get('hideBlacklistedScripts')) options.push(makeOption('blacklisted', 'hyperlink-35389'));
+        if (gmc.get('hideHiddenScript')) options.push(makeOption('hidden', 'hyperlink-40361'));
+        if (!options.length) return;
+        list.append(...options);
         group.appendChild(list);
         firstOptionGroup.parentNode.insertBefore(group, firstOptionGroup);
-
-        const blacklistedOption = document.querySelector(`#${id}-options li.blacklisted`);
-        blacklistedOption && blacklistedOption.addEventListener('click', (evt) => {
-            evt.preventDefault();
-            toggleListDisplayingItem('blacklisted');
-        }, false);
-
-        const hiddenOption = document.querySelector(`#${id}-options li.hidden`);
-        hiddenOption && hiddenOption.addEventListener('click', (evt) => {
-            evt.preventDefault();
-            toggleListDisplayingItem('hidden');
-        }, false);
 
     }
 
@@ -2549,11 +2558,10 @@ inIframeFn() || (async () => {
         mutationRunner(() => {
             let aBlackList = document.querySelector('#hyperlink-35389');
             let aHidden = document.querySelector('#hyperlink-40361');
-            if (!aBlackList || !aHidden) return;
-            aBlackList.textContent = mWindow.formatMessage(strings.listPanel.blacklisted, {
+            if (aBlackList) aBlackList.textContent = mWindow.formatMessage(strings.listPanel.blacklisted, {
                 count: document.querySelectorAll('.script-list li.blacklisted').length
             });
-            aHidden.textContent = mWindow.formatMessage(strings.listPanel.hidden, {
+            if (aHidden) aHidden.textContent = mWindow.formatMessage(strings.listPanel.hidden, {
                 count: document.querySelectorAll('.script-list li.hidden').length
             });
         }, scriptList, { childList: true, subtree: true });
