@@ -3243,6 +3243,1439 @@ select:-webkit-autofill:focus {
   
   `,
 
+        // Structural additions and changes from the current Greasy Fork application CSS.
+        // Keep the original dark colors and supplemental user/extension styles above unchanged.
+        // https://greasyfork.org/vite/assets/application-BUQg-itE.css
+        `
+body {
+    margin: 0px;
+}
+
+body, select, input {
+    font-family: "Open Sans", sans-serif, "Segoe UI Emoji";
+}
+
+body:lang(zh-CN), select:lang(zh-CN), input:lang(zh-CN) {
+    font-family: "Open Sans", "Microsoft YaHei UI", sans-serif, "Segoe UI Emoji";
+}
+
+body:lang(zh-TW), select:lang(zh-TW), input:lang(zh-TW) {
+    font-family: "Open Sans", "Microsoft JHengHei UI", sans-serif, "Segoe UI Emoji";
+}
+
+input[type="checkbox"], input[type="radio"] {
+    vertical-align: middle;
+}
+
+@media screen and (width <= 1228px) {
+    .width-constraint {
+        margin: auto 1.2vw;
+    }
+}
+
+@media screen and (width <= 400px) {
+    .width-constraint {
+        margin: auto 0px;
+    }
+}
+
+.inline-list, .block-list {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+.block-list {
+    margin: 0px;
+}
+
+.inline-list li::after, .block-list li::after {
+    content: ", ";
+}
+
+body:lang(he) .inline-list li::after, body:lang(he) .block-list li::after, body:lang(ar) .inline-list li::after, body:lang(ar) .block-list li::after, body:lang(ug) .inline-list li::after, body:lang(ug) .block-list li::after, body:lang(ckb) .inline-list li::after, body:lang(ckb) .block-list li::after {
+    content: "،";
+}
+
+.inline-list li:last-child::after, .block-list li:last-child::after {
+    content: "";
+}
+
+.form-control input:not([type="radio"]):not([type="file"]):not([type="checkbox"]):not([type="search"]):not([type="submit"]):not([size]) {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.radio-group input[type="radio"], .radio-group input[type="checkbox"] {
+    vertical-align: top;
+    margin-left: 1em;
+}
+
+.form-control label.radio-label, .form-control label.checkbox-label {
+    vertical-align: top;
+    max-width: calc(100% - 38px);
+}
+
+.screenshots-controls > :not(label) {
+    padding-left: 1em;
+}
+
+#script-info, .user-list, .text-content, .discussion-list, .notification-list {
+    padding: 0px 1em 1em;
+}
+
+#script-info > :last-child, .user-list > :last-child, .text-content > :last-child, .discussion-list > :last-child, .notification-list > :last-child {
+    margin-bottom: 0px;
+}
+
+.script-list {
+    padding: 0px;
+}
+
+.script-list, .user-list, .text-content, .discussion-list, .notification-list {
+    margin: 14px 0px;
+}
+
+.text-content:last-child {
+    margin-bottom: 0px;
+}
+
+.user-list {
+    margin: 1em 0px;
+}
+
+.list-option-groups ~ ol {
+    width: calc(-14em + 960px);
+}
+
+.text-content .list-option-groups ~ ol {
+    width: calc(-16em + 960px);
+}
+
+@media screen and (width <= 960px) {
+    #script-info, .user-list, .text-content {
+        padding: 0px 1.2vw 1.2vw;
+    }
+}
+
+@media screen and (width <= 400px) {
+    .script-list, .user-list, .text-content, .discussion-list, .notification-list {
+    }
+}
+
+@media screen and (width <= 400px) {
+    .user-list, .text-content, .discussion-list, .notification-list, .script-list-description {
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+}
+
+@media screen and (width <= 400px) {
+    .discussion-list-header, .user-list-header, .library-list-header {
+        margin-top: 15px;
+        margin-bottom: 10px;
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+}
+
+@media screen and (width <= 400px) {
+    #script-info {
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+}
+
+@media screen and (width <= 400px) {
+    #script-links {
+        margin-left: -1em;
+        margin-right: -1em;
+        padding: 0px;
+    }
+}
+
+@media screen and (width <= 400px) {
+    #additional-info {
+        margin-left: -1em;
+        margin-right: -1em;
+    }
+}
+
+.script-list .cf-wrapper {
+    margin: 0px !important;
+}
+
+@media screen and (width <= 960px) {
+    .script-list li:not(.ad-entry) {
+        padding: 1.2vw;
+    }
+}
+
+.script-list h2 {
+    margin: 0px;
+}
+
+.script-list p {
+    margin: 0px;
+}
+
+.script-list footer {
+    margin-top: 0.25em;
+}
+
+.script-list .description {
+    margin: 0.5em 0px;
+}
+
+#script-description, .script-list h2 > a, .script-list .description {
+    overflow-wrap: break-word;
+}
+
+@media screen and (width <= 720px) {
+    .script-list, #script-content {
+        margin-left: unset;
+    }
+}
+
+.good-rating-count, .ok-rating-count, .bad-rating-count {
+    padding: 0px 0.25em;
+}
+
+#by-site-list {
+    padding: 0px;
+}
+
+.preview-result {
+    padding: 0.5em;
+}
+
+.alert {
+    padding: 0.5em;
+}
+
+.notice, .validation-errors {
+    border-top-width: medium;
+    border-right-width: medium;
+    border-bottom-width: medium;
+    border-top-style: none;
+    border-right-style: none;
+    border-bottom-style: none;
+    border-image: none;
+    padding: 0.5em;
+}
+
+.validation-errors {
+    margin: 0.5em 0px;
+}
+
+.validation-errors > p:first-child {
+    margin-top: 0px;
+}
+
+.validation-errors > p:last-child {
+    margin-bottom: 0px;
+}
+
+.stats-table th, .stats-table td {
+    padding: 0px 0.5em;
+}
+
+#edit_user > div {
+    margin-bottom: 0.5em;
+}
+
+a.self-link, a.self-link:visited {
+    opacity: 0.2;
+}
+
+.external-login-container > :not(button) {
+    font-size: smaller;
+}
+
+form.external-login-form {
+    margin: 0px auto;
+}
+
+form.new_user {
+    margin: 0px auto;
+}
+
+@media screen and (width <= 440px) {
+    form.new_user {
+        width: unset;
+    }
+}
+
+form.new_user input[type="text"], form.new_user input[type="email"], form.new_user input[type="password"] {
+    box-sizing: border-box;
+    vertical-align: middle;
+    border-radius: 3px;
+    outline: none;
+    width: 100%;
+    min-height: 34px;
+    margin-top: 0.2em;
+    margin-bottom: 0.5em;
+    padding: 6px 8px;
+    font-size: 14px;
+    line-height: 20px;
+    display: block;
+}
+
+form input[type="checkbox"], input[type="checkbox"] + label, form input[type="radio"], input[type="radio"] + label {
+    font-size: small;
+    display: inline-block;
+}
+
+@media screen and (width <= 440px) {
+    form input[type="checkbox"] + label {
+        display: unset;
+        overflow-wrap: break-word;
+    }
+}
+
+form.new_user input[type="submit"] {
+    box-sizing: border-box;
+    text-align: center;
+    vertical-align: middle;
+    white-space: normal;
+    border-radius: 3px;
+    width: 100%;
+    min-height: 34px;
+    margin: 0.5em 0px 0px;
+    padding: 6px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 20px;
+    display: block;
+}
+
+form.new_user ~ a {
+    margin: 0px auto 2em;
+}
+
+form.new_user + a {
+    margin: 0px auto;
+}
+
+.qr-code {
+    max-width: 400px;
+}
+
+
+.sidebar-search input[type="search"], .home-search input[type="search"] {
+    padding-inline-end: 20px;
+}
+
+.sidebar-search input[type="search"] {
+    width: 100%;
+    margin: 0px 0px 1em;
+}
+
+.sidebar-search input[type="submit"], .home-search input[type="submit"] {
+    appearance: none;
+    inset-inline-end: 0px;
+    opacity: 0.5;
+    margin-left: 0px;
+    margin-right: 0px;
+    padding-inline: 0px 6px;
+    position: absolute;
+    top: 0px;
+}
+
+@media screen and (width <= 680px) {
+    .sidebar-search input[type="search"], .home-search input[type="search"] {
+        font-size: unset;
+    }
+}
+
+@media screen and (width <= 400px) {
+    .user-list {
+        padding-top: 1em;
+        padding-bottom: 1em;
+    }
+}
+
+.ad-rb img {
+    max-width: 100%;
+}
+
+.script-list .ad-entry .ad-rb {
+    margin: 0px;
+}
+
+.ad-rb-top {
+    margin-top: 0px;
+    margin-left: -16px;
+    margin-right: -16px;
+}
+
+input[type="radio"]:checked ~ .after-radio-chosen {
+    display: block;
+}
+
+.announcement {
+    margin: 14px 0px;
+}
+
+.announcement input {
+    margin: 0px 0px 0px 4px;
+    padding: 0px;
+}
+
+.badge {
+    padding: 0px 0.5ex;
+    top: -0.2ex;
+}
+
+.badge-deleted {
+    margin-left: 0px;
+}
+
+.code-container {
+    max-height: calc(-54px + 100vh);
+}
+
+.code-container pre {
+    margin: 0px;
+}
+
+li.L0, li.L1, li.L2, li.L3, li.L4, li.L5, li.L6, li.L7, li.L8, li.L9 {
+    list-style-type: decimal !important;
+}
+
+@media screen and (width <= 440px) {
+    #code-container {
+        font-size: small;
+    }
+}
+
+.diff_options input[type="number"] {
+    width: 10ch;
+}
+
+.diff ul {
+    margin: 0px;
+    padding: 0px;
+}
+
+.diff li {
+    margin: 0px;
+    padding: 0px;
+}
+
+.diff del, .diff ins, .diff span {
+    font-family: monospace;
+}
+
+.diff {
+    max-height: calc(-54px + 100vh);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.ethical-ads:not([data-ea-style]) .ea-content, .ethical-ads:not([data-ea-style]) .ea-callout {
+    margin: 0px !important;
+}
+
+#user-show-ea:not([data-ea-style]) + .report-link {
+    top: 65px;
+}
+
+.ethical-ads-text:not([data-ea-style]) .ea-placement {
+    position: relative;
+}
+
+.ethical-ads-text:not([data-ea-style]) .ea-callout {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+}
+
+.ethical-ads-text:empty:not([data-ea-style]) {
+    min-height: 46px;
+}
+
+.text-content > .ethical-ads:first-child:not([data-ea-style]) {
+    border-radius: 5px 5px 0px 0px;
+    margin: 0px calc(-1em - 1px);
+}
+
+@media screen and (width <= 960px) {
+    .text-content > .ethical-ads:first-child:not([data-ea-style]) {
+        margin: 0px calc(-1px - 1.2vw);
+    }
+}
+
+@media screen and (width <= 400px) {
+    .text-content > .ethical-ads:first-child:not([data-ea-style]) {
+        border-radius: 5px 5px 0px 0px;
+        margin: 0px calc(-1em - 1px);
+    }
+}
+
+.script-list .ad-entry .ethical-ads:not([data-ea-style]) {
+    margin: 0px;
+}
+
+@media screen and (width <= 400px) {
+    .script-list li.ad-entry {
+        padding: 0px;
+    }
+}
+
+#script-info .ethical-ads-text:not([data-ea-style]) {
+    margin: 0px calc(-1em - 1px);
+}
+
+#script-info .ethical-ads-text:not([data-ea-style]) .ea-content {
+    border-radius: 0px !important;
+}
+
+@media screen and (width <= 960px) {
+    #script-info .ethical-ads-text:not([data-ea-style]) {
+        margin: 0px calc(-1px - 1.2vw);
+    }
+}
+
+.ad[data-ea-style] {
+    margin-bottom: 0px;
+}
+
+.expander {
+    bottom: 0px;
+}
+
+.discussion-meta-item, .notification-meta-item {
+    flex: 1 1 0%;
+}
+
+.comment-meta-spacer {
+    flex: 1 1 0%;
+}
+
+.post-reply h3, .edit-comment-form h3 {
+    margin-bottom: 0px;
+}
+
+.post-reply input[type="submit"], .edit-comment-form input[type="submit"] {
+    margin-top: 5px;
+}
+
+.discussion-up-level {
+    margin-top: 0px;
+}
+
+.discussion-list, .notification-list {
+    padding-bottom: 0px;
+}
+
+a.discussion-title, .notification-list-item a {
+    padding: 4px 0px 14px;
+}
+
+.comment .user-content > :first-child {
+    margin-top: 0px;
+}
+
+.comment-screenshot-control {
+    padding: 0.5em 0px;
+}
+
+@media screen and (width <= 400px) {
+    .discussion-header, .discussion-list-header, .notification-list-header, .user-list-header {
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
+}
+
+.discussion-header > :first-child, .discussion-list-header h2, .notification-list-header > :first-child {
+    flex: 1 1 0%;
+    margin: 0px !important;
+}
+
+.discussion-header h2, .discussion-header .discussion-up-level, .notification-list-header h2 {
+    margin: 0px;
+}
+
+.discussion-subscription-links button {
+    appearance: none;
+    cursor: pointer;
+    font: inherit;
+    padding: 0px;
+    text-decoration: underline;
+}
+
+#main-header {
+    padding: 0.25em 0px;
+}
+
+#main-header .width-constraint {
+    padding: 0px 0px 0.25em;
+}
+
+#main-header h1 {
+    margin: 0px;
+}
+
+#main-header .subtitle {
+    margin: -8px 0px 0px 10px;
+    font-size: 0.7em;
+}
+
+#site-nav > nav, #nav-user-info {
+    right: 0px;
+}
+
+#site-nav > nav {
+    bottom: 0px;
+}
+
+#nav-user-info {
+    top: 0px;
+}
+
+#site-nav > nav {
+    padding: 0px;
+}
+
+#site-nav > nav > li + li {
+    margin-left: 0.5em;
+}
+
+nav nav {
+    padding: 5px 0px;
+    right: 0px;
+}
+
+nav nav li {
+    margin: 0px;
+}
+
+nav a:hover + nav, nav nav:hover, nav a:focus + nav, nav .with-submenu:focus-within > nav {
+    display: block;
+}
+
+nav .with-submenu > a::after {
+    content: " ▾";
+}
+
+@media screen and (width <= 920px) {
+    #site-name img {
+        width: 12%;
+        max-width: 96px;
+        height: 12%;
+        max-height: 96px;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #site-name-text {
+        margin-top: 1.15vw;
+        margin-bottom: 1.15vw;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #main-header h1 {
+        font-size: 8.3vw;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #main-header .subtitle {
+        margin: -0.8em 0px 0px 10px;
+        font-size: 2vw;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #site-nav {
+        margin-top: -1vw;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #site-nav > nav, #nav-user-info {
+        position: unset;
+        right: unset;
+        padding-top: 0.3em;
+        display: block;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #site-nav > nav {
+        bottom: unset;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #nav-user-info {
+        top: unset;
+        font-size: unset;
+        width: 100%;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #nav-user-info .sign-in-link {
+        padding-right: 0.7em;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #script-search, .language-selector {
+        display: unset;
+    }
+}
+
+.mobile-nav-opener {
+    padding: 0px 2vw;
+    top: 0px;
+    right: 0px;
+}
+
+.mobile-nav-opener:focus-visible {
+    outline-offset: 2px;
+    outline: solid 2px;
+}
+
+#mobile-nav nav li.multi-link-nav a {
+    padding: 0px;
+}
+
+@media screen and (width <= 920px) {
+    #site-nav {
+        display: none;
+    }
+}
+
+@media screen and (width <= 920px) {
+    #mobile-nav {
+        display: block;
+    }
+}
+
+@media screen and (width <= 400px) {
+    #site-name {
+        margin-left: 1em;
+    }
+}
+
+#home-script-nav {
+    margin: 0px auto 15px;
+}
+
+.home-search input[type="search"] {
+    width: 100%;
+}
+
+#home-top-sites a {
+    margin: 0px 5px;
+}
+
+#home-step-1 figure {
+    margin-top: 0px;
+}
+
+#home-step-2 figure {
+    margin-top: 0px;
+}
+
+@media screen and (width <= 680px) {
+    #home-step-1 figure, #home-step-2 figure, #home-step-3 figure {
+        float: unset;
+        max-width: unset;
+        width: fit-content;
+        margin: 0px auto;
+    }
+}
+
+@media screen and (width <= 680px) {
+    [id^="home-step-"] figure img {
+        width: 100%;
+        height: auto;
+    }
+}
+
+#install-area .install-link:hover, #install-area .install-link:focus, #install-area .install-help-link:hover, #install-area .install-help-link:focus {
+    transition: box-shadow 0.2s;
+}
+
+.install-link, .install-link:visited, .install-link:active, .install-link:hover, .install-help-link {
+    padding: 0.5em 1em;
+    transition: box-shadow 0.2s;
+}
+
+.list-option-group ul {
+    margin: 0.5em 0px 0px;
+    padding: 1em 0px;
+}
+
+.list-option-group a {
+    padding: 0.35em 1em;
+}
+
+.list-option-group .list-current {
+    margin: 0px 0px 0px -4px;
+    padding: 0.4em 1em 0.4em calc(1em - 3px);
+}
+
+.list-option-group .list-current a {
+    padding: 0px;
+}
+
+@media screen and (width >= 440px) and (width <= 960px) {
+    .list-option-group a, .list-option-group .list-current {
+        padding-left: 1.2vw;
+        padding-right: 1.2vw;
+    }
+}
+
+.list-option-button {
+    padding: 0.5em;
+}
+
+.list-option:not(.list-current) select {
+    margin: 0.4em 1em 0.4em calc(1em - 3px);
+}
+
+.log-table td, .log-table th {
+    padding: 0px 5px;
+}
+
+.modal__title {
+    margin-bottom: 0px;
+    margin-top: 0px !important;
+}
+
+.modal__close {
+    padding: 0px;
+}
+
+.modal__header .modal__close::before {
+    content: "✕";
+}
+
+.modal__btn {
+    appearance: button;
+    margin: 0px 0px 0px 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    transition: transform 0.25s ease-out;
+    transform: translateZ(0px);
+}
+
+.pagination, .script-list + .pagination, .user-list + .pagination, .pagy {
+    border-radius: 5px;
+    margin: 0px;
+    padding: 0px;
+    font-size: 18px;
+    display: block;
+}
+
+.pagination > a, .script-list + .pagination > a, .user-list + .pagination > a, .pagy > a {
+    padding: 0.5em;
+    display: inline-block;
+}
+
+.pagination > a[href], .script-list + .pagination > a[href], .user-list + .pagination > a[href], .pagy > a[href] {
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+:is(.pagination, .pagy) .disabled {
+    display: none;
+}
+
+:is(.pagination, .pagy) .current {
+    font-style: normal;
+    font-weight: 700;
+}
+
+:is(.pagination, .pagy) .current, :is(.pagination, .pagy) .gap {
+}
+
+:is(.pagination, .pagy) > a[href]:hover, :is(.pagination, .pagy) > a[href]:focus {
+}
+
+@media screen and (width <= 400px) {
+    .pagination, .script-list + .pagination, .user-list + .pagination, .pagy {
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+}
+
+.pagy a {
+    margin: 0px 0.15em;
+}
+
+.post-install-promoted-script {
+    margin-bottom: 2em;
+}
+
+.post-install-promoted-script h2 {
+    margin: 0px;
+    font-size: 2em;
+}
+
+.post-install-promoted-script p {
+    margin: 0px;
+}
+
+.post-install-promoted-install {
+    margin-top: 1em;
+}
+
+.preview-results {
+    margin: 0px;
+}
+
+.preview-results > p:first-child {
+    margin-top: 0px;
+}
+
+.preview-results > p:last-child {
+    margin-bottom: 0px;
+}
+
+.previewable textarea {
+    margin: 0px;
+}
+
+.report-link-abs {
+    top: 0px;
+    right: 0px;
+}
+
+.report-resolution-options input[type="submit"] {
+    margin-top: 0.5em;
+}
+
+.report-screenshot-control {
+    padding: 0.5em 0px;
+}
+
+:not(:lang(he)):not(:lang(ar)):not(:lang(ug)):not(:lang(ckb)), body:lang(he) #main-header, body:lang(ar) #main-header, body:lang(ug) #main-header, body:lang(ckb) #main-header {
+    direction: ltr;
+}
+
+#script-info {
+    margin: 1em 0px 0px;
+}
+
+#script-content > :first-child {
+    margin-top: 0px;
+}
+
+#script-info header h2 {
+    margin: 0.25em 0px 0px;
+}
+
+#script-description {
+    margin: 0px;
+}
+
+#version-note, #reported-note, #deleted-note {
+    padding: 0.5em;
+}
+
+#script-feedback-suggestion {
+    margin: 0.75em 0px;
+}
+
+.checkup-list li {
+    padding-inline-start: 0.5em;
+}
+
+.script-meta-block > :last-child {
+    margin-bottom: 1em;
+}
+
+.inline-script-stats {
+    margin: 0px 22px 0px 0px;
+}
+
+.inline-script-stats, .inline-script-stats dt, .inline-script-stats dd {
+    padding: 0px;
+}
+
+.inline-script-stats dt, .inline-script-stats dd {
+    margin: 1px 0px;
+}
+
+dd.script-list-ratings {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+@media screen and (width <= 600px) {
+    .script-meta-block {
+        column-count: 1;
+    }
+}
+
+.script-antifeatures span[title] {
+    text-decoration: underline dotted;
+}
+
+.browser-incompatible {
+    opacity: 0.5;
+}
+
+@media screen and (width <= 720px) {
+    .change-script-set .selection-box {
+        width: 100%;
+    }
+}
+
+.history_versions {
+    padding: 0px;
+}
+
+.diff-controls, .version-number, .version-date, .version-changelog {
+    padding-bottom: 0.5em;
+}
+
+.version-changelog p:first-child {
+    margin-top: 0px;
+}
+
+.version-changelog p:last-child {
+    margin-bottom: 0px;
+}
+
+.remove-attachment input {
+    margin-left: 0px;
+}
+
+.sidebarred-main-content {
+    flex: 1 1 0%;
+}
+
+.sidebar {
+    flex: 0 0 auto;
+    padding-bottom: 0.75em;
+}
+
+.close-sidebar:focus-visible, .open-sidebar:focus-visible {
+    outline-offset: 2px;
+    outline: solid 2px;
+}
+
+.sidebar-title {
+    flex: 1 1 0%;
+}
+
+@media screen and (width <= 800px) {
+    .sidebarred {
+        display: block;
+        position: relative;
+    }
+}
+
+@media screen and (width <= 800px) {
+    .sidebar {
+        border-width: 1px 0 1px 1px;
+        border-style: solid;
+        border-image: none;
+        border-radius: 3px 0 0 3px;
+        padding-top: 0px;
+        padding-left: 1em;
+        padding-right: 1em;
+        position: absolute;
+        top: 0px;
+        right: -1.2vw;
+    }
+}
+
+@media screen and (width <= 800px) {
+    .sidebar.collapsed {
+        display: none;
+    }
+}
+
+@media screen and (width <= 800px) {
+    .close-sidebar {
+        margin-bottom: 1.5em;
+        margin-left: -16px;
+        margin-right: -16px;
+        padding: 0.25em 1.2vw 0.25em 16px;
+        display: flex;
+    }
+}
+
+@media screen and (width <= 800px) {
+    .open-sidebar.sidebar-collapsed {
+        visibility: visible;
+    }
+}
+
+@media screen and (width >= 800px) {
+    .sidebarred-main-content {
+        max-width: calc(100% - 224px);
+    }
+}
+
+@media screen and (width <= 400px) {
+    .open-sidebar {
+        margin-right: 0px;
+    }
+}
+
+@media screen and (width <= 400px) {
+    .close-sidebar {
+        margin-right: -1em;
+        padding-right: 2.4vw;
+    }
+}
+
+.tabs {
+    margin: 0px -1em;
+    padding: 0px 1em;
+}
+
+.tabs > * > * {
+    padding: 0.25em 0.5em 0.5em;
+}
+
+.tabs .current, .tabs > :not(.current) a:hover, .tabs > :not(.current) a:focus {
+}
+
+.tabs > :not(.current) a {
+    margin-top: 3.5px;
+    padding-top: calc(0.25em + 3.5px);
+}
+
+.user-content {
+    padding: 0.5em 1em;
+}
+
+.user-content > p:first-child {
+    margin-top: 0px;
+}
+
+.user-content > p:last-child {
+    margin-bottom: 0px;
+}
+
+.comment-screenshot-control {
+    margin: 10px 0px;
+}
+
+.user-content > ol:first-child, .user-content > ul:first-child {
+    margin-top: 0px;
+}
+
+.user-content > ol:last-child, .user-content > ul:last-child {
+    margin-bottom: 0px;
+}
+
+@keyframes lum-fade {
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes lum-fadeZoom {
+    0% {
+        transform: scale(0.5);
+    }
+}
+
+@keyframes lum-fadeZoom {
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-rotate {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+}
+
+@keyframes lum-loader-rotate {
+    50% {
+        transform: translate(-50%, -50%) rotate(-180deg);
+    }
+}
+
+@keyframes lum-loader-rotate {
+    100% {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+@keyframes lum-loader-before {
+    0% {
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-before {
+    50% {
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-before {
+    60% {
+        transform: scale(0.8) translate(6px);
+    }
+}
+
+@keyframes lum-loader-before {
+    75% {
+        transform: scale(0.7) translate(8px);
+    }
+}
+
+@keyframes lum-loader-before {
+    90% {
+        transform: scale(0.8) translate(6px);
+    }
+}
+
+@keyframes lum-loader-before {
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-after {
+    0% {
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-after {
+    10% {
+        transform: scale(1.2) translate(-6px);
+    }
+}
+
+@keyframes lum-loader-after {
+    25% {
+        transform: scale(1.3) translate(-8px);
+    }
+}
+
+@keyframes lum-loader-after {
+    40% {
+        transform: scale(1.2) translate(-6px);
+    }
+}
+
+@keyframes lum-loader-after {
+    50% {
+        transform: scale(1);
+    }
+}
+
+@keyframes lum-loader-after {
+    60% {
+        transform: scale(0.8) translate(-6px);
+    }
+}
+
+@keyframes lum-loader-after {
+    75% {
+        transform: scale(0.7) translate(-8px);
+    }
+}
+
+@keyframes lum-loader-after {
+    90% {
+        transform: scale(0.8) translate(-6px);
+    }
+}
+
+@keyframes lum-loader-after {
+    100% {
+        transform: scale(1);
+    }
+}
+
+.lum-lightbox-inner {
+    inset: 2.5%;
+}
+
+.lum-lightbox-inner .lum-lightbox-caption {
+    margin: 0px auto;
+}
+
+.lum-loading .lum-lightbox-loader {
+    animation: 1.8s linear 0s infinite normal none running lum-loader-rotate;
+    transform: translate(-50%, -50%);
+}
+
+.lum-lightbox-loader::before, .lum-lightbox-loader::after {
+    content: "";
+    border-radius: 20px;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    display: block;
+    position: absolute;
+    top: 50%;
+}
+
+.lum-lightbox-loader::before {
+    animation: 1.8s linear 0s infinite normal none running lum-loader-before;
+    left: 0px;
+}
+
+.lum-lightbox-loader::after {
+    animation: 1.8s linear -900ms infinite normal none running lum-loader-after;
+    right: 0px;
+}
+
+.lum-lightbox.lum-opening {
+    animation: 0.18s ease-out 0s 1 normal none running lum-fade;
+}
+
+.lum-lightbox.lum-opening .lum-lightbox-inner {
+    animation: 0.18s ease-out 0s 1 normal none running lum-fadeZoom;
+}
+
+.lum-lightbox.lum-closing {
+    animation: 0.3s ease-in 0s 1 reverse none running lum-fade;
+}
+
+.lum-lightbox.lum-closing .lum-lightbox-inner {
+    animation: 0.3s ease-in 0s 1 reverse none running lum-fadeZoom;
+}
+
+.lum-img {
+    transition: opacity 0.12s ease-out;
+}
+
+.lum-gallery-button {
+    margin: 0px;
+    padding: 0px;
+}
+
+.lum-close-button {
+    opacity: 0.3;
+}
+
+.lum-close-button::before, .lum-close-button::after {
+    content: " ";
+    width: 2px;
+    height: 33px;
+    position: absolute;
+    left: 15px;
+}
+
+.lum-close-button::before {
+    transform: rotate(45deg);
+}
+
+.lum-close-button::after {
+    transform: rotate(-45deg);
+}
+
+.lum-gallery-button::after {
+    content: "";
+    width: 36px;
+    height: 36px;
+    display: block;
+    position: absolute;
+    top: 50%;
+}
+
+.lum-previous-button::after {
+    border-radius: 3px 0px 0px;
+    left: 12%;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.lum-next-button::after {
+    border-radius: 0px 3px 0px 0px;
+    right: 12%;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+@media (width <= 460px) {
+    .lum-lightbox-image-wrapper {
+        display: flex;
+        overflow: auto;
+    }
+}
+
+@media (width <= 460px) {
+    .lum-lightbox-caption {
+        width: 100%;
+        position: absolute;
+        bottom: 0px;
+    }
+}
+
+@media (width <= 460px) {
+    .lum-lightbox-position-helper {
+        margin: auto;
+    }
+}
+
+@media (width <= 460px) {
+    .lum-lightbox-inner img {
+        max-width: none;
+        max-height: none;
+    }
+}
+        `,
+
 // https://greasyfork.org/en/scripts/482487-greasyfork-dark/stats
 // https://github.com/greasyfork-org/greasyfork/blob/main/app/views/scripts/stats.html.erb#L28
 `
