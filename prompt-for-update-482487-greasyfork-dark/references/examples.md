@@ -25,6 +25,27 @@ Expected result:
 
 Interpretation: the current selector set is represented, the old comments and colors remain, official dark variables are inactive, supplemental blocks remain, JavaScript syntax is valid, and the working-tree scope is limited to the target file. If the skill folder itself is still uncommitted, omit --only-target until that package change is committed or isolated.
 
+## Example 1b: classify a historical seam
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/classify_lineage.py \
+      /tmp/greasyfork-v0.3.25.user.js /tmp/greasyfork-v0.3.30.user.js
+
+Expected result includes:
+
+    mode: STRUCTURAL_REFRESH
+
+The same command for v0.3.30→v0.3.31 reports `NO_GENERAL_CHANGE`, while v0.3.31→v0.3.32
+reports `TARGETED_OWNER_DELTA`. These are routing examples; the current live stylesheet remains
+the structure oracle.
+
+## Example 1c: format-focused diff review
+
+Before accepting a snapshot refresh, compare the target diff and confirm that unchanged blocks
+retain their prior indentation, blank lines, selector grouping, declaration order, and adjacent
+comments. If a formatter rewrote unrelated blocks, restore the established shape and keep only
+the CSS structure/owner-preference changes. The bundled checks are secondary confirmation for this
+review; see references/format-contract.md.
+
 ## Example 2: duplicate snapshot failure
 
 If an agent appends a new template literal instead of replacing the existing one, the checker must stop:

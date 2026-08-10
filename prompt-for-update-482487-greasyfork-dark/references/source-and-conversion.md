@@ -14,14 +14,15 @@ The skill guides an edit to the target; it is not a replacement coding file. Nev
 1. Observe the live Greasy Fork stylesheet link and obtain the current application CSS asset. Record the exact asset URL/hash or a local formatted copy outside the repository.
 2. Read the current CSS structure, including selectors, media queries, at-rule nesting, pseudo-elements, changed tags/classes, and layering-sensitive rules.
 3. Separate current structure from official theme variables. Exclude active :root and prefers-color-scheme dark branches because this userscript owns its dark design.
-4. Normalize formatting only for comparison and conversion. Preserve the target's established snapshot formatting when writing the result.
+4. Normalize formatting only for comparison. When writing, preserve the target's established snapshot formatting; do not let a source formatter dictate line wrapping, blank lines, declaration order, or selector grouping.
 
 ## Convert into the actual snapshot
 
-1. Start from the current CSS structure, then merge visual declarations from the actual previous // general snapshot by normalized selector and semantic role.
+1. Build a candidate from the current CSS structure, then overlay visual declarations from the actual previous // general snapshot by normalized selector and semantic role.
 2. Resolve current variables to values established by the actual previous snapshot. If a selector was renamed or regrouped, retain the old selector-specific override in the same // general template so the owner color remains effective.
-3. Preserve inline and standalone comments, custom --gfdark-* properties, and supplemental styles. Do not delete an old rule because its live validity is uncertain.
-4. Use apply_patch to replace only the bytes between the existing // general template backticks. Do not rewrite cssTextFn or append a second snapshot. Keep all other JavaScript and template entries unchanged unless direct evidence requires a separately justified link-predicate fix.
-5. Run the checker with --base-ref HEAD and, when available, --upstream-css. Inspect the diff for a single in-place general replacement, then run node --check and git diff --check.
+3. Use the lineage classification to choose the merge breadth: a targeted delta changes only the affected declaration; a structural refresh updates the current topology; a no-general-change transition leaves the snapshot untouched.
+4. Preserve inline and standalone comments, custom --gfdark-* properties, and supplemental styles. Do not delete an old rule because its live validity is uncertain. The v0.3.30 runtime filter specifically demonstrates that custom properties can be part of the owner contract.
+5. Use apply_patch to replace only the bytes between the existing // general template backticks. Do not rewrite cssTextFn or append a second snapshot. Keep all other JavaScript and template entries unchanged unless direct evidence requires a separately justified link-predicate fix.
+6. Inspect the diff immediately. If unchanged blocks were reformatted, restore the previous shape before proceeding. Then run the checker with --base-ref HEAD and, when available, --upstream-css, followed by node --check and git diff --check.
 
 The output artifact is the actual userscript's existing general snapshot. The skill files remain guidance and mechanical tooling only.

@@ -20,11 +20,13 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 ## Load by phase
 
 - Update procedure, source/version mapping, merge rules, and stop condition: read references/workflow.md.
+- Published adjacent-version patterns and the routing classifier: read references/lineage-deltas.md and run scripts/classify_lineage.py when version sources are available.
 - Reading the existing JavaScript and converting upstream CSS into the snapshot: read references/source-and-conversion.md.
+- Snapshot indentation, ordering, comments, and focused-diff rules: read references/format-contract.md before editing.
 - Color substitutions and changed-selector policy: read references/color-policy.md.
 - Deterministic checks and failure interpretation: read references/mechanical-checks.md.
 - Concrete passing/failing command examples: read references/examples.md.
 
 ## Required handoff
 
-Run the bundled checker, the small fixture test at tests/test_check_snapshot.py, JavaScript syntax and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and push/update the PR only after all checks pass. Keep the final diff limited to the requested target and skill artifacts.
+Run the bundled checker, the small fixture test at tests/test_check_snapshot.py, JavaScript syntax and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and push/update the PR only after all checks pass. Treat these as best-effort double confirmation; the actual script, format contract, focused diff, and owner comments remain primary. Keep the final diff limited to the requested target and skill artifacts.

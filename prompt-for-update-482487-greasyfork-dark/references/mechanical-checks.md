@@ -8,7 +8,19 @@ Run the realistic miniature examples before changing the live target:
 
     python3 prompt-for-update-482487-greasyfork-dark/tests/test_check_snapshot.py
 
-This test invokes the real checker and asserts one passing conversion plus failures for a duplicate general marker, a missing current selector, and a lost historical comment.
+This test invokes the real checker and asserts one passing conversion plus failures for a duplicate general marker, a missing current selector, and a lost historical comment. It is a double-confirmation aid, not a substitute for reading the actual script and reviewing the formatted diff.
+
+## Version-lineage check
+
+For two readable adjacent published scripts, run:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/classify_lineage.py \
+      /tmp/greasyfork-v0.3.31.user.js /tmp/greasyfork-v0.3.32.user.js
+
+The result must be reviewed before editing. `NO_GENERAL_CHANGE` means the historical transition
+does not justify a snapshot edit; `TARGETED_OWNER_DELTA` means inspect a narrow owner delta;
+`STRUCTURAL_REFRESH` means perform the full current-CSS merge. This check does not replace the
+current live CSS coverage check.
 
 ## Standard update check
 
@@ -21,6 +33,10 @@ This test invokes the real checker and asserts one passing conversion plus failu
     git diff --check
 
 Use --only-target when the working tree contains only the userscript update. Omit it while the skill package itself is being created or changed.
+
+When reapplying against the same live CSS asset, also require an empty target-only diff if the
+checker passes. An empty target diff is evidence that the existing snapshot is already current;
+it is not a missing implementation.
 
 ## What the checker proves
 
@@ -38,6 +54,10 @@ The checker verifies:
 - every selector from an optional formatted upstream CSS input is represented;
 - node --check succeeds;
 - optional full porcelain git scope, including untracked files, contains only the target userscript.
+
+The checker does not certify visual equivalence or all formatting intent. Before trusting a pass,
+review indentation, blank lines, selector grouping, declaration order, comment placement, and
+whether unchanged blocks were needlessly reflowed, using references/format-contract.md.
 
 ## Failure handling
 
