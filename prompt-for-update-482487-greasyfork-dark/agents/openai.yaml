@@ -1,0 +1,4 @@
+interface:
+  display_name: "Greasy Fork CSS Snapshot Updater"
+  short_description: "Refresh the general CSS snapshot safely"
+  default_prompt: "Use $prompt-for-update-482487-greasyfork-dark to refresh the Greasy Fork Dark general CSS snapshot."
