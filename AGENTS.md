@@ -19,7 +19,7 @@ that still renders this file as the sole policy source, or mark the work `NOT_RE
 canonical contract is loadable.
 
 Before relying on an alias or platform include, record canonical-resolution evidence: the loader
-path or mechanism, resolved `AGENT.md` identity, and content hash or equivalent byte-identity check.
+path or mechanism, resolved `AGENTS.md` identity, and content hash or equivalent byte-identity check.
 Also record the observed loader resolution graph, precedence, and final loaded bytes or hash. If the
 actual consuming loader cannot be observed, mark policy loading `UNVERIFIED` and do not return
 `READY`; a local filesystem check alone does not prove the runtime loader used the canonical policy.
@@ -450,7 +450,7 @@ applicability_evidence:
 | Selected solution, alternatives, decision criteria, and accepted trade-offs are explained |  |
 | Every material work item maps to rationale and acceptance evidence |  |
 | Risks, mitigations, residual exposure, triggers, owner, and adoption decision are reviewed |  |
-| Canonical AGENT.md resolution and byte/content identity are verified |  |
+| Canonical AGENTS.md resolution and byte/content identity are verified |  |
 | Weak, invalid, inferred, contradicted, and unverified claims are disclosed |  |
 | Final revision, final diff inventory, verification, and code-quality assessment are recorded |  |
 | Every changed surface is classified and all applicable change-type gates are adopted |  |
@@ -916,7 +916,7 @@ Before submitting or asking for review:
       contains the confirmation checkboxes.
 - [ ] I reviewed foreseeable risks and failure modes, mitigations, residual exposure, detection or
       trigger conditions, owner, and adoption decision; I did not claim zero risk by omission.
-- [ ] I verified the canonical AGENT.md resolution and recorded its identity/content evidence; if
+- [ ] I verified the canonical AGENTS.md resolution and recorded its identity/content evidence; if
       it could not be verified, the submission decision is `NOT_READY`.
 - [ ] “What changed” is concise and appears after “why changed”.
 
