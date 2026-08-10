@@ -2068,6 +2068,33 @@ inIframeFn() || (async () => {
         return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
     }
 
+    let settingsSessionSnapshot = null;
+    let settingsSaveCommitted = false;
+    let settingsSessionGeneration = 0;
+    let settingsEventCleanups = [];
+    const clearSettingsEventListeners = () => {
+        const cleanups = settingsEventCleanups;
+        settingsEventCleanups = [];
+        for (const cleanup of cleanups) cleanup();
+    };
+    const addSettingsEventListener = (target, type, handler, options) => {
+        if (!target?.addEventListener) return;
+        target.addEventListener(type, handler, options);
+        settingsEventCleanups.push(() => target.removeEventListener(type, handler, options));
+    };
+    const snapshotSettingsSession = () => {
+        settingsSessionSnapshot = Object.fromEntries(Object.keys(fields)
+            .filter(key => fields[key]?.type !== 'button')
+            .map(key => [key, gmc.get(key)]));
+        settingsSaveCommitted = false;
+    };
+    const restoreSettingsSession = () => {
+        if (!settingsSessionSnapshot) return;
+        for (const [key, value] of Object.entries(settingsSessionSnapshot)) {
+            if (gmc.fields[key]) gmc.fields[key].value = value;
+        }
+    };
+
     const gmc = new GM_config({
         id,
         title,
@@ -2081,25 +2108,16 @@ inIframeFn() || (async () => {
             },
             /** @param {Document} document */
             open: async (document) => {
+                const generation = ++settingsSessionGeneration;
+                clearSettingsEventListeners();
+                snapshotSettingsSession();
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
                 const hiddenSet = new Set(numberArr(await GMA.getValue('hiddenList', [])));
-                if (hiddenSet.size !== 0) {
-                    const unsavedHiddenList = hiddenListStrToArr(gmc.get('hiddenList'));
-                    const unsavedHiddenSet = new Set(unsavedHiddenList);
-
-                    const hasDifferentItems = [...hiddenSet].some(item => !unsavedHiddenSet.has(item)) || [...unsavedHiddenSet].some(item => !hiddenSet.has(item));
-
-                    if (hasDifferentItems) {
-
-                        gmc.fields.hiddenList.value = [...hiddenSet].sort((a, b) => a - b).join(', ');
-
-                        gmc.close();
-                        gmc.open();
-
-                    }
-
-                }
+                if (generation !== settingsSessionGeneration || !gmc.isOpen) return;
+                const hiddenValue = [...hiddenSet].sort((a, b) => a - b).join(', ');
+                gmc.fields.hiddenList.value = hiddenValue;
+                if (textarea) textarea.value = hiddenValue;
 
                 const resize = (target) => {
                     target.style.height = '';
@@ -2108,11 +2126,14 @@ inIframeFn() || (async () => {
 
                 if (textarea) {
                     resize(textarea);
-                    textarea.addEventListener('input', (event) => resize(event.target));
+                    addSettingsEventListener(textarea, 'input', (event) => resize(event.target));
 
                 }
 
-                document.body.addEventListener('mousedown', (event) => {
+                addSettingsEventListener(document, 'keydown', event => {
+                    if (event.key === 'Escape') gmc.close();
+                });
+                addSettingsEventListener(document.body, 'mousedown', (event) => {
                     if (event.detail > 1 && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && !event.defaultPrevented) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -2120,10 +2141,25 @@ inIframeFn() || (async () => {
                     }
                 }, true);
             },
+            close: () => {
+                settingsSessionGeneration++;
+                clearSettingsEventListeners();
+                if (!settingsSaveCommitted) restoreSettingsSession();
+                settingsSessionSnapshot = null;
+                settingsSaveCommitted = false;
+            },
             save: async (forgotten) => {
 
                 if (gmc.isOpen) {
-                    await GMA.setValue('hiddenList', hiddenListStrToArr(forgotten.hiddenList));
+                    const generation = settingsSessionGeneration;
+                    try {
+                        await GMA.setValue('hiddenList', hiddenListStrToArr(forgotten.hiddenList));
+                    } catch (error) {
+                        UU.warn(error);
+                        return;
+                    }
+                    if (generation !== settingsSessionGeneration || !gmc.isOpen) return;
+                    settingsSaveCommitted = true;
 
                     UU.alert('settings saved');
                     gmc.close();
