@@ -57,6 +57,19 @@ if (!localStorage.darkMode) localStorage.darkMode = 'true';
 
     `;
 
+    /*
+     * AGENT TASK GUIDE: load prompt-for-update-482487-greasyfork-dark/SKILL.md
+     * before updating this CSS snapshot. The current application stylesheet must
+     * replace the existing // general template in place; never append another
+     * snapshot or redesign cssTextFn/removeNonColor/generalCSSFn.
+     *
+     * Owner invariants: previous hard-coded colors are this script's dark-theme
+     * preference; preserve every CSS comment and selector-specific override,
+     * including webhook/userscript/extension styles. Exclude the active
+     * :root and @media (prefers-color-scheme: dark) branches from upstream.
+     * Run the bundled mechanical checker after the edit and use sub-agent review
+     * between incremental commits.
+     */
     const cssTextFn = () => [
 
         // general
