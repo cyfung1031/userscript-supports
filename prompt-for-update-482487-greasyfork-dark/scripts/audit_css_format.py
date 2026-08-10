@@ -27,29 +27,30 @@ def ordered_missing(source_sequence, snapshot_sequence):
 
 
 def audit(source_css: str, snapshot_css: str) -> dict[str, object]:
+    raw_snapshot_css = snapshot_css
     source_css = CHECKER.remove_excluded_branches(source_css)
-    source_sequence = CHECKER.css_selector_sequence(source_css)
-    snapshot_sequence = CHECKER.css_selector_sequence(snapshot_css)
-    source_counts = CHECKER.repeated_css_selector_counts(source_css)
-    snapshot_counts = CHECKER.repeated_css_selector_counts(snapshot_css)
+    snapshot_css = CHECKER.remove_excluded_branches(snapshot_css)
+    source_sequence = CHECKER.css_rule_sequence(source_css)
+    snapshot_sequence = CHECKER.css_rule_sequence(snapshot_css)
+    source_counts = CHECKER.repeated_css_rule_counts(source_css)
+    snapshot_counts = CHECKER.repeated_css_rule_counts(snapshot_css)
     collapsed = sorted(
         (selector, count, snapshot_counts.get(selector, 0))
         for selector, count in source_counts.items()
         if count > 1 and snapshot_counts.get(selector, 0) < count
     )
-    missing_tokens = sorted(
-        CHECKER.declaration_tokens(source_css) - CHECKER.declaration_tokens(snapshot_css)
+    missing_tokens = CHECKER.ordered_missing_declaration_tokens_by_context(
+        source_css, snapshot_css
     )
+    whitespace = CHECKER.css_whitespace_metrics(raw_snapshot_css)
     return {
         "source_blocks": len(source_sequence),
         "snapshot_blocks": len(snapshot_sequence),
         "ordered_missing_selectors": ordered_missing(source_sequence, snapshot_sequence),
         "collapsed_repeated_blocks": collapsed,
         "missing_non_color_tokens": missing_tokens,
-        "snapshot_tabs": snapshot_css.count("\t"),
-        "snapshot_trailing_whitespace_lines": sum(
-            line.rstrip() != line for line in snapshot_css.splitlines()
-        ),
+        "snapshot_tabs": whitespace["tabs"],
+        "snapshot_trailing_whitespace_lines": whitespace["trailing_whitespace_lines"],
     }
 
 
@@ -72,10 +73,15 @@ def main() -> None:
         }
         and value
     }
-    print("FORMAT_HARNESS: " + ("FAIL" if findings else "PASS"))
+    strict_findings = dict(findings)
+    if args.strict:
+        for key in ("snapshot_tabs", "snapshot_trailing_whitespace_lines"):
+            if result[key]:
+                strict_findings[key] = result[key]
+    print("FORMAT_HARNESS: " + ("FAIL" if strict_findings else "PASS"))
     for key, value in result.items():
         print(f"{key}: {value}")
-    if args.strict and findings:
+    if args.strict and strict_findings:
         raise SystemExit(1)
 
 
