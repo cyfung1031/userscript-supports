@@ -11,7 +11,7 @@ The skill guides an edit to the target; it is not a replacement coding file. Nev
 
 ## Read the new CSS source
 
-1. Observe the live Greasy Fork stylesheet link and obtain the current application CSS asset. Record the exact asset URL/hash or a local formatted copy outside the repository.
+1. Observe the live Greasy Fork stylesheet link and obtain the current application CSS asset. Record the exact asset URL/hash or a local raw copy outside the repository; keep any formatted copy separate and navigation-only.
 2. Read the current CSS structure, including selectors, media queries, at-rule nesting, pseudo-elements, changed tags/classes, and layering-sensitive rules.
 3. Separate current structure from official theme variables. Exclude active :root and prefers-color-scheme dark branches because this userscript owns its dark design.
 4. Normalize formatting only for selector comparison. Preserve source declaration tokens and the target's established snapshot container formatting; do not let a source formatter add units, semicolons, shorthand changes, line wrapping, or declaration reordering.

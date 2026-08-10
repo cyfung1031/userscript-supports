@@ -27,12 +27,13 @@ current live CSS coverage check.
 Run the ordered source-to-snapshot harness before accepting the diff:
 
     python3 prompt-for-update-482487-greasyfork-dark/scripts/audit_css_format.py \
-      --source-css /tmp/greasyfork-current-application.formatted.css \
+      --source-css /tmp/greasyfork-current-application.raw.css \
       --snapshot-file 482487-greasyfork-dark.user.js \
       --strict
 
 It reports source selectors missing from the snapshot, repeated blocks that were collapsed, and
-best-effort non-color declaration-token drift. A pass does not prove visual equivalence or exact
+best-effort non-color declaration-token drift. The source path must be the raw CSS asset; do not
+use a pretty-printed file for token decisions. A pass does not prove visual equivalence or exact
 order, so inspect the ordered diff; a failure is a repair signal, not a reason to weaken the rule.
 
 ## Standard update check
@@ -40,7 +41,7 @@ order, so inspect the ordered diff; a failure is a repair signal, not a reason t
     python3 prompt-for-update-482487-greasyfork-dark/scripts/check_snapshot.py \
       --file 482487-greasyfork-dark.user.js \
       --base-ref HEAD \
-      --upstream-css /tmp/greasyfork-current-application.formatted.css \
+      --upstream-css /tmp/greasyfork-current-application.raw.css \
       --only-target
     node --check 482487-greasyfork-dark.user.js
     git diff --check
@@ -66,7 +67,7 @@ The checker verifies:
 - CSS braces, parentheses, comments, quotes, and escapes are balanced;
 - CSS variables are declared, including owner --gfdark-* variables;
 - comments and hex colors from HEAD remain;
-- every selector from an optional formatted upstream CSS input is represented;
+- every selector and best-effort declaration token from the raw upstream CSS input is represented;
 - repeated upstream selector blocks are not collapsed into one block;
 - best-effort non-color declaration tokens from the upstream CSS are represented, so unit/value drift such as `auto 0` → `auto 0px` is surfaced;
 - node --check succeeds;

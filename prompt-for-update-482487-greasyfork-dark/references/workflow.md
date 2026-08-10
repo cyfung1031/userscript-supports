@@ -14,7 +14,7 @@ For a published script version, use this mapping:
     https://greasyfork.org/en/scripts/482487-greasyfork-dark?version=<version>
     https://update.greasyfork.org/scripts/482487/<version>/GreasyFork%20Dark.user.js
 
-For the application CSS, use the current stylesheet link observed in the live page, not a stale historical asset. Save a formatted snapshot outside the repository when useful.
+For the application CSS, use the current stylesheet link observed in the live page, not a stale historical asset. Save the raw asset outside the repository; a formatted copy is optional for navigation only.
 
 ## 2. Classify the version seam
 

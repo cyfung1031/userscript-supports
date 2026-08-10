@@ -10,7 +10,7 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 ## Core contract
 
 - Update the one existing // general template literal in place. Never append a second application CSS snapshot.
-- Treat current application CSS as the structure oracle and the historical // general snapshot as the owner styling oracle.
+- Treat the raw current application CSS as the structure/non-color-token oracle and the historical // general snapshot as the owner styling oracle. Formatted copies are navigation aids only.
 - Treat the actual target script, especially its current or HEAD // general declarations, as authoritative for colors and comments. Reference files contain examples and procedure only; they may become stale.
 - Preserve all CSS comments, hard-coded colors, selector-specific overrides, and webhook/userscript/extension/PrettyPrint/stats supplemental templates.
 - Exclude active :root variables and the official prefers-color-scheme dark branch. Preserve the user's own dark-theme design.

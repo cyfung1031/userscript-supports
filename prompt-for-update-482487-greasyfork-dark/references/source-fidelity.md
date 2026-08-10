@@ -18,7 +18,8 @@ values while transferring structure.
 - Do not add `px` to zero values, add/remove semicolons, expand shorthand, convert color syntax, or
   reorder declarations merely because a formatter prefers it.
 - Use the raw CSS asset for token decisions. A separately pretty-printed copy is only a navigation
-  aid and must not silently rewrite values before conversion.
+  aid for selectors and block boundaries; it must not supply declaration values or silently rewrite
+  tokens before conversion.
 
 ## Preserve comments as code context
 

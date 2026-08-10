@@ -1,6 +1,8 @@
 # Mechanical-check examples
 
-Run these examples from the repository root after loading the skill and obtaining a formatted current application CSS snapshot.
+Run these examples from the repository root after loading the skill and obtaining the raw current
+application CSS asset. A formatted copy may be kept separately for navigation, but never for
+declaration-token decisions.
 
 The small realistic fixtures are stored in the skill package:
 
@@ -16,7 +18,7 @@ Use this after replacing only the existing // general template:
     python3 prompt-for-update-482487-greasyfork-dark/scripts/check_snapshot.py \
       --file 482487-greasyfork-dark.user.js \
       --base-ref HEAD \
-      --upstream-css /tmp/greasyfork-current-application.formatted.css \
+      --upstream-css /tmp/greasyfork-current-application.raw.css \
       --only-target
 
 Expected result:
