@@ -40,137 +40,185 @@ class Block:
     header: str
     declarations: list[Declaration]
     children: list["Block"]
+    items: list[Declaration | "Block"]
+
+
+def _iter_css_code(css: str):
+    """Yield CSS code characters with the nesting state before each character."""
+    index = 0
+    quote = ""
+    comment = False
+    parenthesis_depth = 0
+    bracket_depth = 0
+    while index < len(css):
+        if comment:
+            if css.startswith("*/", index):
+                comment = False
+                index += 2
+                continue
+            index += 1
+            continue
+        if quote:
+            char = css[index]
+            if char == "\\":
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+            index += 1
+            continue
+        if css.startswith("/*", index):
+            comment = True
+            index += 2
+            continue
+        char = css[index]
+        if char == "\\":
+            index += 2
+            continue
+        yield index, char, parenthesis_depth, bracket_depth
+        if char in "\"'":
+            quote = char
+        elif char == "(":
+            parenthesis_depth += 1
+        elif char == ")" and parenthesis_depth:
+            parenthesis_depth -= 1
+        elif char == "[":
+            bracket_depth += 1
+        elif char == "]" and bracket_depth:
+            bracket_depth -= 1
+        index += 1
 
 
 def matching_brace(css: str, opening: int) -> int:
     depth = 1
-    quote = ""
-    comment = False
-    index = opening + 1
-    while index < len(css):
-        if comment:
-            if css.startswith("*/", index):
-                comment = False
-                index += 2
-                continue
-            index += 1
-            continue
-        if css.startswith("/*", index):
-            comment = True
-            index += 2
-            continue
-        char = css[index]
-        if quote:
-            if char == "\\":
-                index += 2
-                continue
-            if char == quote:
-                quote = ""
-        elif char in "\"'":
-            quote = char
-        elif char == "{":
+    offset = opening + 1
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(css[offset:]):
+        if char == "{" and parenthesis_depth == 0 and bracket_depth == 0:
             depth += 1
-        elif char == "}":
+        elif char == "}" and parenthesis_depth == 0 and bracket_depth == 0:
             depth -= 1
             if depth == 0:
-                return index
-        index += 1
+                return offset + index
     raise ValueError("unbalanced CSS braces")
 
 
 def has_top_level_brace(css: str) -> bool:
-    quote = ""
-    comment = False
-    bracket_depth = 0
-    index = 0
-    while index < len(css):
-        if comment:
-            if css.startswith("*/", index):
-                comment = False
-                index += 2
-                continue
-            index += 1
-            continue
-        if css.startswith("/*", index):
-            comment = True
-            index += 2
-            continue
-        char = css[index]
-        if quote:
-            if char == "\\":
-                index += 2
-                continue
-            if char == quote:
-                quote = ""
-        elif char in "\"'":
-            quote = char
-        elif char == "[":
-            bracket_depth += 1
-        elif char == "]":
-            bracket_depth -= 1
-        elif char == "{" and bracket_depth == 0:
-            return True
-        index += 1
-    return False
+    return any(
+        char == "{" and parenthesis_depth == 0 and bracket_depth == 0
+        for _, char, parenthesis_depth, bracket_depth in _iter_css_code(css)
+    )
+
+
+def _find_top_level_opening(css: str, start: int = 0) -> int | None:
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(css[start:]):
+        if char == "{" and parenthesis_depth == 0 and bracket_depth == 0:
+            return start + index
+    return None
+
+
+def _last_top_level_semicolon(css: str) -> int | None:
+    separator = None
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(css):
+        if char == ";" and parenthesis_depth == 0 and bracket_depth == 0:
+            separator = index
+    return separator
+
+
+def _first_top_level_semicolon(css: str, start: int = 0) -> int | None:
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(css[start:]):
+        if char == ";" and parenthesis_depth == 0 and bracket_depth == 0:
+            return start + index
+    return None
+
+
+def _append_declaration(result: list[Declaration], text: str, terminated: bool) -> None:
+    text = text.strip()
+    if not text:
+        return
+    leading, remainder = leading_comments(text)
+    if leading and result:
+        result[-1].text += " " + " ".join(comments_in(leading))
+        text = remainder.strip()
+    if result and comments_only(text):
+        result[-1].text += " " + text
+    elif text:
+        result.append(Declaration(text, terminated))
 
 
 def split_declarations(body: str) -> list[Declaration]:
     result = []
     start = 0
-    quote = ""
-    comment = False
-    bracket_depth = 0
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(body):
+        if (
+            char == ";"
+            and parenthesis_depth == 0
+            and bracket_depth == 0
+        ):
+            _append_declaration(result, body[start:index], True)
+            start = index + 1
+    _append_declaration(result, body[start:], False)
+    return result
+
+
+def _mask_css_tokens(css: str, *, mask_strings: bool) -> str:
+    chars = list(css)
     index = 0
-    while index < len(body):
-        if comment:
-            if body.startswith("*/", index):
-                comment = False
-                index += 2
-                continue
-            index += 1
-            continue
-        if body.startswith("/*", index):
-            comment = True
-            index += 2
-            continue
-        char = body[index]
+    quote = ""
+    while index < len(css):
         if quote:
+            char = css[index]
             if char == "\\":
+                if mask_strings:
+                    chars[index] = " " if char not in "\n\r" else char
+                    if index + 1 < len(css) and css[index + 1] not in "\n\r":
+                        chars[index + 1] = " "
                 index += 2
                 continue
             if char == quote:
+                if mask_strings and char not in "\n\r":
+                    chars[index] = " "
                 quote = ""
-        elif char in "\"'":
+            elif mask_strings and char not in "\n\r":
+                chars[index] = " "
+            index += 1
+            continue
+        if css.startswith("/*", index):
+            end = css.find("*/", index + 2)
+            if end < 0:
+                raise ValueError("unterminated CSS comment")
+            for position in range(index, end + 2):
+                if css[position] not in "\n\r":
+                    chars[position] = " "
+            index = end + 2
+            continue
+        char = css[index]
+        if char in "\"'":
             quote = char
-        elif char == "[":
-            bracket_depth += 1
-        elif char == "]":
-            bracket_depth -= 1
-        elif char == ";" and bracket_depth == 0:
-            text = body[start:index].strip()
-            if text:
-                leading, remainder = leading_comments(text)
-                if leading and result:
-                    result[-1].text += " " + " ".join(comments_in(leading))
-                    text = remainder.strip()
-                if result and comments_only(text):
-                    result[-1].text += " " + text
-                else:
-                    if text:
-                        result.append(Declaration(text, True))
-            start = index + 1
+            if mask_strings:
+                chars[index] = " "
+        elif char == "\\":
+            index += 2
+            continue
         index += 1
-    text = body[start:].strip()
-    if text:
-        leading, remainder = leading_comments(text)
-        if leading and result:
-            result[-1].text += " " + " ".join(comments_in(leading))
-            text = remainder.strip()
-        if result and comments_only(text):
-            result[-1].text += " " + text
-        elif text:
-            result.append(Declaration(text, False))
-    return result
+    return "".join(chars)
+
+
+def _css_nesting_depths(css: str) -> dict[int, tuple[int, int]]:
+    return {
+        index: (parenthesis_depth, bracket_depth)
+        for index, _, parenthesis_depth, bracket_depth in _iter_css_code(css)
+    }
+
+
+def _first_top_level_match(
+    pattern: re.Pattern[str], masked: str, depths: dict[int, tuple[int, int]]
+):
+    start = 0
+    while match := pattern.search(masked, start):
+        if depths.get(match.start(), (0, 0)) == (0, 0):
+            return match
+        start = match.start() + 1
+    return None
 
 
 def leading_comments(text: str) -> tuple[str, str]:
@@ -190,95 +238,258 @@ def comments_only(text: str) -> bool:
     return not mask_comments(text).strip() and bool(comments_in(text))
 
 
+def find_excluded_branch(css: str) -> tuple[int, int] | None:
+    masked = _mask_css_tokens(css, mask_strings=True)
+    depths = _css_nesting_depths(css)
+    candidates = []
+    root_match = _first_top_level_match(re.compile(r":root\s*\{"), masked, depths)
+    if root_match:
+        candidates.append((root_match.start(), root_match.end() - 1))
+
+    for index, char, parenthesis_depth, bracket_depth in _iter_css_code(css):
+        if char != "@" or parenthesis_depth or bracket_depth:
+            continue
+        media_match = re.match(r"@media\b", css[index:], re.IGNORECASE)
+        if not media_match:
+            continue
+        prelude_start = index + media_match.end()
+        opening = next(
+            (
+                prelude_start + relative_index
+                for relative_index, prelude_char, prelude_parenthesis, prelude_bracket in _iter_css_code(
+                    css[prelude_start:]
+                )
+                if prelude_char == "{"
+                and prelude_parenthesis == 0
+                and prelude_bracket == 0
+            ),
+            None,
+        )
+        if opening is not None:
+            prelude = _mask_css_tokens(css[prelude_start:opening], mask_strings=True)
+            if re.search(
+                r"prefers-color-scheme\s*:\s*dark", prelude, re.IGNORECASE
+            ):
+                candidates.append((index, opening))
+
+    return min(candidates) if candidates else None
+
+
 def remove_excluded_branches_keep_comments(css: str) -> str:
-    patterns = (
-        re.compile(r":root\s*\{"),
-        re.compile(r"@media\s*\([^)]*prefers-color-scheme\s*:\s*dark[^)]*\)\s*\{"),
-    )
     while True:
-        masked = mask_comments(css)
-        matches = [match for pattern in patterns if (match := pattern.search(masked))]
-        if not matches:
+        branch = find_excluded_branch(css)
+        if branch is None:
             return css
-        match = min(matches, key=lambda item: item.start())
-        closing = matching_brace(css, match.end() - 1)
-        css = css[: match.start()] + css[closing + 1 :]
+        start, opening = branch
+        closing = matching_brace(css, opening)
+        css = css[:start] + css[closing + 1 :]
 
 
 def mask_comments(css: str) -> str:
-    chars = list(css)
-    index = 0
-    while index < len(chars) - 1:
-        if chars[index : index + 2] == ["/", "*"]:
-            end = css.find("*/", index + 2)
-            if end < 0:
-                raise ValueError("unterminated CSS comment")
-            for position in range(index, end + 2):
-                if chars[position] not in "\n\r":
-                    chars[position] = " "
-            index = end + 2
-        else:
-            index += 1
-    return "".join(chars)
+    return _mask_css_tokens(css, mask_strings=False)
+
+
+def split_leading_statements(css: str) -> tuple[list[str], str]:
+    statements = []
+    cursor = 0
+    while True:
+        semicolon = _first_top_level_semicolon(css, cursor)
+        opening = _find_top_level_opening(css, cursor)
+        if semicolon is None or (opening is not None and opening < semicolon):
+            break
+        statement = css[cursor : semicolon + 1]
+        masked = mask_comments(statement)
+        if not re.match(r"\s*@(?:charset|import)\b", masked, re.IGNORECASE):
+            break
+        statements.append(statement.strip())
+        cursor = semicolon + 1
+    return statements, css[cursor:]
+
+
+def _parse_block_body(body: str) -> tuple[list[Declaration], list[Block], list[Declaration | Block]]:
+    items: list[Declaration | Block] = []
+    cursor = 0
+    while True:
+        opening = _find_top_level_opening(body, cursor)
+        if opening is None:
+            items.extend(split_declarations(body[cursor:]))
+            break
+
+        prelude = body[cursor:opening]
+        separator = _last_top_level_semicolon(prelude)
+        declaration_end = separator + 1 if separator is not None else 0
+        items.extend(split_declarations(prelude[:declaration_end]))
+
+        header = prelude[declaration_end:].strip()
+        if not header:
+            raise ValueError("CSS nested block without a header")
+        closing = matching_brace(body, opening)
+        child_body = body[opening + 1 : closing]
+        declarations, children, child_items = _parse_block_body(child_body)
+        items.append(Block(header, declarations, children, child_items))
+        cursor = closing + 1
+
+    declarations = [item for item in items if isinstance(item, Declaration)]
+    children = [item for item in items if isinstance(item, Block)]
+    return declarations, children, items
 
 
 def parse_blocks(css: str) -> list[Block]:
+    _, css = split_leading_statements(css)
     blocks = []
     cursor = 0
     while cursor < len(css):
-        opening = cursor
-        quote = ""
-        comment = False
-        bracket_depth = 0
-        while opening < len(css):
-            if comment:
-                if css.startswith("*/", opening):
-                    comment = False
-                    opening += 2
-                    continue
-                opening += 1
-                continue
-            if css.startswith("/*", opening):
-                comment = True
-                opening += 2
-                continue
-            char = css[opening]
-            if quote:
-                if char == "\\":
-                    opening += 2
-                    continue
-                if char == quote:
-                    quote = ""
-            elif char in "\"'":
-                quote = char
-            elif char == "[":
-                bracket_depth += 1
-            elif char == "]":
-                bracket_depth -= 1
-            elif char == "{" and bracket_depth == 0:
-                break
-            opening += 1
-        if opening >= len(css):
+        opening = _find_top_level_opening(css, cursor)
+        if opening is None:
             if css[cursor:].strip():
                 raise ValueError("CSS text outside a rule: " + css[cursor:].strip()[:80])
             break
         header = css[cursor:opening].strip()
         closing = matching_brace(css, opening)
         body = css[opening + 1 : closing]
-        if has_top_level_brace(body):
-            block = Block(header, [], parse_blocks(body))
-        else:
-            block = Block(header, split_declarations(body), [])
+        declarations, children, items = _parse_block_body(body)
+        block = Block(header, declarations, children, items)
         blocks.append(block)
         cursor = closing + 1
     return blocks
 
 
+def _compact_selector(header: str) -> str:
+    result = []
+    quote = ""
+    bracket_depth = 0
+    parenthesis_depth = 0
+    media_feature_depth = 0
+    media_header = bool(
+        re.match(r"^\s*(?:(?:/\*.*?\*/\s*)*)@media\b", header, re.IGNORECASE | re.DOTALL)
+    )
+    pending_space = False
+    index = 0
+
+    def append_pending_space(next_char: str) -> None:
+        nonlocal pending_space
+        if not pending_space:
+            return
+        previous_char = result[-1] if result else ""
+        selector_punctuation = ",>+~|"
+        media_punctuation = ":<>=()"
+        attribute_punctuation = "=~|^$*"
+        discard = (
+            not result
+            or previous_char in selector_punctuation
+            or next_char in selector_punctuation
+            or (
+                media_feature_depth
+                and (
+                    previous_char in media_punctuation
+                    or next_char in media_punctuation
+                )
+            )
+            or (
+                bracket_depth
+                and (
+                    previous_char in attribute_punctuation + "["
+                    or next_char in attribute_punctuation + "]"
+                )
+            )
+        )
+        if not discard:
+            result.append(" ")
+        pending_space = False
+
+    while index < len(header):
+        if quote:
+            char = header[index]
+            result.append(char)
+            if char == "\\" and index + 1 < len(header):
+                result.append(header[index + 1])
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+            index += 1
+            continue
+        if header.startswith("/*", index):
+            closing = header.find("*/", index + 2)
+            if closing < 0:
+                raise ValueError("unterminated CSS comment")
+            index = closing + 2
+            continue
+        char = header[index]
+        if char.isspace():
+            pending_space = True
+            index += 1
+            continue
+        if char in "\"'":
+            append_pending_space(char)
+            quote = char
+            result.append(char)
+        elif char == "\\":
+            append_pending_space(char)
+            result.append(char)
+            if index + 1 < len(header):
+                result.append(header[index + 1])
+                index += 2
+                continue
+        else:
+            append_pending_space(char)
+            result.append(char)
+            if char == "[":
+                bracket_depth += 1
+            elif char == "]" and bracket_depth:
+                bracket_depth -= 1
+            elif char == "(":
+                parenthesis_depth += 1
+                if media_header and parenthesis_depth == 1:
+                    media_feature_depth = 1
+                elif media_feature_depth:
+                    media_feature_depth += 1
+            elif char == ")":
+                if media_feature_depth:
+                    media_feature_depth -= 1
+                if parenthesis_depth:
+                    parenthesis_depth -= 1
+        index += 1
+    return "".join(result)
+
+
+def _replace_outside_quotes(
+    text: str, pattern: re.Pattern[str], replacement: str
+) -> str:
+    result = []
+    outside = []
+    quote = ""
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if quote:
+            result.append(char)
+            if char == "\\" and index + 1 < len(text):
+                result.append(text[index + 1])
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+        elif char in "\"'":
+            result.append(pattern.sub(replacement, "".join(outside)))
+            outside = []
+            result.append(char)
+            quote = char
+        else:
+            outside.append(char)
+        index += 1
+    result.append(pattern.sub(replacement, "".join(outside)))
+    return "".join(result)
+
+
 def selector_key(header: str) -> str:
-    header = re.sub(r"/\*.*?\*/", "", header, flags=re.DOTALL)
-    header = re.sub(r"\bmax-width\s*:", "width <=", header)
-    header = re.sub(r"\bmin-width\s*:", "width >=", header)
-    header = "".join(header.split())
+    header = _compact_selector(header)
+    header = _replace_outside_quotes(
+        header, re.compile(r"\bmax-width\s*:", re.IGNORECASE), "width<="
+    )
+    header = _replace_outside_quotes(
+        header, re.compile(r"\bmin-width\s*:", re.IGNORECASE), "width>="
+    )
 
     return re.sub(
         r"\[([^=\]~|^$*]+)([~|^$*]?=)(?:\"([^\"]*)\"|'([^']*)'|([^\]]+))\]",
@@ -344,15 +555,42 @@ def format_header(header: str) -> list[str]:
 def merge_owner_header(source_header: str, owner_header: str | None) -> str:
     if owner_header is None:
         return source_header
-    source_comments = re.findall(r"/\*.*?\*/", source_header, flags=re.DOTALL)
-    owner_comments = re.findall(r"/\*.*?\*/", owner_header, flags=re.DOTALL)
+    source_comments = comments_in(source_header)
+    owner_comments = comments_in(owner_header)
     comments = owner_comments + [comment for comment in source_comments if comment not in owner_comments]
-    owner_selector = re.sub(r"/\*.*?\*/", "", owner_header, flags=re.DOTALL).strip()
+    owner_selector = mask_comments(owner_header).strip()
     return "\n".join(comments + [owner_selector]) if comments else owner_selector
 
 
 def comments_in(text: str) -> list[str]:
-    return re.findall(r"/\*.*?\*/", text, flags=re.DOTALL)
+    comments = []
+    index = 0
+    quote = ""
+    while index < len(text):
+        if quote:
+            char = text[index]
+            if char == "\\":
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("/*", index):
+            closing = text.find("*/", index + 2)
+            if closing < 0:
+                raise ValueError("unterminated CSS comment")
+            comments.append(text[index : closing + 2])
+            index = closing + 2
+            continue
+        char = text[index]
+        if char in "\"'":
+            quote = char
+        elif char == "\\":
+            index += 2
+            continue
+        index += 1
+    return comments
 
 
 def normalized_declaration(text: str) -> str:
@@ -417,25 +655,45 @@ def format_block(
     lines = []
     for index, header_line in enumerate(format_header(header)):
         lines.append(indent_unit * level + header_line + (" {" if index == len(format_header(header)) - 1 else ""))
-    if block.children:
-        child_lines = []
-        child_path = path + (selector_key(block.header),)
-        child_lines = render_nodes(
-            block.children,
-            child_path,
-            styles,
-            owner_contexts,
-            occurrences,
-            indent_unit,
-            level + 1,
-        )
-        lines.extend(child_lines)
-    else:
-        declarations = owner_overlay_declarations(block.declarations, owner)
-        for declaration in declarations:
+    declarations = owner_overlay_declarations(block.declarations, owner)
+    declaration_index = 0
+    items = block.items or [*block.declarations, *block.children]
+    child_path = path + (selector_key(block.header),)
+    for item in items:
+        if isinstance(item, Declaration):
+            declaration = declarations[declaration_index]
+            declaration_index += 1
             text = declaration.text
             suffix = ";" if declaration.terminated else ""
             lines.append(indent_unit * (level + 1) + text + suffix)
+            continue
+        lines.extend(
+            format_block(
+                item,
+                child_path,
+                styles,
+                owner_contexts,
+                occurrences,
+                indent_unit,
+                level + 1,
+            )
+        )
+    if block.children:
+        lines.extend(
+            render_nodes(
+                [],
+                child_path,
+                styles,
+                owner_contexts,
+                occurrences,
+                indent_unit,
+                level + 1,
+            )
+        )
+    for declaration in declarations[declaration_index:]:
+        text = declaration.text
+        suffix = ";" if declaration.terminated else ""
+        lines.append(indent_unit * (level + 1) + text + suffix)
     lines.append(indent_unit * level + "}")
     return lines
 
@@ -493,6 +751,8 @@ def format_snapshot(source_css: str, owner_css: str) -> str:
     source_css = remove_excluded_branches_keep_comments(source_css)
     owner_css = remove_orphan_comment_catalogue(owner_css)
     owner_css = remove_excluded_branches_keep_comments(owner_css)
+    source_statements, source_css = split_leading_statements(source_css)
+    owner_statements, owner_css = split_leading_statements(owner_css)
     source_blocks = parse_blocks(source_css)
     owner_blocks = parse_blocks(owner_css)
     styles = collect_owner_styles(owner_blocks)
@@ -500,6 +760,12 @@ def format_snapshot(source_css: str, owner_css: str) -> str:
     indent_unit = infer_indent(owner_css)
     occurrences: Counter[tuple[str, ...]] = Counter()
     output = render_nodes(source_blocks, (), styles, owner_contexts, occurrences, indent_unit, 0)
+    statements = source_statements or owner_statements
+    if statements:
+        statement_lines = [
+            line for statement in statements for line in format_header(statement)
+        ]
+        output = statement_lines + ([""] if output else []) + output
     return "\n".join(output) + "\n"
 
 
