@@ -201,98 +201,1046 @@ const mWindow = isInIframe || (() => {
 
     const logo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAASFBMVEVHcEwBAQEDAwMAAAACAgIBAQEAAAAREREDAwMBAQH///8WFhYuLi7U1NSdnZ1bW1vExMTq6uqtra309PRERETf399ycnKGhoaVOQEOAAAACnRSTlMAg87/rjLgE1rzhWrqxgAABexJREFUaN61WouSpCAMVPEJKCqi//+nF4IKKig6e1SduzfupEkT8oIkiRlVVdRpnmdlQ0hTZnme1kVV4Zvk96Fla8nH0ZSI8rP0Ks2uwi1Ilv4EURW5K5xS0slhMb/BkD0hrMk/q1HVeSP6QVILMFIY8wagn6ojTV5Xn8RnbFZaoAPQc9bR3gXQ/yaWvYYA8VfKKeXACZVnAE1V9o4on/izWPsb/q9Ji3j5OcrjhiCXohsAQso6lh6QL9qOEd6GAAbKYAInAFAiiqYC5LMeLIaFKeppR3h/BiAkj6CpLuEPmbbHngUBhFZsdAGiaUL5xLBzRrAAZBlk5wpnVJEohHTbuZoAD0uhMUu+uY/bLZHaryBCH4vQCuugbnSoYf5sk+llKWaEETT/Qu2TecmSHaF1KPT6gmkM4hNLLkIR2l/guAZK1fQrS3kVXmChEX5mKb0xICH/gKXrQtf2pbhlyfqFoL/1LUOVEbFwcsuSs5GfAcjJ8dVkknbafpYUfUXSQYWqRP81THcs8fbVMmTVaQU6ENNOdyxNgGRYmFsp2/mQaFiKzGeC1IcVmAjrDjq4LAF9RgdF13CAo3cTDRcAP2OOCjX6UAwCPpbWyGZsCWTMAM0YTGF2Eg0XAD8bramue9jocGVpi5y7LbUUVRO0dRINF2D9bN/PBSqgAizt8gHByJAUddEyTqa7rYF57oZkkgiYj48lYeVTuuh4Hw1A8pWhxr68snQYioOxHSm6A2gq1wuZz68suUMKELst8oCLfAew+rzMecmOLO251wYwa4CDmd4B8GyPM1YDlyXeUp8Gx412A9Chy6vP9cXO0kW+5e6N104vH68sXeW/jwzptss8OihFf1UAY2dVkgDCdQz8dfiv1m3sZek62rcIsJlr/5uADv1bhNqzxrcIb3VIkzz06m9YykMAM39kidIoAG+5R7icHlm6BViUVDqSZknpfd8NZh2MO1Xz+JKlcYsfZeK3UqjBTDRexn680PVoSxMFBiCST6RJJmXzg2FTegaPzyRWRWu9cERAHW4o6jANmPU0Ewwqe36wa8j1wyQLADHyk1FphM760H1sBY/+PtS5ECQTvucHynoapYPiZJKFDoSNnFxZYl0QYG2gQExtcJFN8LNl1voHOA++5yQelh5yVPhRopma8M3OALMO8p0GhgDT+lgKDatBhhvN5gcuRWaZJeQ8CzVBLmBLd2tgdrLND9xFxh9CW8JABYRSNQVYugJYK8rB2bn5gWOmaM4dzmXQVjvuidMzS3YfpEm9uPnBtp5yNFRJLRUTb9OaiN1x+06uk0q4+cG+U+SqCeoKLmMwrYkp1pYWRbUvgoDjDZng7EScG3/wSxAyK7+/Xvrgl974JZ1gp69r1Bc7LvUlXhEIsSxh4lWU5Ecdwixh6lhlhPwvlkyZlpIvCFEspW4B8h9YWguQYOZynzZEsJTvRWBPxwDABnKuXWJY2ovAKu8H9h7gkSXblqqFIB8AHlhyekbGUk2PYUbXtvgAXGnYjfWwNA+QcDHN3+x2Q2rngENgiSeeAUZfjDMVHkSn1m2GGBVwCh0d8NlfhJ4owiyE+VjiPV0WKQ7tHCxD1h6DeQ7PAMKWvUcERtt2PDakkio9f/1pkdcsxMOSLq7ldD5LAJf3BeCaCfQmDl57s/Xak4sHEJiPjOcdN4f61+n8CDDQaX/iIk8KcrOTDqCC4Km3tdw9AeBM1+dq1IqRE0stI8LbWk6K7AmAjYPeX/jEdF/qJtgpX+pDzfH9eCVunFyt1UEQUt8dUHwE2BE6b2f8A8I1WMxqGLQfyqu7I8zmOwBh08TJrfy36+ANw1XcQdrHEXOeWeTf5edRJ7JV+t/o+UKTc+hRxx8oF+lLaxKCvTmw1vcRshcAbGFZ8eFUv4kF4NnHewn5pM91sauv7z9gumDPPNgoobBq54/XHraLGyAZXPLqaFrnzIMpKoeR/3BxY7t6woWY2hYqZZ0u2DOPeZzZr1dP7OUZbk4MVE+wecrmqcn+5vLMevsneP3ncfwDNtu0vRpuz80AAAAASUVORK5CYII='
 
-    const locales = { /* cSpell: disable */
-        de: {
-            downgrade: 'Auf zurückstufen',
-            hide: '❌ Dieses skript ausblenden',
-            install: 'Installieren',
-            notHide: '✔️ Dieses skript nicht ausblenden',
-            milestone: 'Herzlichen Glückwunsch, Ihre Skripte haben den Meilenstein von insgesamt $1 Installationen überschritten!',
-            reinstall: 'Erneut installieren',
-            update: 'Auf aktualisieren'
+    const locales = {
+        "de": {
+                "hide": "❌ Dieses Skript ausblenden",
+                "notHide": "✔️ Dieses Skript anzeigen",
+                "milestone": "Herzlichen Glückwunsch! Ihre Skripte haben insgesamt $1 Installationen erreicht!",
+                "settings": {
+                        "title": "Einstellungen",
+                        "sections": {
+                                "appearance": "Darstellung",
+                                "features": "Funktionen",
+                                "lists": "Filter",
+                                "developerOptions": "Entwickleroptionen"
+                        },
+                        "fields": {
+                                "theme": "Farbschema:<br><span>Wähle Automatisch, Hell oder Dunkel. Automatisch folgt dem Erscheinungsbild der Website und verwendet die Systemeinstellung als Fallback.</span>",
+                                "hideBlacklistedScripts": "Gefilterte Skripte ausblenden:<br><span>Blendet Skripte aus, die den unten aktiven Filtern entsprechen. Drücke <b>Strg + Alt + B</b>, um sie vorübergehend anzuzeigen.</span>",
+                                "hideHiddenScript": "Skripte ausblenden:<br><span>Fügt eine Schaltfläche zum Ausblenden von Skripten hinzu.<br>Die Liste der ausgeblendeten Skripte kann unten angezeigt und bearbeitet werden. Drücke <b>Strg + Alt + H</b>, um sie anzuzeigen.</span>",
+                                "showInstallButton": "Installationsschaltfläche:<br><span>Fügt der Skriptliste eine Schaltfläche hinzu, mit der ein Skript direkt installiert werden kann.</span>",
+                                "showTotalInstalls": "Installationen:<br><span>Zeigt die Anzahl der täglichen und gesamten Installationen im Benutzerprofil an.</span>",
+                                "milestoneNotification": "Meilenstein-Benachrichtigungen:<br><span>Benachrichtigt dich, wenn die Gesamtzahl der Installationen einen dieser Meilensteine erreicht.<br>Meilensteine durch Kommas trennen; leer lassen, um Benachrichtigungen zu deaktivieren.</span>",
+                                "milestoneNotificationTitle": "Meilensteine durch Kommas trennen.",
+                                "nonLatins": "Nicht-lateinische Zeichen:<br><span>Filtert Skripte, deren Titel oder Beschreibung nicht-lateinische Zeichen enthält.</span>",
+                                "blacklist": "Vordefinierter Filter:<br><span>Filtert Skripte mit vordefinierten unerwünschten Begriffen im Titel oder in der Beschreibung, darunter Verweise auf Bots, Cheats und einige Online-Spiele.</span>",
+                                "customBlacklist": "Benutzerdefinierter Filter:<br><span>Definiere Wörter oder Muster, die du nicht sehen möchtest.<br>Einträge durch Kommas trennen (Beispiel: YouTube, Facebook, pizza); leer lassen, um diesen Filter zu deaktivieren.</span>",
+                                "customBlacklistTitle": "Filtereinträge durch Kommas trennen.",
+                                "hiddenList": "Ausgeblendete Skripte:<br><span>Blendet einzelne Skripte anhand ihrer eindeutigen IDs aus.<br>IDs durch Kommas trennen.</span>",
+                                "hiddenListTitle": "IDs durch Kommas trennen.",
+                                "hideRecentUsersWithin": "Neue Benutzer ausblenden:<br><span>Blendet Benutzer aus, die sich innerhalb der letzten N Stunden registriert haben, um Kommentare von Spam-Konten zu reduzieren.</span>",
+                                "hideRecentUsersWithinTitle": "Nur Zahlen. 0 deaktiviert diese Option. Maximum: 168. Empfohlener Wert: 48.",
+                                "logging": "Protokollierung",
+                                "debugging": "Debugging"
+                        },
+                        "themeOptions": {
+                                "auto": "Automatisch",
+                                "light": "Hell",
+                                "dark": "Dunkel"
+                        },
+                        "buttons": {
+                                "save": "Speichern",
+                                "saveTitle": "Einstellungen speichern",
+                                "close": "Schließen",
+                                "closeTitle": "Fenster schließen",
+                                "reset": "Auf Standardwerte zurücksetzen",
+                                "resetTitle": "Felder auf ihre Standardwerte zurücksetzen"
+                        },
+                        "menu": {
+                                "configure": "Konfigurieren",
+                                "resetEverything": "Alles zurücksetzen",
+                                "resetConfirm": "Wirklich alle Greasy Fork++-Einstellungen auf die Standardwerte zurücksetzen? Diese Aktion kann nicht rückgängig gemacht werden."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Installieren {version}",
+                                "reinstall": "Neu installieren {version}",
+                                "update": "Aktualisieren auf {version}",
+                                "downgrade": "Zurückstufen auf {version}",
+                                "checking": "Status wird geprüft…",
+                                "unavailable": "Status nicht verfügbar"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Gefilterte Skripte ({count})",
+                                "hidden": "Ausgeblendete Skripte ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "URL kopieren",
+                                "reportComment": "Kommentar melden"
+                        },
+                        "messages": {
+                                "copyFailed": "Kopieren nicht möglich.",
+                                "textLength": "Textlänge: {current} / {max}",
+                                "invalidRegex": "Ungültiger regulärer Ausdruck ignoriert: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "nicht-lateinisch",
+                                "blacklist": "vordefinierter Filter",
+                                "customBlacklist": "benutzerdefinierter Filter",
+                                "hidden": "ausgeblendet"
+                        }
+                }
         },
-        en: {
-            downgrade: 'Downgrade to',
-            hide: '❌ Hide this script',
-            install: 'Install',
-            notHide: '✔️ Not hide this script',
-            milestone: 'Congrats, your scripts got over the milestone of $1 total installs!',
-            reinstall: 'Reinstall',
-            update: 'Update to'
+        "en": {
+                "hide": "❌ Hide this script",
+                "notHide": "✔️ Show this script",
+                "milestone": "Congratulations! Your scripts have reached $1 total installs.",
+                "settings": {
+                        "title": "Settings",
+                        "sections": {
+                                "appearance": "Appearance",
+                                "features": "Features",
+                                "lists": "Filters",
+                                "developerOptions": "Developer options"
+                        },
+                        "fields": {
+                                "theme": "Theme:<br><span>Choose Auto, Light, or Dark. Auto follows the site's appearance and falls back to your system preference.</span>",
+                                "hideBlacklistedScripts": "Hide filtered scripts:<br><span>Hide scripts matched by the active filters below. Press <b>Ctrl + Alt + B</b> to temporarily show them.</span>",
+                                "hideHiddenScript": "Hide scripts:<br><span>Add a button to hide scripts.<br>See and edit the list of hidden scripts below. Press <b>Ctrl + Alt + H</b> to show hidden scripts.</span>",
+                                "showInstallButton": "Install button:<br><span>Add a button to the scripts list to install a script directly.</span>",
+                                "showTotalInstalls": "Installations:<br><span>Show the number of daily and total installations on the user profile.</span>",
+                                "milestoneNotification": "Milestone notifications:<br><span>Get notified whenever your total installs reach one of these milestones.<br>Separate milestones with commas; leave blank to disable notifications.</span>",
+                                "milestoneNotificationTitle": "Separate milestones with commas.",
+                                "nonLatins": "Non-Latin characters:<br><span>Filter scripts whose title or description contains non-Latin characters.</span>",
+                                "blacklist": "Built-in filter:<br><span>Filter scripts containing predefined unwanted terms in the title or description, including references to bots, cheats and some online games.</span>",
+                                "customBlacklist": "Custom filter:<br><span>Define words or patterns you do not want to see.<br>Separate entries with commas (example: YouTube, Facebook, pizza); leave blank to disable this filter.</span>",
+                                "customBlacklistTitle": "Separate filter entries with commas.",
+                                "hiddenList": "Hidden scripts:<br><span>Hide individual scripts by their unique IDs.<br>Separate IDs with commas.</span>",
+                                "hiddenListTitle": "Separate IDs with commas.",
+                                "hideRecentUsersWithin": "Hide recent users:<br><span>Hide users registered within the last N hours to reduce comments from spam accounts.</span>",
+                                "hideRecentUsersWithinTitle": "Numbers only. 0 disables this option. Maximum: 168. Suggested value: 48.",
+                                "logging": "Logging",
+                                "debugging": "Debugging"
+                        },
+                        "themeOptions": {
+                                "auto": "Auto",
+                                "light": "Light",
+                                "dark": "Dark"
+                        },
+                        "buttons": {
+                                "save": "Save",
+                                "saveTitle": "Save settings",
+                                "close": "Close",
+                                "closeTitle": "Close window",
+                                "reset": "Reset to defaults",
+                                "resetTitle": "Reset fields to default values"
+                        },
+                        "menu": {
+                                "configure": "Configure",
+                                "resetEverything": "Reset Everything",
+                                "resetConfirm": "Reset all Greasy Fork++ settings to their defaults? This action cannot be undone."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Install {version}",
+                                "reinstall": "Reinstall {version}",
+                                "update": "Update to {version}",
+                                "downgrade": "Downgrade to {version}",
+                                "checking": "Checking status…",
+                                "unavailable": "Status unavailable"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Filtered scripts ({count})",
+                                "hidden": "Hidden scripts ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copy URL",
+                                "reportComment": "Report comment"
+                        },
+                        "messages": {
+                                "copyFailed": "Unable to copy.",
+                                "textLength": "Text length: {current} / {max}",
+                                "invalidRegex": "Invalid regular expression ignored: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "non-Latin",
+                                "blacklist": "built-in filter",
+                                "customBlacklist": "custom filter",
+                                "hidden": "hidden"
+                        }
+                }
         },
-        es: {
-            downgrade: 'Degradar a',
-            hide: '❌ Ocultar este script',
-            install: 'Instalar',
-            notHide: '✔️ No ocultar este script',
-            milestone: '¡Felicidades, sus scripts superaron el hito de $1 instalaciones totales!',
-            reinstall: 'Reinstalar',
-            update: 'Actualizar a'
+        "es": {
+                "hide": "❌ Ocultar este script",
+                "notHide": "✔️ Mostrar este script",
+                "milestone": "¡Enhorabuena! Tus scripts han alcanzado $1 instalaciones en total.",
+                "settings": {
+                        "title": "Configuración",
+                        "sections": {
+                                "appearance": "Apariencia",
+                                "features": "Funciones",
+                                "lists": "Filtros",
+                                "developerOptions": "Opciones de desarrollador"
+                        },
+                        "fields": {
+                                "theme": "Tema:<br><span>Elige Automático, Claro u Oscuro. Automático sigue la apariencia del sitio y usa la preferencia del sistema como alternativa.</span>",
+                                "hideBlacklistedScripts": "Ocultar scripts filtrados:<br><span>Oculta los scripts que coincidan con los filtros activos de abajo. Pulsa <b>Ctrl + Alt + B</b> para mostrarlos temporalmente.</span>",
+                                "hideHiddenScript": "Ocultar scripts:<br><span>Añade un botón para ocultar scripts.<br>Consulta y edita abajo la lista de scripts ocultos. Pulsa <b>Ctrl + Alt + H</b> para mostrarlos.</span>",
+                                "showInstallButton": "Botón de instalación:<br><span>Añade a la lista de scripts un botón para instalar directamente un script.</span>",
+                                "showTotalInstalls": "Instalaciones:<br><span>Muestra el número de instalaciones diarias y totales en el perfil del usuario.</span>",
+                                "milestoneNotification": "Notificaciones de hitos:<br><span>Recibe una notificación cuando el total de instalaciones alcance uno de estos hitos.<br>Separa los hitos con comas; deja el campo vacío para desactivar las notificaciones.</span>",
+                                "milestoneNotificationTitle": "Separa los hitos con comas.",
+                                "nonLatins": "Caracteres no latinos:<br><span>Filtra scripts cuyo título o descripción contenga caracteres no latinos.</span>",
+                                "blacklist": "Filtro predefinido:<br><span>Filtra scripts que contengan términos no deseados predefinidos en el título o la descripción, incluidas referencias a bots, trucos y algunos juegos en línea.</span>",
+                                "customBlacklist": "Filtro personalizado:<br><span>Define palabras o patrones que no quieres ver.<br>Separa las entradas con comas (ejemplo: YouTube, Facebook, pizza); deja el campo vacío para desactivar este filtro.</span>",
+                                "customBlacklistTitle": "Separa las entradas del filtro con comas.",
+                                "hiddenList": "Scripts ocultos:<br><span>Oculta scripts individuales mediante sus ID únicos.<br>Separa los ID con comas.</span>",
+                                "hiddenListTitle": "Separa los ID con comas.",
+                                "hideRecentUsersWithin": "Ocultar usuarios recientes:<br><span>Oculta usuarios registrados durante las últimas N horas para reducir los comentarios de cuentas de spam.</span>",
+                                "hideRecentUsersWithinTitle": "Solo números. 0 desactiva esta opción. Máximo: 168. Valor recomendado: 48.",
+                                "logging": "Registro",
+                                "debugging": "Depuración"
+                        },
+                        "themeOptions": {
+                                "auto": "Automático",
+                                "light": "Claro",
+                                "dark": "Oscuro"
+                        },
+                        "buttons": {
+                                "save": "Guardar",
+                                "saveTitle": "Guardar configuración",
+                                "close": "Cerrar",
+                                "closeTitle": "Cerrar ventana",
+                                "reset": "Restablecer valores predeterminados",
+                                "resetTitle": "Restablecer los valores predeterminados de los campos"
+                        },
+                        "menu": {
+                                "configure": "Configurar",
+                                "resetEverything": "Restablecer todo",
+                                "resetConfirm": "¿Restablecer toda la configuración de Greasy Fork++ a sus valores predeterminados? Esta acción no se puede deshacer."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Instalar {version}",
+                                "reinstall": "Reinstalar {version}",
+                                "update": "Actualizar a {version}",
+                                "downgrade": "Volver a {version}",
+                                "checking": "Comprobando estado…",
+                                "unavailable": "Estado no disponible"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Scripts filtrados ({count})",
+                                "hidden": "Scripts ocultos ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copiar URL",
+                                "reportComment": "Denunciar comentario"
+                        },
+                        "messages": {
+                                "copyFailed": "No se pudo copiar.",
+                                "textLength": "Longitud del texto: {current} / {max}",
+                                "invalidRegex": "Expresión regular no válida ignorada: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "no latino",
+                                "blacklist": "filtro predefinido",
+                                "customBlacklist": "filtro personalizado",
+                                "hidden": "oculto"
+                        }
+                }
         },
-        fr: {
-            downgrade: 'Revenir à',
-            hide: '❌ Cacher ce script',
-            install: 'Installer',
-            notHide: '✔️ Ne pas cacher ce script',
-            milestone: 'Félicitations, vos scripts ont franchi le cap des $1 installations au total!',
-            reinstall: 'Réinstaller',
-            update: 'Mettre à'
+        "fr": {
+                "hide": "❌ Masquer ce script",
+                "notHide": "✔️ Afficher ce script",
+                "milestone": "Félicitations ! Vos scripts ont atteint $1 installations au total.",
+                "settings": {
+                        "title": "Paramètres",
+                        "sections": {
+                                "appearance": "Apparence",
+                                "features": "Fonctionnalités",
+                                "lists": "Filtres",
+                                "developerOptions": "Options développeur"
+                        },
+                        "fields": {
+                                "theme": "Thème :<br><span>Choisissez Automatique, Clair ou Sombre. Automatique suit l’apparence du site et utilise les préférences du système en dernier recours.</span>",
+                                "hideBlacklistedScripts": "Masquer les scripts filtrés :<br><span>Masque les scripts correspondant aux filtres actifs ci-dessous. Appuyez sur <b>Ctrl + Alt + B</b> pour les afficher temporairement.</span>",
+                                "hideHiddenScript": "Masquer les scripts :<br><span>Ajoute un bouton permettant de masquer les scripts.<br>Consultez et modifiez ci-dessous la liste des scripts masqués. Appuyez sur <b>Ctrl + Alt + H</b> pour les afficher.</span>",
+                                "showInstallButton": "Bouton d’installation :<br><span>Ajoute à la liste des scripts un bouton permettant d’installer directement un script.</span>",
+                                "showTotalInstalls": "Installations :<br><span>Affiche le nombre d’installations quotidiennes et totales sur le profil de l’utilisateur.</span>",
+                                "milestoneNotification": "Notifications de paliers :<br><span>Recevez une notification lorsque le nombre total d’installations atteint l’un de ces paliers.<br>Séparez les paliers par des virgules ; laissez le champ vide pour désactiver les notifications.</span>",
+                                "milestoneNotificationTitle": "Séparez les paliers par des virgules.",
+                                "nonLatins": "Caractères non latins :<br><span>Filtre les scripts dont le titre ou la description contient des caractères non latins.</span>",
+                                "blacklist": "Filtre prédéfini :<br><span>Filtre les scripts contenant des termes indésirables prédéfinis dans le titre ou la description, notamment des références aux bots, aux triches et à certains jeux en ligne.</span>",
+                                "customBlacklist": "Filtre personnalisé :<br><span>Définissez les mots ou motifs que vous ne souhaitez pas voir.<br>Séparez les entrées par des virgules (exemple : YouTube, Facebook, pizza) ; laissez le champ vide pour désactiver ce filtre.</span>",
+                                "customBlacklistTitle": "Séparez les entrées du filtre par des virgules.",
+                                "hiddenList": "Scripts masqués :<br><span>Masque individuellement les scripts à l’aide de leurs identifiants uniques.<br>Séparez les identifiants par des virgules.</span>",
+                                "hiddenListTitle": "Séparez les identifiants par des virgules.",
+                                "hideRecentUsersWithin": "Masquer les utilisateurs récents :<br><span>Masque les utilisateurs inscrits au cours des N dernières heures afin de réduire les commentaires provenant de comptes de spam.</span>",
+                                "hideRecentUsersWithinTitle": "Nombres uniquement. 0 désactive cette option. Maximum : 168. Valeur recommandée : 48.",
+                                "logging": "Journalisation",
+                                "debugging": "Débogage"
+                        },
+                        "themeOptions": {
+                                "auto": "Automatique",
+                                "light": "Clair",
+                                "dark": "Sombre"
+                        },
+                        "buttons": {
+                                "save": "Enregistrer",
+                                "saveTitle": "Enregistrer les paramètres",
+                                "close": "Fermer",
+                                "closeTitle": "Fermer la fenêtre",
+                                "reset": "Rétablir les valeurs par défaut",
+                                "resetTitle": "Rétablir les valeurs par défaut des champs"
+                        },
+                        "menu": {
+                                "configure": "Configurer",
+                                "resetEverything": "Tout réinitialiser",
+                                "resetConfirm": "Rétablir tous les paramètres de Greasy Fork++ à leurs valeurs par défaut ? Cette action est irréversible."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Installer {version}",
+                                "reinstall": "Réinstaller {version}",
+                                "update": "Mettre à jour vers {version}",
+                                "downgrade": "Revenir à {version}",
+                                "checking": "Vérification de l’état…",
+                                "unavailable": "État indisponible"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Scripts filtrés ({count})",
+                                "hidden": "Scripts masqués ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copier l’URL",
+                                "reportComment": "Signaler le commentaire"
+                        },
+                        "messages": {
+                                "copyFailed": "Impossible de copier.",
+                                "textLength": "Longueur du texte : {current} / {max}",
+                                "invalidRegex": "Expression régulière non valide ignorée : {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "non latin",
+                                "blacklist": "filtre prédéfini",
+                                "customBlacklist": "filtre personnalisé",
+                                "hidden": "masqué"
+                        }
+                }
         },
-        it: {
-            downgrade: 'Riporta a',
-            hide: '❌ Nascondi questo script',
-            install: 'Installa',
-            notHide: '✔️ Non nascondere questo script',
-            milestone: 'Congratulazioni, i tuoi script hanno superato il traguardo di $1 installazioni totali!',
-            reinstall: 'Reinstalla',
-            update: 'Aggiorna a'
+        "it": {
+                "hide": "❌ Nascondi questo script",
+                "notHide": "✔️ Mostra questo script",
+                "milestone": "Congratulazioni! I tuoi script hanno raggiunto $1 installazioni totali.",
+                "settings": {
+                        "title": "Impostazioni",
+                        "sections": {
+                                "appearance": "Aspetto",
+                                "features": "Funzionalità",
+                                "lists": "Filtri",
+                                "developerOptions": "Opzioni sviluppatore"
+                        },
+                        "fields": {
+                                "theme": "Tema:<br><span>Scegli Automatico, Chiaro o Scuro. Automatico segue l’aspetto del sito e usa la preferenza di sistema come alternativa.</span>",
+                                "hideBlacklistedScripts": "Nascondi script filtrati:<br><span>Nasconde gli script che corrispondono ai filtri attivi qui sotto. Premi <b>Ctrl + Alt + B</b> per mostrarli temporaneamente.</span>",
+                                "hideHiddenScript": "Nascondi script:<br><span>Aggiunge un pulsante per nascondere gli script.<br>Visualizza e modifica qui sotto l’elenco degli script nascosti. Premi <b>Ctrl + Alt + H</b> per mostrarli.</span>",
+                                "showInstallButton": "Pulsante di installazione:<br><span>Aggiunge all’elenco degli script un pulsante per installare direttamente uno script.</span>",
+                                "showTotalInstalls": "Installazioni:<br><span>Mostra il numero di installazioni giornaliere e totali nel profilo utente.</span>",
+                                "milestoneNotification": "Notifiche dei traguardi:<br><span>Ricevi una notifica quando il numero totale di installazioni raggiunge uno di questi traguardi.<br>Separa i traguardi con virgole; lascia il campo vuoto per disattivare le notifiche.</span>",
+                                "milestoneNotificationTitle": "Separa i traguardi con virgole.",
+                                "nonLatins": "Caratteri non latini:<br><span>Filtra gli script il cui titolo o descrizione contiene caratteri non latini.</span>",
+                                "blacklist": "Filtro predefinito:<br><span>Filtra gli script che contengono termini indesiderati predefiniti nel titolo o nella descrizione, inclusi riferimenti a bot, cheat e alcuni giochi online.</span>",
+                                "customBlacklist": "Filtro personalizzato:<br><span>Definisci parole o modelli che non vuoi vedere.<br>Separa le voci con virgole (esempio: YouTube, Facebook, pizza); lascia il campo vuoto per disattivare questo filtro.</span>",
+                                "customBlacklistTitle": "Separa le voci del filtro con virgole.",
+                                "hiddenList": "Script nascosti:<br><span>Nasconde singoli script tramite i rispettivi ID univoci.<br>Separa gli ID con virgole.</span>",
+                                "hiddenListTitle": "Separa gli ID con virgole.",
+                                "hideRecentUsersWithin": "Nascondi utenti recenti:<br><span>Nasconde gli utenti registrati nelle ultime N ore per ridurre i commenti provenienti da account spam.</span>",
+                                "hideRecentUsersWithinTitle": "Solo numeri. 0 disattiva questa opzione. Massimo: 168. Valore consigliato: 48.",
+                                "logging": "Registrazione",
+                                "debugging": "Debug"
+                        },
+                        "themeOptions": {
+                                "auto": "Automatico",
+                                "light": "Chiaro",
+                                "dark": "Scuro"
+                        },
+                        "buttons": {
+                                "save": "Salva",
+                                "saveTitle": "Salva impostazioni",
+                                "close": "Chiudi",
+                                "closeTitle": "Chiudi finestra",
+                                "reset": "Ripristina valori predefiniti",
+                                "resetTitle": "Ripristina i valori predefiniti dei campi"
+                        },
+                        "menu": {
+                                "configure": "Configura",
+                                "resetEverything": "Ripristina tutto",
+                                "resetConfirm": "Ripristinare tutte le impostazioni di Greasy Fork++ ai valori predefiniti? Questa azione non può essere annullata."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Installa {version}",
+                                "reinstall": "Reinstalla {version}",
+                                "update": "Aggiorna a {version}",
+                                "downgrade": "Ripristina a {version}",
+                                "checking": "Verifica dello stato…",
+                                "unavailable": "Stato non disponibile"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Script filtrati ({count})",
+                                "hidden": "Script nascosti ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copia URL",
+                                "reportComment": "Segnala commento"
+                        },
+                        "messages": {
+                                "copyFailed": "Impossibile copiare.",
+                                "textLength": "Lunghezza del testo: {current} / {max}",
+                                "invalidRegex": "Espressione regolare non valida ignorata: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "non latino",
+                                "blacklist": "filtro predefinito",
+                                "customBlacklist": "filtro personalizzato",
+                                "hidden": "nascosto"
+                        }
+                }
         },
-        ru: {
-            downgrade: 'Откатить до',
-            hide: '❌ Скрыть этот скрипт',
-            install: 'Установить',
-            notHide: '✔️ Не скрывать этот сценарий',
-            milestone: 'Поздравляем, ваши скрипты преодолели рубеж в $1 установок!',
-            reinstall: 'Переустановить',
-            update: 'Обновить до'
+        "pt-PT": {
+                "hide": "❌ Ocultar este script",
+                "notHide": "✔️ Mostrar este script",
+                "milestone": "Parabéns! Os teus scripts atingiram $1 instalações no total.",
+                "settings": {
+                        "title": "Definições",
+                        "sections": {
+                                "appearance": "Aspeto",
+                                "features": "Funcionalidades",
+                                "lists": "Filtros",
+                                "developerOptions": "Opções de programador"
+                        },
+                        "fields": {
+                                "theme": "Tema:<br><span>Escolhe Automático, Claro ou Escuro. Automático acompanha o tema do site e, se necessário, usa a preferência do sistema.</span>",
+                                "hideBlacklistedScripts": "Ocultar scripts filtrados:<br><span>Oculta os scripts que correspondem aos filtros ativos abaixo. Prime <b>Ctrl + Alt + B</b> para os mostrar temporariamente.</span>",
+                                "hideHiddenScript": "Ocultar scripts:<br><span>Adiciona um botão para ocultar scripts.<br>Consulta e edita abaixo a lista de scripts ocultos. Prime <b>Ctrl + Alt + H</b> para os mostrar.</span>",
+                                "showInstallButton": "Botão Instalar:<br><span>Adiciona à lista de scripts um botão para instalar diretamente cada script.</span>",
+                                "showTotalInstalls": "Instalações:<br><span>Mostra o número de instalações diárias e totais no perfil do utilizador.</span>",
+                                "milestoneNotification": "Notificações de marcos:<br><span>Recebe uma notificação quando o total de instalações atingir um destes marcos.<br>Separa os marcos por vírgulas; deixa o campo vazio para desativar as notificações.</span>",
+                                "milestoneNotificationTitle": "Separa os marcos por vírgulas.",
+                                "nonLatins": "Caracteres não latinos:<br><span>Filtra scripts cujo título ou descrição contenha caracteres não latinos.</span>",
+                                "blacklist": "Filtro predefinido:<br><span>Filtra scripts com termos indesejados predefinidos no título ou na descrição, incluindo referências a bots, cheats e alguns jogos online.</span>",
+                                "customBlacklist": "Filtro personalizado:<br><span>Define palavras ou padrões que não queres ver.<br>Separa as entradas por vírgulas (ex.: YouTube, Facebook, pizza); deixa o campo vazio para desativar este filtro.</span>",
+                                "customBlacklistTitle": "Separa as entradas do filtro por vírgulas.",
+                                "hiddenList": "Scripts ocultos:<br><span>Oculta scripts individuais através dos respetivos IDs únicos.<br>Separa os IDs por vírgulas.</span>",
+                                "hiddenListTitle": "Separa os IDs por vírgulas.",
+                                "hideRecentUsersWithin": "Ocultar utilizadores recentes:<br><span>Oculta utilizadores registados nas últimas N horas para reduzir comentários de contas de spam.</span>",
+                                "hideRecentUsersWithinTitle": "Apenas números. 0 desativa esta opção. Máximo: 168. Valor sugerido: 48.",
+                                "logging": "Registo",
+                                "debugging": "Depuração"
+                        },
+                        "themeOptions": {
+                                "auto": "Automático",
+                                "light": "Claro",
+                                "dark": "Escuro"
+                        },
+                        "buttons": {
+                                "save": "Guardar",
+                                "saveTitle": "Guardar definições",
+                                "close": "Fechar",
+                                "closeTitle": "Fechar janela",
+                                "reset": "Repor predefinições",
+                                "resetTitle": "Repor os valores predefinidos dos campos"
+                        },
+                        "menu": {
+                                "configure": "Configurar",
+                                "resetEverything": "Repor tudo",
+                                "resetConfirm": "Repor todas as definições do Greasy Fork++ para as predefinições? Esta ação não pode ser anulada."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Instalar {version}",
+                                "reinstall": "Reinstalar {version}",
+                                "update": "Atualizar para {version}",
+                                "downgrade": "Retroceder para {version}",
+                                "checking": "A verificar o estado…",
+                                "unavailable": "Estado indisponível"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Scripts filtrados ({count})",
+                                "hidden": "Scripts ocultos ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copiar URL",
+                                "reportComment": "Denunciar comentário"
+                        },
+                        "messages": {
+                                "copyFailed": "Não foi possível copiar.",
+                                "textLength": "Comprimento do texto: {current} / {max}",
+                                "invalidRegex": "Expressão regular inválida ignorada: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "não latino",
+                                "blacklist": "filtro predefinido",
+                                "customBlacklist": "filtro personalizado",
+                                "hidden": "oculto"
+                        }
+                }
         },
-        'zh-CN': {
-            downgrade: '降级到',
-            hide: '❌ 隐藏此脚本',
-            install: '安装',
-            notHide: '✔️ 不隐藏此脚本',
-            milestone: '恭喜，您的脚本超过了 $1 次总安装的里程碑！',
-            reinstall: '重新安装',
-            update: '更新到'
+        "pt-BR": {
+                "hide": "❌ Ocultar este script",
+                "notHide": "✔️ Mostrar este script",
+                "milestone": "Parabéns! Seus scripts atingiram $1 instalações no total.",
+                "settings": {
+                        "title": "Configurações",
+                        "sections": {
+                                "appearance": "Aparência",
+                                "features": "Recursos",
+                                "lists": "Filtros",
+                                "developerOptions": "Opções de desenvolvedor"
+                        },
+                        "fields": {
+                                "theme": "Tema:<br><span>Escolha Automático, Claro ou Escuro. Automático acompanha o tema do site e, se necessário, usa a preferência do sistema.</span>",
+                                "hideBlacklistedScripts": "Ocultar scripts filtrados:<br><span>Oculta os scripts que correspondem aos filtros ativos abaixo. Pressione <b>Ctrl + Alt + B</b> para mostrá-los temporariamente.</span>",
+                                "hideHiddenScript": "Ocultar scripts:<br><span>Adicione um botão para ocultar scripts.<br>Veja e edite abaixo a lista de scripts ocultos. Pressione <b>Ctrl + Alt + H</b> para mostrá-los.</span>",
+                                "showInstallButton": "Botão Instalar:<br><span>Adicione à lista de scripts um botão para instalar diretamente cada script.</span>",
+                                "showTotalInstalls": "Instalações:<br><span>Mostra o número de instalações diárias e totais no perfil do usuário.</span>",
+                                "milestoneNotification": "Notificações de marcos:<br><span>Receba uma notificação quando o total de instalações atingir um destes marcos.<br>Separe os marcos por vírgulas; deixe o campo vazio para desativar as notificações.</span>",
+                                "milestoneNotificationTitle": "Separe os marcos por vírgulas.",
+                                "nonLatins": "Caracteres não latinos:<br><span>Filtra scripts cujo título ou descrição contenha caracteres não latinos.</span>",
+                                "blacklist": "Filtro predefinido:<br><span>Filtra scripts com termos indesejados predefinidos no título ou na descrição, incluindo referências a bots, cheats e alguns jogos online.</span>",
+                                "customBlacklist": "Filtro personalizado:<br><span>Defina palavras ou padrões que você não quer ver.<br>Separe as entradas por vírgulas (ex.: YouTube, Facebook, pizza); deixe o campo vazio para desativar este filtro.</span>",
+                                "customBlacklistTitle": "Separe as entradas do filtro por vírgulas.",
+                                "hiddenList": "Scripts ocultos:<br><span>Oculta scripts individuais por meio de seus IDs exclusivos.<br>Separe os IDs por vírgulas.</span>",
+                                "hiddenListTitle": "Separe os IDs por vírgulas.",
+                                "hideRecentUsersWithin": "Ocultar usuários recentes:<br><span>Oculta usuários registrados nas últimas N horas para reduzir comentários de contas de spam.</span>",
+                                "hideRecentUsersWithinTitle": "Somente números. 0 desativa esta opção. Máximo: 168. Valor sugerido: 48.",
+                                "logging": "Registro",
+                                "debugging": "Depuração"
+                        },
+                        "themeOptions": {
+                                "auto": "Automático",
+                                "light": "Claro",
+                                "dark": "Escuro"
+                        },
+                        "buttons": {
+                                "save": "Salvar",
+                                "saveTitle": "Salvar configurações",
+                                "close": "Fechar",
+                                "closeTitle": "Fechar janela",
+                                "reset": "Restaurar padrões",
+                                "resetTitle": "Restaurar os valores padrão dos campos"
+                        },
+                        "menu": {
+                                "configure": "Configurar",
+                                "resetEverything": "Restaurar tudo",
+                                "resetConfirm": "Restaurar todas as configurações do Greasy Fork++ para os padrões? Esta ação não pode ser desfeita."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Instalar {version}",
+                                "reinstall": "Reinstalar {version}",
+                                "update": "Atualizar para {version}",
+                                "downgrade": "Rebaixar para {version}",
+                                "checking": "Verificando status…",
+                                "unavailable": "Status indisponível"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Scripts filtrados ({count})",
+                                "hidden": "Scripts ocultos ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Copiar URL",
+                                "reportComment": "Denunciar comentário"
+                        },
+                        "messages": {
+                                "copyFailed": "Não foi possível copiar.",
+                                "textLength": "Comprimento do texto: {current} / {max}",
+                                "invalidRegex": "Expressão regular inválida ignorada: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "não latino",
+                                "blacklist": "filtro predefinido",
+                                "customBlacklist": "filtro personalizado",
+                                "hidden": "oculto"
+                        }
+                }
         },
-        'zh-TW': {
-            downgrade: '降級至',
-            hide: '❌ 隱藏此腳本',
-            install: '安裝',
-            notHide: '✔️ 不隱藏此腳本',
-            milestone: '恭喜，您的腳本安裝總數已超過 $1！',
-            reinstall: '重新安裝',
-            update: '更新至'
+        "ru": {
+                "hide": "❌ Скрыть этот скрипт",
+                "notHide": "✔️ Показать этот скрипт",
+                "milestone": "Поздравляем! Ваши скрипты достигли отметки в $1 установок.",
+                "settings": {
+                        "title": "Настройки",
+                        "sections": {
+                                "appearance": "Внешний вид",
+                                "features": "Функции",
+                                "lists": "Фильтры",
+                                "developerOptions": "Параметры разработчика"
+                        },
+                        "fields": {
+                                "theme": "Тема:<br><span>Выберите Авто, Светлую или Тёмную тему. Авто следует оформлению сайта, а при необходимости — системным настройкам.</span>",
+                                "hideBlacklistedScripts": "Скрывать отфильтрованные скрипты:<br><span>Скрывает скрипты, соответствующие активным фильтрам ниже. Нажмите <b>Ctrl + Alt + B</b>, чтобы временно показать их.</span>",
+                                "hideHiddenScript": "Скрывать скрипты:<br><span>Добавляет кнопку для скрытия скриптов.<br>Ниже можно просмотреть и изменить список скрытых скриптов. Нажмите <b>Ctrl + Alt + H</b>, чтобы показать их.</span>",
+                                "showInstallButton": "Кнопка установки:<br><span>Добавляет в список скриптов кнопку для их непосредственной установки.</span>",
+                                "showTotalInstalls": "Установки:<br><span>Показывает количество установок за день и общее количество установок в профиле пользователя.</span>",
+                                "milestoneNotification": "Уведомления о рубежах:<br><span>Уведомляет, когда общее число установок достигает одного из указанных рубежей.<br>Разделяйте значения запятыми; оставьте поле пустым, чтобы отключить уведомления.</span>",
+                                "milestoneNotificationTitle": "Разделяйте значения запятыми.",
+                                "nonLatins": "Нелатинские символы:<br><span>Фильтрует скрипты, в названии или описании которых есть нелатинские символы.</span>",
+                                "blacklist": "Предустановленный фильтр:<br><span>Фильтрует скрипты с заранее заданными нежелательными терминами в названии или описании, включая упоминания ботов, читов и некоторых онлайн-игр.</span>",
+                                "customBlacklist": "Пользовательский фильтр:<br><span>Задайте слова или шаблоны, которые вы не хотите видеть.<br>Разделяйте записи запятыми (например: YouTube, Facebook, pizza); оставьте поле пустым, чтобы отключить этот фильтр.</span>",
+                                "customBlacklistTitle": "Разделяйте записи фильтра запятыми.",
+                                "hiddenList": "Скрытые скрипты:<br><span>Скрывает отдельные скрипты по их уникальным ID.<br>Разделяйте ID запятыми.</span>",
+                                "hiddenListTitle": "Разделяйте ID запятыми.",
+                                "hideRecentUsersWithin": "Скрывать новых пользователей:<br><span>Скрывает пользователей, зарегистрированных за последние N часов, чтобы уменьшить число комментариев от спам-аккаунтов.</span>",
+                                "hideRecentUsersWithinTitle": "Только числа. 0 отключает эту опцию. Максимум: 168. Рекомендуемое значение: 48.",
+                                "logging": "Журналирование",
+                                "debugging": "Отладка"
+                        },
+                        "themeOptions": {
+                                "auto": "Авто",
+                                "light": "Светлая",
+                                "dark": "Тёмная"
+                        },
+                        "buttons": {
+                                "save": "Сохранить",
+                                "saveTitle": "Сохранить настройки",
+                                "close": "Закрыть",
+                                "closeTitle": "Закрыть окно",
+                                "reset": "Восстановить значения по умолчанию",
+                                "resetTitle": "Восстановить значения полей по умолчанию"
+                        },
+                        "menu": {
+                                "configure": "Настроить",
+                                "resetEverything": "Сбросить всё",
+                                "resetConfirm": "Сбросить все настройки Greasy Fork++ до значений по умолчанию? Это действие нельзя отменить."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "Установить {version}",
+                                "reinstall": "Переустановить {version}",
+                                "update": "Обновить до {version}",
+                                "downgrade": "Откатить до {version}",
+                                "checking": "Проверка статуса…",
+                                "unavailable": "Статус недоступен"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "Отфильтрованные скрипты ({count})",
+                                "hidden": "Скрытые скрипты ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "Копировать URL",
+                                "reportComment": "Пожаловаться на комментарий"
+                        },
+                        "messages": {
+                                "copyFailed": "Не удалось скопировать.",
+                                "textLength": "Длина текста: {current} / {max}",
+                                "invalidRegex": "Некорректное регулярное выражение проигнорировано: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "нелатинский",
+                                "blacklist": "предустановленный фильтр",
+                                "customBlacklist": "пользовательский фильтр",
+                                "hidden": "скрыт"
+                        }
+                }
         },
-        'ja': {
-            downgrade: 'ダウングレードする',
-            hide: '❌ このスクリプトを隠す',
-            install: 'インストール',
-            notHide: '✔️ このスクリプトを隠さない',
-            milestone: 'おめでとうございます、あなたのスクリプトの合計インストール回数が $1 を超えました！',
-            reinstall: '再インストール',
-            update: '更新する'
+        "zh-CN": {
+                "hide": "❌ 隐藏此脚本",
+                "notHide": "✔️ 显示此脚本",
+                "milestone": "恭喜！您的脚本总安装次数已达到 $1 次！",
+                "settings": {
+                        "title": "设置",
+                        "sections": {
+                                "appearance": "外观",
+                                "features": "功能",
+                                "lists": "筛选器",
+                                "developerOptions": "开发者选项"
+                        },
+                        "fields": {
+                                "theme": "主题：<br><span>选择自动、浅色或深色。自动模式会跟随网站外观，并在需要时使用系统偏好。</span>",
+                                "hideBlacklistedScripts": "隐藏已筛选脚本：<br><span>隐藏匹配下方已启用筛选器的脚本。按 <b>Ctrl + Alt + B</b> 可临时显示它们。</span>",
+                                "hideHiddenScript": "隐藏脚本：<br><span>添加用于隐藏脚本的按钮。<br>可在下方查看和编辑已隐藏脚本列表。按 <b>Ctrl + Alt + H</b> 显示它们。</span>",
+                                "showInstallButton": "安装按钮：<br><span>在脚本列表中添加可直接安装脚本的按钮。</span>",
+                                "showTotalInstalls": "安装量：<br><span>在用户资料中显示每日安装量和总安装量。</span>",
+                                "milestoneNotification": "里程碑通知：<br><span>当总安装次数达到以下任一里程碑时通知你。<br>使用逗号分隔里程碑；留空可禁用通知。</span>",
+                                "milestoneNotificationTitle": "使用逗号分隔里程碑。",
+                                "nonLatins": "非拉丁字符：<br><span>筛选标题或说明中包含非拉丁字符的脚本。</span>",
+                                "blacklist": "预设筛选器：<br><span>筛选标题或说明中包含预设不需要词语的脚本，包括与机器人、作弊和部分网络游戏相关的词语。</span>",
+                                "customBlacklist": "自定义筛选器：<br><span>定义你不想看到的词语或模式。<br>使用逗号分隔条目（例如：YouTube、Facebook、pizza）；留空可禁用此筛选器。</span>",
+                                "customBlacklistTitle": "使用逗号分隔筛选条目。",
+                                "hiddenList": "已隐藏脚本：<br><span>通过唯一 ID 隐藏单个脚本。<br>使用逗号分隔 ID。</span>",
+                                "hiddenListTitle": "使用逗号分隔 ID。",
+                                "hideRecentUsersWithin": "隐藏近期注册用户：<br><span>隐藏最近 N 小时内注册的用户，以减少垃圾账号评论。</span>",
+                                "hideRecentUsersWithinTitle": "仅限数字。0 表示关闭。最大值：168。建议值：48。",
+                                "logging": "日志记录",
+                                "debugging": "调试"
+                        },
+                        "themeOptions": {
+                                "auto": "自动",
+                                "light": "浅色",
+                                "dark": "深色"
+                        },
+                        "buttons": {
+                                "save": "保存",
+                                "saveTitle": "保存设置",
+                                "close": "关闭",
+                                "closeTitle": "关闭窗口",
+                                "reset": "恢复默认设置",
+                                "resetTitle": "将字段恢复为默认值"
+                        },
+                        "menu": {
+                                "configure": "配置",
+                                "resetEverything": "全部重置",
+                                "resetConfirm": "将 Greasy Fork++ 的所有设置恢复为默认值？此操作无法撤销。"
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "安装 {version}",
+                                "reinstall": "重新安装 {version}",
+                                "update": "更新到 {version}",
+                                "downgrade": "降级到 {version}",
+                                "checking": "正在检查状态…",
+                                "unavailable": "状态不可用"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "已筛选脚本（{count}）",
+                                "hidden": "已隐藏脚本（{count}）"
+                        },
+                        "actions": {
+                                "copyUrl": "复制 URL",
+                                "reportComment": "举报评论"
+                        },
+                        "messages": {
+                                "copyFailed": "无法复制。",
+                                "textLength": "文本长度：{current} / {max}",
+                                "invalidRegex": "已忽略无效的正则表达式：{pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "非拉丁字符",
+                                "blacklist": "预设筛选器",
+                                "customBlacklist": "自定义筛选器",
+                                "hidden": "已隐藏"
+                        }
+                }
         },
-        'ko': {
-            downgrade: '다운그레이드하기',
-            hide: '❌ 이 스크립트 숨기기',
-            install: '설치',
-            notHide: '✔️ 이 스크립트 숨기지 않기',
-            milestone: '축하합니다, 스크립트의 총 설치 횟수가 $1을 넘었습니다!',
-            reinstall: '재설치',
-            update: '업데이트하기'
+        "zh-TW": {
+                "hide": "❌ 隱藏此腳本",
+                "notHide": "✔️ 顯示此腳本",
+                "milestone": "恭喜！您的腳本總安裝次數已達到 $1 次！",
+                "settings": {
+                        "title": "設定",
+                        "sections": {
+                                "appearance": "外觀",
+                                "features": "功能",
+                                "lists": "篩選器",
+                                "developerOptions": "開發者選項"
+                        },
+                        "fields": {
+                                "theme": "主題：<br><span>選擇自動、淺色或深色。自動模式會跟隨網站外觀，並在需要時使用系統偏好。</span>",
+                                "hideBlacklistedScripts": "隱藏已篩選腳本：<br><span>隱藏符合下方已啟用篩選器的腳本。按 <b>Ctrl + Alt + B</b> 可暫時顯示它們。</span>",
+                                "hideHiddenScript": "隱藏腳本：<br><span>加入用來隱藏腳本的按鈕。<br>可在下方查看及編輯已隱藏腳本清單。按 <b>Ctrl + Alt + H</b> 顯示它們。</span>",
+                                "showInstallButton": "安裝按鈕：<br><span>在腳本清單中加入可直接安裝腳本的按鈕。</span>",
+                                "showTotalInstalls": "安裝次數：<br><span>在使用者個人資料中顯示每日及總安裝次數。</span>",
+                                "milestoneNotification": "里程碑通知：<br><span>當總安裝次數達到以下任一里程碑時通知你。<br>使用逗號分隔里程碑；留空可停用通知。</span>",
+                                "milestoneNotificationTitle": "以逗號分隔里程碑。",
+                                "nonLatins": "非拉丁字元：<br><span>篩選標題或說明中包含非拉丁字元的腳本。</span>",
+                                "blacklist": "預設篩選器：<br><span>篩選標題或說明中包含預設不需要詞語的腳本，包括與機器人、作弊和部分線上遊戲相關的詞語。</span>",
+                                "customBlacklist": "自訂篩選器：<br><span>定義你不想看到的詞語或模式。<br>使用逗號分隔項目（例如：YouTube、Facebook、pizza）；留空可停用此篩選器。</span>",
+                                "customBlacklistTitle": "使用逗號分隔篩選項目。",
+                                "hiddenList": "已隱藏腳本：<br><span>透過唯一 ID 隱藏個別腳本。<br>使用逗號分隔 ID。</span>",
+                                "hiddenListTitle": "以逗號分隔 ID。",
+                                "hideRecentUsersWithin": "隱藏近期註冊使用者：<br><span>隱藏最近 N 小時內註冊的使用者，以減少垃圾帳號留言。</span>",
+                                "hideRecentUsersWithinTitle": "僅限數字。0 表示停用。最大值：168。建議值：48。",
+                                "logging": "記錄",
+                                "debugging": "偵錯"
+                        },
+                        "themeOptions": {
+                                "auto": "自動",
+                                "light": "淺色",
+                                "dark": "深色"
+                        },
+                        "buttons": {
+                                "save": "儲存",
+                                "saveTitle": "儲存設定",
+                                "close": "關閉",
+                                "closeTitle": "關閉視窗",
+                                "reset": "還原預設值",
+                                "resetTitle": "將欄位還原為預設值"
+                        },
+                        "menu": {
+                                "configure": "設定",
+                                "resetEverything": "全部重設",
+                                "resetConfirm": "將 Greasy Fork++ 的所有設定還原為預設值？此操作無法復原。"
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "安裝 {version}",
+                                "reinstall": "重新安裝 {version}",
+                                "update": "更新至 {version}",
+                                "downgrade": "降級至 {version}",
+                                "checking": "正在檢查狀態…",
+                                "unavailable": "狀態無法取得"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "已篩選腳本（{count}）",
+                                "hidden": "已隱藏腳本（{count}）"
+                        },
+                        "actions": {
+                                "copyUrl": "複製 URL",
+                                "reportComment": "檢舉留言"
+                        },
+                        "messages": {
+                                "copyFailed": "無法複製。",
+                                "textLength": "文字長度：{current} / {max}",
+                                "invalidRegex": "已忽略無效的規則運算式：{pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "非拉丁字元",
+                                "blacklist": "預設篩選器",
+                                "customBlacklist": "自訂篩選器",
+                                "hidden": "已隱藏"
+                        }
+                }
+        },
+        "ja": {
+                "hide": "❌ このスクリプトを非表示",
+                "notHide": "✔️ このスクリプトを表示",
+                "milestone": "おめでとうございます！スクリプトの合計インストール数が $1 回に達しました！",
+                "settings": {
+                        "title": "設定",
+                        "sections": {
+                                "appearance": "外観",
+                                "features": "機能",
+                                "lists": "フィルター",
+                                "developerOptions": "開発者向けオプション"
+                        },
+                        "fields": {
+                                "theme": "テーマ：<br><span>自動、ライト、ダークから選択します。自動はサイトの表示に合わせ、必要に応じてシステム設定を使用します。</span>",
+                                "hideBlacklistedScripts": "フィルターされたスクリプトを非表示：<br><span>下で有効にしたフィルターに一致するスクリプトを非表示にします。<b>Ctrl + Alt + B</b> で一時的に表示できます。</span>",
+                                "hideHiddenScript": "スクリプトを非表示：<br><span>スクリプトを非表示にするボタンを追加します。<br>下で非表示にしたスクリプトの一覧を確認・編集できます。<b>Ctrl + Alt + H</b> を押すと表示できます。</span>",
+                                "showInstallButton": "インストールボタン：<br><span>スクリプト一覧に、スクリプトを直接インストールするためのボタンを追加します。</span>",
+                                "showTotalInstalls": "インストール数：<br><span>ユーザープロフィールに1日あたりのインストール数と合計インストール数を表示します。</span>",
+                                "milestoneNotification": "マイルストーン通知：<br><span>合計インストール数が次のマイルストーンのいずれかに到達したときに通知します。<br>マイルストーンはカンマで区切り、通知を無効にする場合は空欄にします。</span>",
+                                "milestoneNotificationTitle": "マイルストーンをカンマで区切ってください。",
+                                "nonLatins": "非ラテン文字：<br><span>タイトルまたは説明に非ラテン文字を含むスクリプトをフィルターします。</span>",
+                                "blacklist": "組み込みフィルター：<br><span>タイトルまたは説明に、ボット、チート、一部のオンラインゲームなどの事前定義された不要な語句を含むスクリプトをフィルターします。</span>",
+                                "customBlacklist": "カスタムフィルター：<br><span>表示したくない単語やパターンを指定します。<br>項目はカンマで区切ります（例：YouTube, Facebook, pizza）。空欄にするとこのフィルターを無効にします。</span>",
+                                "customBlacklistTitle": "フィルター項目をカンマで区切ります。",
+                                "hiddenList": "非表示のスクリプト：<br><span>一意の ID を使って個別のスクリプトを非表示にします。<br>ID はカンマで区切ります。</span>",
+                                "hiddenListTitle": "ID をカンマで区切ってください。",
+                                "hideRecentUsersWithin": "最近登録したユーザーを非表示：<br><span>過去 N 時間以内に登録したユーザーを非表示にし、スパムアカウントからのコメントを減らします。</span>",
+                                "hideRecentUsersWithinTitle": "数字のみ。0 で無効になります。最大値：168。推奨値：48。",
+                                "logging": "ログ記録",
+                                "debugging": "デバッグ"
+                        },
+                        "themeOptions": {
+                                "auto": "自動",
+                                "light": "ライト",
+                                "dark": "ダーク"
+                        },
+                        "buttons": {
+                                "save": "保存",
+                                "saveTitle": "設定を保存",
+                                "close": "閉じる",
+                                "closeTitle": "ウィンドウを閉じる",
+                                "reset": "既定値に戻す",
+                                "resetTitle": "各項目を既定値に戻す"
+                        },
+                        "menu": {
+                                "configure": "設定",
+                                "resetEverything": "すべてリセット",
+                                "resetConfirm": "Greasy Fork++ のすべての設定を既定値に戻しますか？この操作は元に戻せません。"
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "{version} をインストール",
+                                "reinstall": "{version} を再インストール",
+                                "update": "{version} に更新",
+                                "downgrade": "{version} にダウングレード",
+                                "checking": "状態を確認中…",
+                                "unavailable": "状態を確認できません"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "フィルターされたスクリプト（{count}）",
+                                "hidden": "非表示のスクリプト（{count}）"
+                        },
+                        "actions": {
+                                "copyUrl": "URL をコピー",
+                                "reportComment": "コメントを報告"
+                        },
+                        "messages": {
+                                "copyFailed": "コピーできませんでした。",
+                                "textLength": "テキストの長さ：{current} / {max}",
+                                "invalidRegex": "無効な正規表現を無視しました：{pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "非ラテン文字",
+                                "blacklist": "組み込みフィルター",
+                                "customBlacklist": "カスタムフィルター",
+                                "hidden": "非表示"
+                        }
+                }
+        },
+        "ko": {
+                "hide": "❌ 이 스크립트 숨기기",
+                "notHide": "✔️ 이 스크립트 표시",
+                "milestone": "축하합니다! 스크립트의 총 설치 횟수가 $1회를 달성했습니다!",
+                "settings": {
+                        "title": "설정",
+                        "sections": {
+                                "appearance": "외관",
+                                "features": "기능",
+                                "lists": "필터",
+                                "developerOptions": "개발자 옵션"
+                        },
+                        "fields": {
+                                "theme": "테마:<br><span>자동, 밝게 또는 어둡게를 선택하세요. 자동은 사이트의 표시를 따르고 필요하면 시스템 설정을 사용합니다.</span>",
+                                "hideBlacklistedScripts": "필터링된 스크립트 숨기기:<br><span>아래의 활성 필터와 일치하는 스크립트를 숨깁니다. <b>Ctrl + Alt + B</b>를 누르면 일시적으로 표시할 수 있습니다.</span>",
+                                "hideHiddenScript": "스크립트 숨기기:<br><span>스크립트를 숨기는 버튼을 추가합니다.<br>아래에서 숨긴 스크립트 목록을 확인하고 편집할 수 있습니다. 표시하려면 <b>Ctrl + Alt + H</b>를 누르세요.</span>",
+                                "showInstallButton": "설치 버튼:<br><span>스크립트 목록에 스크립트를 바로 설치할 수 있는 버튼을 추가합니다.</span>",
+                                "showTotalInstalls": "설치 횟수:<br><span>사용자 프로필에 일일 설치 횟수와 총 설치 횟수를 표시합니다.</span>",
+                                "milestoneNotification": "마일스톤 알림:<br><span>총 설치 횟수가 다음 마일스톤 중 하나에 도달하면 알림을 받습니다.<br>마일스톤은 쉼표로 구분하고, 알림을 끄려면 비워 두세요.</span>",
+                                "milestoneNotificationTitle": "마일스톤을 쉼표로 구분하세요.",
+                                "nonLatins": "비라틴 문자:<br><span>제목이나 설명에 비라틴 문자가 포함된 스크립트를 필터링합니다.</span>",
+                                "blacklist": "기본 필터:<br><span>제목이나 설명에 봇, 치트, 일부 온라인 게임 등 미리 정의된 원치 않는 용어가 포함된 스크립트를 필터링합니다.</span>",
+                                "customBlacklist": "사용자 지정 필터:<br><span>보고 싶지 않은 단어나 패턴을 정의합니다.<br>항목은 쉼표로 구분하세요(예: YouTube, Facebook, pizza). 비워 두면 이 필터를 비활성화합니다.</span>",
+                                "customBlacklistTitle": "필터 항목을 쉼표로 구분하세요.",
+                                "hiddenList": "숨긴 스크립트:<br><span>고유 ID로 개별 스크립트를 숨깁니다.<br>ID는 쉼표로 구분하세요.</span>",
+                                "hiddenListTitle": "ID를 쉼표로 구분하세요.",
+                                "hideRecentUsersWithin": "최근 가입 사용자 숨기기:<br><span>최근 N시간 이내에 가입한 사용자를 숨겨 스팸 계정의 댓글을 줄입니다.</span>",
+                                "hideRecentUsersWithinTitle": "숫자만 입력하세요. 0은 비활성화입니다. 최대값: 168. 권장값: 48.",
+                                "logging": "로그 기록",
+                                "debugging": "디버깅"
+                        },
+                        "themeOptions": {
+                                "auto": "자동",
+                                "light": "밝게",
+                                "dark": "어둡게"
+                        },
+                        "buttons": {
+                                "save": "저장",
+                                "saveTitle": "설정 저장",
+                                "close": "닫기",
+                                "closeTitle": "창 닫기",
+                                "reset": "기본값으로 재설정",
+                                "resetTitle": "필드를 기본값으로 재설정"
+                        },
+                        "menu": {
+                                "configure": "설정",
+                                "resetEverything": "모두 재설정",
+                                "resetConfirm": "Greasy Fork++의 모든 설정을 기본값으로 재설정할까요? 이 작업은 되돌릴 수 없습니다."
+                        }
+                },
+                "runtime": {
+                        "versionLabels": {
+                                "install": "{version} 설치",
+                                "reinstall": "{version} 재설치",
+                                "update": "{version}(으)로 업데이트",
+                                "downgrade": "{version}(으)로 다운그레이드",
+                                "checking": "상태 확인 중…",
+                                "unavailable": "상태를 확인할 수 없음"
+                        },
+                        "listPanel": {
+                                "title": "{name}",
+                                "blacklisted": "필터링된 스크립트 ({count})",
+                                "hidden": "숨긴 스크립트 ({count})"
+                        },
+                        "actions": {
+                                "copyUrl": "URL 복사",
+                                "reportComment": "댓글 신고"
+                        },
+                        "messages": {
+                                "copyFailed": "복사할 수 없습니다.",
+                                "textLength": "텍스트 길이: {current} / {max}",
+                                "invalidRegex": "잘못된 정규식을 무시했습니다: {pattern}"
+                        },
+                        "debugLabels": {
+                                "nonLatin": "비라틴 문자",
+                                "blacklist": "기본 필터",
+                                "customBlacklist": "사용자 지정 필터",
+                                "hidden": "숨김"
+                        }
+                }
         }
+};
 
+    const formatMessage = (template, values = {}) => String(template || '').replace(/\{(\w+)\}/g, (_, key) =>
+        Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : `{${key}}`
+    );
+
+    const normalizeLocaleCode = (language) => {
+        const value = String(language || '').trim();
+        if (locales[value]) return value;
+
+        const normalized = value.toLowerCase().replace(/_/g, '-');
+        const aliases = {
+            'pt': 'pt-PT',
+            'pt-br': 'pt-BR',
+            'pt-pt': 'pt-PT',
+            'zh-cn': 'zh-CN',
+            'zh-sg': 'zh-CN',
+            'zh-hans': 'zh-CN',
+            'zh-tw': 'zh-TW',
+            'zh-hk': 'zh-TW',
+            'zh-mo': 'zh-TW',
+            'zh-hant': 'zh-TW'
+        };
+        const alias = aliases[normalized];
+        if (alias && locales[alias]) return alias;
+
+        const baseLanguage = normalized.split('-')[0];
+        if (baseLanguage === 'pt') return 'pt-PT';
+        return locales[baseLanguage] ? baseLanguage : null;
+    };
+
+    const resolveLocaleCode = (pageLanguage = '') =>
+        normalizeLocaleCode(pageLanguage) || 'en';
+
+    const getLocale = (language) => locales[normalizeLocaleCode(language) || 'en'];
+
+    const getFields = (locale) => {
+        const localizedFields = Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, {
+            ...value,
+            ...(value.section ? { section: [...value.section] } : {})
+        }]));
+        const ui = (locale && locale.settings) || locales.en.settings;
+        const labels = ui.fields;
+
+        localizedFields.theme.label = labels.theme;
+        localizedFields.theme.section = [ui.sections.appearance];
+        localizedFields.hideBlacklistedScripts.label = labels.hideBlacklistedScripts;
+        localizedFields.hideBlacklistedScripts.section = [ui.sections.features];
+        localizedFields.hideHiddenScript.label = labels.hideHiddenScript;
+        localizedFields.showInstallButton.label = labels.showInstallButton;
+        localizedFields.showTotalInstalls.label = labels.showTotalInstalls;
+        localizedFields.milestoneNotification.label = labels.milestoneNotification;
+        localizedFields.milestoneNotification.title = labels.milestoneNotificationTitle;
+        localizedFields.nonLatins.label = labels.nonLatins;
+        localizedFields.nonLatins.section = [ui.sections.lists];
+        localizedFields.blacklist.label = labels.blacklist;
+        localizedFields.customBlacklist.label = labels.customBlacklist;
+        localizedFields.customBlacklist.title = labels.customBlacklistTitle;
+        localizedFields.hiddenList.label = labels.hiddenList;
+        localizedFields.hiddenList.title = labels.hiddenListTitle;
+        localizedFields.hideRecentUsersWithin.label = labels.hideRecentUsersWithin;
+        localizedFields.hideRecentUsersWithin.title = labels.hideRecentUsersWithinTitle;
+        localizedFields.logging.label = labels.logging;
+        localizedFields.logging.section = [ui.sections.developerOptions];
+        localizedFields.debugging.label = labels.debugging;
+
+        return localizedFields;
     };
 
 
@@ -878,7 +1826,10 @@ const mWindow = isInIframe || (() => {
 
     }
 
-    return { fields, logo, locales, settingsCSS, pageCSS, contentScriptText }
+    return {
+        fields, getFields, getLocale, normalizeLocaleCode, resolveLocaleCode, formatMessage,
+        logo, locales, settingsCSS, pageCSS, contentScriptText
+    }
 
 })();
 
@@ -1027,7 +1978,12 @@ inIframeFn() || (async () => {
                 r = s.every((t, i) => {
                     if (t === undefined || t.length === 0) return true;
                     if (i % 2) {
-                        return regExpArr[+t].test(text0);
+                        const regex = regExpArr[+t];
+                        if (!regex) return false;
+                        regex.lastIndex = 0;
+                        const matched = regex.test(text0);
+                        regex.lastIndex = 0;
+                        return matched;
                     } else {
                         return text0.includes(t.trim());
                     }
@@ -1061,7 +2017,7 @@ inIframeFn() || (async () => {
             const option = optionM ? optionM[0] : '';
             const regexContent = txtRule.substring(idx1 + 2 + 1, idx2 - 1);
             txtRule = `${txtRule.substring(0, idx1)}${('\uE084' + regExpArr.length + 'r')}${txtRule.substring(idx2 + option.length)}`;
-            regExpArr.push(new RegExp(regexContent, option));
+            regExpArr.push(createRE(regexContent, option));
         }
         const rules = txtRule.split(',').map(e => e.trim());
         return ruleFn.bind({ rules, regExpArr });
@@ -1072,14 +2028,20 @@ inIframeFn() || (async () => {
     const addAdditionInfoLengthHint = true;
 
     const id = 'greasyfork-plus';
-    const title = `${GM.info.script.name} v${GM.info.script.version} Settings`;
-    const fields = mWindow.fields;
+    const locales = mWindow.locales;
+    const pageLanguage = document.documentElement.lang
+        || (/^\/([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,4})?)\//.exec(location.pathname)?.[1] || 'en');
+    const localeCode = mWindow.resolveLocaleCode(pageLanguage);
+    const locale = mWindow.getLocale(localeCode);
+    const ui = locale.settings || locales.en.settings;
+    const strings = locale.runtime || locales.en.runtime;
+    const title = `${GM.info.script.name} v${GM.info.script.version} ${ui.title}`;
+    const fields = mWindow.getFields(locale);
     const logo = mWindow.logo;
     const nonLatins = filters.NonLatin;
     const blacklistRules = filters.Rules;
     const hiddenList = numberArr(await GMA.getValue('hiddenList', []));
-    const lang = document.documentElement.lang;
-    const locales = mWindow.locales;
+    const lang = localeCode;
 
     const _isBlackList = (text) => {
         if (!text || typeof text !== 'string') return false;
@@ -1538,13 +2500,29 @@ inIframeFn() || (async () => {
     }
 
     const createListOptionGroup = () => {
-
-        const html = `<div class="list-option-group" id="${id}-options">${GM.info.script.name} Lists:<ul>
-      <li class="list-option blacklisted"><a href="#" id="hyperlink-35389"></a></li>
-      <li class="list-option hidden"><a href="#" id="hyperlink-40361"></a></li>
-      </ul></div>`;
         const firstOptionGroup = document.querySelector('.list-option-groups > div');
-        firstOptionGroup && firstOptionGroup.insertAdjacentHTML('beforebegin', html);
+        if (!firstOptionGroup || document.getElementById(`${id}-options`)) return;
+
+        const group = document.createElement('div');
+        group.className = 'list-option-group';
+        group.id = `${id}-options`;
+        const heading = document.createElement('span');
+        heading.textContent = GM.info.script.name;
+        group.appendChild(heading);
+        const list = document.createElement('ul');
+        const makeOption = (type, anchorId) => {
+            const item = document.createElement('li');
+            item.className = `list-option ${type}`;
+            const anchor = document.createElement('a');
+            anchor.href = '#';
+            anchor.id = anchorId;
+            item.appendChild(anchor);
+            list.appendChild(item);
+        };
+        makeOption('blacklisted', 'hyperlink-35389');
+        makeOption('hidden', 'hyperlink-40361');
+        group.appendChild(list);
+        firstOptionGroup.parentNode.insertBefore(group, firstOptionGroup);
 
         const blacklistedOption = document.querySelector(`#${id}-options li.blacklisted`);
         blacklistedOption && blacklistedOption.addEventListener('click', (evt) => {
@@ -1567,8 +2545,12 @@ inIframeFn() || (async () => {
             let aBlackList = document.querySelector('#hyperlink-35389');
             let aHidden = document.querySelector('#hyperlink-40361');
             if (!aBlackList || !aHidden) return;
-            aBlackList.textContent = `Blacklisted scripts (${document.querySelectorAll('.script-list li.blacklisted').length})`;
-            aHidden.textContent = `Hidden scripts (${document.querySelectorAll('.script-list li.hidden').length})`;
+            aBlackList.textContent = mWindow.formatMessage(strings.listPanel.blacklisted, {
+                count: document.querySelectorAll('.script-list li.blacklisted').length
+            });
+            aHidden.textContent = mWindow.formatMessage(strings.listPanel.hidden, {
+                count: document.querySelectorAll('.script-list li.hidden').length
+            });
         }, scriptList, { childList: true, subtree: true });
     };
 
@@ -2056,7 +3038,7 @@ inIframeFn() || (async () => {
      * @returns {string} Label
      */
     const blockLabel = (hidden) => {
-        return hidden ? (locales[lang] ? locales[lang].notHide : locales.en.notHide) : (locales[lang] ? locales[lang].hide : locales.en.hide)
+        return hidden ? locale.notHide : locale.hide;
     }
 
     /**
@@ -2065,22 +3047,11 @@ inIframeFn() || (async () => {
      * @param {number} update Update value
      * @returns {string} Label
      */
-    const installLabel = (update) => {
-        switch (update) {
-            case 0: {
-                return locales[lang] ? locales[lang].reinstall : locales.en.reinstall
-            }
-            case 1: {
-                return locales[lang] ? locales[lang].update : locales.en.update
-            }
-            case -1: {
-                return locales[lang] ? locales[lang].downgrade : locales.en.downgrade
-            }
-            default: {
-                return locales[lang] ? locales[lang].install : locales.en.install
-            }
-        }
-    }
+    const installLabel = (update, version = '') => {
+        const key = update === 0 ? 'reinstall' : update === 1 ? 'update' : update === -1 ? 'downgrade' : 'install';
+        const template = strings.versionLabels[key];
+        return version ? mWindow.formatMessage(template, { version }) : template.replace(/\s*\{version\}/, '');
+    };
 
     const hideBlacklistedDiscussion = (element, list) => {
 
