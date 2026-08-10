@@ -12,7 +12,7 @@ FIXTURE = ROOT / "examples" / "mini-greasyfork-dark.user.js"
 SOURCE = ROOT / "references" / "fixtures" / "current-application.css"
 
 
-def run(before, after):
+def run(before, after, source=SOURCE):
     return subprocess.run(
         [
             "python3",
@@ -22,7 +22,7 @@ def run(before, after):
             "--after",
             str(after),
             "--source-css",
-            str(SOURCE),
+            str(source),
             "--strict",
         ],
         capture_output=True,
@@ -77,6 +77,92 @@ def main():
         result = run(quoted_before, quote_change)
         assert result.returncode != 0
         assert "attribute-selector quote addition" in result.stdout
+
+        context_swapped = directory / "context-swapped.user.js"
+        context_swapped.write_text(
+            FIXTURE.read_text()
+            .replace("margin: auto 1.2vw;", "__SWAP__", 1)
+            .replace("margin: auto 0;", "margin: auto 1.2vw;", 1)
+            .replace("__SWAP__", "margin: auto 0;", 1)
+        )
+        result = run(before, context_swapped)
+        assert result.returncode != 0
+        assert "missing_non_color_tokens" in result.stdout
+
+        ordered_source = directory / "ordered-source.css"
+        ordered_source.write_text(".order-marker{margin:0;padding:1px;}")
+        ordered_before = directory / "ordered-before.user.js"
+        ordered_before.write_text(
+            FIXTURE.read_text().replace(
+                "        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                "        .order-marker {\n"
+                "            margin: 0;\n"
+                "            padding: 1px;\n"
+                "        }\n"
+                "        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                1,
+            )
+        )
+        ordered_after = directory / "ordered-after.user.js"
+        ordered_after.write_text(
+            ordered_before.read_text().replace(
+                "            margin: 0;\n            padding: 1px;",
+                "            padding: 1px;\n            margin: 0;",
+                1,
+            )
+        )
+        result = run(ordered_before, ordered_after, ordered_source)
+        assert result.returncode != 0
+        assert "missing_non_color_tokens" in result.stdout
+
+        nested_ordered_source = directory / "nested-ordered-source.css"
+        nested_ordered_source.write_text(
+            ".order-parent{margin:0;.nested{padding:1px;}width:2px;}"
+        )
+        nested_ordered_before = directory / "nested-ordered-before.user.js"
+        nested_ordered_before.write_text(
+            FIXTURE.read_text().replace(
+                "        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                ".order-parent {\n"
+                "            margin: 0;\n"
+                "            .nested {\n"
+                "                padding: 1px;\n"
+                "            }\n"
+                "            width: 2px;\n"
+                "        }\n"
+                "        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                1,
+            )
+        )
+        nested_ordered_after = directory / "nested-ordered-after.user.js"
+        nested_ordered_after.write_text(
+            nested_ordered_before.read_text().replace(
+                "            .nested {\n"
+                "                padding: 1px;\n"
+                "            }\n"
+                "            width: 2px;",
+                "            width: 2px;\n"
+                "            .nested {\n"
+                "                padding: 1px;\n"
+                "            }",
+                1,
+            )
+        )
+        result = run(nested_ordered_before, nested_ordered_after, nested_ordered_source)
+        assert result.returncode != 0
+        assert "missing_non_color_tokens" in result.stdout
+
+        tabs = directory / "tabs.user.js"
+        tabs.write_text(FIXTURE.read_text().replace("    color: #e9e9e9;", "\tcolor: #e9e9e9;", 1))
+        result = run(before, tabs)
+        assert result.returncode != 0
+        assert "snapshot_tabs" in result.stdout
+
+        trailing = directory / "trailing.user.js"
+        trailing.write_text(FIXTURE.read_text().replace("    color: #e9e9e9;", "    color: #e9e9e9; ", 1))
+        result = run(before, trailing)
+        assert result.returncode != 0
+        assert "snapshot_trailing_whitespace_lines" in result.stdout
 
         both_spellings_before = directory / "both-spellings-before.user.js"
         both_spellings_before.write_text(
