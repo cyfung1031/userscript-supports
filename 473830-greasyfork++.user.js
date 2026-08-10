@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.3.9
+// @version            3.4.1
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
+// @contributor        BlackSpirits <https://github.com/BlackSpirits>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
 // @description        Adds various features and improves the Greasy Fork experience
 // @description:de     Fügt verschiedene Funktionen hinzu und verbessert das Greasy Fork-Erlebnis
@@ -17,17 +18,17 @@
 // @copyright          2023, CY Fung (https://greasyfork.org/users/371179); 2021, Davide (https://github.com/iFelix18)
 // @license            MIT
 // @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
-// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.1/dist/index.min.js
+// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.4/dist/index.min.js
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
 // @match              *://cn-greasyfork.org/*
-// @match              *://api.greasyfork.org/*
-// @match              *://api.sleazyfork.org/*
-// @match              *://api.cn-greasyfork.org/*
 // @connect            greasyfork.org
 // @connect            sleazyfork.org
 // @connect            cn-greasyfork.org
+// @connect            api.greasyfork.org
+// @connect            api.sleazyfork.org
+// @connect            api.cn-greasyfork.org
 // @compatible         chrome
 // @compatible         edge
 // @compatible         firefox
@@ -38,9 +39,10 @@
 // @grant              GM.notification
 // @grant              GM.registerMenuCommand
 // @grant              GM.setValue
-// @grant              unsafeWindow
+// @grant              GM.xmlHttpRequest
 // @run-at             document-start
 // @inject-into        content
+// @noframes
 // ==/UserScript==
 
 /* ---- updated filter ---- */
@@ -50,7 +52,7 @@
 
 const filters = {
     // NonASCII: /[^\x00-\x7F\s]+/,
-    NonLatin: /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/gu,        //  /[^\u0000-\u024F\u2000-\u214F\s]+/
+    NonLatin: /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/u,        //  /[^\u0000-\u024F\u2000-\u214F\s]+/
     Rules: [
         // ----------- game1 -----------
         /[^a-zA-Z](Aimbot|AntiGame|Agar|agar\.?io|agma\.?io|alis\.io|angel\.io|ExtencionRipXChetoMalo|AposBot|DFxLite|ZTx-Lite|AposFeedingBot|AposLoader|Balz|Blah Blah|Orc Clan Script|Astro\s*Empires|^\s*Attack|^\s*Battle|BiteFight|Blood\s*Wars|Bloble|Bonk|Bots|Bots4|Brawler|\bBvS\b|Business\s*Tycoon|Castle\s*Age|City\s*Ville|chopcoin\.io|Comunio|Conquer\s*Club|CosmoPulse|cursors\.io|Dark\s*Orbit|Dead\s*Frontier|Diep\.io|\bDOA\b|doblons\.io|DotD|Dossergame|Dragons\s*of\s*Atlantis|driftin\.io|Dugout|\bDS[a-z]+\n|elites\.io|Empire\s*Board|eRep(ublik)?|Epicmafia|Epic.*War|ExoPlanet|Falcon Tools|Feuerwache|Farming|FarmVille|Fightinfo|Frontier\s*Ville|Ghost\s*Trapper|Gladiatus|Goalline|Gondal|gota\.io|Grepolis|Hobopolis|\bhwm(\b|_)|Ikariam|\bIT2\b|Jellyneo|Kapi\s*Hospital|Kings\s*Age|Kingdoms?\s*of|knastv(o|oe)gel|Knight\s*Fight|\b(Power)?KoC(Atta?ck)?\b|\bKOL\b|Kongregate|Krunker|Last\s*Emperor|Legends?\s*of|Light\s*Rising|lite\.ext\.io|Lockerz|\bLoU\b|Mafia\s*(Wars|Mofo)|Menelgame|Mob\s*Wars|Mouse\s*Hunt|Molehill\s*Empire|MooMoo|MyFreeFarm|narwhale\.io|Neopets|NeoQuest|Nemexia|\bOGame\b|Ogar(io)?|Pardus|Pennergame|Pigskin\s*Empire|PlayerScripts|pokeradar\.io|Popmundo|Po?we?r\s*(Bot|Tools)|PsicoTSI|Ravenwood|Schulterglatze|Skribbl|slither\.io|slitherplus\.io|slitheriogameplay|SpaceWars|splix\.io|Survivio|\bSW_[a-z]+\n|\bSnP\b|The\s*Crims|The\s*West|torto\.io|Travian|Treasure\s*Isl(and|e)|Tribal\s*Wars|TW.?PRO|Vampire\s*Wars|vertix\.io|War\s*of\s*Ninja|World\s*of\s*Tanks|West\s*Wars|wings\.io|\bWoD\b|World\s*of\s*Dungeons|wtf\s*battles|Wurzelimperium|Yohoho|Zombs)[^a-zA-Z]/iu,
@@ -65,7 +67,7 @@ const filters = {
 
 /* ---- updated filter ---- */
 
-/* global GM_config, VM, GM, WinComm */
+/* global GM_config, VM */
 
 const isInIframe = window !== top;
 
@@ -76,7 +78,7 @@ const isInIframe = window !== top;
 // console.log(GM)
 
 /** @type {WinComm} */
-const WinComm = this.WinComm;
+const WinComm = globalThis.WinComm || (typeof this !== 'undefined' ? this.WinComm : undefined);
 
 //  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
 // optimized by CY Fung to remove $ dependency and observe creation
