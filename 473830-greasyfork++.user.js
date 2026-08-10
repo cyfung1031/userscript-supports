@@ -152,10 +152,6 @@ const mWindow = isInIframe || (() => {
 
 
     const fields = {
-        theme: {
-            label: '', labelPos: 'left', type: 'select',
-            options: ['auto', 'light', 'dark'], default: 'auto'
-        },
         hideBlacklistedScripts: {
             label: '', section: [''], labelPos: 'right', type: 'checkbox', default: true
         },
@@ -1216,8 +1212,6 @@ const mWindow = isInIframe || (() => {
         const ui = (locale && locale.settings) || locales.en.settings;
         const labels = ui.fields;
 
-        localizedFields.theme.label = labels.theme;
-        localizedFields.theme.section = [ui.sections.appearance];
         localizedFields.hideBlacklistedScripts.label = labels.hideBlacklistedScripts;
         localizedFields.hideBlacklistedScripts.section = [ui.sections.features];
         localizedFields.hideHiddenScript.label = labels.hideHiddenScript;
@@ -2960,6 +2954,8 @@ inIframeFn() || (async () => {
         timeout: 'timeout',
         error: 'error'
     });
+    const isValidInstallBridge = bridge => bridge && bridge.data
+        && typeof bridge.data.type === 'number' && Number.isFinite(bridge.data.type);
 
     const settleWithin = (promise, timeoutMs) => new Promise(resolve => {
         let settled = false;
@@ -2995,14 +2991,19 @@ inIframeFn() || (async () => {
         };
         const onMessage = event => {
             const data = event?.data;
-            if (!data || event.origin !== location.origin || data.communicationId !== communicationId || data.callbackId !== callbackId) return;
+            if (!data || event.origin !== location.origin || data.communicationId !== communicationId
+                || data.callbackId !== callbackId || data.action !== 'installedVersion.res') return;
             cleanup();
             const response = data.data;
             if (!response || typeof response !== 'object' || !Object.prototype.hasOwnProperty.call(response, 'version')) {
                 resolve({ state: installStatusState.error, version: '' });
                 return;
             }
-            const version = typeof response.version === 'string' ? response.version : '';
+            if (typeof response.version !== 'string') {
+                resolve({ state: installStatusState.error, version: '' });
+                return;
+            }
+            const version = response.version;
             resolve(version ? { state: installStatusState.resolved, version } : {
                 state: installStatusState.notInstalled,
                 version: ''
@@ -3023,30 +3024,33 @@ inIframeFn() || (async () => {
     });
 
     const getInstalledStatus = async script => {
-        const bridge = await settleWithin(promiseScriptCheck, installStatusInitialTimeout);
+        const deadline = Date.now() + installStatusLateTimeout;
+        const remaining = () => Math.max(0, deadline - Date.now());
+        const bridge = await settleWithin(promiseScriptCheck, Math.min(installStatusInitialTimeout, remaining()));
         if (bridge === installStatusTimeout) {
             return {
                 state: installStatusState.pending,
                 version: '',
-                late: settleWithin(promiseScriptCheck, installStatusLateTimeout).then(async lateBridge => {
+                late: settleWithin(promiseScriptCheck, remaining()).then(async lateBridge => {
                     if (lateBridge === installStatusTimeout) return { state: installStatusState.timeout, version: '' };
                     if (!lateBridge) return { state: installStatusState.managerUnavailable, version: '' };
-                    return requestInstalledVersion(script, lateBridge, installStatusLateTimeout);
+                    if (!isValidInstallBridge(lateBridge)) return { state: installStatusState.error, version: '' };
+                    return requestInstalledVersion(script, lateBridge, remaining());
                 })
             };
         }
         if (!bridge) return { state: installStatusState.managerUnavailable, version: '' };
-        if (!bridge.data || !Number.isFinite(Number(bridge.data.type))) {
+        if (!isValidInstallBridge(bridge)) {
             return { state: installStatusState.error, version: '' };
         }
 
-        const request = requestInstalledVersion(script, bridge, installStatusLateTimeout);
-        const result = await settleWithin(request, installStatusInitialTimeout);
+        const request = requestInstalledVersion(script, bridge, remaining());
+        const result = await settleWithin(request, Math.min(installStatusInitialTimeout, remaining()));
         if (result === installStatusTimeout) {
             return {
                 state: installStatusState.pending,
                 version: '',
-                late: settleWithin(request, installStatusLateTimeout).then(value =>
+                late: settleWithin(request, remaining()).then(value =>
                     value === installStatusTimeout ? { state: installStatusState.timeout, version: '' } : value)
             };
         }
@@ -3095,8 +3099,17 @@ inIframeFn() || (async () => {
         return version ? mWindow.formatMessage(template, { version }) : template.replace(/\s*\{version\}/, '');
     };
 
-    const setInstallControlState = (link, state, retry = null) => {
-        if (!link) return;
+    const installStatusGenerations = new WeakMap();
+    const beginInstallStatus = link => {
+        const generation = Symbol('install-status-generation');
+        installStatusGenerations.set(link, generation);
+        return generation;
+    };
+    const isCurrentInstallStatus = (link, generation) => link?.isConnected
+        && (!generation || installStatusGenerations.get(link) === generation);
+
+    const setInstallControlState = (link, state, retry = null, generation = null) => {
+        if (!isCurrentInstallStatus(link, generation)) return false;
         link.classList.toggle('install-status-checking', state === installStatusState.pending);
         link.classList.toggle('install-status-unavailable', state === installStatusState.timeout || state === installStatusState.error);
         if (state === installStatusState.pending) {
@@ -3115,31 +3128,35 @@ inIframeFn() || (async () => {
             installRetryHandlers.delete(link);
         }
         link.setAttribute('data-gfpp-install-status', state);
+        return true;
     };
 
-    const applyInstallStatus = (link, availableVersion, status, retry = null) => {
-        if (!link || !status) return;
+    const applyInstallStatus = (link, availableVersion, status, retry = null, generation = null) => {
+        if (!status || !isCurrentInstallStatus(link, generation)) return false;
         const version = String(availableVersion || '');
         if (status.state === installStatusState.managerUnavailable || status.state === installStatusState.notInstalled) {
-            setInstallControlState(link, status.state);
+            setInstallControlState(link, status.state, null, generation);
             link.textContent = installLabel(undefined, version);
-            return;
+            return true;
         }
         if (status.state === installStatusState.resolved) {
             const update = compareVersions(version, status.version);
-            setInstallControlState(link, status.state);
+            setInstallControlState(link, status.state, null, generation);
             link.textContent = installLabel(update, version);
-            return;
+            return true;
         }
-        setInstallControlState(link, status.state, retry);
+        setInstallControlState(link, status.state, retry, generation);
+        return true;
     };
 
-    const watchLateInstallStatus = (link, availableVersion, status, retry = null) => {
-        if (status.state !== installStatusState.pending || !status.late) return false;
-        setInstallControlState(link, installStatusState.pending);
+    const watchLateInstallStatus = (link, availableVersion, status, retry = null, generation = null) => {
+        if (!status || status.state !== installStatusState.pending || !status.late
+            || !isCurrentInstallStatus(link, generation)) return false;
+        setInstallControlState(link, installStatusState.pending, null, generation);
         void status.late.then(result => {
-            if (!link.isConnected || link.getAttribute('data-gfpp-install-status') !== installStatusState.pending) return;
-            applyInstallStatus(link, availableVersion, result, retry);
+            if (!isCurrentInstallStatus(link, generation)
+                || link.getAttribute('data-gfpp-install-status') !== installStatusState.pending) return;
+            applyInstallStatus(link, availableVersion, result, retry, generation);
         });
         return true;
     };
@@ -3150,22 +3167,23 @@ inIframeFn() || (async () => {
         if (existing) return existing;
 
         const request = (async () => {
+            const generation = beginInstallStatus(link);
             const id = Number(link.getAttribute('data-script-id')) || 0;
             if (!(id > 0)) return;
-            setInstallControlState(link, installStatusState.pending);
+            setInstallControlState(link, installStatusState.pending, null, generation);
             const script = await getScriptData(id);
             if (!script) {
                 applyInstallStatus(link, link.getAttribute('data-script-version') || '', {
                     state: installStatusState.error,
                     version: ''
-                }, () => refreshInstallLinkStatus(link));
+                }, () => refreshInstallLinkStatus(link), generation);
                 return;
             }
             const availableVersion = link.getAttribute('data-script-version') || script.version || '';
             const retry = () => refreshInstallLinkStatus(link);
             const status = await getInstalledStatus(script);
-            if (!watchLateInstallStatus(link, availableVersion, status, retry)) {
-                applyInstallStatus(link, availableVersion, status, retry);
+            if (!watchLateInstallStatus(link, availableVersion, status, retry, generation)) {
+                applyInstallStatus(link, availableVersion, status, retry, generation);
             }
         })().finally(() => {
             installStatusRequests.delete(link);
@@ -3380,22 +3398,23 @@ inIframeFn() || (async () => {
 
         const button = addInstallButton(element, baseScript.code_url);
         if (!button) return;
+        const generation = beginInstallStatus(button);
         let script = baseScript.name && baseScript.namespace ? baseScript : await getScriptData(scriptID);
         let retrying = false;
         const retry = async () => {
             if (retrying || !button.isConnected) return;
             retrying = true;
-            setInstallControlState(button, installStatusState.pending);
+            setInstallControlState(button, installStatusState.pending, null, generation);
             try {
                 if (!script) script = await getScriptData(scriptID, true);
                 if (!script) {
-                    setInstallControlState(button, installStatusState.error, retry);
+                    setInstallControlState(button, installStatusState.error, retry, generation);
                     return;
                 }
                 const availableVersion = baseScript.version || script.version || '';
                 const status = await getInstalledStatus(script);
-                if (!watchLateInstallStatus(button, availableVersion, status, retry)) {
-                    applyInstallStatus(button, availableVersion, status, retry);
+                if (!watchLateInstallStatus(button, availableVersion, status, retry, generation)) {
+                    applyInstallStatus(button, availableVersion, status, retry, generation);
                 }
             } finally {
                 retrying = false;
