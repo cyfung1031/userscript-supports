@@ -86,6 +86,15 @@ def main():
         missing_comment.write_text(source.replace("/* owner link color */", "", 1))
         expect_fail(run(missing_comment, previous=previous), "historical CSS comments lost")
 
+        previous_with_catalogue = directory / "previous-with-catalogue.user.js"
+        previous_with_catalogue.write_text(
+            previous.read_text()
+            .replace("\n        `,\n", "\n        /* Preserved comments from the previous // general snapshot. */\n        /* #detached; */\n        `,\n")
+        )
+        no_catalogue_loss = directory / "no-catalogue-loss.user.js"
+        no_catalogue_loss.write_text(source)
+        expect_pass(run(no_catalogue_loss, previous=previous_with_catalogue))
+
         orphan_comments = directory / "orphan-comments.user.js"
         orphan_comments.write_text(
             source.replace(

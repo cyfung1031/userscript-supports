@@ -67,7 +67,10 @@ def forbidden_transformations(before: str, after: str) -> list[str]:
     for match in re.finditer(r"""[^{}\n]*\[[^\]=]+=[^\]"']+\][^{}\n]*""", before):
         unquoted = match.group(0)
         quoted = re.sub(r"""(\[[^=\]]+=)([^\]"']+)(\])""", r'\1"\2"\3', unquoted)
-        if quoted in after:
+        # A historical snapshot may intentionally contain both spellings in
+        # separate cascade units. Report an actual conversion only when the
+        # quoted spelling is newly added and the unquoted spelling is removed.
+        if after.count(quoted) > before.count(quoted) and after.count(unquoted) < before.count(unquoted):
             findings.append(f"attribute-selector quote addition: {unquoted.strip()}")
     return findings
 

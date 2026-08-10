@@ -77,6 +77,15 @@ def scan_comments(css):
     return "".join(active), comments
 
 
+def remove_orphan_comment_catalogue(css):
+    marker = css.find(ORPHAN_COMMENT_CATALOG)
+    if marker < 0:
+        return css
+    trailing = css[marker:]
+    active, _ = scan_comments(trailing)
+    return css[:marker] if not active.strip() else css
+
+
 def scan_balance(css):
     active, comments = scan_comments(css)
     braces = 0
@@ -267,7 +276,7 @@ def main():
     elif args.base_ref:
         previous_source = previous_from_git(args.base_ref, args.file)
     if previous_source is not None:
-        previous_general = extract_general(previous_source)
+        previous_general = remove_orphan_comment_catalogue(extract_general(previous_source))
         _, previous_comments = scan_comments(previous_general)
         missing_comments = [item for item in set(previous_comments) if item not in general]
         if missing_comments:

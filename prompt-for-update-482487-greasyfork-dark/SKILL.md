@@ -12,7 +12,7 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 - Update the one existing // general template literal in place. Never append a second application CSS snapshot.
 - Treat the raw current application CSS as the structure/non-color-token oracle and the historical // general snapshot as the owner styling oracle. Formatted copies are navigation aids only.
 - Treat the actual target script, especially its current or HEAD // general declarations, as authoritative for colors and comments. Reference files contain examples and procedure only; they may become stale.
-- Preserve all CSS comments, hard-coded colors, selector-specific overrides, and webhook/userscript/extension/PrettyPrint/stats supplemental templates.
+- Preserve attached CSS comments, hard-coded colors, selector-specific overrides, and webhook/userscript/extension/PrettyPrint/stats supplemental templates. If the old snapshot has a detached `/* Preserved comments from the previous // general snapshot. */` catalogue, treat it as stale migration debris: do not copy the catalogue or its detached tokens; recover each item only from its real declaration/rule when present.
 - Exclude active :root variables and the official prefers-color-scheme dark branch. Preserve the user's own dark-theme design.
 - Do not redesign cssTextFn, removeNonColor, generalCSSFn, lifecycle timing, filtering, or style injection.
 - Use PickInvariant as a focused structural audit: bind the owner snapshot, current browser-observed CSS, and these invariants before committing.
@@ -26,7 +26,9 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 - Source declaration tokens and maintainable comment placement: read references/source-fidelity.md before converting CSS.
 - Source-to-snapshot formatting/cascade harness: run scripts/audit_css_format.py with --strict before accepting the diff.
 - Snapshot-ready whitespace/newline conversion: run scripts/format_css_snapshot.py with the raw CSS
-  and actual previous snapshot before applying the owner color overlay.
+  and actual previous snapshot. It transfers source structure/layout, overlays recognized owner
+  colors and --gfdark-* declarations, carries attached owner comments, and preserves complete
+  owner-only rules; review the result before inserting it.
 - Before/after diff justification: run scripts/audit_snapshot_diff.py with the raw CSS and reject
   FORMAT-ONLY hunks or non-general runtime changes without separate evidence.
 - Color substitutions and changed-selector policy: read references/color-policy.md.

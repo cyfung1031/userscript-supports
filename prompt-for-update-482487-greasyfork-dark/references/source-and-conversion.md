@@ -29,8 +29,10 @@ Use the bundled formatter for this mechanical transfer:
 
 The formatter changes only layout whitespace/newlines and equivalent-selector presentation. It
 does not normalize values, add units, add/remove semicolons, rewrite quotes in a new selector,
-reorder declarations, merge blocks, or apply colors. Review its output, then apply the actual
-script's owner color policy to the snapshot before inserting it into `// general`.
+reorder declarations, or merge blocks. It overlays recognized colors and `--gfdark-*` declarations
+from the actual owner snapshot, carries attached comments, and preserves complete owner-only rules;
+review its output before inserting it into `// general`. A trailing comment-only catalogue in the
+owner input is ignored rather than emitted.
 
 ## Convert into the actual snapshot
 
@@ -39,7 +41,7 @@ script's owner color policy to the snapshot before inserting it into `// general
    normalized selector and semantic role.
 2. Resolve current variables to values established by the actual previous snapshot. If a selector was renamed or regrouped, retain the old selector-specific override in the same // general template so the owner color remains effective. Do not merge repeated source blocks such as `.diff ul`.
 3. Use the lineage classification to choose the merge breadth: a targeted delta changes only the affected declaration; a structural refresh updates the current topology; a no-general-change transition leaves the snapshot untouched.
-4. Preserve inline comments beside the declarations they describe, custom --gfdark-* properties, and supplemental styles. Do not create an orphan comment catalogue. If a historical rule has no exact current selector, preserve the complete rule in snapshot context or explicitly record why it is excluded; do not retain only its comments. The v0.3.30 runtime filter specifically demonstrates that custom properties can be part of the owner contract.
+4. Preserve inline comments beside the declarations they describe, custom --gfdark-* properties, and supplemental styles. Do not create an orphan comment catalogue. If the previous snapshot already contains the literal `/* Preserved comments from the previous // general snapshot. */` catalogue, discard that detached catalogue while retaining any same text that is attached to a real declaration or rule. If a historical rule has no exact current selector, preserve the complete rule in snapshot context or explicitly record why it is excluded; do not retain only its comments. The v0.3.30 runtime filter specifically demonstrates that custom properties can be part of the owner contract.
 5. Use apply_patch to replace only the bytes between the existing // general template backticks. Do not rewrite cssTextFn or append a second snapshot. Keep all other JavaScript and template entries unchanged unless direct evidence requires a separately justified link-predicate fix.
 6. Generate a before/after diff with the bundled diff-audit harness. For every hunk, record a
    STRUCTURE or OWNER-OVERLAY witness from the raw CSS or actual previous snapshot. Reject

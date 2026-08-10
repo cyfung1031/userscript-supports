@@ -36,6 +36,65 @@ def main():
         assert formatted.count(".diff ul {") == 2
         assert "background: rgb(30, 30, 30);" in formatted
         assert "color: rgb(233, 233, 233);" in formatted
+        assert "background-color: #24272d;" in formatted
+        assert "a {" in formatted
+        assert "color: #f7c67f" in formatted
+
+        owner_with_trailing_catalogue = Path(directory) / "owner-with-trailing-catalogue.css"
+        owner_with_trailing_catalogue.write_text(
+            "a {\n    color: #f7c67f; /* attached owner color */\n}\n"
+            "/* Preserved comments from the previous // general snapshot. */\n"
+            "/*#f65e5e;*/\n"
+        )
+        output = Path(directory) / "trailing-catalogue.css"
+        result = subprocess.run(
+            [
+                "python3",
+                str(FORMATTER),
+                "--source-css",
+                SOURCE,
+                "--owner-snapshot",
+                str(owner_with_trailing_catalogue),
+                "--output",
+                str(output),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        trailing_catalogue = output.read_text()
+        assert "/* attached owner color */" in trailing_catalogue
+        assert "Preserved comments from the previous // general snapshot" not in trailing_catalogue
+        assert "/*#f65e5e;*/" not in trailing_catalogue
+
+        source_with_border_color = Path(directory) / "source-with-border-color.css"
+        source_with_border_color.write_text(".notice{border-left: 1px solid var(--border-color)}")
+        owner_with_border_color = Path(directory) / "owner-with-border-color.css"
+        owner_with_border_color.write_text(
+            ".notice {\n"
+            "    border-left: 6px solid #d7d171; /* owner border */\n"
+            "    box-shadow: 0 0 3px #181a1b;\n"
+            "}\n"
+        )
+        output = Path(directory) / "border-color.css"
+        result = subprocess.run(
+            [
+                "python3",
+                str(FORMATTER),
+                "--source-css",
+                str(source_with_border_color),
+                "--owner-snapshot",
+                str(owner_with_border_color),
+                "--output",
+                str(output),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        border_output = output.read_text()
+        assert "border-left: 6px solid #d7d171 /* owner border */;\n" in border_output
+        assert "box-shadow: 0 0 3px #181a1b" in border_output
 
         source = Path(directory) / "source-with-quoted-equivalent.css"
         source.write_text('form.new_user input[type="submit"]{margin:auto 0}')

@@ -67,8 +67,10 @@ The formatting converter has a focused fixture test:
     python3 prompt-for-update-482487-greasyfork-dark/tests/test_format_css_snapshot.py
 
 It demonstrates that `margin:auto 0` remains `margin: auto 0` without inventing `px` or a
-semicolon, equivalent unquoted attribute selectors remain unquoted, and repeated `.diff ul`
-blocks remain separate. The converter is a transfer aid, not permission to alter owner colors.
+semicolon, equivalent unquoted attribute selectors remain unquoted, repeated `.diff ul` blocks
+remain separate, attached owner comments and border-side colors survive, and a trailing detached
+catalogue is not emitted. The converter is a transfer aid whose owner overlay must still be
+reviewed against the actual script.
 
 Use --only-target when the working tree contains only the userscript update or is clean after a
 verified no-op. Omit it while the skill package itself is being created or changed.
@@ -90,7 +92,8 @@ The checker verifies:
 - required owner colors remain;
 - CSS braces, parentheses, comments, quotes, and escapes are balanced;
 - CSS variables are declared, including owner --gfdark-* variables;
-- comments and hex colors from HEAD remain;
+- attached comments and hex colors from HEAD remain; a detached legacy comment catalogue in the
+  previous snapshot is excluded from this comparison;
 - every selector and best-effort declaration token from the raw upstream CSS input is represented;
 - repeated upstream selector blocks are not collapsed into one block;
 - best-effort non-color declaration tokens from the upstream CSS are represented, so unit/value drift such as `auto 0` → `auto 0px` is surfaced;

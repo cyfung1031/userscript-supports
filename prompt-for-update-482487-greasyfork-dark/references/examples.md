@@ -130,5 +130,7 @@ The snapshot-ready formatter is separate from that audit:
       --owner-snapshot prompt-for-update-482487-greasyfork-dark/references/fixtures/previous-general.css
 
 Its output may add indentation and newlines, but it must preserve source values, semicolon
-presence, selector tokens, declaration order, comments, and duplicate blocks. Color replacement is
-still governed by the actual userscript, not by the fixture or formatter.
+presence, selector tokens, declaration order, attached comments, and duplicate blocks. It also
+overlays recognized owner colors and custom properties from the actual previous snapshot; a
+trailing detached comment catalogue is ignored. Review that owner overlay against the actual
+userscript before insertion.

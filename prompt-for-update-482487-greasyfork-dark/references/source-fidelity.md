@@ -26,7 +26,9 @@ values while transferring structure.
 
 ## Preserve comments as code context
 
-Comments are preserved at the declaration or rule they describe. Never append a catalogue such as
+Comments are preserved at the declaration or rule they describe. A trailing legacy catalogue is
+input debris, not a CSS rule: ignore the literal catalogue marker and its detached comment-only
+entries, then recover any needed token from its real declaration/rule if it exists. Never append a catalogue such as
 `/* Preserved comments from the previous // general snapshot. */` followed by detached color and
 review comments. That form is not maintainable and does not preserve the source coding it describes.
 

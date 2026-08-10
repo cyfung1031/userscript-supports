@@ -18,6 +18,17 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(CHECKER)
 
 
+OWNER_COLOR_PROPERTIES = set(CHECKER.NON_COLOR_PROPERTIES) | {
+    "border-bottom",
+    "border-left",
+    "border-right",
+    "border-top",
+    "column-rule-color",
+    "outline-color",
+}
+ORPHAN_COMMENT_CATALOG = "/* Preserved comments from the previous // general snapshot. */"
+
+
 @dataclass
 class Declaration:
     text: str
@@ -138,13 +149,45 @@ def split_declarations(body: str) -> list[Declaration]:
         elif char == ";" and bracket_depth == 0:
             text = body[start:index].strip()
             if text:
-                result.append(Declaration(text, True))
+                leading, remainder = leading_comments(text)
+                if leading and result:
+                    result[-1].text += " " + " ".join(comments_in(leading))
+                    text = remainder.strip()
+                if result and comments_only(text):
+                    result[-1].text += " " + text
+                else:
+                    if text:
+                        result.append(Declaration(text, True))
             start = index + 1
         index += 1
     text = body[start:].strip()
     if text:
-        result.append(Declaration(text, False))
+        leading, remainder = leading_comments(text)
+        if leading and result:
+            result[-1].text += " " + " ".join(comments_in(leading))
+            text = remainder.strip()
+        if result and comments_only(text):
+            result[-1].text += " " + text
+        elif text:
+            result.append(Declaration(text, False))
     return result
+
+
+def leading_comments(text: str) -> tuple[str, str]:
+    cursor = 0
+    while True:
+        while cursor < len(text) and text[cursor].isspace():
+            cursor += 1
+        if not text.startswith("/*", cursor):
+            return text[:cursor], text[cursor:]
+        closing = text.find("*/", cursor + 2)
+        if closing < 0:
+            raise ValueError("unterminated CSS comment")
+        cursor = closing + 2
+
+
+def comments_only(text: str) -> bool:
+    return not mask_comments(text).strip() and bool(comments_in(text))
 
 
 def remove_excluded_branches_keep_comments(css: str) -> str:
@@ -266,6 +309,19 @@ def collect_owner_styles(blocks: list[Block]) -> dict[tuple[str, ...], list[Bloc
     return styles
 
 
+def collect_owner_contexts(blocks: list[Block]) -> dict[tuple[str, ...], list[Block]]:
+    contexts: dict[tuple[str, ...], list[Block]] = defaultdict(list)
+
+    def visit(nodes: list[Block], path: tuple[str, ...]) -> None:
+        contexts[path].extend(nodes)
+        for block in nodes:
+            if block.children:
+                visit(block.children, path + (selector_key(block.header),))
+
+    visit(blocks, ())
+    return contexts
+
+
 def property_name(text: str) -> str | None:
     match = re.search(r"(?:^|\*/\s*)([-_a-zA-Z][-_a-zA-Z0-9]*)\s*:", text)
     return match.group(1).lower() if match else None
@@ -295,10 +351,59 @@ def merge_owner_header(source_header: str, owner_header: str | None) -> str:
     return "\n".join(comments + [owner_selector]) if comments else owner_selector
 
 
+def comments_in(text: str) -> list[str]:
+    return re.findall(r"/\*.*?\*/", text, flags=re.DOTALL)
+
+
+def normalized_declaration(text: str) -> str:
+    text = text.strip()
+    if ":" not in text or text.startswith("/*"):
+        return text
+    name, value = text.split(":", 1)
+    return name.strip() + ": " + value.strip()
+
+
+def owner_overlay_declarations(
+    declarations: list[Declaration], owner: Block | None
+) -> list[Declaration]:
+    if owner is None:
+        return declarations
+    owner_by_property: dict[str, Declaration] = {}
+    for declaration in owner.declarations:
+        prop = property_name(declaration.text)
+        if prop:
+            owner_by_property.setdefault(prop, declaration)
+    result = []
+    seen_properties = set()
+    for declaration in declarations:
+        prop = property_name(declaration.text)
+        source_text = normalized_declaration(declaration.text)
+        owner_declaration = owner_by_property.get(prop) if prop else None
+        if owner_declaration is not None:
+            seen_properties.add(prop)
+            owner_comments = comments_in(owner_declaration.text)
+            if prop in OWNER_COLOR_PROPERTIES or prop.startswith("--gfdark-"):
+                source_text = normalized_declaration(owner_declaration.text)
+            source_comments = comments_in(source_text)
+            missing_comments = [comment for comment in owner_comments if comment not in source_comments]
+            if missing_comments:
+                source_text = source_text.rstrip() + " " + " ".join(missing_comments)
+        result.append(Declaration(source_text, declaration.terminated))
+    for prop, owner_declaration in owner_by_property.items():
+        if prop in seen_properties:
+            continue
+        if prop in OWNER_COLOR_PROPERTIES or prop.startswith("--gfdark-"):
+            if result and not result[-1].terminated:
+                result[-1] = Declaration(result[-1].text, True)
+            result.append(Declaration(normalized_declaration(owner_declaration.text), owner_declaration.terminated))
+    return result
+
+
 def format_block(
     block: Block,
     path: tuple[str, ...],
     styles: dict[tuple[str, ...], list[Block]],
+    owner_contexts: dict[tuple[str, ...], list[Block]],
     occurrences: Counter[tuple[str, ...]],
     indent_unit: str,
     level: int,
@@ -315,49 +420,97 @@ def format_block(
     if block.children:
         child_lines = []
         child_path = path + (selector_key(block.header),)
-        for child in block.children:
-            if child_lines:
-                child_lines.append("")
-            child_lines.extend(
-                format_block(
-                    child,
-                    child_path,
-                    styles,
-                    occurrences,
-                    indent_unit,
-                    level + 1,
-                )
-            )
+        child_lines = render_nodes(
+            block.children,
+            child_path,
+            styles,
+            owner_contexts,
+            occurrences,
+            indent_unit,
+            level + 1,
+        )
         lines.extend(child_lines)
     else:
-        for index, declaration in enumerate(block.declarations):
-            text = declaration.text.strip()
-            if ":" in text and not text.startswith("/*"):
-                name, value = text.split(":", 1)
-                text = name.strip() + ": " + value.strip()
-            is_last = index == len(block.declarations) - 1
+        declarations = owner_overlay_declarations(block.declarations, owner)
+        for declaration in declarations:
+            text = declaration.text
             suffix = ";" if declaration.terminated else ""
             lines.append(indent_unit * (level + 1) + text + suffix)
     lines.append(indent_unit * level + "}")
     return lines
 
 
+def render_nodes(
+    source_nodes: list[Block],
+    path: tuple[str, ...],
+    styles: dict[tuple[str, ...], list[Block]],
+    owner_contexts: dict[tuple[str, ...], list[Block]],
+    occurrences: Counter[tuple[str, ...]],
+    indent_unit: str,
+    level: int,
+) -> list[str]:
+    lines = []
+    for block in source_nodes:
+        if lines:
+            lines.append("")
+        lines.extend(
+            format_block(
+                block,
+                path,
+                styles,
+                owner_contexts,
+                occurrences,
+                indent_unit,
+                level,
+            )
+        )
+
+    owner_seen: Counter[tuple[str, ...]] = Counter()
+    for owner_block in owner_contexts.get(path, []):
+        key = block_key(path, owner_block)
+        owner_index = owner_seen[key]
+        owner_seen[key] += 1
+        source_count = occurrences[key]
+        if owner_index < source_count:
+            continue
+        if lines:
+            lines.append("")
+        lines.extend(
+            format_block(
+                owner_block,
+                path,
+                styles,
+                owner_contexts,
+                occurrences,
+                indent_unit,
+                level,
+            )
+        )
+    return lines
+
+
 def format_snapshot(source_css: str, owner_css: str) -> str:
     source_css = remove_excluded_branches_keep_comments(source_css)
+    owner_css = remove_orphan_comment_catalogue(owner_css)
     owner_css = remove_excluded_branches_keep_comments(owner_css)
     source_blocks = parse_blocks(source_css)
     owner_blocks = parse_blocks(owner_css)
     styles = collect_owner_styles(owner_blocks)
+    owner_contexts = collect_owner_contexts(owner_blocks)
     indent_unit = infer_indent(owner_css)
     occurrences: Counter[tuple[str, ...]] = Counter()
-    output = []
-    for block in source_blocks:
-        if output:
-            output.append("")
-        output.extend(
-            format_block(block, (), styles, occurrences, indent_unit, 0)
-        )
+    output = render_nodes(source_blocks, (), styles, owner_contexts, occurrences, indent_unit, 0)
     return "\n".join(output) + "\n"
+
+
+def remove_orphan_comment_catalogue(css: str) -> str:
+    marker = css.find(ORPHAN_COMMENT_CATALOG)
+    if marker < 0:
+        return css
+    trailing = css[marker:]
+    if mask_comments(trailing).strip():
+        return css
+    return css[:marker]
 
 
 def main() -> None:
