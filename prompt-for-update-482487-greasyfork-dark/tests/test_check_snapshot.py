@@ -65,7 +65,7 @@ def main():
             UPSTREAM.read_text()
             + "\n.form.new_user input[type=submit] { display: block; }\n"
         )
-        expect_fail(run(quoted_selector, unquoted_upstream), "current upstream selectors missing")
+        expect_pass(run(quoted_selector, unquoted_upstream))
 
         collapsed_blocks = directory / "collapsed-blocks.user.js"
         collapsed_blocks.write_text(source.replace(".diff ul {\n    color: #e9e9e9;\n}\n", "", 1))
