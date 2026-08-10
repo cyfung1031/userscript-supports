@@ -4889,7 +4889,7 @@ dd.script-list-ratings {
     const mo = new MutationObserver(() => {
         const head = document.head;
         if (!head) return;
-        const css = head.querySelector('link[rel="stylesheet"][href*="/vite/assets/application-"][href*=".css"][media="screen"]');
+        const css = head.querySelector('link[rel="stylesheet"][href*="/vite/assets/application-"][href*=".css"]');
         if (!css || css.parentNode !== head) return;
         mo.disconnect();
         mo.takeRecords();
