@@ -23,6 +23,8 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 - Published adjacent-version patterns and the routing classifier: read references/lineage-deltas.md and run scripts/classify_lineage.py when version sources are available.
 - Reading the existing JavaScript and converting upstream CSS into the snapshot: read references/source-and-conversion.md.
 - Snapshot indentation, ordering, comments, and focused-diff rules: read references/format-contract.md before editing.
+- Source declaration tokens and maintainable comment placement: read references/source-fidelity.md before converting CSS.
+- Source-to-snapshot formatting/cascade harness: run scripts/audit_css_format.py with --strict before accepting the diff.
 - Color substitutions and changed-selector policy: read references/color-policy.md.
 - Deterministic checks and failure interpretation: read references/mechanical-checks.md.
 - Concrete passing/failing command examples: read references/examples.md.

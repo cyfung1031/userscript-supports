@@ -20,6 +20,12 @@ body {
     }
 }
 
+@media screen and (width <= 400px) {
+    .width-constraint {
+        margin: auto 0;
+    }
+}
+
 :is(.pagination, .pagy) {
     display: block;
 }
@@ -30,4 +36,10 @@ body {
 
 .inline-script-stats {
     display: inline-block;
+}
+.diff ul {
+    background: rgb(30, 30, 30);
+}
+.diff ul {
+    color: rgb(233, 233, 233);
 }

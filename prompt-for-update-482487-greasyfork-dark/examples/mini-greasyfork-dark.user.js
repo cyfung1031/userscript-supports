@@ -19,6 +19,11 @@ a {
         margin: auto 1.2vw;
     }
 }
+@media screen and (width <= 400px) {
+    .width-constraint {
+        margin: auto 0;
+    }
+}
 :is(.pagination, .pagy) {
     display: block;
 }
@@ -27,6 +32,12 @@ a {
 }
 .inline-script-stats {
     display: inline-block;
+}
+.diff ul {
+    background: #1e1e1e;
+}
+.diff ul {
+    color: #e9e9e9;
 }
 .diff li {
     --gfdark-diff-li-background-hover: #495678;

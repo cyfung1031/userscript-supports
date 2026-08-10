@@ -77,3 +77,29 @@ When the upstream CSS contains a selector that was not copied into the general s
     FAIL: current upstream selectors missing: ['.new-current-selector']
 
 Treat this as a structural merge gap. Inspect whether the selector belongs in the existing snapshot, whether it is inside an excluded :root or official dark branch, or whether the formatter failed. Resolve the seam before committing.
+
+## Example 5: source-token and comment-placement failure
+
+If the source contains:
+
+    .width-constraint{margin:auto 0}
+
+the maintained snapshot may add indentation but must retain `auto 0`; `auto 0px;` is a semantic
+and formatting drift. Likewise, a detached block headed `/* Preserved comments from the previous
+// general snapshot. */` is a failure: preserve the complete rule or attach each comment beside
+its declaration instead.
+
+For selector fidelity, `form.new_user input[type=submit]` must remain unquoted when that is how the
+source expresses it. Adding quotes changes the focused diff and can hide whether the source selector
+was actually copied.
+
+If the source contains two separate `.diff ul` blocks, the result must contain two separate blocks
+in the same order. Whitespace/newline cleanup is allowed; merging the declarations into one block is
+not.
+
+The executable harness is the repeatable check for this boundary:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/audit_css_format.py \
+      --source-css prompt-for-update-482487-greasyfork-dark/references/fixtures/current-application.css \
+      --snapshot-file prompt-for-update-482487-greasyfork-dark/examples/mini-greasyfork-dark.user.js \
+      --strict

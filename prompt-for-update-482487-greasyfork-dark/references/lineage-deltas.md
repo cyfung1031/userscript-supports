@@ -39,3 +39,11 @@ It compares only the existing `// general` contents and reports whether the tran
 
 The threshold is a routing aid, not a color authority: a small change still requires inspection,
 and a current live stylesheet always outranks historical snapshots for structure.
+
+## Historical token evidence
+
+The published v0.3.22, v0.3.23, v0.3.25, v0.3.30, and v0.3.32 snapshots retain the responsive rule
+as `margin: auto 0` in the existing snapshot style. They do not add `px` or an invented trailing
+semicolon. This is a confirmed owner/source seam, not a formatter preference. Historical updates
+also keep source selector spelling such as unquoted attribute selectors when that spelling is
+unchanged; a structural refresh must not normalize these tokens while adding new rules.

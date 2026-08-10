@@ -52,11 +52,52 @@ def main():
         upstream.write_text(UPSTREAM.read_text() + "\n.new-current-selector { color: #fff; }\n")
         expect_fail(run(missing_selector, upstream), "current upstream selectors missing")
 
+        quoted_selector = directory / "quoted-selector.user.js"
+        quoted_selector.write_text(
+            source.replace(
+                ".inline-script-stats {",
+                '.form.new_user input[type="submit"] { display: block; }\n.inline-script-stats {',
+                1,
+            )
+        )
+        unquoted_upstream = directory / "upstream-unquoted-selector.css"
+        unquoted_upstream.write_text(
+            UPSTREAM.read_text()
+            + "\n.form.new_user input[type=submit] { display: block; }\n"
+        )
+        expect_fail(run(quoted_selector, unquoted_upstream), "current upstream selectors missing")
+
+        collapsed_blocks = directory / "collapsed-blocks.user.js"
+        collapsed_blocks.write_text(source.replace(".diff ul {\n    color: #e9e9e9;\n}\n", "", 1))
+        expect_fail(
+            run(collapsed_blocks),
+            "repeated upstream CSS blocks were collapsed",
+        )
+
+        missing_token = directory / "missing-token.user.js"
+        missing_token.write_text(source.replace("margin: auto 0;", "margin: auto 0px;", 1))
+        token_upstream = directory / "upstream-with-source-token.css"
+        token_upstream.write_text(UPSTREAM.read_text())
+        expect_fail(run(missing_token, token_upstream), "current upstream declaration tokens missing")
+
         previous = directory / "previous.user.js"
         previous.write_text(source)
         missing_comment = directory / "missing-comment.user.js"
         missing_comment.write_text(source.replace("/* owner link color */", "", 1))
         expect_fail(run(missing_comment, previous=previous), "historical CSS comments lost")
+
+        orphan_comments = directory / "orphan-comments.user.js"
+        orphan_comments.write_text(
+            source.replace(
+                "        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                "        /* Preserved comments from the previous // general snapshot. */\n        `,\n\n        // https://greasyfork.org/en/users/webhook-info",
+                1,
+            )
+        )
+        expect_fail(
+            run(orphan_comments),
+            "orphan preserved-comment catalogue remains",
+        )
 
     print("PASS: miniature snapshot examples")
 

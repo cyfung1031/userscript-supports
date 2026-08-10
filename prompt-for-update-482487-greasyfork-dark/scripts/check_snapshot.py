@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +15,7 @@ TARGET = "482487-greasyfork-dark.user.js"
 GENERAL_MARKER = "        // general" + chr(10)
 STRUCTURAL_MARKER = "Structural additions and changes from the current Greasy Fork application CSS."
 APPLICATION_COMMENT = "// https://greasyfork.org/vite/assets/application-"
+ORPHAN_COMMENT_CATALOG = "/* Preserved comments from the previous // general snapshot. */"
 REQUIRED_MARKERS = (
     "@media screen and (width <= 1228px)",
     ":is(.pagination, .pagy)",
@@ -24,6 +27,23 @@ SUPPLEMENTAL_MARKERS = (
     "// https://greasyfork.org/en/scripts/482487-greasyfork-dark/stats",
     ".prettyprint.linenums",
 )
+NON_COLOR_PROPERTIES = {
+    "accent-color",
+    "background",
+    "background-color",
+    "background-image",
+    "border",
+    "border-color",
+    "box-shadow",
+    "caret-color",
+    "color",
+    "column-rule",
+    "fill",
+    "outline",
+    "stroke",
+    "text-decoration-color",
+    "text-shadow",
+}
 
 
 def fail(message):
@@ -91,16 +111,65 @@ def normalize(value):
 
 
 def css_selectors(css):
+    return set(css_selector_sequence(css))
+
+
+def css_selector_sequence(css):
     active, _ = scan_comments(css)
-    found = set()
+    found = []
     for line in active.splitlines():
         if "{" not in line:
             continue
         selector = line.split("{", 1)[0].strip()
         if not selector or selector.startswith("@") or selector.startswith(":root"):
             continue
-        found.add(normalize(selector))
+        found.append(normalize(selector))
     return found
+
+
+def repeated_css_selector_counts(css):
+    return Counter(css_selector_sequence(css))
+
+
+def remove_excluded_branches(css):
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    patterns = (
+        re.compile(r":root\s*\{"),
+        re.compile(r"@media\s*\([^)]*prefers-color-scheme\s*:\s*dark[^)]*\)\s*\{"),
+    )
+    while True:
+        matches = [match for pattern in patterns if (match := pattern.search(css))]
+        if not matches:
+            return css
+        match = min(matches, key=lambda item: item.start())
+        depth = 0
+        closing = None
+        for index in range(match.end() - 1, len(css)):
+            if css[index] == "{":
+                depth += 1
+            elif css[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index + 1
+                    break
+        if closing is None:
+            fail("excluded CSS branch is unbalanced")
+        css = css[: match.start()] + css[closing:]
+
+
+def declaration_tokens(css):
+    tokens = set()
+    css = remove_excluded_branches(css)
+    for match in re.finditer(
+        r"(?m)^\s*([-_a-zA-Z][-_a-zA-Z0-9]*)\s*:\s*([^;{}]+)(?:;|(?=\}))",
+        css,
+    ):
+        property_name = match.group(1)
+        if property_name.startswith("--") or property_name in NON_COLOR_PROPERTIES:
+            continue
+        value = " ".join(match.group(2).split())
+        tokens.add((property_name, value))
+    return tokens
 
 
 def hex_colors(css):
@@ -161,6 +230,8 @@ def main():
     general = extract_general(source)
     active, _ = scan_comments(general)
 
+    if ORPHAN_COMMENT_CATALOG in general:
+        fail("orphan preserved-comment catalogue remains; attach comments to declarations or rules")
     if STRUCTURAL_MARKER in source or APPLICATION_COMMENT in source:
         fail("duplicate structural snapshot or upstream application-asset comment remains")
     if ":root" in active:
@@ -209,6 +280,18 @@ def main():
         missing = sorted(css_selectors(upstream) - css_selectors(general))
         if missing:
             fail("current upstream selectors missing: " + repr(missing[:12]))
+        upstream_counts = repeated_css_selector_counts(upstream)
+        snapshot_counts = repeated_css_selector_counts(general)
+        collapsed = sorted(
+            (selector, count, snapshot_counts.get(selector, 0))
+            for selector, count in upstream_counts.items()
+            if count > 1 and snapshot_counts.get(selector, 0) < count
+        )
+        if collapsed:
+            fail("repeated upstream CSS blocks were collapsed: " + repr(collapsed[:12]))
+        missing_tokens = sorted(declaration_tokens(upstream) - declaration_tokens(general))
+        if missing_tokens:
+            fail("current upstream declaration tokens missing: " + repr(missing_tokens[:12]))
     if args.only_target:
         check_git_scope(args.file)
 
