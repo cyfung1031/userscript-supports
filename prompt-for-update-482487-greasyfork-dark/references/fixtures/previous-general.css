@@ -1,0 +1,24 @@
+html {
+    overflow-y: scroll
+}
+
+body {
+    background-color: #24272d;
+    color: #e9e9e9;
+}
+
+a {
+    color: #f7c67f; /* owner link color */
+}
+
+.diff li {
+    --gfdark-diff-li-background-hover: #495678;
+}
+
+.diff li:hover {
+    background: var(--gfdark-diff-li-background-hover);
+}
+
+[style~="color:#4183c4"] {
+    color: #9fceea !important;
+}

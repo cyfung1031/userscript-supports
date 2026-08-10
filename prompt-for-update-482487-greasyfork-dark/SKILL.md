@@ -27,4 +27,4 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 
 ## Required handoff
 
-Run the bundled checker, run JavaScript syntax and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and push/update the PR only after all checks pass. Keep the final diff limited to the requested target and skill artifacts.
+Run the bundled checker, the small fixture test at tests/test_check_snapshot.py, JavaScript syntax and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and push/update the PR only after all checks pass. Keep the final diff limited to the requested target and skill artifacts.

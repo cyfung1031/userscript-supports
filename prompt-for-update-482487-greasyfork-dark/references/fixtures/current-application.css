@@ -1,0 +1,33 @@
+:root {
+    --overall-background-color: rgb(255, 255, 255);
+    --overall-text-color: rgb(0, 0, 0);
+}
+
+/* The official dark branch is intentionally excluded by the skill. */
+
+html {
+    overflow-y: scroll;
+}
+
+body {
+    background-color: var(--overall-background-color);
+    color: var(--overall-text-color);
+}
+
+@media screen and (width <= 1228px) {
+    .width-constraint {
+        margin: auto 1.2vw;
+    }
+}
+
+:is(.pagination, .pagy) {
+    display: block;
+}
+
+#site-nav > nav {
+    display: flex;
+}
+
+.inline-script-stats {
+    display: inline-block;
+}

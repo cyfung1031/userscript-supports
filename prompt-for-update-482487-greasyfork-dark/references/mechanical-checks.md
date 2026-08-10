@@ -2,6 +2,14 @@
 
 Run from the repository root.
 
+## Fixture test
+
+Run the realistic miniature examples before changing the live target:
+
+    python3 prompt-for-update-482487-greasyfork-dark/tests/test_check_snapshot.py
+
+This test invokes the real checker and asserts one passing conversion plus failures for a duplicate general marker, a missing current selector, and a lost historical comment.
+
 ## Standard update check
 
     python3 prompt-for-update-482487-greasyfork-dark/scripts/check_snapshot.py \

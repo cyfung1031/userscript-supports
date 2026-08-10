@@ -2,6 +2,13 @@
 
 Run these examples from the repository root after loading the skill and obtaining a formatted current application CSS snapshot.
 
+The small realistic fixtures are stored in the skill package:
+
+- examples/mini-greasyfork-dark.user.js is the miniature target coding file.
+- references/fixtures/previous-general.css is the owner-style CSS sample.
+- references/fixtures/current-application.css is the upstream structure sample.
+- tests/test_check_snapshot.py runs the real checker against them.
+
 ## Example 1: normal refresh check
 
 Use this after replacing only the existing // general template:
@@ -49,4 +56,3 @@ When the upstream CSS contains a selector that was not copied into the general s
     FAIL: current upstream selectors missing: ['.new-current-selector']
 
 Treat this as a structural merge gap. Inspect whether the selector belongs in the existing snapshot, whether it is inside an excluded :root or official dark branch, or whether the formatter failed. Resolve the seam before committing.
-
