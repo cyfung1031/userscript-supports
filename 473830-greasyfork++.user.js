@@ -18,7 +18,7 @@
 // @copyright          2023, CY Fung (https://greasyfork.org/users/371179); 2021, Davide (https://github.com/iFelix18)
 // @license            MIT
 // @require            https://fastly.jsdelivr.net/gh/sizzlemctwizzle/GM_config@06f2015c04db3aaab9717298394ca4f025802873/gm_config.min.js
-// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.4/dist/index.min.js
+// @require            https://fastly.jsdelivr.net/npm/@violentmonkey/shortcut@1.4.1/dist/index.min.js
 // @require            https://fastly.jsdelivr.net/gh/cyfung1031/userscript-supports@3fa07109efca28a21094488431363862ccd52d7c/library/WinComm.min.js
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
@@ -29,9 +29,6 @@
 // @connect            greasyfork.org
 // @connect            sleazyfork.org
 // @connect            cn-greasyfork.org
-// @connect            api.greasyfork.org
-// @connect            api.sleazyfork.org
-// @connect            api.cn-greasyfork.org
 // @compatible         chrome
 // @compatible         edge
 // @compatible         firefox
@@ -42,7 +39,6 @@
 // @grant              GM.notification
 // @grant              GM.registerMenuCommand
 // @grant              GM.setValue
-// @grant              GM.xmlHttpRequest
 // @grant              unsafeWindow
 // @run-at             document-start
 // @inject-into        content
@@ -1199,6 +1195,8 @@ const mWindow = isInIframe || (() => {
         };
         const alias = aliases[normalized];
         if (alias && locales[alias]) return alias;
+        if (normalized.startsWith('zh-hant-')) return 'zh-TW';
+        if (normalized.startsWith('zh-hans-')) return 'zh-CN';
 
         const baseLanguage = normalized.split('-')[0];
         if (baseLanguage === 'pt') return 'pt-PT';
@@ -1925,17 +1923,30 @@ inIframeFn() || (async () => {
         return false;
     };
 
+    const installRetryHandlers = new WeakMap();
     const hackjackByPass = (e) => {
         e.stopImmediatePropagation();
         e.stopPropagation();
-    }
+    };
     const setupInstallLink = (button) => {
-        if (button.matches('a.install-link[style-54998]') && !button.hasAttribute('u7bq5u')) {
+        if (!button) return button;
+        if (button.matches('a.install-link') && !button.hasAttribute('u7bq5u')) {
             button.setAttribute('u7bq5u', '');
-            // by pass install.js weird hackjack
-            button.addEventListener('click', hackjackByPass);
-            button.addEventListener('mouseover', hackjackByPass);
-            button.addEventListener('touchstart', hackjackByPass);
+            button.addEventListener('click', event => {
+                const retry = installRetryHandlers.get(button);
+                if (button.getAttribute('aria-disabled') === 'true' || retry) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (retry) void retry();
+                    return;
+                }
+                if (button.matches('a.install-link[style-54998]')) hackjackByPass(event);
+            }, true);
+            if (button.matches('a.install-link[style-54998]')) {
+                // Bypass the site's install.js interception for injected links.
+                button.addEventListener('mouseover', hackjackByPass);
+                button.addEventListener('touchstart', hackjackByPass);
+            }
         }
         return button;
     };
@@ -2507,7 +2518,7 @@ inIframeFn() || (async () => {
         group.className = 'list-option-group';
         group.id = `${id}-options`;
         const heading = document.createElement('span');
-        heading.textContent = GM.info.script.name;
+        heading.textContent = `${GM.info.script.name} Lists:`;
         group.appendChild(heading);
         const list = document.createElement('ul');
         const makeOption = (type, anchorId) => {
@@ -2938,77 +2949,108 @@ inIframeFn() || (async () => {
     const wincomm = WinComm.createInstance(communicationId);
 
 
-    const isInstalled = (script) => {
-        return new Promise((resolve, reject) => {
+    const installStatusTimeout = Symbol('install-status-timeout');
+    const installStatusInitialTimeout = 1800;
+    const installStatusLateTimeout = 10000;
+    const installStatusState = Object.freeze({
+        managerUnavailable: 'manager-unavailable',
+        notInstalled: 'not-installed',
+        resolved: 'resolved',
+        pending: 'pending',
+        timeout: 'timeout',
+        error: 'error'
+    });
 
-            promiseScriptCheck.then(d => {
+    const settleWithin = (promise, timeoutMs) => new Promise(resolve => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+            if (!settled) {
+                settled = true;
+                resolve(installStatusTimeout);
+            }
+        }, timeoutMs);
+        Promise.resolve(promise).then(value => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            resolve(value);
+        }, () => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            resolve({ state: installStatusState.error, version: '' });
+        });
+    });
 
-                if (!d) return null;
+    let installRequestId = 0;
+    const requestInstalledVersion = (script, bridge, timeoutMs) => new Promise(resolve => {
+        const callbackId = `gfpp-install-${++installRequestId}`;
+        const type = Number(bridge?.data?.type);
+        const namespace = type % 10 === 0 ? '' : (script.namespace || '');
+        let timer = 0;
 
-                const data = d.data;
-                const al = data.type % 10;
-                if (al === 0) {
-                    // no namespace
-                    resolve([null, script.name, '']);
-                } else if (al === 1) {
-                    // namespace
+        const cleanup = () => {
+            window.removeEventListener('message', onMessage, false);
+            window.clearTimeout(timer);
+        };
+        const onMessage = event => {
+            const data = event?.data;
+            if (!data || event.origin !== location.origin || data.communicationId !== communicationId || data.callbackId !== callbackId) return;
+            cleanup();
+            const response = data.data;
+            if (!response || typeof response !== 'object' || !Object.prototype.hasOwnProperty.call(response, 'version')) {
+                resolve({ state: installStatusState.error, version: '' });
+                return;
+            }
+            const version = typeof response.version === 'string' ? response.version : '';
+            resolve(version ? { state: installStatusState.resolved, version } : {
+                state: installStatusState.notInstalled,
+                version: ''
+            });
+        };
 
-                    if (!script.namespace) {
+        window.addEventListener('message', onMessage, false);
+        timer = window.setTimeout(() => {
+            cleanup();
+            resolve({ state: installStatusState.timeout, version: '' });
+        }, timeoutMs);
+        window.postMessage({
+            communicationId,
+            callbackId,
+            action: 'installedVersion.req',
+            data: { name: script.name || '', namespace }
+        }, location.origin);
+    });
 
-                        getRafPromise() // foreground
-                            .then(() => getScriptData(script.id))
-                            .then((script) => {
-                                resolve([null, script.name, script.namespace]);
-                            });
-
-                    } else {
-
-                        resolve([null, script.name, script.namespace]);
-                    }
-
-                }
-
-
-            })
-
-
-        }).then((res) => {
-
-
-            return new Promise((resolve, reject) => {
-
-                if (!res) return '';
-
-
-                const [_, name, namespace] = res;
-                wincomm.request('installedVersion.req', {
-                    name,
-                    namespace
-                }).then(d => {
-                    resolve(d.data.version)
+    const getInstalledStatus = async script => {
+        const bridge = await settleWithin(promiseScriptCheck, installStatusInitialTimeout);
+        if (bridge === installStatusTimeout) {
+            return {
+                state: installStatusState.pending,
+                version: '',
+                late: settleWithin(promiseScriptCheck, installStatusLateTimeout).then(async lateBridge => {
+                    if (lateBridge === installStatusTimeout) return { state: installStatusState.timeout, version: '' };
+                    if (!lateBridge) return { state: installStatusState.managerUnavailable, version: '' };
+                    return requestInstalledVersion(script, lateBridge, installStatusLateTimeout);
                 })
-
-            })
-
-        })
-
-        /*
-        const external = unsafeWindow.external;
-        const scriptHandler = GM.info.scriptHandler;
-        if (external && external.Violentmonkey && (scriptHandler || 'Violentmonkey') === 'Violentmonkey') {
-          external.Violentmonkey.isInstalled(name, namespace).then((data) => resolve(data));
-          return;
+            };
+        }
+        if (!bridge) return { state: installStatusState.managerUnavailable, version: '' };
+        if (!bridge.data || !Number.isFinite(Number(bridge.data.type))) {
+            return { state: installStatusState.error, version: '' };
         }
 
-        if (external && external.Tampermonkey && (scriptHandler || 'Tampermonkey') === 'Tampermonkey') {
-          external.Tampermonkey.isInstalled(name, namespace, (data) => {
-            (data.installed) ? resolve(data.version) : resolve();
-          });
-          return;
+        const request = requestInstalledVersion(script, bridge, installStatusLateTimeout);
+        const result = await settleWithin(request, installStatusInitialTimeout);
+        if (result === installStatusTimeout) {
+            return {
+                state: installStatusState.pending,
+                version: '',
+                late: settleWithin(request, installStatusLateTimeout).then(value =>
+                    value === installStatusTimeout ? { state: installStatusState.timeout, version: '' } : value)
+            };
         }
-        */
-
-
+        return result;
     };
 
     const compareVersions = (v1, v2) => {
@@ -3051,6 +3093,86 @@ inIframeFn() || (async () => {
         const key = update === 0 ? 'reinstall' : update === 1 ? 'update' : update === -1 ? 'downgrade' : 'install';
         const template = strings.versionLabels[key];
         return version ? mWindow.formatMessage(template, { version }) : template.replace(/\s*\{version\}/, '');
+    };
+
+    const setInstallControlState = (link, state, retry = null) => {
+        if (!link) return;
+        link.classList.toggle('install-status-checking', state === installStatusState.pending);
+        link.classList.toggle('install-status-unavailable', state === installStatusState.timeout || state === installStatusState.error);
+        if (state === installStatusState.pending) {
+            link.setAttribute('aria-disabled', 'true');
+            link.removeAttribute('data-gfpp-install-retry');
+            installRetryHandlers.delete(link);
+            link.textContent = strings.versionLabels.checking;
+        } else if (state === installStatusState.timeout || state === installStatusState.error) {
+            link.setAttribute('aria-disabled', 'false');
+            link.setAttribute('data-gfpp-install-retry', '');
+            installRetryHandlers.set(link, retry);
+            link.textContent = strings.versionLabels.unavailable;
+        } else {
+            link.removeAttribute('aria-disabled');
+            link.removeAttribute('data-gfpp-install-retry');
+            installRetryHandlers.delete(link);
+        }
+        link.setAttribute('data-gfpp-install-status', state);
+    };
+
+    const applyInstallStatus = (link, availableVersion, status, retry = null) => {
+        if (!link || !status) return;
+        const version = String(availableVersion || '');
+        if (status.state === installStatusState.managerUnavailable || status.state === installStatusState.notInstalled) {
+            setInstallControlState(link, status.state);
+            link.textContent = installLabel(undefined, version);
+            return;
+        }
+        if (status.state === installStatusState.resolved) {
+            const update = compareVersions(version, status.version);
+            setInstallControlState(link, status.state);
+            link.textContent = installLabel(update, version);
+            return;
+        }
+        setInstallControlState(link, status.state, retry);
+    };
+
+    const watchLateInstallStatus = (link, availableVersion, status, retry = null) => {
+        if (status.state !== installStatusState.pending || !status.late) return false;
+        setInstallControlState(link, installStatusState.pending);
+        void status.late.then(result => {
+            if (!link.isConnected || link.getAttribute('data-gfpp-install-status') !== installStatusState.pending) return;
+            applyInstallStatus(link, availableVersion, result, retry);
+        });
+        return true;
+    };
+
+    const installStatusRequests = new WeakMap();
+    const refreshInstallLinkStatus = async link => {
+        const existing = installStatusRequests.get(link);
+        if (existing) return existing;
+
+        const request = (async () => {
+            const id = Number(link.getAttribute('data-script-id')) || 0;
+            if (!(id > 0)) return;
+            setInstallControlState(link, installStatusState.pending);
+            const script = await getScriptData(id);
+            if (!script) {
+                applyInstallStatus(link, link.getAttribute('data-script-version') || '', {
+                    state: installStatusState.error,
+                    version: ''
+                }, () => refreshInstallLinkStatus(link));
+                return;
+            }
+            const availableVersion = link.getAttribute('data-script-version') || script.version || '';
+            const retry = () => refreshInstallLinkStatus(link);
+            const status = await getInstalledStatus(script);
+            if (!watchLateInstallStatus(link, availableVersion, status, retry)) {
+                applyInstallStatus(link, availableVersion, status, retry);
+            }
+        })().finally(() => {
+            installStatusRequests.delete(link);
+        });
+
+        installStatusRequests.set(link, request);
+        return request;
     };
 
     const hideBlacklistedDiscussion = (element, list) => {
@@ -3227,89 +3349,61 @@ inIframeFn() || (async () => {
     }
 
     const showInstallButton = async (scriptID, element) => {
+        await getRafPromise();
+        const fromList = element.nodeName === 'LI' && element.getAttribute('data-script-id') === `${scriptID}`;
+        const baseScript = fromList && element.getAttribute('data-script-version') ? {
+            id: scriptID,
+            name: element.getAttribute('data-script-name') || '',
+            namespace: element.getAttribute('data-script-namespace') || '',
+            code_url: element.getAttribute('data-code-url') || '',
+            version: element.getAttribute('data-script-version') || ''
+        } : await getScriptData(scriptID);
+        if (fromList && baseScript && !baseScript.code_url) {
+            const name = baseScript.name || '';
+            const suffix = element.getAttribute('data-script-type') === 'library' ? '.js' : '.user.js';
+            baseScript.code_url = `https://update.${location.hostname}/scripts/${scriptID}/${encodeFileName(name)}${suffix}`;
+        }
+        if (!baseScript || !baseScript.code_url || !baseScript.version) return;
 
-        await getRafPromise().then();
-        let _baseScript = null;
-        if (element.nodeName === 'LI' && element.hasAttribute('data-script-id') && element.getAttribute('data-script-id') === `${scriptID}` && element.getAttribute('data-script-language') === 'js') {
-
-            const version = element.getAttribute('data-script-version') || ''
-
-            let scriptCodeURL = element.getAttribute('data-code-url');
-            if (!scriptCodeURL || !isVaildURL(scriptCodeURL)) {
-
-                const name = element.getAttribute('data-script-name') || ''
-                const scriptFilename = element.getAttribute('data-script-type') === 'library' ? `${encodeFileName(name)}.js` : `${encodeFileName(name)}.user.js`;
-
-                scriptCodeURL = `https://update.${location.hostname}/scripts/${scriptID}/${scriptFilename}`
-            }
-            _baseScript = {
-                id: +scriptID,
-                code_url: scriptCodeURL,
-                version: version
-            }
-
+        if ((element.nodeName === 'LI' && element.getAttribute('data-script-type') === 'library')
+            || baseScript.code_url.includes('.js?version=')) {
+            const codeURL = fixLibraryCodeURL(baseScript.code_url);
+            const button = addInstallButton(element, codeURL);
+            if (!button) return;
+            button.textContent = strings.actions.copyUrl;
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                void copyText(button.href);
+            });
+            return;
         }
 
-        const baseScript = _baseScript || (await getScriptData(scriptID));
-
-        if ((element.nodeName === 'LI' && element.getAttribute('data-script-type') === 'library') || (baseScript.code_url.includes('.js?version='))) {
-
-            let scriptCodeURL = element.getAttribute('data-code-url');
-
-            if (!scriptCodeURL || !isVaildURL(scriptCodeURL)) {
-                const script = baseScript.code_url.includes('.js?version=') ? baseScript : (await getScriptData(scriptID));
-                scriptCodeURL = script.code_url;
+        const button = addInstallButton(element, baseScript.code_url);
+        if (!button) return;
+        let script = baseScript.name && baseScript.namespace ? baseScript : await getScriptData(scriptID);
+        let retrying = false;
+        const retry = async () => {
+            if (retrying || !button.isConnected) return;
+            retrying = true;
+            setInstallControlState(button, installStatusState.pending);
+            try {
+                if (!script) script = await getScriptData(scriptID, true);
+                if (!script) {
+                    setInstallControlState(button, installStatusState.error, retry);
+                    return;
+                }
+                const availableVersion = baseScript.version || script.version || '';
+                const status = await getInstalledStatus(script);
+                if (!watchLateInstallStatus(button, availableVersion, status, retry)) {
+                    applyInstallStatus(button, availableVersion, status, retry);
+                }
+            } finally {
+                retrying = false;
             }
+        };
 
-            if (scriptCodeURL && isLibraryURLWithVersion(scriptCodeURL)) {
-
-                const code_url = fixLibraryCodeURL(scriptCodeURL);
-
-                const button = addInstallButton(element, code_url);
-                button.textContent = `Copy URL`;
-                button.addEventListener('click', function (evt) {
-
-                    const target = (evt || 0).target;
-                    if (!target) return;
-
-                    let a = target.nodeName === 'A' ? target : target.querySelector('a[href]');
-
-                    if (!a) return;
-                    let href = target.getAttribute('href');
-                    if (!href) return;
-
-                    evt.preventDefault();
-
-                    copyText(href);
-
-                });
-
-            }
-
-        } else {
-
-            if (!baseScript || !baseScript.code_url || !baseScript.version) return;
-            const button = addInstallButton(element, baseScript.code_url);
-            button.classList.add('install-status-checking');
-            button.textContent = `${installLabel()} ${baseScript.version}`;
-            const script = baseScript && baseScript.name && baseScript.namespace ? baseScript : (await getScriptData(scriptID));
-            if (!script) return;
-
-            const installed = await isInstalled(script);
-            const version = (
-                baseScript.version && script.version && compareVersions(baseScript.version, script.version) === 1
-            ) ? baseScript.version : script.version;
-
-            const update = compareVersions(version, installed);  // NaN  1  -1  0
-            const label = installLabel(update);
-            button.textContent = `${label} ${version}`;
-            button.classList.remove('install-status-checking');
-
-
-        }
-
-    }
-
+        await retry();
+    };
     const updateReqStoresWithElementsOrder = (x) => {
         try {
             const reqStoresA_ = reqStoresA;
@@ -3653,6 +3747,7 @@ inIframeFn() || (async () => {
 
                     if (installLinkElement) {
                         setupInstallLink(installLinkElement);
+                        void refreshInstallLinkStatus(installLinkElement).catch(error => UU.warn(error));
                         if (gmc.get('hideHiddenScript')) {
                             const id = +installLinkElement.getAttribute('data-script-id');
                             hideHiddenScript(document.querySelector('#script-info'), id, false);
