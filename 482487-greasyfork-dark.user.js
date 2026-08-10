@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.32
+// @version             0.3.33
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -2435,8 +2435,6 @@ dd.script-list-ratings {
     margin-inline-start: 1.5em;
     padding-top: 1.75em;
     padding-bottom: .75em;
-    background: white;
-    border-color: gray;
 }
 
 .close-sidebar, .open-sidebar {
@@ -2455,14 +2453,13 @@ dd.script-list-ratings {
 .open-sidebar {
     visibility: hidden;
     float: right;
-    background-color: #fff;
+    background-color: var(--sidebar-background);
     border: 1px solid gray;
     border-right-width: 0;
     border-radius: 3px 0 0 3px;
     margin-left: 1.2vw;
     margin-right: -1.2vw;
     padding: 2px 1.2vw;
-    border-color: gray;
 }
 
 .sidebar-title {
@@ -2476,7 +2473,7 @@ dd.script-list-ratings {
     }
 
     .sidebar {
-        background: white;
+        background: var(--sidebar-background);
         border: 1px solid gray;
         border-right-width: 0;
         border-radius: 3px 0 0 3px;
@@ -2486,7 +2483,6 @@ dd.script-list-ratings {
         position: absolute;
         top: 0;
         right: -1.2vw;
-        border-color: gray;
     }
 
     .sidebar.collapsed {
