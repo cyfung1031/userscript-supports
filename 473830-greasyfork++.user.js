@@ -23,6 +23,9 @@
 // @match              *://greasyfork.org/*
 // @match              *://sleazyfork.org/*
 // @match              *://cn-greasyfork.org/*
+// @match              *://api.greasyfork.org/*
+// @match              *://api.sleazyfork.org/*
+// @match              *://api.cn-greasyfork.org/*
 // @connect            greasyfork.org
 // @connect            sleazyfork.org
 // @connect            cn-greasyfork.org
@@ -40,9 +43,9 @@
 // @grant              GM.registerMenuCommand
 // @grant              GM.setValue
 // @grant              GM.xmlHttpRequest
+// @grant              unsafeWindow
 // @run-at             document-start
 // @inject-into        content
-// @noframes
 // ==/UserScript==
 
 /* ---- updated filter ---- */
@@ -78,7 +81,8 @@ const isInIframe = window !== top;
 // console.log(GM)
 
 /** @type {WinComm} */
-const WinComm = globalThis.WinComm || (typeof this !== 'undefined' ? this.WinComm : undefined);
+const WinComm = (typeof globalThis !== 'undefined' && globalThis.WinComm)
+    || (typeof this !== 'undefined' ? this.WinComm : undefined);
 
 //  -------- UU Fucntion - original code: https://fastly.jsdelivr.net/npm/@ifelix18/utils@6.5.0/lib/index.min.js  --------
 // optimized by CY Fung to remove $ dependency and observe creation
@@ -152,88 +156,46 @@ const mWindow = isInIframe || (() => {
 
 
     const fields = {
+        theme: {
+            label: '', labelPos: 'left', type: 'select',
+            options: ['auto', 'light', 'dark'], default: 'auto'
+        },
         hideBlacklistedScripts: {
-            label: 'Hide blacklisted scripts:<br><span>Choose which lists to activate in the section below, press <b>Ctrl + Alt + B</b> to show Blacklisted scripts</span>',
-            section: ['Features'],
-            labelPos: 'right',
-            type: 'checkbox',
-            default: true
+            label: '', section: [''], labelPos: 'right', type: 'checkbox', default: true
         },
         hideHiddenScript: {
-            label: 'Hide scripts:<br><span>Add a button to hide the script<br>See and edit the list of hidden scripts below, press <b>Ctrl + Alt + H</b> to show Hidden script',
-            labelPos: 'right',
-            type: 'checkbox',
-            default: true
+            label: '', labelPos: 'right', type: 'checkbox', default: true
         },
         showInstallButton: {
-            label: 'Install button:<br><span>Add to the scripts list a button to install the script directly</span>',
-            labelPos: 'right',
-            type: 'checkbox',
-            default: true
+            label: '', labelPos: 'right', type: 'checkbox', default: true
         },
         showTotalInstalls: {
-            label: 'Installations:<br><span>Shows the number of daily and total installations on the user profile</span>',
-            labelPos: 'right',
-            type: 'checkbox',
-            default: true
+            label: '', labelPos: 'right', type: 'checkbox', default: true
         },
         milestoneNotification: {
-            label: 'Milestone notifications:<br><span>Get notified whenever your total installs got over any of these milestone<br>Separate milestones with a comma, leave blank to turn off notifications</span>',
-            labelPos: 'left',
-            type: 'text',
-            title: 'Separate milestones with a comma!',
-            size: 150,
+            label: '', labelPos: 'left', type: 'text', title: '', size: 150,
             default: '10, 100, 500, 1000, 2500, 5000, 10000, 100000, 1000000'
         },
         nonLatins: {
-            label: 'Non-Latin:<br><span>This list blocks all scripts with non-Latin characters in the title/description</span>',
-            section: ['Lists'],
-            labelPos: 'right',
-            type: 'checkbox',
-            default: false // not true
+            label: '', section: [''], labelPos: 'right', type: 'checkbox', default: false
         },
         blacklist: {
-            label: 'Blacklist:<br><span>A "non-opinionable" list that blocks all scripts with specific words in the title/description, references to "bots", "cheats" and some online game sites, and other "bullshit"</span>',
-            labelPos: 'right',
-            type: 'checkbox',
-            default: true
+            label: '', labelPos: 'right', type: 'checkbox', default: true
         },
         customBlacklist: {
-            label: 'Custom Blacklist:<br><span>Personal blacklist defined by a set of unwanted words<br>Separate unwanted words with a comma (example: YouTube, Facebook, pizza), leave blank to disable this list</span>',
-            labelPos: 'left',
-            type: 'text',
-            title: 'Separate unwanted words with a comma!',
-            size: 150,
-            default: ''
+            label: '', labelPos: 'left', type: 'text', title: '', size: 150, default: ''
         },
         hiddenList: {
-            label: 'Hidden Scripts:<br><span>Block individual undesired scripts by their unique IDs<br>Separate IDs with a comma</span>',
-            labelPos: 'left',
-            type: 'textarea',
-            title: 'Separate IDs with a comma!',
-            default: '',
-            save: false
+            label: '', labelPos: 'left', type: 'textarea', title: '', default: '', save: false
         },
         hideRecentUsersWithin: {
-            label: 'Hide Recent Users:<br><span>Hide new regeistered users within the last N hours - to avoid seeing comments from spam accounts</span>',
-            labelPos: 'left',
-            type: 'text',
-            title: 'Number only. 0 means disabled. maximum is 168. (Suggested value: 48)',
-            default: '0',
-            size: 150
+            label: '', labelPos: 'left', type: 'text', title: '', default: '0', size: 150
         },
         logging: {
-            label: 'Logging',
-            section: ['Developer options'],
-            labelPos: 'right',
-            type: 'checkbox',
-            default: false
+            label: '', section: [''], labelPos: 'right', type: 'checkbox', default: false
         },
         debugging: {
-            label: 'Debugging',
-            labelPos: 'right',
-            type: 'checkbox',
-            default: false
+            label: '', labelPos: 'right', type: 'checkbox', default: false
         }
     }
 
