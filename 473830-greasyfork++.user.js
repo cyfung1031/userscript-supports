@@ -152,6 +152,10 @@ const mWindow = isInIframe || (() => {
 
 
     const fields = {
+        theme: {
+            label: '', section: [''], labelPos: 'left', type: 'select',
+            options: ['auto', 'light', 'dark'], default: 'auto'
+        },
         hideBlacklistedScripts: {
             label: '', section: [''], labelPos: 'right', type: 'checkbox', default: true
         },
@@ -1212,6 +1216,8 @@ const mWindow = isInIframe || (() => {
         const ui = (locale && locale.settings) || locales.en.settings;
         const labels = ui.fields;
 
+        localizedFields.theme.label = labels.theme;
+        localizedFields.theme.section = [ui.sections.appearance];
         localizedFields.hideBlacklistedScripts.label = labels.hideBlacklistedScripts;
         localizedFields.hideBlacklistedScripts.section = [ui.sections.features];
         localizedFields.hideHiddenScript.label = labels.hideHiddenScript;
@@ -1255,9 +1261,53 @@ const mWindow = isInIframe || (() => {
         }
         */
 
-        html {
-        color: #222;
-        background: #f9f9f9;
+        :root {
+            color-scheme: light;
+            --gfpp-bg: #f9f9f9;
+            --gfpp-text: #222;
+            --gfpp-surface: rgba(127,127,127,0.05);
+            --gfpp-border: rgba(127,127,127,0.5);
+            --gfpp-section-start: #670000;
+            --gfpp-section-end: #990000;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #670000;
+            --gfpp-dev-bg: #000;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #fff;
+            --gfpp-control-text: #222;
+        }
+
+        :root[data-gfpp-theme="dark"] {
+            color-scheme: dark;
+            --gfpp-bg: #161616;
+            --gfpp-text: #e8e6e3;
+            --gfpp-surface: rgba(255,255,255,0.05);
+            --gfpp-border: rgba(255,255,255,0.28);
+            --gfpp-section-start: #691010;
+            --gfpp-section-end: #8f1a1a;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #ff8a8a;
+            --gfpp-dev-bg: #0b0b0b;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #242424;
+            --gfpp-control-text: #f2f2f2;
+        }
+
+        html, body {
+            color: var(--gfpp-text);
+            background: var(--gfpp-bg);
+        }
+
+        #greasyfork-plus select,
+        #greasyfork-plus textarea,
+        #greasyfork-plus input:not([type="checkbox"]):not([type="radio"]) {
+            color: var(--gfpp-control-text);
+            background: var(--gfpp-control-bg);
+            border-color: var(--gfpp-border);
+        }
+        #greasyfork-plus input[type="checkbox"],
+        #greasyfork-plus input[type="radio"] {
+            accent-color: var(--gfpp-accent);
         }
 
         #greasyfork-plus{
@@ -1268,10 +1318,10 @@ const mWindow = isInIframe || (() => {
             font-size:12px
         }
         #greasyfork-plus .section_header[class] {
-            background-color:#670000;
-            background-image:linear-gradient(#670000,#900);
+            background-color:var(--gfpp-section-start);
+            background-image:linear-gradient(var(--gfpp-section-start),var(--gfpp-section-end));
             border:1px solid transparent;
-            color:#fff
+            color:var(--gfpp-section-text)
         }
         #greasyfork-plus .field_label[class]{
             margin-bottom:4px
@@ -1282,7 +1332,7 @@ const mWindow = isInIframe || (() => {
             opacity:.8;
         }
         #greasyfork-plus .field_label[class] b{
-            color:#670000
+            color:var(--gfpp-accent)
         }
         #greasyfork-plus_logging_var[class],
         #greasyfork-plus_debugging_var[class] {
@@ -1334,8 +1384,8 @@ const mWindow = isInIframe || (() => {
             padding: 12px;
             /* overflow: auto; */
             scrollbar-gutter: both-edges;
-            background: rgba(127,127,127,0.05);
-            border: 1px solid rgba(127,127,127,0.5);
+            background: var(--gfpp-surface);
+            border: 1px solid var(--gfpp-border);
         }
 
         #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
@@ -1356,8 +1406,8 @@ const mWindow = isInIframe || (() => {
             margin: 8px;
         }
         #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
-            background: #000;
-            color: #eee;
+            background: var(--gfpp-dev-bg);
+            color: var(--gfpp-dev-text);
         }
 
         #greasyfork-plus_header[class]{
@@ -2068,6 +2118,28 @@ inIframeFn() || (async () => {
         return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
     }
 
+    const detectPageTheme = () => {
+        const parseRgb = value => {
+            const match = /rgba?\(\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)/i.exec(String(value || ''));
+            return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+        };
+
+        for (const element of [window.document.body, window.document.documentElement]) {
+            if (!element) continue;
+            const background = window.getComputedStyle(element).backgroundColor;
+            if (!background || background === 'transparent' || /rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/i.test(background)) continue;
+            const rgb = parseRgb(background);
+            if (!rgb) continue;
+            const luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+            return luminance < 128 ? 'dark' : 'light';
+        }
+
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const resolveSettingsTheme = (preference = 'auto') =>
+        preference === 'light' || preference === 'dark' ? preference : detectPageTheme();
+
     let settingsSessionSnapshot = null;
     let settingsSaveCommitted = false;
     let settingsSessionGeneration = 0;
@@ -2111,6 +2183,28 @@ inIframeFn() || (async () => {
                 const generation = ++settingsSessionGeneration;
                 clearSettingsEventListeners();
                 snapshotSettingsSession();
+
+                const themeSelect = document.querySelector(`#${id}_field_theme`);
+                const applySettingsTheme = () => {
+                    const preference = String(themeSelect?.value || gmc.get('theme') || 'auto');
+                    document.documentElement.dataset.gfppTheme = resolveSettingsTheme(preference);
+                };
+                if (themeSelect) {
+                    const themeLabels = ui.themeOptions || locales.en.settings.themeOptions;
+                    for (const option of themeSelect.options) {
+                        if (themeLabels[option.value]) option.textContent = themeLabels[option.value];
+                    }
+                    addSettingsEventListener(themeSelect, 'input', applySettingsTheme);
+                    addSettingsEventListener(themeSelect, 'change', applySettingsTheme);
+                }
+                const colorScheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+                if (colorScheme) {
+                    addSettingsEventListener(colorScheme, 'change', () => {
+                        if ((themeSelect?.value || gmc.get('theme') || 'auto') === 'auto') applySettingsTheme();
+                    });
+                }
+                applySettingsTheme();
+
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
                 const hiddenSet = new Set(numberArr(await GMA.getValue('hiddenList', [])));
