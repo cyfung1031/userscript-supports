@@ -25,10 +25,16 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 - Snapshot indentation, ordering, comments, and focused-diff rules: read references/format-contract.md before editing.
 - Source declaration tokens and maintainable comment placement: read references/source-fidelity.md before converting CSS.
 - Source-to-snapshot formatting/cascade harness: run scripts/audit_css_format.py with --strict before accepting the diff.
+- Before/after diff justification: run scripts/audit_snapshot_diff.py with the raw CSS and reject
+  FORMAT-ONLY hunks or non-general runtime changes without separate evidence.
 - Color substitutions and changed-selector policy: read references/color-policy.md.
 - Deterministic checks and failure interpretation: read references/mechanical-checks.md.
 - Concrete passing/failing command examples: read references/examples.md.
 
 ## Required handoff
 
-Run the bundled checker, the small fixture test at tests/test_check_snapshot.py, JavaScript syntax and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and push/update the PR only after all checks pass. Treat these as best-effort double confirmation; the actual script, format contract, focused diff, and owner comments remain primary. Keep the final diff limited to the requested target and skill artifacts.
+Run the bundled checker, all fixture tests including tests/test_snapshot_diff.py, JavaScript syntax
+and diff checks, obtain independent read-only sub-agent verification, commit incrementally, and
+push/update the PR only after all checks pass. Treat these as best-effort double confirmation; the
+actual script, format contract, focused diff, and owner comments remain primary. Keep the final diff
+limited to the requested target and skill artifacts.

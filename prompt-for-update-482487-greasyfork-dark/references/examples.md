@@ -42,11 +42,20 @@ the structure oracle.
 
 ## Example 1c: format-focused diff review
 
-Before accepting a snapshot refresh, compare the target diff and confirm that unchanged blocks
-retain their prior indentation, blank lines, selector grouping, declaration order, and adjacent
-comments. If a formatter rewrote unrelated blocks, restore the established shape and keep only
-the CSS structure/owner-preference changes. The bundled checks are secondary confirmation for this
-review; see references/format-contract.md.
+Before accepting a snapshot refresh, run the diff program against the complete before/after
+scripts:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/audit_snapshot_diff.py \
+      --before /tmp/greasyfork-before.user.js \
+      --after /tmp/greasyfork-after.user.js \
+      --source-css /tmp/greasyfork-current-application.raw.css \
+      --strict
+
+Then confirm that each remaining hunk has a raw-CSS STRUCTURE or owner OVERLAY witness. Unchanged
+blocks must retain their prior indentation, blank lines, selector grouping, declaration order, and
+adjacent comments. If a formatter rewrote unrelated blocks, restore the established shape and keep
+only the CSS structure/owner-preference changes. The bundled checks are secondary confirmation for
+this review; see references/format-contract.md.
 
 ## Example 2: duplicate snapshot failure
 
@@ -98,6 +107,14 @@ was actually copied.
 If the source contains two separate `.diff ul` blocks, the result must contain two separate blocks
 in the same order. Whitespace/newline cleanup is allowed; merging the declarations into one block is
 not.
+
+For a before/after review, run the diff-audit harness on the two complete scripts. A changed line is
+accepted only when the raw CSS shows a structural change or the actual previous snapshot shows an
+intentional owner overlay. For example, if the before snapshot contains
+`form.new_user input[type=submit]` and the current CSS writes
+`form.new_user input[type="submit"]`, the selector is semantically equivalent and the quote-only
+diff is rejected; retain the prior unquoted form. Likewise, a source-backed `margin: auto 0` must
+not be rewritten as `margin: auto 0px;`.
 
 The executable harness is the repeatable check for this boundary:
 

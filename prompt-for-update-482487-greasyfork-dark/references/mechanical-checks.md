@@ -46,6 +46,22 @@ order, so inspect the ordered diff; a failure is a repair signal, not a reason t
     node --check 482487-greasyfork-dark.user.js
     git diff --check
 
+## Before/after diff justification
+
+Run the diff program against the actual before/after scripts, not against a reformatted copy:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/audit_snapshot_diff.py \
+      --before /tmp/greasyfork-original-v0.3.32-main.user.js \
+      --after /tmp/greasyfork-dark-v0.3.32-main-simulated-candidate.user.js \
+      --source-css /tmp/greasyfork-current-application.raw.css \
+      --strict
+
+The harness invokes `diff -u`, confirms that only the existing `// general` snapshot changed,
+checks source selector/block/token coverage, and rejects known format-only transformations such as
+`auto 0` → `auto 0px`, adding attribute-selector quotes to an existing selector, or whitespace-only
+rewrites. For every remaining hunk, write a short STRUCTURE or OWNER-OVERLAY witness in the review.
+The harness is double confirmation; the human must still inspect the ordered diff and source rule.
+
 Use --only-target when the working tree contains only the userscript update or is clean after a
 verified no-op. Omit it while the skill package itself is being created or changed.
 

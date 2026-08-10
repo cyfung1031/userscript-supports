@@ -7,14 +7,17 @@ values while transferring structure.
 ## Preserve source tokens
 
 - Keep numeric units, zero spelling, function syntax, comma spacing, selector pseudo-element form,
-  attribute-selector quoting, combinators, selector grouping, and declaration order from the source
-  rule unless the owner script has an explicit override.
+  combinators, selector grouping, and declaration order from the source rule unless the owner script
+  has an explicit override. For a selector already represented by the owner snapshot, preserve its
+  existing spelling when the source change is cosmetic; use the raw source spelling for a genuinely
+  new or structurally changed selector.
 - Treat every source rule as an ordered cascade unit. If `.diff ul` appears in multiple CSS blocks,
   keep multiple `.diff ul` blocks in the same order; do not merge their declarations, deduplicate
   the selector, move a later override earlier, or collapse the cascade into one block.
 - `margin:auto 0` may be indented as `margin: auto 0`, but it must not become `margin: auto 0px;`.
 - `form.new_user input[type=submit]` may be indented or placed in the snapshot's block layout, but
-  it must not become `form.new_user input[type="submit"]`.
+  it must not become `form.new_user input[type="submit"]` merely because the current source adds
+  quotes. If the selector is genuinely new, copy the raw source spelling instead.
 - Do not add `px` to zero values, add/remove semicolons, expand shorthand, convert color syntax, or
   reorder declarations merely because a formatter prefers it.
 - Use the raw CSS asset for token decisions. A separately pretty-printed copy is only a navigation
