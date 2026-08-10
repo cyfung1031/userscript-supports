@@ -32,7 +32,8 @@ current live CSS coverage check.
     node --check 482487-greasyfork-dark.user.js
     git diff --check
 
-Use --only-target when the working tree contains only the userscript update. Omit it while the skill package itself is being created or changed.
+Use --only-target when the working tree contains only the userscript update or is clean after a
+verified no-op. Omit it while the skill package itself is being created or changed.
 
 When reapplying against the same live CSS asset, also require an empty target-only diff if the
 checker passes. An empty target diff is evidence that the existing snapshot is already current;

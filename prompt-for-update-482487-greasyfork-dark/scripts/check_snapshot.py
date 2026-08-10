@@ -141,8 +141,8 @@ def check_git_scope(target):
         text=True,
     )
     changed = [line[3:] for line in result.stdout.splitlines() if line]
-    if changed != [target]:
-        fail("working-tree scope is " + repr(changed) + "; expected only " + repr(target))
+    if changed not in ([], [target]):
+        fail("working-tree scope is " + repr(changed) + "; expected clean or only " + repr(target))
 
 
 def main():
