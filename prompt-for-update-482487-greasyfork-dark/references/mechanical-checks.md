@@ -62,6 +62,14 @@ checks source selector/block/token coverage, and rejects known format-only trans
 rewrites. For every remaining hunk, write a short STRUCTURE or OWNER-OVERLAY witness in the review.
 The harness is double confirmation; the human must still inspect the ordered diff and source rule.
 
+The formatting converter has a focused fixture test:
+
+    python3 prompt-for-update-482487-greasyfork-dark/tests/test_format_css_snapshot.py
+
+It demonstrates that `margin:auto 0` remains `margin: auto 0` without inventing `px` or a
+semicolon, equivalent unquoted attribute selectors remain unquoted, and repeated `.diff ul`
+blocks remain separate. The converter is a transfer aid, not permission to alter owner colors.
+
 Use --only-target when the working tree contains only the userscript update or is clean after a
 verified no-op. Omit it while the skill package itself is being created or changed.
 

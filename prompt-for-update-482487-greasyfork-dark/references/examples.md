@@ -122,3 +122,13 @@ The executable harness is the repeatable check for this boundary:
       --source-css prompt-for-update-482487-greasyfork-dark/references/fixtures/current-application.css \
       --snapshot-file prompt-for-update-482487-greasyfork-dark/examples/mini-greasyfork-dark.user.js \
       --strict
+
+The snapshot-ready formatter is separate from that audit:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/format_css_snapshot.py \
+      --source-css prompt-for-update-482487-greasyfork-dark/references/fixtures/current-application.css \
+      --owner-snapshot prompt-for-update-482487-greasyfork-dark/references/fixtures/previous-general.css
+
+Its output may add indentation and newlines, but it must preserve source values, semicolon
+presence, selector tokens, declaration order, comments, and duplicate blocks. Color replacement is
+still governed by the actual userscript, not by the fixture or formatter.

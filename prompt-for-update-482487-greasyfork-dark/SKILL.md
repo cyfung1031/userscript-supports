@@ -25,6 +25,8 @@ Use this skill for the one-file userscript update task. Read the agent guide at 
 - Snapshot indentation, ordering, comments, and focused-diff rules: read references/format-contract.md before editing.
 - Source declaration tokens and maintainable comment placement: read references/source-fidelity.md before converting CSS.
 - Source-to-snapshot formatting/cascade harness: run scripts/audit_css_format.py with --strict before accepting the diff.
+- Snapshot-ready whitespace/newline conversion: run scripts/format_css_snapshot.py with the raw CSS
+  and actual previous snapshot before applying the owner color overlay.
 - Before/after diff justification: run scripts/audit_snapshot_diff.py with the raw CSS and reject
   FORMAT-ONLY hunks or non-general runtime changes without separate evidence.
 - Color substitutions and changed-selector policy: read references/color-policy.md.

@@ -20,6 +20,18 @@ The skill guides an edit to the target; it is not a replacement coding file. Nev
    existing selector is semantically unchanged, retain its prior spelling even if the source's
    cosmetic spelling changed.
 
+Use the bundled formatter for this mechanical transfer:
+
+    python3 prompt-for-update-482487-greasyfork-dark/scripts/format_css_snapshot.py \
+      --source-css /tmp/greasyfork-current-application.raw.css \
+      --owner-snapshot 482487-greasyfork-dark.user.js \
+      --output /tmp/greasyfork-current-application.snapshot.css
+
+The formatter changes only layout whitespace/newlines and equivalent-selector presentation. It
+does not normalize values, add units, add/remove semicolons, rewrite quotes in a new selector,
+reorder declarations, merge blocks, or apply colors. Review its output, then apply the actual
+script's owner color policy to the snapshot before inserting it into `// general`.
+
 ## Convert into the actual snapshot
 
 1. Build a candidate from the current CSS structure, preserving every source block as an ordered
