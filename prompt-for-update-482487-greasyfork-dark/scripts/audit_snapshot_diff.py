@@ -102,17 +102,23 @@ def audit(
     before_general = CHECKER.extract_general(before)
     after_general = CHECKER.extract_general(after)
     source = CHECKER.remove_excluded_branches(source)
-    source_sequence = CHECKER.css_selector_sequence(source)
-    after_sequence = CHECKER.css_selector_sequence(after_general)
-    source_counts = CHECKER.repeated_css_selector_counts(source)
-    after_counts = CHECKER.repeated_css_selector_counts(after_general)
+    whitespace = CHECKER.css_whitespace_metrics(after_general)
+    after_snapshot_tabs = whitespace["tabs"]
+    after_snapshot_trailing_whitespace_lines = whitespace[
+        "trailing_whitespace_lines"
+    ]
+    after_general = CHECKER.remove_excluded_branches(after_general)
+    source_sequence = CHECKER.css_rule_sequence(source)
+    after_sequence = CHECKER.css_rule_sequence(after_general)
+    source_counts = CHECKER.repeated_css_rule_counts(source)
+    after_counts = CHECKER.repeated_css_rule_counts(after_general)
     collapsed = sorted(
         (selector, count, after_counts.get(selector, 0))
         for selector, count in source_counts.items()
         if count > 1 and after_counts.get(selector, 0) < count
     )
-    missing_tokens = sorted(
-        CHECKER.declaration_tokens(source) - CHECKER.declaration_tokens(after_general)
+    missing_tokens = CHECKER.ordered_missing_declaration_tokens_by_context(
+        source, after_general
     )
     return {
         "diff_hunks": sum(line.startswith("@@") for line in diff.stdout.splitlines()),
@@ -126,6 +132,8 @@ def audit(
         "ordered_missing_selectors": ordered_missing(source_sequence, after_sequence),
         "collapsed_repeated_blocks": collapsed,
         "missing_non_color_tokens": missing_tokens,
+        "snapshot_tabs": after_snapshot_tabs,
+        "snapshot_trailing_whitespace_lines": after_snapshot_trailing_whitespace_lines,
     }
 
 
