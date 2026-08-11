@@ -13,13 +13,14 @@ Use PickInvariant in `PICK_AUDIT` mode. Choose `FOCUSED_AUDIT` for one isolated 
 
 Record a compact activation receipt before loading modules: target and authority, base/head observables, Pick mode/depth, changed semantic families, available oracle, exclusions, and the `Q_D` review decision. Before a delta or full audit, load the installed PickInvariant `references/audit_and_contrast.md` and `references/review_scope_and_coverage.md`; do not reproduce their full theorem stack in this kernel.
 
-Bind the exact base revision, head revision, changed path, and blob identities before making exact claims:
+Bind the exact base revision, head revision, changed path, and blob identities before making exact claims. Set `review_skill_root` to the directory containing this `SKILL.md`; its parent directory may be anywhere:
 
 ```bash
-node agent-skills/review-userscript-change/scripts/bind_review_target.js \
+review_skill_root="/path/to/review-userscript-change"
+node "$review_skill_root/scripts/bind_review_target.js" \
   --repo /path/to/repo --base <base-ref> --head <head-ref> \
   --path path/to/script.user.js --json > review-manifest.json
-node agent-skills/review-userscript-change/scripts/audit_userscript_change.js \
+node "$review_skill_root/scripts/audit_userscript_change.js" \
   --manifest review-manifest.json --json
 ```
 
