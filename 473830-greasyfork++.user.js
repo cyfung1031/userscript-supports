@@ -2359,6 +2359,39 @@ inIframeFn() || (async () => {
         }
     };
 
+    const localizeSettingsActions = (document) => {
+        const buttons = ui.buttons || locales.en.settings.buttons;
+        const setControlLabel = (element, label, title = label) => {
+            if (!element) return;
+            if ('value' in element) element.value = label;
+            element.textContent = label;
+            element.setAttribute('aria-label', label);
+            element.setAttribute('title', title);
+        };
+
+        const save = document.querySelector(
+            `#${id}_saveBtn, [id$="_saveBtn"], .saveclose_buttons[name="save"]`
+        );
+        const close = document.querySelector(
+            `#${id}_closeBtn, [id$="_closeBtn"], .saveclose_buttons[name="close"]`
+        );
+        const reset = document.querySelector(
+            `#${id}_resetLink, [id$="_resetLink"]`
+        );
+
+        setControlLabel(save, buttons.save, buttons.saveTitle);
+        setControlLabel(close, buttons.close, buttons.closeTitle);
+        setControlLabel(reset, buttons.reset, buttons.resetTitle);
+
+        const actionButtons = [...document.querySelectorAll('.saveclose_buttons')];
+        if (!save && actionButtons[0]) {
+            setControlLabel(actionButtons[0], buttons.save, buttons.saveTitle);
+        }
+        if (!close && actionButtons[1]) {
+            setControlLabel(actionButtons[1], buttons.close, buttons.closeTitle);
+        }
+    };
+
     const prepareSettingsFrame = (document) => {
         const frame = document.defaultView?.frameElement || null;
         settingsFrameElement = frame;
@@ -2417,6 +2450,7 @@ inIframeFn() || (async () => {
                     });
                 }
                 applySettingsTheme();
+                localizeSettingsActions(document);
                 revealSettingsFrame(settingsFrame);
 
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
