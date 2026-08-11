@@ -152,6 +152,10 @@ const mWindow = isInIframe || (() => {
 
 
     const fields = {
+        theme: {
+            label: '', section: [''], labelPos: 'left', type: 'select',
+            options: ['auto', 'light', 'dark'], default: 'auto'
+        },
         hideBlacklistedScripts: {
             label: '', section: [''], labelPos: 'right', type: 'checkbox', default: true
         },
@@ -1212,6 +1216,8 @@ const mWindow = isInIframe || (() => {
         const ui = (locale && locale.settings) || locales.en.settings;
         const labels = ui.fields;
 
+        localizedFields.theme.label = labels.theme;
+        localizedFields.theme.section = [ui.sections.appearance];
         localizedFields.hideBlacklistedScripts.label = labels.hideBlacklistedScripts;
         localizedFields.hideBlacklistedScripts.section = [ui.sections.features];
         localizedFields.hideHiddenScript.label = labels.hideHiddenScript;
