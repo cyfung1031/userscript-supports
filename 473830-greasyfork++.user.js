@@ -2074,6 +2074,28 @@ inIframeFn() || (async () => {
         return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
     }
 
+    const detectPageTheme = () => {
+        const parseRgb = value => {
+            const match = /rgba?\(\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)/i.exec(String(value || ''));
+            return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+        };
+
+        for (const element of [window.document.body, window.document.documentElement]) {
+            if (!element) continue;
+            const background = window.getComputedStyle(element).backgroundColor;
+            if (!background || background === 'transparent' || /rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/i.test(background)) continue;
+            const rgb = parseRgb(background);
+            if (!rgb) continue;
+            const luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+            return luminance < 128 ? 'dark' : 'light';
+        }
+
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const resolveSettingsTheme = (preference = 'auto') =>
+        preference === 'light' || preference === 'dark' ? preference : detectPageTheme();
+
     let settingsSessionSnapshot = null;
     let settingsSaveCommitted = false;
     let settingsSessionGeneration = 0;
@@ -2117,6 +2139,28 @@ inIframeFn() || (async () => {
                 const generation = ++settingsSessionGeneration;
                 clearSettingsEventListeners();
                 snapshotSettingsSession();
+
+                const themeSelect = document.querySelector(`#${id}_field_theme`);
+                const applySettingsTheme = () => {
+                    const preference = String(themeSelect?.value || gmc.get('theme') || 'auto');
+                    document.documentElement.dataset.gfppTheme = resolveSettingsTheme(preference);
+                };
+                if (themeSelect) {
+                    const themeLabels = ui.themeOptions || locales.en.settings.themeOptions;
+                    for (const option of themeSelect.options) {
+                        if (themeLabels[option.value]) option.textContent = themeLabels[option.value];
+                    }
+                    addSettingsEventListener(themeSelect, 'input', applySettingsTheme);
+                    addSettingsEventListener(themeSelect, 'change', applySettingsTheme);
+                }
+                const colorScheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+                if (colorScheme) {
+                    addSettingsEventListener(colorScheme, 'change', () => {
+                        if ((themeSelect?.value || gmc.get('theme') || 'auto') === 'auto') applySettingsTheme();
+                    });
+                }
+                applySettingsTheme();
+
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
                 const hiddenSet = new Set(numberArr(await GMA.getValue('hiddenList', [])));
