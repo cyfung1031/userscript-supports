@@ -1595,6 +1595,21 @@ body > #greasyfork-plus_wrapper:only-child {
     `;
     const pageCSS = `
 
+        /* Keep the settings iframe hidden until its initial theme is applied. */
+        iframe[id^="greasyfork-plus"] {
+            visibility: hidden !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
+            clip-path: inset(0 round 10px) !important;
+            -webkit-clip-path: inset(0 round 10px) !important;
+        }
+
+        iframe[id^="greasyfork-plus"][data-gfpp-ui-ready="true"] {
+            visibility: visible !important;
+        }
+
         .script-list li.blacklisted{
             display:none;
             background:#321919;
@@ -2319,6 +2334,7 @@ inIframeFn() || (async () => {
     let settingsSessionSnapshot = null;
     let settingsSaveCommitted = false;
     let settingsSessionGeneration = 0;
+    let settingsFrameElement = null;
     let settingsEventCleanups = [];
     const clearSettingsEventListeners = () => {
         const cleanups = settingsEventCleanups;
@@ -2343,6 +2359,26 @@ inIframeFn() || (async () => {
         }
     };
 
+    const prepareSettingsFrame = (document) => {
+        const frame = document.defaultView?.frameElement || null;
+        settingsFrameElement = frame;
+        if (!frame) return null;
+
+        frame.removeAttribute('data-gfpp-ui-ready');
+        frame.setAttribute('allowtransparency', 'true');
+        frame.style.setProperty('background', 'transparent', 'important');
+        frame.style.setProperty('background-color', 'transparent', 'important');
+        frame.style.setProperty('border-radius', '10px', 'important');
+        frame.style.setProperty('overflow', 'hidden', 'important');
+        frame.style.setProperty('clip-path', 'inset(0 round 10px)', 'important');
+        frame.style.setProperty('-webkit-clip-path', 'inset(0 round 10px)', 'important');
+        return frame;
+    };
+
+    const revealSettingsFrame = (frame) => {
+        frame?.setAttribute('data-gfpp-ui-ready', 'true');
+    };
+
     const gmc = new GM_config({
         id,
         title,
@@ -2360,6 +2396,7 @@ inIframeFn() || (async () => {
                 clearSettingsEventListeners();
                 snapshotSettingsSession();
 
+                const settingsFrame = prepareSettingsFrame(document);
                 const themeSelect = document.querySelector(`#${id}_field_theme`);
                 const applySettingsTheme = () => {
                     const preference = String(themeSelect?.value || gmc.get('theme') || 'auto');
@@ -2380,6 +2417,7 @@ inIframeFn() || (async () => {
                     });
                 }
                 applySettingsTheme();
+                revealSettingsFrame(settingsFrame);
 
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
@@ -2413,6 +2451,8 @@ inIframeFn() || (async () => {
             },
             close: () => {
                 settingsSessionGeneration++;
+                settingsFrameElement?.removeAttribute('data-gfpp-ui-ready');
+                settingsFrameElement = null;
                 clearSettingsEventListeners();
                 if (!settingsSaveCommitted) restoreSettingsSession();
                 settingsSessionSnapshot = null;
