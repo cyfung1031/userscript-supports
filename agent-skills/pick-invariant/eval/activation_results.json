@@ -1,0 +1,81 @@
+{
+  "validation_tier": "T1_DESIGN_PROXY",
+  "parent": "PickInvariant v11.0",
+  "candidate": "PickInvariant v11.1",
+  "case_count": 88,
+  "fixture_cases": 52,
+  "boundary_cases": 36,
+  "exact_activation_matches": 88,
+  "activation_drift_count": 0,
+  "activation_equivalence": true,
+  "failed_case_ids": [],
+  "mutation_sensitivity_all_protected_fields": true,
+  "mutation_sensitivity": {
+    "PROBABILITY_MEASURE_TRIGGER": true,
+    "DECISION_QUOTIENT_TRIGGER": true,
+    "COMPOSITION_TRIGGER": true,
+    "NULL_CONDITIONING_TRIGGER": true,
+    "SYMMETRY_INVARIANT_MEASURE_TRIGGER": true,
+    "EHRHART_TRIGGER": true,
+    "OBSERVATION_VALUE_TRIGGER": true,
+    "ABSTRACTION_REFINEMENT_TRIGGER": true,
+    "LOCAL_GLOBAL_OBSTRUCTION_TRIGGER": true,
+    "COVERAGE": true,
+    "mode": true,
+    "depth": true,
+    "refs": true
+  },
+  "trigger_fire_do_not_fire_coverage": {
+    "PROBABILITY_MEASURE_TRIGGER": {
+      "fires": 20,
+      "does_not_fire": 68,
+      "both": true
+    },
+    "DECISION_QUOTIENT_TRIGGER": {
+      "fires": 17,
+      "does_not_fire": 71,
+      "both": true
+    },
+    "COMPOSITION_TRIGGER": {
+      "fires": 7,
+      "does_not_fire": 81,
+      "both": true
+    },
+    "NULL_CONDITIONING_TRIGGER": {
+      "fires": 3,
+      "does_not_fire": 85,
+      "both": true
+    },
+    "SYMMETRY_INVARIANT_MEASURE_TRIGGER": {
+      "fires": 4,
+      "does_not_fire": 84,
+      "both": true
+    },
+    "EHRHART_TRIGGER": {
+      "fires": 2,
+      "does_not_fire": 86,
+      "both": true
+    },
+    "OBSERVATION_VALUE_TRIGGER": {
+      "fires": 3,
+      "does_not_fire": 85,
+      "both": true
+    },
+    "ABSTRACTION_REFINEMENT_TRIGGER": {
+      "fires": 3,
+      "does_not_fire": 85,
+      "both": true
+    },
+    "LOCAL_GLOBAL_OBSTRUCTION_TRIGGER": {
+      "fires": 2,
+      "does_not_fire": 86,
+      "both": true
+    },
+    "COVERAGE": {
+      "fires": 4,
+      "does_not_fire": 84,
+      "both": true
+    }
+  },
+  "case_checksum_sha256": "7f4a25423099c8bcde5686c1a6fd49c339be6507b0b6f4aaab2c5fe06dc54612"
+}

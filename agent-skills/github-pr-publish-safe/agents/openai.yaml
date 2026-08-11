@@ -1,0 +1,7 @@
+interface:
+  display_name: "Safe PR Publish"
+  short_description: "Publish and review PRs safely"
+  default_prompt: "Use $github-pr-publish-safe to publish these changes and verify the PR review state."
+
+policy:
+  allow_implicit_invocation: true

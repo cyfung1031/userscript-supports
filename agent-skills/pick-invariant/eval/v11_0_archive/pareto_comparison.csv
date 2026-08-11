@@ -1,0 +1,91 @@
+subject,reference,bounded_behavioral_pareto,subject_score,reference_score,subject_cost,reference_cost
+PI v10.1,PI v11 Pick-dominant,False,9.440048,9.954192,3.267007,3.066327
+PI v10.1,v11 Nerode-dominant,False,9.440048,9.954099,3.267007,3.066327
+PI v10.1,v11 no decision-quotient theory,False,9.440048,9.838151,3.267007,3.066327
+PI v10.1,v11 no Blackwell-LeCam,False,9.440048,9.840502,3.267007,3.066327
+PI v10.1,v11 no valuation-Ehrhart,False,9.440048,9.860041,3.267007,3.066327
+PI v10.1,v11 no VOI discipline,False,9.440048,9.924622,3.267007,3.066327
+PI v10.1,v11 no CEGAR refinement gate,False,9.440048,9.901913,3.267007,3.066327
+PI v10.1,v11 no null-conditioning gate,False,9.440048,9.910013,3.267007,3.066327
+PI v10.1,v11 all-theorems-always-on,False,9.440048,9.888754,3.267007,3.390306
+PI v11 Pick-dominant,PI v10.1,True,9.954192,9.440048,3.066327,3.267007
+PI v11 Pick-dominant,v11 Nerode-dominant,False,9.954192,9.954099,3.066327,3.066327
+PI v11 Pick-dominant,v11 no decision-quotient theory,True,9.954192,9.838151,3.066327,3.066327
+PI v11 Pick-dominant,v11 no Blackwell-LeCam,True,9.954192,9.840502,3.066327,3.066327
+PI v11 Pick-dominant,v11 no valuation-Ehrhart,True,9.954192,9.860041,3.066327,3.066327
+PI v11 Pick-dominant,v11 no VOI discipline,True,9.954192,9.924622,3.066327,3.066327
+PI v11 Pick-dominant,v11 no CEGAR refinement gate,True,9.954192,9.901913,3.066327,3.066327
+PI v11 Pick-dominant,v11 no null-conditioning gate,True,9.954192,9.910013,3.066327,3.066327
+PI v11 Pick-dominant,v11 all-theorems-always-on,True,9.954192,9.888754,3.066327,3.390306
+v11 Nerode-dominant,PI v10.1,False,9.954099,9.440048,3.066327,3.267007
+v11 Nerode-dominant,PI v11 Pick-dominant,False,9.954099,9.954192,3.066327,3.066327
+v11 Nerode-dominant,v11 no decision-quotient theory,False,9.954099,9.838151,3.066327,3.066327
+v11 Nerode-dominant,v11 no Blackwell-LeCam,False,9.954099,9.840502,3.066327,3.066327
+v11 Nerode-dominant,v11 no valuation-Ehrhart,False,9.954099,9.860041,3.066327,3.066327
+v11 Nerode-dominant,v11 no VOI discipline,False,9.954099,9.924622,3.066327,3.066327
+v11 Nerode-dominant,v11 no CEGAR refinement gate,False,9.954099,9.901913,3.066327,3.066327
+v11 Nerode-dominant,v11 no null-conditioning gate,False,9.954099,9.910013,3.066327,3.066327
+v11 Nerode-dominant,v11 all-theorems-always-on,False,9.954099,9.888754,3.066327,3.390306
+v11 no decision-quotient theory,PI v10.1,True,9.838151,9.440048,3.066327,3.267007
+v11 no decision-quotient theory,PI v11 Pick-dominant,False,9.838151,9.954192,3.066327,3.066327
+v11 no decision-quotient theory,v11 Nerode-dominant,False,9.838151,9.954099,3.066327,3.066327
+v11 no decision-quotient theory,v11 no Blackwell-LeCam,False,9.838151,9.840502,3.066327,3.066327
+v11 no decision-quotient theory,v11 no valuation-Ehrhart,False,9.838151,9.860041,3.066327,3.066327
+v11 no decision-quotient theory,v11 no VOI discipline,False,9.838151,9.924622,3.066327,3.066327
+v11 no decision-quotient theory,v11 no CEGAR refinement gate,False,9.838151,9.901913,3.066327,3.066327
+v11 no decision-quotient theory,v11 no null-conditioning gate,False,9.838151,9.910013,3.066327,3.066327
+v11 no decision-quotient theory,v11 all-theorems-always-on,False,9.838151,9.888754,3.066327,3.390306
+v11 no Blackwell-LeCam,PI v10.1,True,9.840502,9.440048,3.066327,3.267007
+v11 no Blackwell-LeCam,PI v11 Pick-dominant,False,9.840502,9.954192,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 Nerode-dominant,False,9.840502,9.954099,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 no decision-quotient theory,False,9.840502,9.838151,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 no valuation-Ehrhart,False,9.840502,9.860041,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 no VOI discipline,False,9.840502,9.924622,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 no CEGAR refinement gate,False,9.840502,9.901913,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 no null-conditioning gate,False,9.840502,9.910013,3.066327,3.066327
+v11 no Blackwell-LeCam,v11 all-theorems-always-on,False,9.840502,9.888754,3.066327,3.390306
+v11 no valuation-Ehrhart,PI v10.1,True,9.860041,9.440048,3.066327,3.267007
+v11 no valuation-Ehrhart,PI v11 Pick-dominant,False,9.860041,9.954192,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 Nerode-dominant,False,9.860041,9.954099,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 no decision-quotient theory,False,9.860041,9.838151,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 no Blackwell-LeCam,False,9.860041,9.840502,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 no VOI discipline,False,9.860041,9.924622,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 no CEGAR refinement gate,False,9.860041,9.901913,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 no null-conditioning gate,False,9.860041,9.910013,3.066327,3.066327
+v11 no valuation-Ehrhart,v11 all-theorems-always-on,False,9.860041,9.888754,3.066327,3.390306
+v11 no VOI discipline,PI v10.1,True,9.924622,9.440048,3.066327,3.267007
+v11 no VOI discipline,PI v11 Pick-dominant,False,9.924622,9.954192,3.066327,3.066327
+v11 no VOI discipline,v11 Nerode-dominant,False,9.924622,9.954099,3.066327,3.066327
+v11 no VOI discipline,v11 no decision-quotient theory,False,9.924622,9.838151,3.066327,3.066327
+v11 no VOI discipline,v11 no Blackwell-LeCam,False,9.924622,9.840502,3.066327,3.066327
+v11 no VOI discipline,v11 no valuation-Ehrhart,False,9.924622,9.860041,3.066327,3.066327
+v11 no VOI discipline,v11 no CEGAR refinement gate,False,9.924622,9.901913,3.066327,3.066327
+v11 no VOI discipline,v11 no null-conditioning gate,False,9.924622,9.910013,3.066327,3.066327
+v11 no VOI discipline,v11 all-theorems-always-on,False,9.924622,9.888754,3.066327,3.390306
+v11 no CEGAR refinement gate,PI v10.1,True,9.901913,9.440048,3.066327,3.267007
+v11 no CEGAR refinement gate,PI v11 Pick-dominant,False,9.901913,9.954192,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 Nerode-dominant,False,9.901913,9.954099,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 no decision-quotient theory,False,9.901913,9.838151,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 no Blackwell-LeCam,False,9.901913,9.840502,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 no valuation-Ehrhart,False,9.901913,9.860041,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 no VOI discipline,False,9.901913,9.924622,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 no null-conditioning gate,False,9.901913,9.910013,3.066327,3.066327
+v11 no CEGAR refinement gate,v11 all-theorems-always-on,False,9.901913,9.888754,3.066327,3.390306
+v11 no null-conditioning gate,PI v10.1,True,9.910013,9.440048,3.066327,3.267007
+v11 no null-conditioning gate,PI v11 Pick-dominant,False,9.910013,9.954192,3.066327,3.066327
+v11 no null-conditioning gate,v11 Nerode-dominant,False,9.910013,9.954099,3.066327,3.066327
+v11 no null-conditioning gate,v11 no decision-quotient theory,False,9.910013,9.838151,3.066327,3.066327
+v11 no null-conditioning gate,v11 no Blackwell-LeCam,False,9.910013,9.840502,3.066327,3.066327
+v11 no null-conditioning gate,v11 no valuation-Ehrhart,False,9.910013,9.860041,3.066327,3.066327
+v11 no null-conditioning gate,v11 no VOI discipline,False,9.910013,9.924622,3.066327,3.066327
+v11 no null-conditioning gate,v11 no CEGAR refinement gate,False,9.910013,9.901913,3.066327,3.066327
+v11 no null-conditioning gate,v11 all-theorems-always-on,False,9.910013,9.888754,3.066327,3.390306
+v11 all-theorems-always-on,PI v10.1,False,9.888754,9.440048,3.390306,3.267007
+v11 all-theorems-always-on,PI v11 Pick-dominant,False,9.888754,9.954192,3.390306,3.066327
+v11 all-theorems-always-on,v11 Nerode-dominant,False,9.888754,9.954099,3.390306,3.066327
+v11 all-theorems-always-on,v11 no decision-quotient theory,False,9.888754,9.838151,3.390306,3.066327
+v11 all-theorems-always-on,v11 no Blackwell-LeCam,False,9.888754,9.840502,3.390306,3.066327
+v11 all-theorems-always-on,v11 no valuation-Ehrhart,False,9.888754,9.860041,3.390306,3.066327
+v11 all-theorems-always-on,v11 no VOI discipline,False,9.888754,9.924622,3.390306,3.066327
+v11 all-theorems-always-on,v11 no CEGAR refinement gate,False,9.888754,9.901913,3.390306,3.066327
+v11 all-theorems-always-on,v11 no null-conditioning gate,False,9.888754,9.910013,3.390306,3.066327

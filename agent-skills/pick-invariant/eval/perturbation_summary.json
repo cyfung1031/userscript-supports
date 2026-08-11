@@ -1,0 +1,13 @@
+{
+  "samples": 50000,
+  "seed": 111101,
+  "hard_pareto_win_rate": 1.0,
+  "behavior_delta_all_runs": 0.0,
+  "synthetic_execution_cost_delta_all_runs": 0.0,
+  "activation_drift_all_runs": 0,
+  "context_cost_delta_mean": -71.81064129195846,
+  "context_cost_delta_p05": -164.78532475306986,
+  "context_cost_delta_p50": -58.64193155646527,
+  "context_cost_delta_p95": -22.444536773549757,
+  "note": "Sensitivity varies only positive context-cost conversion weights/path prevalence; it does not invent behavioral gains. Exact tokenizer counts are not claimed."
+}

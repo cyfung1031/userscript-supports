@@ -1,0 +1,15 @@
+{
+  "release": "v11.0",
+  "dominant": "Pick",
+  "neighbors": [
+    "v11 Nerode-dominant",
+    "v11 no decision-quotient theory",
+    "v11 no Blackwell-LeCam",
+    "v11 no valuation-Ehrhart",
+    "v11 no VOI discipline",
+    "v11 no CEGAR refinement gate",
+    "v11 no null-conditioning gate",
+    "v11 all-theorems-always-on"
+  ],
+  "claim": "local architectural neighborhood; ablations and alternative dominance"
+}

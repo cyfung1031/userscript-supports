@@ -1,0 +1,52 @@
+{"critical_caps": ["authority"], "fixture_id": "G01", "ideal_route": "DIRECT", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G02", "ideal_route": "DIRECT", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G03", "ideal_route": "EXPLORE", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G04", "ideal_route": "EXPLORE", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G05", "ideal_route": "AUDIT_FOCUSED", "inherited": true}
+{"critical_caps": ["authority", "evidence"], "fixture_id": "G06", "ideal_route": "AUDIT_BROAD", "inherited": true}
+{"critical_caps": ["authority", "evidence"], "fixture_id": "G07", "ideal_route": "AUDIT_BROAD", "inherited": true}
+{"critical_caps": ["authority", "observability"], "fixture_id": "G08", "ideal_route": "DERIVE_FAST", "inherited": true}
+{"critical_caps": ["structural"], "fixture_id": "G09", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["structural"], "fixture_id": "G10", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["structural"], "fixture_id": "G11", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["evidence", "observability"], "fixture_id": "G12", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["evidence", "observability"], "fixture_id": "G13", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["evidence"], "fixture_id": "G14", "ideal_route": "AUDIT_FOCUSED", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G15", "ideal_route": "EXPLORE", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G16", "ideal_route": "DERIVE_FAST", "inherited": true}
+{"critical_caps": ["minimality"], "fixture_id": "G17", "ideal_route": "DERIVE_STRUCT", "inherited": true}
+{"critical_caps": ["structural"], "fixture_id": "G18", "ideal_route": "STRUCTURAL_TRANSFER", "inherited": true}
+{"critical_caps": [], "fixture_id": "G19", "ideal_route": "DIRECT", "inherited": true}
+{"critical_caps": ["authority"], "fixture_id": "G20", "ideal_route": "DIRECT", "inherited": true}
+{"critical_caps": ["probability"], "fixture_id": "G21", "ideal_route": "PROBABILITY_CHECK", "inherited": true}
+{"critical_caps": ["probability"], "fixture_id": "G22", "ideal_route": "PROBABILITY_CHECK", "inherited": true}
+{"critical_caps": ["transport"], "fixture_id": "G23", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["transport"], "fixture_id": "G24", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["probability"], "fixture_id": "G25", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["canonicality"], "fixture_id": "G26", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["canonicality"], "fixture_id": "G27", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["distribution"], "fixture_id": "G28", "ideal_route": "PROBABILITY_AUDIT", "inherited": true}
+{"critical_caps": ["probability"], "fixture_id": "G29", "ideal_route": "PROBABILITY_CHECK", "inherited": true}
+{"critical_caps": ["quotient"], "fixture_id": "Q01", "ideal_route": "QUOTIENT_CHECK", "inherited": false}
+{"critical_caps": ["quotient"], "fixture_id": "Q02", "ideal_route": "QUOTIENT_CHECK", "inherited": false}
+{"critical_caps": ["continuation"], "fixture_id": "Q03", "ideal_route": "QUOTIENT_CHECK", "inherited": false}
+{"critical_caps": ["minimality"], "fixture_id": "Q04", "ideal_route": "QUOTIENT_CHECK", "inherited": false}
+{"critical_caps": ["quotient"], "fixture_id": "Q05", "ideal_route": "QUOTIENT_CHECK", "inherited": false}
+{"critical_caps": ["stochastic_information"], "fixture_id": "S01", "ideal_route": "INFO_CHECK", "inherited": false}
+{"critical_caps": ["stochastic_information"], "fixture_id": "S02", "ideal_route": "INFO_CHECK", "inherited": false}
+{"critical_caps": ["approximate_sufficiency"], "fixture_id": "S03", "ideal_route": "INFO_CHECK", "inherited": false}
+{"critical_caps": ["authority", "approximate_sufficiency"], "fixture_id": "S04", "ideal_route": "INFO_CHECK", "inherited": false}
+{"critical_caps": ["composition"], "fixture_id": "C01", "ideal_route": "COMPOSITION_CHECK", "inherited": false}
+{"critical_caps": ["composition"], "fixture_id": "C02", "ideal_route": "COMPOSITION_CHECK", "inherited": false}
+{"critical_caps": ["local_global"], "fixture_id": "C03", "ideal_route": "COMPOSITION_CHECK", "inherited": false}
+{"critical_caps": ["ehrhart_boundary"], "fixture_id": "C04", "ideal_route": "COMPOSITION_CHECK", "inherited": false}
+{"critical_caps": ["observation_value"], "fixture_id": "R01", "ideal_route": "REFINEMENT_CHECK", "inherited": false}
+{"critical_caps": ["authority"], "fixture_id": "R02", "ideal_route": "REFINEMENT_CHECK", "inherited": false}
+{"critical_caps": ["refinement"], "fixture_id": "R03", "ideal_route": "REFINEMENT_CHECK", "inherited": false}
+{"critical_caps": ["refinement"], "fixture_id": "R04", "ideal_route": "REFINEMENT_CHECK", "inherited": false}
+{"critical_caps": ["null_conditioning"], "fixture_id": "P01", "ideal_route": "NULL_CONDITIONING", "inherited": false}
+{"critical_caps": ["null_conditioning"], "fixture_id": "P02", "ideal_route": "NULL_CONDITIONING", "inherited": false}
+{"critical_caps": ["canonicality"], "fixture_id": "P03", "ideal_route": "PROBABILITY_AUDIT", "inherited": false}
+{"critical_caps": [], "fixture_id": "U01", "ideal_route": "DIRECT", "inherited": false}
+{"critical_caps": [], "fixture_id": "U02", "ideal_route": "EXPLORE", "inherited": false}
+{"critical_caps": [], "fixture_id": "U03", "ideal_route": "DIRECT", "inherited": false}

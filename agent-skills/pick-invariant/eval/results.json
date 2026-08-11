@@ -1,0 +1,59 @@
+{
+  "validation_tier": "T1_DESIGN_PROXY",
+  "parent": "PickInvariant v11.0",
+  "candidate": "PickInvariant v11.1",
+  "scenario_count": 52,
+  "protected_capability_count": 23,
+  "parent_behavior_score": 9.954191773237893,
+  "candidate_behavior_score": 9.954191773237893,
+  "parent_weighted_synthetic_cost": 3.0663265306122454,
+  "candidate_weighted_synthetic_cost": 3.0663265306122454,
+  "parent_maintainability": 9.3,
+  "candidate_maintainability": 9.3,
+  "activation_case_count": 88,
+  "activation_drift_count": 0,
+  "v11_0_core": {
+    "words": 1316,
+    "chars": 11012,
+    "bytes": 11034,
+    "lines": 209
+  },
+  "v11_1_core": {
+    "words": 947,
+    "chars": 8401,
+    "bytes": 8408,
+    "lines": 155
+  },
+  "context_reduction_pct": {
+    "words": 28.04,
+    "chars": 23.71,
+    "bytes": 23.8,
+    "lines": 25.84
+  },
+  "hard_checks": {
+    "all_protected_capabilities_nonregressing": true,
+    "all_fixture_quality_nonregressing": true,
+    "all_fixture_synthetic_cost_nonincreasing": true,
+    "maintainability_nonregressing": true,
+    "exact_activation_equivalence": true,
+    "activation_mutation_suite_sensitive": true,
+    "hard_context_pareto": true,
+    "strict_improvement_exists": true
+  },
+  "hard_pareto_improvement": true,
+  "strict_dimension": "always-loaded/context footprint",
+  "sensitivity": {
+    "samples": 50000,
+    "seed": 111101,
+    "hard_pareto_win_rate": 1.0,
+    "behavior_delta_all_runs": 0.0,
+    "synthetic_execution_cost_delta_all_runs": 0.0,
+    "activation_drift_all_runs": 0,
+    "context_cost_delta_mean": -71.81064129195846,
+    "context_cost_delta_p05": -164.78532475306986,
+    "context_cost_delta_p50": -58.64193155646527,
+    "context_cost_delta_p95": -22.444536773549757,
+    "note": "Sensitivity varies only positive context-cost conversion weights/path prevalence; it does not invent behavioral gains. Exact tokenizer counts are not claimed."
+  },
+  "bounded_claim": "HARD_PARETO_OVER_DECLARED_BEHAVIOR_ACTIVATION_COST_MAINTAINABILITY_AND_CONTEXT_PROXIES"
+}

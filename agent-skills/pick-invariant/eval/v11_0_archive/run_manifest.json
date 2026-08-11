@@ -1,0 +1,33 @@
+{
+  "run_id": "pi-v11-111011",
+  "candidate_set": [
+    "PI v10.1",
+    "PI v11 Pick-dominant",
+    "v11 Nerode-dominant",
+    "v11 no decision-quotient theory",
+    "v11 no Blackwell-LeCam",
+    "v11 no valuation-Ehrhart",
+    "v11 no VOI discipline",
+    "v11 no CEGAR refinement gate",
+    "v11 no null-conditioning gate",
+    "v11 all-theorems-always-on"
+  ],
+  "scorer": "simulate.py",
+  "validation_tier": "T1_DESIGN_PROXY",
+  "seed": 111011,
+  "samples": 50000,
+  "fixture_checksum": "a8c2c139e8e03620",
+  "files": [
+    "PARETO_PROOF.md",
+    "ASSUMPTIONS.md",
+    "fixtures.jsonl",
+    "fixture_oracles.jsonl",
+    "candidate_observations.jsonl",
+    "assertion_results.csv",
+    "score_matrix.csv",
+    "scenario_delta.csv",
+    "pareto_comparison.csv",
+    "perturbation_summary.json",
+    "results.json"
+  ]
+}

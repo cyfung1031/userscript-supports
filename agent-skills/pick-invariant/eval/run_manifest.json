@@ -1,0 +1,23 @@
+{
+  "release": "PickInvariant v11.1.0",
+  "date": "2026-08-10",
+  "validation_tier": "T1_DESIGN_PROXY",
+  "commands": [
+    "python eval/derive_v11_0_activation_oracle.py",
+    "python eval/activation_sim.py",
+    "python eval/context_cost.py",
+    "python eval/simulate.py",
+    "python eval/static_conformance.py"
+  ],
+  "key_artifact_sha256": {
+    "SKILL.md": "f4f22ea95f3a4dc30bb113d90f44effdcbf27df47a5754649122d542d26a9f70",
+    "eval/results.json": "bc0d28efc0c2deb9f838edf39f18fec370cb6b1a3bbcdec05b766aa322096ea6",
+    "eval/activation_results.json": "d1ef3fdb09f36a6a2f2d745350df037aa9a4a2f847256afe2991236e00cf4b27",
+    "eval/context_cost.json": "7123ee584c01a98ba284aa046f953508c9dcee1bc6e48fce7777390618ad784a",
+    "agents/openai.yaml": "e01bc83389ff20471acbe836d2d93e5e590c180ca03e96b1453d5552629e820e",
+    "references/prompt_and_presentation.md": "3d9bead31505da0f0e17aec38bfa8396c4a26e89a4f8c97be500610aa89f3085"
+  },
+  "hard_pareto": true,
+  "activation_equivalence": true,
+  "static_conformance": "117/117 PASS"
+}

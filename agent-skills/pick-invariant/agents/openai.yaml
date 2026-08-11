@@ -1,0 +1,4 @@
+interface:
+  display_name: "PickInvariant"
+  short_description: "Preserve target-relevant invariants with adaptive, witness-driven reasoning"
+  default_prompt: "Use $pick-invariant to preserve authority and target semantics, locate candidate distinctions with Pick's P/I/B/χ grammar, retain only decision-relevant observable distinctions, choose the cheapest sufficient discriminator, and refine only on explicit witnesses. Keep theorem machinery internal unless it materially helps the requested answer."

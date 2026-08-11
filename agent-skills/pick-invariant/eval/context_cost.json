@@ -1,0 +1,41 @@
+{
+  "metric": "hard_context_proxy_with_exact_activation_equivalence",
+  "parent": "PickInvariant v11.0",
+  "candidate": "PickInvariant v11.1",
+  "v11_0_core": {
+    "words": 1316,
+    "chars": 11012,
+    "bytes": 11034,
+    "lines": 209
+  },
+  "v11_1_core": {
+    "words": 947,
+    "chars": 8401,
+    "bytes": 8408,
+    "lines": 155
+  },
+  "delta": {
+    "words": -369,
+    "chars": -2611,
+    "bytes": -2626,
+    "lines": -54
+  },
+  "reduction_pct": {
+    "words": 28.04,
+    "chars": 23.71,
+    "bytes": 23.8,
+    "lines": 25.84
+  },
+  "declared_activation_case_count": 88,
+  "path_word_delta_min": -369,
+  "path_word_delta_max": -369,
+  "hard_checks": {
+    "core_words_nonincrease": true,
+    "core_chars_nonincrease": true,
+    "core_bytes_nonincrease": true,
+    "all_declared_paths_words_nonincrease": true,
+    "strict_context_improvement": true
+  },
+  "hard_context_pareto": true,
+  "tokenizer_note": "No installed model tokenizer was used; words/chars/bytes are transparent proxies. Exact activation equivalence makes the direction of context change independent of specialist-path mix."
+}

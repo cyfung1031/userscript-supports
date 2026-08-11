@@ -1,0 +1,7 @@
+interface:
+  display_name: "Subagent Coordination"
+  short_description: "Coordinate bounded subagent work safely"
+  default_prompt: "Use $subagent-coordination to delegate bounded work, reconcile evidence, and verify the integrated result."
+
+policy:
+  allow_implicit_invocation: true

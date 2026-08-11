@@ -1,0 +1,4209 @@
+{
+  "validation_tier": "T1_DESIGN_PROXY",
+  "seed": 111011,
+  "samples": 50000,
+  "fixture_checksum": "a8c2c139e8e03620",
+  "scenario_count": 52,
+  "inherited_scenario_count": 29,
+  "profiles": {
+    "PI v10.1": {
+      "weighted_score": 9.440048302593052,
+      "weighted_cost": 3.2670068027210886,
+      "critical_scenarios": 17,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.7,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 7.800000000000001,
+        "continuation": 7.199999999999999,
+        "stochastic_information": 6.2,
+        "approximate_sufficiency": 5.2,
+        "composition": 6.800000000000002,
+        "ehrhart_boundary": 5.0,
+        "local_global": 7.200000000000001,
+        "observation_value": 7.0,
+        "refinement": 6.800000000000002,
+        "null_conditioning": 5.999999999999998,
+        "presentation": 9.0
+      },
+      "maintainability": 9.0,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9907623318385652,
+          "score_10": 9.907623318385653,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9907623318385652,
+          "score_10": 9.907623318385653,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9914616497829234,
+          "score_10": 9.914616497829234,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9924782067247823,
+          "score_10": 9.924782067247822,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9947689075630252,
+          "score_10": 9.947689075630251,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.993132854578097,
+          "score_10": 9.93132854578097,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.9903661327231122,
+          "score_10": 9.903661327231122,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9920300751879698,
+          "score_10": 9.920300751879697,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9916935483870969,
+          "score_10": 9.916935483870969,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9880613305613307,
+          "score_10": 9.880613305613307,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.981042654028436,
+          "score_10": 9.810426540284361,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9763037249283668,
+          "score_10": 9.763037249283668,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9199317561419471,
+          "score_10": 9.199317561419472,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9185244444444444,
+          "score_10": 9.185244444444443,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.8532247899159664,
+          "score_10": 8.532247899159664,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.9099307958477509,
+          "score_10": 9.09930795847751,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9201153846153847,
+          "score_10": 9.201153846153847,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.849017857142857,
+          "score_10": 8.49017857142857,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.8158219178082192,
+          "score_10": 8.158219178082192,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.7836363636363637,
+          "score_10": 7.836363636363637,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.8085993485342019,
+          "score_10": 8.08599348534202,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.8675563909774435,
+          "score_10": 8.675563909774436,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.8466503667481663,
+          "score_10": 8.466503667481662,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.8484334763948499,
+          "score_10": 8.4843347639485,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.8082602739726026,
+          "score_10": 8.082602739726026,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.8637173396674585,
+          "score_10": 8.637173396674584,
+          "cost": 4.2
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9069304556354915,
+          "score_10": 9.069304556354915,
+          "cost": 4.2
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.8509611451942741,
+          "score_10": 8.50961145194274,
+          "cost": 4.2
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.832030769230769,
+          "score_10": 8.32030769230769,
+          "cost": 4.2
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.8614397321428572,
+          "score_10": 8.614397321428571,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.8770125786163521,
+          "score_10": 8.77012578616352,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9909379128137382,
+          "score_10": 9.909379128137383,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9570675453047777,
+          "score_10": 9.570675453047777,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9619289340101522,
+          "score_10": 9.619289340101522,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9484848484848487,
+          "score_10": 9.484848484848488,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "10.1",
+      "kernel_words_soft": 951
+    },
+    "PI v11 Pick-dominant": {
+      "weighted_score": 9.954191773237893,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 0,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.3,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0",
+      "kernel_words_soft": 1316
+    },
+    "v11 Nerode-dominant": {
+      "weighted_score": 9.954098837060291,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 0,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.911999999999999,
+        "minimality": 9.899999999999999,
+        "transfer": 9.974,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 10.0,
+        "continuation": 9.95,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.15,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9965230101302461,
+          "score_10": 9.965230101302462,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9965616438356165,
+          "score_10": 9.965616438356165,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.996287731092437,
+          "score_10": 9.96287731092437,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.9953235188509876,
+          "score_10": 9.953235188509876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.9939281464530892,
+          "score_10": 9.939281464530893,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9945729323308271,
+          "score_10": 9.94572932330827,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9974018987341774,
+          "score_10": 9.974018987341774,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9974616216216217,
+          "score_10": 9.974616216216216,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9940018711018712,
+          "score_10": 9.940018711018713,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.996106083244397,
+          "score_10": 9.96106083244397,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9960350710900473,
+          "score_10": 9.960350710900473,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9961268425841674,
+          "score_10": 9.961268425841673,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9967566222222224,
+          "score_10": 9.967566222222224,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.9971584033613446,
+          "score_10": 9.971584033613446,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.9963667820069205,
+          "score_10": 9.963667820069205,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9952223076923077,
+          "score_10": 9.952223076923076,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9932390977443608,
+          "score_10": 9.932390977443609,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.9919452322738387,
+          "score_10": 9.919452322738387,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.98993991416309,
+          "score_10": 9.8993991416309,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9911298630136985,
+          "score_10": 9.911298630136985,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9965235173824131,
+          "score_10": 9.96523517382413,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9954153846153844,
+          "score_10": 9.954153846153844,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9937350253807107,
+          "score_10": 9.937350253807107,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Nerode",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no decision-quotient theory": {
+      "weighted_score": 9.83815064368793,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 4,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.72,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 7.900000000000001,
+        "continuation": 7.35,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9949453781512605,
+          "score_10": 9.949453781512606,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.9934344703770198,
+          "score_10": 9.934344703770199,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.9908466819221969,
+          "score_10": 9.90846681922197,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9924511278195488,
+          "score_10": 9.924511278195489,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9887162162162163,
+          "score_10": 9.887162162162163,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9236660600545951,
+          "score_10": 9.236660600545951,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9223111111111111,
+          "score_10": 9.22311111111111,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.8605042016806723,
+          "score_10": 8.605042016806724,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.9142560553633219,
+          "score_10": 9.142560553633219,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9285038461538461,
+          "score_10": 9.285038461538461,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9920776942355889,
+          "score_10": 9.92077694235589,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9604498977505112,
+          "score_10": 9.604498977505111,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9306707692307689,
+          "score_10": 9.306707692307688,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no Blackwell-LeCam": {
+      "weighted_score": 9.840501552250917,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 4,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 6.4,
+        "approximate_sufficiency": 5.4,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.8568749999999998,
+          "score_10": 8.568749999999998,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.8254657534246576,
+          "score_10": 8.254657534246576,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.7935930735930735,
+          "score_10": 7.935930735930735,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.8173072747014114,
+          "score_10": 8.173072747014114,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no valuation-Ehrhart": {
+      "weighted_score": 9.860040723458926,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 4,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 7.0,
+        "ehrhart_boundary": 5.4,
+        "local_global": 7.599999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.8776817042606515,
+          "score_10": 8.776817042606515,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.8589731051344743,
+          "score_10": 8.589731051344744,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.8643991416309013,
+          "score_10": 8.643991416309012,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.8222876712328766,
+          "score_10": 8.222876712328766,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no VOI discipline": {
+      "weighted_score": 9.924622128260676,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 1,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 7.1,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9037648456057007,
+          "score_10": 9.037648456057006,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9099880095923262,
+          "score_10": 9.099880095923261,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no CEGAR refinement gate": {
+      "weighted_score": 9.90191312741002,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 2,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 7.000000000000001,
+        "null_conditioning": 9.85,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9581591448931117,
+          "score_10": 9.581591448931118,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.8948466257668712,
+          "score_10": 8.948466257668713,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9047076923076921,
+          "score_10": 9.04707692307692,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 no null-conditioning gate": {
+      "weighted_score": 9.910012606456627,
+      "weighted_cost": 3.0663265306122454,
+      "critical_scenarios": 2,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 6.2,
+        "presentation": 9.85
+      },
+      "maintainability": 9.25,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.9964798206278027,
+          "score_10": 9.964798206278028,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9969971056439942,
+          "score_10": 9.969971056439942,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9972415940224162,
+          "score_10": 9.972415940224161,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.3
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9958064516129035,
+          "score_10": 9.958064516129035,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 1.8
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9971563981042655,
+          "score_10": 9.971563981042655,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9945702005730659,
+          "score_10": 9.94570200573066,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 2.8
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.9943653846153846,
+          "score_10": 9.943653846153847,
+          "cost": 3.5
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.6
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.8682700892857143,
+          "score_10": 8.682700892857142,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.8830503144654087,
+          "score_10": 8.830503144654088,
+          "cost": 3.8
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9959907529722586,
+          "score_10": 9.959907529722585,
+          "cost": 4.1
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.9927759472817134,
+          "score_10": 9.927759472817133,
+          "cost": 1.0
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9942893401015228,
+          "score_10": 9.942893401015228,
+          "cost": 1.9
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9922727272727273,
+          "score_10": 9.922727272727274,
+          "cost": 1.0
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    },
+    "v11 all-theorems-always-on": {
+      "weighted_score": 9.888753899352706,
+      "weighted_cost": 3.39030612244898,
+      "critical_scenarios": 0,
+      "category_scores": {
+        "route": 10.0,
+        "authority": 9.95,
+        "evidence": 10.0,
+        "observability": 9.95,
+        "audit": 10.0,
+        "structural": 9.95,
+        "minimality": 9.899999999999999,
+        "transfer": 10.0,
+        "probability": 9.949999999999998,
+        "transport": 9.95,
+        "canonicality": 9.950000000000003,
+        "distribution": 9.95,
+        "quotient": 9.950000000000001,
+        "continuation": 9.85,
+        "stochastic_information": 9.9,
+        "approximate_sufficiency": 9.850000000000001,
+        "composition": 9.9,
+        "ehrhart_boundary": 9.8,
+        "local_global": 9.799999999999999,
+        "observation_value": 9.85,
+        "refinement": 9.9,
+        "null_conditioning": 9.85,
+        "presentation": 8.299999999999999
+      },
+      "maintainability": 7.6,
+      "rows": [
+        {
+          "fixture_id": "G01",
+          "family": "owner",
+          "quality": 0.986053811659193,
+          "score_10": 9.86053811659193,
+          "cost": 1.18
+        },
+        {
+          "fixture_id": "G02",
+          "family": "owner",
+          "quality": 0.986053811659193,
+          "score_10": 9.86053811659193,
+          "cost": 1.18
+        },
+        {
+          "fixture_id": "G03",
+          "family": "exploration",
+          "quality": 0.9869030390738062,
+          "score_10": 9.869030390738061,
+          "cost": 2.25
+        },
+        {
+          "fixture_id": "G04",
+          "family": "exploration",
+          "quality": 0.9885554171855543,
+          "score_10": 9.885554171855542,
+          "cost": 2.25
+        },
+        {
+          "fixture_id": "G05",
+          "family": "audit",
+          "quality": 0.9984513274336284,
+          "score_10": 9.984513274336283,
+          "cost": 3.15
+        },
+        {
+          "fixture_id": "G06",
+          "family": "audit",
+          "quality": 0.9981471631205676,
+          "score_10": 9.981471631205675,
+          "cost": 4.6499999999999995
+        },
+        {
+          "fixture_id": "G07",
+          "family": "audit",
+          "quality": 0.998081014729951,
+          "score_10": 9.980810147299511,
+          "cost": 4.6499999999999995
+        },
+        {
+          "fixture_id": "G08",
+          "family": "derive",
+          "quality": 0.9965336134453782,
+          "score_10": 9.965336134453782,
+          "cost": 2.15
+        },
+        {
+          "fixture_id": "G09",
+          "family": "derive",
+          "quality": 0.996149012567325,
+          "score_10": 9.96149012567325,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G10",
+          "family": "structural",
+          "quality": 0.995171624713959,
+          "score_10": 9.95171624713959,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G11",
+          "family": "structural",
+          "quality": 0.9962406015037593,
+          "score_10": 9.962406015037592,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G12",
+          "family": "evidence",
+          "quality": 0.9978428270042196,
+          "score_10": 9.978428270042196,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G13",
+          "family": "evidence",
+          "quality": 0.9979135135135135,
+          "score_10": 9.979135135135135,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G14",
+          "family": "evidence",
+          "quality": 0.9978485370051635,
+          "score_10": 9.978485370051635,
+          "cost": 3.15
+        },
+        {
+          "fixture_id": "G15",
+          "family": "transition",
+          "quality": 0.9883064516129033,
+          "score_10": 9.883064516129034,
+          "cost": 2.25
+        },
+        {
+          "fixture_id": "G16",
+          "family": "transition",
+          "quality": 0.9973626373626375,
+          "score_10": 9.973626373626375,
+          "cost": 2.15
+        },
+        {
+          "fixture_id": "G17",
+          "family": "minimality",
+          "quality": 0.9946101871101873,
+          "score_10": 9.946101871101874,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G18",
+          "family": "transfer",
+          "quality": 0.9979615795090715,
+          "score_10": 9.979615795090716,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G19",
+          "family": "compatibility",
+          "quality": 0.9677725118483412,
+          "score_10": 9.677725118483412,
+          "cost": 1.18
+        },
+        {
+          "fixture_id": "G20",
+          "family": "anti_ceremony",
+          "quality": 0.9612607449856733,
+          "score_10": 9.612607449856732,
+          "cost": 1.18
+        },
+        {
+          "fixture_id": "G21",
+          "family": "probability",
+          "quality": 0.9968691588785048,
+          "score_10": 9.968691588785049,
+          "cost": 3.15
+        },
+        {
+          "fixture_id": "G22",
+          "family": "probability",
+          "quality": 0.9965810276679842,
+          "score_10": 9.965810276679841,
+          "cost": 3.15
+        },
+        {
+          "fixture_id": "G23",
+          "family": "probability",
+          "quality": 0.9963698630136986,
+          "score_10": 9.963698630136985,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G24",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G25",
+          "family": "probability",
+          "quality": 0.9964652014652015,
+          "score_10": 9.964652014652014,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G26",
+          "family": "probability",
+          "quality": 0.996526717557252,
+          "score_10": 9.965267175572519,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G27",
+          "family": "probability",
+          "quality": 0.9965625000000001,
+          "score_10": 9.965625000000001,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G28",
+          "family": "probability",
+          "quality": 0.9964302741358759,
+          "score_10": 9.96430274135876,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "G29",
+          "family": "probability",
+          "quality": 0.9962738853503185,
+          "score_10": 9.962738853503184,
+          "cost": 3.15
+        },
+        {
+          "fixture_id": "Q01",
+          "family": "quotient",
+          "quality": 0.9949454049135578,
+          "score_10": 9.949454049135579,
+          "cost": 3.85
+        },
+        {
+          "fixture_id": "Q02",
+          "family": "quotient",
+          "quality": 0.9956444444444444,
+          "score_10": 9.956444444444445,
+          "cost": 3.85
+        },
+        {
+          "fixture_id": "Q03",
+          "family": "quotient",
+          "quality": 0.993424369747899,
+          "score_10": 9.93424369747899,
+          "cost": 3.85
+        },
+        {
+          "fixture_id": "Q04",
+          "family": "quotient",
+          "quality": 0.994567474048443,
+          "score_10": 9.94567474048443,
+          "cost": 3.85
+        },
+        {
+          "fixture_id": "Q05",
+          "family": "quotient",
+          "quality": 0.985423076923077,
+          "score_10": 9.85423076923077,
+          "cost": 3.85
+        },
+        {
+          "fixture_id": "S01",
+          "family": "stochastic_information",
+          "quality": 0.994375,
+          "score_10": 9.94375,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "S02",
+          "family": "stochastic_information",
+          "quality": 0.9942328767123289,
+          "score_10": 9.94232876712329,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "S03",
+          "family": "stochastic_information",
+          "quality": 0.9925108225108225,
+          "score_10": 9.925108225108225,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "S04",
+          "family": "stochastic_information",
+          "quality": 0.9929044516829533,
+          "score_10": 9.929044516829533,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "C01",
+          "family": "composition",
+          "quality": 0.9939724310776942,
+          "score_10": 9.939724310776942,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "C02",
+          "family": "composition",
+          "quality": 0.992762836185819,
+          "score_10": 9.92762836185819,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "C03",
+          "family": "composition",
+          "quality": 0.9908369098712446,
+          "score_10": 9.908369098712447,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "C04",
+          "family": "composition",
+          "quality": 0.9919315068493149,
+          "score_10": 9.919315068493148,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "R01",
+          "family": "refinement",
+          "quality": 0.9926009501187648,
+          "score_10": 9.926009501187648,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "R02",
+          "family": "refinement",
+          "quality": 0.9940707434052758,
+          "score_10": 9.940707434052758,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "R03",
+          "family": "refinement",
+          "quality": 0.9956646216768915,
+          "score_10": 9.956646216768915,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "R04",
+          "family": "refinement",
+          "quality": 0.9939384615384611,
+          "score_10": 9.939384615384611,
+          "cost": 3.95
+        },
+        {
+          "fixture_id": "P01",
+          "family": "probability_special",
+          "quality": 0.9929241071428572,
+          "score_10": 9.92924107142857,
+          "cost": 4.1499999999999995
+        },
+        {
+          "fixture_id": "P02",
+          "family": "probability_special",
+          "quality": 0.9932389937106919,
+          "score_10": 9.932389937106919,
+          "cost": 4.1499999999999995
+        },
+        {
+          "fixture_id": "P03",
+          "family": "probability_special",
+          "quality": 0.9867767503302507,
+          "score_10": 9.867767503302506,
+          "cost": 4.449999999999999
+        },
+        {
+          "fixture_id": "U01",
+          "family": "presentation",
+          "quality": 0.927660626029654,
+          "score_10": 9.276606260296541,
+          "cost": 1.18
+        },
+        {
+          "fixture_id": "U02",
+          "family": "presentation",
+          "quality": 0.9352791878172588,
+          "score_10": 9.352791878172589,
+          "cost": 2.25
+        },
+        {
+          "fixture_id": "U03",
+          "family": "presentation",
+          "quality": 0.9124242424242425,
+          "score_10": 9.124242424242425,
+          "cost": 1.18
+        }
+      ],
+      "dominant": "Pick",
+      "version": "11.0-neighbor",
+      "kernel_words_soft": 1316
+    }
+  },
+  "pareto_proof": {
+    "all_category_nonregression": true,
+    "all_scenario_nonregression": true,
+    "all_inherited_cost_nonregression": true,
+    "all_scenario_cost_nonregression": true,
+    "maintainability_nonregression": true,
+    "strict_improvement_exists": true,
+    "pareto_improvement": true,
+    "category_checks": {
+      "route": true,
+      "authority": true,
+      "evidence": true,
+      "observability": true,
+      "audit": true,
+      "structural": true,
+      "minimality": true,
+      "transfer": true,
+      "probability": true,
+      "transport": true,
+      "canonicality": true,
+      "distribution": true,
+      "quotient": true,
+      "continuation": true,
+      "stochastic_information": true,
+      "approximate_sufficiency": true,
+      "composition": true,
+      "ehrhart_boundary": true,
+      "local_global": true,
+      "observation_value": true,
+      "refinement": true,
+      "null_conditioning": true,
+      "presentation": true
+    },
+    "scenario_checks": {
+      "G01": true,
+      "G02": true,
+      "G03": true,
+      "G04": true,
+      "G05": true,
+      "G06": true,
+      "G07": true,
+      "G08": true,
+      "G09": true,
+      "G10": true,
+      "G11": true,
+      "G12": true,
+      "G13": true,
+      "G14": true,
+      "G15": true,
+      "G16": true,
+      "G17": true,
+      "G18": true,
+      "G19": true,
+      "G20": true,
+      "G21": true,
+      "G22": true,
+      "G23": true,
+      "G24": true,
+      "G25": true,
+      "G26": true,
+      "G27": true,
+      "G28": true,
+      "G29": true,
+      "Q01": true,
+      "Q02": true,
+      "Q03": true,
+      "Q04": true,
+      "Q05": true,
+      "S01": true,
+      "S02": true,
+      "S03": true,
+      "S04": true,
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "R01": true,
+      "R02": true,
+      "R03": true,
+      "R04": true,
+      "P01": true,
+      "P02": true,
+      "P03": true,
+      "U01": true,
+      "U02": true,
+      "U03": true
+    },
+    "inherited_cost_checks": {
+      "G01": true,
+      "G02": true,
+      "G03": true,
+      "G04": true,
+      "G05": true,
+      "G06": true,
+      "G07": true,
+      "G08": true,
+      "G09": true,
+      "G10": true,
+      "G11": true,
+      "G12": true,
+      "G13": true,
+      "G14": true,
+      "G15": true,
+      "G16": true,
+      "G17": true,
+      "G18": true,
+      "G19": true,
+      "G20": true,
+      "G21": true,
+      "G22": true,
+      "G23": true,
+      "G24": true,
+      "G25": true,
+      "G26": true,
+      "G27": true,
+      "G28": true,
+      "G29": true
+    },
+    "all_cost_checks": {
+      "G01": true,
+      "G02": true,
+      "G03": true,
+      "G04": true,
+      "G05": true,
+      "G06": true,
+      "G07": true,
+      "G08": true,
+      "G09": true,
+      "G10": true,
+      "G11": true,
+      "G12": true,
+      "G13": true,
+      "G14": true,
+      "G15": true,
+      "G16": true,
+      "G17": true,
+      "G18": true,
+      "G19": true,
+      "G20": true,
+      "G21": true,
+      "G22": true,
+      "G23": true,
+      "G24": true,
+      "G25": true,
+      "G26": true,
+      "G27": true,
+      "G28": true,
+      "G29": true,
+      "Q01": true,
+      "Q02": true,
+      "Q03": true,
+      "Q04": true,
+      "Q05": true,
+      "S01": true,
+      "S02": true,
+      "S03": true,
+      "S04": true,
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "R01": true,
+      "R02": true,
+      "R03": true,
+      "R04": true,
+      "P01": true,
+      "P02": true,
+      "P03": true,
+      "U01": true,
+      "U02": true,
+      "U03": true
+    }
+  },
+  "inherited_delta": {
+    "min_quality_delta": 0.0,
+    "max_quality_delta": 0.018266475644699076,
+    "max_cost_delta": 0.0,
+    "min_cost_delta": 0.0
+  },
+  "sensitivity": {
+    "samples": 50000,
+    "seed": 111011,
+    "v11_score_win_rate": 1.0,
+    "v11_quality_and_cost_pareto_rate": 1.0,
+    "score_delta_mean": 0.45346490877460516,
+    "score_delta_p05": 0.3717494440051663,
+    "score_delta_p50": 0.4545701488838034,
+    "score_delta_p95": 0.5314981476049105,
+    "cost_delta_mean": -0.20052798249888765,
+    "cost_delta_p05": -0.2735052308931185,
+    "cost_delta_p95": -0.1288672143508025,
+    "pick_dominant_win_rate_vs_nerode": 0.58234,
+    "pick_minus_nerode_mean": 9.99753474019542e-05,
+    "pick_minus_nerode_p05": -0.0006702310351727192,
+    "pick_minus_nerode_p95": 0.0008798408101675648,
+    "note": "Capability and specialized-cost gains may reverse under perturbation; this is still a design sensitivity test, not empirical model variance."
+  },
+  "pareto_scope": "ELEMENTWISE_BEHAVIORAL_PARETO_ON_DECLARED_MATRIX",
+  "context_cost_policy": "SOFT_METRIC_NOT_HARD_PARETO_DIMENSION_FOR_V11"
+}

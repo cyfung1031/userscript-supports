@@ -1,0 +1,7 @@
+interface:
+  display_name: "Source-Preserving CSS"
+  short_description: "Safely transform CSS without semantic loss"
+  default_prompt: "Use $source-preserving-css to transform this CSS while preserving structure, comments, and values."
+
+policy:
+  allow_implicit_invocation: true

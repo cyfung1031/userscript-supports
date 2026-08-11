@@ -1,0 +1,20 @@
+{
+  "id": "pi-target-v11.1-hard-compression-1",
+  "parent": "PickInvariant v11.0",
+  "behavior_fixture_count": 52,
+  "protected_capability_count": 23,
+  "activation_case_count": 88,
+  "hard_dimensions": [
+    "protected capability non-regression",
+    "fixture quality non-regression",
+    "synthetic execution cost non-increase",
+    "maintainability non-regression",
+    "exact mode/depth/gate/reference activation equivalence",
+    "per-declared-path context proxy non-increase",
+    "strict context improvement"
+  ],
+  "context_proxies": ["whitespace words", "Unicode characters", "UTF-8 bytes"],
+  "strict_improvement_source": "always-loaded kernel/context footprint",
+  "behavior_score_policy": "candidate inherits released v11.0 behavior/cost scores exactly; compression earns no quality bonus",
+  "claim": "bounded T1 hard Pareto over declared matrix and activation oracle"
+}
