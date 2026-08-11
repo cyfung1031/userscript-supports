@@ -37,6 +37,24 @@ function blobSha(content) {
     return crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
 }
 
+function splitNul(output) {
+    return output.split('\0').filter(Boolean);
+}
+
+function parseNameStatus(output) {
+    const fields = splitNul(output);
+    const records = [];
+    for (let index = 0; index < fields.length;) {
+        const status = fields[index++];
+        const paths = /^R\d+$/.test(status)
+            ? [fields[index++], fields[index++]]
+            : [fields[index++]];
+        if (paths.some(filePath => filePath === undefined)) throw new Error('malformed Git name-status record');
+        records.push({ status, paths });
+    }
+    return records;
+}
+
 function loadManifest(file) {
     const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
     for (const key of ['base_revision', 'head_revision', 'path', 'repository', 'change_type', 'base_path', 'head_path', 'changed_paths']) {
@@ -45,20 +63,19 @@ function loadManifest(file) {
     for (const key of ['base_blob', 'head_blob']) {
         if (!(key in manifest)) throw new Error(`manifest is missing ${key}`);
     }
-    const changedResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--name-only', `${manifest.base_revision}...${manifest.head_revision}`, '--', manifest.path], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const changedResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--name-only', '-z', `${manifest.base_revision}..${manifest.head_revision}`, '--', manifest.path], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (changedResult.error || changedResult.status !== 0) throw new Error((changedResult.stderr || changedResult.error?.message || 'git changed-path check failed').trim());
-    const changedPaths = changedResult.stdout.trim().split('\n').filter(Boolean);
+    const changedPaths = splitNul(changedResult.stdout);
     if (!Array.isArray(manifest.changed_paths) || JSON.stringify([...manifest.changed_paths].sort()) !== JSON.stringify([...changedPaths].sort())) {
         throw new Error('manifest changed_paths do not match Git');
     }
-    const statusResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--name-status', '--find-renames', `${manifest.base_revision}...${manifest.head_revision}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const statusResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--name-status', '--find-renames', '-z', `${manifest.base_revision}..${manifest.head_revision}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (statusResult.error || statusResult.status !== 0) throw new Error((statusResult.stderr || statusResult.error?.message || 'git status check failed').trim());
-    const statusLine = statusResult.stdout.trim().split('\n').filter(Boolean).find(line => line.split(/\s+/).slice(1).includes(manifest.path));
-    if (!statusLine) throw new Error('manifest path is not changed between the bound revisions');
-    const statusParts = statusLine.split(/\s+/);
-    const renamed = /^R\d+$/.test(statusParts[0] || '');
-    const basePath = renamed ? statusParts[1] : manifest.path;
-    const headPath = renamed ? statusParts[2] : manifest.path;
+    const status = parseNameStatus(statusResult.stdout).find(record => record.paths.includes(manifest.path));
+    if (!status) throw new Error('manifest path is not changed between the bound revisions');
+    const renamed = /^R\d+$/.test(status.status);
+    const basePath = renamed ? status.paths[0] : manifest.path;
+    const headPath = renamed ? status.paths[1] : manifest.path;
     const base = gitMaybe(manifest.repository, manifest.base_revision, basePath);
     const head = gitMaybe(manifest.repository, manifest.head_revision, headPath);
     const changeType = renamed ? 'RENAMED_OR_MODIFIED'
@@ -71,7 +88,7 @@ function loadManifest(file) {
         || manifest.base_blob !== expectedBaseBlob || manifest.head_blob !== expectedHeadBlob) {
         throw new Error('manifest identity does not match Git path, change type, or blob state');
     }
-    const diffResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--unified=0', `${manifest.base_revision}...${manifest.head_revision}`, '--', manifest.path], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const diffResult = spawnSync('git', ['-C', manifest.repository, 'diff', '--unified=0', `${manifest.base_revision}..${manifest.head_revision}`, '--', manifest.path], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (diffResult.error || diffResult.status !== 0) throw new Error((diffResult.stderr || diffResult.error?.message || 'git diff failed').trim());
     return {
         binding: {

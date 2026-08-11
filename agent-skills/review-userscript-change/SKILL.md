@@ -16,10 +16,10 @@ Record a compact activation receipt before loading modules: target and authority
 Bind the exact base revision, head revision, changed path, and blob identities before making exact claims:
 
 ```bash
-node review-userscript-change/scripts/bind_review_target.js \
+node agent-skills/review-userscript-change/scripts/bind_review_target.js \
   --repo /path/to/repo --base <base-ref> --head <head-ref> \
   --path path/to/script.user.js --json > review-manifest.json
-node review-userscript-change/scripts/audit_userscript_change.js \
+node agent-skills/review-userscript-change/scripts/audit_userscript_change.js \
   --manifest review-manifest.json --json
 ```
 

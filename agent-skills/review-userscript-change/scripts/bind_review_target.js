@@ -37,6 +37,24 @@ function blobSha(content) {
     return crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
 }
 
+function splitNul(output) {
+    return output.split('\0').filter(Boolean);
+}
+
+function parseNameStatus(output) {
+    const fields = splitNul(output);
+    const records = [];
+    for (let index = 0; index < fields.length;) {
+        const status = fields[index++];
+        const paths = /^R\d+$/.test(status)
+            ? [fields[index++], fields[index++]]
+            : [fields[index++]];
+        if (paths.some(filePath => filePath === undefined)) throw new Error('malformed Git name-status record');
+        records.push({ status, paths });
+    }
+    return records;
+}
+
 function main() {
     try {
         const args = parseArgs(process.argv);
@@ -44,15 +62,14 @@ function main() {
         if (path.isAbsolute(args.path) || args.path.includes('..')) throw new Error('path must be repository-relative');
         const baseRevision = git(args.repo, ['rev-parse', '--verify', `${args.base}^{commit}`]).trim();
         const headRevision = git(args.repo, ['rev-parse', '--verify', `${args.head}^{commit}`]).trim();
-        const changed = git(args.repo, ['diff', '--name-only', `${baseRevision}...${headRevision}`, '--', args.path])
-            .trim().split('\n').filter(Boolean);
+        const changed = splitNul(git(args.repo, ['diff', '--name-only', '-z', `${baseRevision}..${headRevision}`, '--', args.path]));
         if (!changed.includes(args.path)) throw new Error(`path is not changed between ${args.base} and ${args.head}`);
-        const statusLines = git(args.repo, ['diff', '--name-status', '--find-renames', `${baseRevision}...${headRevision}`]).trim().split('\n').filter(Boolean);
-        const status = statusLines.find(line => line.split(/\s+/).slice(1).includes(args.path)) || '';
-        const statusParts = status.split(/\s+/);
-        const renamed = /^R\d+$/.test(statusParts[0] || '');
-        const basePath = renamed ? statusParts[1] : args.path;
-        const headPath = renamed ? statusParts[2] : args.path;
+        const status = parseNameStatus(git(args.repo, ['diff', '--name-status', '--find-renames', '-z', `${baseRevision}..${headRevision}`]))
+            .find(record => record.paths.includes(args.path));
+        if (!status) throw new Error('target path is not changed between the bound revisions');
+        const renamed = /^R\d+$/.test(status.status);
+        const basePath = renamed ? status.paths[0] : args.path;
+        const headPath = renamed ? status.paths[1] : args.path;
         const baseContent = gitMaybe(args.repo, ['show', `${baseRevision}:${basePath}`]);
         const headContent = gitMaybe(args.repo, ['show', `${headRevision}:${headPath}`]);
         if (baseContent === null && headContent === null) throw new Error('target path has no readable base or head blob');

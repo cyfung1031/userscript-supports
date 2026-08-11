@@ -13,11 +13,39 @@ const auditor = path.join(root, 'scripts', 'audit_userscript_change.js');
 const base = fs.readFileSync(path.join(__dirname, 'fixtures', 'generic-good.user.js'), 'utf8');
 const head = `${base}\nconst observer = new ResizeObserver(() => {});\n`;
 const repo = createFixtureRepo(base, head);
+const spacedRepo = createFixtureRepo(base, head, 'space path.user.js');
+const divergentBase = '// ==UserScript==\n// @name divergent\n// ==/UserScript==\n';
+const divergentRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'userscript-review-divergent-'));
+function divergentGit(args) {
+    const result = spawnSync('git', ['-C', divergentRepo, ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    return result.stdout.trim();
+}
+fs.writeFileSync(path.join(divergentRepo, '.fixture-anchor'), 'anchor\n');
+fs.writeFileSync(path.join(divergentRepo, 'candidate.user.js'), divergentBase);
+divergentGit(['init', '-q']);
+divergentGit(['config', 'user.email', 'review@example.test']);
+divergentGit(['config', 'user.name', 'Review Fixture']);
+divergentGit(['add', '-A']);
+divergentGit(['commit', '-qm', 'base']);
+divergentGit(['branch', 'feature']);
+divergentGit(['checkout', '-q', 'feature']);
+fs.writeFileSync(path.join(divergentRepo, 'candidate.user.js'), `${divergentBase}\nfetch('/feature');\n`);
+divergentGit(['add', '-A']);
+divergentGit(['commit', '-qm', 'feature']);
+divergentGit(['branch', 'base', 'HEAD~1']);
+divergentGit(['checkout', '-q', 'base']);
+fs.writeFileSync(path.join(divergentRepo, 'candidate.user.js'), `${divergentBase}\nnew ResizeObserver(() => {});\n`);
+divergentGit(['add', '-A']);
+divergentGit(['commit', '-qm', 'base diverged']);
+divergentGit(['checkout', '-q', 'feature']);
 const boundManifest = path.join(os.tmpdir(), `userscript-review-manifest-${process.pid}.json`);
 const tamperedManifest = path.join(os.tmpdir(), `userscript-review-manifest-tampered-${process.pid}.json`);
 const missingBaseManifest = path.join(os.tmpdir(), `userscript-review-manifest-missing-base-${process.pid}.json`);
 const wrongPathManifest = path.join(os.tmpdir(), `userscript-review-manifest-wrong-path-${process.pid}.json`);
 const deletedManifest = path.join(os.tmpdir(), `userscript-review-manifest-deleted-${process.pid}.json`);
+const spacedManifest = path.join(os.tmpdir(), `userscript-review-manifest-spaced-${process.pid}.json`);
+const divergentManifest = path.join(os.tmpdir(), `userscript-review-manifest-divergent-${process.pid}.json`);
 
 try {
     const bound = spawnSync(process.execPath, [binder, '--repo', repo, '--base', 'HEAD~1', '--head', 'HEAD', '--path', 'candidate.user.js', '--json'], { encoding: 'utf8' });
@@ -34,6 +62,20 @@ try {
     assert.equal(result.runtime_validation, 'UNVERIFIED');
     assert.ok(result.differential.changed_modules.includes('dom-css'));
     assert.ok(result.differential.changed_modules.includes('async-state'));
+
+    const spacedBound = spawnSync(process.execPath, [binder, '--repo', spacedRepo, '--base', 'HEAD~1', '--head', 'HEAD', '--path', 'space path.user.js', '--json'], { encoding: 'utf8' });
+    assert.equal(spacedBound.status, 0, spacedBound.stderr || spacedBound.stdout);
+    fs.writeFileSync(spacedManifest, spacedBound.stdout);
+    const spacedAudited = spawnSync(process.execPath, [auditor, '--manifest', spacedManifest, '--json'], { encoding: 'utf8' });
+    assert.equal(spacedAudited.status, 0, spacedAudited.stderr || spacedAudited.stdout);
+
+    const divergentBound = spawnSync(process.execPath, [binder, '--repo', divergentRepo, '--base', 'base', '--head', 'feature', '--path', 'candidate.user.js', '--json'], { encoding: 'utf8' });
+    assert.equal(divergentBound.status, 0, divergentBound.stderr || divergentBound.stdout);
+    fs.writeFileSync(divergentManifest, divergentBound.stdout);
+    const divergentAudited = spawnSync(process.execPath, [auditor, '--manifest', divergentManifest, '--json'], { encoding: 'utf8' });
+    assert.equal(divergentAudited.status, 0, divergentAudited.stderr || divergentAudited.stdout);
+    const divergentResult = JSON.parse(divergentAudited.stdout);
+    assert.deepEqual(divergentResult.differential.changed_modules, ['async-state', 'dom-css', 'network-storage']);
 
     const tampered = { ...JSON.parse(bound.stdout), head_blob: '0'.repeat(40) };
     fs.writeFileSync(tamperedManifest, JSON.stringify(tampered));
@@ -71,11 +113,15 @@ try {
     }
 } finally {
     cleanupFixtureRepo(repo);
+    cleanupFixtureRepo(spacedRepo);
+    cleanupFixtureRepo(divergentRepo);
     fs.rmSync(boundManifest, { force: true });
     fs.rmSync(tamperedManifest, { force: true });
     fs.rmSync(missingBaseManifest, { force: true });
     fs.rmSync(wrongPathManifest, { force: true });
     fs.rmSync(deletedManifest, { force: true });
+    fs.rmSync(spacedManifest, { force: true });
+    fs.rmSync(divergentManifest, { force: true });
 }
 
 console.log('test_bound_audit: PASS');

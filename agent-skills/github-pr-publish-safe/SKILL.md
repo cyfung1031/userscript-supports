@@ -2,8 +2,8 @@
 name: github-pr-publish-safe
 description: >
   Safe authenticated GitHub pull-request publication and review. Use automatically when creating,
-  opening, updating, marking ready, merging, or closing a PR; committing, pushing, updating a PR
-  branch, posting review comments, requesting changes, approving a review, inspecting PR status,
+  opening, updating, marking ready, merging, or closing a PR; committing to or pushing a PR/publication
+  branch, updating a PR branch, posting review comments, requesting changes, approving a review, inspecting PR status,
   reviews, or checks, or checking whether a changed PR is ready to merge. Bind the remote head and
   authenticated account, preserve scope, verify the published commit, and report draft, approval,
   checks, and mergeability state separately.
