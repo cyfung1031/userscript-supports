@@ -1,0 +1,4 @@
+interface:
+  display_name: "Userscript Change Reviewer"
+  short_description: "Review userscript diffs with scoped probes"
+  default_prompt: "Use $review-userscript-change to audit this userscript change with exact revision binding and only the necessary runtime probes."
