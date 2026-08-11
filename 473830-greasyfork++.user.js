@@ -1261,9 +1261,53 @@ const mWindow = isInIframe || (() => {
         }
         */
 
-        html {
-        color: #222;
-        background: #f9f9f9;
+        :root {
+            color-scheme: light;
+            --gfpp-bg: #f9f9f9;
+            --gfpp-text: #222;
+            --gfpp-surface: rgba(127,127,127,0.05);
+            --gfpp-border: rgba(127,127,127,0.5);
+            --gfpp-section-start: #670000;
+            --gfpp-section-end: #990000;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #670000;
+            --gfpp-dev-bg: #000;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #fff;
+            --gfpp-control-text: #222;
+        }
+
+        :root[data-gfpp-theme="dark"] {
+            color-scheme: dark;
+            --gfpp-bg: #161616;
+            --gfpp-text: #e8e6e3;
+            --gfpp-surface: rgba(255,255,255,0.05);
+            --gfpp-border: rgba(255,255,255,0.28);
+            --gfpp-section-start: #691010;
+            --gfpp-section-end: #8f1a1a;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #ff8a8a;
+            --gfpp-dev-bg: #0b0b0b;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #242424;
+            --gfpp-control-text: #f2f2f2;
+        }
+
+        html, body {
+            color: var(--gfpp-text);
+            background: var(--gfpp-bg);
+        }
+
+        #greasyfork-plus select,
+        #greasyfork-plus textarea,
+        #greasyfork-plus input:not([type="checkbox"]):not([type="radio"]) {
+            color: var(--gfpp-control-text);
+            background: var(--gfpp-control-bg);
+            border-color: var(--gfpp-border);
+        }
+        #greasyfork-plus input[type="checkbox"],
+        #greasyfork-plus input[type="radio"] {
+            accent-color: var(--gfpp-accent);
         }
 
         #greasyfork-plus{
@@ -1274,10 +1318,10 @@ const mWindow = isInIframe || (() => {
             font-size:12px
         }
         #greasyfork-plus .section_header[class] {
-            background-color:#670000;
-            background-image:linear-gradient(#670000,#900);
+            background-color:var(--gfpp-section-start);
+            background-image:linear-gradient(var(--gfpp-section-start),var(--gfpp-section-end));
             border:1px solid transparent;
-            color:#fff
+            color:var(--gfpp-section-text)
         }
         #greasyfork-plus .field_label[class]{
             margin-bottom:4px
@@ -1288,7 +1332,7 @@ const mWindow = isInIframe || (() => {
             opacity:.8;
         }
         #greasyfork-plus .field_label[class] b{
-            color:#670000
+            color:var(--gfpp-accent)
         }
         #greasyfork-plus_logging_var[class],
         #greasyfork-plus_debugging_var[class] {
@@ -1340,8 +1384,8 @@ const mWindow = isInIframe || (() => {
             padding: 12px;
             /* overflow: auto; */
             scrollbar-gutter: both-edges;
-            background: rgba(127,127,127,0.05);
-            border: 1px solid rgba(127,127,127,0.5);
+            background: var(--gfpp-surface);
+            border: 1px solid var(--gfpp-border);
         }
 
         #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
@@ -1362,8 +1406,8 @@ const mWindow = isInIframe || (() => {
             margin: 8px;
         }
         #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
-            background: #000;
-            color: #eee;
+            background: var(--gfpp-dev-bg);
+            color: var(--gfpp-dev-text);
         }
 
         #greasyfork-plus_header[class]{
