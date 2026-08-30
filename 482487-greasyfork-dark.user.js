@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.35
+// @version             0.3.36
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -1467,8 +1467,8 @@ a.discussion-title, .notification-list-item a {
 }
 
 #main-header {
-    background-color: #967474;
-    background-image: linear-gradient(#b93030,#891b1b);
+    background-color: #b93030; /* #670000 */
+    background-image: linear-gradient(#b93030,#891b1b); /* linear-gradient(#670000,#900) */
     padding: .25em 0;
     box-shadow: 0 0 15px 2px #00000080
 }
@@ -2547,7 +2547,7 @@ dd.script-list-ratings {
     box-shadow: inset 1px 0 #101011, inset -1px 0 #101011, inset 0 -1px #101011
 }
 
-.tabs .current {
+.tabs .current.current { /* .tabs .current -> .tabs .current.current */
     border-top: 7px solid #d63535;
     box-shadow: inset 1px 0 #ffffff1a, inset -1px 0 #ffffff1a, inset 0 -1px #ffffff1a /* to be reviewed - omit ? */;
 }
@@ -3162,8 +3162,8 @@ form.new_user input[type=submit] {
     text-align: center;
     vertical-align: middle;
     color: #fff;
-    background-color: #670000;
-    background-image: linear-gradient(#990000,#670000);
+    background-color: #b93030; /* #670000 */
+    background-image: linear-gradient(#b93030,#891b1b); /* linear-gradient(#990000,#670000) */
     border: 0px solid #ddd;
     box-shadow: 0 4px 8px #0003,0 6px 20px #00000030;
     border-radius: 3px;
