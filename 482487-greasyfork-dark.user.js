@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                GreasyFork Dark
-// @version             0.3.34
+// @version             0.3.35
 // @license             MIT
 // @author              CY Fung
 // @name:ja             GreasyFork Dark ダークモード
@@ -1211,8 +1211,8 @@ li.L0, li.L1, li.L2, li.L3, li.L4, li.L5, li.L6, li.L7, li.L8, li.L9 {
 
 .expander {
     cursor: pointer;
-    color: #670000;
-    background-color: #1b1b1e;
+    color: #f7c67f; /* #670000; */
+    background-color: #896d44; /* #1b1b1e; */
     text-align: center;
     inset-inline-end: -22px;
     border-radius: 3px;
