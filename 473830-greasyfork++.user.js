@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name               Greasy Fork++
 // @namespace          https://github.com/iFelix18
-// @version            3.4.1
+// @version            3.4.2
 // @author             CY Fung <https://greasyfork.org/users/371179> & Davide <iFelix18@protonmail.com>
 // @contributor        BlackSpirits <https://github.com/BlackSpirits>
 // @icon               https://www.google.com/s2/favicons?domain=https://greasyfork.org
@@ -152,6 +152,10 @@ const mWindow = isInIframe || (() => {
 
 
     const fields = {
+        theme: {
+            label: '', section: [''], labelPos: 'left', type: 'select',
+            options: ['auto', 'light', 'dark'], default: 'auto'
+        },
         hideBlacklistedScripts: {
             label: '', section: [''], labelPos: 'right', type: 'checkbox', default: true
         },
@@ -1212,6 +1216,8 @@ const mWindow = isInIframe || (() => {
         const ui = (locale && locale.settings) || locales.en.settings;
         const labels = ui.fields;
 
+        localizedFields.theme.label = labels.theme;
+        localizedFields.theme.section = [ui.sections.appearance];
         localizedFields.hideBlacklistedScripts.label = labels.hideBlacklistedScripts;
         localizedFields.hideBlacklistedScripts.section = [ui.sections.features];
         localizedFields.hideHiddenScript.label = labels.hideHiddenScript;
@@ -1255,9 +1261,73 @@ const mWindow = isInIframe || (() => {
         }
         */
 
-        html {
-        color: #222;
-        background: #f9f9f9;
+        :root {
+            color-scheme: light;
+            --gfpp-bg: #f9f9f9;
+            --gfpp-text: #222;
+            --gfpp-surface: rgba(127,127,127,0.05);
+            --gfpp-border: rgba(127,127,127,0.5);
+            --gfpp-section-start: #670000;
+            --gfpp-section-end: #990000;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #670000;
+            --gfpp-dev-bg: #000;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #fff;
+            --gfpp-control-text: #222;
+            --gfpp-button-bg: #f3f3f3;
+            --gfpp-button-text: #222;
+            --gfpp-button-border: #aaa;
+        }
+
+        :root[data-gfpp-theme="dark"] {
+            color-scheme: dark;
+            --gfpp-bg: #161616;
+            --gfpp-text: #e8e6e3;
+            --gfpp-surface: rgba(255,255,255,0.05);
+            --gfpp-border: rgba(255,255,255,0.28);
+            --gfpp-section-start: #691010;
+            --gfpp-section-end: #8f1a1a;
+            --gfpp-section-text: #fff;
+            --gfpp-accent: #ff8a8a;
+            --gfpp-dev-bg: #0b0b0b;
+            --gfpp-dev-text: #eee;
+            --gfpp-control-bg: #242424;
+            --gfpp-control-text: #f2f2f2;
+            --gfpp-button-bg: #5a5a5a;
+            --gfpp-button-text: #fff;
+            --gfpp-button-border: #707070;
+        }
+
+        html, body {
+            color: var(--gfpp-text);
+            background: var(--gfpp-bg);
+        }
+
+        :root[data-gfpp-theme="dark"] #greasyfork-plus,
+        :root[data-gfpp-theme="dark"] #greasyfork-plus_wrapper {
+            background-color: var(--gfpp-bg) !important;
+        }
+
+        #greasyfork-plus select,
+        #greasyfork-plus textarea,
+        #greasyfork-plus input:not([type="checkbox"]):not([type="radio"]) {
+            color: var(--gfpp-control-text);
+            background: var(--gfpp-control-bg);
+            border-color: var(--gfpp-border);
+            border-radius: 3px;
+        }
+        #greasyfork-plus input[type="checkbox"],
+        #greasyfork-plus input[type="radio"] {
+            accent-color: var(--gfpp-accent);
+        }
+
+        #greasyfork-plus_theme_var[class] {
+            margin-top: 4px;
+        }
+
+        :root[data-gfpp-theme="dark"] #greasyfork-plus_buttons_holder a {
+            color: var(--gfpp-text);
         }
 
         #greasyfork-plus{
@@ -1268,10 +1338,10 @@ const mWindow = isInIframe || (() => {
             font-size:12px
         }
         #greasyfork-plus .section_header[class] {
-            background-color:#670000;
-            background-image:linear-gradient(#670000,#900);
+            background-color:var(--gfpp-section-start);
+            background-image:linear-gradient(var(--gfpp-section-start),var(--gfpp-section-end));
             border:1px solid transparent;
-            color:#fff
+            color:var(--gfpp-section-text)
         }
         #greasyfork-plus .field_label[class]{
             margin-bottom:4px
@@ -1282,7 +1352,7 @@ const mWindow = isInIframe || (() => {
             opacity:.8;
         }
         #greasyfork-plus .field_label[class] b{
-            color:#670000
+            color:var(--gfpp-accent)
         }
         #greasyfork-plus_logging_var[class],
         #greasyfork-plus_debugging_var[class] {
@@ -1334,8 +1404,9 @@ const mWindow = isInIframe || (() => {
             padding: 12px;
             /* overflow: auto; */
             scrollbar-gutter: both-edges;
-            background: rgba(127,127,127,0.05);
-            border: 1px solid rgba(127,127,127,0.5);
+            background: var(--gfpp-surface);
+            border: 1px solid var(--gfpp-border);
+            border-radius: 4px;
         }
 
         #greasyfork-plus_wrapper > #greasyfork-plus_buttons_holder:last-child {
@@ -1348,16 +1419,20 @@ const mWindow = isInIframe || (() => {
         #greasyfork-plus .saveclose_buttons[class] {
             padding: 4px 14px;
             margin: 6px;
+            border: 1px solid var(--gfpp-button-border);
+            border-radius: 3px;
+            background: var(--gfpp-button-bg);
+            color: var(--gfpp-button-text);
         }
-        #greasyfork-plus .section_header_holder#greasyfork-plus_section_2[class] {
+        #greasyfork-plus .section_header_holder#greasyfork-plus_section_3[class] {
             position: fixed;
             left: 0;
             bottom: 0;
             margin: 8px;
         }
-        #greasyfork-plus .section_header#greasyfork-plus_section_header_2[class] {
-            background: #000;
-            color: #eee;
+        #greasyfork-plus .section_header#greasyfork-plus_section_header_3[class] {
+            background: var(--gfpp-dev-bg);
+            color: var(--gfpp-dev-text);
         }
 
         #greasyfork-plus_header[class]{
@@ -2068,6 +2143,51 @@ inIframeFn() || (async () => {
         return [...new Set(str ? numberArr(str.split(',').map(e => parseInt(e))) : [])];
     }
 
+    const detectPageTheme = () => {
+        const parseRgba = value => {
+            const match = /rgba?\(\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)(?:\s*[,/]\s*(\d*\.?\d+))?\s*\)/i.exec(String(value || ''));
+            if (!match) return null;
+            const alpha = match[4] === undefined ? 1 : Math.max(0, Math.min(1, Number(match[4])));
+            return [Number(match[1]), Number(match[2]), Number(match[3]), alpha];
+        };
+
+        const composite = (top, bottom) => {
+            const alpha = top[3] + bottom[3] * (1 - top[3]);
+            if (!alpha) return [0, 0, 0, 0];
+            const under = bottom[3] * (1 - top[3]);
+            return [
+                (top[0] * top[3] + bottom[0] * under) / alpha,
+                (top[1] * top[3] + bottom[1] * under) / alpha,
+                (top[2] * top[3] + bottom[2] * under) / alpha,
+                alpha
+            ];
+        };
+
+        const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches === true;
+        let rendered = [0, 0, 0, 0];
+
+        for (const element of [window.document.body, window.document.documentElement]) {
+            if (!element) continue;
+            const layer = parseRgba(window.getComputedStyle(element).backgroundColor);
+            if (!layer || layer[3] <= 0) continue;
+            rendered = rendered[3] > 0 ? composite(rendered, layer) : layer;
+            if (rendered[3] >= 0.999) break;
+        }
+
+        if (rendered[3] > 0 && rendered[3] < 0.999) {
+            rendered = composite(rendered, systemDark ? [0, 0, 0, 1] : [255, 255, 255, 1]);
+        }
+        if (rendered[3] > 0) {
+            const luminance = 0.2126 * rendered[0] + 0.7152 * rendered[1] + 0.0722 * rendered[2];
+            return luminance < 128 ? 'dark' : 'light';
+        }
+
+        return systemDark ? 'dark' : 'light';
+    };
+
+    const resolveSettingsTheme = (preference = 'auto') =>
+        preference === 'light' || preference === 'dark' ? preference : detectPageTheme();
+
     let settingsSessionSnapshot = null;
     let settingsSaveCommitted = false;
     let settingsSessionGeneration = 0;
@@ -2078,9 +2198,15 @@ inIframeFn() || (async () => {
         for (const cleanup of cleanups) cleanup();
     };
     const addSettingsEventListener = (target, type, handler, options) => {
-        if (!target?.addEventListener) return;
-        target.addEventListener(type, handler, options);
-        settingsEventCleanups.push(() => target.removeEventListener(type, handler, options));
+        if (target?.addEventListener) {
+            target.addEventListener(type, handler, options);
+            settingsEventCleanups.push(() => target.removeEventListener(type, handler, options));
+            return;
+        }
+        if (type === 'change' && target?.addListener) {
+            target.addListener(handler);
+            settingsEventCleanups.push(() => target.removeListener?.(handler));
+        }
     };
     const snapshotSettingsSession = () => {
         settingsSessionSnapshot = Object.fromEntries(Object.keys(fields)
@@ -2111,6 +2237,28 @@ inIframeFn() || (async () => {
                 const generation = ++settingsSessionGeneration;
                 clearSettingsEventListeners();
                 snapshotSettingsSession();
+
+                const themeSelect = document.querySelector(`#${id}_field_theme`);
+                const applySettingsTheme = () => {
+                    const preference = String(themeSelect?.value || gmc.get('theme') || 'auto');
+                    document.documentElement.dataset.gfppTheme = resolveSettingsTheme(preference);
+                };
+                if (themeSelect) {
+                    const themeLabels = ui.themeOptions || locales.en.settings.themeOptions;
+                    for (const option of themeSelect.options) {
+                        if (themeLabels[option.value]) option.textContent = themeLabels[option.value];
+                    }
+                    addSettingsEventListener(themeSelect, 'input', applySettingsTheme);
+                    addSettingsEventListener(themeSelect, 'change', applySettingsTheme);
+                }
+                const colorScheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+                if (colorScheme) {
+                    addSettingsEventListener(colorScheme, 'change', () => {
+                        if ((themeSelect?.value || gmc.get('theme') || 'auto') === 'auto') applySettingsTheme();
+                    });
+                }
+                applySettingsTheme();
+
                 const textarea = document.querySelector(`#${id}_field_hiddenList`);
 
                 const hiddenSet = new Set(numberArr(await GMA.getValue('hiddenList', [])));
