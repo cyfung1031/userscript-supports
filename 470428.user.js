@@ -2,7 +2,7 @@
 // @name        YouTube EXPERIMENT_FLAGS Tamer
 // @namespace   UserScripts
 // @match       https://www.youtube.com/*
-// @version     1.6.13
+// @version     1.6.14
 // @license     MIT
 // @author      CY Fung
 // @icon        https://raw.githubusercontent.com/cyfung1031/userscript-supports/main/icons/yt-engine.png
@@ -1329,6 +1329,13 @@
           if (FLAG_STRATEGY_20240413 && key.includes('latency')) continue;
           if (FLAG_STRATEGY_20240413 && key.includes('slow')) continue;
           if (FLAG_STRATEGY_20240413 && key.includes('steam')) continue;
+
+          // === 修復留言回覆無法展開的問題 ===
+          if (key.includes('comment')) continue;
+          if (key.includes('replies')) continue;
+          if (key.includes('reply')) continue;
+          if (key.includes('engagement')) continue;
+          // ===================================
 
           // const kl = key.length;
           // const kl7 = kl % 7;
