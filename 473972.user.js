@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.25
+// @version     0.42.26
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -30,6 +30,7 @@
 
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
+  const EventTarget_F = EventTarget;
 
   const HOOK_ACTIVE_MODULES = true; // added in 0.37.0
   const HOOK_ACTIVE_MODULES_fetchUpdatedMetadata = true; // added in 0.37.0 (make likeCount update)
@@ -338,7 +339,7 @@
 
   let _x69;
   try {
-    _x69 = document.createAttributeNS("http://www.w3.org/2000/svg", "nil").addEventListener;
+    _x69 = EventTarget_F.prototype.addEventListener;
   } catch (e) { }
   const pureAddEventListener = _x69;
   if (!pureAddEventListener) return console.warn("pureAddEventListener cannot be obtained.");

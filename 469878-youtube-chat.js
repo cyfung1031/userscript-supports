@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.27
+// @version             0.102.28
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -43,6 +43,7 @@
 
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
+  const EventTarget_F = EventTarget;
 
   const DEBUG_LOG_GROUP_EXPAND = +localStorage.__debugSuperFastChat__ > 0;
   const DEBUG_LOG_HIDE_OK = true;
@@ -571,7 +572,7 @@
   const { IntersectionObserver } = __CONTEXT__;
   let _x69;
   try {
-    _x69 = document.createAttributeNS("http://www.w3.org/2000/svg", "nil").addEventListener;
+    _x69 = EventTarget_F.prototype.addEventListener;
   } catch (e) { }
   const pureAddEventListener = _x69;
   if (!pureAddEventListener) return console.warn("pureAddEventListener cannot be obtained.");
