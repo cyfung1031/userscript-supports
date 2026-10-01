@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.28
+// @version             0.102.29
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7215,7 +7215,59 @@
         if ((_flag0281_ & 0x2000) == 0) {
 
           if ((mclp.clearList || 0).length === 0) {
-            (_flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.106.50'));
+            (_flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.120.58')); // 2026.10.01
+
+            /*
+              
+              // https://www.youtube.com/s/desktop/2cf5dafc/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+              0.106.50
+
+
+              f.clearList=function(){this.activeItems_=[];this.visibleItems=[];this.dockableMessages=[];this.isSmoothed_=!0;this.lastSmoothChatMessageAddMs_=null;this.chatRateMs_=1E3;this.lastSmoothScrollClockTime_=this.lastSmoothScrollUpdate_=null;this.scrollTimeRemainingMs_=this.scrollPixelsRemaining_=0;this.smoothScrollRafHandle_=null;this.preinsertHeight_=0;this.itemIdToDockDurationMap={};G(this.hostElement).querySelector("#docked-messages").clear();this.bannerManager.reset();this.maybeResizeScrollContainer_([]);
+              this.items.style.transform="";this.atBottom||this.scrollToBottom_()};
+
+
+
+              // https://www.youtube.com/s/desktop/e6aecce7/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+              // 0.120.58 @ 2026.10.01
+
+
+              h.clearList=function(){this.activeItems_=[];this.visibleItems=[];this.dockableMessages=[];this.isSmoothed_=!0;this.lastSmoothChatMessageAddMs_=null;this.chatRateMs_=1E3;this.lastSmoothScrollClockTime_=this.lastSmoothScrollUpdate_=null;this.scrollTimeRemainingMs_=this.scrollPixelsRemaining_=0;this.smoothScrollRafHandle_=null;this.preinsertHeight_=0;this.itemIdToDockDurationMap={};cu(this.hostElement).querySelector("#docked-messages").clear();if(!this.enableBannerUpdate){var a;(a=this.bannerManager)==
+              null||a.reset()}this.maybeResizeScrollContainer_([]);this.items.style.transform="";this.atBottom||this.scrollToBottom_()};
+
+
+              h.clearList = function() {
+                  this.activeItems_ = [];
+                  this.visibleItems = [];
+                  this.dockableMessages = [];
+                  this.isSmoothed_ = !0;
+                  this.lastSmoothChatMessageAddMs_ = null;
+                  this.chatRateMs_ = 1E3;
+                  this.lastSmoothScrollClockTime_ = this.lastSmoothScrollUpdate_ = null;
+                  this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
+                  this.smoothScrollRafHandle_ = null;
+                  this.preinsertHeight_ = 0;
+                  this.itemIdToDockDurationMap = {};
+                  cu(this.hostElement).querySelector("#docked-messages").clear();
+                  if (!this.enableBannerUpdate) {
+                      var a;
+                      (a = this.bannerManager) == null || a.reset()
+                  }
+                  this.maybeResizeScrollContainer_([]);
+                  this.items.style.transform = "";
+                  this.atBottom || this.scrollToBottom_()
+              }
+              ;
+
+
+
+
+            
+            */
+
             mclp.clearList66 = mclp.clearList;
             mclp.clearList = function () {
               myk = (myk & 1073741823) + 1;
@@ -7460,7 +7512,50 @@
         if ((_flag0281_ & 0x2) == 0) {
           if ((mclp.showNewItems_ || 0).length === 0 && ENABLE_NO_SMOOTH_TRANSFORM) {
 
-            assertor(() => fnIntegrity(mclp.showNewItems_, '0.170.79'));
+            assertor(() => fnIntegrity(mclp.showNewItems_, '0.201.93')); // 2026.10.01
+
+            /* 
+  
+
+              // https://www.youtube.com/s/desktop/2cf5dafc/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+              0.170.79
+
+
+                f.showNewItems_=function(){var a=this.items.clientHeight>this.itemScroller.clientHeight;this.refreshOffsetContainerHeight_();this.canScrollToBottom_()&&a&&(this.scrollPixelsRemaining_+=this.items.clientHeight-this.preinsertHeight_,this.scrollToBottom_(),this.items.style.transform="translateY("+Math.floor(this.scrollPixelsRemaining_)+"px)",this.lastSmoothChatMessageAddMs_||(this.lastSmoothChatMessageAddMs_=performance.now()),a=performance.now()-this.lastSmoothChatMessageAddMs_,this.chatRateMs_=.9*
+                this.chatRateMs_+.1*a,this.isSmoothed_&&this.chatRateMs_<400&&(this.isSmoothed_=!1),!this.isSmoothed_&&this.chatRateMs_>450&&(this.isSmoothed_=!0),this.scrollTimeRemainingMs_+=this.isSmoothed_?sub:0,this.smoothScrollRafHandle_||(this.smoothScrollRafHandle_=window.requestAnimationFrame(this.smoothScroll_.bind(this))),this.lastSmoothChatMessageAddMs_=performance.now())};
+
+
+
+              // https://www.youtube.com/s/desktop/e6aecce7/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
+
+
+              // 0.201.93 @ 2026.10.01
+
+
+                h.showNewItems_=function(){var a=this.items.clientHeight>this.itemScroller.clientHeight;this.refreshOffsetContainerHeight_();this.canScrollToBottom_()&&a&&(this.scrollPixelsRemaining_+=this.items.clientHeight-this.preinsertHeight_,B("live_chat_web_fix_high_speed_autoscroll")?(this.itemScroller.scrollTop=16777216,this.atBottom=!0):this.scrollToBottom_(),this.items.style.transform="translateY("+Math.floor(this.scrollPixelsRemaining_)+"px)",this.lastSmoothChatMessageAddMs_||(this.lastSmoothChatMessageAddMs_=
+                performance.now()),a=performance.now()-this.lastSmoothChatMessageAddMs_,this.chatRateMs_=.9*this.chatRateMs_+.1*a,this.isSmoothed_&&this.chatRateMs_<400&&(this.isSmoothed_=!1),!this.isSmoothed_&&this.chatRateMs_>450&&(this.isSmoothed_=!0),this.scrollTimeRemainingMs_+=this.isSmoothed_?Z0b:0,this.smoothScrollRafHandle_||(this.smoothScrollRafHandle_=window.requestAnimationFrame(this.smoothScroll_.bind(this))),this.lastSmoothChatMessageAddMs_=performance.now())};
+
+                h.showNewItems_ = function() {
+                    var a = this.items.clientHeight > this.itemScroller.clientHeight;
+                    this.refreshOffsetContainerHeight_();
+                    this.canScrollToBottom_() && a && (this.scrollPixelsRemaining_ += this.items.clientHeight - this.preinsertHeight_,
+                    B("live_chat_web_fix_high_speed_autoscroll") ? (this.itemScroller.scrollTop = 16777216,
+                    this.atBottom = !0) : this.scrollToBottom_(),
+                    this.items.style.transform = "translateY(" + Math.floor(this.scrollPixelsRemaining_) + "px)",
+                    this.lastSmoothChatMessageAddMs_ || (this.lastSmoothChatMessageAddMs_ = performance.now()),
+                    a = performance.now() - this.lastSmoothChatMessageAddMs_,
+                    this.chatRateMs_ = .9 * this.chatRateMs_ + .1 * a,
+                    this.isSmoothed_ && this.chatRateMs_ < 400 && (this.isSmoothed_ = !1),
+                    !this.isSmoothed_ && this.chatRateMs_ > 450 && (this.isSmoothed_ = !0),
+                    this.scrollTimeRemainingMs_ += this.isSmoothed_ ? Z0b : 0,
+                    this.smoothScrollRafHandle_ || (this.smoothScrollRafHandle_ = window.requestAnimationFrame(this.smoothScroll_.bind(this))),
+                    this.lastSmoothChatMessageAddMs_ = performance.now())
+                }
+                ;
+                
+            */
+
             mclp.showNewItems66_ = mclp.showNewItems_;
             mclp.showNewItems_ = function () {
               //
@@ -10856,7 +10951,93 @@
               return;
             }
 
-            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|0.169.106|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
+            const cProto_dataChanged_fI = typeof cProto.dataChanged === 'function' ? fnIntegrity(cProto.dataChanged) : "";
+
+
+            if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|0.209.131|'.includes(`|${cProto_dataChanged_fI}|`)) {
+
+              const B = (k) => {
+                const EXPERIMENT_FLAGS = typeof yt === "object" ? ((yt || 0).config_ || 0).EXPERIMENT_FLAGS : {};
+                return EXPERIMENT_FLAGS[k];
+              };
+
+              cProto.dataChanged86 = cProto.dataChanged;
+              cProto.dataChanged = function () {
+
+                /* 2026.10.01 */
+                /*
+                    gV.prototype.dataChanged = function() {
+                        for (var a = bu(cu(this.hostElement).querySelector("#image")); a.firstChild; )
+                            a.removeChild(a.firstChild);
+                        if (this.data)
+                            if (this.data.icon) {
+                                var b = document.createElement("yt-icon");
+                                this.data.icon.iconType === "MODERATOR" && this.enableNewModeratorBadge ? (b.polymerController.icon = "yt-sys-icons:shield_empty",
+                                b.polymerController.defaultToFilled = !0) : this.data.icon.iconType === "VERIFIED" && B("live_chat_improved_visibility_style_for_web") ? (b.polymerController.icon = "yt-sys-icons:check_circle_thick",
+                                b.polymerController.defaultToFilled = !0) : b.polymerController.icon = "live-chat-badges:" + this.data.icon.iconType.toLowerCase();
+                                a.appendChild(b)
+                            } else if (this.data.customThumbnail) {
+                                b = document.createElement("img");
+                                var c;
+                                (c = (c = BA(this.data.customThumbnail.thumbnails, 16)) ? Hb(Sb(c)) : null) ? (b.src = c,
+                                a.appendChild(b),
+                                b.setAttribute("alt", this.hostElement.ariaLabel || "")) : Uo(new fm("Could not compute URL for thumbnail",this.data.customThumbnail))
+                            }
+                    }
+                  */
+
+                const a = (this || 0).data;
+                const image = ((this || 0).$ || 0).image;
+
+                if (image && a && image.firstElementChild) {
+                  const exisiting = image.firstElementChild;
+                  if (exisiting === image.lastElementChild) {
+
+                    if (a.icon && exisiting.nodeName.toUpperCase() === 'YT-ICON') {
+
+                      const c = exisiting;
+                      const t = insp(c);
+                      const w = ('icon' in t || 'defaultToFilled' in t) ? t : c;
+                      if ("MODERATOR" === a.icon.iconType && this.enableNewModeratorBadge) {
+                        if (w.icon !== "yt-sys-icons:shield_empty") w.icon = "yt-sys-icons:shield_empty";
+                        if (w.defaultToFilled !== true) w.defaultToFilled = true;
+                        return;
+                      } else if ("VERIFIED" === a.icon.iconType) {
+                        const flag = B("live_chat_improved_visibility_style_for_web");
+                        const p = flag ? "yt-sys-icons:check_circle_thick" : "live-chat-badges:" + a.icon.iconType.toLowerCase();
+                        if (w.icon !== p) w.icon = p;
+                        if (flag) {
+                          if (w.defaultToFilled !== true) w.defaultToFilled = true;
+                        } else {
+                          if (w.defaultToFilled !== false) w.defaultToFilled = false;
+                        }
+                        return;
+                      } else {
+                        const p = "live-chat-badges:" + a.icon.iconType.toLowerCase();;
+                        if (w.icon !== p) w.icon = p;
+                        if (w.defaultToFilled !== false) w.defaultToFilled = false;
+                        return;
+                      }
+
+
+                    } else if (a.customThumbnail && exisiting.nodeName.toUpperCase() == 'IMG') {
+
+                      const c = exisiting;
+                      if (a.customThumbnail.thumbnails.map(e => e.url).includes(c.src)) {
+
+                        c.setAttribute("alt", this.hostElement.ariaLabel || "");
+                        return;
+                      }
+                    }
+
+                  }
+                }
+                return this.dataChanged86.apply(this, arguments)
+
+              }
+              console1.log("cProto.dataChanged - OK");
+
+            } else if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|0.169.106|'.includes(`|${cProto_dataChanged_fI}|`)) {
 
               cProto.dataChanged86 = cProto.dataChanged;
               cProto.dataChanged = function () {
@@ -10928,7 +11109,7 @@
               }
               console1.log("cProto.dataChanged - OK");
 
-            } else if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${fnIntegrity(cProto.dataChanged)}|`)) {
+            } else if (typeof cProto.dataChanged === 'function' && !cProto.dataChanged86 && '|1.163.100|1.162.100|1.160.97|1.159.97|'.includes(`|${cProto_dataChanged_fI}|`)) {
 
               cProto.dataChanged86 = cProto.dataChanged;
               cProto.dataChanged = function (a) {
@@ -11019,7 +11200,7 @@
               console1.log("cProto.dataChanged - OK");
 
             } else {
-              assertor(() => fnIntegrity(cProto.dataChanged, '0.169.106'));
+              assertor(() => fnIntegrity(cProto.dataChanged, '0.209.131'));
               console1.log("cProto.dataChanged - NG");
 
             }
