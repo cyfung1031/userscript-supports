@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.29
+// @version             0.102.30
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -7215,7 +7215,15 @@
         if ((_flag0281_ & 0x2000) == 0) {
 
           if ((mclp.clearList || 0).length === 0) {
-            (_flag0281_ & 0x2) == 0 && assertor(() => fnIntegrity(mclp.clearList, '0.120.58')); // 2026.10.01
+
+            if ((_flag0281_ & 0x2) == 0) {
+
+              // const fI = fnIntegrity(mclp.clearList);
+
+              // assertor(() => fnIntegrity(mclp.clearList, '0.120.58')); // 2026.10.01
+              assertor(() => fnIntegrity(mclp.clearList, '0.122.60')); // 2026.10.02
+
+            }
 
             /*
               
@@ -7262,10 +7270,39 @@
               }
               ;
 
+              // 0.122.60 @ 2026.10.02
+
+              // https://www.youtube.com/s/desktop/2b888666/jsbin/live_chat_polymer.vflset/live_chat_polymer.js
 
 
+              h.clearList=function(){this.activeItems_=[];this.visibleItems=[];this.dockableMessages=[];this.isSmoothed_=!0;this.lastSmoothChatMessageAddMs_=null;this.chatRateMs_=1E3;this.lastSmoothScrollClockTime_=this.lastSmoothScrollUpdate_=null;this.scrollTimeRemainingMs_=this.scrollPixelsRemaining_=0;this.smoothScrollRafHandle_=null;this.lastScrollTop=this.preinsertHeight_=0;this.itemIdToDockDurationMap={};cu(this.hostElement).querySelector("#docked-messages").clear();if(!this.enableBannerUpdate){var a;(a=
+              this.bannerManager)==null||a.reset()}this.maybeResizeScrollContainer_([]);this.items.style.transform="";this.atBottom||this.scrollToBottom_()};
+              h.computeId_=function(a){return a};
 
-            
+              h.clearList = function() {
+                this.activeItems_ = [];
+                this.visibleItems = [];
+                this.dockableMessages = [];
+                this.isSmoothed_ = !0;
+                this.lastSmoothChatMessageAddMs_ = null;
+                this.chatRateMs_ = 1E3;
+                this.lastSmoothScrollClockTime_ = this.lastSmoothScrollUpdate_ = null;
+                this.scrollTimeRemainingMs_ = this.scrollPixelsRemaining_ = 0;
+                this.smoothScrollRafHandle_ = null;
+                this.lastScrollTop = this.preinsertHeight_ = 0;
+                this.itemIdToDockDurationMap = {};
+                cu(this.hostElement).querySelector("#docked-messages").clear();
+                if (!this.enableBannerUpdate) {
+                    var a;
+                    (a = this.bannerManager) == null || a.reset()
+                }
+                this.maybeResizeScrollContainer_([]);
+                this.items.style.transform = "";
+                this.atBottom || this.scrollToBottom_()
+              }
+              ;
+
+
             */
 
             mclp.clearList66 = mclp.clearList;
