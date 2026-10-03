@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.42.26
+// @version     0.43.0
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -44,7 +44,7 @@
   const NO_PRELOAD_GENERATE_204 = false;
   const ENABLE_COMPUTEDSTYLE_CACHE = true;
   const NO_SCHEDULING_DUE_TO_COMPUTEDSTYLE = true;
-  const CHANGE_appendChild = true; // discussions#236759
+  const CHANGE_appendChild = false; // discussions#236759; set false in 2026.10.04
   const FIX_bind_self_this = false; // EXPERIMENTAL !!!!! this affect page switch after live ends
 
   const FIX_error_many_stack = true; // should be a bug caused by uBlock Origin
@@ -73,10 +73,10 @@
   const FIX_ytAction_ = true; // ytd-app
   const FIX_onVideoDataChange = false;
   // const FIX_onClick = true;
-  const FIX_onStateChange = true;
-  const FIX_onLoopRangeChange = true;
+  const FIX_onStateChange = false; // set false in 2026.10.04
+  const FIX_onLoopRangeChange = false; // set false in 2026.10.04
   // const FIX_maybeUpdateFlexibleMenu = true; // ytd-menu-renderer
-  const FIX_VideoEVENTS_v2 = true; // true might cause bug in switching page
+  const FIX_VideoEVENTS_v2 = false; // true might cause bug in switching page // set false in 2026.10.04
 
   const FIX_stampDomArray_ = true; // v0.30.0
   const FIX_stampDomArray = FIX_stampDomArray_ && typeof WeakRef === "function" && typeof FinalizationRegistry === "function";
@@ -126,8 +126,7 @@
   const MEMORY_RELEASE_NF00 = false; // need investigation of the implementation (no time) -> disable
   const MEMORY_RELEASE_NF00_SHOW_MESSAGE = false;
   const MEMORY_RELEASE_MAP_SET_REMOVE_NODE = true;
-  const FULLY_REMOVE_ALL_EVENT_LISTENERS = true; // require MEMORY_RELEASE_NF00
-  const FUZZY_EVENT_LISTENER_REMOVAL = true;
+  const FULLY_REMOVE_ALL_EVENT_LISTENERS = false; // require MEMORY_RELEASE_NF00
   const WEAK_CE_ROOT = true; // shadowRoot of the return value of attachShadow on the node
 
   const FIX_TEMPLATE_BINDING = true;
@@ -579,6 +578,8 @@
             console.log('[yt-js-engine-tamer] qcMap', 'clear 01')
             cleaning(this);
           }
+
+          return this;
 
         }
         qcMap.get = function (b) {
@@ -1232,53 +1233,155 @@
 
   }
 
-
   if (FULLY_REMOVE_ALL_EVENT_LISTENERS && !EventTarget.prototype.addEventListener828 && !EventTarget.prototype.removeAllEventListener001) {
     const handlerMap = new WeakMap();
-    EventTarget.prototype.addEventListener828 = EventTarget.prototype.addEventListener;
+
+    /*
+    * Keep stable references to the original native methods.
+    *
+    * Do not call methods through `this`, because an instance may define
+    * properties with the same names and change wrapper behavior.
+    */
+    const nativeAdd = EventTarget.prototype.addEventListener;
+    const nativeRemove = EventTarget.prototype.removeEventListener;
+
+    EventTarget.prototype.addEventListener828 = nativeAdd;
+    EventTarget.prototype.removeEventListener828 = nativeRemove;
+
+    /*
+    * Per DOM listener matching rules, only `capture` participates in
+    * listener identity from the options argument.
+    *
+    * passive / once / signal / options object identity do not.
+    */
+    const getCapture = option =>
+      typeof option === 'boolean' ? option : !!option?.capture;
+
+    /*
+    * Our registry stores [type, handler, capture].
+    *
+    * A Set cannot deduplicate arrays by value, so listener identity must
+    * be checked manually before inserting a new entry.
+    */
+    const findEntry = (listeners, type, handler, capture) => {
+      if (!listeners) return null;
+
+      for (const entry of listeners) {
+        if (
+          entry[0] === type &&
+          entry[1] === handler &&
+          entry[2] === capture
+        ) {
+          return entry;
+        }
+      }
+
+      return null;
+    };
+
     EventTarget.prototype.addEventListener = function (type, handler, option = void 0) {
+      const capture = getCapture(option);
+
+      /*
+      * Call the browser first.
+      *
+      * If native addEventListener throws, no registry entry should be
+      * created for a listener that was never registered.
+      */
+      const result = nativeAdd.call(this, type, handler, option);
+
+      // A null callback does not create an event listener.
+      if (handler == null) return result;
+
       const wr = this[wk] || (this[wk] = mWeakRef(this));
       let hds = handlerMap.get(wr);
-      if (!hds) handlerMap.set(wr, (hds = new Set()));
-      hds.add([type, handler, option]);
-      return this.addEventListener828(type, handler, option);
-    }
-    EventTarget.prototype.removeEventListener828 = EventTarget.prototype.removeEventListener;
+
+      if (!hds) {
+        hds = new Set();
+        handlerMap.set(wr, hds);
+      }
+
+      // Native addEventListener ignores duplicate type/handler/capture pairs.
+      if (!findEntry(hds, type, handler, capture)) {
+        hds.add([type, handler, capture]);
+      }
+
+      return result;
+    };
+
     EventTarget.prototype.removeEventListener = function (type, handler, option = void 0) {
-      const wr = this[wk] || (this[wk] = mWeakRef(this));
-      let hds = handlerMap.get(wr);
-      if (hds) {
-        for (const entry of hds) {
-          if (entry[0] === type && entry[1] === handler) {
-            if (entry[2] === option) {
-              hds.delete(entry);
-              // break;
-            } else if (FUZZY_EVENT_LISTENER_REMOVAL) {
-              hds.delete(entry);
-              this.removeEventListener828(type, handler, entry[2]);
-            }
-          }
-        }
+      const capture = getCapture(option);
+
+      /*
+      * Native removal only needs type + handler + capture.
+      * Passing the capture boolean is therefore sufficient.
+      */
+      const result = nativeRemove.call(this, type, handler, capture);
+
+      /*
+      * Update bookkeeping only after native removal completes.
+      * This keeps the registry consistent if native removal throws.
+      */
+      const wr = this[wk];
+      if (!wr) return result;
+
+      const hds = handlerMap.get(wr);
+      if (!hds) return result;
+
+      const entry = findEntry(hds, type, handler, capture);
+
+      if (entry) {
+        hds.delete(entry);
+
+        // Drop the strong reference to the handler as soon as possible.
+        entry.length = 0;
       }
-      return this.removeEventListener828(type, handler, option);
-    }
-    EventTarget.prototype.countEvent767 = function(){
-      const wr = this[wk] || (this[wk] = mWeakRef(this));
-      return handlerMap.get(wr);
-    }
-    EventTarget.prototype.removeAllEventListener001 = function () {
-      const wr = this[wk] || (this[wk] = mWeakRef(this));
-      let hds = handlerMap.get(wr);
-      if (hds) {
+
+      // Avoid retaining empty registry Sets.
+      if (hds.size === 0) {
         handlerMap.delete(wr);
-        for (const entry of hds) {
-          const [type, handler, option] = entry;
-          entry.length = 0;
-          this.removeEventListener828(type, handler, option);
-        }
-        hds.clear();
       }
-    }
+
+      return result;
+    };
+
+    EventTarget.prototype.countEvent767 = function () {
+      const wr = this[wk];
+
+      // Returns the tracked Set itself, or undefined when nothing is tracked.
+      return wr ? handlerMap.get(wr) : void 0;
+    };
+
+    EventTarget.prototype.removeAllEventListener001 = function () {
+      const wr = this[wk];
+      if (!wr) return;
+
+      const hds = handlerMap.get(wr);
+      if (!hds) return;
+
+      /*
+      * Detach the registry first.
+      *
+      * This prevents bookkeeping re-entry if another monkey patch causes
+      * listener removal to indirectly touch these wrappers again.
+      */
+      handlerMap.delete(wr);
+
+      for (const entry of hds) {
+        const [type, handler, capture] = entry;
+
+        /*
+        * The original options object is unnecessary here:
+        * removeEventListener matches only type + handler + capture.
+        */
+        nativeRemove.call(this, type, handler, capture);
+
+        // Release the stored handler reference after removal.
+        entry.length = 0;
+      }
+
+      hds.clear();
+    };
   }
 
   const globalSetup = (key, setup)=>{
@@ -3781,6 +3884,13 @@
       }
     }
 
+    const schedulerInstance =
+      typeof yt !== 'undefined'
+        ? ((yt || 0).scheduler || 0).instance
+        : null;
+
+    const { addJob, cancelJob } = schedulerInstance || {};
+
     const sk44 = Symbol();
     Object.defineProperty(Object.prototype, 'addJob', {
       get() {
@@ -3817,17 +3927,15 @@
       configurable: true
     });
 
-
-
-    if (typeof yt !== 'undefined' && this === ((yt || 0).scheduler || 0).instance) {
-      const { addJob, cancelJob } = yt.scheduler.instance;
-      if (addJob) {
-        yt.scheduler.instance.addJob = null;
-        yt.scheduler.instance.addJob = addJob;
+    if (schedulerInstance) {
+      if (typeof addJob === 'function') {
+        schedulerInstance.addJob = null;
+        schedulerInstance.addJob = addJob;
       }
-      if (cancelJob) {
-        yt.scheduler.instance.cancelJob = null;
-        yt.scheduler.instance.cancelJob = cancelJob;
+
+      if (typeof cancelJob === 'function') {
+        schedulerInstance.cancelJob = null;
+        schedulerInstance.cancelJob = cancelJob;
       }
     }
 
@@ -3835,8 +3943,8 @@
   }
 
   const isWatchPageURL = (url) => {
-    url = url || location;
-    return location.pathname === '/watch' || location.pathname.startsWith('/live/')
+    const pathname = url.pathname || location.pathname;
+    return pathname === '/watch' || pathname.startsWith('/live/')
   };
 
   const isCustomElementsProvided = typeof customElements !== "undefined" && typeof (customElements || 0).whenDefined === "function";
@@ -4267,8 +4375,9 @@
 
     let setupDomIfDone = false;
     const setupDomIf = (DomIf)=>{
+      let setupDomIfDone_ = setupDomIfDone;
       setupDomIfDone = true;
-      if(setupDomIfDone) return;
+      if(setupDomIfDone_) return;
 
       const fProto = DomIf.prototype;
 
@@ -9693,15 +9802,20 @@
           let arrBefore = null, arrAfter = null;
           const push = Array.prototype.push;
           let arr = null;
-          Array.prototype.push = function () {
+          Array.prototype.push = function (...args) {
             arr = this;
+            return push.apply(this, args);
           }
-          Polymer.RenderStatus.beforeNextRender({}, {}, {});
-          if (arr) arrBefore = arr;
-          arr = null;
-          Polymer.RenderStatus.afterNextRender({}, {}, {});
-          if (arr) arrAfter = arr;
-          arr = null;
+          try {
+            Polymer.RenderStatus.beforeNextRender({}, function () { }, {});
+            if (arr) arrBefore = arr;
+            arr = null;
+            Polymer.RenderStatus.afterNextRender({}, function () { }, {});
+            if (arr) arrAfter = arr;
+            arr = null;
+          } catch (e) { 
+            console.warn(e);
+          }
           Array.prototype.push = push;
           Polymer.RenderStatus.arrBefore = arrBefore;
           Polymer.RenderStatus.arrAfter = arrAfter;
@@ -10180,26 +10294,26 @@
         schedulerInstanceInstance_.start = function () {
           if (startBusy) return;
           startBusy = true;
+          mkFns[0] = window.requestAnimationFrame;
+          mkFns[1] = window.setInterval;
+          mkFns[2] = window.setTimeout;
+          mkFns[3] = window.requestIdleCallback;
+          const tThis = this['$$12378$$'] || this;
+          window.requestAnimationFrame = fakeFns[0];
+          window.setInterval = fakeFns[1];
+          window.setTimeout = fakeFns[2];
+          window.requestIdleCallback = fakeFns[3];
+          _fnSelectorProp = null;
           try {
-            mkFns[0] = window.requestAnimationFrame;
-            mkFns[1] = window.setInterval;
-            mkFns[2] = window.setTimeout;
-            mkFns[3] = window.requestIdleCallback;
-            const tThis = this['$$12378$$'] || this;
-            window.requestAnimationFrame = fakeFns[0]
-            window.setInterval = fakeFns[1]
-            window.setTimeout = fakeFns[2]
-            window.requestIdleCallback = fakeFns[3]
-            _fnSelectorProp = null;
             tThis.start993.call(new Proxy(tThis, startFnHandler));
-            _fnSelectorProp = null;
-            window.requestAnimationFrame = mkFns[0];
-            window.setInterval = mkFns[1];
-            window.setTimeout = mkFns[2];
-            window.requestIdleCallback = mkFns[3];
           } catch (e) {
             console.warn(e);
           }
+          _fnSelectorProp = null;
+          window.requestAnimationFrame = mkFns[0];
+          window.setInterval = mkFns[1];
+          window.setTimeout = mkFns[2];
+          window.requestIdleCallback = mkFns[3];
           startBusy = false;
         }
 
@@ -10257,7 +10371,7 @@
           get(target, prop) {
             let v = target[prop]
             if (v instanceof Window && !keyWindow) {
-              keyWindow = t;
+              keyWindow = prop;
             }
             let y = typeof v === 'function' ? nilFunc : typeof v === 'object' ? nilObj : v;
             if (prop === keyWindow) y = {
@@ -11276,16 +11390,19 @@
 
         const animationsWithPromisesMap = new Set(originalAnimationsWithPromises);
         originalAnimationsWithPromises.length = 0;
-        originalAnimationsWithPromises.push = null;
-        originalAnimationsWithPromises.splice = null;
-        originalAnimationsWithPromises.slice = null;
-        originalAnimationsWithPromises.indexOf = null;
-        originalAnimationsWithPromises.unshift = null;
-        originalAnimationsWithPromises.shift = null;
-        originalAnimationsWithPromises.pop = null;
-        originalAnimationsWithPromises.filter = null;
-        originalAnimationsWithPromises.forEach = null;
-        originalAnimationsWithPromises.map = null;
+        const throwErrFn = function (...args) {
+          throw new Error("Error: " + JSON.stringify(args));
+        };
+        originalAnimationsWithPromises.push = throwErrFn;
+        originalAnimationsWithPromises.splice = throwErrFn;
+        originalAnimationsWithPromises.slice = throwErrFn;
+        originalAnimationsWithPromises.indexOf = throwErrFn;
+        originalAnimationsWithPromises.unshift = throwErrFn;
+        originalAnimationsWithPromises.shift = throwErrFn;
+        originalAnimationsWithPromises.pop = throwErrFn;
+        originalAnimationsWithPromises.filter = throwErrFn;
+        originalAnimationsWithPromises.forEach = throwErrFn;
+        originalAnimationsWithPromises.map = throwErrFn;
 
 
         const _updateAnimationsPromises = () => {
@@ -12248,7 +12365,12 @@
           const { requestAnimationFrame, setTimeout } = window;
           window.requestAnimationFrame = xrequestAnimationFrame;
           window.setTimeout = xsetTimeout;
-          let r = this.doIdomRender13(...arguments);
+          let r;
+          try {
+            r = this.doIdomRender13(...arguments);
+          } catch (e) {
+            // ignored
+          }
           window.requestAnimationFrame = requestAnimationFrame;
           window.setTimeout = setTimeout;
           busy = false;
