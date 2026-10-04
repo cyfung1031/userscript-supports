@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>JS Runtime Variable Scanner</title>
+<style>
+:root{
+  color-scheme:light dark;
+  --viz-bg:#f5f6f8;--viz-card:#ffffff;--viz-panel:#eef1f5;--viz-text:#161a20;--viz-muted:#586171;--viz-border:#d4d9e1;
+  --viz-accent:#2a64d6;--viz-accent-hover:#1f52b5;--viz-on-accent:#ffffff;
+  --viz-hit:#fff3c4;--viz-mark:#ffd33d;--viz-active:#e3ecff;
+  --viz-danger:#b42318;--viz-danger-bg:#fde8e7;--viz-warn:#8a5a00;--viz-warn-bg:#fdf0d2;--viz-info:#5b3cc4;--viz-info-bg:#ece7fd;--viz-ok:#1a7f37;
+  --radius:12px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;--sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --viz-bg:#0e1014;--viz-card:#161a21;--viz-panel:#1e232c;--viz-text:#e5e8ee;--viz-muted:#9ba4b4;--viz-border:#2e3541;
+    --viz-accent:#4f86f0;--viz-accent-hover:#6b9af3;--viz-on-accent:#ffffff;
+    --viz-hit:#3a3214;--viz-mark:#8c6a00;--viz-active:#1d2b47;
+    --viz-danger:#ff8a80;--viz-danger-bg:#3d1916;--viz-warn:#f0c060;--viz-warn-bg:#3a2c0c;--viz-info:#b9a6ff;--viz-info-bg:#2a2148;--viz-ok:#56d364;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--viz-bg);color:var(--viz-text);font:15px/1.5 var(--sans)}
+code,kbd{font-family:var(--mono);font-size:.92em}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+.jrs{max-width:1280px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.jrs-header h1{margin:0;font-size:1.35rem;line-height:1.3}
+.jrs-header p{margin:4px 0 0;color:var(--viz-muted);font-size:.9rem}
+
+.jrs-input{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:768px){.jrs-input{grid-template-columns:minmax(0,1fr) 260px}.jrs-side{padding-top:28px}}
+.jrs-label{display:block;margin-bottom:6px;font-size:.875rem;font-weight:600}
+.jrs-label.small{margin-bottom:4px;font-size:.75rem}
+.jrs-code{display:block;width:100%;min-height:16rem;resize:vertical;padding:12px;border:1px solid var(--viz-border);border-radius:var(--radius);background:var(--viz-card);color:inherit;font:14px/1.6 var(--mono);tab-size:2}
+.jrs-code:focus{border-color:var(--viz-accent)}
+.jrs-side{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;border:1px solid var(--viz-border);border-radius:10px;background:var(--viz-card);color:inherit;font:inherit;font-weight:600;cursor:pointer;transition:background-color .15s,border-color .15s}
+.btn:hover:not(:disabled){border-color:var(--viz-accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--viz-accent);border-color:var(--viz-accent);color:var(--viz-on-accent)}
+.btn-primary:hover:not(:disabled){background:var(--viz-accent-hover);border-color:var(--viz-accent-hover)}
+.btn-small{min-height:32px;padding:0 10px;border-radius:8px;font-size:.8rem}
+.upload{border-style:dashed;position:relative}
+.upload:focus-within{outline:2px solid var(--viz-accent);outline-offset:2px}
+
+.field{margin-top:4px}
+.control{display:block;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--viz-border);border-radius:10px;background:var(--viz-card);color:inherit;font:inherit;font-size:16px}
+.control:focus{border-color:var(--viz-accent)}
+.hint{margin-top:4px;font-size:.75rem;line-height:1.45;color:var(--viz-muted)}
+.tests{padding:10px 12px;border-radius:var(--radius);background:var(--viz-panel);font-size:.75rem;line-height:1.5;color:var(--viz-muted);overflow-wrap:anywhere}
+.tests strong{color:var(--viz-text)}
+.tests .ok{color:var(--viz-ok)}
+.tests .bad{color:var(--viz-danger)}
+
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:.875rem}
+.chip{padding:4px 12px;border:1px solid var(--viz-border);border-radius:999px;background:var(--viz-card);white-space:nowrap}
+.status{color:var(--viz-muted);min-width:0;flex:1 1 220px}
+.filter{width:16rem;min-height:40px;margin-left:auto}
+@media (max-width:640px){.filter{width:100%;margin-left:0}}
+
+.table-wrap{overflow:auto;max-height:min(62vh,640px);border:1px solid var(--viz-border);border-radius:var(--radius);background:var(--viz-card);overscroll-behavior:contain}
+.results{width:100%;min-width:760px;border-collapse:separate;border-spacing:0;text-align:left;font-size:.875rem}
+.results th{position:sticky;top:0;z-index:1;padding:0 8px;background:var(--viz-panel);border-bottom:1px solid var(--viz-border);font-weight:600;white-space:nowrap}
+.results td{padding:8px;border-top:1px solid var(--viz-border);vertical-align:middle}
+.results tbody tr:first-child td{border-top:0}
+.results .num{width:4.5rem;font-variant-numeric:tabular-nums}
+.sort{display:flex;align-items:center;gap:4px;width:100%;min-height:40px;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:600;text-align:left;cursor:pointer}
+.sort .arrow{color:var(--viz-accent)}
+.jrs-row{cursor:pointer}
+.jrs-row:hover td{background:var(--viz-panel)}
+.jrs-row.is-active td{background:var(--viz-active)}
+.cell-file{max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jrs-name{font-family:var(--mono);font-weight:650;overflow-wrap:anywhere}
+.empty{padding:32px 16px!important;text-align:center;color:var(--viz-muted)}
+@media (max-width:800px){.empty{text-align:left}}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.badge-undef{background:var(--viz-danger-bg);color:var(--viz-danger)}
+.badge-tdz{background:var(--viz-warn-bg);color:var(--viz-warn)}
+.badge-implicit{background:var(--viz-info-bg);color:var(--viz-info)}
+.badge-error{background:var(--viz-danger);color:var(--viz-card)}
+
+.preview{padding:12px;border:1px solid var(--viz-border);border-radius:var(--radius);background:var(--viz-panel)}
+.preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;min-width:0}
+.preview-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.875rem}
+.preview-msg{margin:0 0 8px;font-size:.8rem;color:var(--viz-danger);overflow-wrap:anywhere}
+.code{position:relative;overflow-x:auto;padding:8px 0;border-radius:8px;background:var(--viz-card);font:12px/1.6 var(--mono)}
+.code-line{white-space:pre;padding:0 12px 0 0;min-width:max-content}
+.code-line.hit{background:var(--viz-hit);font-weight:700}
+.code-line mark{background:var(--viz-mark);color:inherit;border-radius:2px;box-shadow:0 0 0 1px var(--viz-mark)}
+.ln{display:inline-block;width:4.2em;margin-right:1em;padding-right:.4em;text-align:right;color:var(--viz-muted);user-select:none;-webkit-user-select:none}
+.cut{color:var(--viz-muted);font-weight:400}
+.foot{margin:0;font-size:.75rem;line-height:1.5;color:var(--viz-muted)}
+
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.jrs-row:focus-visible{outline:2px solid var(--viz-accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main id='js-runtime-scan-v2' class='jrs'>
+<header class='jrs-header'>
+  <h1>JS Runtime Variable Scanner</h1>
+  <p>Finds identifiers that would throw at runtime: undefined variables, temporal-dead-zone reads, and implicit globals.</p>
+</header>
+<section class='jrs-input'>
+  <div>
+    <label for='jrs-code' class='jrs-label'>JavaScript source</label>
+    <textarea id='jrs-code' class='jrs-code' spellcheck='false' autocomplete='off' autocapitalize='off' placeholder='Paste JavaScript here…'></textarea>
+  </div>
+  <div class='jrs-side'>
+    <label class='btn upload'>
+      <input id='jrs-files' type='file' multiple accept='.js,.mjs,.cjs,.user.js,text/javascript,application/javascript' class='sr-only'>Upload JS files
+    </label>
+    <button id='jrs-run' disabled type='button' class='btn btn-primary'>Loading analyzer…</button>
+    <button id='jrs-clear' type='button' class='btn'>Clear</button>
+    <div class='field'>
+      <label for='jrs-env' class='jrs-label small'>Environment preset</label>
+      <select id='jrs-env' class='control'>
+        <option value='web' selected>Normal Web</option>
+        <option value='userscript'>Web + Userscript</option>
+        <option value='node'>Node / CommonJS</option>
+        <option value='ecma'>ECMAScript only</option>
+        <option value='browser'>Browser APIs only</option>
+        <option value='none'>None</option>
+      </select>
+      <div id='jrs-env-info' class='hint'>Loading environment data…</div>
+    </div>
+    <div class='field'>
+      <label for='jrs-extra' class='jrs-label small'>Extra globals</label>
+      <input id='jrs-extra' class='control' autocomplete='off' spellcheck='false' placeholder='insp, ytcfg, Vue'>
+    </div>
+    <div id='jrs-tests' class='tests' aria-live='polite'>Regression fixtures pending…</div>
+  </div>
+</section>
+<section class='toolbar'>
+  <span id='jrs-file-count' class='chip'>0 files</span>
+  <span id='jrs-status' role='status' aria-live='polite' class='status'>Initializing…</span>
+  <label for='jrs-filter' class='sr-only'>Filter findings</label>
+  <input id='jrs-filter' type='search' class='control filter' placeholder='Filter file / variable / finding…'>
+</section>
+<section class='table-wrap'>
+<table class='results'>
+<caption class='sr-only'>Findings. Activate a row to preview five lines around it.</caption>
+<thead><tr>
+  <th data-key='file'><button class='sort' data-key='file' type='button'>Filename <span class='arrow'></span></button></th>
+  <th data-key='name'><button class='sort' data-key='name' type='button'>Variable <span class='arrow'></span></button></th>
+  <th data-key='line' class='num'><button class='sort' data-key='line' type='button'>Line <span class='arrow'></span></button></th>
+  <th data-key='column' class='num'><button class='sort' data-key='column' type='button'>Col <span class='arrow'></span></button></th>
+  <th data-key='type'><button class='sort' data-key='type' type='button'>Finding <span class='arrow'></span></button></th>
+  <th>Preview</th>
+</tr></thead>
+<tbody id='jrs-body'><tr><td colspan='6' class='empty'>Paste source or upload files.</td></tr></tbody>
+</table>
+</section>
+<section id='jrs-preview' class='preview' hidden aria-labelledby='jrs-preview-title'>
+  <div class='preview-head'><strong id='jrs-preview-title' class='preview-title'></strong><button id='jrs-preview-close' type='button' class='btn btn-small'>Close</button></div>
+  <p id='jrs-preview-msg' class='preview-msg' hidden></p>
+  <div id='jrs-preview-code' class='code'></div>
+</section>
+<p class='foot'>Custom analyzer architecture: AST parser → scope/binding graph → binding-initialization state machine → semantic reference walk → non-undefined <code>typeof</code> flow facts → constant reachability. External packages (acorn, globals) are used only for parsing and environment-global datasets. Each file is analyzed on its own, so names shared between uploaded files belong in <em>Extra globals</em>.</p>
+</main>
+<script type='module'>
+(async()=>{
+const ROOT=document.querySelector('#js-runtime-scan-v2');if(!ROOT||ROOT.dataset.ready)return;ROOT.dataset.ready='1';
+const $=s=>ROOT.querySelector(s),codeEl=$('#jrs-code'),filesEl=$('#jrs-files'),runBtn=$('#jrs-run'),clearBtn=$('#jrs-clear'),envEl=$('#jrs-env'),envInfo=$('#jrs-env-info'),extraEl=$('#jrs-extra'),testEl=$('#jrs-tests'),statusEl=$('#jrs-status'),fileCount=$('#jrs-file-count'),filterEl=$('#jrs-filter'),bodyEl=$('#jrs-body'),previewEl=$('#jrs-preview'),previewTitle=$('#jrs-preview-title'),previewMsg=$('#jrs-preview-msg'),previewCode=$('#jrs-preview-code');
+let uploads=[],results=[],sortKey='file',sortDir=1,activeIndex=-1;
+let ACORN = null;
+let GLOBALS = null;
+
+const USERGLOBALS = new Set(`unsafeWindow GM GM_info GM_getValue GM_setValue GM_deleteValue GM_listValues GM_getValues GM_setValues GM_deleteValues GM_addValueChangeListener GM_removeValueChangeListener GM_addStyle GM_addElement GM_xmlhttpRequest GM_registerMenuCommand GM_unregisterMenuCommand GM_notification GM_openInTab GM_download GM_setClipboard GM_getResourceText GM_getResourceURL GM_log GM_cookie GM_webRequest GM_getTab GM_saveTab GM_getTabs GM_audio cloneInto exportFunction createObjectIn`.split(/\s+/));
+const keyset = o => new Set(Object.keys(o || {}));
+const mergeSets = (...sets) => new Set(sets.flatMap(s => [...s]));
+function ecmaGlobals() {
+  if (!GLOBALS) return new Set();
+  const out = keyset(GLOBALS.builtin);
+  for (const k of Object.keys(GLOBALS)) {
+    if (/^es\d+$/i.test(k)) for (const n of Object.keys(GLOBALS[k] || {})) out.add(n);
+  }
+  return out;
+}
+function presetGlobals(name) {
+  if (!GLOBALS) return new Set();
+  const E = ecmaGlobals(), B = keyset(GLOBALS.browser), N = keyset(GLOBALS.node);
+  if (name === 'web') return mergeSets(E, B);
+  if (name === 'userscript') return mergeSets(E, B, keyset(GLOBALS.greasemonkey), USERGLOBALS);
+  if (name === 'node') return mergeSets(E, N, keyset(GLOBALS.commonjs));
+  if (name === 'ecma') return E;
+  if (name === 'browser') return B;
+  return new Set();
+}
+
+let scopeId = 0, bindingId = 0;
+class Scope {
+  constructor(parent, type, strict = false) {
+    this.id = ++scopeId;
+    this.parent = parent;
+    this.type = type;
+    this.strict = strict;
+    this.bindings = new Map();
+  }
+  add(name, node, kind, meta = {}) {
+    if (!name) return null;
+    let b = this.bindings.get(name);
+    if (b) {
+      if (kind === 'function' && b.kind === 'var') b.kind = 'function';
+      if (meta.functionNode) b.functionNode = meta.functionNode;
+      if (meta.classNode) b.classNode = meta.classNode;
+      return b;
+    }
+    b = { id: ++bindingId, name, node, kind, scope: this, functionNode: meta.functionNode || null, classNode: meta.classNode || null };
+    this.bindings.set(name, b);
+    return b;
+  }
+  resolve(name) {
+    for (let s = this; s; s = s.parent) {
+      const b = s.bindings.get(name);
+      if (b) return b;
+    }
+    return null;
+  }
+  varScope() {
+    let s = this;
+    while (s.parent && !['function', 'program', 'static'].includes(s.type)) s = s.parent;
+    return s;
+  }
+}
+
+const ENTRY_INITIALIZED = new Set(['global','var','function','import','function-name','arguments']);
+const isDirectiveStrict = body => {
+  for (const st of body || []) {
+    if (st.type !== 'ExpressionStatement' || typeof st.directive !== 'string') break;
+    if (st.directive === 'use strict') return true;
+  }
+  return false;
+};
+
+function forEachPatternIdentifier(node, cb) {
+  if (!node) return;
+  if (node.type === 'Identifier') cb(node);
+  else if (node.type === 'RestElement') forEachPatternIdentifier(node.argument, cb);
+  else if (node.type === 'AssignmentPattern') forEachPatternIdentifier(node.left, cb);
+  else if (node.type === 'ArrayPattern') node.elements.forEach(x => forEachPatternIdentifier(x, cb));
+  else if (node.type === 'ObjectPattern') node.properties.forEach(p => forEachPatternIdentifier(p.type === 'RestElement' ? p.argument : p.value, cb));
+}
+
+function parseSource(src) {
+  const opts = { ecmaVersion: 'latest', locations: true, allowHashBang: true, allowAwaitOutsideFunction: true, allowReturnOutsideFunction: true };
+  try { return { ast: ACORN.parse(src, { ...opts, sourceType: 'script' }), sourceType: 'script' }; }
+  catch (scriptError) {
+    try { return { ast: ACORN.parse(src, { ...opts, sourceType: 'module' }), sourceType: 'module' }; }
+    // The module error only explains the failure when the script error came from module-only syntax.
+    catch (moduleError) { throw /sourceType: module|outside a module/.test(scriptError.message) ? moduleError : scriptError; }
+  }
+}
+
+function buildGraph(ast, sourceType, globals) {
+  scopeId = 0; bindingId = 0;
+  const scopeMap = new WeakMap();
+  const functionInfo = new WeakMap();
+  const classInfo = new WeakMap();
+  const declBinding = new WeakMap();
+  const annexB = [];
+  const rootStrict = sourceType === 'module' || isDirectiveStrict(ast.body);
+  const root = new Scope(null, 'program', rootStrict);
+  scopeMap.set(ast, root);
+  globals.forEach(name => root.add(name, { start: -1 }, 'global'));
+
+  function bindPattern(pattern, scope, kind, meta = {}) {
+    const target = kind === 'var' ? scope.varScope() : scope;
+    const bindings = [];
+    forEachPatternIdentifier(pattern, id => {
+      const b = target.add(id.name, id, kind, meta);
+      declBinding.set(id, b);
+      bindings.push(b);
+    });
+    return bindings;
+  }
+
+  function buildPatternExpressions(pattern, scope, strict) {
+    if (!pattern) return;
+    if (pattern.type === 'AssignmentPattern') {
+      buildExpression(pattern.right, scope, strict);
+      buildPatternExpressions(pattern.left, scope, strict);
+    } else if (pattern.type === 'ArrayPattern') {
+      pattern.elements.forEach(x => buildPatternExpressions(x, scope, strict));
+    } else if (pattern.type === 'ObjectPattern') {
+      for (const p of pattern.properties) {
+        if (p.type === 'RestElement') buildPatternExpressions(p.argument, scope, strict);
+        else {
+          if (p.computed) buildExpression(p.key, scope, strict);
+          buildPatternExpressions(p.value, scope, strict);
+        }
+      }
+    } else if (pattern.type === 'RestElement') buildPatternExpressions(pattern.argument, scope, strict);
+  }
+
+  function buildVariableDeclaration(node, scope, strict) {
+    for (const d of node.declarations) {
+      bindPattern(d.id, scope, node.kind);
+      if (d.id.type === 'Identifier' && d.init && ['FunctionExpression','ArrowFunctionExpression'].includes(d.init.type)) {
+        const b = declBinding.get(d.id); if (b) b.functionNode = d.init;
+      }
+      if (d.id.type === 'Identifier' && d.init?.type === 'ClassExpression') {
+        const b = declBinding.get(d.id); if (b) b.classNode = d.init;
+      }
+      buildPatternExpressions(d.id, scope, strict);
+      if (d.init) buildExpression(d.init, scope, strict);
+    }
+  }
+
+  function buildFunction(node, parentScope, parentStrict) {
+    const ownStrict = parentStrict || (node.body?.type === 'BlockStatement' && isDirectiveStrict(node.body.body));
+    const paramScope = new Scope(parentScope, 'params', ownStrict);
+    scopeMap.set(node, paramScope);
+    if (node.type === 'FunctionExpression' && node.id) {
+      const b = paramScope.add(node.id.name, node.id, 'function-name', { functionNode: node });
+      declBinding.set(node.id, b);
+    }
+    if (node.type !== 'ArrowFunctionExpression') paramScope.add('arguments', node, 'arguments');
+    for (const p of node.params) bindPattern(p, paramScope, 'param');
+    for (const p of node.params) buildPatternExpressions(p, paramScope, ownStrict);
+
+    const bodyScope = new Scope(paramScope, 'function', ownStrict);
+    if (node.body?.type === 'BlockStatement') {
+      scopeMap.set(node.body, bodyScope);
+      for (const st of node.body.body) buildStatement(st, bodyScope, ownStrict);
+    } else if (node.body) buildExpression(node.body, bodyScope, ownStrict);
+    functionInfo.set(node, { paramScope, bodyScope, strict: ownStrict });
+  }
+
+  function buildClass(node, outerScope, strict) {
+    const classScope = new Scope(outerScope, 'class', true);
+    scopeMap.set(node.body, classScope);
+    scopeMap.set(node, classScope);
+    if (node.id) {
+      const b = classScope.add(node.id.name, node.id, 'class-name', { classNode: node });
+      // do not overwrite outer declaration mapping for ClassDeclaration id
+      if (node.type === 'ClassExpression') declBinding.set(node.id, b);
+    }
+    // Heritage and computed names are evaluated inside the class lexical
+    // environment while the inner class-name binding is still uninitialized.
+    if (node.superClass) buildExpression(node.superClass, classScope, true);
+    const instanceFields = [];
+    let constructorFn = null;
+    for (const el of node.body.body) {
+      scopeMap.set(el, classScope);
+      if (el.computed && el.key) buildExpression(el.key, classScope, true);
+      if (el.type === 'MethodDefinition') {
+        if (el.kind === 'constructor') constructorFn = el.value;
+        buildFunction(el.value, classScope, true);
+      } else if (el.type === 'PropertyDefinition' || el.type === 'FieldDefinition') {
+        if (el.value) {
+          buildExpression(el.value, classScope, true);
+          if (!el.static) instanceFields.push(el);
+        }
+      } else if (el.type === 'StaticBlock') {
+        // Static blocks are their own var scope.
+        const staticScope = new Scope(classScope, 'static', true);
+        scopeMap.set(el, staticScope);
+        for (const st of el.body) buildStatement(st, staticScope, true);
+      }
+    }
+    classInfo.set(node, { classScope, instanceFields, constructorFn });
+  }
+
+  function buildExpression(node, scope, strict) {
+    if (!node) return;
+    if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') { buildFunction(node, scope, strict); return; }
+    if (node.type === 'ClassExpression') { buildClass(node, scope, strict); return; }
+    if (node.type === 'ObjectExpression') {
+      for (const p of node.properties) {
+        if (p.type === 'SpreadElement') buildExpression(p.argument, scope, strict);
+        else {
+          if (p.computed) buildExpression(p.key, scope, strict);
+          if (p.value) buildExpression(p.value, scope, strict);
+        }
+      }
+      return;
+    }
+    if (node.type === 'ArrayExpression') { node.elements.forEach(x => x && buildExpression(x, scope, strict)); return; }
+    for (const k of Object.keys(node)) {
+      if (['type','start','end','loc','id','params','body'].includes(k) || (k === 'key' && !node.computed)) continue;
+      const v = node[k];
+      if (Array.isArray(v)) v.forEach(x => x?.type && buildExpression(x, scope, strict));
+      else if (v?.type) buildExpression(v, scope, strict);
+    }
+  }
+
+  function buildStatement(node, scope, strict) {
+    if (!node) return;
+    if (node.type === 'BlockStatement') {
+      const block = new Scope(scope, 'block', strict);
+      scopeMap.set(node, block);
+      for (const st of node.body) buildStatement(st, block, strict);
+      return;
+    }
+    if (node.type === 'VariableDeclaration') { buildVariableDeclaration(node, scope, strict); return; }
+    if (node.type === 'FunctionDeclaration') {
+      if (node.id) {
+        const b = scope.add(node.id.name, node.id, 'function', { functionNode: node });
+        declBinding.set(node.id, b);
+        if (!strict && scope.varScope() !== scope) annexB.push({ node, scope });
+      }
+      buildFunction(node, scope, strict);
+      return;
+    }
+    if (node.type === 'ClassDeclaration') {
+      if (node.id) {
+        const b = scope.add(node.id.name, node.id, 'class', { classNode: node });
+        declBinding.set(node.id, b);
+      }
+      buildClass(node, scope, strict);
+      return;
+    }
+    if (node.type === 'ExpressionStatement') { buildExpression(node.expression, scope, strict); return; }
+    if (node.type === 'IfStatement') {
+      buildExpression(node.test, scope, strict);
+      buildStatement(node.consequent, scope, strict);
+      if (node.alternate) buildStatement(node.alternate, scope, strict);
+      return;
+    }
+    if (['WhileStatement','DoWhileStatement'].includes(node.type)) {
+      if (node.test) buildExpression(node.test, scope, strict);
+      buildStatement(node.body, scope, strict);
+      return;
+    }
+    if (node.type === 'ForStatement') {
+      const loop = new Scope(scope, 'loop', strict); scopeMap.set(node, loop);
+      if (node.init) node.init.type === 'VariableDeclaration' ? buildVariableDeclaration(node.init, loop, strict) : buildExpression(node.init, loop, strict);
+      if (node.test) buildExpression(node.test, loop, strict);
+      if (node.update) buildExpression(node.update, loop, strict);
+      buildStatement(node.body, loop, strict);
+      return;
+    }
+    if (node.type === 'ForOfStatement' || node.type === 'ForInStatement') {
+      const loop = new Scope(scope, 'loop', strict); scopeMap.set(node, loop);
+      if (node.left?.type === 'VariableDeclaration') buildVariableDeclaration(node.left, loop, strict);
+      else if (node.left) buildExpression(node.left, loop, strict);
+      if (node.right) buildExpression(node.right, loop, strict);
+      buildStatement(node.body, loop, strict);
+      return;
+    }
+    if (node.type === 'SwitchStatement') {
+      buildExpression(node.discriminant, scope, strict);
+      const sw = new Scope(scope, 'switch', strict); scopeMap.set(node, sw);
+      for (const c of node.cases) {
+        if (c.test) buildExpression(c.test, sw, strict);
+        for (const st of c.consequent) buildStatement(st, sw, strict);
+      }
+      return;
+    }
+    if (node.type === 'TryStatement') {
+      buildStatement(node.block, scope, strict);
+      if (node.handler) {
+        const cs = new Scope(scope, 'catch', strict); scopeMap.set(node.handler, cs);
+        if (node.handler.param) bindPattern(node.handler.param, cs, 'catch');
+        if (node.handler.param) buildPatternExpressions(node.handler.param, cs, strict);
+        buildStatement(node.handler.body, cs, strict);
+      }
+      if (node.finalizer) buildStatement(node.finalizer, scope, strict);
+      return;
+    }
+    if (node.type === 'WithStatement') { buildExpression(node.object, scope, strict); buildStatement(node.body, scope, strict); return; }
+    if (node.type === 'LabeledStatement') { buildStatement(node.body, scope, strict); return; }
+    if (node.type === 'ReturnStatement' || node.type === 'ThrowStatement') { if (node.argument) buildExpression(node.argument, scope, strict); return; }
+    if (node.type === 'ExportNamedDeclaration' || node.type === 'ExportDefaultDeclaration') {
+      if (node.declaration) {
+        if (/Declaration$/.test(node.declaration.type)) buildStatement(node.declaration, scope, strict);
+        else buildExpression(node.declaration, scope, strict);
+      }
+      return;
+    }
+    if (node.type === 'ImportDeclaration') {
+      for (const sp of node.specifiers) {
+        const b = scope.add(sp.local.name, sp.local, 'import');
+        declBinding.set(sp.local, b);
+      }
+      return;
+    }
+    // Break/Continue/Debugger/Empty have no expressions.
+  }
+
+  for (const st of ast.body) buildStatement(st, root, rootStrict);
+
+  // Annex B.3.3: a sloppy-mode block-level function is also var-bound in the
+  // enclosing function/program unless a lexical declaration of that name is in the way.
+  for (const { node, scope } of annexB) {
+    const name = node.id.name, vs = scope.varScope();
+    let blocked = false;
+    for (let s = scope.parent; s && !blocked; s = s === vs ? null : s.parent) {
+      const b = s.bindings.get(name);
+      if (b && !ENTRY_INITIALIZED.has(b.kind)) blocked = true;
+    }
+    if (!blocked) vs.add(name, node.id, 'var', { functionNode: node });
+  }
+  return { root, rootStrict, scopeMap, functionInfo, classInfo, declBinding };
+}
+
+function newState(strict = false) { return { known: new Set(), initialized: new Set(), facts: new Set(), strict, withDepth: 0, live: true, asyncBoundary: null }; }
+function cloneState(s) { return { known: new Set(s.known), initialized: new Set(s.initialized), facts: new Set(s.facts), strict: s.strict, withDepth: s.withDepth, live: s.live, asyncBoundary: s.asyncBoundary }; }
+function enterScope(state, scope) {
+  const out = cloneState(state);
+  out.strict = out.strict || scope.strict;
+  // Entry-initialized kinds can never be in TDZ, so only lexical bindings are tracked.
+  for (const b of scope.bindings.values()) if (!ENTRY_INITIALIZED.has(b.kind)) out.known.add(b);
+  return out;
+}
+function exitScope(state, scope) {
+  const out = cloneState(state);
+  for (const b of scope.bindings.values()) { out.known.delete(b); out.initialized.delete(b); }
+  return out;
+}
+function union(a,b){return new Set([...a,...b]);}
+function intersect(a,b){return new Set([...a].filter(x=>b.has(x)));}
+function scopeWithin(s, boundary) { for (; s; s = s.parent) if (s === boundary) return true; return false; }
+
+function analyzeSource(src, file, globals) {
+  const failure = (type, e) => ({ file, name: '—', line: e?.loc?.line || 1, column: (e?.loc?.column || 0) + 1, type, source: src, message: String(e?.message || e) });
+  let parsed;
+  try { parsed = parseSource(src); }
+  catch (e) { return [failure('Syntax error', e)]; }
+  const { ast, sourceType } = parsed;
+  let graph;
+  try { graph = buildGraph(ast, sourceType, globals); }
+  catch (e) { return [failure('Analyzer error', e)]; }
+  const { root, rootStrict, scopeMap, functionInfo, classInfo, declBinding } = graph;
+  const findings = [], dedupe = new Set();
+  const activeCalls = new Set(), activeClasses = new Set(), analyzed = new WeakMap();
+  function report(id, type, message='') {
+    const k = `${type}|${id.name}|${id.start}`; if (dedupe.has(k)) return; dedupe.add(k);
+    findings.push({ file, name: id.name, line: id.loc.start.line, column: id.loc.start.column + 1, type, source: src, message });
+  }
+  function bindingInitialized(b, st) { return ENTRY_INITIALIZED.has(b.kind) || (st.known.has(b) && st.initialized.has(b)); }
+  function checkIdentifier(id, scope, st, use='read') {
+    const b = scope.resolve(id.name);
+    if (b) {
+      if (st.known.has(b) && !bindingInitialized(b, st)) report(id, 'Before initialization / TDZ');
+      return b;
+    }
+    if (st.facts.has(id.name)) return null;
+    if (st.withDepth > 0) return null;
+    if (use === 'write-simple' && !st.strict) report(id, 'Implicit global (sloppy write)');
+    else report(id, use === 'write-simple' ? 'Undefined variable (write)' : 'Undefined variable');
+    return null;
+  }
+  function bindingFromPatternIdentifier(id) { return declBinding.get(id) || null; }
+  function initializePattern(pattern, scope, st) {
+    if (!pattern) return st;
+    if (pattern.type === 'Identifier') { const b = bindingFromPatternIdentifier(pattern); if (b) st.initialized.add(b); return st; }
+    if (pattern.type === 'AssignmentPattern') { visitExpression(pattern.right, scope, st); return initializePattern(pattern.left, scope, st); }
+    if (pattern.type === 'RestElement') return initializePattern(pattern.argument, scope, st);
+    if (pattern.type === 'ArrayPattern') { for (const el of pattern.elements) if (el) initializePattern(el, scope, st); return st; }
+    if (pattern.type === 'ObjectPattern') {
+      for (const p of pattern.properties) {
+        if (p.type === 'RestElement') initializePattern(p.argument, scope, st);
+        else { if (p.computed) visitExpression(p.key, scope, st); initializePattern(p.value, scope, st); }
+      }
+    }
+    return st;
+  }
+  function assignPattern(pattern, scope, st, mode='write-simple') {
+    if (!pattern) return;
+    if (pattern.type === 'Identifier') { checkIdentifier(pattern, scope, st, mode); return; }
+    if (pattern.type === 'MemberExpression' || pattern.type === 'OptionalMemberExpression') { visitExpression(pattern.object, scope, st); if (pattern.computed) visitExpression(pattern.property, scope, st); return; }
+    if (pattern.type === 'AssignmentPattern') { assignPattern(pattern.left, scope, st, mode); visitExpression(pattern.right, scope, st); return; }
+    if (pattern.type === 'RestElement') { assignPattern(pattern.argument, scope, st, mode); return; }
+    if (pattern.type === 'ArrayPattern') { pattern.elements.forEach(x => x && assignPattern(x, scope, st, mode)); return; }
+    if (pattern.type === 'ObjectPattern') {
+      for (const p of pattern.properties) {
+        if (p.type === 'RestElement') assignPattern(p.argument, scope, st, mode);
+        else { if (p.computed) visitExpression(p.key, scope, st); assignPattern(p.value, scope, st, mode); }
+      }
+    }
+  }
+  const typeofName = n => n?.type === 'UnaryExpression' && n.operator === 'typeof' && n.argument?.type === 'Identifier' ? n.argument.name : null;
+  function conditionFacts(n) {
+    const blank = () => ({ yes: new Set(), no: new Set() });
+    if (!n) return blank();
+    if (n.type === 'UnaryExpression' && n.operator === '!') { const q = conditionFacts(n.argument); return { yes: q.no, no: q.yes }; }
+    if (n.type === 'LogicalExpression') {
+      const a = conditionFacts(n.left), b = conditionFacts(n.right);
+      if (n.operator === '&&') return { yes: union(a.yes,b.yes), no: intersect(a.no, union(a.yes,b.no)) };
+      if (n.operator === '||') return { yes: intersect(a.yes, union(a.no,b.yes)), no: union(a.no,b.no) };
+      return blank();
+    }
+    if (n.type === 'BinaryExpression' && ['===','==','!==','!='].includes(n.operator)) {
+      let name = null, value = null;
+      const l = typeofName(n.left), r = typeofName(n.right);
+      if (l && n.right?.type === 'Literal' && typeof n.right.value === 'string') { name = l; value = n.right.value; }
+      else if (r && n.left?.type === 'Literal' && typeof n.left.value === 'string') { name = r; value = n.left.value; }
+      if (name) {
+        const eq = n.operator === '===' || n.operator === '==';
+        const yes = new Set(), no = new Set();
+        if (value === 'undefined') { if (eq) no.add(name); else yes.add(name); }
+        else { if (eq) yes.add(name); else no.add(name); }
+        return { yes, no };
+      }
+    }
+    return blank();
+  }
+
+  function constValue(node) {
+    if (!node) return { known:false };
+    if (node.type === 'Literal') return { known:true, value:node.value };
+    if (node.type === 'UnaryExpression') {
+      const q = constValue(node.argument);
+      if (node.operator === 'void') return { known:true, value:undefined };
+      if (!q.known) return { known:false };
+      try {
+        if (node.operator === '!') return { known:true, value:!q.value };
+        if (node.operator === '+') return { known:true, value:+q.value };
+        if (node.operator === '-') return { known:true, value:-q.value };
+        if (node.operator === '~') return { known:true, value:~q.value };
+        if (node.operator === 'typeof') return { known:true, value:typeof q.value };
+      } catch {}
+      return { known:false };
+    }
+    if (node.type === 'BinaryExpression') {
+      const a=constValue(node.left), b=constValue(node.right); if(!a.known||!b.known)return {known:false};
+      try {
+        switch(node.operator){
+          case '===': return {known:true,value:a.value===b.value}; case '!==': return {known:true,value:a.value!==b.value};
+          case '==': return {known:true,value:a.value==b.value}; case '!=': return {known:true,value:a.value!=b.value};
+          case '<': return {known:true,value:a.value<b.value}; case '<=': return {known:true,value:a.value<=b.value};
+          case '>': return {known:true,value:a.value>b.value}; case '>=': return {known:true,value:a.value>=b.value};
+          case '+': return {known:true,value:a.value+b.value}; case '-': return {known:true,value:a.value-b.value};
+          case '*': return {known:true,value:a.value*b.value}; case '/': return {known:true,value:a.value/b.value};
+          case '%': return {known:true,value:a.value%b.value}; case '**': return {known:true,value:a.value**b.value};
+        }
+      } catch {}
+    }
+    if (node.type === 'LogicalExpression') {
+      const a=constValue(node.left); if(!a.known)return {known:false};
+      if(node.operator==='&&') return a.value ? constValue(node.right) : a;
+      if(node.operator==='||') return a.value ? a : constValue(node.right);
+      if(node.operator==='??') return a.value==null ? constValue(node.right) : a;
+    }
+    if (node.type === 'ConditionalExpression') { const t=constValue(node.test); return t.known ? constValue(t.value?node.consequent:node.alternate) : {known:false}; }
+    return { known:false };
+  }
+  function constTruth(node){const q=constValue(node);return q.known?!!q.value:null;}
+  function definitelyNullish(node){const q=constValue(node);return q.known&&q.value==null;}
+
+  function mergeStates(a,b) {
+    if (!a.live) return b; if (!b.live) return a;
+    const out = cloneState(a);
+    out.initialized = intersect(a.initialized,b.initialized);
+    out.known = union(a.known,b.known);
+    out.facts = intersect(a.facts,b.facts);
+    out.live = true;
+    return out;
+  }
+  // Deferred bodies run later, but they inherit the typeof guards and `with`
+  // context that surround their creation site.
+  function deferredState(strict, from) {
+    const s = newState(strict);
+    if (from) { s.facts = new Set(from.facts); s.withDepth = from.withDepth; }
+    return s;
+  }
+  // The same node analyzed from the same observable entry state produces the same
+  // findings; skipping repeats keeps chains of direct calls linear instead of exponential.
+  function firstVisit(node, st, eager) {
+    const pending = eager ? [...st.known].filter(b => !st.initialized.has(b)).map(b => b.id).sort((a, b) => a - b).join(',') : '';
+    const key = `${eager ? 'E' : 'D'}${pending}|${[...st.facts].sort().join(',')}|${st.withDepth}`;
+    let seen = analyzed.get(node); if (!seen) analyzed.set(node, seen = new Set());
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  }
+  // After an await, the rest of an eagerly-called async function runs later,
+  // so bindings outside it are treated as initialized from that point on.
+  function suspendAsync(st) {
+    for (const b of st.known) if (!st.initialized.has(b) && !scopeWithin(b.scope, st.asyncBoundary)) st.initialized.add(b);
+  }
+
+  function analyzeFunction(fn, outerState, eager) {
+    const info = functionInfo.get(fn); if (!info) return;
+    if (activeCalls.has(fn) && eager) return;
+    let st = eager ? cloneState(outerState) : deferredState(info.strict, outerState);
+    if (!firstVisit(fn, st, eager)) return;
+    if (eager) activeCalls.add(fn);
+    st.strict = info.strict;
+    st.asyncBoundary = eager && fn.async ? info.paramScope : null;
+    st = enterScope(st, info.paramScope);
+    for (const p of fn.params) initializePattern(p, info.paramScope, st);
+    st = enterScope(st, info.bodyScope);
+    if (fn.body.type === 'BlockStatement') visitStatementList(fn.body.body, info.bodyScope, st);
+    else visitExpression(fn.body, info.bodyScope, st);
+    if (eager) activeCalls.delete(fn);
+  }
+
+  function analyzeClassDefinition(cls, outerScope, outerState, outerBinding = null) {
+    const info = classInfo.get(cls); if (!info) return;
+    let cs = enterScope(cloneState(outerState), info.classScope);
+    const classNameBinding = cls.id ? info.classScope.bindings.get(cls.id.name) : null;
+
+    // Phase 1: heritage + computed property names.  The inner class name
+    // exists but is still in TDZ here (e.g. class C { [C]() {} }).
+    if (cls.superClass) visitExpression(cls.superClass, info.classScope, cs);
+    for (const el of cls.body.body) if (el.computed && el.key) visitExpression(el.key, info.classScope, cs);
+
+    // Phase 2: class object now exists.  The inner class-name binding is
+    // initialized before static field initializers and static blocks execute.
+    if (classNameBinding) cs.initialized.add(classNameBinding);
+
+    // Phase 3: method bodies are deferred; static initializers run now;
+    // instance field initializers are deferred until construction.
+    for (const el of cls.body.body) {
+      if (el.type === 'MethodDefinition') analyzeFunction(el.value, cs, false);
+      else if (el.type === 'PropertyDefinition' || el.type === 'FieldDefinition') {
+        if (el.value) {
+          if (el.static) visitExpression(el.value, info.classScope, cs);
+          else {
+            let ds = deferredState(true, cs); ds = enterScope(ds, info.classScope);
+            if (classNameBinding) ds.initialized.add(classNameBinding);
+            visitExpression(el.value, info.classScope, ds);
+          }
+        }
+      } else if (el.type === 'StaticBlock') {
+        const bs = scopeMap.get(el); const ss = enterScope(cloneState(cs), bs); ss.asyncBoundary = null; visitStatementList(el.body, bs, ss);
+      }
+    }
+    if (outerBinding) outerState.initialized.add(outerBinding);
+  }
+
+  function analyzeNewClass(cls, callerState) {
+    const info = classInfo.get(cls); if (!info || activeClasses.has(cls)) return;
+    if (!firstVisit(cls, callerState, true)) return;
+    activeClasses.add(cls);
+    const st = enterScope(cloneState(callerState), info.classScope);
+    // Instances can only be created after the class definition finished evaluating.
+    const classNameBinding = cls.id ? info.classScope.bindings.get(cls.id.name) : null;
+    if (classNameBinding) st.initialized.add(classNameBinding);
+    st.asyncBoundary = null;
+    for (const el of info.instanceFields) if (el.value) visitExpression(el.value, info.classScope, st);
+    if (info.constructorFn) analyzeFunction(info.constructorFn, callerState, true);
+    activeClasses.delete(cls);
+  }
+
+  function visitCall(node, scope, st, isNew=false) {
+    let targetBinding = null, directFn = null, directClass = null;
+    if (node.callee.type === 'Identifier') {
+      targetBinding = checkIdentifier(node.callee, scope, st, 'read');
+      if (targetBinding && bindingInitialized(targetBinding, st)) {
+        directFn = targetBinding.functionNode;
+        directClass = targetBinding.classNode;
+      }
+    } else if (node.callee.type === 'FunctionExpression' || node.callee.type === 'ArrowFunctionExpression') {
+      directFn = node.callee;
+    } else if (node.callee.type === 'ClassExpression') {
+      directClass = node.callee;
+      analyzeClassDefinition(node.callee, scope, st, null);
+    } else visitExpression(node.callee, scope, st);
+    if (node.optional && definitelyNullish(node.callee)) return;
+    for (const a of node.arguments || []) visitExpression(a, scope, st);
+    // Calling a generator only creates an iterator; its body does not run yet.
+    if (directFn) {
+      if (!directFn.generator) analyzeFunction(directFn, st, true);
+      else if (directFn === node.callee) analyzeFunction(directFn, st, false);
+    }
+    if (isNew && directClass) analyzeNewClass(directClass, st);
+  }
+
+  function visitExpression(node, scope, st) {
+    if (!node) return;
+    if (node.type === 'Identifier') { checkIdentifier(node, scope, st, 'read'); return; }
+    if (['Literal','ThisExpression','Super','MetaProperty','PrivateIdentifier'].includes(node.type)) return;
+    if (node.type === 'UnaryExpression') {
+      if (node.operator === 'typeof' && node.argument.type === 'Identifier') {
+        const b = scope.resolve(node.argument.name);
+        if (b) checkIdentifier(node.argument, scope, st, 'read');
+        return;
+      }
+      if (node.operator === 'delete' && node.argument.type === 'Identifier') return;
+      visitExpression(node.argument, scope, st); return;
+    }
+    if (node.type === 'UpdateExpression') { if (node.argument.type === 'Identifier') checkIdentifier(node.argument, scope, st, 'readwrite'); else assignPattern(node.argument, scope, st, 'readwrite'); return; }
+    if (node.type === 'AssignmentExpression') {
+      const mode = node.operator === '=' ? 'write-simple' : 'readwrite';
+      if (mode === 'write-simple') {
+        visitExpression(node.right, scope, st);
+        assignPattern(node.left, scope, st, mode);
+      } else {
+        if (node.left.type === 'Identifier') checkIdentifier(node.left, scope, st, mode); else assignPattern(node.left, scope, st, mode);
+        visitExpression(node.right, scope, st);
+      }
+      return;
+    }
+    if (node.type === 'LogicalExpression') {
+      visitExpression(node.left, scope, st);
+      const cv=constValue(node.left);
+      if(node.operator==='&&'&&cv.known&&!cv.value)return;
+      if(node.operator==='||'&&cv.known&&!!cv.value)return;
+      if(node.operator==='??'&&cv.known&&cv.value!=null)return;
+      const q = conditionFacts(node.left); const rs = cloneState(st);
+      if (node.operator === '&&') rs.facts = union(rs.facts,q.yes);
+      else if (node.operator === '||') rs.facts = union(rs.facts,q.no);
+      visitExpression(node.right, scope, rs); return;
+    }
+    if (node.type === 'ConditionalExpression') {
+      visitExpression(node.test, scope, st); const ct=constTruth(node.test);
+      if(ct===true){visitExpression(node.consequent,scope,st);return;}
+      if(ct===false){visitExpression(node.alternate,scope,st);return;}
+      const q=conditionFacts(node.test);
+      const a=cloneState(st), b=cloneState(st); a.facts=union(a.facts,q.yes); b.facts=union(b.facts,q.no);
+      visitExpression(node.consequent, scope, a); visitExpression(node.alternate, scope, b); return;
+    }
+    if (node.type === 'CallExpression') { visitCall(node, scope, st, false); return; }
+    if (node.type === 'NewExpression') { visitCall(node, scope, st, true); return; }
+    if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') { analyzeFunction(node, st, false); return; }
+    if (node.type === 'ClassExpression') { analyzeClassDefinition(node, scope, st, null); return; }
+    if (node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression') { visitExpression(node.object, scope, st); if (node.optional && definitelyNullish(node.object)) return; if (node.computed) visitExpression(node.property, scope, st); return; }
+    if (node.type === 'BinaryExpression') { visitExpression(node.left, scope, st); visitExpression(node.right, scope, st); return; }
+    if (node.type === 'SequenceExpression') { node.expressions.forEach(x=>visitExpression(x,scope,st)); return; }
+    if (node.type === 'ArrayExpression') { node.elements.forEach(x=>x&&visitExpression(x,scope,st)); return; }
+    if (node.type === 'ObjectExpression') {
+      for (const p of node.properties) {
+        if (p.type === 'SpreadElement') visitExpression(p.argument,scope,st);
+        else { if (p.computed) visitExpression(p.key,scope,st); if (p.value) visitExpression(p.value,scope,st); }
+      } return;
+    }
+    if (node.type === 'TemplateLiteral') { node.expressions.forEach(x=>visitExpression(x,scope,st)); return; }
+    if (node.type === 'TaggedTemplateExpression') { visitExpression(node.tag,scope,st); visitExpression(node.quasi,scope,st); return; }
+    if (node.type === 'AwaitExpression') { visitExpression(node.argument,scope,st); if (st.asyncBoundary) suspendAsync(st); return; }
+    if (node.type === 'YieldExpression' || node.type === 'SpreadElement') { if (node.argument) visitExpression(node.argument,scope,st); return; }
+    if (node.type === 'ChainExpression') { visitExpression(node.expression,scope,st); return; }
+    if (node.type === 'ImportExpression') { visitExpression(node.source,scope,st); visitExpression(node.options,scope,st); return; }
+  }
+
+  function visitVariableDeclaration(node, scope, st) {
+    for (const d of node.declarations) {
+      if (d.init) visitExpression(d.init, scope, st);
+      initializePattern(d.id, scope, st);
+    }
+    return st;
+  }
+
+  function visitBlock(block, parentScope, parentState) {
+    const bs = scopeMap.get(block); let st = enterScope(cloneState(parentState), bs);
+    st = visitStatementList(block.body, bs, st);
+    return exitScope(st, bs);
+  }
+
+  function visitStatement(node, scope, st) {
+    if (!node || !st.live) return st;
+    if (node.type === 'BlockStatement') return visitBlock(node, scope, st);
+    if (node.type === 'VariableDeclaration') return visitVariableDeclaration(node, scope, st);
+    if (node.type === 'FunctionDeclaration') { analyzeFunction(node, st, false); return st; }
+    if (node.type === 'ClassDeclaration') { const b = node.id ? declBinding.get(node.id) : null; analyzeClassDefinition(node, scope, st, b); return st; }
+    if (node.type === 'ExpressionStatement') { visitExpression(node.expression, scope, st); return st; }
+    if (node.type === 'IfStatement') {
+      visitExpression(node.test, scope, st); const ct=constTruth(node.test);
+      if(ct===true)return visitStatement(node.consequent,scope,st);
+      if(ct===false)return node.alternate?visitStatement(node.alternate,scope,st):st;
+      const q=conditionFacts(node.test);
+      const a=cloneState(st), b=cloneState(st); a.facts=union(a.facts,q.yes); b.facts=union(b.facts,q.no);
+      const ar=visitStatement(node.consequent,scope,a); const br=node.alternate?visitStatement(node.alternate,scope,b):b;
+      return mergeStates(ar,br);
+    }
+    if (node.type === 'ReturnStatement' || node.type === 'ThrowStatement') { if (node.argument) visitExpression(node.argument,scope,st); const out=cloneState(st); out.live=false; return out; }
+    if (node.type === 'BreakStatement' || node.type === 'ContinueStatement') { const out=cloneState(st); out.live=false; return out; }
+    if (node.type === 'WhileStatement') { visitExpression(node.test,scope,st); if(constTruth(node.test)===false)return st; const q=conditionFacts(node.test); const bs=cloneState(st); bs.facts=union(bs.facts,q.yes); visitStatement(node.body,scope,bs); return st; }
+    if (node.type === 'DoWhileStatement') { visitStatement(node.body,scope,cloneState(st)); visitExpression(node.test,scope,st); return st; }
+    if (node.type === 'ForStatement') {
+      const ls=scopeMap.get(node); let x=enterScope(cloneState(st),ls);
+      if (node.init) node.init.type==='VariableDeclaration'?visitVariableDeclaration(node.init,ls,x):visitExpression(node.init,ls,x);
+      if (node.test) visitExpression(node.test,ls,x); const q=node.test?conditionFacts(node.test):{yes:new Set()};
+      if(!node.test||constTruth(node.test)!==false){const bs=cloneState(x); bs.facts=union(bs.facts,q.yes); visitStatement(node.body,ls,bs); if(node.update)visitExpression(node.update,ls,x);}
+      return exitScope(x,ls);
+    }
+    if (node.type === 'ForOfStatement' || node.type === 'ForInStatement') {
+      const ls=scopeMap.get(node); let x=enterScope(cloneState(st),ls);
+      // RHS is evaluated while lexical loop bindings are still uninitialized.
+      visitExpression(node.right,ls,x);
+      if (node.await && x.asyncBoundary) suspendAsync(x);
+      if (node.left.type === 'VariableDeclaration') {
+        for (const d of node.left.declarations) initializePattern(d.id,ls,x);
+      } else assignPattern(node.left,ls,x,'write-simple');
+      visitStatement(node.body,ls,cloneState(x));
+      return exitScope(x,ls);
+    }
+    if (node.type === 'SwitchStatement') {
+      visitExpression(node.discriminant,scope,st); const ss=scopeMap.get(node); let base=enterScope(cloneState(st),ss);
+      // Analyze each possible case entry with the same switch-entry initialization state; then fall through within that path.
+      for (let start=0; start<node.cases.length; start++) {
+        let cs=cloneState(base);
+        if (node.cases[start].test) visitExpression(node.cases[start].test,ss,cs);
+        for (let i=start;i<node.cases.length && cs.live;i++) cs=visitStatementList(node.cases[i].consequent,ss,cs);
+      }
+      return exitScope(base,ss);
+    }
+    if (node.type === 'TryStatement') {
+      const tr=visitStatement(node.block,scope,cloneState(st)); let cr=null;
+      if (node.handler) {
+        const cs=scopeMap.get(node.handler); let cst=enterScope(cloneState(st),cs);
+        if(node.handler.param)initializePattern(node.handler.param,cs,cst);
+        cr=visitStatement(node.handler.body,cs,cst);
+        cr=exitScope(cr,cs);
+      }
+      let merged=cr?mergeStates(tr,cr):tr;
+      if(node.finalizer){
+        const priorLive=merged.live;
+        const fs=cloneState(merged); fs.live=true;
+        const fr=visitStatement(node.finalizer,scope,fs);
+        if(!fr.live)return fr;
+        merged=fr; merged.live=priorLive;
+      }
+      return merged;
+    }
+    if (node.type === 'WithStatement') {
+      visitExpression(node.object,scope,st); const ws=cloneState(st); ws.withDepth++; const wr=visitStatement(node.body,scope,ws); wr.withDepth=st.withDepth; return wr;
+    }
+    if (node.type === 'LabeledStatement') return visitStatement(node.body,scope,st);
+    if (node.type === 'ExportNamedDeclaration' || node.type === 'ExportDefaultDeclaration') {
+      if(node.declaration){ if(/Declaration$/.test(node.declaration.type)) return visitStatement(node.declaration,scope,st); visitExpression(node.declaration,scope,st); }
+      return st;
+    }
+    return st;
+  }
+  function visitStatementList(list, scope, st) {
+    let x=st;
+    for (const n of list) {
+      if (x.live) { x=visitStatement(n,scope,x); continue; }
+      // Hoisted function declarations stay callable after an unconditional return/throw/break.
+      const fn = n.type === 'FunctionDeclaration' ? n : n.declaration?.type === 'FunctionDeclaration' ? n.declaration : null;
+      if (fn) analyzeFunction(fn, x, false);
+    }
+    return x;
+  }
+
+  try { let rootState = newState(rootStrict); rootState = enterScope(rootState, root); visitStatementList(ast.body,root,rootState); }
+  catch (e) { findings.push(failure('Analyzer error', e)); }
+  return findings;
+}
+
+
+function selectedGlobals(){const s=presetGlobals(envEl.value);extraEl.value.split(/[\s,]+/).filter(Boolean).forEach(x=>s.add(x));return s;}
+function updateEnvironment(){const p=presetGlobals(envEl.value);const d={web:'ECMAScript built-ins ∪ Browser APIs',userscript:'Normal Web ∪ userscript APIs',node:'ECMAScript built-ins ∪ Node/CommonJS',ecma:'ECMAScript built-ins only',browser:'Browser-specific APIs only',none:'No predefined globals'}[envEl.value];envInfo.textContent=`${d} · ${p.size.toLocaleString()} preset names`;}
+const sig=a=>[...new Set(a.map(x=>`${x.type}:${x.name}`))].sort();
+function fixture(name,src,want,env='none',extras=[]){const g=presetGlobals(env);extras.forEach(x=>g.add(x));const got=sig(analyzeSource(src,'fixture.js',g)),exp=[...want].sort();return{group:'core',name,ok:got.join('|')===exp.join('|'),got,exp};}
+function sampleFixture(name,src,want,env='none',extras=[]){const x=fixture(name,src,want,env,extras);x.group='samples';return x;}
+function runRegression(){
+const callChain=Array.from({length:40},(_,i)=>`function f${i}(){f${i+1}();f${i+1}()}`).join('')+'function f40(){}f0()';
+const classChain=Array.from({length:30},(_,i)=>`class C${i}{a=new C${i+1}();b=new C${i+1}()}`).join('')+'class C30{}new C0()';
+const core=[
+ fixture('plain TDZ','x; let x=1',['Before initialization / TDZ:x']),
+ fixture('self initializer','let x=x',['Before initialization / TDZ:x']),
+ fixture('destructure earlier binding','const [a=1,b=a]=[]',[]),
+ fixture('destructure later TDZ','const [a=b,b=1]=[]',['Before initialization / TDZ:b']),
+ fixture('object destructure earlier','const {a=1,b=a}={}',[]),
+ fixture('object destructure later','const {a=b,b=1}={}',['Before initialization / TDZ:b']),
+ fixture('parameter earlier','function f(a=1,b=a){}',[]),
+ fixture('parameter later TDZ','function f(a=b,b=1){}',['Before initialization / TDZ:b']),
+ fixture('parameter self TDZ','function f(a=a){}',['Before initialization / TDZ:a']),
+ fixture('body var invisible to default','function f(a=x){var x=1}',['Undefined variable:x']),
+ fixture('deferred closure','const f=()=>x;let x=1',[]),
+ fixture('direct call before init','function f(){return x}f();let x=1',['Before initialization / TDZ:x']),
+ fixture('direct call after init','function f(){return x}let x=1;f()',[]),
+ fixture('nested direct call before init','function a(){b()}function b(){return x}a();let x=1',['Before initialization / TDZ:x']),
+ fixture('IIFE TDZ','const x=(()=>x)()',['Before initialization / TDZ:x']),
+ fixture('for-of RHS TDZ','function go(n){for(let n of n.a){}}',['Before initialization / TDZ:n']),
+ fixture('loop shadow safe','let y=1;for(const y of [1,2]){y};y',[]),
+ fixture('var hoist','function f(){x;var x=1}',[]),
+ fixture('function hoist','f();function f(){}',[]),
+ fixture('block shadow TDZ','let x=1;{x;const x=2}',['Before initialization / TDZ:x']),
+ fixture('typeof undeclared probe','typeof x',[]),
+ fixture('typeof lexical TDZ','typeof x;let x=1',['Before initialization / TDZ:x']),
+ fixture('typeof early return guard',"function f(){if(typeof x==='undefined')return;x.a}",[]),
+ fixture('typeof inverted guard',"function f(){if(typeof x!=='undefined')return;x.a}",['Undefined variable:x']),
+ fixture('typeof positive branch',"if(typeof x!=='undefined')x.a",[]),
+ fixture('typeof equal object',"if(typeof x==='object')x.a",[]),
+ fixture('typeof not object unsafe',"if(typeof x!=='object')x.a",['Undefined variable:x']),
+ fixture('logical AND guard',"typeof x!=='undefined'&&x.a",[]),
+ fixture('logical OR guard',"typeof x==='undefined'||x.a",[]),
+ fixture('logical wrong direction',"typeof x==='undefined'&&x.a",['Undefined variable:x']),
+ fixture('guard typo',"function f(){if(typeof ytGlobal==='undefined')return;ytglobal.a}",['Undefined variable:ytglobal']),
+ fixture('dead if branch','if(false){missing}',[]),
+ fixture('dead AND branch','false&&missing',[]),
+ fixture('dead OR branch','true||missing',[]),
+ fixture('dead ternary branch','true?1:missing',[]),
+ fixture('optional null short-circuit','null?.[missing]',[]),
+ fixture('sloppy implicit global','x=1',['Implicit global (sloppy write):x']),
+ fixture('strict undefined write',"'use strict';x=1",['Undefined variable (write):x']),
+ fixture('compound undefined read/write','x+=1',['Undefined variable:x']),
+ fixture('with dynamic lookup','const o={x:1};with(o){x}',[]),
+ fixture('after with is normal','const o={x:1};with(o){x};y',['Undefined variable:y']),
+ fixture('class heritage self TDZ','class C extends C{}',['Before initialization / TDZ:C']),
+ fixture('class computed name self TDZ','class C{[C](){}}',['Before initialization / TDZ:C']),
+ fixture('named class expression heritage TDZ','const Base=class{};const X=class C extends C{}',['Before initialization / TDZ:C']),
+ fixture('class static self safe','class C{static x=C}',[]),
+ fixture('instance field deferred','class C{x=y}let y=1;new C()',[]),
+ fixture('static field immediate TDZ','class C{static x=y}let y=1',['Before initialization / TDZ:y']),
+ fixture('property is not variable','const o={};o.foo',[]),
+ fixture('object shorthand is variable','({x})',['Undefined variable:x']),
+ fixture('catch parameter','try{throw 1}catch(e){e}',[]),
+ fixture('switch shared TDZ','switch(1){case 1:x;break;case 2:let x=1}',['Before initialization / TDZ:x']),
+ fixture('Normal Web baseline','Object;Map;Math;Array;WeakSet;WeakMap;Set;Function;Promise;Reflect;Proxy;JSON;Date;RegExp;Window;HTMLFontElement;EventTarget;Performance;MutationObserver;document;AbortSignal;requestAnimationFrame',[],'web'),
+ fixture('None has no preset globals','Object;Map;Window',['Undefined variable:Object','Undefined variable:Map','Undefined variable:Window'],'none'),
+ fixture('webkit typeof fallback',"const r=(typeof webkitRequestAnimationFrame!=='undefined'?webkitRequestAnimationFrame:requestAnimationFrame).bind(window)",[],'web'),
+ fixture('unsafeWindow typeof fallback',"const w=typeof unsafeWindow!=='undefined'?unsafeWindow:window",[],'web'),
+ fixture('AbortSignal compound guard',"const n=typeof AbortSignal!=='undefined'&&typeof (AbortSignal||0).timeout==='function'?1:0",[],'web'),
+ fixture('instance field self reference','class C{x=C}new C()',[]),
+ fixture('instance field self construction','class C{x=new C()}new C()',[]),
+ fixture('static block var stays local','class C{static{var q=1}}q',['Undefined variable:q']),
+ fixture('sloppy block function (Annex B)','{function f(){}}f()',[]),
+ fixture('strict block function stays local',"'use strict';{function f(){}}f()",['Undefined variable:f']),
+ fixture('hoisted function after return','function o(){return h;function h(){missing}}',['Undefined variable:missing']),
+ fixture('generator call defers body','function* g(){yield x}g();let x=1',[]),
+ fixture('async body after await deferred','async function m(){await 0;x}m();let x=1',[]),
+ fixture('async body before await eager','async function m(){x;await 0}m();let x=1',['Before initialization / TDZ:x']),
+ fixture('typeof guard covers closure',"if(typeof GM_x!=='undefined'){setTimeout(()=>GM_x())}",[],'web'),
+ fixture('typeof guard covers function declaration',"function f(){if(typeof gx==='undefined')return;function h(){gx}return h}",[]),
+ fixture('optional call on null','null?.(missing)',[]),
+ fixture('parenthesized string is not a directive',"('use strict');x=1",['Implicit global (sloppy write):x']),
+ fixture('computed key in assignment pattern','var a;({[(()=>missing)()]:a}={})',['Undefined variable:missing']),
+ fixture('Node preset has CommonJS',"require('fs');module.exports=1;__dirname",[],'node'),
+ fixture('Userscript preset has GM APIs','GM_addElement;GM_getTab;GM_setValues;cloneInto',[],'userscript'),
+ fixture('direct-call chain stays linear',callChain,[]),
+ fixture('constructor chain stays linear',classChain,[])
+];
+const sampleGuard=`function f(){if(typeof ytglobal==='undefined')return false;const globalInstance=((ytglobal||0).schedulerInstanceInstance_||0);return globalInstance}`;
+const sampleExtra=`const extraArguments322=(a,b,c)=>{let is=(a||0).is;let videoId=((b||0).updatedMetadataEndpoint||0).videoId;let continuation=(c||0).continuation;if(typeof is!=='string')is=null;if(typeof videoId!=='string')videoId=null;if(typeof continuation!=='string')continuation=null;return {is,videoId,continuation};};cProto.sendServiceAjax717_=cProto.sendServiceAjax_;cProto.sendServiceAjax_=function(a,b,c,d){try{const {is,videoId,continuation}=extraArguments322(a,b,c);if((videoId||continuation)&&(is!=='ytd-video-primary-info-renderer'))console.warn('x')}catch(e){}};`;
+const sampleYProto=`const setupRendering=function(){const cnt=this;const cProto=Reflect.getPrototypeOf(cnt);let yProto=Reflect.getPrototypeOf(cProto);const yProtos=new Set();if(!yMap.has(yProto)){do{if(yProto===Object.prototype||yProto===null)break;if(yProto===Element.prototype||yProto===Node.prototype||yProto===EventTarget.prototype||yProto===HTMLElement_.prototype)break;yProtos.add(yProto);yProto=Reflect.getPrototypeOf(yProto)}while(!yProtos.has(yProto));for(const yProto of yProtos){yMap.add(yProto);setupYProto(yProto)}}};`;
+const sampleCommand=`new MutationObserver(()=>{for(const e of collection){if((e.className||'').includes('-transcript-')){const cnt=insp(e);const command=(cnt.data||0).command;if(command&&!ow.has(command)){loopSet(command,[])}}}}).observe(document,{subtree:true,childList:true});`;
+const sampleDiff=`function diffSplices(original,modified){if(!Array.isArray(original)||!Array.isArray(modified))throw new Error('Inputs must be arrays');const origLen=original.length,modLen=modified.length;if(origLen===0&&modLen===0)return[];if(origLen===0)return[[0,0,modified.slice()]];if(modLen===0)return[[0,origLen,[]]];let prefixLen=0;while(prefixLen<origLen&&prefixLen<modLen&&original[prefixLen]===modified[prefixLen])prefixLen++;let suffixLen=0;while(suffixLen<origLen-prefixLen&&suffixLen<modLen-prefixLen&&original[origLen-1-suffixLen]===modified[modLen-1-suffixLen])suffixLen++;const orig=original.slice(prefixLen,origLen-suffixLen);const mod=modified.slice(prefixLen,modLen-suffixLen);const lcs=computeLCS(orig,mod);const ops=new Array(Math.ceil((orig.length+mod.length)/1.5));let opCount=0;let i=0,j=0,k=0;let curIndex=prefixLen;const lcsLen=lcs.length;while(k<lcsLen){const match=lcs[k];let deleteCount=0;const deleted=[];const added=[];while(i<orig.length&&orig[i]!==match){deleted.push(orig[i]);deleteCount++;i++}while(j<mod.length&&mod[j]!==match){added.push(mod[j]);j++}let isMove=false;if(deleteCount>0&&deleteCount===added.length){isMove=deleted.every((x,idx)=>x===added[idx]);if(isMove&&deleteCount>0){ops[opCount++]=[curIndex,deleteCount,[]];ops[opCount++]=[curIndex,0,added];curIndex+=added.length}}if(!isMove&&(deleteCount>0||added.length>0)){ops[opCount++]=[curIndex,deleteCount,added];curIndex+=added.length}i++;j++;k++;curIndex++}const trailingDelete=orig.length-i;const trailingAdd=mod.slice(j);if(trailingDelete>0||trailingAdd.length>0){const trailingDeleted=orig.slice(i);let isMove=false;if(trailingDelete>0&&trailingDelete===trailingAdd.length){isMove=trailingDeleted.every((x,idx)=>x===trailingAdd[idx]);if(isMove){ops[opCount++]=[curIndex,trailingDelete,[]];ops[opCount++]=[curIndex,0,trailingAdd]}}if(!isMove)ops[opCount++]=[curIndex,trailingDelete,trailingAdd]}ops.length=opCount;return ops}`;
+const samples=[
+ sampleFixture('conversation: ytglobal guard',sampleGuard,[]),
+ sampleFixture('conversation: extraArguments322',sampleExtra,[],'web',['cProto']),
+ sampleFixture('conversation: yProto shadow',sampleYProto,[],'web',['yMap','setupYProto','HTMLElement_']),
+ sampleFixture('conversation: command local',sampleCommand,[],'web',['collection','insp','ow','loopSet']),
+ sampleFixture('conversation: diffSplices',sampleDiff,['Undefined variable:computeLCS'],'web')
+];
+const all=[...core,...samples],failed=all.filter(x=>!x.ok),sampleFailed=samples.filter(x=>!x.ok);testEl.innerHTML=failed.length?`<strong class='bad'>Regression ${all.length-failed.length}/${all.length}</strong><br>${failed.slice(0,5).map(x=>`✗ ${esc(x.name)}: got ${esc(x.got.join(', ')||'none')}`).join('<br>')}${failed.length>5?`<br>… ${failed.length-5} more`:''}`:`<strong class='ok'>Regression ${all.length}/${all.length} passed</strong><br>Conversation samples ${samples.length-sampleFailed.length}/${samples.length} · diffSplices → computeLCS only.`;return failed.length===0;
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Same line terminators as acorn, so preview line numbers match reported lines.
+const LINE_BREAK=/\r\n?|\n|\u2028|\u2029/;
+const MAX_LINE=360,MAX_ROWS=3000;
+const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+let lineCache=new Map();
+const linesOf=src=>{let l=lineCache.get(src);if(!l)lineCache.set(src,l=src.split(LINE_BREAK));return l;};
+const badgeClass=t=>/^Before/.test(t)?'badge-tdz':/^Implicit/.test(t)?'badge-implicit':/error$/.test(t)?'badge-error':'badge-undef';
+const plural=(n,w)=>`${n.toLocaleString()} ${w}${n===1?'':'s'}`;
+
+function codeLine(text,n,r){
+  const hit=n===r.line;let start=0,end=text.length;
+  // Minified bundles can put megabytes on one line; show a window around the finding instead.
+  if(end>MAX_LINE){start=hit?Math.max(0,Math.min(r.column-1-(MAX_LINE>>2),text.length-MAX_LINE)):0;end=start+MAX_LINE;}
+  const a=r.column-1,b=a+(r.name==='—'?0:r.name.length);
+  const body=hit&&b>a&&a>=start&&b<=end?`${esc(text.slice(start,a))}<mark>${esc(text.slice(a,b))}</mark>${esc(text.slice(b,end))}`:esc(text.slice(start,end));
+  return `<div class='code-line${hit?' hit':''}'><span class='ln'>${n}</span>${start>0?`<span class='cut'>…</span>`:''}${body||' '}${end<text.length?`<span class='cut'>…</span>`:''}</div>`;
+}
+function setActive(i){activeIndex=i;bodyEl.querySelector('.is-active')?.classList.remove('is-active');bodyEl.querySelector(`tr[data-i='${i}']`)?.classList.add('is-active');}
+function showPreview(r,scroll=false){
+  const lines=linesOf(r.source),a=Math.max(0,r.line-6),b=Math.min(lines.length,r.line+5);
+  previewTitle.textContent=`${r.file} — ${r.name} @ ${r.line}:${r.column}`;previewTitle.title=previewTitle.textContent;
+  previewMsg.textContent=r.message||'';previewMsg.hidden=!r.message;
+  previewCode.innerHTML=lines.slice(a,b).map((x,i)=>codeLine(x,a+i+1,r)).join('');
+  previewEl.hidden=false;setActive(r.i);
+  const m=previewCode.querySelector('mark');previewCode.scrollLeft=m?Math.max(0,m.offsetLeft-previewCode.clientWidth/2):0;
+  if(scroll)previewEl.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+function hidePreview(){previewEl.hidden=true;setActive(-1);}
+function compare(a,b){
+  for(const k of [sortKey,'file','line','column','name']){
+    const d=typeof a[k]==='number'?a[k]-b[k]:collator.compare(String(a[k]),String(b[k]));
+    if(d)return k===sortKey?d*sortDir:d;
+  }
+  return 0;
+}
+function render(){
+  const q=filterEl.value.trim().toLowerCase();
+  const data=results.filter(r=>!q||`${r.file} ${r.name} ${r.type}`.toLowerCase().includes(q)).sort(compare);
+  ROOT.querySelectorAll('th[data-key]').forEach(th=>{const on=th.dataset.key===sortKey;th.querySelector('.arrow').textContent=on?(sortDir>0?'↑':'↓'):'';if(on)th.setAttribute('aria-sort',sortDir>0?'ascending':'descending');else th.removeAttribute('aria-sort');});
+  const shown=data.slice(0,MAX_ROWS);
+  if(!shown.length){bodyEl.innerHTML=`<tr><td colspan='6' class='empty'>${results.length?'No matching findings.':'No runtime name/scope findings.'}</td></tr>`;return;}
+  bodyEl.innerHTML=shown.map(r=>`<tr class='jrs-row${r.i===activeIndex?' is-active':''}' data-i='${r.i}' title='Preview ±5 lines'><td class='cell-file' title='${esc(r.file)}'>${esc(r.file)}</td><td class='jrs-name'>${esc(r.name)}</td><td class='num'>${r.line}</td><td class='num'>${r.column}</td><td><span class='badge ${badgeClass(r.type)}'>${esc(r.type)}</span></td><td><button type='button' class='btn btn-small' aria-label='Preview ${esc(r.name)} at line ${r.line}'>±5</button></td></tr>`).join('');
+}
+function updateFileCount(){fileCount.textContent=plural(uploads.length,'file');fileCount.title=uploads.map(x=>x.name).join('\n');}
+async function scan(){
+  if(!ACORN||!GLOBALS)return;
+  const sources=[];if(codeEl.value.trim())sources.push({name:'pasted-code.js',text:codeEl.value});sources.push(...uploads);
+  if(!sources.length){statusEl.textContent='Add code or files first.';return;}
+  runBtn.disabled=true;runBtn.textContent='Scanning…';
+  const g=selectedGlobals(),out=[],t0=performance.now();
+  try{
+    for(const [n,x] of sources.entries()){
+      statusEl.textContent=`Scanning ${x.name} (${n+1}/${sources.length})…`;
+      await new Promise(r=>setTimeout(r,0));
+      for(const f of analyzeSource(x.text,x.name,g))out.push(f);
+    }
+    out.forEach((r,i)=>r.i=i);results=out;lineCache=new Map();hidePreview();render();
+    const errors=results.filter(r=>/error$/.test(r.type)).length;
+    statusEl.textContent=`${plural(sources.length,'source')} · ${plural(results.length,'finding')}${errors?` (${plural(errors,'parse/analyzer error')})`:''} · ${g.size.toLocaleString()} accepted globals · ${Math.round(performance.now()-t0)} ms${results.length>MAX_ROWS?` · table capped at ${MAX_ROWS} rows`:''}`;
+  }catch(e){statusEl.textContent=`Scan failed: ${e?.message||e}`;}
+  finally{runBtn.disabled=false;runBtn.textContent='Scan';}
+}
+filesEl.addEventListener('change',async()=>{
+  const picked=[...filesEl.files];filesEl.value='';
+  if(!picked.length)return;
+  const read=await Promise.allSettled(picked.map(async f=>({name:f.name,text:await f.text()})));
+  uploads=read.filter(x=>x.status==='fulfilled').map(x=>x.value);updateFileCount();
+  const failed=read.length-uploads.length;
+  statusEl.textContent=failed?`${plural(uploads.length,'file')} ready · ${failed} could not be read.`:`${plural(uploads.length,'file')} ready.`;
+});
+envEl.addEventListener('change',()=>{if(!GLOBALS)return;updateEnvironment();statusEl.textContent=`Environment changed to ${envEl.options[envEl.selectedIndex].text}.`;});
+extraEl.addEventListener('input',()=>{if(GLOBALS)statusEl.textContent=`Preset + extras: ${selectedGlobals().size.toLocaleString()} accepted globals.`;});
+runBtn.addEventListener('click',scan);filterEl.addEventListener('input',render);$('#jrs-preview-close').addEventListener('click',hidePreview);
+const rowOf=e=>e.target.closest?.('tr[data-i]');
+bodyEl.addEventListener('click',e=>{const tr=rowOf(e);if(tr)showPreview(results[+tr.dataset.i],true);});
+bodyEl.addEventListener('mouseover',e=>{const tr=rowOf(e);if(tr&&+tr.dataset.i!==activeIndex)showPreview(results[+tr.dataset.i],false);});
+bodyEl.addEventListener('focusin',e=>{const tr=rowOf(e);if(tr&&+tr.dataset.i!==activeIndex)showPreview(results[+tr.dataset.i],false);});
+clearBtn.addEventListener('click',()=>{codeEl.value='';filesEl.value='';extraEl.value='';uploads=[];results=[];lineCache=new Map();filterEl.value='';envEl.value='web';updateFileCount();hidePreview();if(GLOBALS)updateEnvironment();render();statusEl.textContent='Cleared.';});
+ROOT.querySelectorAll('.sort').forEach(b=>b.addEventListener('click',()=>{if(sortKey===b.dataset.key)sortDir=-sortDir;else{sortKey=b.dataset.key;sortDir=1}render();}));
+try{const [acornMod,globalsMod]=await Promise.all([import('https://cdn.jsdelivr.net/npm/acorn@8.18.0/+esm'),import('https://cdn.jsdelivr.net/npm/globals@17.12.0/+esm')]);ACORN=acornMod;GLOBALS=globalsMod.default||globalsMod;updateEnvironment();const ok=runRegression();runBtn.disabled=false;runBtn.textContent='Scan';statusEl.textContent=ok?`Analyzer ready · Normal Web ${presetGlobals('web').size.toLocaleString()} globals.`:'Analyzer loaded; regression panel shows failures.';}catch(e){statusEl.textContent=`Could not load parser/environment datasets: ${e?.message||e}`;testEl.textContent='Regression fixtures unavailable.';runBtn.textContent='Unavailable';envInfo.textContent='Environment data unavailable.';}
+})();
+</script>
+</body>
+</html>
