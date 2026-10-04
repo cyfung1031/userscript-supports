@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.2
+// @version     0.43.3
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4057,7 +4057,7 @@
       Node.prototype.removeChild062 = Node.prototype.removeChild;
       let targetErrorMessage = "**UNDEFINED**";
       try {
-        const node = document.documentElement;
+        const node = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         if (node) node.removeChild(node);
       } catch (e) { targetErrorMessage = (e || 0).message || targetErrorMessage; }
       Node.prototype.removeChild = function (child) {
@@ -4074,9 +4074,13 @@
             let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
             if (idx >= 0) {
               internalByPass = true;
-              child.parentNode !== fragD && fragD.appendChild4201(child);
-              this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
-              fragD.removeChild4201(child);
+              try {
+                child.parentNode !== fragD && fragD.appendChild4201(child);
+                this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
+                fragD.removeChild4201(child);
+              } catch (e) {
+                console.warn(e);
+              }
               internalByPass = false;
               return child;
             }
@@ -4094,9 +4098,13 @@
               let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
               if (idx >= 0) {
                 internalByPass = true;
-                child.parentNode !== fragD && fragD.appendChild4201(child);
-                this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
-                fragD.removeChild4201(child);
+                try {
+                  child.parentNode !== fragD && fragD.appendChild4201(child);
+                  this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
+                  fragD.removeChild4201(child);
+                } catch (e) {
+                  console.warn(e);
+                }
                 internalByPass = false;
                 return child;
               }
