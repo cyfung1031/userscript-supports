@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.1
+// @version     0.43.2
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -981,7 +981,9 @@
           let k = null;
           try {
             k = node.__shady_getRootNode();
-          } catch { }
+          } catch (e) {
+            // ignored
+           }
           if (k && k.__keepInstance038__) k.__keepInstance038__ = false;
           if (k && k.nodeType >= 1 && k.isConnected === false) _removedElements.addNode(k);
         }
@@ -2224,68 +2226,66 @@
 
 
   if (FIX_FRAGEMENT_HOST && !DocumentFragment.prototype.host577) {
-    DocumentFragment.prototype.host577 = true;
-    let propsOK = false;
-    const finalizer = new FinalizationRegistry_((frag) => {
+    const proto = DocumentFragment.prototype;
+    const patchChecked = new WeakSet();
 
-      if (!frag.hostCleared55) {
-        frag.hostCleared55 = true;
-        for (const p of [...Object.getOwnPropertyNames(frag), ...Object.getOwnPropertySymbols(frag)]) {
-          const v = frag[p] || 0;
-          if (typeof v === 'object') {
-            frag[p] = null;
-            if (v.length > 0) v.length = 0;
-          }
+    Object.defineProperty(proto, 'host577', { value: true });
+
+    const finalizer = new FinalizationRegistry_(ref => {
+      const frag = kRef(ref);
+      if (!frag || frag.hostCleared55) return;
+      frag.hostCleared55 = true;
+
+      for (const p of Reflect.ownKeys(frag)) {
+        const v = frag[p];
+        if (v && typeof v === 'object') {
+          frag[p] = null;
+          if (typeof v.length === 'number') v.length = 0;
         }
       }
-
     });
-    Object.defineProperty(DocumentFragment.prototype, 'host', {
+
+    const setupProps = p => {
+      if (!p || patchChecked.has(p)) return;
+      patchChecked.add(p);
+
+      for (const k of ['ownerDocument', 'baseURI', 'isConnected']) {
+        const a = Object.getOwnPropertyDescriptor(p, k);
+        const b = Object.getOwnPropertyDescriptor(Node.prototype, k);
+
+        if (a?.get && b?.get && a.configurable) {
+          Object.defineProperty(p, k, {
+            configurable: true,
+            enumerable: a.enumerable,
+            get() {
+              return this.host ? a.get.call(this) : b.get.call(this);
+            }
+          });
+        }
+      }
+    };
+
+    Object.defineProperty(proto, 'host', {
       get() {
-        const r = kRef(this.host677);
-        if (!propsOK && this.nodeType === 11 && r) setupProps(Reflect.getPrototypeOf(this));
-        return r;
+        const host = kRef(this.host677);
+        if (host) setupProps(Reflect.getPrototypeOf(this));
+        return host;
       },
-      set(nv) {
-        nv = kRef(nv);
-        if (typeof (nv || 0) === 'object' && nv.nodeType === 1) {
-          if (!nv[wk]) nv[wk] = mWeakRef(nv);
-          this.host677 = nv[wk];
-          finalizer.register(nv, this);
+      set(host) {
+        host = kRef(host);
+        finalizer.unregister(this);
+
+        if (host?.nodeType === 1) {
+          this.host677 = host[wk] = (host[wk] || mWeakRef(host));
+          finalizer.register(host, mWeakRef(this), this);
         } else {
-          this.host677 = nv;
+          this.host677 = host;
         }
         return true;
       },
       enumerable: true,
       configurable: true
     });
-
-
-    const setupProps = (fragProto) => {
-
-      propsOK = true;
-
-      ["ownerDocument", "baseURI", "isConnected"].forEach(function (b) {
-
-        const pd = Object.getOwnPropertyDescriptor(fragProto, b);
-        const pdn = Object.getOwnPropertyDescriptor(Node.prototype, b);
-        const get1 = pd && pd.get;
-        const get2 = pdn && pdn.get;
-        if (get1 && get2) {
-          delete fragProto[b];
-          Object.defineProperty(fragProto, b, {
-            get: function () {
-              return this.host ? get1.call(this) : get2.call(this);
-            },
-            configurable: !0
-          });
-
-        }
-
-      });
-    }
-
   }
 
 
@@ -4048,39 +4048,30 @@
 
   // let __forceRemoveMode__ = false;
   FIX_removeChild && (() => {
+    const childNodeIndexOf = Array.prototype.indexOf;
     if (typeof Node.prototype.removeChild === 'function' && typeof Node.prototype.removeChild062 !== 'function') {
       let internalByPass = false;
       const fragD = document.createDocumentFragment();
       fragD.appendChild4201 = fragD.appendChild;
       fragD.removeChild4201 = fragD.removeChild;
       Node.prototype.removeChild062 = Node.prototype.removeChild;
+      let targetErrorMessage = "**UNDEFINED**";
+      try {
+        const node = document.documentElement;
+        if (node) node.removeChild(node);
+      } catch (e) { targetErrorMessage = (e || 0).message || targetErrorMessage; }
       Node.prototype.removeChild = function (child) {
+        let err;
         try {
           return this.removeChild062(child);
-        } catch (e) { }
-        if (internalByPass) return child;
-        if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && this.contains(child)) { // eg. child = DOM-IF
-          let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
-          if (idx >= 0) {
-            internalByPass = true;
-            child.parentNode !== fragD && fragD.appendChild4201(child);
-            this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
-            fragD.removeChild4201(child);
-            internalByPass = false;
-            return child;
-          }
+        } catch (e) {
+          err = e;
         }
-        // if (this instanceof Node && child instanceof Node && child.parentNode && child.parentNode.nodeType === 11 && child.parentNode !== this && !this.contains(child)) {
-        //   // force removal
-        //   internalByPass = true;
-        //   child.parentNode !== fragD && fragD.appendChild4201(child);
-        //   fragD.removeChild4201(child);
-        //   internalByPass = false;
-        //   return child;
-        // }
-        if (this && child) {
-          if (this.childNodes && this.childNodes.splice) { // tbc
-            let idx = (this.childNodes || 0).length >= 1 ? this.childNodes.indexOf(child) : -1;
+        const errMessage = (err || 0).message;
+        if (errMessage === targetErrorMessage) {
+          if (internalByPass) return child;
+          if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && this.contains(child)) { // eg. child = DOM-IF
+            let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
             if (idx >= 0) {
               internalByPass = true;
               child.parentNode !== fragD && fragD.appendChild4201(child);
@@ -4090,31 +4081,54 @@
               return child;
             }
           }
+          // if (this instanceof Node && child instanceof Node && child.parentNode && child.parentNode.nodeType === 11 && child.parentNode !== this && !this.contains(child)) {
+          //   // force removal
+          //   internalByPass = true;
+          //   child.parentNode !== fragD && fragD.appendChild4201(child);
+          //   fragD.removeChild4201(child);
+          //   internalByPass = false;
+          //   return child;
+          // }
+          if (this && child) {
+            if (this.childNodes && this.childNodes.splice) { // tbc
+              let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
+              if (idx >= 0) {
+                internalByPass = true;
+                child.parentNode !== fragD && fragD.appendChild4201(child);
+                this.childNodes[idx] === child && typeof this.childNodes.splice === 'function' && this.childNodes.splice(idx, 1);
+                fragD.removeChild4201(child);
+                internalByPass = false;
+                return child;
+              }
+            }
 
-          if (child.parentNode !== this && child.parentNode && child.parentNode === child.__shady_parentNode && child.parentNode.nodeType === 11) {
-            if (child.isConnected === false && (this.compareDocumentPosition(child) & (1 | 8 | 16)) === 1) {
-              // just ignore   (!e.root && a.localName !== "slot" || f === a.__shady_native_parentNode) && f.__shady_native_removeChild(a));
+            if (child.parentNode !== this && child.parentNode && child.parentNode === child.__shady_parentNode && child.parentNode.nodeType === 11) {
+              if (child.isConnected === false && (this.compareDocumentPosition(child) & (1 | 8 | 16)) === 1) {
+                // just ignore   (!e.root && a.localName !== "slot" || f === a.__shady_native_parentNode) && f.__shady_native_removeChild(a));
+                return child;
+              }
+            }
+
+            if (child && child.is === 'tp-yt-paper-tooltip' && !child.parentNode && !child.__shady_parentNode) {
+              // skip
               return child;
             }
+
+            console.warn('[yt-js-engine-tamer] Node is not removed from parent', {
+              parent: this, child: child,
+              isParent: child.parentNode === this,
+              isParentParent: (child.parentNode || 0).parentNode === this,
+              parentNode: child.parentNode,
+              shadyParent: child.__shady_parentNode,
+              isShadyParent: child.__shady_parentNode === this,
+              isAncestor: this instanceof Node && child instanceof Node && this.contains(child)
+            });
+
           }
-
-          if (child && child.is === 'tp-yt-paper-tooltip' && !child.parentNode && !child.__shady_parentNode) {
-            // skip
-            return child;
-          }
-
-          console.warn('[yt-js-engine-tamer] Node is not removed from parent', {
-            parent: this, child: child,
-            isParent: child.parentNode === this,
-            isParentParent: (child.parentNode || 0).parentNode === this,
-            parentNode: child.parentNode,
-            shadyParent: child.__shady_parentNode,
-            isShadyParent: child.__shady_parentNode === this,
-            isAncestor: this instanceof Node && child instanceof Node && this.contains(child)
-          });
-
+          return child;
+        } else {
+          throw err;
         }
-        return child;
       }
     }
   })();
@@ -4256,7 +4270,7 @@
           return;
         }
       }
-      if (this.id == 'movie_player') {
+      if (this.id === 'movie_player') {
         if (mouseEventSet.has(a) && c === undefined && typeof b === "function") {
           const w6 = `__$$${a}$$1926__`;
           if (b[w6]) {
@@ -5188,7 +5202,7 @@
     XMLHttpRequest = (() => {
       const XMLHttpRequest_ = XMLHttpRequest;
       if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
-      const url0 = createObjectURL(new Blob([], { type: 'text/plain' }));
+      const url0 = 'data:text/plain;base64,';
       const c = class XMLHttpRequest extends XMLHttpRequest_ {
         constructor(...args) {
           super(...args);
@@ -5675,12 +5689,17 @@
     });
 
     let checkConfig = true;
-    const flexibleItemDocMo = new MutationObserver(() => {
-      for (const s of document.querySelectorAll('ytd-menu-renderer[has-flexible-items]:not([b289ad])')) {
-        s.setAttribute('b289ad', '');
-        flexibleItemListMo.observe(s, { subtree: false, childList: true });
-        s.appendChild(document.createComment('.')).remove();
+    const selector = 'ytd-menu-renderer[has-flexible-items]:not([b289ad])';
+    const flexibleItemDocMo = new MutationObserver((mutations) => {
+      let check = document.querySelector(selector);
+      if (check) {
+        for (const s of document.querySelectorAll(selector)) {
+          s.setAttribute('b289ad', '');
+          flexibleItemListMo.observe(s, { subtree: false, childList: true });
+          s.appendChild(document.createComment('.')).remove();
+        }
       }
+
       if (checkConfig) {
         const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
         if (config && config.EXPERIMENT_FLAGS) {
@@ -5706,9 +5725,11 @@
             const f = () => {
               let t = proc();
               if (t) {
-                mo.disconnect();
-                mo.takeRecords();
-                mo = null;
+                if (mo) {
+                  mo.disconnect();
+                  mo.takeRecords();
+                  mo = null;
+                }
                 resolve(t);
               }
             }
@@ -5716,6 +5737,11 @@
             mo.observe(document, { subtree: true, childList: true })
             f();
             timeoutPromise && timeoutPromise.then(() => {
+              if (mo) {
+                mo.disconnect();
+                mo.takeRecords();
+                mo = null;
+              }
               resolve(null)
             });
           });
@@ -6061,7 +6087,7 @@
       if (!activeModules.push8792 && activeModules.push) {
         activeModules.push8792 = activeModules.push;
         activeModules.push = function (a, ...args) {
-          checkFn(a);
+          for (const module of arguments) checkFn(module);
           let r = args.length >= 1 ? this.push8792(a, ...args) : this.push8792(a);
           return r;
         }
@@ -6288,36 +6314,40 @@
             bypass = true;
             if (!methodController.__functionInCall7018__) {
               methodController.__functionInCall7018__ = true;
-              if (ENABLE_SUB_COMPONENT_RELAYOUT) {
-                // required for updating the style.transform3d for scrolling
-                const elements = k.querySelectorAll("[class]");
-                const mArray = [];
-                for (const element of elements) {
-                  const eK = element;
-                  const eT = insp(eK);
-                  const methodController = eT._updateLayoutStates ? eT : eK._updateLayoutStates ? eK : null;
-                  const _updateLayoutStates = (methodController || 0)._updateLayoutStates;
-                  if (typeof _updateLayoutStates === "function") {
-                    if (_updateLayoutStates.length !== 0) {
-                      console.warn("Unsupported _updateLayoutStates on " + (element.is || element.nodeName));
-                      continue;
+              try {
+                if (ENABLE_SUB_COMPONENT_RELAYOUT) {
+                  // required for updating the style.transform3d for scrolling
+                  const elements = k.querySelectorAll("[class]");
+                  const mArray = [];
+                  for (const element of elements) {
+                    const eK = element;
+                    const eT = insp(eK);
+                    const methodController = eT._updateLayoutStates ? eT : eK._updateLayoutStates ? eK : null;
+                    const _updateLayoutStates = (methodController || 0)._updateLayoutStates;
+                    if (typeof _updateLayoutStates === "function") {
+                      if (_updateLayoutStates.length !== 0) {
+                        console.warn("Unsupported _updateLayoutStates on " + (element.is || element.nodeName));
+                        continue;
+                      }
+                      mArray.push(methodController);
                     }
-                    mArray.push(methodController);
+                  }
+                  for (let mJ = mArray.length; --mJ >= 0;) {
+                    const mT = mArray[mJ];
+                    if (!updatedSet.has(mT)) {
+                      updatedSet.add(mT);
+                      if (mT.performUpdate && typeof mT.performUpdate === "function" && mT.performUpdate.length === 0 && mT.useRaf === true) mT.performUpdate();
+                      else mT._updateLayoutStates();
+                    }
                   }
                 }
-                for (let mJ = mArray.length; --mJ >= 0;) {
-                  const mT = mArray[mJ];
-                  if (!updatedSet.has(mT)) {
-                    updatedSet.add(mT);
-                    if (mT.performUpdate && typeof mT.performUpdate === "function" && mT.performUpdate.length === 0 && mT.useRaf === true) mT.performUpdate();
-                    else mT._updateLayoutStates();
-                  }
+                // with js tamer settings, this will be called few times (e.g. 3 times)
+                if (!updatedSet.has(methodController)) {
+                  updatedSet.add(methodController);
+                  methodController.performUpdate();
                 }
-              }
-              // with js tamer settings, this will be called few times (e.g. 3 times)
-              if (!updatedSet.has(methodController)) {
-                updatedSet.add(methodController);
-                methodController.performUpdate();
+              } catch (e) {
+                console.warn(e);
               }
               methodController.__functionInCall7018__ = false;
             }
@@ -6376,7 +6406,11 @@
           nextBrowserTick_(() => {
             if (!this.__functionInCall7018__) {
               this.__functionInCall7018__ = true;
-              this.performUpdate();
+              try {
+                this.performUpdate();
+              } catch (e) {
+                console.warn(e);
+              }
               this.__functionInCall7018__ = false;
             }
           });
@@ -6384,7 +6418,11 @@
           // not used
           if (!this.__functionInCall7018__) {
             this.__functionInCall7018__ = true;
-            this.performUpdate();
+            try {
+              this.performUpdate();
+            } catch (e) {
+              console.warn(e);
+            }
             this.__functionInCall7018__ = false;
           }
         }
@@ -6470,11 +6508,12 @@
 
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
 
-      config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;        // single rendering
-      config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;         // single rendering
-      // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;   // DON'T!
-      config.EXPERIMENT_FLAGS.wil_icon_network_first = true;            // single rendering
-
+      if (config.EXPERIMENT_FLAGS) {
+        config.EXPERIMENT_FLAGS.wil_icon_render_when_idle = false;        // single rendering
+        config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;         // single rendering
+        // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;   // DON'T!
+        config.EXPERIMENT_FLAGS.wil_icon_network_first = true;            // single rendering
+      }
 
       // this.renderingMode = _.x("wil_icon_use_mask_rendering") ? 1 : 0;
       // this.isNetworkFirstStrategy = _.x("wil_icon_network_first");
@@ -6592,80 +6631,6 @@
 
   });
 
-
-  /**
-   * Compute the Longest Common Subsequence between two arrays.
-   * Returns an array of the LCS elements (in order).
-   */
-  function computeLCS(a, b) {
-    // Input validation
-    if (!Array.isArray(a) || !Array.isArray(b)) {
-      throw new Error('Inputs must be arrays');
-    }
-
-    const n = a.length, m = b.length;
-    // Early termination for trivial cases
-    if (n === 0 || m === 0) return [];
-    // Check for shallow equality
-    if (n === m && a.every((x, i) => x === b[i])) return a.slice();
-
-    // Use smaller dimension for space optimization
-    if (n > m) return computeLCS(b, a); // Ensure n <= m
-
-    // dp[i%2][j] = length of LCS of a[i..] and b[j..]
-    // Use Uint32Array for robustness with long sequences
-    const dp = [
-      new Uint32Array(m + 1),
-      new Uint32Array(m + 1),
-    ];
-    // Store predecessor for backtracking: 0=diagonal, 1=down, 2=right
-    // Optimize space by storing only necessary entries
-    const pred = new Uint8Array(n * m); // Single array for moves
-
-    for (let i = n - 1; i >= 0; i--) {
-      const curr = i % 2;
-      const next = 1 - curr;
-      // Clear current row for reuse
-      dp[curr].fill(0);
-
-      for (let j = m - 1; j >= 0; j--) {
-        const idx = i * m + j;
-        if (a[i] === b[j]) {
-          dp[curr][j] = dp[next][j + 1] + 1;
-          pred[idx] = 0; // Diagonal
-        } else if (dp[next][j] >= dp[curr][j + 1]) {
-          dp[curr][j] = dp[next][j];
-          pred[idx] = 1; // Down
-        } else {
-          dp[curr][j] = dp[curr][j + 1];
-          pred[idx] = 2; // Right
-        }
-      }
-    }
-
-    // Check for potential overflow
-    if (dp[0][0] > 0xFFFFFFFF) {
-      throw new Error('LCS length exceeds safe integer limit');
-    }
-
-    // Backtrack to build the actual LCS
-    const lcs = [];
-    let i = 0, j = 0;
-    while (i < n && j < m) {
-      const idx = i * m + j;
-      const p = pred[idx];
-      if (p === 0) {
-        lcs.push(a[i]);
-        i++; j++;
-      } else if (p === 1) {
-        i++;
-      } else {
-        j++;
-      }
-    }
-    return lcs;
-  }
-
   /**
    * Given original[] and modified[], produce an array of splice-ops:
    *   [ [start0, deleteCount0, addedItems0],
@@ -6676,120 +6641,434 @@
    *   for (let [s, d, adds] of ops) arr.splice(s, d, ...adds);
    * arr will equal modified.
    */
-  function diffSplices(original, modified) {
-    // Input validation
-    if (!Array.isArray(original) || !Array.isArray(modified)) {
-      throw new Error('Inputs must be arrays');
+
+  const diffSplices = (() => {
+
+    /*
+     * Maximum pending Hirschberg depth is bounded by log2(Array.length).
+     * JS arrays are limited to < 2^32 elements, so 136 uint32 slots is enough:
+     *
+     *   (32 levels + root + margin) * 4 values/frame
+     */
+    const HIRSCHBERG_STACK_SIZE = 136;
+
+    let workspaceRef = null;
+
+    /*
+     * Intentionally produces a dense array.
+     *
+     * Array.prototype.slice() would preserve holes, changing the behavior
+     * of the original implementation.
+     */
+    function denseCopy(array, start, end) {
+      const n = end - start;
+      const out = new Array(n);
+
+      for (let i = 0; i < n; ++i)
+        out[i] = array[start + i];
+
+      return out;
     }
 
-    const origLen = original.length;
-    const modLen = modified.length;
-    // Early termination for trivial cases
-    if (origLen === 0 && modLen === 0) return [];
-    if (origLen === 0) return [[0, 0, modified.slice()]];
-    if (modLen === 0) return [[0, origLen, []]];
+    function diffSplices(original, modified) {
+      if (!Array.isArray(original) || !Array.isArray(modified))
+        throw new Error('Inputs must be arrays');
 
-    // Trim common prefix and suffix
-    let prefixLen = 0;
-    while (prefixLen < origLen && prefixLen < modLen && original[prefixLen] === modified[prefixLen]) {
-      prefixLen++;
-    }
-    let suffixLen = 0;
-    while (
-      suffixLen < origLen - prefixLen &&
-      suffixLen < modLen - prefixLen &&
-      original[origLen - 1 - suffixLen] === modified[modLen - 1 - suffixLen]
-    ) {
-      suffixLen++;
-    }
+      const origLen = original.length;
+      const modLen = modified.length;
 
-    // Cache references for speed
-    const orig = original.slice(prefixLen, origLen - suffixLen);
-    const mod = modified.slice(prefixLen, modLen - suffixLen);
-    const lcs = computeLCS(orig, mod);
-    // Pre-allocate ops array, accounting for potential moves
-    const ops = new Array(Math.ceil((orig.length + mod.length) / 1.5));
-    let opCount = 0;
+      if (!origLen)
+        return modLen ? [[0, 0, modified.slice()]] : [];
 
-    let i = 0, j = 0, k = 0;
-    let curIndex = prefixLen;
-    const lcsLen = lcs.length;
+      if (!modLen)
+        return [[0, origLen, []]];
 
-    while (k < lcsLen) {
-      const match = lcs[k];
-      let deleteCount = 0;
-      const deleted = [];
-      const added = [];
 
-      // 1) Collect deletions up to the next common element
-      while (i < orig.length && orig[i] !== match) {
-        deleted.push(orig[i]);
-        deleteCount++;
-        i++;
+      /*
+       * Strip equal prefix.
+       */
+      const minLen = origLen < modLen ? origLen : modLen;
+
+      let prefix = 0;
+
+      while (
+        prefix < minLen &&
+        original[prefix] === modified[prefix]
+      ) ++prefix;
+
+
+      /*
+       * Strip equal suffix.
+       */
+      let origEnd = origLen;
+      let modEnd = modLen;
+
+      while (
+        origEnd > prefix &&
+        modEnd > prefix &&
+        original[origEnd - 1] === modified[modEnd - 1]
+      ) {
+        --origEnd;
+        --modEnd;
       }
 
-      // 2) Collect insertions up to that same element
-      while (j < mod.length && mod[j] !== match) {
-        added.push(mod[j]);
-        j++;
+
+      const origMidLen = origEnd - prefix;
+      const modMidLen = modEnd - prefix;
+
+      if (!origMidLen && !modMidLen)
+        return [];
+
+      if (!origMidLen)
+        return [[prefix, 0, modified.slice(prefix, modEnd)]];
+
+      if (!modMidLen)
+        return [[prefix, origMidLen, []]];
+
+
+      const ops = [];
+
+      let oi = prefix;
+      let mj = prefix;
+      let curIndex = prefix;
+
+
+      /*
+       * Keep B as the shorter sequence, minimizing O(min(n,m)) storage.
+       */
+      let A = original;
+      let B = modified;
+
+      let aBase = prefix;
+      let bBase = prefix;
+
+      let aLen = origMidLen;
+      let bLen = modMidLen;
+
+      if (bLen > aLen) {
+        [A, B] = [B, A];
+        [aBase, bBase] = [bBase, aBase];
+        [aLen, bLen] = [bLen, aLen];
       }
 
-      // 3) Check for a move (deleted segment matches inserted segment)
-      let isMove = false;
-      if (deleteCount > 0 && deleteCount === added.length) {
-        isMove = deleted.every((x, idx) => x === added[idx]);
-        if (isMove) {
-          // If a move, split into delete and insert at different indices
-          if (deleteCount > 0) {
-            ops[opCount++] = [curIndex, deleteCount, []]; // Delete at current index
-            ops[opCount++] = [curIndex, 0, added]; // Insert at same index
-            curIndex += added.length; // Advance past inserted items
+
+      /*
+       * Weakly cached reusable workspace.
+       *
+       * Important optimization:
+       * don't allocate another WeakRef when the previous workspace survived.
+       */
+      let ws = kRef(workspaceRef);
+
+      if (!ws) {
+        ws = {
+          forward: new Uint32Array(0),
+          reverse: new Uint32Array(0),
+          stack: new Uint32Array(HIRSCHBERG_STACK_SIZE),
+        };
+        workspaceRef = mWeakRef(ws);
+      }
+
+      let required = bLen + 1;
+      // ensureWorkspace(ws, bLen + 1);
+      if (ws.forward.length < required) {
+        let capacity = ws.forward.length || 16;
+        // Avoid bitwise << overflow: JS bitwise operators are signed int32.
+        while (capacity < required) {
+          capacity *= 2;
+          if (capacity > required && capacity > 0x7fffffff) {
+            capacity = required;
+            break;
           }
         }
+        ws.forward = new Uint32Array(capacity);
+        ws.reverse = new Uint32Array(capacity);
       }
 
-      // 4) Combine delete and insert into a single operation if not a move
-      if (!isMove && (deleteCount > 0 || added.length > 0)) {
-        ops[opCount++] = [curIndex, deleteCount, added];
-        curIndex += added.length; // Advance past inserted items
+      const forward = ws.forward;
+      const reverse = ws.reverse;
+      const stack = ws.stack;
+
+
+      /*
+       * Iterative Hirschberg.
+       *
+       * Stack frame:
+       *
+       *   aStart, aEnd, bStart, bEnd
+       */
+      let sp = 0;
+
+      stack[sp++] = 0;
+      stack[sp++] = aLen;
+      stack[sp++] = 0;
+      stack[sp++] = bLen;
+
+
+      while (sp) {
+        const bEnd = stack[--sp];
+        const bStart = stack[--sp];
+        const aEnd = stack[--sp];
+        const aStart = stack[--sp];
+
+        const aLength = aEnd - aStart;
+        const bLength = bEnd - bStart;
+
+        if (!aLength || !bLength)
+          continue;
+
+
+        /*
+         * Handle one-element base cases without calling emitMatch().
+         * This removes the per-invocation closure and hot-path function call.
+         */
+        let matched = false;
+        let match;
+
+        if (aLength === 1) {
+          const value = A[aBase + aStart];
+
+          for (let j = bStart; j < bEnd; ++j) {
+            if (B[bBase + j] === value) {
+              match = value;
+              matched = true;
+              break;
+            }
+          }
+        }
+        else if (bLength === 1) {
+          const value = B[bBase + bStart];
+
+          for (let i = aStart; i < aEnd; ++i) {
+            if (A[aBase + i] === value) {
+              match = value;
+              matched = true;
+              break;
+            }
+          }
+        }
+        else {
+          const aMid = (aStart + aEnd) >>> 1;
+
+
+          /*
+           * Forward LCS row.
+           */
+          forward.fill(0, 0, bLength + 1);
+
+          for (let i = aStart; i < aMid; ++i) {
+            const av = A[aBase + i];
+            let diag = 0;
+
+            let k = 1;
+            let bi = bBase + bStart;
+
+            for (; k <= bLength; ++k, ++bi) {
+              const up = forward[k];
+
+              if (av === B[bi]) {
+                forward[k] = diag + 1;
+              }
+              else {
+                const left = forward[k - 1];
+
+                if (left > up)
+                  forward[k] = left;
+              }
+
+              diag = up;
+            }
+          }
+
+
+          /*
+           * Reverse LCS row.
+           */
+          reverse.fill(0, 0, bLength + 1);
+
+          for (let i = aEnd - 1; i >= aMid; --i) {
+            const av = A[aBase + i];
+            let diag = 0;
+
+            let k = bLength - 1;
+            let bi = bBase + bStart + k;
+
+            for (; k >= 0; --k, --bi) {
+              const down = reverse[k];
+
+              if (av === B[bi]) {
+                reverse[k] = diag + 1;
+              }
+              else {
+                const right = reverse[k + 1];
+
+                if (right > down)
+                  reverse[k] = right;
+              }
+
+              diag = down;
+            }
+          }
+
+
+          /*
+           * Select optimal B split.
+           */
+          let bestK = 0;
+          let bestScore = reverse[0];
+
+          for (let k = 1; k <= bLength; ++k) {
+            const score = forward[k] + reverse[k];
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestK = k;
+            }
+          }
+
+          const bMid = bStart + bestK;
+
+
+          /*
+           * Push right first so left is processed first.
+           */
+          stack[sp++] = aMid;
+          stack[sp++] = aEnd;
+          stack[sp++] = bMid;
+          stack[sp++] = bEnd;
+
+          stack[sp++] = aStart;
+          stack[sp++] = aMid;
+          stack[sp++] = bStart;
+          stack[sp++] = bMid;
+
+          continue;
+        }
+
+
+        if (!matched)
+          continue;
+
+
+        /*
+         * Inline emitMatch().
+         */
+        const oStart = oi;
+
+        while (oi < origEnd && original[oi] !== match)
+          ++oi;
+
+        const mStart = mj;
+
+        while (mj < modEnd && modified[mj] !== match)
+          ++mj;
+
+        const deleteCount = oi - oStart;
+        const addCount = mj - mStart;
+
+
+        if (deleteCount && deleteCount === addCount) {
+          let equal = true;
+
+          for (let i = 0; i < deleteCount; ++i) {
+            if (original[oStart + i] !== modified[mStart + i]) {
+              equal = false;
+              break;
+            }
+          }
+
+          if (equal) {
+            ops.push(
+              [curIndex, deleteCount, []],
+              [curIndex, 0, denseCopy(modified, mStart, mj)]
+            );
+
+            curIndex += addCount;
+
+            ++oi;
+            ++mj;
+            ++curIndex;
+
+            continue;
+          }
+        }
+
+
+        if (deleteCount || addCount) {
+          ops.push([
+            curIndex,
+            deleteCount,
+            denseCopy(modified, mStart, mj),
+          ]);
+
+          curIndex += addCount;
+        }
+
+        ++oi;
+        ++mj;
+        ++curIndex;
       }
 
-      // 5) Skip over the matching element itself
-      i++;
-      j++;
-      k++;
-      curIndex++;
-    }
 
-    // 6) Handle any trailing deletions and insertions as a single operation
-    const trailingDelete = orig.length - i;
-    const trailingAdd = mod.slice(j);
-    if (trailingDelete > 0 || trailingAdd.length > 0) {
-      // Check for trailing move
-      const trailingDeleted = orig.slice(i);
-      let isMove = false;
-      if (trailingDelete > 0 && trailingDelete === trailingAdd.length) {
-        isMove = trailingDeleted.every((x, idx) => x === trailingAdd[idx]);
+      /*
+       * Trailing unmatched region.
+       */
+      const trailingDelete = origEnd - oi;
+      const trailingAddCount = modEnd - mj;
+
+      if (!trailingDelete && !trailingAddCount)
+        return ops;
+
+
+      /*
+       * Preserve slice() here because the original implementation intentionally
+       * preserves sparse-array holes for this particular trailing operation.
+       */
+      const trailingAdd = modified.slice(mj, modEnd);
+
+
+      /*
+       * Preserve the original Array.prototype.every()-compatible sparse behavior.
+       */
+      if (
+        trailingDelete &&
+        trailingDelete === trailingAddCount
+      ) {
+        let isMove = true;
+
+        for (let i = 0; i < trailingDelete; ++i) {
+          if (
+            (oi + i) in original &&
+            original[oi + i] !== trailingAdd[i]
+          ) {
+            isMove = false;
+            break;
+          }
+        }
+
         if (isMove) {
-          ops[opCount++] = [curIndex, trailingDelete, []];
-          ops[opCount++] = [curIndex, 0, trailingAdd];
+          ops.push(
+            [curIndex, trailingDelete, []],
+            [curIndex, 0, trailingAdd]
+          );
+
+          return ops;
         }
       }
-      if (!isMove) {
-        ops[opCount++] = [curIndex, trailingDelete, trailingAdd];
-      }
+
+
+      ops.push([
+        curIndex,
+        trailingDelete,
+        trailingAdd,
+      ]);
+
+      return ops;
     }
 
-    // 7) Truncate ops array to actual size
-    ops.length = opCount;
 
-    return ops;
-  }
-  // class listPlaceholder {
-  //   constructor(len){
-  //     this.length = len;
-  //   }
-  // }
+    return diffSplices;
+  })();
 
   
 
@@ -8564,17 +8843,11 @@
       return function (text, reviver) {
         const onerror = window.onerror;
         window.onerror = null;
-        let r;
         try {
-          r = parse(...arguments);
-        } catch (e) {
-          r = e;
+          return parse(...arguments);
+        } finally {
+          window.onerror = onerror;
         }
-        window.onerror = onerror;
-        if (r instanceof Error) {
-          throw r;
-        }
-        return r;
       }
 
     })(JSON.parse);
@@ -11221,8 +11494,11 @@
             return this;
 
           };
-
-          _updateAnimationsPromises.call({});
+          try {
+            _updateAnimationsPromises.call({});
+          } catch (e) {
+            console.warn(e);
+          }
 
           Array.prototype.filter = p;
 
@@ -11442,8 +11718,7 @@
         });
 
 
-        let pdFinished = Object.getOwnPropertyDescriptor(aniProto, 'finished');
-        aniProto.__finished_native_get__ = pdFinished.get;
+        const pdFinished = Object.getOwnPropertyDescriptor(aniProto, 'finished') || 0;
         if (typeof pdFinished.get === 'function' && !pdFinished.set && pdFinished.configurable === true && pdFinished.enumerable === true) {
 
 
@@ -11455,10 +11730,9 @@
                     resolve(this)
                   };
                   this._rejectFinishedPromise = function () {
-                    reject({
-                      type: DOMException.ABORT_ERR,
-                      name: "AbortError"
-                    })
+                    const error = new DOMException('The operation was aborted.', 'AbortError');
+                    error.type = DOMException.ABORT_ERR;
+                    reject(error);
                   };
                 }),
                 "finished" == this.playState && this._resolveFinishedPromise());
@@ -11473,8 +11747,7 @@
 
 
 
-        let pdReady = Object.getOwnPropertyDescriptor(aniProto, 'ready');
-        aniProto.__ready_native_get__ = pdReady.get;
+        let pdReady = Object.getOwnPropertyDescriptor(aniProto, 'ready') || 0;
         if (typeof pdReady.get === 'function' && !pdReady.set && pdReady.configurable === true && pdReady.enumerable === true) {
 
           Object.defineProperty(aniProto, 'ready', {
@@ -11485,10 +11758,9 @@
                     resolve(this)
                   };
                   this._rejectReadyPromise = function () {
-                    reject({
-                      type: DOMException.ABORT_ERR,
-                      name: "AbortError"
-                    })
+                    const error = new DOMException('The operation was aborted.', 'AbortError');
+                    error.type = DOMException.ABORT_ERR;
+                    reject(error);
                   };
                 }),
                 "pending" !== this.playState && this._resolveReadyPromise());
@@ -11655,6 +11927,7 @@
               } while (--n > 0)
             }
           }
+          return this;
         }
 
         removeAdd(key) {
@@ -11709,8 +11982,8 @@
       function copyPreviousContiuationToIgnored374(toClearRecorded) {
 
 
-        if (mfvContinuationRecorded.length > 0) {
-          for (const [e, d] of mfvContinuationRecorded) {
+        if (mfvContinuationRecorded.size > 0) {
+          for (const e of mfvContinuationRecorded) {
             mfyContinuationIgnored.removeAdd(e);
           }
           toClearRecorded && mfvContinuationRecorded.clear();
@@ -12553,8 +12826,8 @@
             return true;
           }
         }).obtain();
-        let collection = document.getElementsByTagName("ytd-button-renderer");
-        let ow = new WeakSet();
+        const collection = document.getElementsByTagName("ytd-button-renderer");
+        const ow = new WeakSet();
         const loopSet = (o, parents) => {
           if (!o || typeof o !== "object") return;
           if (ow.has(o)) return;

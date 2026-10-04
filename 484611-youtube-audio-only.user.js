@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.12
+// @version             2.3.13
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -553,7 +553,7 @@
             XMLHttpRequest = (() => {
                 const XMLHttpRequest_ = XMLHttpRequest;
                 if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
-                const url0 = createObjectURL(new Blob([], { type: 'text/plain' }));
+                const url0 = 'data:text/plain;base64,';
                 const c = class XMLHttpRequest extends XMLHttpRequest_ {
                     constructor(...args) {
                         super(...args);

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Music: Audio Only
-// @version             0.2.5
+// @version             0.2.6
 // @description         No Video Streaming
 // @description:en      No Video Streaming
 // @description:ja      No Video Streaming
@@ -708,7 +708,7 @@
             XMLHttpRequest = (() => {
                 const XMLHttpRequest_ = XMLHttpRequest;
                 if ('__xmMc8__' in XMLHttpRequest_.prototype) return XMLHttpRequest_;
-                const url0 = createObjectURL(new Blob([], { type: 'text/plain' }));
+                const url0 = 'data:text/plain;base64,';
                 const c = class XMLHttpRequest extends XMLHttpRequest_ {
                     constructor(...args) {
                         super(...args);
