@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.32
+// @version             0.102.33
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -1543,12 +1543,12 @@
   if (win[hkey_script]) throw new Error('Duplicated Userscript Calling'); // avoid duplicated scripting
   win[hkey_script] = true;
 
-  const setTimeoutX0 = setTimeout;
-  const clearTimeoutX0 = clearTimeout;
+  // const setTimeoutX0 = setTimeout;
+  // const clearTimeoutX0 = clearTimeout;
   const setIntervalX0 = setInterval;
-  const clearIntervalX0 = clearInterval;
+  // const clearIntervalX0 = clearInterval;
 
-  const __shady_native_appendChild = HTMLElement_.prototype.__shady_native_appendChild || HTMLElement_.prototype.appendChild;
+  // const __shady_native_appendChild = HTMLElement_.prototype.__shady_native_appendChild || HTMLElement_.prototype.appendChild;
   const __shady_native_removeChild = HTMLElement_.prototype.__shady_native_removeChild || HTMLElement_.prototype.removeChild;
 
   const isEmptyObject = (obj) => {
@@ -2342,57 +2342,58 @@
 
   const assertor = (f) => f() || (console.assert(false, `${f}`), false);
 
-  const fnIntegrity_oldv1 = (f, d) => {
+  /*
+    const fnIntegrity_oldv1 = (f, d) => {
 
 
-    if (!f || typeof f !== 'function') {
-      console.warn('f is not a function', f);
-      return;
-    }
-    // return; // M44
-    let p = `${f}`, s = 0, j = -1, w = 0;
-    // return; // M44
-    for (let i = 0, l = p.length; i < l; i++) {
-      const t = p[i];
-      if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
-        if (j < i - 1) w++;
-        j = i;
+      if (!f || typeof f !== 'function') {
+        console.warn('f is not a function', f);
+        return;
+      }
+      // return; // M44
+      let p = `${f}`, s = 0, j = -1, w = 0;
+      // return; // M44
+      for (let i = 0, l = p.length; i < l; i++) {
+        const t = p[i];
+        if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
+          if (j < i - 1) w++;
+          j = i;
+        } else {
+          s++;
+        }
+      }
+      // if(p.length > 44 && p.length < 50){
+
+      //   (window.skam|| (window.skam=[])).push(p);
+      //   return false;
+      // }
+
+      //     if(p.length >  405 && p.length < 415 ){ //350 450
+
+
+      //  //  [353, 411, 411, 411]
+
+      //       // if(p.length >= 350 && p.length<=450){
+
+      //       //   (window.skam|| (window.skam=[])).push(p.length);
+      //       // }
+      //       (window.skam|| (window.skam=[])).push(p);
+      //       return false;
+      //     }
+
+      // if(p.length < 50) return true; else return false;
+      // return; // M44
+      let itz = `${f.length}.${s}.${w}`;
+      if (!d) {
+        return itz;
+      } else if (itz !== d) {
+        console.warn('fnIntegrity=false', itz);
+        return false;
       } else {
-        s++;
+        return true;
       }
     }
-    // if(p.length > 44 && p.length < 50){
-
-    //   (window.skam|| (window.skam=[])).push(p);
-    //   return false;
-    // }
-
-    //     if(p.length >  405 && p.length < 415 ){ //350 450
-
-
-    //  //  [353, 411, 411, 411]
-
-    //       // if(p.length >= 350 && p.length<=450){
-
-    //       //   (window.skam|| (window.skam=[])).push(p.length);
-    //       // }
-    //       (window.skam|| (window.skam=[])).push(p);
-    //       return false;
-    //     }
-
-    // if(p.length < 50) return true; else return false;
-    // return; // M44
-    let itz = `${f.length}.${s}.${w}`;
-    if (!d) {
-      return itz;
-    } else if (itz !== d) {
-      console.warn('fnIntegrity=false', itz);
-      return false;
-    } else {
-      return true;
-    }
-  }
-
+  */
 
   const fnIntegrity = (f, d) => {
 
@@ -2469,10 +2470,7 @@
   ; (ENABLE_FLAGS_MAINTAIN_STABLE_LIST || ENABLE_FLAGS_REUSE_COMPONENTS || DISABLE_FLAGS_SHADYDOM_FREE) && (() => {
 
     const _config_ = () => {
-      try {
-        return ytcfg.data_;
-      } catch (e) { }
-      return null;
+      return typeof ytcfg === "object" && ((ytcfg || 0).data_ || null);
     };
 
     const flagsFn = (EXPERIMENT_FLAGS) => {
@@ -3611,48 +3609,50 @@
     const renderMap = new WeakMap();
 
 
-    // reserved for future use
-    const countKeys = (H) => {
+    /*
+      // reserved for future use
+      const countKeys = (H) => {
 
-      const countKeys_ = (H, u, q, l) => {
-        if (u.has(H)) return;
-        u.add(H);
-        const pds = Object.getOwnPropertyDescriptors(H);
-        for (const name in pds) {
-          const pd_ = pds[name];
-          const o = pd_.value;
-          if (o && pd_.configurable && pd_.writable && !(o instanceof EventTarget)) {
-            if (typeof o === 'object') {
-              q.push([l, name.length]); 
-              countKeys_(o, u, q, l+1);
+        const countKeys_ = (H, u, q, l) => {
+          if (u.has(H)) return;
+          u.add(H);
+          const pds = Object.getOwnPropertyDescriptors(H);
+          for (const name in pds) {
+            const pd_ = pds[name];
+            const o = pd_.value;
+            if (o && pd_.configurable && pd_.writable && !(o instanceof EventTarget)) {
+              if (typeof o === 'object') {
+                q.push([l, name.length]); 
+                countKeys_(o, u, q, l+1);
+              }
             }
           }
-        }
-      };
-      const m = [];
-      countKeys_(H, new WeakSet(), m, 0);
-      
-      return `-${tupleHash(m, false).toString(36)}${tupleHash(m, true).toString(36)}`; // 12 chars
-    }
-
-    // reserved for future use
-    function tupleHash(pairs, reversed) {
-      let hash = 17; // Prime seed
-      const prime1 = 31;
-      for (let i = 0; i < pairs.length; i++) {
-        const [a_, b_] = pairs[i];
-        const a = reversed ? b_ : a_;
-        const b = reversed ? a_ : b_;
-        // Combine a and b into pairHash
-        let pairHash = ((a * prime1) ^ b) >>> 0;
-        // Mix pairHash into hash with bitwise operations
-        hash ^= pairHash;
-        hash = ((hash << 5) | (hash >>> 27)) >>> 0; // Rotate left 5 bits
-        hash = (hash * 37 + 11) >>> 0; // Small prime multiplier and offset
+        };
+        const m = [];
+        countKeys_(H, new WeakSet(), m, 0);
+        
+        return `-${tupleHash(m, false).toString(36)}${tupleHash(m, true).toString(36)}`; // 12 chars
       }
-      // Finalize to ensure fixed range (optional: constrain to 30 bits)
-      return 0x2FFFFFFF + (hash & 0x3FFFFFFF); // Mask to 30 bits (max: 1073741823)
-    }
+
+      // reserved for future use
+      function tupleHash(pairs, reversed) {
+        let hash = 17; // Prime seed
+        const prime1 = 31;
+        for (let i = 0; i < pairs.length; i++) {
+          const [a_, b_] = pairs[i];
+          const a = reversed ? b_ : a_;
+          const b = reversed ? a_ : b_;
+          // Combine a and b into pairHash
+          let pairHash = ((a * prime1) ^ b) >>> 0;
+          // Mix pairHash into hash with bitwise operations
+          hash ^= pairHash;
+          hash = ((hash << 5) | (hash >>> 27)) >>> 0; // Rotate left 5 bits
+          hash = (hash * 37 + 11) >>> 0; // Small prime multiplier and offset
+        }
+        // Finalize to ensure fixed range (optional: constrain to 30 bits)
+        return 0x2FFFFFFF + (hash & 0x3FFFFFFF); // Mask to 30 bits (max: 1073741823)
+      }
+    */
 
 
     const rendererStamperFactory = (cProto, options) => {
@@ -4932,10 +4932,10 @@
         const fgs = {};
         for (const key of fgsArr) fgs[key] = undefined;
 
-        try {
-          const EXPERIMENT_FLAGS = ytcfg.data_.EXPERIMENT_FLAGS;
+        const EXPERIMENT_FLAGS = typeof ytcfg === "object" && (((ytcfg || 0).data_ || 0).EXPERIMENT_FLAGS || 0);
+        if (typeof EXPERIMENT_FLAGS === "object") {
           for (const key of fgsArr) fgs[key] = EXPERIMENT_FLAGS[key];
-        } catch (e) { }
+        }
         console1.log(`EXPERIMENT_FLAGS: ${JSON.stringify(fgs, null, 2)}`);
 
         const canDoReplacement = (() => {
