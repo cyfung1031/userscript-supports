@@ -3,7 +3,7 @@
 // @name:ja             Web CPU Tamer
 // @name:zh-TW          Web CPU Tamer
 // @namespace           http://tampermonkey.net/
-// @version             2025.101.8
+// @version             2026.100.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://*/*
@@ -15,6 +15,7 @@
 // @run-at              document-start
 // @inject-into         auto
 // @grant               none
+// @unwrap
 // @allFrames           true
 
 // @description         Reduce Browser's Energy Impact via implicit async scheduling delay
@@ -98,7 +99,7 @@
 
 MIT License
 
-Copyright 2025 CY Fung
+Copyright 2026 CY Fung
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -121,6 +122,33 @@ SOFTWARE.
 */
 
 /* jshint esversion:8 */
+
+/**
+ * =============================================================================
+ * IMPORTANT
+ * =============================================================================
+ *
+ * 1. Native timer throttling and nesting behavior
+ *    Wrapped timers may not preserve the browser's native timer throttling and
+ *    nesting behavior.
+ *
+ *    - Intensive chained-timer throttling may not apply, so `setTimeout` can
+ *      run more frequently when system load is low.
+ *    - Recursive or nested timers created inside a wrapped timer callback may
+ *      bypass the browser's native timer nesting level because the user callback
+ *      runs from a MessagePort or Promise continuation rather than directly
+ *      from the original timer task.
+ *
+ * 2. requestAnimationFrame timestamps
+ *    Multiple `requestAnimationFrame` callbacks executed within the same frame
+ *    are no longer guaranteed to receive the same timestamp.
+ * 
+ * 3. Function invocation semantics
+ *    Do not throw `TypeError: Illegal invocation` when calling
+ *    `func.call(invalidThis, ...)`.
+ *
+ * =============================================================================
+ */
 
 ((o) => {
   'use strict';
@@ -203,13 +231,19 @@ SOFTWARE.
   if (!tl || !Number.isFinite(tl.currentTime || null)) tl = new PseudoTimeline();
   const tl_ = tl;
 
-  const mo = new MutationObserver(() => {
+  let { port1, port2 } = new MessageChannel();
+  port1.onmessage = () => {
     resolvePr();
     setPr();
-  });
+  };
+  const postMessage = port2.postMessage.bind(port2);
+  port1 = port2 = null;
+
+  let mo = new MutationObserver(() => postMessage(true));
   mo.observe(cme, {
     characterData: true,
   });
+  mo = null;
 
   // const ro = new MutationObserver(() => {
   //   if ((cme.isConnected !== true || cme.parentNode !== document.documentElement) && lastPr !== null) {
@@ -220,6 +254,8 @@ SOFTWARE.
 
   const tz = new Set();
   const az = new Set();
+  tz.add = az.add = Set.prototype.add;
+  tz.delete = az.delete = Set.prototype.delete;
 
   const h1 = async (r) => {
     tz.add(r);
@@ -227,42 +263,60 @@ SOFTWARE.
     await pr;
     if (lastPr !== pr) queueMicrotask_(act);
     await pr;
-    return tz.delete(r);
   };
 
   const h2 = async (r, upr) => {
     az.add(r);
     await upr;
-    return az.delete(r);
   };
 
   const errCatch = e => {
     queueMicrotask_(() => { throw e });
   };
 
-  const dOffset = 2 ** -26; // avoid Brave/uBlock adjustSetTimeout
+  /**
+   * Epsilon to avoid Brave/uBlock adjustSetTimeout.
+   *
+   * WebIDL integer conversion:
+   * - truncates the positive fractional part to a signed 32-bit integer
+   * - subtracting a negative value is equivalent to adding a positive value
+   * - remains compatible with numeric strings
+   *
+   * Web IDL converts the timer's long timeout using ECMAScript ToNumber,
+   * so +d is a very close match and correctly supports strings, booleans,
+   * null, and objects with valueOf()/toString()/Symbol.toPrimitive, etc.
+   */
+  const epsilon = 2 ** -26;
+
+  const reflectApply = Reflect.apply;
 
   setTimeout = function (f, d = void 0, ...args) {
+    if (typeof f !== 'function') return reflectApply(setTimeout_, this, arguments);
     let r;
-    const g = (typeof f === 'function') ? (...args) => {
-      h1(r).then((act) => {
-        act && f(...args);
+    const g = function (...args) {
+      const thisArg = this;
+      h1(r).then(() => {
+        tz.delete(r) && reflectApply(f, thisArg, args);
       }).catch(errCatch);
-    } : f;
-    if (d >= 1) d -= dOffset;
-    r = setTimeout_(g, d, ...args);
+    };
+    let d_ = +d;
+    if (d_ >= 1) d_ -= -epsilon;
+    r = setTimeout_(g, d_, ...args);
     return r;
   };
 
   setInterval = function (f, d = void 0, ...args) {
+    if (typeof f !== 'function') return reflectApply(setInterval_, this, arguments);
     let r;
-    const g = (typeof f === 'function') ? (...args) => {
-      h1(r).then((act) => {
-        act && f(...args);
+    const g = function (...args) {
+      const thisArg = this;
+      h1(r).then(() => {
+        tz.delete(r) && reflectApply(f, thisArg, args);
       }).catch(errCatch);
-    } : f;
-    if (d >= 1) d -= dOffset;
-    r = setInterval_(g, d, ...args);
+    };
+    let d_ = +d;
+    if (d_ >= 1) d_ -= -epsilon;
+    r = setInterval_(g, d_, ...args);
     return r;
   };
 
@@ -277,14 +331,18 @@ SOFTWARE.
   };
 
   requestAnimationFrame = function (f) {
+    if (typeof f !== 'function') return reflectApply(requestAnimationFrame_, this, arguments);
     let r;
     const upr = pr;
-    const g = (timeRes) => {
+    const g = function (_timeRes, ..._args) {
+      const totalArgs = arguments;
+      const thisArg = this;
       const q1 = tl_.currentTime;
-      h2(r, upr).then((act) => {
-        act && f(timeRes + (tl_.currentTime - q1));
+      h2(r, upr).then(() => {
+        totalArgs[0] = (totalArgs[0] - (q1 - tl_.currentTime)) || totalArgs[0];
+        az.delete(r) && reflectApply(f, thisArg, totalArgs);
       }).catch(errCatch);
-    }
+    };
     if (lastPr !== pr) queueMicrotask_(act);
     r = requestAnimationFrame_(g);
     return r;
