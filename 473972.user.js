@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.0
+// @version     0.43.1
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -31,6 +31,7 @@
   /** @type {WeakMapConstructor} */
   const WeakMap = window.WeakMapOriginal || window.WeakMap;
   const EventTarget_F = EventTarget;
+  const Object_ = Object;
 
   const HOOK_ACTIVE_MODULES = true; // added in 0.37.0
   const HOOK_ACTIVE_MODULES_fetchUpdatedMetadata = true; // added in 0.37.0 (make likeCount update)
@@ -666,8 +667,10 @@
   if (DISABLE_isLowLatencyLiveStream) {
     const sm = Symbol();
     const f = () => {
+      const ytInitPlayerRes = typeof ytInitialPlayerResponse === "object" ? ytInitialPlayerResponse : null;
+      if (!ytInitPlayerRes) return;
       try {
-        const videoDetails = ytInitialPlayerResponse.videoDetails;
+        const videoDetails = ytInitPlayerRes.videoDetails;
         if (videoDetails && videoDetails.isLowLatencyLiveStream) {
           videoDetails.isLowLatencyLiveStream = false;
         }
@@ -2708,7 +2711,7 @@
       Object.defineProperty(Object.prototype, '__ensureTemplatized', {
         set(nv) {
           if (nv === true) return false;
-          tpProto = this;
+          const tpProto = this;
           if ('connectedCallback' in tpProto && tpProto !== Node.prototype && !tpProto.__domDX37__) {
             tpProto.__domDX37__ = true;
             ytTemplateDomEntry(tpProto);
@@ -3051,11 +3054,10 @@
       //let mapRej = new WeakSet();
 
       const n1 = initialSegments.length;
-      if (!n1) return fRes;
       let n2 = 0;
 
-
       const fRes = new Array(n1);
+      if (!n1) return fRes;
       // -----------------------------------------------------------------------------------------
 
       const s8 = Symbol();
@@ -3326,7 +3328,6 @@
     }
 
     const dfn = Symbol();
-    const Object_ = Object;
     Object_[dfn] = Object_.defineProperties;
     let activation = true;
     Object_.defineProperties = function (obj, pds) {
@@ -3519,11 +3520,17 @@
     }
 
     if (!window.getComputedStyle533 && typeof window.getComputedStyle === 'function') {
-      window.getComputedStyle533 = window.getComputedStyle;
+      const getComputedStyle533 = window.getComputedStyle533 = window.getComputedStyle;
       window.getComputedStyle = function (a, ...args) {
         a = thisConversionFn(a);
         if (a) {
-          return getComputedStyle533(a, ...args);
+          if (typeof this.getComputedStyle533 === "function") {
+            return this.getComputedStyle533(a, ...args);
+          } else if (typeof window.getComputedStyle533 === "function") {
+            return window.getComputedStyle533(a, ...args);
+          } else {
+            return getComputedStyle533(a, ...args);
+          }
         }
         return null;
       }
@@ -6253,7 +6260,7 @@
 
   ;(FIX_RESIZED_HEADER_HEIGHT || ENHANCE_RESIZABLE_HEADER_LAYOUTING_WITH_NEXTTICK) && whenCEDefined('tp-yt-app-header-layout').then(async () => {
 
-    dummy = document.createElement('tp-yt-app-header-layout');
+    const dummy = document.createElement('tp-yt-app-header-layout');
 
     let cProto;
     if (!(dummy instanceof Element)) return;
@@ -6322,7 +6329,7 @@
       const observer = new ResizeObserver((entries) => {
         if (!triggerFlag) {
           triggerFlag = true;
-          nextBrowserTick(collectedRelayoutFn);
+          nextBrowserTick_(collectedRelayoutFn);
         }
       });
       cProto.performUpdate75 = cProto.performUpdate;
@@ -6366,7 +6373,7 @@
         if (this.__functionInCall7018__) return;
         if (this.useRaf && (!this.rafId || this.rafId < 0)) {
           // normal path
-          nextBrowserTick(() => {
+          nextBrowserTick_(() => {
             if (!this.__functionInCall7018__) {
               this.__functionInCall7018__ = true;
               this.performUpdate();
@@ -6406,7 +6413,7 @@
     //   await new Promise(r=>setTimeout(r,0));
     // }
 
-    dummy = document.createElement('yt-icon');
+    const dummy = document.createElement('yt-icon');
 
     let cProto;
     if (!(dummy instanceof Element)) return;
@@ -11963,6 +11970,16 @@
 
       });
 
+      const extraArguments322 = (a, b, c) => {
+        let is = (a || 0).is;
+        let videoId = ((b || 0).updatedMetadataEndpoint || 0).videoId;
+        let continuation = (c || 0).continuation;
+        if (typeof is !== 'string') is = null;
+        if (typeof videoId !== 'string') videoId = null;
+        if (typeof continuation !== 'string') continuation = null;
+        return { is, videoId, continuation };
+      };
+
       FIX_avoid_incorrect_video_meta_bool && promiseForYtActionCalled.then((ytAppDom) => {
         let dummy;
         let cProto;
@@ -11987,16 +12004,6 @@
           //   }
           //   return this.handleServiceRequest717_(a,b,c,d);
           // }
-
-          const extraArguments322 = (a, b, c) => {
-            let is = (a || 0).is;
-            let videoId = ((b || 0).updatedMetadataEndpoint || 0).videoId;
-            let continuation = (c || 0).continuation;
-            if (typeof is !== 'string') is = null;
-            if (typeof videoId !== 'string') videoId = null;
-            if (typeof continuation !== 'string') continuation = null;
-            return { is, videoId, continuation };
-          };
 
           cProto.sendServiceAjax717_ = cProto.sendServiceAjax_;
           cProto.sendServiceAjax_ = function (a, b, c, d) {

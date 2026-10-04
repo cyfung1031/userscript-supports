@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.8
+// @version             0.14.9
 // @license             MIT License
 
 // @author              CY Fung
@@ -3812,7 +3812,7 @@ const Object_ = Object;
                     if (author) {
                         const { channelId } = author;
                         const innertubeCommand = ((author || 0).channelPageEndpoint || 0).innertubeCommand || 0;
-                        const endpoint = innertubeCommand.browseEndpoint || innertubeCommand.urlEndpoint || author.browseEndpoint || browseEndpoint.urlEndpoint || 0;
+                        const endpoint = innertubeCommand.browseEndpoint || innertubeCommand.urlEndpoint || author.browseEndpoint || author.urlEndpoint || 0;
                         const url = endpoint.canonicalBaseUrl || endpoint.url || 0;
                         if (channelId && ytPathnameExtract(url) === hrefV && channelId.startsWith('UC') && /^UC[-_a-zA-Z0-9+=.]{22}$/.test(channelId)) {
                             wChannelId = channelId;

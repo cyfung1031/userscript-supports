@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        YouTube Playlist Autoplay Button
 // @description Allows the user to toggle autoplaying to the next video once the current video ends. Stores the setting locally.
-// @version     2.0.9
+// @version     2.0.10
 // @license     GNU GPLv3
 // @match       https://www.youtube.com/*
 // @namespace   https://greasyfork.org/users/701907
@@ -68,15 +68,16 @@ along with this program. If not, see http://www.gnu.org/licenses/.
   }
   const prefix = 'YouTube Prevent Playlist Autoplay:'
   const localStorageProperty = 'YouTubePreventPlaylistAutoplayStatus'
+
+  // Instead of writing the same log function prefix throughout
+  // the code, this function automatically applies the prefix.
+  const customLog = (...inputs) => console.log(prefix, ...inputs)
+
   // Get current autoplay setting from local storage.
   let autoplayStatus = loadAutoplayStatus()
   let transition = false
   let navigateStatus = -1;
   let fCounter = 0;
-
-  // Instead of writing the same log function prefix throughout
-  // the code, this function automatically applies the prefix.
-  const customLog = (...inputs) => console.log(prefix, ...inputs)
 
   // Functions to get/set if you have autoplay off or on.
   // This applies to localStorage of the domain, so

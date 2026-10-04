@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.11
+// @version             2.3.12
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -332,7 +332,7 @@
 
                     playerKevlar.deviceIsAudioOnly = true;          // ← new
 
-                    const usp = new URLSearchParams("?" + yt.config_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_KEVLAR_WATCH.serializedExperimentFlags);
+                    const usp = new URLSearchParams("?" + playerKevlar.serializedExperimentFlags);
                     usp.set("html5_onesie_audio_only_playback", "true");
                     usp.set("allow_vb_audio_formats", "true");
                     usp.set("allow_vb_audio_formats_with_mta", "true");
@@ -2183,8 +2183,9 @@
                 }
             }
 
-
             if (typeof _yt_player !== 'undefined' && _yt_player && typeof _yt_player === 'object') {
+
+                let keys = new Set();
 
                 for (const [k, v] of Object.entries(_yt_player)) {
 
@@ -2197,28 +2198,30 @@
                         && typeof p.clear === 'undefined'
                     ) {
 
-                        key = k;
+                        keys.add(k);
 
                     }
 
                 }
 
-            }
 
-            if (key) {
+                for (const key of keys) {
 
-                const ClassX = _yt_player[key];
-                _yt_player[key] = class extends ClassX {
-                    constructor(...args) {
+                    const ClassX = _yt_player[key];
+                    const T = _yt_player[key] = class extends ClassX {
+                        constructor(...args) {
 
-                        if (typeof args[0] === 'string' && args[0].startsWith('http://')) args[0] = '';
-                        super(...args);
+                            if (typeof args[0] === 'string' && args[0].startsWith('http://')) args[0] = '';
+                            super(...args);
 
+                        }
                     }
+                    T.luX1Y = 1;
+                    prototypeInherit(T.prototype, ClassX.prototype);
                 }
-                _yt_player[key].luX1Y = 1;
-                prototypeInherit(_yt_player[key].prototype, ClassX.prototype);
+
             }
+
 
         }
         let s3 = Symbol();

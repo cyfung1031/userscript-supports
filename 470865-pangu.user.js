@@ -2,7 +2,7 @@
 // @name                中英文之间加空白
 // @name:zh-TW          中英文之間加空白
 
-// @version             0.7.13
+// @version             0.7.14
 // @author              CY Fung
 // @namespace           UserScript
 // @license             MIT
@@ -211,7 +211,7 @@
 
         let commonParent_ = null;
         try {
-          for (n of elements) {
+          for (const n of elements) {
             // checking of body contains
             // 1. complete the algo logic
             // 2. prevent the element is added and then removed from the DOM tree

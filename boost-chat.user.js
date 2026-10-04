@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.34
+// @version             0.3.35
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @author              CY Fung
@@ -2383,7 +2383,6 @@ SOFTWARE.
       onSolidMenuListCreated_(items, div, ytLiveChatAppCnt);
 
       // div.appendChild(ytdMenu);
-      data = null;
       props = null;
       div = null;
 
@@ -6201,7 +6200,7 @@ f.handleRemoveChatItemAction_ = function(a) {
 
     }
 
-    cProto.refreshOffsetContainerHeight_ = function () {
+    cProto.refreshOffsetContainerHeight_ = function (...args) {
 
       console.log('[yt-bst] refreshOffsetContainerHeight_', 583, ...args)
     }

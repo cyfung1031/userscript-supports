@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.30
+// @version             0.102.31
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4830,7 +4830,7 @@
 
               const wrongSize = participants.length !== countOfElements
               if (wrongSize) {
-                console.warn("ERROR(0xE2C3): notifyPath7081", beforeParticipants.length, participants.length, doms.length)
+                console.warn("ERROR(0xE2C3): notifyPath7081", beforeParticipants.length, participants.length)
                 return 0;
               }
 
@@ -5042,7 +5042,7 @@
         if (ENABLE_FLAGS_MAINTAIN_STABLE_LIST_FOR_PARTICIPANTS_LIST) {
 
           /** @type {boolean | (()=>boolean)} */
-          let toUseMaintainStableList = USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? (() => ytcfg.data_.EXPERIMENT_FLAGS.kevlar_should_maintain_stable_list === true) : true;
+          let toUseMaintainStableList = USE_MAINTAIN_STABLE_LIST_ONLY_WHEN_KS_FLAG_IS_SET ? (() => typeof ytcfg === "object" && (((ytcfg || 0).data_ || 0).EXPERIMENT_FLAGS || 0).kevlar_should_maintain_stable_list === true) : true;
           if (typeof cProto.stampDomArray_ === 'function' && cProto.stampDomArray_.length === 6 && !cProto.stampDomArray_.nIegT && !cProto.stampDomArray66_) {
 
             let lastMessageDate = 0;
@@ -5971,14 +5971,18 @@
 
 
 
-
-
         if (!window.getComputedStyle533 && typeof window.getComputedStyle === 'function') {
-          window.getComputedStyle533 = window.getComputedStyle;
+          const getComputedStyle533 = window.getComputedStyle533 = window.getComputedStyle;
           window.getComputedStyle = function (a, ...args) {
             a = thisConversionFn(a);
             if (a) {
-              return getComputedStyle533(a, ...args);
+              if (typeof this.getComputedStyle533 === "function") {
+                return this.getComputedStyle533(a, ...args);
+              } else if (typeof window.getComputedStyle533 === "function") {
+                return window.getComputedStyle533(a, ...args);
+              } else {
+                return getComputedStyle533(a, ...args);
+              }
             }
             return null;
           }

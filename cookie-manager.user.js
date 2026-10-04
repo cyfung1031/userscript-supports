@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name         Cookie Manager
 // @namespace    http://tampermonkey.net/
-// @version      0.5
+// @version      0.6
 // @description  For Developers Only. Control Cookies everywhere via DevTools
 // @author       CY Fung
 // @supportURL   https://github.com/cyfung1031/userscript-supports
@@ -68,16 +68,25 @@ const api = cook.chef({
   if (unsafeWindow.cook) return
   const { get, set, remove } = Cookies
   function chefFunc(converter, attributes) {
-    converter = converter ? Object.assign({}, this.converter, converter) : this.converter
-    attributes = attributes ? Object.assign({}, this.attributes, attributes) : this.attributes
-    return init(converter, attributes)
+    let api = this
+
+    if (converter) {
+      api = api.withConverter(converter)
+    }
+
+    if (attributes) {
+      api = api.withAttributes(attributes)
+    }
+
+    return api
   }
+
   const target = {
     set: set.bind(Cookies),
     get: get.bind(Cookies),
     remove: remove.bind(Cookies),
     chef: chefFunc.bind(Cookies),
-    replaceChef: (chef) => {
+    replaceChef(chef) {
       Cookies = chef
       target.set = set.bind(Cookies)
       target.get = get.bind(Cookies)
