@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.31
+// @version             0.102.32
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -4517,24 +4517,6 @@
       let r95dm = 0;
       let c95dm = -1;
 
-      const foundMap = (base, content) => {
-        /*
-          let lastSearch = 0;
-          let founds = base.map(baseEntry => {
-            let search = content.indexOf(baseEntry, lastSearch);
-            if (search < 0) return false;
-            lastSearch = search + 1;
-            return true;
-          });
-          return founds;
-        */
-        const contentSet = new Set(content);
-        const r = base.map(baseEntry => contentSet.has(baseEntry));
-        contentSet.clear();
-        return r
-
-      }
-
 
 
       let participantsForSpliceWR = null;
@@ -4564,11 +4546,11 @@
 
       const spliceIndicesFunc = (beforeParticipants, participants, idsBefore, idsAfter) => {
 
-        let foundsForAfter = foundMap(idsAfter, idsBefore);
-        let foundsForBefore = foundMap(idsBefore, idsAfter);
+        const idsBeforeSet = new Set(idsBefore);
+        const idsAfterSet = new Set(idsAfter);
 
-        const nAfter = foundsForAfter.length;
-        const nBefore = foundsForBefore.length;
+        const nAfter = idsAfter.length;
+        const nBefore = idsBefore.length;
 
         const indexSplices = [];
         const contentUpdates = [];
@@ -4583,12 +4565,12 @@
           } else {
             let addedCount = 0;
             for (let q = j; q < nAfter; q++) {
-              if (foundsForAfter[q] === false) addedCount++;
+              if (!idsBeforeSet.has(idsAfter[q])) addedCount++;
               else break;
             }
             let removedCount = 0;
             for (let q = i; q < nBefore; q++) {
-              if (foundsForBefore[q] === false) removedCount++;
+              if (!idsAfterSet.has(idsBefore[q])) removedCount++;
               else break;
             }
             if (!addedCount && !removedCount) {
@@ -4604,16 +4586,14 @@
             j += addedCount;
           }
         }
-        foundsForBefore = null;
-        foundsForAfter = null;
         idsBefore = null;
         idsAfter = null;
         beforeParticipants = null;
-        participantsForSpliceWR = indexSplices.length > 0 ? mWeakRef(participants) : null;
+        participantsForSpliceWR =  indexSplices.length > 0 ? mWeakRef(participants) : null;
         participants = null;
         return { indexSplices, contentUpdates };
 
-      }
+      };
 
       /*
 
@@ -4633,13 +4613,24 @@
 
       */
 
+      const hasOwnProperty = Object.prototype.hasOwnProperty;
+
       function convertToIds(participants) {
         return participants.map(participant => {
           if (!participant || typeof participant !== 'object') {
             console.warn('Error(0xFA41): convertToIds', participant);
             return participant; // just in case
           }
-          let keys = Object.keys(participant);
+
+          let key;
+          let keyCount = 0;
+          for (const k in participant) {
+            if (hasOwnProperty.call(participant, k)) {
+              if (++keyCount > 1) break;
+              key = k;
+            }
+          }
+
           // liveChatTextMessageRenderer
           // liveChatParticipantRenderer - livestream channel owner [no authorExternalChannelId]
           // liveChatPaidMessageRenderer
@@ -4653,11 +4644,10 @@
             authorBadges[].liveChatAuthorBadgeRenderer.accessibility.accessibilityData: Object{label:string}
 
           */
-          if (keys.length !== 1) {
+          if (keyCount !== 1) {
             console.warn('Error(0xFA42): convertToIds', participant);
             return participant; // just in case
           }
-          let key = keys[0];
           let renderer = (participant[key] || 0);
           let authorName = (renderer.authorName || 0);
           let text = `${authorName.simpleText || authorName.text}`
@@ -13056,12 +13046,14 @@
         let lastShow = 0;
 
         const wm = new WeakSet();
+        const selector = '[shared-tooltip-text]:not([__a6cwm__])';
         const mo1 = new MutationObserver((mutations) => {
-
-          for (const p of document.querySelectorAll('[shared-tooltip-text]:not([__a6cwm__])')) {
-            p.setAttribute('__a6cwm__', '');
+          const check = document.querySelector(selector);
+          if (check) {
+            for (const p of document.querySelectorAll(selector)) {
+              p.setAttribute('__a6cwm__', '');
+            }
           }
-
         });
         mo1.observe(document, { subtree: true, attributes: true, attributeFilter: ['shared-tooltip-text'], childList: true });
 
