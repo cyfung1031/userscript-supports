@@ -3,7 +3,7 @@
 // @name:ja             YouTube CPU Tamer by AnimationFrame
 // @name:zh-TW          YouTube CPU Tamer by AnimationFrame
 // @namespace           http://tampermonkey.net/
-// @version             2025.02.24.0
+// @version             2026.10.05.0
 // @license             MIT License
 // @author              CY Fung
 // @match               https://www.youtube.com/*
@@ -126,7 +126,7 @@ SOFTWARE.
 
 /* jshint esversion:8 */
 
-((__CONTEXT__) => {
+(() => {
   'use strict';
 
   const win = this instanceof Window ? this : window;
@@ -167,24 +167,21 @@ SOFTWARE.
     throw new Error('Your browser does not support GPU Acceleration. YouTube CPU Tamer by AnimationFrame is skipped.');
   }
 
-  const timeupdateDT = (() => {
+  let windowTarget = window;
 
-    window.__j6YiAc__ = 1;
+  window.__j6YiAc__ = 1;
 
-    document.addEventListener('timeupdate', () => {
-      window.__j6YiAc__ = Date.now();
-    }, true);
+  document.addEventListener('timeupdate', () => {
+    window.__j6YiAc__ = Date.now();
+  }, true);
 
-    let kz = -1;
-    try {
-      kz = top.__j6YiAc__;
-    } catch (e) {
+  let kz = -1;
+  try {
+    kz = top.__j6YiAc__;
+    if (kz >= 1) windowTarget = top;
+  } catch (e) {
 
-    }
-
-    return kz >= 1 ? () => top.__j6YiAc__ : () => window.__j6YiAc__;
-
-  })();
+  }
 
   const cleanContext = async (win) => {
     const waitFn = requestAnimationFrame; // shall have been binded to window
@@ -247,54 +244,42 @@ SOFTWARE.
     /** @type {Function|null} */
     let afInterupter = null;
 
-    const getRAFHelper = () => {
-      const asc = document.createElement('a-f');
+    let qr = null;
+    const asc = document.createElementNS('http://www.w3.org/2000/svg', 'axxframe');
+    const ascOn = function () {
+      if (qr !== null) {
+        asc.onanimationiteration = qr = (qr(), null);
+      }
+    };
+
+    const CSS_TEXT = `
+      @keyframes aF1{0%{order:0}100%{order:1}}
+      #a-f[id]{
+        visibility:collapse!important;position:fixed!important;display:block!important;top:-100px!important;
+        left:-100px!important;margin:0!important;padding:0!important;outline:0!important;border:0!important;
+        z-index:-1!important;width:0!important;height:0!important;contain:strict!important;pointer-events:none!important;
+        animation:1ms steps(2,jump-none) 0ms infinite alternate forwards running aF1!important
+      }
+    `;
+
+    // rAF will not execute if document is hidden
+    const rafPN = (() => {
       if (!('onanimationiteration' in asc)) {
         return (resolve) => requestAnimationFrame(afInterupter = resolve);
       }
       asc.id = 'a-f';
-      let qr = null;
-      asc.onanimationiteration = function () {
-        if (qr !== null) qr = (qr(), null);
-      }
-      if (!document.getElementById('afscript')) {
-        const style = document.createElement('style');
-        style.id = 'afscript';
-        style.textContent = `
-          @keyFrames aF1 {
-            0% {
-              order: 0;
-            }
-            100% {
-              order: 1;
-            }
-          }
-          #a-f[id] {
-            visibility: collapse !important;
-            position: fixed !important;
-            display: block !important;
-            top: -100px !important;
-            left: -100px !important;
-            margin:0 !important;
-            padding:0 !important;
-            outline:0 !important;
-            border:0 !important;
-            z-index:-1 !important;
-            width: 0px !important;
-            height: 0px !important;
-            contain: strict !important;
-            pointer-events: none !important;
-            animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
-          }
-        `;
-        (document.head || document.documentElement).appendChild(style);
+      asc.onanimationiteration = null;
+      if (!document.getElementById("a-f")) {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(CSS_TEXT);
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
       }
       document.documentElement.insertBefore(asc, document.documentElement.firstChild);
-      return (resolve) => (qr = afInterupter = resolve);
-    };
-
-    /** @type {(resolve: () => void)}  */
-    const rafPN = getRAFHelper(); // rAF will not execute if document is hidden
+      return (resolve) => {
+        qr = afInterupter = resolve;
+        asc.onanimationiteration = ascOn;
+      };
+    })();
 
     (() => {
       let afPromiseP, afPromiseQ; // non-null
@@ -324,10 +309,12 @@ SOFTWARE.
         return t;
       }
       const inExec = new Set();
+      inExec.delete = inExec.delete;
+      inExec.add = inExec.add;
       const wFunc = async (handler, wStore) => {
         try {
           const ct = Date.now();
-          if (ct - timeupdateDT() < 800 && ct - wStore.dt < 800) {
+          if (ct - windowTarget.__j6YiAc__ < 800 && ct - wStore.dt < 800) {
             const cid = wStore.cid;
             inExec.add(cid);
             const t = await eFunc();
@@ -383,4 +370,4 @@ SOFTWARE.
     }, 125);
   });
 
-})(null);
+})();

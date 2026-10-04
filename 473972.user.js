@@ -11596,41 +11596,23 @@
 
 
         const looperMethodN = () => {
+          const CSS_TEXT = `
+            @keyframes aF1{0%{order:0}100%{order:1}}
+            #a-f[id]{
+              visibility:collapse!important;position:fixed!important;display:block!important;top:-100px!important;
+              left:-100px!important;margin:0!important;padding:0!important;outline:0!important;border:0!important;
+              z-index:-1!important;width:0!important;height:0!important;contain:strict!important;pointer-events:none!important;
+              animation:1ms steps(2,jump-none) 0ms infinite alternate forwards running aF1!important
+            }
+          `;
 
-          const acs = document.createElement('a-f');
+          const acs = document.createElementNS('http://www.w3.org/2000/svg', 'axxframe');
           acs.id = 'a-f';
 
-          if (!document.getElementById('afscript')) {
-            const style = document.createElement('style');
-            style.id = 'afscript';
-            style.textContent = `
-              @keyFrames aF1 {
-                0% {
-                  order: 0;
-                }
-                100% {
-                  order: 1;
-                }
-              }
-              #a-f[id] {
-                visibility: collapse !important;
-                position: fixed !important;
-                display: block !important;
-                top: -100px !important;
-                left: -100px !important;
-                margin:0 !important;
-                padding:0 !important;
-                outline:0 !important;
-                border:0 !important;
-                z-index:-1 !important;
-                width: 0px !important;
-                height: 0px !important;
-                contain: strict !important;
-                pointer-events: none !important;
-                animation: 1ms steps(2, jump-none) 0ms infinite alternate forwards running aF1 !important;
-              }
-            `;
-            (document.head || document.documentElement).appendChild(style);
+          if (!document.getElementById('a-f')) {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(CSS_TEXT);
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
           }
 
           document.documentElement.insertBefore(acs, document.documentElement.firstChild);
