@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.35
+// @version             0.3.36
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @author              CY Fung
@@ -141,6 +141,10 @@ SOFTWARE.
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const reflectApply = Reflect.apply;
+  const objectHasOwn = Object.hasOwn || ((object, property) => {
+    return reflectApply(Object.prototype.hasOwnProperty, object, property);
+  });
 
   const PromiseExternal = ((resolve_, reject_) => {
     const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
@@ -409,7 +413,7 @@ SOFTWARE.
 
   const firstObjectKey = (obj) => { // performance concern? (8.6ms)
     for (const key in obj) {
-      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+      if (objectHasOwn(obj, key) && typeof obj[key] === 'object') return key;
     }
     return null;
   }
@@ -6283,7 +6287,8 @@ f.handleRemoveChatItemAction_ = function(a) {
           patchConfigExprFlags({
             "live_chat_web_debounce_context_menu_requests": false
           }, () => {
-            cnt.showContextMenu.call({
+
+            reflectApply(cnt.showContextMenu, {
               data: {
                 contextMenuEndpoint: getBstController(messageEntry).bstDataRaw.contextMenuEndpoint
               },
@@ -6309,7 +6314,7 @@ f.handleRemoveChatItemAction_ = function(a) {
                 resolve(a);
 
               }
-            }, undefined);
+            }, [undefined]);
 
           });
 

@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.4
+// @version     0.43.5
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -345,6 +345,10 @@
   if (!pureAddEventListener) return console.warn("pureAddEventListener cannot be obtained.");
 
   const Promise = (async () => { })().constructor;
+  const reflectApply = Reflect.apply;
+  const objectHasOwn = Object.hasOwn || ((object, property) => {
+    return reflectApply(Object.prototype.hasOwnProperty, object, property);
+  });
 
   const PromiseExternal = ((resolve_, reject_) => {
     const h = (resolve, reject) => { resolve_ = resolve; reject_ = reject };
@@ -385,20 +389,6 @@
 
   /** @type { typeof HTMLElement } */
   const HTMLElement_ = Reflect.getPrototypeOf(HTMLTitleElement);
-  const nativeAppendE = HTMLElement_.prototype.append;
-  const nativeRemoveE = HTMLElement_.prototype.remove;
-  const DocumentFragment_ = DocumentFragment;
-  const nativeAppendD = DocumentFragment_.prototype.append;
-  const Node_ = Node;
-
-  /**
-    @param {number} x
-    @param {number} d */
-  const toFixed2 = (x, d) => {
-    let t = x.toFixed(d);
-    let y = `${+t}`;
-    return y.length > t.length ? t : y;
-  }
 
   const propChecker = (p, o) => {
     if (p && typeof p === "object") {
@@ -439,7 +429,7 @@
       const get = function () {
         const overrided = Node.isConnectedOverrided;
         if (typeof overrided === 'boolean') return overrided;
-        return get_.call(this);
+        return reflectApply(get_, this, []);
       }
       Object.defineProperty(Node.prototype, 'isConnected', {
         ...pdConnected,
@@ -520,12 +510,12 @@
 
     Set.prototype.has = function (a) {
       if (a === 'dummy-4718') return false; // false to allow re-use?
-      return setHas.call(this, a);
+      return reflectApply(setHas, this, [a]);
     }
 
     Map.prototype.get = function (a) {
       if (a === 'dummy-4718') qcMap = this;
-      return mapGet.call(this, a);
+      return reflectApply(mapGet, this, [a]);
     };
     let r;
     try {
@@ -567,7 +557,7 @@
         }
 
         qcMap.set = function (b, c) {
-          if (!this.__qcMap8781__) return Map.prototype.set.call(this, b, c);
+          if (!this.__qcMap8781__) return reflectApply(Map.prototype.set, this, [b, c]);
 
           setArrayC(c);
 
@@ -584,7 +574,7 @@
 
         }
         qcMap.get = function (b) {
-          if (!this.__qcMap8781__) return Map.prototype.get.call(this, b);
+          if (!this.__qcMap8781__) return reflectApply(Map.prototype.get, this, [b]);
 
           // console.log('qcMap.get', b);
 
@@ -1260,7 +1250,7 @@
     * passive / once / signal / options object identity do not.
     */
     const getCapture = option =>
-      typeof option === 'boolean' ? option : !!option?.capture;
+      typeof option === 'boolean' ? option : !!(option && option.capture);
 
     /*
     * Our registry stores [type, handler, capture].
@@ -1293,7 +1283,7 @@
       * If native addEventListener throws, no registry entry should be
       * created for a listener that was never registered.
       */
-      const result = nativeAdd.call(this, type, handler, option);
+      const result = reflectApply(nativeAdd, this, [type, handler, option]);
 
       // A null callback does not create an event listener.
       if (handler == null) return result;
@@ -1321,7 +1311,7 @@
       * Native removal only needs type + handler + capture.
       * Passing the capture boolean is therefore sufficient.
       */
-      const result = nativeRemove.call(this, type, handler, capture);
+      const result = reflectApply(nativeRemove, this, [type, handler, capture]);
 
       /*
       * Update bookkeeping only after native removal completes.
@@ -1379,7 +1369,7 @@
         * The original options object is unnecessary here:
         * removeEventListener matches only type + handler + capture.
         */
-        nativeRemove.call(this, type, handler, capture);
+        reflectApply(nativeRemove, this, [type, handler, capture]);
 
         // Release the stored handler reference after removal.
         entry.length = 0;
@@ -1754,11 +1744,11 @@
           configurable: true
         };
         constructor._parseTemplate = function (N, R) {
-          if (!N) return _parseTemplate.call(this, N, R);
+          if (!N) return reflectApply(_parseTemplate, this, [N, R]);
           if (!N[wk]) N[wk] = mWeakRef(N);
           let r = parsedResults.get(N[wk]);
           if (r) return r;
-          r = _parseTemplate.call(this, N, R);
+          r = reflectApply(_parseTemplate, this, [N, R]);
           if (r && !parsedResults.has(N[wk])) {
             parsedResults.set(N[wk], r);
             r.iAm68 = '_templateInfo';
@@ -1789,32 +1779,6 @@
             if (typeof (componentIs || 0) === 'string') {
               if (!templateMap.has(componentIs)) {
                 templateMap.set(componentIs, N);
-                // const parser = this.constructor;
-                // console.log(3882, parser._parseTemplate)
-                /*
-                if (parser._parseTemplate && !parser._parseTemplate477 && parser._parseTemplate.length === 2) {
-                  parser._parseTemplate477 = parser._parseTemplate;
-                  const _parseTemplate477 = parser._parseTemplate477;
-                  parser._parseTemplate = function (N, R) {
-                    if (!_parseTemplateByPass && N && N[wk]) {
-                      const u = parsedTemplate.get(N[wk]);
-                      if (u) {
-                        console.log(1838, u)
-                        return u;
-                      }
-                    }
-                    return _parseTemplate477.call(this, N, R);
-                  };
-                }
-                if (parser._parseTemplate && parser._parseTemplate477) {
-                  if (N && !N[wk]) N[wk] = mWeakRef(N);
-                  if (!parsedTemplate.has(N[wk])) {
-                    _parseTemplateByPass = true;
-                    parsedTemplate.set(N[wk], parser._parseTemplate477(N));
-                    _parseTemplateByPass = false;
-                  }
-                }
-                */
               } else {
                 M = templateMap.get(componentIs);
               }
@@ -1824,7 +1788,7 @@
           // Promise.resolve(N).then((N) => {
           //   console.log(3488,N.templateInfo, N.templateInfo === r_);
           // })
-          const r = _bindTemplate.call(this, M, R);
+          const r = reflectApply(_bindTemplate, this, [M, R]);
           r_ = r;
           return r;
         }
@@ -1880,7 +1844,9 @@
               const o = Nx;
               const { propertyEffects, nodeList, firstChild } = o;
               if (propertyEffects && nodeList && nodeList.length >= 0) {
-                for (const [effectKey, propertyEffectArr] of Object.entries(propertyEffects)) {
+                const keys = Reflect.ownKeys(propertyEffects);
+                for (const effectKey of keys) {
+                  const propertyEffectArr = propertyEffects[effectKey];
                   for (let i = propertyEffectArr.length - 1; i >= 0; i--) {
                     const propertyEffect = propertyEffectArr[i];
                     const info = (propertyEffect || 0).info;
@@ -1908,7 +1874,7 @@
             renderPathMake(pChildren);
 
             try {
-              _runEffectsForTemplate.call(T, Nx, R, X, A);
+              reflectApply(_runEffectsForTemplate, T, [Nx, R, X, A]);
 
             } catch (err) {
               // debugger;
@@ -2032,7 +1998,7 @@
           }
           let previousDataHost = this.__dataHost;
           renderPathMake(previousDataHost)
-          let r = _registerHost.call(this);
+          let r = reflectApply(_registerHost, this, []);
           let currentDataHost = this.__dataHost;
           if (currentDataHost !== previousDataHost) { // future use only
             if (previousDataHost && previousDataHost.nodeType >= 1 && previousDataHost.isConnected === false) {
@@ -2162,7 +2128,7 @@
             // N = template elemenet
             let M = N;
             let r_ = null;
-            const r = _stampTemplate.call(this, M, R); // return the fragment created with nodeList
+            const r = reflectApply(_stampTemplate, this, [M, R]); // return the fragment created with nodeList
             r_ = r;
             // if (r && r.host) {
             //   console.log(2883, R.host)
@@ -2250,15 +2216,15 @@
       patchChecked.add(p);
 
       for (const k of ['ownerDocument', 'baseURI', 'isConnected']) {
-        const a = Object.getOwnPropertyDescriptor(p, k);
-        const b = Object.getOwnPropertyDescriptor(Node.prototype, k);
+        const a = Object.getOwnPropertyDescriptor(p, k) || 0;
+        const b = Object.getOwnPropertyDescriptor(Node.prototype, k) || 0;
 
-        if (a?.get && b?.get && a.configurable) {
+        if (a.get && b.get && a.configurable) {
           Object.defineProperty(p, k, {
             configurable: true,
             enumerable: a.enumerable,
             get() {
-              return this.host ? a.get.call(this) : b.get.call(this);
+              return reflectApply(this.host ? a.get : b.get, this, []);
             }
           });
         }
@@ -2275,7 +2241,7 @@
         host = kRef(host);
         finalizer.unregister(this);
 
-        if (host?.nodeType === 1) {
+        if ((host || 0).nodeType === 1) {
           this.host677 = host[wk] = (host[wk] || mWeakRef(host));
           finalizer.register(host, mWeakRef(this), this);
         } else {
@@ -2386,7 +2352,7 @@
               let wobj = obj[wk] || (obj[wk] = mWeakRef(obj));
               return () => {
                 const obj = kRef(wobj);
-                let u = Reflect.apply(this, obj, args);
+                let u = reflectApply(this, obj, args);
                 args.length = 0;
                 wobj = null;
                 return u;
@@ -2472,7 +2438,7 @@
         // const cnt = insp(o);
         // if (cnt === o) return;
         // if (!('ready' in cnt)) return;
-        return f.apply(o, arguments);
+        return reflectApply(f, o, arguments);
       };
       g.key38 = key;
       g.originalFunc38 = f;
@@ -3017,7 +2983,7 @@
     });
 
     const fixRuns = (runs) => {
-      if (runs.length === 1 && runs[0]?.text?.includes('\n')) {
+      if (runs.length === 1 && ((runs[0] || 0).text || 0).includes('\n')) {
         // https://www.youtube.com/watch?v=dmHJJ5k_G-A
         const text = runs[0].text;
         const nlc = text.includes('\r\n') ? '\r\n' : text.includes('\n\r') ? '\n\r' : text.includes('\r') ? '\r' : '\n';
@@ -3338,7 +3304,7 @@
         segments.get = function () {
           console.log('[yt-js-engine-tamer]', "traditional transcript segments fix applied");
           fixSegments(this);
-          return get_.call(this);
+          return reflectApply(get_, this, []);
         };
       }
       return Object_[dfn](obj, pds);
@@ -3388,7 +3354,7 @@
 
   const firstObjectKey = (obj) => {
     for (const key in obj) {
-      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+      if (objectHasOwn(obj, key) && typeof obj[key] === 'object') return key;
     }
     return null;
   };
@@ -3481,7 +3447,7 @@
       },
       apply(target, thisArg, argumentsList) {
         thisArg = thisConversionFn(thisArg);
-        if (thisArg) return Reflect.apply(target, thisArg, argumentsList);
+        if (thisArg) return reflectApply(target, thisArg, argumentsList);
       }
     }
 
@@ -4016,7 +3982,7 @@
       // see https://bugzilla.mozilla.org/show_bug.cgi?id=1756970
       // see https://bugzilla.mozilla.org/show_bug.cgi?id=1842437
 
-      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : f.call(performance) + s; // v > 0.14
+      const v = typeof (this || 0).now23 === 'function' ? this.now23() + s : reflectApply(f, performance, []) + s; // v > 0.14
       if (u + 0.0015 < (u = v)) k = 0; // note: hRes should be accurate to 5 µs in isolated contexts
       else if (k < 0.001428) k += 1e-6 / 7; // M = 10000 * m; m * 9996 = 0.001428
       else { // more than 9998 consecutive calls
@@ -4828,7 +4794,7 @@
         const get = isConnectedPd.get;
         isConnectedPd.get = function () {
           const pseudoVal = this.__pseudo__isConnected__;
-          return typeof pseudoVal === 'boolean' ? pseudoVal : get.call(this);
+          return typeof pseudoVal === 'boolean' ? pseudoVal : reflectApply(get, this, []);
         }
         Object.defineProperty(sdwProto, 'isConnected', { ...isConnectedPd });
       }
@@ -5255,7 +5221,7 @@
                 Object.defineProperty(S, "responseText", {
                   get: () => {
                     if (this.__xmMc9__ === 3) return responseTextStore.get(this);
-                    const text = pd2.get.call(this);
+                    const text = reflectApply(pd2.get, this, []);
                     if (this.__xmMc9__ === 2) {
                       this.__xmMc9__ = 3;
                       responseTextStore.set(this, fixTimedText(text));
@@ -5457,7 +5423,8 @@
       try {
         const { euzObj, euyEvt, getVal, setVal } = checkWheelListenerObjs || (checkWheelListenerObjs = getObjsFn());
         setVal(0);
-        if (callback.call(euzObj, euyEvt) !== void 0) throw 'ErrorF99';
+        const r = reflectApply(callback, euzObj, [euyEvt]);
+        if (r !== void 0) throw 'ErrorF99';
         throw `RESULT${getVal()}`;
       } catch (e) {
         res = e;
@@ -5582,7 +5549,7 @@
     let byPassCount = 0;
     let mmw = new Set();
     HTMLElement_.prototype.hasOwnProperty = function (prop) {
-      if (arguments.length !== 1) return f.apply(this, arguments);
+      if (arguments.length !== 1) return reflectApply(f, this, arguments);
       if (byPassVal !== null && typeof prop === 'string') {
 
         if (PROP_OverReInclusion_LIST.has(prop)) {
@@ -7365,7 +7332,7 @@
     // let pr88 = Promise.resolve();
     const uA4 = function (t, P) {
       for (let y in t)
-        if (t.hasOwnProperty(y) && P[y])
+        if (objectHasOwn(t, y) && P[y])
           return y;
       return null
     }
@@ -7660,12 +7627,12 @@
       const gid = this[`__$$stampSID$$#${containerId}__`];
       let fq = 0;
       const f = (() => {
-        if(fq) return;
+        if (fq) return;
         fq = 1;
         if (gid !== this[`__$$stampSID$$#${containerId}__`]) { return; }
         if (this[`__$$stampSFn$$#${containerId}__`]) this[`__$$stampSFn$$#${containerId}__`]();
         const container = this.getStampContainer7409_(containerId);
-        if(!container) return;
+        if (!container) return;
 
         // console.log(388 , kRef(this[`__$$stampSpliceObj$$#${containerId}__`]))
 
@@ -7696,7 +7663,7 @@
 
         // console.log(currentObjKeys, oldDomKeys, diffSplices(oldDomKeys, currentObjKeys));
 
-        const splices =  diffSplices(oldDomKeys, currentObjKeys);
+        const splices = diffSplices(oldDomKeys, currentObjKeys);
 
         // let myObject = object;
         let indexSplicesObj_ = {
@@ -7720,7 +7687,7 @@
 
 
         this.__lat457__ = this.__lat457__ || new Set();
-        if(!container[wk]) container[wk] = mWeakRef(container);
+        if (!container[wk]) container[wk] = mWeakRef(container);
         this.__lat457__.add(container[wk]);
         fixContainerApi(container);
 
@@ -7737,7 +7704,7 @@
         stampKey = indexSplicesObj_ = null;
         fixContainerApi(container);
         // this.deferredBindingTasks_ = q;
-        if(e_ && e_.message !== 'e5bd8d2f') throw e_;
+        if (e_ && e_.message !== 'e5bd8d2f') throw e_;
         if (!e_) {
           // container.setAttribute('ytx-flushing', '0');
         }
@@ -7754,7 +7721,7 @@
 
     }
 
-  
+
 
     const stampDomArrayWB_ = function (objWr, containerId, xxx_, renderJob0, dt0a) {
       const dt0 = dt0a[0];
@@ -7770,7 +7737,7 @@
       const bStableList = obj[`__stampDomArrayArgs_bStableList__#${containerId}__`];
       const renderJob1 = obj.renderJobsMap_[containerId]
       // console.log(3188, dt0, dt1, renderJob0, renderJob1)
-      obj[`__quu477#${containerId}__`] = [renderJob0,  (dt1 - dt0 >= 1), renderJob1];
+      obj[`__quu477#${containerId}__`] = [renderJob0, (dt1 - dt0 >= 1), renderJob1];
       let e_, r;
       try {
         r = obj.stampDomArray_(dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList);
@@ -7782,7 +7749,7 @@
       return r;
     };
 
-    
+
 
     stampDomArray_.bind = function (obj, ...args) {
       let [dataList, containerId, typeOrConfig, bReuse, bEventCb, bStableList] = args;
@@ -7793,7 +7760,7 @@
       obj[`__stampDomArrayArgs_bReuse__#${containerId}__`] = bReuse;
       obj[`__stampDomArrayArgs_bEventCb__#${containerId}__`] = bEventCb;
       obj[`__stampDomArrayArgs_bStableList__#${containerId}__`] = bStableList;
-       const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`] = `${Math.random()}_${Date.now()}`;
+      const xxx = obj[`__stampDomArrayArgs_xxx__#${containerId}__`] = `${Math.random()}_${Date.now()}`;
 
 
       const renderJob = obj.renderJobsMap_[containerId];
@@ -7803,17 +7770,17 @@
       return stampDomArrayWB_.bind(null, obj[wk], containerId, xxx, renderJob, dt0a);
     };
 
-    
+
     const stampDomArraySplicesWB_ = function (objWr, stampKey, containerId, indexSplicesObj, renderJob0, dt0a) {
       const dt0 = dt0a[0];
       const dt1 = Date.now();
       const obj = kRef(objWr);
       if (!obj) return;
       const renderJob1 = obj.renderJobsMap_[containerId];
-      obj[`__quu477#${containerId}__`] = [renderJob0,  (dt1 - dt0 >= 1), renderJob1];
+      obj[`__quu477#${containerId}__`] = [renderJob0, (dt1 - dt0 >= 1), renderJob1];
       let e_, r;
       try {
-        r = obj.stampDomArraySplices_( stampKey, containerId, indexSplicesObj);
+        r = obj.stampDomArraySplices_(stampKey, containerId, indexSplicesObj);
       } catch (e) {
         e_ = e;
       }
@@ -7822,7 +7789,7 @@
       return r;
     };
 
-    
+
 
     stampDomArraySplices_.bind = function (obj, ...args) {
       let [stampKey, containerId, indexSplicesObj] = args;
@@ -7852,700 +7819,7 @@
       }
     }
 
-    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_ , flushRenderStamperComponentBindings7419_};
-
-  }
-
-  const setupDiscreteTasks = (h, rb) => {
-
-    if (typeof h.onYtRendererstamperFinished === 'function' && !(h.onYtRendererstamperFinished.km34)) {
-      const f = h.onYtRendererstamperFinished;
-      const g = ump3.get(f) || function () {
-        if (this.updateChildVisibilityProperties && !this.markDirty) {
-          return f.apply(this, arguments);
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onYtRendererstamperFinished = g;
-
-    }
-
-    if (typeof h.onYtUpdateDescriptionAction === 'function' && !(h.onYtUpdateDescriptionAction.km34)) {
-      const f = h.onYtUpdateDescriptionAction;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onYtUpdateDescriptionAction = g;
-
-    }
-
-    if (typeof h.handleUpdateDescriptionAction === 'function' && !(h.handleUpdateDescriptionAction.km34)) {
-      const f = h.handleUpdateDescriptionAction;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.handleUpdateDescriptionAction = g;
-
-    }
-
-    if (typeof h.handleUpdateLiveChatPollAction === 'function' && !(h.handleUpdateLiveChatPollAction.km34)) {
-      const f = h.handleUpdateLiveChatPollAction;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.handleUpdateLiveChatPollAction = g;
-
-    }
-
-    if (typeof h.onTextChanged === 'function' && !(h.onTextChanged.km34)) {
-      const f = h.onTextChanged;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onTextChanged = g;
-
-    }
-
-    if (typeof h.onVideoDataChange === 'function' && !(h.onVideoDataChange.km34)) {
-      const f = h.onVideoDataChange;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onVideoDataChange = g;
-
-    }
-
-    if (typeof h.onVideoDataChange_ === 'function' && !(h.onVideoDataChange_.km34)) {
-      const f = h.onVideoDataChange_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onVideoDataChange_ = g;
-
-    } 
-
-    if (typeof h.addTooltips_ === 'function' && !(h.addTooltips_.km34)) {
-
-      const f = h.addTooltips_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.addTooltips_ = g;
-
-    }
-
-    if (typeof h.updateRenderedElements === 'function' && !(h.updateRenderedElements.km34)) {
-
-      const f = h.updateRenderedElements;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.updateRenderedElements = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 2) && typeof h.loadPage_ === 'function' && !(h.loadPage_.km34)) {
-      const f = h.loadPage_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.loadPage_ = g;
-
-    }
-    // updatePageData_ : possible conflict with Omit ShadyDOM
-    if ((WEAK_REF_BINDING_CONTROL & 2) && typeof h.updatePageData_ === 'function' && !(h.updatePageData_.km34)) {
-      const f = h.updatePageData_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.updatePageData_ = g;
-
-    }
-
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onFocus_ === 'function' && !(h.onFocus_.km34)) {
-
-      const f = h.onFocus_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onFocus_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onBlur_ === 'function' && !(h.onBlur_.km34)) {
-
-      const f = h.onBlur_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onBlur_ = g;
-
-    }
-
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.buttonClassChanged_ === 'function' && !(h.buttonClassChanged_.km34)) {
-
-      const f = h.buttonClassChanged_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.buttonClassChanged_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.buttonIconChanged_ === 'function' && !(h.buttonIconChanged_.km34)) {
-
-      const f = h.buttonIconChanged_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.buttonIconChanged_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.dataChangedInBehavior_ === 'function' && !(h.dataChangedInBehavior_.km34)) {
-
-      const f = h.dataChangedInBehavior_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.dataChangedInBehavior_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.continuationsChanged_ === 'function' && !(h.continuationsChanged_.km34)) {
-
-      const f = h.continuationsChanged_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.continuationsChanged_ = g;
-
-    }
-
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.forceChatPoll_ === 'function' && !(h.forceChatPoll_.km34)) {
-
-      const f = h.forceChatPoll_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.forceChatPoll_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onEndpointClick_ === 'function' && !(h.onEndpointClick_.km34)) {
-
-      const f = h.onEndpointClick_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onEndpointClick_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onEndpointTap_ === 'function' && !(h.onEndpointTap_.km34)) {
-
-      const f = h.onEndpointTap_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onEndpointTap_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.handleClick_ === 'function' && !(h.handleClick_.km34)) {
-
-      const f = h.handleClick_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.handleClick_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onReadyStateChange_ === 'function' && !(h.onReadyStateChange_.km34)) {
-
-      const f = h.onReadyStateChange_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onReadyStateChange_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onReadyStateChangeEntryPoint_ === 'function' && !(h.onReadyStateChangeEntryPoint_.km34)) {
-
-      const f = h.onReadyStateChangeEntryPoint_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onReadyStateChangeEntryPoint_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.readyStateChangeHandler_ === 'function' && !(h.readyStateChangeHandler_.km34)) {
-
-      const f = h.readyStateChangeHandler_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.readyStateChangeHandler_ = g;
-
-    }
-
-    if (typeof h.xmlHttpHandler_ === 'function' && !(h.xmlHttpHandler_.km34)) {
-
-      const f = h.xmlHttpHandler_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.xmlHttpHandler_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.executeCallbacks_ === 'function' && !(h.executeCallbacks_.km34)) {
-
-      const f = h.executeCallbacks_; // overloaded
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.executeCallbacks_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.handleInvalidationData_ === 'function' && !(h.handleInvalidationData_.km34)) {
-
-      const f = h.handleInvalidationData_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.handleInvalidationData_ = g;
-
-    }
-
-    if (typeof h.onInput_ === 'function' && !(h.onInput_.km34)) {
-
-      const f = h.onInput_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onInput_ = g;
-
-    }
-    if (typeof h.trigger_ === 'function' && !(h.trigger_.km34)) {
-
-      const f = h.trigger_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.trigger_ = g;
-
-    }
-
-    if (typeof h.requestData_ === 'function' && !(h.requestData_.km34)) {
-
-      const f = h.requestData_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.requestData_ = g;
-
-    }
-
-    if (typeof h.onLoadReloadContinuation_ === 'function' && !(h.onLoadReloadContinuation_.km34)) {
-
-      const f = h.onLoadReloadContinuation_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onLoadReloadContinuation_ = g;
-
-    }
-
-    if (typeof h.onLoadIncrementalContinuation_ === 'function' && !(h.onLoadIncrementalContinuation_.km34)) {
-
-      const f = h.onLoadIncrementalContinuation_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onLoadIncrementalContinuation_ = g;
-
-    }
-
-    if (typeof h.onLoadSeekContinuation_ === 'function' && !(h.onLoadSeekContinuation_.km34)) {
-
-      const f = h.onLoadSeekContinuation_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onLoadSeekContinuation_ = g;
-
-    }
-    if (typeof h.onLoadReplayContinuation_ === 'function' && !(h.onLoadReplayContinuation_.km34)) {
-
-      const f = h.onLoadReplayContinuation_;
-      const g = ump3.get(f) || function (a, b) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onLoadReplayContinuation_ = g;
-
-    }
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.onNavigate_ === 'function' && !(h.onNavigate_.km34)) {
-
-      const f = h.onNavigate_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onNavigate_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.ytRendererBehaviorDataObserver_ === 'function' && !(h.ytRendererBehaviorDataObserver_.km34)) {
-
-      const f = h.ytRendererBehaviorDataObserver_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.ytRendererBehaviorDataObserver_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.ytRendererBehaviorTargetIdObserver_ === 'function' && !(h.ytRendererBehaviorTargetIdObserver_.km34)) {
-
-      const f = h.ytRendererBehaviorTargetIdObserver_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.ytRendererBehaviorTargetIdObserver_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.unregisterRenderer_ === 'function' && !(h.unregisterRenderer_.km34)) {
-
-      const f = h.unregisterRenderer_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.unregisterRenderer_ = g;
-
-    }
-
-    if ((WEAK_REF_BINDING_CONTROL & 1) && typeof h.textChanged_ === 'function' && !(h.textChanged_.km34)) {
-
-      const f = h.textChanged_;
-      const g = ump3.get(f) || function (a) {
-        if (void 0 !== this.isAttached) {
-          const hostElement = this.hostElement;
-          if (!(hostElement instanceof Node) || hostElement.nodeName === 'NOSCRIPT') {
-            return;
-          }
-        }
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.textChanged_ = g;
-
-    }
-
-
-
-    /**
-     *
-     * Neglect following
-     *
-     * h.onYtAction_
-     * h.startLoadingWatch [ buggy for yt-player-updated ]
-     * h.deferRenderStamperBinding_
-     *
-     * h.stampDomArray_
-     * h.stampDomArraySplices_
-     *
-     */
-
-
-    // RP.prototype.searchChanged_ = RP.prototype.searchChanged_;
-    // RP.prototype.skinToneChanged_ = RP.prototype.skinToneChanged_;
-    // RP.prototype.onEmojiHover_ = RP.prototype.onEmojiHover_;
-    // RP.prototype.onSelectCategory_ = RP.prototype.onSelectCategory_;
-    // RP.prototype.onShowEmojiVariantSelector = RP.prototype.onShowEmojiVariantSelector;
-    // RP.prototype.updateCategoriesAndPlaceholder_ = RP.prototype.updateCategoriesAndPlaceholder_;
-
-    if (typeof h.searchChanged_ === 'function' && !(h.searchChanged_.km34)) {
-
-      const f = h.searchChanged_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.searchChanged_ = g;
-
-    }
-
-    if (typeof h.skinToneChanged_ === 'function' && !(h.skinToneChanged_.km34)) {
-
-      const f = h.skinToneChanged_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.skinToneChanged_ = g;
-
-    }
-
-    if (typeof h.onEmojiHover_ === 'function' && !(h.onEmojiHover_.km34)) {
-
-      const f = h.onEmojiHover_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onEmojiHover_ = g;
-
-    }
-
-    if (typeof h.onSelectCategory_ === 'function' && !(h.onSelectCategory_.km34)) {
-
-      const f = h.onSelectCategory_;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onSelectCategory_ = g;
-
-    }
-
-    if (typeof h.onShowEmojiVariantSelector === 'function' && !(h.onShowEmojiVariantSelector.km34)) {
-
-      const f = h.onShowEmojiVariantSelector;
-      const g = ump3.get(f) || function (a) {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onShowEmojiVariantSelector = g;
-
-    }
-
-    if (typeof h.updateCategoriesAndPlaceholder_ === 'function' && !(h.updateCategoriesAndPlaceholder_.km34)) {
-
-      const f = h.updateCategoriesAndPlaceholder_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.updateCategoriesAndPlaceholder_ = g;
-
-    }
-
-    if (typeof h.watchPageActiveChanged_ === 'function' && !(h.watchPageActiveChanged_.km34)) {
-
-      const f = h.watchPageActiveChanged_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.watchPageActiveChanged_ = g;
-
-    }
-
-    if (typeof h.activate_ === 'function' && !(h.activate_.km34)) {
-
-      const f = h.activate_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.activate_ = g;
-
-    }
-    if (typeof h.onYtPlaylistDataUpdated_ === 'function' && !(h.onYtPlaylistDataUpdated_.km34)) {
-
-      const f = h.onYtPlaylistDataUpdated_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onYtPlaylistDataUpdated_ = g;
-
-    }
-
-
-
-    /**
-     *
-     * Neglect following
-     *
-     * h.rendererStamperObserver_
-     * h.rendererStamperApplyChangeRecord_
-     * h.flushRenderStamperComponentBindings_
-     * h.forwardRendererStamperChanges_
-     *
-     */
-
-    if (typeof h.tryRenderChunk_ === 'function' && !(h.tryRenderChunk_.km34)) {
-
-      const f = h.tryRenderChunk_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.tryRenderChunk_ = g;
-
-    }
-
-
-    if (typeof h.renderChunk_ === 'function' && !(h.renderChunk_.km34)) {
-
-      const f = h.renderChunk_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.renderChunk_ = g;
-
-    }
-
-    if (typeof h.deepLazyListObserver_ === 'function' && !(h.deepLazyListObserver_.km34)) {
-
-      const f = h.deepLazyListObserver_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.deepLazyListObserver_ = g;
-
-    }
-
-    if (typeof h.onItemsUpdated_ === 'function' && !(h.onItemsUpdated_.km34)) {
-
-      const f = h.onItemsUpdated_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.onItemsUpdated_ = g;
-
-    }
-
-    if (typeof h.requestRenderChunk_ === 'function' && !(h.requestRenderChunk_.km34)) {
-
-      const f = h.requestRenderChunk_;
-      const g = ump3.get(f) || function () {
-        Promise.resolve().then(() => f.apply(this, arguments)).catch(console.log);
-      }
-      ump3.set(f, g);
-      g.km34 = 1;
-      h.requestRenderChunk_ = g;
-
-    }
-
-    /**
-     *
-     * Neglect following
-     *
-     * h.dataChanged_ [ buggy for page swtiching ]
-     *
-     * h.updateChangeRecord_ [ see https://github.com/cyfung1031/userscript-supports/issues/20 ]
-     *
-     * h.cancelPendingTasks_
-     * h.fillRange_
-     * h.addTextNodes_
-     * h.updateText_
-     * h.stampTypeChanged_
-     *
-     */
-
+    return { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_, flushRenderStamperComponentBindings7419_ };
 
   }
 
@@ -8559,7 +7833,7 @@
     nativeHTMLElement.prototype.connectedCallback79 = nativeHTMLElement.prototype.connectedCallback;
     nativeHTMLElement.prototype.connectedCallback = function () {
       let r;
-      if (this.connectedCallback79) r = this.connectedCallback79.apply(this, arguments);
+      if (this.connectedCallback79) r = reflectApply(this.connectedCallback79, this, arguments);
       return r;
     }
   }
@@ -8567,7 +7841,7 @@
 
   let stampDomArrayFnStore = null;
   const setupMap = new WeakSet();
-  
+
   const setupYtComponent = (cnt) => {
     const cProto = Reflect.getPrototypeOf(cnt || 0) || 0;
     if (!cProto || setupMap.has(cProto)) return;
@@ -8592,10 +7866,10 @@
           && cProto.deferRenderStamperBinding_ === cnt.deferRenderStamperBinding_
         if (!b) {
           console.warn("YouTube Coding Changed. createStampDomFns_() is not applied")
-        } else if(!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
-          
-          if(!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsC_();
-          const {getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_, flushRenderStamperComponentBindings7419_} = stampDomArrayFnStore;
+        } else if (!cProto.createComponent7409_ && !cProto.deferRenderStamperBinding7409_ && !cProto.flushRenderStamperComponentBindings7409_) {
+
+          if (!stampDomArrayFnStore) stampDomArrayFnStore = createStampDomFnsC_();
+          const { getStampContainer_, createComponent_, deferRenderStamperBinding_, flushRenderStamperComponentBindings_, stampDomArray_, stampDomArraySplices_, flushRenderStamperComponentBindings7419_ } = stampDomArrayFnStore;
 
           cProto.getStampContainer7409_ = cProto.getStampContainer_;
           cProto.createComponent7409_ = cProto.createComponent_;
@@ -8612,13 +7886,13 @@
           cProto.stampDomArraySplices_ = stampDomArraySplices_;
           cProto.flushRenderStamperComponentBindings7419_ = flushRenderStamperComponentBindings7419_;
 
-          
-          
+
+
         }
       }
 
 
-      
+
 
 
       // if(false && cProto._runEffectsForTemplate && !cProto._runEffectsForTemplate6344) {
@@ -8642,7 +7916,7 @@
 
   (FIX_stampDomArray) && Object.defineProperty(Object.prototype, 'connectedCallback', {
     get() {
-      
+
       const f = this[keyStConnectedCallback];
       if (this.is) {
         setupYtComponent(this);
@@ -8671,7 +7945,7 @@
       return (this || window).requestIdleCallback471(async function () {
         await pLoad.then();
         // await new Promise(nextBrowserTick_);
-        f.call(this, ...arguments)
+        reflectApply(f, this, arguments);
       }, ...args);
     }
   }
@@ -8892,29 +8166,6 @@
 
   // const assertor = (f) => f() || console.assert(false, `${f}`);
 
-  const fnIntegrity_oldv1 = (f, d) => {
-    if (!f || typeof f !== 'function') {
-      console.warn('f is not a function', f);
-      return;
-    }
-    let p = `${f}`, s = 0, j = -1, w = 0;
-    for (let i = 0, l = p.length; i < l; i++) {
-      const t = p[i];
-      if (((t >= 'a' && t <= 'z') || (t >= 'A' && t <= 'Z'))) {
-        if (j < i - 1) w++;
-        j = i;
-      } else {
-        s++;
-      }
-    }
-    let itz = `${f.length}.${s}.${w}`;
-    if (!d) {
-      return itz;
-    } else {
-      return itz === d;
-    }
-  };
-
   const fnIntegrity = (f, d) => {
     if (!f || typeof f !== 'function') {
       console.warn('f is not a function', f);
@@ -8948,13 +8199,62 @@
 
     let arr = [];
 
-    for (const [k, v] of Object.entries(_yt_player)) {
+    const candidateKeys = [];
+
+    for (const k of Reflect.ownKeys(_yt_player)) {
+      const v = (Object.getOwnPropertyDescriptor(_yt_player, k) || 0).value;
 
       const p = typeof v === 'function' ? v.prototype : 0;
+
+      if (p) {
+
+        let q = 0;
+
+        if (typeof p.start === 'function') q += 50;
+        if (typeof p.isActive === 'function') q += 50;
+        if (typeof p.stop === 'function') q += 50;
+
+        if (q < 150) continue;
+
+        if (typeof p.start === 'function' && p.start.length === 0) q += 20;
+        if (typeof p.isActive === 'function' && p.isActive.length === 1) q += 20;
+        if (typeof p.stop === 'function' && p.stop.length === 1) q += 20;
+
+        if (typeof p.isActive === 'function' && p.isActive.length < 1) q -= 20;
+        if (typeof p.stop === 'function' && p.stop.length < 1) q -= 20;
+
+        if (typeof p.isComplete === 'function') q -= 5;
+        if (typeof p.getStatus === 'function') q -= 5;
+        if (typeof p.getResponseHeader === 'function') q -= 5;
+        if (typeof p.getLastError === 'function') q -= 5;
+        if (typeof p.send === 'function') q -= 5;
+        if (typeof p.abort === 'function') q -= 5;
+        if (typeof p.sample === 'function') q -= 5;
+        if (typeof p.initialize === 'function') q -= 5;
+        if (typeof p.fail === 'function') q -= 5;
+        if (typeof p.getName === 'function') q -= 5;
+
+        candidateKeys.push({ key: k, score: q });
+
+      }
+
+    }
+
+    candidateKeys.sort((a, b) => b.score - a.score);
+
+    for(const candidate of candidateKeys){
+
+      const k = candidate.key;
+      const v = objectHasOwn(_yt_player, k) && _yt_player[k];
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+
+      const pKeys = new Set(Reflect.ownKeys(p));
+      
       if (p
-        && typeof p.start === 'function' && p.start.length === 0 // Ou
-        && typeof p.isActive === 'function' && p.isActive.length === 0
-        && typeof p.stop === 'function' && p.stop.length === 0
+        && typeof p.start === 'function' && pKeys.has("start") && p.start.length === 0 // Ou
+        && typeof p.isActive === 'function' && pKeys.has("isActive") && p.isActive.length === 0
+        && typeof p.stop === 'function' && pKeys.has("stop") && p.stop.length === 0
         && !p.isComplete && !p.getStatus && !p.getResponseHeader && !p.getLastError
         && !p.send && !p.abort
         && !p.sample && !p.initialize && !p.fail && !p.getName
@@ -8965,15 +8265,20 @@
 
 
       }
-
+      
     }
 
+    // ZqOu
     if (arr.length === 0) {
 
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
+      console.error(`[yt-js-engine-tamer] (KeXt.001) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
+      if (arr.length !== 1) {
+        console.error(`[yt-js-engine-tamer] (KeXt.001) multiple keys for [${w}]`, arr);
+      } else {
+        console.log(`[yt-js-engine-tamer] (KeXt.001) [${w}]`, arr);
+      }
       return arr[0];
     }
 
@@ -8985,14 +8290,63 @@
 
     let arr = [];
 
+    const candidateKeys = [];
 
-    for (const [k, v] of Object.entries(_yt_player)) {
+    for (const k of Reflect.ownKeys(_yt_player)) {
+      const v = (Object.getOwnPropertyDescriptor(_yt_player, k) || 0).value;
 
       const p = typeof v === 'function' ? v.prototype : 0;
+
+      if (p) {
+
+        let q = 0;
+
+        if (typeof p.start === 'function') q += 50;
+        if (typeof p.isActive === 'function') q += 50;
+        if (typeof p.stop === 'function') q += 50;
+
+        if (q < 150) continue;
+
+        if (typeof p.start === 'function' && p.start.length === 1) q += 20;
+        if (typeof p.isActive === 'function' && p.isActive.length === 1) q += 20;
+        if (typeof p.stop === 'function' && p.stop.length === 1) q += 20;
+
+        if (typeof p.start === 'function' && p.start.length < 1) q -= 20;
+        if (typeof p.isActive === 'function' && p.isActive.length < 1) q -= 20;
+        if (typeof p.stop === 'function' && p.stop.length < 1) q -= 20;
+
+        if (typeof p.isComplete === 'function') q -= 5;
+        if (typeof p.getStatus === 'function') q -= 5;
+        if (typeof p.getResponseHeader === 'function') q -= 5;
+        if (typeof p.getLastError === 'function') q -= 5;
+        if (typeof p.send === 'function') q -= 5;
+        if (typeof p.abort === 'function') q -= 5;
+        if (typeof p.sample === 'function') q -= 5;
+        if (typeof p.initialize === 'function') q -= 5;
+        if (typeof p.fail === 'function') q -= 5;
+        if (typeof p.getName === 'function') q -= 5;
+
+        candidateKeys.push({ key: k, score: q });
+
+      }
+
+    }
+
+    candidateKeys.sort((a, b) => b.score - a.score);
+
+    for(const candidate of candidateKeys){
+
+      const k = candidate.key;
+      const v = objectHasOwn(_yt_player, k) && _yt_player[k];
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+
+      const pKeys = new Set(Reflect.ownKeys(p));
+      
       if (p
-        && typeof p.start === 'function' && p.start.length === 1 // Qu
-        && typeof p.isActive === 'function' && p.isActive.length === 0
-        && typeof p.stop === 'function' && p.stop.length === 0
+        && typeof p.start === 'function' && pKeys.has("start") && p.start.length === 1 // Qu
+        && typeof p.isActive === 'function' && pKeys.has("isActive") && p.isActive.length === 0
+        && typeof p.stop === 'function' && pKeys.has("stop") && p.stop.length === 0
         && !p.isComplete && !p.getStatus && !p.getResponseHeader && !p.getLastError
         && !p.send && !p.abort
         && !p.sample && !p.initialize && !p.fail && !p.getName
@@ -9003,87 +8357,26 @@
 
 
       }
-
+      
     }
 
+    // ZqQu
     if (arr.length === 0) {
 
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
+      console.error(`[yt-js-engine-tamer] (KeXt.002) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
-      return arr[0];
-    }
-
-  }
-
-
-  const getVG = (_yt_player) => {
-    const w = 'VG';
-
-    let arr = [];
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      const p = typeof v === 'function' ? v.prototype : 0;
-      if (p
-        && typeof p.show === 'function' && p.show.length === 1
-        && typeof p.hide === 'function' && p.hide.length === 0
-        && typeof p.stop === 'function' && p.stop.length === 0) {
-
-        arr = addProtoToArr(_yt_player, k, arr) || arr;
-
+      if (arr.length !== 1) {
+        console.error(`[yt-js-engine-tamer] (KeXt.002) multiple keys for [${w}]`, arr);
+      } else {
+        console.log(`[yt-js-engine-tamer] (KeXt.002) [${w}]`, arr);
       }
-
-    }
-
-
-    if (arr.length === 0) {
-
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
-    } else {
-
-      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
-      return arr[0];
-    }
-
-
-
-  }
-
-
-  const getzo = (_yt_player) => {
-    const w = 'zo';
-
-    let arr = [];
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      if (
-        typeof v === 'function' && v.length === 3 && k.length < 3
-      ) {
-        const vt = `${v}`;
-        if (vt.length >= 21 && vt.includes(".style[")) {
-          if (/\((\w{1,3}),(\w{1,3}),(\w{1,3})\)\{[\s\S]*\1\.style\[\2\]=\3\W/.test(vt)) {
-            arr.push(k);
-          } else {
-            console.warn('[yt-js-engine-tamer] unexpected zo::vt', vt);
-          }
-        }
-      }
-
-    }
-
-    if (arr.length === 0) {
-
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
-    } else {
-
-      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
       return arr[0];
     }
 
   }
+
+
 
   const addProtoToArr = (parent, key, arr) => {
 
@@ -9112,307 +8405,88 @@
 
   }
 
+
+  
   const getuG = (_yt_player) => {
 
     const w = 'uG';
 
     let arr = [];
 
-    for (const [k, v] of Object.entries(_yt_player)) {
+    const candidateKeys = [];
+    
+
+    for (const k of Reflect.ownKeys(_yt_player)) {
+      const v = (Object.getOwnPropertyDescriptor(_yt_player, k) || 0).value;
 
       const p = typeof v === 'function' ? v.prototype : 0;
 
+      if (p) {
+
+        let q = 0;
+
+        if (typeof p.createElement === 'function') q += 50;
+        if (typeof p.detach === 'function') q += 50;
+        if (typeof p.update === 'function') q += 50;
+        if (typeof p.updateValue === 'function') q += 50;
+
+        if (q < 200) continue;
+
+        if (typeof p.createElement === 'function' && p.createElement.length === 2) q += 20;
+        if (typeof p.detach === 'function' && p.detach.length === 0) q += 20;
+        if (typeof p.update === 'function' && p.update.length === 1) q += 20;
+        if (typeof p.updateValue === 'function' && p.updateValue.length === 2) q += 20;
+
+
+        if (typeof p.createElement === 'function' && p.createElement.length < 2) q -= 20;
+        if (typeof p.update === 'function' && p.update.length < 1) q -= 20;
+        if (typeof p.updateValue === 'function' && p.updateValue.length < 2) q -= 20;
+
+        candidateKeys.push({ key: k, score: q });
+
+      }
+
+    }
+
+    candidateKeys.sort((a, b) => b.score - a.score);
+
+    for(const candidate of candidateKeys){
+
+      const k = candidate.key;
+      const v = objectHasOwn(_yt_player, k) && _yt_player[k];
+
+      const p = typeof v === 'function' ? v.prototype : 0;
+
+      const pKeys = new Set(Reflect.ownKeys(p));
+
       if (p
-        && typeof p.createElement === 'function' && p.createElement.length === 2
-        && typeof p.detach === 'function' && p.detach.length === 0
-        && typeof p.update === 'function' && p.update.length === 1
-        && typeof p.updateValue === 'function' && p.updateValue.length === 2
+        && typeof p.createElement === 'function' && pKeys.has("createElement") && p.createElement.length === 2
+        && typeof p.detach === 'function' && pKeys.has("detach") && p.detach.length === 0
+        && typeof p.update === 'function' && pKeys.has("update") && p.update.length === 1
+        && typeof p.updateValue === 'function' && pKeys.has("updateValue") && p.updateValue.length === 2
       ) {
 
         arr = addProtoToArr(_yt_player, k, arr) || arr;
 
       }
-
+      
     }
 
+    // uG
     if (arr.length === 0) {
 
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
+      console.error(`[yt-js-engine-tamer] (KeXt.003) Key does not exist. [${w}]`);
     } else {
 
-      console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
+      if (arr.length !== 1) {
+        console.error(`[yt-js-engine-tamer] (KeXt.003) multiple keys for [${w}]`, arr);
+      } else {
+        console.log(`[yt-js-engine-tamer] (KeXt.003) [${w}]`, arr);
+      }
       return arr[0];
     }
 
   }
-
-  /*
-
-  // QT might be used in future changes
-  const getQT = (_yt_player) => {
-    const w = 'QT';
-
-    let arr = [];
-    let brr = new Map();
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      const p = typeof v === 'function' ? v.prototype : 0;
-      if (p) {
-        let q = 0;
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
-        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
-        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
-
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q -= 600; // avoid SV
-
-        if (q < 200) continue; // p.handleGlobalKeyUp must be available
-
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
-        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
-        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
-
-
-        // differentiate QT and DX
-
-        q += 280;
-        if (typeof p.cueVideoByPlayerVars === 'function') q += 4;
-        if (typeof p.loadVideoByPlayerVars === 'function') q += 4;
-        if (typeof p.preloadVideoByPlayerVars === 'function') q += 4;
-        if (typeof p.seekBy === 'function') q += 4;
-        if (typeof p.seekTo === 'function') q += 4;
-        if (typeof p.getStoryboardFormat === 'function') q += 4;
-        if (typeof p.getDuration === 'function') q += 4;
-        if (typeof p.loadModule === 'function') q += 4;
-        if (typeof p.unloadModule === 'function') q += 4;
-        if (typeof p.getOption === 'function') q += 4;
-        if (typeof p.getOptions === 'function') q += 4;
-        if (typeof p.setOption === 'function') q += 4;
-        if (typeof p.addCueRange === 'function') q += 4;
-        if (typeof p.getDebugText === 'function') q += 4;
-        if (typeof p.getCurrentBroadcastId === 'function') q += 4;
-        if (typeof p.setSizeStyle === 'function') q += 4;
-        if (typeof p.showControls === 'function') q += 4;
-        if (typeof p.hideControls === 'function') q += 4;
-        if (typeof p.getVideoContentRect === 'function') q += 4;
-        if (typeof p.toggleFullscreen === 'function') q += 4;
-        if (typeof p.isFullscreen === 'function') q += 4;
-        if (typeof p.cancelPlayback === 'function') q += 4;
-        if (typeof p.getProgressState === 'function') q += 4;
-        if (typeof p.isInline === 'function') q += 4;
-        if (typeof p.setInline === 'function') q += 4;
-        if (typeof p.toggleSubtitles === 'function') q += 4;
-        if (typeof p.getPlayerSize === 'function') q += 4;
-        if (typeof p.wakeUpControls === 'function') q += 4;
-        if (typeof p.setCenterCrop === 'function') q += 4;
-        if (typeof p.getLoopVideo === 'function') q += 4;
-        if (typeof p.setLoopVideo === 'function') q += 4;
-
-
-        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
-
-        if (q > 0) brr.set(k, q);
-
-      }
-
-    }
-
-    if (arr.length === 0) {
-
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
-    } else {
-
-      arr = arr.map(key => [key, (brr.get(key) || 0)]);
-
-      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
-
-      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
-      return arr[0][0];
-    }
-
-  }
-
-  // SV might be used in future changes
-  const getSV = (_yt_player) => {
-    const w = 'SV';
-
-    let arr = [];
-    let brr = new Map();
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      const p = typeof v === 'function' ? v.prototype : 0;
-      if (p) {
-        let q = 0;
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
-        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
-        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
-
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q += 600; // SV
-
-        if (q < 200) continue; // p.handleGlobalKeyUp must be available
-
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
-        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
-        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
-
-
-        // differentiate QT and DX
-
-
-        q += 280;
-
-        if (typeof p.cueVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.loadVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.preloadVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.seekBy === 'function') q -= 4;
-        if (typeof p.seekTo === 'function') q -= 4;
-        if (typeof p.getStoryboardFormat === 'function') q -= 4;
-        if (typeof p.getDuration === 'function') q -= 4;
-        if (typeof p.loadModule === 'function') q -= 4;
-        if (typeof p.unloadModule === 'function') q -= 4;
-        if (typeof p.getOption === 'function') q -= 4;
-        if (typeof p.getOptions === 'function') q -= 4;
-        if (typeof p.setOption === 'function') q -= 4;
-        if (typeof p.addCueRange === 'function') q -= 4;
-        if (typeof p.getDebugText === 'function') q -= 4;
-        if (typeof p.getCurrentBroadcastId === 'function') q -= 4;
-        if (typeof p.setSizeStyle === 'function') q -= 4;
-        if (typeof p.showControls === 'function') q -= 4;
-        if (typeof p.hideControls === 'function') q -= 4;
-        if (typeof p.getVideoContentRect === 'function') q -= 4;
-        if (typeof p.toggleFullscreen === 'function') q -= 4;
-        if (typeof p.isFullscreen === 'function') q -= 4;
-        if (typeof p.cancelPlayback === 'function') q -= 4;
-        if (typeof p.getProgressState === 'function') q -= 4;
-        if (typeof p.isInline === 'function') q -= 4;
-        if (typeof p.setInline === 'function') q -= 4;
-        if (typeof p.toggleSubtitles === 'function') q -= 4;
-        if (typeof p.getPlayerSize === 'function') q -= 4;
-        if (typeof p.wakeUpControls === 'function') q -= 4;
-        if (typeof p.setCenterCrop === 'function') q -= 4;
-        if (typeof p.getLoopVideo === 'function') q -= 4;
-        if (typeof p.setLoopVideo === 'function') q -= 4;
-
-
-        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
-
-        if (q > 0) brr.set(k, q);
-
-      }
-
-    }
-
-    if (arr.length === 0) {
-
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
-    } else {
-
-      arr = arr.map(key => [key, (brr.get(key) || 0)]);
-
-      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
-
-      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
-      return arr[0][0];
-    }
-
-  }
-
-  // no DX key
-  const getDX = (_yt_player) => {
-    const w = 'DX';
-
-    let arr = [];
-    let brr = new Map();
-
-    for (const [k, v] of Object.entries(_yt_player)) {
-
-      const p = typeof v === 'function' ? v.prototype : 0;
-      if (p) {
-        let q = 0;
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 7) q += 400;
-        else if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 8) q += 300;
-        else if (typeof p.handleGlobalKeyUp === 'function') q += 200;
-
-        if (typeof p.handleGlobalKeyUp === 'function' && p.handleGlobalKeyUp.length === 0) q -= 600; // avoid SV
-
-
-        if (!(typeof p.init === 'function' && p.init.length === 0)) q -= 300; // init is required
-
-        if (q < 200) continue; // p.handleGlobalKeyUp must be available
-
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 8) q += 80;
-        if (typeof p.handleGlobalKeyDown === 'function' && p.handleGlobalKeyDown.length === 7) q += 30;
-        if (typeof p.step === 'function' && p.step.length === 1) q += 10;
-        if (typeof p.step === 'function' && p.step.length !== 1) q += 5;
-
-
-        // differentiate QT and DX
-
-
-        q += 280;
-
-        if (typeof p.cueVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.loadVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.preloadVideoByPlayerVars === 'function') q -= 4;
-        if (typeof p.seekBy === 'function') q -= 4;
-        if (typeof p.seekTo === 'function') q -= 4;
-        if (typeof p.getStoryboardFormat === 'function') q -= 4;
-        if (typeof p.getDuration === 'function') q -= 4;
-        if (typeof p.loadModule === 'function') q -= 4;
-        if (typeof p.unloadModule === 'function') q -= 4;
-        if (typeof p.getOption === 'function') q -= 4;
-        if (typeof p.getOptions === 'function') q -= 4;
-        if (typeof p.setOption === 'function') q -= 4;
-        if (typeof p.addCueRange === 'function') q -= 4;
-        if (typeof p.getDebugText === 'function') q -= 4;
-        if (typeof p.getCurrentBroadcastId === 'function') q -= 4;
-        if (typeof p.setSizeStyle === 'function') q -= 4;
-        if (typeof p.showControls === 'function') q -= 4;
-        if (typeof p.hideControls === 'function') q -= 4;
-        if (typeof p.getVideoContentRect === 'function') q -= 4;
-        if (typeof p.toggleFullscreen === 'function') q -= 4;
-        if (typeof p.isFullscreen === 'function') q -= 4;
-        if (typeof p.cancelPlayback === 'function') q -= 4;
-        if (typeof p.getProgressState === 'function') q -= 4;
-        if (typeof p.isInline === 'function') q -= 4;
-        if (typeof p.setInline === 'function') q -= 4;
-        if (typeof p.toggleSubtitles === 'function') q -= 4;
-        if (typeof p.getPlayerSize === 'function') q -= 4;
-        if (typeof p.wakeUpControls === 'function') q -= 4;
-        if (typeof p.setCenterCrop === 'function') q -= 4;
-        if (typeof p.getLoopVideo === 'function') q -= 4;
-        if (typeof p.setLoopVideo === 'function') q -= 4;
-
-
-        if (q > 0) arr = addProtoToArr(_yt_player, k, arr) || arr;
-
-        if (q > 0) brr.set(k, q);
-
-      }
-
-    }
-
-    if (arr.length === 0) {
-
-      console.warn(`[yt-js-engine-tamer] (key-extraction) Key does not exist. [${w}]`);
-    } else {
-
-      arr = arr.map(key => [key, (brr.get(key) || 0)]);
-
-      if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
-
-      if (arr.length > 2) console.log(`[yt-js-engine-tamer] (key-extraction) [${w}]`, arr);
-      return arr[0][0];
-    }
-
-
-
-  }
-
-  */
 
 
   const isPrepareCachedV = (FIX_avoid_incorrect_video_meta ? true : false) && (window === top);
@@ -9594,16 +8668,16 @@
 
       let pr = null;
 
-      let hState = pdGet.call(document) === 'hidden';
+      let hState = reflectApply(pdGet, document, []) === 'hidden';
       // let cid = 0;
-      pureAddEventListener.call(document, 'visibilitychange', (evt) => {
-        const newHState = pdGet.call(document) === 'hidden';
+      reflectApply(pureAddEventListener, document, ['visibilitychange', (evt) => {
+        const newHState = reflectApply(pdGet, document, []) === 'hidden';
         if (hState !== newHState) {
           // if (cid > 0) cid = clearInterval(cid);
           hState = newHState;
           if (!hState && pr) pr = pr.resolve();
         }
-      });
+      }]);
 
       // cid = setInterval(() => {
       //   const newHState = document.visibilityState === 'hidden';
@@ -9985,11 +9059,14 @@
 
         let arr = [];
 
-        for (const [k, v] of Object.entries(_yt_player)) {
+        const keys = Reflect.ownKeys(_yt_player);
+        for (const k of keys) {
+
+          const v = (Object.getOwnPropertyDescriptor(_yt_player, k) || 0).value;
 
           const p = typeof v === 'function' ? v.prototype : 0;
           if (p
-            && typeof p[evKey] === 'function' && p[evKey].length >= 0 && !p[fvKey]
+            && typeof p[evKey] === 'function' && objectHasOwn(p, evKey) && p[evKey].length >= 0 && !p[fvKey]
 
           ) {
             arr = addProtoToArr(_yt_player, k, arr) || arr;
@@ -10092,7 +9169,7 @@
           let arr = null;
           Array.prototype.push = function (...args) {
             arr = this;
-            return push.apply(this, args);
+            return reflectApply(push, this, args);
           }
           try {
             Polymer.RenderStatus.beforeNextRender({}, function () { }, {});
@@ -10130,7 +9207,7 @@
             }
 
             arrBefore.push = arrAfter.push = function (a) {
-              if (arguments.length !== 1 || !a || a.length === 0 || !a[0]) return push.apply(this, arguments);
+              if (arguments.length !== 1 || !a || a.length === 0 || !a[0]) return reflectApply(push, this, arguments);
               if (a[0].deref) a[0] = kRef(a[0]);
               const f = a[1]
               const obj = a[0]
@@ -10139,7 +9216,7 @@
               if (!obj[wk]) obj[wk] = mWeakRef(obj);
               a[0] = obj[wk]
               // console.log(4992, a)
-              return push.call(this, a);
+              return reflectApply(push, this, [a]);
             }
 
           }
@@ -10183,7 +9260,7 @@
               const p = this.node;
 
               if (p instanceof Document && p.isConnected === true) {
-                return pd4b.value.call(p, query);
+                return reflectApply(pd4b.value, p, [query]);
               }
 
             } catch (e) { }
@@ -10218,7 +9295,7 @@
               const p = this.node;
 
               if (p instanceof Document && p.isConnected === true) {
-                return pd6b.value.call(p, query);
+                return reflectApply(pd6b.value, p, [query]);
               }
 
             } catch (e) {
@@ -10354,7 +9431,7 @@
             console.log(e);
           }
         }
-        return arguments.length === 1 ? f.call(this, a) : f.apply(this, arguments);
+        return reflectApply(f, this, arguments);
       }
 
     })();
@@ -10501,10 +9578,10 @@
               // }
 
               if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
-                target[timerIdProp] = baseRAF.apply(window, requestingArgs);
+                target[timerIdProp] = reflectApply(baseRAF, window, requestingArgs);
               } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
                 // rare
-                target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
               } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
                 // often
                 if ((FIX_schedulerInstanceInstance & 4)) {
@@ -10557,14 +9634,14 @@
                   };
                   resolveRendering = resolveRendering_;
 
-                  target[timerIdProp] = mkFns[2].call(window, resolveRendering_, 300);
+                  target[timerIdProp] = reflectApply(mkFns[2], window, [resolveRendering_, 300]);
 
 
                 } else {
                   if (requestingFn === requestIdleCallback) {
-                    target[timerIdProp] = requestIdleCallback.apply(window, requestingArgs);
+                    target[timerIdProp] = reflectApply(requestIdleCallback, window, requestingArgs);
                   } else {
-                    target[timerIdProp] = mkFns[2].apply(window, requestingArgs);
+                    target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
                   }
                 }
               } else {
@@ -10593,7 +9670,7 @@
           window.requestIdleCallback = fakeFns[3];
           _fnSelectorProp = null;
           try {
-            tThis.start993.call(new Proxy(tThis, startFnHandler));
+            reflectApply(tThis.start993, new Proxy(tThis, startFnHandler), []);
           } catch (e) {
             console.warn(e);
           }
@@ -10639,6 +9716,16 @@
         }
         const gkp = gk.prototype;
 
+        if (typeof gkp.start !== 'function' || gkp.start.length !== 0) {
+          console.warn('[yt-js-engine-tamer] FIX_yt_player::g[keyZqOu] .start arguments length mismatch');
+          return;
+        }
+
+        if (typeof gkp.stop !== 'function' || gkp.stop.length !== 0) {
+          console.warn('[yt-js-engine-tamer] FIX_yt_player::g[keyZqOu] .stop arguments length mismatch');
+          return;
+        }
+
         const dummyObject = new gk;
         const nilFunc = () => { };
 
@@ -10651,9 +9738,14 @@
         let keyFuncC = '';
         let keyCidj = '';
 
-        for (const [t, y] of Object.entries(dummyObject)) {
-          if (y instanceof Window) keyWindow = t;
+        for (const t of Reflect.ownKeys(dummyObject)) {
+          const y = (Object.getOwnPropertyDescriptor(dummyObject, t) || 0).value;
+          if (y instanceof Window) {
+            keyWindow = t;
+          }
         }
+
+        const vt = `${dummyObject.start}`;
 
         const dummyObjectProxyHandler = {
           get(target, prop) {
@@ -10662,16 +9754,26 @@
               keyWindow = prop;
             }
             let y = typeof v === 'function' ? nilFunc : typeof v === 'object' ? nilObj : v;
-            if (prop === keyWindow) y = {
-              requestAnimationFrame(f) {
-                return 3;
-              },
-              cancelAnimationFrame() {
+            if (prop === keyWindow) {
+              if (vt.includes(`this.${prop}`)) {
+                y = {
+                  requestAnimationFrame(f) {
+                    return 3;
+                  },
+                  cancelAnimationFrame() {
 
+                  }
+                }
+              } else {
+                console.error("yt code invalid - 0xE345")
               }
-            }
+          }
             if (!keyFuncC && typeof v === 'function' && !(prop in target.constructor.prototype)) {
-              keyFuncC = prop;
+              if (vt.includes(`this.${prop}`)) {
+                keyFuncC = prop;
+              } else {
+                console.error("yt code invalid - 0xE346")
+              }
             }
             // console.log('[get]', prop, typeof target[prop])
 
@@ -10681,10 +9783,18 @@
           set(target, prop, value) {
 
             if (typeof value === 'boolean' && !keyBoolD) {
-              keyBoolD = prop;
+              if (vt.includes(`this.${prop}`)) {
+                keyBoolD = prop;
+              } else {
+                console.error("yt code invalid - 0xE347")
+              }
             }
             if (typeof value === 'number' && !keyCidj && value >= 2) {
-              keyCidj = prop;
+              if (vt.includes(`this.${prop}`)) {
+                keyCidj = prop;
+              } else {
+                console.error("yt code invalid - 0xE348")
+              }
             }
 
             // console.log('[set]', prop, value)
@@ -10694,7 +9804,7 @@
           }
         };
 
-        dummyObject.start.call(new Proxy(dummyObject, dummyObjectProxyHandler));
+        reflectApply(dummyObject.start, new Proxy(dummyObject, dummyObjectProxyHandler), []);
 
         // console.log('gkp.start',gkp.start);
         // console.log('gkp.stop',gkp.stop);
@@ -10739,284 +9849,6 @@
           }
         */
       }
-
-      // if (fOption & 2) {
-      //   const keyzo = PERF_471489_ ? getzo(_yt_player) : null;
-
-      //   if (keyzo) {
-
-      //     k = keyzo;
-
-      //     const attrUpdateFn = g[k];
-      //     // console.log(5992, attrUpdateFn)
-      //     g['$$original$$' + k] = attrUpdateFn;
-      //     const zoTransform = async (a, c) => {
-
-      //       let transformType = '';
-      //       let transformValue = 0;
-      //       let transformUnit = '';
-      //       let transformTypeI = 0;
-
-      //       const aStyle = a.style;
-
-      //       let cType = 0;
-
-      //       const cl = c.length;
-
-      //       if (cl >= 8) {
-      //         // scale(1)
-      //         if (c.startsWith('scale') && c.charCodeAt(6) === 40 && c.charCodeAt(cl - 1) === 41) {
-      //           cType = 1;
-      //           let t = c.charCodeAt(5);
-      //           if (t === 88 || t === 120) cType = 1 | 4;
-      //           if (t === 89 || t === 121) cType = 1 | 8;
-      //         } else if (c.startsWith('translate') && c.charCodeAt(10) === 40 && c.charCodeAt(cl - 1) === 41) {
-      //           cType = 2;
-      //           let t = c.charCodeAt(9);
-      //           if (t === 88 || t === 120) cType = 2 | 4;
-      //           if (t === 89 || t === 121) cType = 2 | 8;
-      //         }
-      //         let w = 0;
-      //         if (w = (cType === 5) ? 1 : (cType === 9) ? 2 : 0) {
-      //           let p = c.substring(7, cl - 1);
-      //           let q = p.length >= 1 ? parseFloat(p) : NaN;
-      //           if (typeof q === 'number' && !isNaNx(q)) {
-      //             transformType = w === 1 ? 'scaleX' : 'scaleY';
-      //             transformValue = q;
-      //             transformUnit = '';
-      //             transformTypeI = 1;
-      //           } else {
-      //             cType = 256;
-      //           }
-      //         } else if (w = (cType === 6) ? 1 : (cType === 10) ? 2 : 0) {
-      //           if (c.endsWith('px)')) {
-      //             let p = c.substring(11, cl - 3);
-      //             let q = p.length >= 1 ? parseFloat(p) : NaN;
-      //             if (typeof q === 'number' && !isNaNx(q)) {
-      //               transformType = w === 1 ? 'translateX' : 'translateY';
-      //               transformValue = q;
-      //               transformUnit = 'px';
-      //               transformTypeI = 2;
-      //             } else if (p === 'NaN') {
-      //               return;
-      //             }
-      //           } else {
-      //             cType = 256;
-      //           }
-      //         } else if (cType > 0) {
-      //           cType = 256;
-      //         }
-      //       }
-
-
-      //       if (cType === 256) {
-      //         console.log('[yt-js-engine-tamer] zoTransform undefined', c);
-      //       }
-
-      //       if (transformTypeI === 1) {
-      //         const q = Math.round(transformValue * steppingScaleN) / steppingScaleN;
-      //         const vz = toFixed2(q, 3);
-      //         c = `${transformType}(${vz})`;
-      //         const cv = aStyle.transform;
-      //         if (c === cv) return;
-      //         aStyle.transform = c;
-      //       } else if (transformTypeI === 2) {
-      //         const q = transformValue;
-      //         const vz = toFixed2(q, 1);
-      //         c = `${transformType}(${vz}${transformUnit})`;
-      //         const cv = aStyle.transform;
-      //         if (c === cv) return;
-      //         aStyle.transform = c;
-      //       } else { // eg empty
-      //         const cv = aStyle.transform;
-      //         if (!c && !cv) return;
-      //         else if (c === cv) return;
-      //         aStyle.transform = c;
-      //       }
-
-      //     };
-
-      //     const elmTransformTemp = new WeakMap();
-      //     const elmPropTemps = {
-      //       'display': new WeakMap(),
-      //       'width': new WeakMap(),
-      //       'height': new WeakMap(),
-      //       'outlineWidth': new WeakMap(),
-      //       'position': new WeakMap(),
-      //       'padding': new WeakMap(),
-      //       "cssText": new WeakMap(),
-      //       "right": new WeakMap(),
-      //       "left": new WeakMap(),
-      //       "top": new WeakMap(),
-      //       "bottom": new WeakMap(),
-      //       "transitionDelay": new WeakMap(),
-      //       "marginLeft": new WeakMap(),
-      //       "marginTop": new WeakMap(),
-      //       "marginRight": new WeakMap(),
-      //       "marginBottom": new WeakMap(),
-      //     }
-
-      //     const ns5 = Symbol();
-      //     const nextModify = (a, c, m, f, immediate) => {
-      //       const a_ = a;
-      //       const m_ = m;
-      //       const noKey = !m_.has(a_);
-      //       if (immediate || noKey) {
-      //         m_.set(a_, ns5);
-      //         f(a_, c);
-      //         noKey && nextBrowserTick_(() => {
-      //           const d = m_.get(a_);
-      //           if (d === undefined) return;
-      //           m_.delete(a_);
-      //           if (d !== ns5) f(a_, d);
-      //         });
-      //       } else {
-      //         m_.set(a_, c);
-      //       }
-      //     };
-
-      //     const set66 = new Set();
-      //     const log77 = new Map();
-      //     // const set77 = new Set(['top', 'left', 'bottom', 'right']); // caption positioning - immediate change
-
-      //     const modifiedFn = function (a, b, c, immediateChange = false) { // arrow function does not have function.prototype
-
-      //       // console.log(140000, a, b, c);
-      //       if (typeof c === 'number' && typeof b === 'string' && a instanceof HTMLElement_) {
-      //         const num = c;
-      //         c = `${num}`;
-      //         if (c.length > 5) c = (num < 10 && num > -10) ? toFixed2(num, 3) : toFixed2(num, 1);
-      //       }
-
-      //       if (typeof b === 'string' && typeof c === 'string' && a instanceof HTMLElement_) {
-
-      //         let elmPropTemp = null;
-
-      //         if (b === "transform") {
-      //           // div.ytp-hover-progress.ytp-hover-progress-light
-      //           // div.ytp-play-progress.ytp-swatch-background-color
-
-      //           nextModify(a, c, elmTransformTemp, zoTransform, immediateChange);
-      //           return;
-
-      //         } else if (elmPropTemp = elmPropTemps[b]) {
-
-      //           // if (c.length > 5 && c.includes('.')) {
-      //           //   console.log(123213, c)
-      //           // }
-
-      //           const b_ = b;
-      //           nextModify(a, c, elmPropTemp, (a, c) => {
-      //             const style = a.style;
-      //             const cv = style[b_];
-      //             if (!cv && !c) return;
-      //             if (cv === c) return;
-      //             style[b_] = c;
-      //           }, immediateChange);
-      //           return;
-
-      //         } else if (b === "outline-width") {
-
-      //           const b_ = 'outlineWidth';
-      //           elmPropTemp = elmPropTemps[b_];
-      //           nextModify(a, c, elmPropTemp, (a, c) => {
-      //             const style = a.style;
-      //             const cv = style[b_];
-      //             if (!cv && !c) return;
-      //             if (cv === c) return;
-      //             style[b_] = c;
-      //           }, immediateChange);
-      //           return;
-
-      //         } else if (b === 'maxWidth' || b === 'maxHeight') {
-      //           // I think these can be directly assigned.
-
-      //           const b_ = b;
-      //           const style = a.style;
-      //           const cv = style[b_];
-      //           if (!cv && !c) return;
-      //           if (cv === c) return;
-      //           style[b_] = c;
-      //           return;
-
-      //         } else {
-      //           // if(immediate && elmPropTemps[b]){
-      //           //   console.log(5191, b)
-      //           // }
-      //           // caption-window
-      //           // margin-left max-height max-width font-family fill color font-size background white-space margin
-      //           // text-align background-color
-      //           // console.log(27304, a, b, c)
-      //           if (!set66.has(b)) {
-      //             set66.add(b);
-      //             nextBrowserTick_(() => {
-      //               if (!a.classList.contains('caption-window') && !a.classList.contains('ytp-caption-segment')) {
-      //                 console.log(27304, a, b, c)
-      //               }
-      //             })
-      //           }
-      //         }
-
-      //         attrUpdateFn.call(this, a, b, c);
-      //         return;
-      //       } else if (typeof (b || 0) === 'object') {
-
-      //         // this is to fix caption positioning
-      //         // const immediate = (a.id || 0).length > 14 && (('top' in b) || ('left' in b) || ('right' in b) || ('bottom' in b));
-      //         const immediate = (a.id || 0).length > 14;
-      //         for (const [k, v] of Object.entries(b)) {
-      //           modifiedFn.call(this, a, k, v, immediate);
-      //         }
-
-      //       } else {
-
-      //         // a = circle, b = stroke-dasharray, c= "1.8422857142857143 32"
-      //         // ytp-ad-timed-pie-countdown-inner
-
-      //         if (typeof b === 'string') {
-
-      //           let m = log77.get(b);
-      //           if (!m) {
-      //             m = [];
-      //             console.log('attrUpdateFn.debug.27304', m);
-      //             log77.set(b, m);
-      //           }
-      //           m.push([a, b, c]);
-
-      //         } else {
-      //           console.log('attrUpdateFn.debug.27306', a, b, c);
-      //         }
-
-      //         attrUpdateFn.call(this, a, b, c);
-      //         return;
-      //       }
-
-      //       // console.log(130000, a, b, c);
-
-      //     };
-      //     g[k] = modifiedFn;
-
-
-      //     /*
-
-      //         g.zo = function(a, b, c) {
-      //             if ("string" === typeof b)
-      //                 (b = yo(a, b)) && (a.style[b] = c);
-      //             else
-      //                 for (var d in b) {
-      //                     c = a;
-      //                     var e = b[d]
-      //                       , f = yo(c, d);
-      //                     f && (c.style[f] = e)
-      //                 }
-      //         }
-
-
-      //     */
-
-
-      //   }
-      // }
 
       if (fOption & 4) {
         const keyuG = PERF_471489_ ? getuG(_yt_player) : null;
@@ -11079,6 +9911,8 @@
 
       if (fOption & 8) {
 
+        // patch CSS assignment
+
         /*
 
           g.JL = function(y, X, l) {
@@ -11093,21 +9927,42 @@
 
         let arr = [];
 
-        for (const [k, v] of Object.entries(_yt_player)) {
+        const wElm = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+        ;
+        for (const k of Reflect.ownKeys(_yt_player)) {
+          const v = Object.getOwnPropertyDescriptor(_yt_player, k).value;
 
           if (
-            typeof v === 'function' && v.length === 3 && k.length < 3
+            typeof v === 'function' && v.length === 3 && k.length <= 3
           ) {
             const vt = `${v}`;
             if (vt.length < 94 && vt.length > 74 && vt.includes("string") && vt.includes("typeof ") && vt.includes(" in ")) {
-              arr.push(k);
+
+              let s = `s_${Math.random()}`;
+              let key01 = `${s}_key01`;
+              let v01 = `${s}_v01`;
+              let key02 = `${s}_key02`;
+              let v02 = `${s}_v02`;
+              let key03 = `${s}_key03`;
+              let v03 = `${s}_v03`;
+              try {
+                v(wElm, key01, v01);
+                v(wElm, { [key02]: v02, [key03]: v03 }, { valueOf() { throw new Error("INVALID") } });
+              } catch (e) { }
+
+              if (wElm.style[key01] === v01 && wElm.style[key02] === v02 && wElm.style[key03] === v03) {
+                arr.push(k);
+              }
+
             }
           }
 
         }
 
+
         // https://www.youtube.com/s/player/8456c9de/player_es6.vflset/ja_JP/base.js
-        console.log(`[yt-js-engine-tamer] (key-extraction) [JL]`, arr);
+        console.log(`[yt-js-engine-tamer] (KeXt.004) [JL]`, arr);
         if (arr.length !== 1) {
           console.warn("[yt-js-engine-tamer]", "Code Difference in g.JL");
         } else {
@@ -11266,39 +10121,49 @@
 
         let _keyeC = '';
         try {
-          gkp.stop.call(new Proxy({
+          reflectApply(gkp.stop, new Proxy({
             isActive: () => { }
           }, {
             set(target, prop, value) {
               if (value === 0) _keyeC = prop;
               return true;
             }
-          }));
+          }), []);
         } catch (e) { }
         if (!_keyeC) return;
         const keyeC = _keyeC;
 
         let keyC = ''; // this.C = this.ST.bind(this)
         let keyhj = ''; // 1000ms
+        const gkp_start_vt = `${gkp.start}`; // check this.XXX to avoid function call/apply inject
+        if (!gkp_start_vt.includes("this.")) {
+          console.error("gkp.start function mismatched");
+          return;
+        }
         try {
-          gkp.start.call(new Proxy({
+          reflectApply(gkp.start, new Proxy({
             stop: () => { },
             [keyeC]: 0,
           }, {
             get(target, prop) {
-              if (prop in target) return target[prop];
-              if (!keyC) {
-                keyC = prop;
-                return null; // throw error
-              }
-              else if (!keyhj) {
-                keyhj = prop;
+              if (objectHasOwn(target, prop)) return target[prop];
+              if (prop.length <= 3 && gkp_start_vt.includes(`this.${prop}`)) {
+                if (!keyC) {
+                  keyC = prop;
+                  return null; // throw error
+                }
+                else if (!keyhj) {
+                  keyhj = prop;
+                }
+              } else {
+                console.error("gkp.start - other call", prop);
               }
 
             }
-          }));
+          }), [void 0]);
         } catch (e) {
           if (!keyC || !keyhj) {
+            console.error("gkp.start - keyC / keyhj invalid");
             console.log(e)
           }
         }
@@ -11311,18 +10176,24 @@
 
         const possibleKs = new Set();
 
-        for (const [k, v] of Object.entries(gkp)) {
+        const gkpKeys = Reflect.ownKeys(gkp);
+
+        for(const k of gkpKeys) {
+          const v = (Object.getOwnPropertyDescriptor(gkp, k) || 0).value;
           if (k === 'stop' || k === 'start' || k === 'isActive' || k === 'constructor' || k === keyeC || k === keyC || k === keyhj) {
             continue;
           }
           if (typeof v === 'function') {
-            const m = /this\.(\w+)\.call\(this\.(\w+)\)/.exec(v + '');
-            if (m) {
-              keyST = k;
-              keyj = m[1];
-              keyB = m[2];
-            } else {
-              possibleKs.add(k);
+            const vt = `${v}`;
+            if (vt.includes("this.")) {
+              const m = /this\.(\w+)\.call\(this\.(\w+)\)/.exec(vt);
+              if (m) {
+                keyST = k;
+                keyj = m[1];
+                keyB = m[2];
+              } else {
+                possibleKs.add(k);
+              }
             }
           }
         }
@@ -11334,8 +10205,16 @@
             continue;
           }
           const v = gkp[k];
-          if (typeof v === 'function' && (v + '').includes(`this.stop();delete this.${keyj};delete this.${keyB}`)) {
-            keyxa = k;
+          if (typeof v === 'function') {
+
+            const vt = `${v}`;
+            if (vt.includes("this.")) {
+
+              if (vt.includes(`this.stop();delete this.${keyj};delete this.${keyB}`)) {
+                keyxa = k;
+              }
+            }
+
           }
         }
 
@@ -11344,10 +10223,17 @@
       }
 
       const keys = extractKeysZqQu();
-      if (!keys || !keys.length) return;
+      if (!keys || !keys.length) {
+        console.error("yt engine changed 0xDA30");
+        return;
+      }
+
       const [keyeC, keyC, keyhj, keyST, keyj, keyB, keyxa] = keys; // [timerId, binded executorFn, 1000ms, executorFn, dataJ, objectB, disposeFn]
 
-      if (!keyeC || !keyC || !keyhj || !keyST || !keyj || !keyB || !keyxa) return;
+      if (!keyeC || !keyC || !keyhj || !keyST || !keyj || !keyB || !keyxa) {
+        console.error("yt engine changed 0xDA31");
+        return;
+      }
 
       let disposeKeys = null;
 
@@ -11400,10 +10286,9 @@
           }
         }
         if (!skip) {
-          fn.call(obj);
+          reflectApply(fn, obj, []);
         }
       };
-
 
 
 
@@ -11442,6 +10327,94 @@
 
 
     })();
+
+    /** 
+     * 
+     * AdGuard Adblocker Function Call/Apply Issue
+     * 
+     * 
+     * 
+     * 
+(()=>{
+        try {
+            const e = "done";
+            if (Window.prototype.toString.af468cefec0552b8b5bf95042e3b10c0 === e) return;
+            (()=>{
+                const e = Function.prototype.call;
+                let t = !1, o = !1, n1 = !1;
+                const c = {
+                    apply: (c, r, a)=>{
+                        const i1 = a[0];
+                        if ((i1 === null || i1 === void 0 ? void 0 : i1.requestNumber) && (i1 === null || i1 === void 0 ? void 0 : i1.snapshot)) try {
+                            o = ((e, t = 5)=>{
+                                if ("object" != typeof e || null === e) return !1;
+                                const o = new Array(1e3);
+                                let c = 0;
+                                const r = new WeakSet;
+                                for(o[c++] = {
+                                    obj: e,
+                                    depth: 0
+                                }; c > 0 && !n1;){
+                                    const { obj: a, depth: i1 } = o[--c];
+                                    if (i1 > t || "object" != typeof a || null === a || r.has(a)) continue;
+                                    let l;
+                                    r.add(a);
+                                    try {
+                                        l = Object.hasOwn(a, "backoffTimeMs");
+                                    } catch (e) {}
+                                    if (l) return void 0 !== a.backoffTimeMs || (n1 = !0, !1);
+                                    for(const t in a)if (Object.hasOwn(a, t)) {
+                                        let n1;
+                                        try {
+                                            n1 = a[t];
+                                        } catch (e) {}
+                                        null !== n1 && "object" == typeof n1 && !r.has(n1) && c < o.length && (o[c++] = {
+                                            obj: n1,
+                                            depth: i1 + 1
+                                        });
+                                    }
+                                }
+                                return !1;
+                            })(i1), t = !0, (o || n1) && (Function.prototype.call = e);
+                        } catch (e) {}
+                        return reflectApply(c, r, a);
+                    }
+                };
+                window.Function.prototype.call = new Proxy(window.Function.prototype.call, c);
+                window.addEventListener("DOMContentLoaded", async ()=>{
+                    if (Function.prototype.call = e, !o && t) return;
+                    const n1 = window.location.search, c = new URLSearchParams(n1).get("v");
+                    if (!c) return;
+                    const r = await (a = "#movie_player", new Promise((e)=>{
+                        0;
+                        const t = Date.now() + 1e4, o = ()=>{
+                            const n1 = document.querySelector(a);
+                            n1 ? e(n1) : Date.now() > t ? e(null) : setTimeout(o, 200);
+                        };
+                        o();
+                    }));
+                    var a;
+                    if (!r) return;
+                    var _get;
+                    const i1 = (_get = new URLSearchParams(n1).get("t")) !== null && _get !== void 0 ? _get : "0", l = parseInt(i1, 10);
+                    if ("function" == typeof r.loadVideoById) try {
+                        r.loadVideoById(c, l);
+                    } catch (e) {}
+                });
+            })();
+            Object.defineProperty(Window.prototype.toString, "af468cefec0552b8b5bf95042e3b10c0", {
+                value: e,
+                enumerable: !1,
+                writable: !1,
+                configurable: !1
+            });
+        } catch (e) {
+            console.error('Error executing AG js rule with uniqueId "af468cefec0552b8b5bf95042e3b10c0" due to: ' + e);
+        }
+    })()
+
+     * 
+     */
 
     FIX_Animation_n_timeline && (async () => {
 
@@ -11503,7 +10476,7 @@
 
           };
           try {
-            _updateAnimationsPromises.call({});
+            reflectApply(_updateAnimationsPromises, {}, []);
           } catch (e) {
             console.warn(e);
           }
@@ -11529,13 +10502,6 @@
         // console.log('originalAnimationsWithPromises', originalAnimationsWithPromises)
 
         aniProto._updatePromises31 = aniProto._updatePromises;
-
-        /*
-        aniProto._updatePromises = function(){
-          console.log('eff',this._oldPlayState, this.playState)
-          return this._updatePromises31.apply(this, arguments)
-        }
-        */
 
         aniProto._updatePromises = function () {
           var oldPlayState = this._oldPlayState;
@@ -12581,7 +11547,7 @@
             xsetTimeout.m511 = 2;
             xsetTimeout.m568 = f;
           } else {
-            return setTimeout.apply(window, arguments)
+            return reflectApply(setTimeout, window, arguments)
           }
 
         }
@@ -12620,7 +11586,7 @@
           } else if (h.includes("requestAninmationFrameResolver")) {
             foregroundPromiseFn().then(f);
           } else {
-            return requestAnimationFrame.apply(window, arguments);
+            return reflectApply(requestAnimationFrame, window, arguments);
           }
         }
 

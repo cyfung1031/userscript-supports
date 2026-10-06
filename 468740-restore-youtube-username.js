@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.9
+// @version             0.14.10
 // @license             MIT License
 
 // @author              CY Fung
@@ -239,6 +239,7 @@ const Object_ = Object;
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const reflectApply = Reflect.apply;
 
     const { fetch, JSON, Request, AbortController, setTimeout, clearTimeout } = __CONTEXT__; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
 
@@ -325,7 +326,7 @@ const Object_ = Object;
 
     const fxAPI = (proto, propertyName) => {
         const methodFunc = proto[propertyName];
-        return typeof methodFunc === 'function' ? (e, ...args) => methodFunc.apply(e, args) : (e, ...args) => e[propertyName](...args);
+        return typeof methodFunc === 'function' ? (e, ...args) => reflectApply(methodFunc, e, args) : (e, ...args) => e[propertyName](...args);
     };
 
     /** @type { (node: Node)=>Node | null } */
@@ -435,9 +436,12 @@ const Object_ = Object;
 
     if (!isMobile && typeof AbortSignal !== 'undefined') {
         document.addEventListener('yt-action', () => {
-            try {
-                yt.config_.EXPERIMENT_FLAGS.enable_profile_cards_on_comments = true;
-            } catch (e) { }
+            if (typeof yt !== "undefined") {
+                const EXPERIMENT_FLAGS = ((yt || 0).config_ || 0).EXPERIMENT_FLAGS || 0;
+                if (EXPERIMENT_FLAGS) {
+                    EXPERIMENT_FLAGS.enable_profile_cards_on_comments = true;
+                }
+            }
         }, { capture: true, passive: true, once: true })
     }
 
@@ -2904,7 +2908,7 @@ const Object_ = Object;
             const code = str.charCodeAt(i);
             codes[i] = code < 128 ? SWAP_TABLE[code] : code;
         }
-        return fromCharCode.apply(null, codes);
+        return reflectApply(fromCharCode, null, codes);
         // if (len < 10000) return String.fromCharCode.apply(null, codes);
         // let result = '';
         // for (let i = 0; i < len; i += 10000) {
@@ -3164,7 +3168,7 @@ const Object_ = Object;
                     c._propertiesChanged159 = c._propertiesChanged;
                     c._propertiesChanged = function () {
                         resetWhenPropChanged(this);
-                        return this._propertiesChanged159.apply(this, arguments);
+                        return reflectApply(this._propertiesChanged159, this, arguments);
                     };
                 }
 
@@ -3271,7 +3275,7 @@ const Object_ = Object;
                     c.dataChanged159 = c.dataChanged;
                     c.dataChanged = function () {
                         resetWhenDataChanged(this);
-                        return this.dataChanged159.apply(this, arguments);
+                        return reflectApply(this.dataChanged159, this, arguments);
                     };
                 }
 

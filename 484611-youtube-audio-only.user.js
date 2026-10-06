@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.13
+// @version             2.3.14
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -51,6 +51,7 @@
 
     /** @type {globalThis.PromiseConstructor} */
     const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+    const reflectApply = Reflect.apply;
 
     if (typeof AbortSignal === 'undefined') throw new DOMException("Please update your browser.", "NotSupportedError");
 
@@ -2249,7 +2250,7 @@
             let types = new Set();
             function makeModifiedTypeChecker(origChecker) {
                 return function (type) {
-                    const res = origChecker.apply(this, arguments);
+                    const res = reflectApply(origChecker, this, arguments);
                     if (res) {
                         if (type && typeof type === "string" && type.includes("audio/")) types.add(type);
                     }
@@ -2974,7 +2975,7 @@
 
                 if (arr.length === 0) {
 
-                    console.warn(`[yt-audio-only] (key-extraction) Key does not exist (1). [${w}]`);
+                    console.warn(`[yt-audio-only] (KeXt.001) Key does not exist (1). [${w}]`);
                 } else {
 
                     arr = arr.map(key => [key, (brr.get(key) || 0)]);
@@ -2997,7 +2998,7 @@
                                 }
                             });
                             try {
-                                f.call(w)
+                                reflectApply(f, w, []);
                             } catch (e) { }
                             if (o.app) {
                                 match = key;
@@ -3008,7 +3009,7 @@
 
                     if (!match) {
 
-                        console.warn(`[yt-audio-only] (key-extraction) Key does not exist (2). [${w}]`);
+                        console.warn(`[yt-audio-only] (KeXt.001) Key does not exist (2). [${w}]`);
 
                     } else {
                         return match;
@@ -3078,7 +3079,7 @@
 
                 if (arr.length === 0) {
 
-                    console.warn(`[yt-audio-only] (key-extraction) Key does not exist (1). [${w}]`);
+                    console.warn(`[yt-audio-only] (KeXt.002) Key does not exist (1). [${w}]`);
                 } else {
 
                     arr = arr.map(key => [key, (brr.get(key) || 0)]);
@@ -3101,7 +3102,7 @@
                                 }
                             });
                             try {
-                                f.call(w)
+                                reflectApply(f, w, []);
                             } catch (e) { }
                             if (!o.app) {
                                 match = key;
@@ -3112,7 +3113,7 @@
 
                     if (!match) {
 
-                        console.warn(`[yt-audio-only] (key-extraction) Key does not exist (2). [${w}]`);
+                        console.warn(`[yt-audio-only] (KeXt.002) Key does not exist (2). [${w}]`);
 
                     } else {
                         return match;
@@ -3180,14 +3181,14 @@
 
                 if (arr.length === 0) {
 
-                    console.warn(`[yt-audio-only] (key-extraction) Key does not exist. [${w}]`);
+                    console.warn(`[yt-audio-only] (KeXt.003) Key does not exist. [${w}]`);
                 } else {
 
                     arr = arr.map(key => [key, (brr.get(key) || 0)]);
 
                     if (arr.length > 1) arr.sort((a, b) => b[1] - a[1]);
 
-                    if (arr.length > 2) console.log(`[yt-audio-only] (key-extraction) [${w}]`, arr);
+                    if (arr.length > 2) console.log(`[yt-audio-only] (KeXt.003) [${w}]`, arr);
                     return arr[0][0];
                 }
 

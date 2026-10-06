@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.33
+// @version             0.102.34
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -579,6 +579,10 @@
 
   /** @type {globalThis.PromiseConstructor} */
   const Promise = (async () => { })().constructor; // YouTube hacks Promise in WaterFox Classic and "Promise.resolve(0)" nevers resolve.
+  const reflectApply = Reflect.apply;
+  const objectHasOwn = Object.hasOwn || ((object, property) => {
+    return reflectApply(Object.prototype.hasOwnProperty, object, property);
+  });
   const [setTimeout_] = [setTimeout];
   // let jsonParseFix = null;
   const Image_ = Image;
@@ -1553,14 +1557,14 @@
 
   const isEmptyObject = (obj) => {
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) return false;
+      if (objectHasOwn(obj, key)) return false;
     }
     return true;
   }
 
   const firstObjectKey = (obj) => {
     for (const key in obj) {
-      if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') return key;
+      if (objectHasOwn(obj, key) && typeof obj[key] === 'object') return key;
     }
     return null;
   }
@@ -2335,7 +2339,7 @@
 
 
   const logFn = (key, f) => {
-    return Function.prototype.bind.call(console.log, console, `%c ${key}`, 'background: #222; color: #bada55', f);
+    return reflectApply(Function.prototype.bind, console.log, [console, `%c ${key}`, 'background: #222; color: #bada55', f]);
   }
 
 
@@ -3008,7 +3012,7 @@
 
       console1.log('number of elzm-font elements', arr.length);
 
-      HTMLElement_.prototype.append.apply(efsContainer, arr);
+      reflectApply(HTMLElement_.prototype.append, efsContainer, arr);
 
       (document.body || document.documentElement).appendChild(efsContainer);
 
@@ -3728,7 +3732,7 @@
             if (typeof this.stampDomArray366_ === 'function' && this.stampDomArray366_.length === 6) {
               let c = container;
               try {
-                this.stampDomArray366_.call({
+                reflectApply(this.stampDomArray366_, {
                   getStampContainer_(d) {
                     return c
                   },
@@ -3738,7 +3742,7 @@
                   get hostElement() {
                     throw new Error('');
                   }
-                }, 0, cId, false, false, false, false);
+                }, [0, cId, false, false, false, false]);
               } catch (e) { }
               c = null;
             }
@@ -4613,8 +4617,6 @@
 
       */
 
-      const hasOwnProperty = Object.prototype.hasOwnProperty;
-
       function convertToIds(participants) {
         return participants.map(participant => {
           if (!participant || typeof participant !== 'object') {
@@ -4625,7 +4627,7 @@
           let key;
           let keyCount = 0;
           for (const k in participant) {
-            if (hasOwnProperty.call(participant, k)) {
+            if (objectHasOwn(participant, k)) {
               if (++keyCount > 1) break;
               key = k;
             }
@@ -4679,13 +4681,13 @@
 
         if (PARTICIPANT_UPDATE_ONLY_ONLY_IF_MODIFICATION_DETECTED) {
           if (path !== "participantsManager.participants") {
-            return this.__notifyPath5036__.apply(this, arguments);
+            return reflectApply(this.__notifyPath5036__, this, arguments);
           }
           if (c95dm === r95dm) return;
         } else {
           const stack = new Error().stack;
           if (path !== "participantsManager.participants" || stack.indexOf('.onParticipantsChanged') < 0) {
-            return this.__notifyPath5036__.apply(this, arguments);
+            return reflectApply(this.__notifyPath5036__, this, arguments);
           }
         }
 
@@ -4717,31 +4719,31 @@
               r95dm = (r95dm & 1073741823) + 1;
               participants00.push = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.push.apply(this, arguments);
+                return reflectApply(Array.prototype.push, this, arguments);
               }
               participants00.pop = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.pop.apply(this, arguments);
+                return reflectApply(Array.prototype.pop, this, arguments);
               }
               participants00.shift = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.shift.apply(this, arguments);
+                return reflectApply(Array.prototype.shift, this, arguments);
               }
               participants00.unshift = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.unshift.apply(this, arguments);
+                return reflectApply(Array.prototype.unshift, this, arguments);
               }
               participants00.splice = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.splice.apply(this, arguments);
+                return reflectApply(Array.prototype.splice, this, arguments);
               }
               participants00.sort = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.sort.apply(this, arguments);
+                return reflectApply(Array.prototype.sort, this, arguments);
               }
               participants00.reverse = function () {
                 r95dm = (r95dm & 1073741823) + 1;
-                return Array.prototype.reverse.apply(this, arguments);
+                return reflectApply(Array.prototype.reverse, this, arguments);
               }
             }
 
@@ -5025,7 +5027,7 @@
         }
         cProto.attached = function () {
           fpPList(this.hostElement || this);
-          this.__attached412__.apply(this, arguments);
+          reflectApply(this.__attached412__, this, arguments);
         };
 
 
@@ -5050,7 +5052,7 @@
                   console.log('maintain_stable_list for participants list', toUseMaintainStableList);
                 }
               }
-              return this.stampDomArray66_.apply(this, args);
+              return reflectApply(this.stampDomArray66_, this, args);
             }
 
             cProto.stampDomArray_.nIegT = 1;
@@ -5920,7 +5922,7 @@
           },
           apply(target, thisArg, argumentsList) {
             thisArg = thisConversionFn(thisArg);
-            if (thisArg) return Reflect.apply(target, thisArg, argumentsList);
+            if (thisArg) return reflectApply(target, thisArg, argumentsList);
           }
         }
 
@@ -7053,7 +7055,7 @@
                 }
               }
               Promise.resolve().then(updateTickerCurrentTime);
-              return this.playerProgressChanged32_.apply(this, arguments);
+              return reflectApply(this.playerProgressChanged32_, this, arguments);
             };
 
           }
@@ -7513,7 +7515,7 @@
                 return;
               }
               const asyncEn = function () {
-                return aMap.delete(resId) && rp.apply(this, arguments);
+                return aMap.delete(resId) && reflectApply(rp, this, arguments);
               };
               aMap.set(resId, hasF ? this.async66(asyncEn, f) : this.async66(asyncEn));
             });
@@ -8406,7 +8408,7 @@
             let res;
             if (skipErrorForhandleAddChatItemAction_) { // YouTube Native Engine Issue
               try {
-                res = this.handleAddChatItemAction66_.apply(this, arguments);
+                res = reflectApply(this.handleAddChatItemAction66_, this, arguments);
               } catch (e) {
                 if (e && (e.message || '').includes('.querySelector(')) {
                   console.log("skipErrorForhandleAddChatItemAction_", e.message);
@@ -8415,7 +8417,7 @@
                 }
               }
             } else {
-              res = this.handleAddChatItemAction66_.apply(this, arguments);
+              res = reflectApply(this.handleAddChatItemAction66_, this, arguments);
             }
             return res;
           }
@@ -8437,7 +8439,7 @@
                 console.assert(arguments[0] === a);
               }
             } catch (e) { console.warn(e) }
-            return this.handleReplaceChatItemAction66_.apply(this, arguments);
+            return reflectApply(this.handleReplaceChatItemAction66_, this, arguments);
           }
 
           if (FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT) console1.log("handleReplaceChatItemAction_ [ FIX_THUMBNAIL_SIZE_ON_ITEM_REPLACEMENT ]", "OK");
@@ -8519,11 +8521,11 @@
             }
           }
 
-          HTMLElement_.prototype.setAttribute.call(dr(this), attrName, v);
+          reflectApply(HTMLElement_.prototype.setAttribute, dr(this), [attrName, v]);
 
 
         } else {
-          HTMLElement_.prototype.setAttribute.apply(dr(this), arguments);
+          reflectApply(HTMLElement_.prototype.setAttribute, dr(this), arguments);
         }
 
       };
@@ -8717,8 +8719,8 @@
             try{
               // console.log('updateStatsBarAndMaybeShowAnimation called', this.is)
               if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-              return this.updateStatsBarAndMaybeShowAnimation38.call(this.__proxySelf0__, a, b, c);
-            }catch(e){
+              return reflectApply(this.updateStatsBarAndMaybeShowAnimation38, this.__proxySelf0__, [a, b, c]);
+            } catch (e) {
               console.log('updateStatsBarAndMaybeShowAnimationRevised ERROR');
               console.error(e);
             }
@@ -8808,7 +8810,7 @@
             // prevent memory leakage due ot delay function
             try{
               if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-              return this.setContainerWidth55.call(this.__proxySelf0__);
+              return reflectApply(this.setContainerWidth55, this.__proxySelf0__, []);
             }catch(e){
               console.log('setContainerWidthNoSelfLeakage ERROR');
               console.error(e);
@@ -8820,7 +8822,7 @@
             // prevent memory leakage due ot delay function
             try{
               if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-              return this.slideDown55.call(this.__proxySelf0__);
+              return reflectApply(this.slideDown55, this.__proxySelf0__, []);
             }catch(e){
               console.log('slideDownNoSelfLeakage ERROR');
               console.error(e);
@@ -8832,7 +8834,7 @@
             // prevent memory leakage due ot delay function
             try{
               if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-              return this.collapse55.call(this.__proxySelf0__);
+              return reflectApply(this.collapse55, this.__proxySelf0__, []);
             }catch(e){
               console.log('collapseNoSelfLeakage ERROR');
               console.error(e);
@@ -8843,7 +8845,7 @@
             // prevent memory leakage due ot delay function
             try{
               if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-              return this.deletedChanged55.call(this.__proxySelf0__);
+              return reflectApply(this.deletedChanged55, this.__proxySelf0__, []);
             }catch(e){
               console.log('deletedChangedNoSelfLeakage ERROR');
               console.error(e);
@@ -8856,7 +8858,7 @@
 
           /** @type {()} */
           handlePauseReplayForPlaybackProgressState: function () {
-            if (!playerEventsByIframeRelay) return this.handlePauseReplay66.apply(this, arguments);
+            if (!playerEventsByIframeRelay) return reflectApply(this.handlePauseReplay66, this, arguments);
 
             const attachementId = this.__ticker_attachmentId__;
             if(!attachementId) return;
@@ -8871,7 +8873,9 @@
                 const cnt = kRef(jr) || 0;
                 if (attachementId !== cnt.__ticker_attachmentId__) return;
                 if (cnt.isAttached) {
-                  if (tid === cnt._Y7rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement) cnt.handlePauseReplay.apply(cnt, arguments);
+                  if (tid === cnt._Y7rtu && !onPlayStateChangePromise && typeof cnt.handlePauseReplay === 'function' && cnt.hostElement){
+                    reflectApply(cnt.handlePauseReplay, cnt, arguments);
+                  } 
                   // this.handlePauseReplay can be undefined if it is memory cleaned
                 }
               });
@@ -8897,7 +8901,7 @@
 
           /** @type {()} */
           handleResumeReplayForPlaybackProgressState: function () {
-            if (!playerEventsByIframeRelay) return this.handleResumeReplay66.apply(this, arguments);
+            if (!playerEventsByIframeRelay) return reflectApply(this.handleResumeReplay66, this, arguments);
 
             const attachementId = this.__ticker_attachmentId__;
             if(!attachementId) return;
@@ -8910,7 +8914,9 @@
               onPlayStateChangePromise.then(() => {
                 const cnt = kRef(jr);
                 if(attachementId !== (cnt || 0).__ticker_attachmentId__) return;
-                if (tid === cnt._Y7rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) cnt.handleResumeReplay.apply(cnt, arguments);
+                if (tid === cnt._Y7rtv && !onPlayStateChangePromise && typeof cnt.handleResumeReplay === 'function' && cnt.hostElement) {
+                  reflectApply(cnt.handleResumeReplay, cnt, arguments);
+                }
                 // this.handleResumeReplay can be undefined if it is memory cleaned
               });
 
@@ -10014,7 +10020,7 @@
             if (typeof (this.ytLiveChatTickerItemBehavior || 0).setContainerWidth === 'function') {
               try {
                 if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-                return this.dataChanged544.call(this.__proxySelf0__);
+                return reflectApply(this.dataChanged544, this.__proxySelf0__, []);
               } catch (e) {
                 console.log('dataChanged54500 ERROR');
                 console.error(e);
@@ -10028,7 +10034,7 @@
             if (typeof (this.ytLiveChatTickerItemBehavior || 0).setContainerWidth === 'function') {
               try {
                 if (!this.__proxySelf0__) this.__proxySelf0__ = weakWrap(this);
-                return this.dataChanged544.call(this.__proxySelf0__, a);
+                return reflectApply(this.dataChanged544, this.__proxySelf0__, [a]);
               } catch (e) {
                 console.log('dataChanged54501 ERROR');
                 console.error(e);
@@ -10551,7 +10557,7 @@
                 cnt = null;
 
               });
-              return this.attached37.apply(this, arguments);
+              return reflectApply(this.attached37, this, arguments);
             };
             cProto.detached = function () {
               Promise.resolve(this).then((cnt) => {
@@ -10564,7 +10570,7 @@
                 cnt = null;
 
               });
-              return this.detached37.apply(this, arguments);
+              return reflectApply(this.detached37, this, arguments);
             };
 
             const clickFade = (u) => {
@@ -10931,7 +10937,7 @@
                 if (this.oldThumbnail_ && this.thumbnail && this.oldThumbnail_.thumbnails === this.thumbnail.thumbnails) return;
                 if (!this.oldThumbnail_ && !this.thumbnail) return;
 
-                return this.thumbnailChanged66_.apply(this, arguments)
+                return reflectApply(this.thumbnailChanged66_, this, arguments)
 
               }
               console1.log("cProto.thumbnailChanged_ - OK");
@@ -10945,7 +10951,7 @@
               cProto.setSrc66_ = cProto.setSrc_;
               cProto.setSrc_ = function (a) {
                 if ((((this || 0).$ || 0).img || 0).src === a) return;
-                return this.setSrc66_.apply(this, arguments)
+                return reflectApply(this.setSrc66_, this, arguments);
               }
 
               console1.log("cProto.setSrc_ - OK");
@@ -11063,7 +11069,7 @@
 
                   }
                 }
-                return this.dataChanged86.apply(this, arguments)
+                return reflectApply(this.dataChanged86, this, arguments)
 
               }
               console1.log("cProto.dataChanged - OK");
@@ -11135,7 +11141,7 @@
 
                   }
                 }
-                return this.dataChanged86.apply(this, arguments)
+                return reflectApply(this.dataChanged86, this, arguments)
 
               }
               console1.log("cProto.dataChanged - OK");
@@ -11225,7 +11231,7 @@
 
                   }
                 }
-                return this.dataChanged86.apply(this, arguments)
+                return reflectApply(this.dataChanged86, this, arguments)
 
               }
               console1.log("cProto.dataChanged - OK");
@@ -11491,7 +11497,7 @@
             let EU = null;
             tooltipUIWM.set(this, null);
             document.createElement = function () {
-              let r = w.apply(this, arguments);
+              let r = reflectApply(w, this, arguments);
               EU = r;
               return r;
             };
@@ -11597,12 +11603,12 @@
             }
             if (CS.__shady_parentNode) {
               try {
-                __shady_native_removeChild.call(CS.__shady_parentNode, CS);
+                reflectApply(__shady_native_removeChild, CS.__shady_parentNode, [CS]);
               } catch (e) { }
             }
             if (CS.parentNode && !CS.__shady_parentNode) {
               try {
-                __shady_native_removeChild.call(CS.parentNode, CS);
+                reflectApply(__shady_native_removeChild, CS.parentNode, [CS]);
               } catch (e) { }
             }
           }
@@ -11661,7 +11667,7 @@
               cProto._readyClients = function () {
                 // console.log(1238)
 
-                let r = cProto._readyClients43.apply(this, arguments);
+                let r = reflectApply(cProto._readyClients43, this, arguments);
                 if (this.$ && this.$$ && this.$.tooltip) this.root = null; // fix this.root = null != (b = a.root) ? b : this.host
                 return r;
               }
@@ -11677,7 +11683,7 @@
               cProto.show17 = cProto.show;
               cProto.show = function () {
 
-                let r = this.show17.apply(this, arguments);
+                let r = reflectApply(this.show17, this, arguments);
                 this._showing === true && Promise.resolve(this).then((cnt) => {
                   const tooltip = (cnt.$ || 0).tooltip;
 
@@ -12053,7 +12059,7 @@
                 const t = this._onItemTap_isNonStationary;
                 this._onItemTap_isNonStationary = 0;
                 if (t > Date.now()) return;
-                return this.onItemTap366.apply(this, arguments)
+                return reflectApply(this.onItemTap366, this, arguments)
               }
             }
             _e0 = e;
@@ -12296,7 +12302,7 @@
                   stopPropagation, stopImmediatePropagation, preventDefault
                 };
               })(evt);
-              targetCnt.showContextMenu.call(fakeTargetCnt, fakeEvent);
+              reflectApply(targetCnt.showContextMenu, fakeTargetCnt, [fakeEvent]);
 
 
             } catch (e) {
@@ -12442,7 +12448,7 @@
               }
             }
 
-            return this.showContextMenu48.apply(this, arguments);
+            return reflectApply(this.showContextMenu48, this, arguments);
 
           },
 
@@ -12655,7 +12661,7 @@
               if (m.has(fn)) return m.get(fn);
               const resFn = () => {
                 this.__rafs[sId] = null;
-                fn.call(this)
+                reflectApply(fn, this, []);
               };
               m.set(fn, resFn);
               m.set(resFn, resFn);
@@ -12677,11 +12683,11 @@
             cProto.__deraf = function (sId, fn) {
               if (this.__byPassRAF__) {
                 Promise.resolve(this).then((cnt) => {
-                  fn.call(cnt);
+                  reflectApply(fn, cnt, []);
                   cnt = null;
                 });
               }
-              let r = this.__deraf66.apply(this, arguments);
+              let r = reflectApply(this.__deraf66, this, arguments);
               return r;
             }
             console1.log("FIX_DROPDOWN_DERAF - OK");
@@ -12727,7 +12733,7 @@
               cProto._openedChanged = function () {
                 // this.__byPassRAF__ = !lastOpen ? true : false; // or just true?
                 this.__byPassRAF__ = true;
-                let r = this._openedChanged66.apply(this, arguments);
+                let r = reflectApply(this._openedChanged66, this, arguments);
                 this.__byPassRAF__ = false;
                 return r;
               }
@@ -12798,7 +12804,7 @@
                   },
                   set(nv) {
                     allowOutsideScroll = nv;
-                    this.__AllowOutsideScrollPD__.set.call(this, nv);
+                    reflectApply(this.__AllowOutsideScrollPD__.set, this, [nv]);
                     return true;
                   },
                   enumerable: true,
@@ -12866,7 +12872,7 @@
                   this._positionInitialize_ = 0;
                   this.__refitByPosition__();
                 }
-                let r = cProto.position34.apply(this, arguments);
+                let r = reflectApply(cProto.position34, this, arguments);
                 return r;
               }
               console1.log("FIX_MENU_POSITION_ON_SHOWN - OK");
@@ -12916,7 +12922,9 @@
                   const beforeAllowOutsideScroll = this.allowOutsideScroll;
                   this._modifiedMenuPropOn062__ = newValue;
                   const afterAllowOutsideScroll = this.allowOutsideScroll;
-                  if (beforeAllowOutsideScroll !== afterAllowOutsideScroll) this.__AllowOutsideScrollPD__.set.call(this, afterAllowOutsideScroll);
+                  if (beforeAllowOutsideScroll !== afterAllowOutsideScroll) {
+                    reflectApply(this.__AllowOutsideScrollPD__.set, this, [afterAllowOutsideScroll]);
+                  }
                 }
               }
 
@@ -13000,7 +13008,7 @@
             cProto.__openedChanged = function () {
               const positionTarget = this.positionTarget;
               currentMenuPivotWR = positionTarget ? mWeakRef(positionTarget) : null;
-              return this.__openedChanged82.apply(this, arguments);
+              return reflectApply(this.__openedChanged82, this, arguments);
             }
           }
 
@@ -13113,7 +13121,7 @@
               let withError = false;
               try {
 
-                onMouseOver37_.call(lcrDummy, {
+                reflectApply(onMouseOver37_, lcrDummy, [{
                   type: 'mouseover',
                   target: new Proxy({
                     nodeName: 'DIV',
@@ -13130,7 +13138,7 @@
                       throw Error(`setter ${p} is not found`);
                     }
                   })
-                });
+                }]);
               } catch (e) {
                 withError = true;
                 // console.warn(e);
@@ -13167,7 +13175,7 @@
                   }
                 });
 
-                onMouseOver37_.call(lcrDummy, {
+                reflectApply(onMouseOver37_, lcrDummy, [{
                   type: 'mouseover',
                   target: new Proxy({
                     nodeName: 'IMG',
@@ -13196,7 +13204,7 @@
                       throw Error(`setter ${p} is not found`);
                     }
                   })
-                });
+                }]);
               } catch (e) {
                 withError = true;
                 // console.warn(e);
@@ -13220,7 +13228,7 @@
                   const cnt = insp(this);
                   lastShow = ct;
                   try {
-                    cnt.onMouseOver37_.call(this, evt);
+                    reflectApply(cnt.onMouseOver37_, this, [evt]);
                   } catch (e) {
                     console.warn(e);
                   }
@@ -13426,10 +13434,10 @@
             const ct_clients_ = this.clients_ || 0;
             const ct_handles_ = this.unsubscribeAsyncHandles_ || 0;
 
-            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return this.subscribe18.apply(this, arguments);
+            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return reflectApply(this.subscribe18, this, arguments);
 
             let objectId = ((o || 0).invalidationId || 0).objectId;
-            if (!objectId) return this.subscribe18.apply(this, arguments);
+            if (!objectId) return reflectApply(this.subscribe18, this, arguments);
             objectId = convertId(objectId);
 
             // console.log('subscribe', objectId, ct_clients_[objectId], arguments);
@@ -13438,7 +13446,7 @@
               if (ct_handles_[objectId] < 0) delete ct_handles_[objectId];
             }
 
-            return this.subscribe18.apply(this, arguments);
+            return reflectApply(this.subscribe18, this, arguments);
           }
 
           mgrProto.unsubscribe = function (o, d) {
@@ -13449,10 +13457,10 @@
             }
             const ct_clients_ = this.clients_;
             const ct_handles_ = this.unsubscribeAsyncHandles_;
-            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return this.unsubscribe16.apply(this, arguments);
+            if (this.__doCustomSubscribe__ !== true || !ct_clients_ || !ct_handles_) return reflectApply(this.unsubscribe16, this, arguments);
 
             let objectId = ((o || 0).invalidationId || 0).objectId;
-            if (!objectId) return this.unsubscribe16.apply(this, arguments);
+            if (!objectId) return reflectApply(this.unsubscribe16, this, arguments);
 
             objectId = convertId(objectId);
 
@@ -13659,7 +13667,7 @@
                   if (stopAfterRun && (this.hostElement instanceof HTMLElement_)) {
                     this.__toStopAfterRun__(this.hostElement); // primary
                   }
-                  const r = this.maybeLoadAnimationBackground77.apply(this, arguments);
+                  const r = reflectApply(this.maybeLoadAnimationBackground77, this, arguments);
                   if (stopAfterRun && this.lottieAnimation) {
                     this.lottieAnimation.stop(); // fallback if no mutation
                   }
