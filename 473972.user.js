@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.6
+// @version     0.43.7
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -1658,6 +1658,16 @@
     }
   }
 
+  /*
+   * Tracks the synchronous template-reuse notification pulse.
+   * 0 = normal Polymer processing
+   * 1 = deliberate reset: notifyPath(as, {})
+   * 2 = restore:          notifyPath(as, m_)
+   */
+  const TEMPLATE_REUSE_NOTIFY_RESET322 = 1;
+  const TEMPLATE_REUSE_NOTIFY_RESTORE322 = 2;
+  let templateReuseNotifyPhase322 = 0;
+
   if (FIX_TEMPLATE_BINDING) {
     const templateMap = new Map(); /* !!!!!! CAUTION FOR MEMORY LEAKAGE !!!!!!! */
     templateMap.set = templateMap.setOriginal || templateMap.set;
@@ -1878,10 +1888,33 @@
 
             } catch (err) {
               // debugger;
-              const stack = err.stack;
-              if (!exceptionTriggered.has(stack)) {
+              const stack = (err || 0).stack || `${err}`;
+
+              /*
+               * Phase 1 intentionally exposes {} so Polymer/YouTube observes
+               * an actual invalidated state. Computed getters may therefore
+               * dereference missing data during that synthetic state.
+               *
+               * Ignore TypeError from the reset pulse only. Do not add its
+               * stack to exceptionTriggered: if the same failure also occurs
+               * after restoring m_, phase 2 must still report it.
+               */
+              const isTemplateReuseResetTypeError =
+                templateReuseNotifyPhase322 === TEMPLATE_REUSE_NOTIFY_RESET322 &&
+                (err instanceof TypeError || (err || 0).name === 'TypeError');
+
+              if (!isTemplateReuseResetTypeError && !exceptionTriggered.has(stack)) {
                 exceptionTriggered.add(stack);
-                console.warn(`[yt-js-engine-tamer] _runEffectsForTemplate EXCEPTION`+"\n\n", err);
+
+                const phaseSuffix =
+                  templateReuseNotifyPhase322 === TEMPLATE_REUSE_NOTIFY_RESET322 ? ' [template-reuse reset]'
+                    : templateReuseNotifyPhase322 === TEMPLATE_REUSE_NOTIFY_RESTORE322 ? ' [template-reuse restore]'
+                      : '';
+
+                console.warn(
+                  `[yt-js-engine-tamer] _runEffectsForTemplate EXCEPTION${phaseSuffix}\n\n`,
+                  err
+                );
               }
             }
 
@@ -2490,20 +2523,21 @@
 
       tpProto.__updateInstances994 = tpProto.__updateInstances;
       if (typeof tpProto.__updateInstances994 === 'function' && tpProto.__updateInstances994.length === 3) {
-        let bypass= false;
+        let bypass = false;
         tpProto.__updateInstances = function (a, b, c) {
 
           // const a_ = [...a];
-          if(!bypass && a === this.items && (a||0).length >=1 ){
+          if (!bypass && a === this.items && (a || 0).length >= 1) {
 
             bypass = true;
-            // console.log(18470002, a, b,c)
-            let e;
-            for (e = 0; e < b; e++) {
+            try {
+              // console.log(18470002, a, b,c)
+              let e;
+              for (e = 0; e < b; e++) {
                 let g = this.__instances[e]
                   , k = c[e]
                   , m = a[k];
-                if(g && typeof (m||0) === 'object'){
+                if (g && typeof (m || 0) === 'object') {
                   // const q = g._shouldPropertyChange;
                   // g._shouldPropertyChange = ()=>true;
                   // g[this.as] = {};
@@ -2512,12 +2546,32 @@
 
                   // use public interface notifyPath instead of internal interface _setPendingProperty
                   const m_ = a[k] = Object.assign({}, a[k]);
+
+                  /*
+                   * Keep the required hard-reset -> real-item sequence.
+                   *
+                   * The phase marker exists only so _runEffectsForTemplate can
+                   * distinguish an expected TypeError caused by the deliberate
+                   * {} state from a failure after the real item is restored.
+                   */
+                  const previousNotifyPhase = templateReuseNotifyPhase322;
+
                   try {
-                    g.notifyPath(this.as, {}); 
-                  } catch (e) { }
-                  try {
-                    g.notifyPath(this.as, m_);
-                  } catch (e) { }
+                    templateReuseNotifyPhase322 = TEMPLATE_REUSE_NOTIFY_RESET322;
+
+                    try {
+                      g.notifyPath(this.as, {});
+                    } catch (e) { }
+
+                    templateReuseNotifyPhase322 = TEMPLATE_REUSE_NOTIFY_RESTORE322;
+
+                    try {
+                      g.notifyPath(this.as, m_);
+                    } catch (e) { }
+
+                  } finally {
+                    templateReuseNotifyPhase322 = previousNotifyPhase;
+                  }
 
                   // g._setPendingProperty(this.as, {});
                   // g._setPendingProperty(this.as, m);
@@ -2525,9 +2579,16 @@
                   // g._setPendingProperty(this.itemsIndexAs, k);
                   // delete g._shouldPropertyChange;
                   // if(g._shouldPropertyChange !== q) g._shouldPropertyChange = q;
-                } 
+                }
+              }
+
+            } finally {
+              /*
+               * Never leave this template-reuse patch permanently bypassed if
+               * cloning or notification unexpectedly throws.
+               */
+              bypass = false;
             }
-            bypass = false;
 
           }
           const r = this.__updateInstances994(a,b,c);
