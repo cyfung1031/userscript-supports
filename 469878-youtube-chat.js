@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube Super Fast Chat
-// @version             0.102.34
+// @version             0.102.35
 // @license             MIT
 // @name:ja             YouTube スーパーファーストチャット
 // @name:zh-TW          YouTube 超快聊天
@@ -2577,8 +2577,7 @@
     } catch (e) { }
     return typeof propertyDescriptorGetter === 'function' ? (e) => {
       try {
-
-        return propertyDescriptorGetter.call(dr(e));
+        return reflectApply(propertyDescriptorGetter, dr(e), []);
       } catch (e) { }
       return e[propertyName];
     } : (e) => e[propertyName];
@@ -2792,10 +2791,10 @@
 
     return {
       insertBeforeNaFn: (parent, node, child) => {
-        insertBefore.call(parent, node, child);
+        reflectApply(insertBefore, parent, [node, child]);
       },
       appendChildNaFn: (parent, node) => {
-        appendChild.call(parent, node);
+        reflectApply(appendChild, parent, [node]);
       }
     };
 
@@ -3378,16 +3377,16 @@
 
       let pr = null;
 
-      let hState = pdGet.call(document) === 'hidden';
+      let hState = reflectApply(pdGet, document, []) === 'hidden';
       // let cid = 0;
-      pureAddEventListener.call(document, 'visibilitychange', (evt) => {
-        const newHState = pdGet.call(document) === 'hidden';
+      reflectApply(pureAddEventListener, document, ['visibilitychange', (evt) => {
+        const newHState = reflectApply(pdGet, document, []) === 'hidden';
         if (hState !== newHState) {
           // if (cid > 0) cid = clearInterval(cid);
           hState = newHState;
           if (!hState && pr) pr = pr.resolve();
         }
-      });
+      }]);
 
       // cid = setInterval(() => {
       //   const newHState = document.visibilityState === 'hidden';
@@ -4997,7 +4996,7 @@
         cProto.__getAllParticipantsDOMRenderedLength__ = function () {
           const container = ((this || 0).$ || 0).participants;
           if (!container) return 0;
-          return HTMLElement_.prototype.querySelectorAll.call(container, 'yt-live-chat-participant-renderer').length;
+          return reflectApply(HTMLElement_.prototype.querySelectorAll, container, ['yt-live-chat-participant-renderer']).length;
         }
 
         const onPageElements = [...document.querySelectorAll('yt-live-chat-participant-list-renderer:not(.n9fJ3)')];
@@ -7350,7 +7349,7 @@
           nextBrowserTick_(() => {
             const { a, b } = entry;
             const cnt = kRef(a);
-            if (cnt && b) b.call(cnt);
+            if (cnt && b) reflectApply(b, cnt, []);
             entry.a = entry.b = null;
           });
         }
@@ -7435,7 +7434,7 @@
             return;
           }
 
-          const isTargetItems = HTMLElement_.prototype.matches.call(items, '#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer')
+          const isTargetItems = reflectApply(HTMLElement_.prototype.matches, items, ['#item-offset.style-scope.yt-live-chat-item-list-renderer > #items.style-scope.yt-live-chat-item-list-renderer']);
 
           if (!isTargetItems) {
             console.warn("!isTargetItems");
@@ -10543,16 +10542,16 @@
 
                 const hostElement = cnt.hostElement || cnt;
                 if (!(hostElement instanceof HTMLElement_)) return;
-                if (!HTMLElement_.prototype.matches.call(hostElement, '.yt-live-chat-renderer')) return;
-                const ironPage = HTMLElement_.prototype.closest.call(hostElement, 'iron-pages.yt-live-chat-renderer');
+                if (!reflectApply(HTMLElement_.prototype.matches, hostElement, ['.yt-live-chat-renderer'])) return;
+                const ironPage = reflectApply(HTMLElement_.prototype.closest, hostElement, ['iron-pages.yt-live-chat-renderer']);
                 // or #chat-messages
                 if (!ironPage) return;
 
-                if (cnt.__naohzId__) removeEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                if (cnt.__naohzId__) reflectApply(removeEventListener, ironPage, ['click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true }]);
                 cnt.__naohzId__ = naohzId = (naohzId & 1073741823) + 1;
                 ironPage.setAttribute('naohz', `${+cnt.__naohzId__}`);
 
-                addEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                reflectApply(addEventListener, ironPage, ['click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true }]);
 
                 cnt = null;
 
@@ -10565,7 +10564,7 @@
                 const ironPage = document.querySelector(`iron-pages[naohz="${+cnt.__naohzId__}"]`);
                 if (!ironPage) return;
 
-                removeEventListener.call(ironPage, 'click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true });
+                reflectApply(removeEventListener, ironPage, ['click', cnt.messageBoxClickHandlerForFade, { capture: false, passive: true }]);
 
                 cnt = null;
 
@@ -10589,7 +10588,7 @@
                     return;
                   }
                   if (is === 'iron-pages' || is === 'yt-live-chat-renderer' || is === 'yt-live-chat-app') {
-                    const fade = HTMLElement_.prototype.querySelector.call(p, 'yt-live-chat-pinned-message-renderer:not([hidden]) #fade');
+                    const fade = reflectApply(HTMLElement_.prototype.querySelector, p, ['yt-live-chat-pinned-message-renderer:not([hidden]) #fade']);
                     if (fade) {
                       Promise.resolve(fade).then(clickFade);
                       evt && evt.stopPropagation();
@@ -10759,7 +10758,7 @@
 
               const querySelector = HTMLElement_.prototype.querySelector;
               const U = (element) => ({
-                querySelector: (selector) => querySelector.call(element, selector)
+                querySelector: (selector) => reflectApply(querySelector, element, [selector])
               });
 
               cProto.animateScroll_ = function (a) {
@@ -11737,7 +11736,7 @@
               const hostElement = kurMPCe.hostElement || kurMPCe; // should be always hostElement === kurMPCe ?
               if (!hostElement.hasAttribute('menu-visible')) return;
 
-              const chatBanner = HTMLElement_.prototype.closest.call(hostElement, 'yt-live-chat-banner-renderer') || 0;
+              const chatBanner = reflectApply(HTMLElement_.prototype.closest, hostElement, ['yt-live-chat-banner-renderer']) || 0;
               if (chatBanner) return;
 
               if (dropdown && dropdown.positionTarget && hostElement.contains(dropdown.positionTarget)) {
@@ -11806,15 +11805,15 @@
             /** @type {HTMLElement | null} */
             const kurMP = kRef(currentMenuPivotWR);
             if (!kurMP) return;
-            const kurMPCe = HTMLElement_.prototype.closest.call(kurMP, '[menu-visible]') || 0; // element
+            const kurMPCe = reflectApply(HTMLElement_.prototype.closest, kurMP, ['[menu-visible]']) || 0; // element
 
             if (!kurMPCe || !kurMPCe.hasAttribute('whole-message-clickable')) return;
 
             const kurMPCc = insp(kurMPCe); // controller
 
-            if (!kurMPCc.isClickableChatRow111 || !kurMPCc.isClickableChatRow111() || !HTMLElement_.prototype.contains.call(kurMPCe, evt.target)) return;
+            if (!kurMPCc.isClickableChatRow111 || !kurMPCc.isClickableChatRow111() || !reflectApply(HTMLElement_.prototype.contains, kurMPCe, [evt.target])) return;
 
-            const chatBanner = HTMLElement_.prototype.closest.call(kurMPCe, 'yt-live-chat-banner-renderer') || 0;
+            const chatBanner = reflectApply(HTMLElement_.prototype.closest, kurMPCe, ['yt-live-chat-banner-renderer']) || 0;
             if (chatBanner) return;
 
             let targetDropDown = null;

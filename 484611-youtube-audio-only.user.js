@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name                YouTube: Audio Only
-// @version             2.3.14
+// @version             2.3.15
 // @description         No Video Streaming
 // @namespace           UserScript
 // @author              CY Fung
@@ -1899,7 +1899,7 @@
                 try {
                     if (clickLockFn && clickTarget) {
 
-                        let a = HTMLElement.prototype.querySelector.call(clickTarget, '.video-stream.html5-main-video');
+                        let a = reflectApply(HTMLElement.prototype.querySelector, clickTarget, ['.video-stream.html5-main-video']);
                         if (!a) return;
 
                         if (a.muted === true && a.__spfgs__ !== true && a.paused === true && a.networkState === 0 && a.readyState === 0) {
@@ -1910,11 +1910,11 @@
 
                             }).then();
 
-                            clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
+                            reflectApply(clickLockFn, clickTarget, [mockEvent({ type: 'click', target: clickTarget, detail: 1 })]);
                             await delayPn(1);
 
                             if (a.muted === false && a.__spfgs__ !== true && a.paused === true && a.networkState === 0 && a.readyState === 0) {
-                                clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
+                                reflectApply(clickLockFn, clickTarget, [mockEvent({ type: 'click', target: clickTarget, detail: 1 })]);
                                 await delayPn(1);
                             }
 
@@ -2121,7 +2121,7 @@
 
                 if (a.paused === true && a.muted === false && a.readyState === 0 && a.networkState === 2) {
 
-                    clickLockFn.call(clickTarget, mockEvent({ type: 'click', target: clickTarget, detail: 1 }));
+                    reflectApply(clickLockFn, clickTarget, [mockEvent({ type: 'click', target: clickTarget, detail: 1 })]);
 
                 }
 
@@ -2510,7 +2510,7 @@
                     const directHandler = fake[`on${type}`];
                     if (typeof directHandler === 'function') {
                         try {
-                            directHandler.call(fake, ev);
+                            reflectApply(directHandler, fake, [ev]);
                         } catch (err) {
                             stats.lastError = err;
                             elog(`Error in on${type} handler:`, err);

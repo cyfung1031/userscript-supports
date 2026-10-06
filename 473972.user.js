@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.5
+// @version     0.43.6
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -2721,7 +2721,7 @@
         const disconnectedCallback277 = yProto.disconnectedCallback;
         yProto.disconnectedCallback277 = true;
         yProto.disconnectedCallback = function () {
-          disconnectedCallback277.call(this);
+          reflectApply(disconnectedCallback277, this, []);
           if (this.nodeName === 'DOM-IF' && this.__instance && typeof this.__teardownInstance === 'function') {
             const shadyParent = (this.__shady_parentNode || 0);
             const actualParent = (this.parentNode || 0);
@@ -2889,11 +2889,11 @@
 
         if (mv && (mv instanceof Node) && !p.__setupRendered399__) {
           p.__setupRendered399__ = true;
-          setupRendering.call(p);
+          reflectApply(setupRendering, p, []);
         }
         if (mv && mv.is && !mv.__setupRendered399__) {
           mv.__setupRendered399__ = true;
-          setupRendering.call(mv);
+          reflectApply(setupRendering, mv, []);
         }
 
         this[sb1] = nv;
@@ -4037,7 +4037,7 @@
         if (errMessage === targetErrorMessage) {
           if (internalByPass) return child;
           if (this instanceof Node && child instanceof Node && this.nodeType === 11 && child.parentNode !== this && this.contains(child)) { // eg. child = DOM-IF
-            let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
+            let idx = (this.childNodes || 0).length >= 1 ? reflectApply(childNodeIndexOf, this.childNodes, [child]) : -1;
             if (idx >= 0) {
               internalByPass = true;
               try {
@@ -4061,7 +4061,7 @@
           // }
           if (this && child) {
             if (this.childNodes && this.childNodes.splice) { // tbc
-              let idx = (this.childNodes || 0).length >= 1 ? childNodeIndexOf.call(this.childNodes, child) : -1;
+              let idx = (this.childNodes || 0).length >= 1 ? reflectApply(childNodeIndexOf, this.childNodes, [child]) : -1;
               if (idx >= 0) {
                 internalByPass = true;
                 try {
@@ -5156,7 +5156,7 @@
     }
     Object.defineProperty(Map.prototype, 'size', pdNew);
     try {
-      XMLHttpRequest.prototype.open.call(0);
+      XMLHttpRequest.prototype.open.call(0); // open.call
       // xhr.open.call(null)
     } catch (e) { }
     Object.defineProperty(Map.prototype, 'size', pdOri);
@@ -7659,7 +7659,7 @@
 
         });
 
-        const oldDomKeys = Array.prototype.map.call((container.__domApi || container).children, node=>node[s52]);
+        const oldDomKeys = reflectApply(Array.prototype.map, (container.__domApi || container).children, [node => node[s52]]);
 
         // console.log(currentObjKeys, oldDomKeys, diffSplices(oldDomKeys, currentObjKeys));
 

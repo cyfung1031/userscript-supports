@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name                YouTube Boost Chat
 // @namespace           UserScripts
-// @version             0.3.36
+// @version             0.3.37
 // @license             MIT
 // @match               https://*.youtube.com/live_chat*
 // @author              CY Fung
@@ -1986,9 +1986,9 @@ SOFTWARE.
             let onYtIconCreated = (el) => {
               const cnt = insp(el);
               cnt.icon = "live-chat-badges:" + type;
-              _setAttribute.call(el, 'icon-type', type);
+              reflectApply(_setAttribute, el, ['icon-type', type]);
               tooltipText = tooltipText();
-              _setAttribute.call(el, 'shared-tooltip-text', tooltipText);
+              reflectApply(_setAttribute, el, ['shared-tooltip-text', tooltipText]);
               tooltipDisplaySet(tooltipText);
               if (el.getAttribute23752) {
                 el.getAttribute = el.getAttribute23752;
@@ -3013,7 +3013,7 @@ SOFTWARE.
       onYtIconCreated = (el) => {
         const cnt = insp(el);
         cnt.icon = type;
-        _setAttribute.call(el, 'icon-type', type);
+        reflectApply(_setAttribute, el, ['icon-type', type]);
         onYtIconCreated = null;
       }
     }
@@ -4693,19 +4693,19 @@ SOFTWARE.
         const fragment = new DocumentFragment();
         const noscript = document.createElement('noscript');
         noscript.id = 'bst-noscript';
-        appendChild.call(noscript, (wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer'))));
-        appendChild.call(noscript, (wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer'))));
+        reflectApply(appendChild, noscript, [(wliveChatTextMessageRenderer || (wliveChatTextMessageRenderer = document.createElement('yt-live-chat-text-message-renderer')))]);
+        reflectApply(appendChild, noscript, [(wliveChatTextInputRenderer || (wliveChatTextInputRenderer = document.createElement('yt-live-chat-text-input-field-renderer')))]);
 
         const div0 = document.createElement('div');
         div0.id = 'bst-noscript-div';
-        appendChild.call(noscript, div0);
+        reflectApply(appendChild, noscript, [div0]);
         const shadowDiv0 = CAN_USE_SHADOWROOT ? div0.attachShadow({ mode: "open" }) : null;
         const attachDiv0 = CAN_USE_SHADOWROOT ? shadowDiv0 : div0;
         attachDiv0.appendChild(wliveChatTextMessageRenderer);
         attachDiv0.appendChild(wliveChatTextInputRenderer);
 
-        fragmentAppendChild.call(fragment, noscript);
-        fragmentAppendChild.call(fragment, bstMain);
+        reflectApply(fragmentAppendChild, fragment, [noscript]);
+        reflectApply(fragmentAppendChild, fragment, [bstMain]);
         const dummyItems = document.createElement('div');
         dummyItems.id = 'items';
         dummyItems.style.display = 'none';
@@ -4713,12 +4713,12 @@ SOFTWARE.
         const dummyItemOffset = document.createElement('div');
         dummyItemOffset.id = 'item-offset';
         dummyItemOffset.style.display = 'none';
-        appendChild.call(dummyItemOffset, dummyItems);
+        reflectApply(appendChild, dummyItemOffset, [dummyItems]);
 
 
-        fragmentAppendChild.call(fragment, dummyItemOffset);
+        reflectApply(fragmentAppendChild, fragment, [dummyItemOffset]);
 
-        replaceWith.call(targetElement, fragment);
+        reflectApply(replaceWith, targetElement, [fragment]);
         sharedNoscript = noscript;
       }
 
@@ -4854,7 +4854,7 @@ SOFTWARE.
       messageList.profileCard = profileCard;
       render(SolidMessageList, messageList);
 
-      addMessageOverflowAnchorToShadow.call(this, attachRoot);
+      reflectApply(addMessageOverflowAnchorToShadow, this, [attachRoot]);
 
       {
 
@@ -5416,8 +5416,8 @@ SOFTWARE.
         const attributeFn = () => {
           if (!messageList) return;
           const isDark = document.documentElement.hasAttribute('dark')
-          if (isDark) _setAttribute.call(messageList, 'dark', '');
-          else _removeAttribute.call(messageList, 'dark');
+          if (isDark) reflectApply(_setAttribute, messageList, ['dark', '']);
+          else reflectApply(_removeAttribute, messageList, []);
         };
         (new MutationObserver(attributeFn)).observe(document.documentElement, { attributes: true });
         attributeFn();
@@ -5545,7 +5545,7 @@ SOFTWARE.
         if (typeof message.text === 'string') {
           let r;
           try {
-            r = fixMessagesForEmoji.call(cnt.emojiManager, message.text)
+            r = reflectApply(fixMessagesForEmoji, cnt.emojiManager, [message.text])
           } catch (e) {
             console.warn(e)
           }
@@ -5703,12 +5703,12 @@ SOFTWARE.
         status = 1;
         i = 0;
         for (const t of this.visibleItems) { // performance concern? (2.1ms)
-          a.call(this, "visibleItems", t, i++) // performance concern? (12.8ms)
+          reflectApply(a, this, ["visibleItems", t, i++]) // performance concern? (12.8ms)
         }
         status = 2;
         i = 0;
         for (const t of this.activeItems_) {
-          a.call(this, "activeItems_", t, i++);
+          reflectApply(a, this, ["activeItems_", t, i++]);
         }
         status = 3;
       } catch (e) {
@@ -6121,7 +6121,7 @@ f.handleRemoveChatItemAction_ = function(a) {
         }
       });
 
-      const r = this.clearList0402 ? this.clearList0402.call(o) : undefined;
+      const r = this.clearList0402 ? reflectApply(this.clearList0402, o, []) : undefined;
 
       /*
         this.dockableMessages = [];

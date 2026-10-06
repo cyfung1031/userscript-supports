@@ -26,7 +26,7 @@ SOFTWARE.
 // ==UserScript==
 // @name                Restore YouTube Username from Handle to Custom
 // @namespace           http://tampermonkey.net/
-// @version             0.14.10
+// @version             0.14.11
 // @license             MIT License
 
 // @author              CY Fung
@@ -321,7 +321,7 @@ const Object_ = Object;
              *
              */
         } catch (e) { }
-        return typeof propertyDescriptorGetter === 'function' ? (e) => propertyDescriptorGetter.call(e) : (e) => e[propertyName];
+        return typeof propertyDescriptorGetter === 'function' ? (e) => reflectApply(propertyDescriptorGetter, e, []) : (e) => e[propertyName];
     };
 
     const fxAPI = (proto, propertyName) => {
@@ -3102,9 +3102,9 @@ const Object_ = Object;
                 }
 
                 if (UPDATE_PIN_NAME && title && langTitle && langTitle !== title) {
-                    const renderer = HTMLElement.prototype.closest.call(anchor, 'ytm-comment-renderer');
-                    const pinned = !renderer ? null : HTMLElement.prototype.querySelector.call(renderer, 'ytm-pinned-comment-badge-renderer');
-                    const spanText = !pinned ? null : HTMLElement.prototype.querySelector.call(pinned, 'span.yt-core-attributed-string[role="text"]');
+                    const renderer = reflectApply(HTMLElement.prototype.closest, anchor, ['ytm-comment-renderer']);
+                    const pinned = !renderer ? null : reflectApply(HTMLElement.prototype.querySelector, renderer, ['ytm-pinned-comment-badge-renderer']);
+                    const spanText = !pinned ? null : reflectApply(HTMLElement.prototype.querySelector, pinned, ['span.yt-core-attributed-string[role="text"]']);
                     const tc = spanText ? spanText.textContent : '';
                     updatePinnedCommentBadge(parentNodeData, title, langTitle);
                     let idx;
