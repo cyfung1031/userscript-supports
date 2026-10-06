@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.7
+// @version     0.43.8
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -4363,16 +4363,11 @@
     // Polymer.enqueueDebouncer
 
     const s81 = Symbol();
-    const s83 = Symbol();
     const s84 = Symbol();
-    const s85 = Symbol();
-    const s85b = Symbol();
-    const s85c = Symbol();
 
     let renderDebounceTs = null;
 
     let renderDebouncePromise = null;
-    let qp;
 
     const shadyFlushMO = new MutationObserver(() => {
 
@@ -4737,53 +4732,6 @@
         return true;
       }
     });
-
-
-    Object.defineProperty(Object.prototype, '__renderDebouncer', {
-      get() {
-        return this[s85];
-      },
-      set(nv) {
-        if (nv === null && this[s85] === undefined) {
-          // DOM-IF / DOM-REPEAT initialization
-
-
-          const cProto = this.__proto__;
-          if (qp) {
-            qp.obtain();
-            qp = null;
-            shadyFlushMO.observe(document.documentElement, { attributes: ['nw3a24np'] });
-          }
-
-        }
-        this[s85] = nv;
-        return true;
-      }
-    });
-
-    // PS-DOM-REPEAT
-
-    Object.defineProperty(Object.prototype, 'JSC$10034_renderDebouncer', {
-      get() {
-        return this[s85b];
-      },
-      set(nv) {
-
-        this[s85b] = nv;
-        return true;
-      }
-    })
-
-    Object.defineProperty(Object.prototype, 'JSC$10027_renderDebouncer', {
-      get() {
-        return this[s85c];
-      },
-      set(nv) {
-
-        this[s85c] = nv;
-        return true;
-      }
-    })
 
 
   })();
@@ -5741,6 +5689,7 @@
         if (config && config.EXPERIMENT_FLAGS) {
           checkConfig = false;
           config.EXPERIMENT_FLAGS.web_fix_missing_action_buttons = true;
+          console.log('[yt-js-engine-tamer] web_fix_missing_action_buttons fix applied');
         }
       }
     });
@@ -5793,10 +5742,23 @@
       const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
       if (config && config.EXPERIMENT_FLAGS) {
         config.EXPERIMENT_FLAGS.web_watch_get_updated_metadata_manager = true;
+        console.log('[yt-js-engine-tamer] web_watch_get_updated_metadata_manager fix applied');
         return true;
       }
     }).obtain();
   }
+
+  if (FIX_perfNow) {
+    observablePromise(() => {
+      const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+      if (config && config.EXPERIMENT_FLAGS) {
+        config.EXPERIMENT_FLAGS.web_ensure_monotonic_history_timestamps = true;
+        console.log('[yt-js-engine-tamer] web_ensure_monotonic_history_timestamps fix applied');
+        return true;
+      }
+    }).obtain();
+  }
+
 
   if (FIX_ROLLING_NUMBER_UPDATE) {
 
@@ -6549,6 +6511,8 @@
         config.EXPERIMENT_FLAGS.wil_icon_load_immediately = true;         // single rendering
         // config.EXPERIMENT_FLAGS.wil_icon_use_mask_rendering = false;   // DON'T!
         config.EXPERIMENT_FLAGS.wil_icon_network_first = true;            // single rendering
+
+        console.log('[yt-js-engine-tamer] wil_icon_* fix applied');
       }
 
       // this.renderingMode = _.x("wil_icon_use_mask_rendering") ? 1 : 0;
@@ -9224,7 +9188,10 @@
       if (FIX_Polymer_AF && Polymer && Polymer.RenderStatus && !isAmended_Polymer_RenderStatus) {
         isAmended_Polymer_RenderStatus = true;
 
-        if (typeof Polymer.RenderStatus.beforeNextRender === 'function' && typeof Polymer.RenderStatus.afterNextRender === 'function' && Polymer.RenderStatus.beforeNextRender.length === 3 && Polymer.RenderStatus.afterNextRender.length === 3) {
+        if (typeof Polymer.RenderStatus.beforeNextRender === 'function' && typeof Polymer.RenderStatus.afterNextRender === 'function'
+          && objectHasOwn(Polymer.RenderStatus, "beforeNextRender") && objectHasOwn(Polymer.RenderStatus, "afterNextRender")
+          && Polymer.RenderStatus.beforeNextRender.length === 3 && Polymer.RenderStatus.afterNextRender.length === 3) {
+          console.log('[yt-js-engine-tamer] FIX_Polymer_AF fix applied');
           let arrBefore = null, arrAfter = null;
           const push = Array.prototype.push;
           let arr = null;
@@ -9283,6 +9250,8 @@
           }
 
 
+        } else {
+          console.error('[yt-js-engine-tamer] FIX_Polymer_AF fix NOT applied');
         }
         // Polymer.RenderStatus.beforeNextRender
       }
@@ -9519,234 +9488,254 @@
 
     }
 
+    if (FIX_schedulerInstanceInstance & 2) {
 
-    // let schedulerInstancePropOfTimerType = '';
-    // let schedulerInstancePropOfTimerId = '';
-    (FIX_schedulerInstanceInstance & 2) && (async () => {
+      let resolveRendering = null;
+      let postMessage;
 
-      const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
+      if (typeof MessageChannel !== "undefined") {
 
-      if (!schedulerInstanceInstance_) return;
-
-      const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
-      if (checkOK) {
-
-        let resolveRendering = null;
-
-        let cmPr = new PromiseExternal();
-        const cm = document.createComment('0');
-        const cmObs = new MutationObserver(() => {
+        let { port1, port2 } = new MessageChannel();
+        port1.onmessage = () => {
           if (resolveRendering) {
             resolveRendering();
             resolveRendering = null;
           }
-          cmPr.resolve();
-          cmPr = new PromiseExternal();
-        });
-        cmObs.observe(cm, {characterData: true})
-
-        let web_emulated_idle_callback_delay_val = null;
-
-        const getRenderIdleCallbackMs = () => {
-          if (typeof web_emulated_idle_callback_delay_val === 'number') return web_emulated_idle_callback_delay_val;
-          const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
-          const delay = (config.EXPERIMENT_FLAGS || 0).web_emulated_idle_callback_delay || (config.EXPERIMENTS_FORCED_FLAGS || 0).web_emulated_idle_callback_delay;
-          if (typeof delay === 'number') web_emulated_idle_callback_delay_val = delay;
-          return web_emulated_idle_callback_delay_val;
-        }
-        let isDelayRenderFn_firstCheck = true;
-        let isDelayRenderFn_key = null;
-      
-        const isDelayRenderFn = (f) => {
-          if (!isDelayRenderFn_firstCheck) return (typeof ytglobal === 'undefined' ? false : ((ytglobal || 0).schedulerInstanceInstance_ || 0)[isDelayRenderFn_key] === f);
-          isDelayRenderFn_firstCheck = false;
-          if (typeof ytglobal === 'undefined') return false;
-          const globalInstance = ((ytglobal || 0).schedulerInstanceInstance_ || 0);
-          if (!globalInstance) return false;
-          for (const entry of Object.entries(Object.getOwnPropertyDescriptors(globalInstance))) {
-            if (entry[1].value === f && entry[1].enumerable && entry[1].writable && entry[1].configurable) {
-              isDelayRenderFn_key = entry[0]
-              console.log('[yt-js-engine-tamer] web_emulated_idle_callback fix applied');
-              return true;
-            }
-          }
-          return false;
-        }
-
-        schedulerInstanceInstance_.start993 = schedulerInstanceInstance_.start;
-
-        let requestingFn = null;
-        let requestingArgs = null;
-
-        const f = function () {
-          requestingFn = this.fn;
-          requestingArgs = [...arguments];
-          return 12373;
         };
+        postMessage = port2.postMessage.bind(port2);
+        port1 = port2 = null;
+      } else {
+        postMessage = () => {
+          if (resolveRendering) {
+            resolveRendering();
+            resolveRendering = null;
+          }
+        }
+      }
 
-        const fakeFns = [
-          f.bind({ fn: requestAnimationFrame }),
-          f.bind({ fn: setInterval }),
-          f.bind({ fn: setTimeout }),
-          f.bind({ fn: requestIdleCallback })
-        ];
+      ;(async () => {
 
-        let mzt = 0;
+        const schedulerInstanceInstance_ = await schedulerInstanceObservable.obtain();
 
-        let _fnSelectorProp = null;
-        const mkFns = new Array(4);
+        if (!schedulerInstanceInstance_) return;
 
-        /*
-          case 1:
-              var a = this.K;
-              this.g = this.I ? window.requestIdleCallback(a, {
-                  timeout: 3E3
-              }) : window.setTimeout(a, ma);
-              break;
-          case 2:
-              this.g = window.setTimeout(this.M, this.N);
-              break;
-          case 3:
-              this.g = window.requestAnimationFrame(this.L);
-              break;
-          case 4:
-              this.g = window.setTimeout(this.J, 0)
+        const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
+        if (checkOK) {
+
+          let cmPr = new PromiseExternal();
+          const cm = document.createComment('0');
+          const cmObs = new MutationObserver(() => {
+            postMessage(true);
+            cmPr.resolve();
+            cmPr = new PromiseExternal();
+          });
+          cmObs.observe(cm, { characterData: true })
+
+          let web_emulated_idle_callback_delay_val = null;
+
+          const getRenderIdleCallbackMs = () => {
+            if (typeof web_emulated_idle_callback_delay_val === 'number') return web_emulated_idle_callback_delay_val;
+            const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
+            const delay = (config.EXPERIMENT_FLAGS || 0).web_emulated_idle_callback_delay || (config.EXPERIMENTS_FORCED_FLAGS || 0).web_emulated_idle_callback_delay;
+            if (typeof delay === 'number') web_emulated_idle_callback_delay_val = delay;
+            return web_emulated_idle_callback_delay_val;
+          }
+          let isDelayRenderFn_firstCheck = true;
+          let isDelayRenderFn_key = null;
+
+          const isDelayRenderFn = (f) => {
+            if (!isDelayRenderFn_firstCheck) return (typeof ytglobal === 'undefined' ? false : ((ytglobal || 0).schedulerInstanceInstance_ || 0)[isDelayRenderFn_key] === f);
+            isDelayRenderFn_firstCheck = false;
+            if (typeof ytglobal === 'undefined') return false;
+            const globalInstance = ((ytglobal || 0).schedulerInstanceInstance_ || 0);
+            if (!globalInstance) return false;
+            for (const entry of Object.entries(Object.getOwnPropertyDescriptors(globalInstance))) {
+              if (entry[1].value === f && entry[1].enumerable && entry[1].writable && entry[1].configurable) {
+                isDelayRenderFn_key = entry[0]
+                console.log('[yt-js-engine-tamer] web_emulated_idle_callback fix applied');
+                return true;
+              }
+            }
+            return false;
           }
 
-        */
-        const startFnHandler = {
-          get(target, prop, receiver) {
-            if (prop === '$$12377$$') return true;
-            if (prop === '$$12378$$') return target;
+          schedulerInstanceInstance_.start993 = schedulerInstanceInstance_.start;
 
-            // console.log('get',prop)
-            return target[prop]
-          },
-          set(target, prop, value, receiver) {
-            // console.log('set', prop, value)
+          let requestingFn = null;
+          let requestingArgs = null;
 
+          const f = function () {
+            requestingFn = this.fn;
+            requestingArgs = [...arguments];
+            return 12373;
+          };
 
-            if (value >= 1 && value <= 4) _fnSelectorProp = prop;
-            if (value === 12373 && _fnSelectorProp) {
+          const fakeFns = [
+            f.bind({ fn: requestAnimationFrame }),
+            f.bind({ fn: setInterval }),
+            f.bind({ fn: setTimeout }),
+            f.bind({ fn: requestIdleCallback })
+          ];
 
-              const schedulerTypeSelection = target[_fnSelectorProp];
-              const timerIdProp = prop;
+          let mzt = 0;
 
-              //  console.log(3991, requestingFn, requestingArgs[0], requestingArgs[1])
-              // if (schedulerTypeSelection && schedulerTypeSelection >= 1 && schedulerTypeSelection <= 4 && timerIdProp) {
-              //   schedulerInstancePropOfTimerType = _fnSelectorProp || '';
-              //   schedulerInstancePropOfTimerId = timerIdProp || '';
-              // }
+          let _fnSelectorProp = null;
+          const mkFns = new Array(4);
 
-              if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
-                target[timerIdProp] = reflectApply(baseRAF, window, requestingArgs);
-              } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
-                // rare
-                target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
-              } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
-                // often
-                if ((FIX_schedulerInstanceInstance & 4)) {
-                  const f = requestingArgs[0];
-                  const tir = ++mzt;
-                  nextBrowserTick_(() => {
-                    if (target[timerIdProp] === -tir) f();
-                  });
-                  target[_fnSelectorProp] = 940;
-                  target[timerIdProp] = -tir;
-                } else {
-                  const f = requestingArgs[0];
-                  const tir = ++mzt;
-                  Promise.resolve().then(() => {
-                    if (target[timerIdProp] === -tir) f();
-                  });
-                  target[_fnSelectorProp] = 930;
-                  target[timerIdProp] = -tir;
-                }
-              } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
-                // often
-                if (requestingFn === requestIdleCallback && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] || 0).timeout === 3000 && isDelayRenderFn(requestingArgs[0])) {
-                  cm.data = (cm.data & 7) + 1;
-                  let renderFn = requestingArgs[0];
-                  const resolveRendering_ = () => {
-                    const renderFn_ = renderFn;
-                    if (renderFn_) {
-                      renderFn = null;
-                      renderFn_();
-                    }
-                  };
-                  resolveRendering = resolveRendering_;
-                  // console.log(299,requestingArgs[0], requestingArgs[0].name)
-                  target[timerIdProp] = requestIdleCallback(resolveRendering_, { timeout: 300 });
+          /*
+            case 1:
+                var a = this.K;
+                this.g = this.I ? window.requestIdleCallback(a, {
+                    timeout: 3E3
+                }) : window.setTimeout(a, ma);
+                break;
+            case 2:
+                this.g = window.setTimeout(this.M, this.N);
+                break;
+            case 3:
+                this.g = window.requestAnimationFrame(this.L);
+                break;
+            case 4:
+                this.g = window.setTimeout(this.J, 0)
+            }
+  
+          */
+          const startFnHandler = {
+            get(target, prop, receiver) {
+              if (prop === '$$12377$$') return true;
+              if (prop === '$$12378$$') return target;
 
-                  // cm.data = (cm.data & 7) + 1;
-                  // target[timerIdProp] = Math.random();
-
-                } else if (requestingFn === setTimeout && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] === getRenderIdleCallbackMs()) && isDelayRenderFn(requestingArgs[0])) {
-
-                  cm.data = (cm.data & 7) + 1;
-
-                  let renderFn = requestingArgs[0];
-                  const resolveRendering_ = () => {
-                    const renderFn_ = renderFn;
-                    if (renderFn_) {
-                      renderFn = null;
-                      renderFn_();
-                    }
-                  };
-                  resolveRendering = resolveRendering_;
-
-                  target[timerIdProp] = reflectApply(mkFns[2], window, [resolveRendering_, 300]);
+              // console.log('get',prop)
+              return target[prop]
+            },
+            set(target, prop, value, receiver) {
+              // console.log('set', prop, value)
 
 
-                } else {
-                  if (requestingFn === requestIdleCallback) {
-                    target[timerIdProp] = reflectApply(requestIdleCallback, window, requestingArgs);
+              if (value >= 1 && value <= 4) _fnSelectorProp = prop;
+              if (value === 12373 && _fnSelectorProp) {
+
+                const schedulerTypeSelection = target[_fnSelectorProp];
+                const timerIdProp = prop;
+
+                //  console.log(3991, requestingFn, requestingArgs[0], requestingArgs[1])
+                // if (schedulerTypeSelection && schedulerTypeSelection >= 1 && schedulerTypeSelection <= 4 && timerIdProp) {
+                //   schedulerInstancePropOfTimerType = _fnSelectorProp || '';
+                //   schedulerInstancePropOfTimerId = timerIdProp || '';
+                // }
+
+                if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
+                  target[timerIdProp] = reflectApply(baseRAF, window, requestingArgs);
+                } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
+                  // rare
+                  target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
+                } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
+                  // often
+                  if ((FIX_schedulerInstanceInstance & 4)) {
+                    const f = requestingArgs[0];
+                    const tir = ++mzt;
+                    nextBrowserTick_(() => {
+                      if (target[timerIdProp] === -tir) f();
+                    });
+                    target[_fnSelectorProp] = 940;
+                    target[timerIdProp] = -tir;
                   } else {
-                    target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
+                    const f = requestingArgs[0];
+                    const tir = ++mzt;
+                    Promise.resolve().then(() => {
+                      if (target[timerIdProp] === -tir) f();
+                    });
+                    target[_fnSelectorProp] = 930;
+                    target[timerIdProp] = -tir;
                   }
+                } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
+                  // often
+                  if (requestingFn === requestIdleCallback && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] || 0).timeout === 3000 && isDelayRenderFn(requestingArgs[0])) {
+                    cm.data = (cm.data & 7) + 1;
+                    let renderFn = requestingArgs[0];
+                    const resolveRendering_ = () => {
+                      const renderFn_ = renderFn;
+                      if (renderFn_) {
+                        renderFn = null;
+                        renderFn_();
+                      }
+                    };
+                    resolveRendering = resolveRendering_;
+                    // console.log(299,requestingArgs[0], requestingArgs[0].name)
+                    target[timerIdProp] = requestIdleCallback(resolveRendering_, { timeout: 300 });
+
+                    // cm.data = (cm.data & 7) + 1;
+                    // target[timerIdProp] = Math.random();
+
+                  } else if (requestingFn === setTimeout && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] === getRenderIdleCallbackMs()) && isDelayRenderFn(requestingArgs[0])) {
+
+                    cm.data = (cm.data & 7) + 1;
+
+                    let renderFn = requestingArgs[0];
+                    const resolveRendering_ = () => {
+                      const renderFn_ = renderFn;
+                      if (renderFn_) {
+                        renderFn = null;
+                        renderFn_();
+                      }
+                    };
+                    resolveRendering = resolveRendering_;
+
+                    target[timerIdProp] = reflectApply(mkFns[2], window, [resolveRendering_, 300]);
+
+
+                  } else {
+                    if (requestingFn === requestIdleCallback) {
+                      target[timerIdProp] = reflectApply(requestIdleCallback, window, requestingArgs);
+                    } else {
+                      target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
+                    }
+                  }
+                } else {
+                  target[_fnSelectorProp] = 0;
+                  target[timerIdProp] = 0;
                 }
               } else {
-                target[_fnSelectorProp] = 0;
-                target[timerIdProp] = 0;
+                target[prop] = value;
               }
-            } else {
-              target[prop] = value;
+              return true;
             }
-            return true;
-          }
-        };
+          };
 
-        let startBusy = false;
-        schedulerInstanceInstance_.start = function () {
-          if (startBusy) return;
-          startBusy = true;
-          mkFns[0] = window.requestAnimationFrame;
-          mkFns[1] = window.setInterval;
-          mkFns[2] = window.setTimeout;
-          mkFns[3] = window.requestIdleCallback;
-          const tThis = this['$$12378$$'] || this;
-          window.requestAnimationFrame = fakeFns[0];
-          window.setInterval = fakeFns[1];
-          window.setTimeout = fakeFns[2];
-          window.requestIdleCallback = fakeFns[3];
-          _fnSelectorProp = null;
-          try {
-            reflectApply(tThis.start993, new Proxy(tThis, startFnHandler), []);
-          } catch (e) {
-            console.warn(e);
+          let startBusy = false;
+          schedulerInstanceInstance_.start = function () {
+            if (startBusy) return;
+            startBusy = true;
+            mkFns[0] = window.requestAnimationFrame;
+            mkFns[1] = window.setInterval;
+            mkFns[2] = window.setTimeout;
+            mkFns[3] = window.requestIdleCallback;
+            const tThis = this['$$12378$$'] || this;
+            window.requestAnimationFrame = fakeFns[0];
+            window.setInterval = fakeFns[1];
+            window.setTimeout = fakeFns[2];
+            window.requestIdleCallback = fakeFns[3];
+            _fnSelectorProp = null;
+            try {
+              reflectApply(tThis.start993, new Proxy(tThis, startFnHandler), []);
+            } catch (e) {
+              console.warn(e);
+            }
+            _fnSelectorProp = null;
+            window.requestAnimationFrame = mkFns[0];
+            window.setInterval = mkFns[1];
+            window.setTimeout = mkFns[2];
+            window.requestIdleCallback = mkFns[3];
+            startBusy = false;
           }
-          _fnSelectorProp = null;
-          window.requestAnimationFrame = mkFns[0];
-          window.setInterval = mkFns[1];
-          window.setTimeout = mkFns[2];
-          window.requestIdleCallback = mkFns[3];
-          startBusy = false;
+
+          schedulerInstanceInstance_.start.toString = schedulerInstanceInstance_.start993.toString.bind(schedulerInstanceInstance_.start993);
+
         }
+      })();
 
-        schedulerInstanceInstance_.start.toString = schedulerInstanceInstance_.start993.toString.bind(schedulerInstanceInstance_.start993);
+    }
 
-      }
-    })();
 
     FIX_yt_player && !isChatRoomURL && (async () => {
 
@@ -11840,6 +11829,7 @@
           const config = (win.yt || 0).config_ || (win.ytcfg || 0).data_ || 0;
           if (config && config.EXPERIMENT_FLAGS) {
             config.EXPERIMENT_FLAGS.web_video_companion_modern_transcript = false;
+            console.log('[yt-js-engine-tamer] web_video_companion_modern_transcript fix applied');
             return true;
           }
         }).obtain();
