@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.8
+// @version     0.43.9
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -52,7 +52,7 @@
 
   const IGNORE_bindAnimationForCustomEffect = true; // prevent `v.bindAnimationForCustomEffect(this);` being executed
 
-  const FIX_ytdExpander_childrenChanged = true;
+  const FIX_ytdExpander_childrenChanged = false; // yt code changed - disabled since 2026.10.08
   const FIX_paper_ripple_animate = true;
   const FIX_avoid_incorrect_video_meta = true; // [legacy feature for rolling number fixing] 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
   const FIX_avoid_incorrect_video_meta_emitterBehavior = true; // [legacy feature for rolling number fixing] 2025.05.10 - obsoleted -> y.fetchUpdatedMetadata(t, e.continuation)
@@ -3713,7 +3713,7 @@
         }
       }
       if (!sFinal) {
-        ++fcjCheckLater;
+        if (fcjCheckLater < 99) ++fcjCheckLater;
         if (fcjCheckLater > 10 || document.querySelector('ytd-comments:not([hidden]) [id]')) {
           sFinal = true;
         }
@@ -4864,13 +4864,13 @@
     if (sdp && sdp.configurable && sdp.value && sdp.enumerable && sdp.writable && !sdp.get && !sdp.set) {
     } else if (!sdp) {
     } else {
-      console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [ PropertyDescriptor issue ]', sdp);
+      console.error('[yt-js-engine-tamer] FIX::ShadyDOM is not applied [ PropertyDescriptor issue ]', sdp);
       return;
     }
 
     const shadyDOMNodeWRM = new WeakMap();
 
-    console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
+    console.log('[yt-js-engine-tamer] FIX::ShadyDOM << 01 >>', b);
 
     const weakWrapperNodeHandlerFn = () => ({
       get() {
@@ -4977,10 +4977,10 @@
       previousWrapStore = p;
 
       if (typeof ShadyDOM.wrap === 'function' && ShadyDOM.wrap.length === 1) {
-        ShadyDOM.wrap = function (a) { 0 && console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
+        ShadyDOM.wrap = function (a) { 0 && console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrap'); return standardWrap(a) }
       }
       if (typeof ShadyDOM.wrapIfNeeded === 'function' && ShadyDOM.wrapIfNeeded.length === 1) {
-        ShadyDOM.wrapIfNeeded = function (a) { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrapIfNeeded'); return standardWrap(a) }
+        ShadyDOM.wrapIfNeeded = function (a) { console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - wrapIfNeeded'); return standardWrap(a) }
       }
 
     }
@@ -5002,18 +5002,18 @@
         setupPlainShadyDOM(ShadyDOMSettings);
         setupPlainShadyDOM(ShadyDOM);
 
-        ShadyDOM.isShadyRoot = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - isShadyRoot'); return false; }
+        ShadyDOM.isShadyRoot = function () { console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - isShadyRoot'); return false; }
 
         setupWrapFunc(ShadyDOM);
-        ShadyDOM.patchElementProto = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patchElementProto') }
-        ShadyDOM.patch = function () { console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patch') }
+        ShadyDOM.patchElementProto = function () { console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patchElementProto') }
+        ShadyDOM.patch = function () { console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM) function call - patch') }
 
         // To be confirmed
         if (OMIT_ShadyDOM_EXPERIMENTAL & 2) {
           ShadyDOM.composedPath = function (e) {
             const t = (e || 0).target || null;
             if (!(t instanceof HTMLElement_)) {
-              console.log(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
+              console.warn(3719, '[yt-js-engine-tamer] (OMIT_ShadyDOM&2) composedPath', t)
             }
             return t instanceof HTMLElement_ ? [t] : [];
           };
@@ -5031,7 +5031,7 @@
       const ShadyDOMSettings = ShadyDOM.settings;
 
       if (!(ShadyDOMSettings.inUse === true && ShadyDOM.inUse === true && (ShadyDOMSettings.handlesDynamicScoping || ShadyDOM.handlesDynamicScoping) === true)) {
-        console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
+        console.error(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [02]', window.ShadyDOM);
         return false;
       }
 
@@ -5077,14 +5077,14 @@
                 lz = 1;
                 break;
               } else {
-                console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [nv:null]', nv);
+                console.error(3719, '[yt-js-engine-tamer] FIX::ShadyDOM is not applied [nv:null]', nv);
                 break;
               }
             }
 
             const sdp = Object.getOwnPropertyDescriptor(this || {}, 'ShadyDOM');
             if (!(sdp && sdp.configurable && sdp.get && sdp.set)) {
-              console.log(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [ incorrect PropertyDescriptor ]', nv);
+              console.error(3719, '[yt-js-engine-tamer] OMIT_ShadyDOM is not applied [ incorrect PropertyDescriptor ]', nv);
               break;
             }
 
@@ -5092,13 +5092,13 @@
 
             lz = 3;
 
-            console.log(3719, '[yt-js-engine-tamer] FIX::ShadyDOM << 02a >>', nv)
+            console.log('[yt-js-engine-tamer] FIX::ShadyDOM << 02a >>', nv)
 
             ret = 1;
 
           } while (0);
         } catch (e) {
-          console.log('[yt-js-engine-tamer] FIX::ShadyDOM << ERROR >>', e)
+          console.error('[yt-js-engine-tamer] FIX::ShadyDOM << ERROR >>', e)
         }
 
         if (!ret) b = nv;
@@ -8189,7 +8189,7 @@
   let headLinkCollection = null;
 
 
-  // const assertor = (f) => f() || console.assert(false, `${f}`);
+  const assertor = (f) => f() || console.assert(false, `${f}`);
 
   const fnIntegrity = (f, d) => {
     if (!f || typeof f !== 'function') {
@@ -9519,8 +9519,19 @@
 
         if (!schedulerInstanceInstance_) return;
 
-        const checkOK = typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt;
+        let checkOK = +(typeof schedulerInstanceInstance_.start === 'function' && !schedulerInstanceInstance_.start993 && !schedulerInstanceInstance_.stop && !schedulerInstanceInstance_.cancel && !schedulerInstanceInstance_.terminate && !schedulerInstanceInstance_.interupt);
         if (checkOK) {
+          const fi = fnIntegrity(schedulerInstanceInstance_.start);
+          if (fi === "0.100.65") {
+            checkOK |= 2;
+          }
+        } else {
+          console.error("FIX_schedulerInstanceInstance signature changed");
+        }
+        if (checkOK === 1) {
+          assertor(() => fnIntegrity(schedulerInstanceInstance_.start, '0.100.65'));
+        }
+        if (checkOK === 3) {
 
           let cmPr = new PromiseExternal();
           const cm = document.createComment('0');
@@ -9560,14 +9571,24 @@
           }
 
           schedulerInstanceInstance_.start993 = schedulerInstanceInstance_.start;
+          // console.log("schedulerInstanceInstance_.start", schedulerInstanceInstance_.start);
 
           let requestingFn = null;
           let requestingArgs = null;
+          let timeSchedulePropKK = '';
+          let timerIdPropGG = '';
+
+           let timeScheduleBitFlag = 0;
 
           const f = function () {
-            requestingFn = this.fn;
-            requestingArgs = [...arguments];
-            return 12373;
+            if (timeScheduleBitFlag > 0) {
+              requestingFn = this.fn;
+              requestingArgs = [...arguments];
+              return 536870912 | timeScheduleBitFlag;
+            } else {
+              console.error("time scheduler call fired without mode selection");
+              throw new Error("time scheduler call fired without mode selection");
+            }
           };
 
           const fakeFns = [
@@ -9579,7 +9600,6 @@
 
           let mzt = 0;
 
-          let _fnSelectorProp = null;
           const mkFns = new Array(4);
 
           /*
@@ -9600,23 +9620,112 @@
             }
   
           */
+          /*
+
+            // 0.100.65 @ 2026.10.08
+
+            f.start = function() {
+              this.F = !1;
+              if (this.h === 0)
+                  switch (this.o = L(this),
+                  this.o) {
+                  case 1:
+                      var a = this.N;
+                      this.h = this.K ? window.requestIdleCallback(a, {
+                          timeout: 3E3
+                      }) : window.setTimeout(a, ha);
+                      break;
+                  case 2:
+                      this.h = window.setTimeout(this.R, this.S);
+                      break;
+                  case 3:
+                      this.h = window.requestAnimationFrame(this.O);
+                      break;
+                  case 4:
+                      this.h = window.setTimeout(this.M, 0);
+                      break;
+                  case 5:
+                      this.h = window.setTimeout(this.P, D)
+                  }
+            }
+          */
+          let flag057 = false;
+          const FLAG_OFF = false;
+          let timeScheduleMode = null;
+          const vt = `${schedulerInstanceInstance_.start993}`;
           const startFnHandler = {
             get(target, prop, receiver) {
               if (prop === '$$12377$$') return true;
               if (prop === '$$12378$$') return target;
+              const value = target[prop];
+              if (timeScheduleMode === false) {
+                const b = timeSchedulePropKK ?
+                  (prop === timeSchedulePropKK && value >= 1 && value <= 4) :
+                  (typeof value === "number" && value >= 1 && value <= 4 && typeof prop === "string" && prop.length <= 3 && vt.includes(`this.${prop}`));
+                if (b) {
+                  timeScheduleMode = value;
+                  timeScheduleBitFlag = 1 << value;
+                  timeSchedulePropKK = prop;
+                }
+              }
 
               // console.log('get',prop)
-              return target[prop]
+              return value;
             },
             set(target, prop, value, receiver) {
               // console.log('set', prop, value)
+              if (value !== 536870912 + timeScheduleBitFlag) {
+                target[prop] = value;
+                return true;
+              }
+              const timeSchedulePropK = timeSchedulePropKK;
+              const tSchMode = target[timeSchedulePropK] === timeScheduleMode ? (timeScheduleMode || 0) : 0;
+              const tBitFlag = 1 << tSchMode;
+              timeScheduleMode = null;
 
+              if (!tSchMode || timeScheduleBitFlag !== tBitFlag ||
+                (
+                  timerIdPropGG
+                    ? (prop !== timerIdPropGG)
+                    : (typeof prop !== "string" || prop.length > 3 || !vt.includes(`this.${prop}`))
+                )
+              ) {
+                console.error("invalid timerId setter call");
+                throw new Error("invalid timerId setter call");
+              }
 
-              if (value >= 1 && value <= 4) _fnSelectorProp = prop;
-              if (value === 12373 && _fnSelectorProp) {
+              const timerIdProp = prop;
 
-                const schedulerTypeSelection = target[_fnSelectorProp];
-                const timerIdProp = prop;
+              if (tSchMode <= 0 || tSchMode > 5) {
+                console.error("invalid timer schedule type");
+                throw new Error("invalid timer schedule type");
+              }
+
+              timerIdPropGG = timerIdProp;
+
+              if (FLAG_OFF) {
+
+                if (requestingFn === requestIdleCallback) {
+                  // console.log(12391, requestingArgs);
+
+                  target[timeSchedulePropK] = 1;
+                  target[timerIdProp] = requestIdleCallback(requestingArgs[0], requestingArgs[1]);
+                } else if (requestingFn === setTimeout) {
+                  // console.log(12392, requestingArgs);
+
+                  target[timeSchedulePropK] = 2;
+                  target[timerIdProp] = setTimeout(requestingArgs[0], requestingArgs[1] || 0);
+                } else if (requestingFn === requestAnimationFrame) {
+                  // console.log(12393, requestingArgs);
+
+                  target[timeSchedulePropK] = 3;
+                  target[timerIdProp] = requestAnimationFrame(requestingArgs[0]);
+                } else {
+                  console.error("invalid timer schedule call");
+                  target[timeSchedulePropK] = 2;
+                  target[timerIdProp] = setTimeout(() => { }, 0);
+                }
+              } else {
 
                 //  console.log(3991, requestingFn, requestingArgs[0], requestingArgs[1])
                 // if (schedulerTypeSelection && schedulerTypeSelection >= 1 && schedulerTypeSelection <= 4 && timerIdProp) {
@@ -9624,45 +9733,27 @@
                 //   schedulerInstancePropOfTimerId = timerIdProp || '';
                 // }
 
-                if (schedulerTypeSelection === 3 && requestingFn === requestAnimationFrame) { // rAF(fn)
-                  target[timerIdProp] = reflectApply(baseRAF, window, requestingArgs);
-                } else if (schedulerTypeSelection === 2 && requestingFn === setTimeout) { // setTimeout(fn, delay)
-                  // rare
-                  target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
-                } else if (schedulerTypeSelection === 4 && requestingFn === setTimeout && !requestingArgs[1]) { // setTimeout(fn, 0)
-                  // often
-                  if ((FIX_schedulerInstanceInstance & 4)) {
-                    const f = requestingArgs[0];
-                    const tir = ++mzt;
-                    nextBrowserTick_(() => {
-                      if (target[timerIdProp] === -tir) f();
-                    });
-                    target[_fnSelectorProp] = 940;
-                    target[timerIdProp] = -tir;
-                  } else {
-                    const f = requestingArgs[0];
-                    const tir = ++mzt;
-                    Promise.resolve().then(() => {
-                      if (target[timerIdProp] === -tir) f();
-                    });
-                    target[_fnSelectorProp] = 930;
-                    target[timerIdProp] = -tir;
-                  }
-                } else if (schedulerTypeSelection === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
+                if (tSchMode === 1 && (requestingFn === requestIdleCallback || requestingFn === setTimeout)) { // setTimeout(requestIdleCallback)
                   // often
                   if (requestingFn === requestIdleCallback && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] || 0).timeout === 3000 && isDelayRenderFn(requestingArgs[0])) {
                     cm.data = (cm.data & 7) + 1;
                     let renderFn = requestingArgs[0];
+                    let rd;
+                    let target_ = target;
                     const resolveRendering_ = () => {
+                      if (target_[timerIdProp] !== rd) {
+                        target_ = renderFn = null;
+                        return;
+                      }
                       const renderFn_ = renderFn;
                       if (renderFn_) {
-                        renderFn = null;
+                        target_ = renderFn = null;
                         renderFn_();
                       }
                     };
                     resolveRendering = resolveRendering_;
-                    // console.log(299,requestingArgs[0], requestingArgs[0].name)
-                    target[timerIdProp] = requestIdleCallback(resolveRendering_, { timeout: 300 });
+                    target[timeSchedulePropK] = 1;
+                    target[timerIdProp] = rd = requestIdleCallback(resolveRendering_, { timeout: 300.0078125 });
 
                     // cm.data = (cm.data & 7) + 1;
                     // target[timerIdProp] = Math.random();
@@ -9670,34 +9761,89 @@
                   } else if (requestingFn === setTimeout && (requestingArgs[0] || 0).name === "bound " && (requestingArgs[1] === getRenderIdleCallbackMs()) && isDelayRenderFn(requestingArgs[0])) {
 
                     cm.data = (cm.data & 7) + 1;
-
                     let renderFn = requestingArgs[0];
+                    let rd;
+                    let target_ = target;
                     const resolveRendering_ = () => {
+                      if (target_[timerIdProp] !== rd) {
+                        target_ = renderFn = null;
+                        return;
+                      }
                       const renderFn_ = renderFn;
                       if (renderFn_) {
-                        renderFn = null;
+                        target_ = renderFn = null;
                         renderFn_();
                       }
                     };
                     resolveRendering = resolveRendering_;
-
-                    target[timerIdProp] = reflectApply(mkFns[2], window, [resolveRendering_, 300]);
+                    target[timeSchedulePropK] = 2;
+                    target[timerIdProp] = rd = reflectApply(mkFns[2], window, [resolveRendering_, 300.0078125]);
 
 
                   } else {
+                    if (!flag057) {
+                      flag057 = true;
+                      console.warn("unexpected scheduler function found", requestingArgs);
+                    }
                     if (requestingFn === requestIdleCallback) {
+                      target[timeSchedulePropK] = 1;
                       target[timerIdProp] = reflectApply(requestIdleCallback, window, requestingArgs);
                     } else {
+                      target[timeSchedulePropK] = 2;
                       target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
                     }
                   }
+                } else if (requestingFn === requestAnimationFrame) { // rAF(fn)
+
+                  if (tSchMode !== 3) console.warn("schedulerTypeSelection != 3", tSchMode);
+
+                  target[timeSchedulePropK] = 3;
+                  target[timerIdProp] = reflectApply(baseRAF, window, requestingArgs);
+
+                } else if (requestingFn === setTimeout) {
+                  const arg1 = +requestingArgs[1] || 0;
+                  if (!arg1) {
+                    // setTimeout(fn, 0)
+                    if (tSchMode !== 4) console.warn("schedulerTypeSelection != 4", tSchMode);
+                    // often
+
+                    let f = requestingArgs[0];
+                    const tir = mzt = (mzt & 1073741823) + 1;
+                    let target_ = target;
+                    const g = () => {
+                      if (target_[timerIdProp] === -tir) f();
+                      f = null;
+                      target_ = null;
+                    };
+                    (FIX_schedulerInstanceInstance & 4) ? nextBrowserTick_(g) : Promise.resolve().then(g);
+                    target[timeSchedulePropK] = 2;
+                    target[timerIdProp] = -tir;
+                  } else {
+                    // setTimeout(fn, delay)
+
+                    if (tSchMode !== 1 && tSchMode !== 2 && tSchMode !== 5) console.warn("schedulerTypeSelection !=1 && !=2 && !=5", tSchMode);
+                    // rare
+                    target[timeSchedulePropK] = 2;
+                    target[timerIdProp] = reflectApply(mkFns[2], window, requestingArgs);
+                  }
                 } else {
-                  target[_fnSelectorProp] = 0;
-                  target[timerIdProp] = 0;
+                  console.error("invalid timer schedule call");
+
+                  let f = () => { };
+                  const tir = mzt = (mzt & 1073741823) + 1;
+                  let target_ = target;
+                  const g = () => {
+                    if (target_[timerIdProp] === -tir) f();
+                    f = null;
+                    target_ = null;
+                  };
+                  Promise.resolve().then(g);
+                  target[timeSchedulePropK] = 2;
+                  target[timerIdProp] = -tir;
+
                 }
-              } else {
-                target[prop] = value;
               }
+
               return true;
             }
           };
@@ -9705,28 +9851,33 @@
           let startBusy = false;
           schedulerInstanceInstance_.start = function () {
             if (startBusy) return;
-            startBusy = true;
-            mkFns[0] = window.requestAnimationFrame;
-            mkFns[1] = window.setInterval;
-            mkFns[2] = window.setTimeout;
-            mkFns[3] = window.requestIdleCallback;
+            let err = null;
             const tThis = this['$$12378$$'] || this;
-            window.requestAnimationFrame = fakeFns[0];
-            window.setInterval = fakeFns[1];
-            window.setTimeout = fakeFns[2];
-            window.requestIdleCallback = fakeFns[3];
-            _fnSelectorProp = null;
             try {
+              startBusy = true;
+              mkFns[0] = window.requestAnimationFrame;
+              mkFns[1] = window.setInterval;
+              mkFns[2] = window.setTimeout;
+              mkFns[3] = window.requestIdleCallback;
+              window.requestAnimationFrame = fakeFns[0];
+              window.setInterval = fakeFns[1];
+              window.setTimeout = fakeFns[2];
+              window.requestIdleCallback = fakeFns[3];
+              timeScheduleMode = false;
+              timeScheduleBitFlag = 0;
               reflectApply(tThis.start993, new Proxy(tThis, startFnHandler), []);
             } catch (e) {
-              console.warn(e);
+              err = e;
+            } finally {
+              timeScheduleBitFlag = 0;
+              timeScheduleMode = null;
+              window.requestAnimationFrame = mkFns[0];
+              window.setInterval = mkFns[1];
+              window.setTimeout = mkFns[2];
+              window.requestIdleCallback = mkFns[3];
+              startBusy = false;
             }
-            _fnSelectorProp = null;
-            window.requestAnimationFrame = mkFns[0];
-            window.setInterval = mkFns[1];
-            window.setTimeout = mkFns[2];
-            window.requestIdleCallback = mkFns[3];
-            startBusy = false;
+            if (err) throw err;
           }
 
           schedulerInstanceInstance_.start.toString = schedulerInstanceInstance_.start993.toString.bind(schedulerInstanceInstance_.start993);
@@ -11512,6 +11663,54 @@
         dummy = document.createElement('ytd-expander');
         cProto = insp(dummy).constructor.prototype;
 
+        /*
+
+          // 0.99.50 @ 2026.10.08
+        
+          _.e.initChildrenObserver = function() {
+              var U = this;
+              this.observer = new MutationObserver(function() {
+                  U.childrenChanged()
+              }
+              );
+              this.recomputeOnResize && window.ResizeObserver && (this.resizeThrottle = new _.mu(this.childrenChanged,50,this),
+              this.resizeObserver = new ResizeObserver(function() {
+                  var c;
+                  (c = U.resizeThrottle) == null || c.fire()
+              }
+              ),
+              this.resizeObserver.observe(this.content));
+              this.observer.observe(this.content, {
+                  subtree: !0,
+                  childList: !0,
+                  attributes: !0,
+                  characterData: !0
+              });
+              this.childrenChanged()
+          }
+          ;
+
+          // 0.63.31 @ 2026.10.08
+
+          _.e.childrenChanged = function() {
+              var U = this
+                , c = _.UC(function() {
+                  return U.alwaysToggleable
+              })
+                , v = _.UC(function() {
+                  return U.canToggleJobId
+              });
+              c ? this.canToggle = c : v || (this.canToggleJobId = window.requestAnimationFrame(function() {
+                  j2(function() {
+                      U.canToggleJobId = 0;
+                      U.calculateCanCollapse()
+                  })
+              }))
+          }
+          ;
+
+        */
+
         if (fnIntegrity(cProto.initChildrenObserver, '0.48.21') && fnIntegrity(cProto.childrenChanged, '0.40.22')) {
 
           cProto.initChildrenObserver14 = cProto.initChildrenObserver;
@@ -11547,6 +11746,9 @@
           // console.log(cProto.initChildrenObserver)
           console.debug('ytd-expander-fix-childrenChanged');
 
+        } else {
+          assertor(() => fnIntegrity(cProto.initChildrenObserver, '0.48.21'));
+          assertor(() => fnIntegrity(cProto.childrenChanged, '0.40.22'));
         }
 
       });
@@ -11586,6 +11788,8 @@
 
           // console.log(cProto.animate)
 
+        } else {
+          assertor(() => fnIntegrity(cProto.animate, '0.74.5'));
         }
 
       });
