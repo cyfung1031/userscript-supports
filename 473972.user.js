@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.9
+// @version     0.43.10
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -9490,27 +9490,37 @@
 
     if (FIX_schedulerInstanceInstance & 2) {
 
-      let resolveRendering = null;
+      const resolveRenderingList = [];
+      resolveRenderingList.push = resolveRenderingList.push;
+      resolveRenderingList.slice = resolveRenderingList.slice;
       let postMessage;
 
-      if (typeof MessageChannel !== "undefined") {
-
-        let { port1, port2 } = new MessageChannel();
-        port1.onmessage = () => {
-          if (resolveRendering) {
-            resolveRendering();
-            resolveRendering = null;
+      const portFn = () => {
+        if (resolveRenderingList.length === 1) {
+          const fn = resolveRenderingList[0];
+          resolveRenderingList.length = 0;
+          fn();
+        } else if (resolveRenderingList.length > 0) {
+          const fns = resolveRenderingList.slice(0);
+          resolveRenderingList.length = 0;
+          try {
+            for (const fn of fns) {
+              fn();
+            }
+          } catch (e) {
+            console.error(e);
+            throw e;
           }
-        };
+        }
+      };
+
+      if (typeof MessageChannel !== "undefined") {
+        let { port1, port2 } = new MessageChannel();
+        port1.onmessage = portFn;
         postMessage = port2.postMessage.bind(port2);
         port1 = port2 = null;
       } else {
-        postMessage = () => {
-          if (resolveRendering) {
-            resolveRendering();
-            resolveRendering = null;
-          }
-        }
+        postMessage = portFn;
       }
 
       ;(async () => {
@@ -9751,7 +9761,7 @@
                         renderFn_();
                       }
                     };
-                    resolveRendering = resolveRendering_;
+                    resolveRenderingList.push(resolveRendering_);
                     target[timeSchedulePropK] = 1;
                     target[timerIdProp] = rd = requestIdleCallback(resolveRendering_, { timeout: 300.0078125 });
 
@@ -9775,7 +9785,7 @@
                         renderFn_();
                       }
                     };
-                    resolveRendering = resolveRendering_;
+                    resolveRenderingList.push(resolveRendering_);
                     target[timeSchedulePropK] = 2;
                     target[timerIdProp] = rd = reflectApply(mkFns[2], window, [resolveRendering_, 300.0078125]);
 
