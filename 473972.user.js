@@ -4,7 +4,7 @@
 // @name:zh-TW  YouTube JS Engine Tamer
 // @name:zh-CN  YouTube JS Engine Tamer
 // @namespace   UserScripts
-// @version     0.43.10
+// @version     0.43.11
 // @match       https://www.youtube.com/*
 // @match       https://www.youtube-nocookie.com/embed/*
 // @match       https://studio.youtube.com/live_chat*
@@ -5149,30 +5149,37 @@
   };
 
   // avoid REGEXP testPattern execution in Brave's scriptlet for performance boost
-  SCRIPTLET_REMOVE_PRUNE_propNeedles && (() => {
+  SCRIPTLET_REMOVE_PRUNE_propNeedles && (async () => {
     // const xhr = new XMLHttpRequest;
-    const pdOri = Object.getOwnPropertyDescriptor(Map.prototype, 'size');
-    if (!pdOri || pdOri.configurable !== true) return;
-    let propNeedles = null;
-    const pdNew = {
-      configurable: true,
-      enumerable: true,
-      get: function () {
-        propNeedles = this;
-        if (DEBUG_removePrune) debugger; // to locate Brave scriptlets
-        throw new Error();
+    let loadSeq = 0;
+    while (loadSeq < 4) {
+      const pdOri = Object.getOwnPropertyDescriptor(Map.prototype, 'size');
+      if (!pdOri || pdOri.configurable !== true) return;
+      let propNeedles = null;
+      const pdNew = {
+        configurable: true,
+        enumerable: true,
+        get: function () {
+          propNeedles = this;
+          if (DEBUG_removePrune) debugger; // to locate Brave scriptlets
+          throw new Error();
+        }
       }
+      Object.defineProperty(Map.prototype, 'size', pdNew);
+      try {
+        XMLHttpRequest.prototype.open.call(0); // open.call
+        // xhr.open.call(null)
+      } catch (e) { }
+      Object.defineProperty(Map.prototype, 'size', pdOri);
+      if (propNeedles) {
+        const entries = [...propNeedles.entries()];
+        propNeedles.clear();
+        console.log('[yt-js-engine-tamer] propNeedles is cleared from scriptlet', entries, propNeedles);
+        return;
+      }
+      if (loadSeq++) return;
+      await new Promise(r => nextBrowserTick_(r));
     }
-    Object.defineProperty(Map.prototype, 'size', pdNew);
-    try {
-      XMLHttpRequest.prototype.open.call(0); // open.call
-      // xhr.open.call(null)
-    } catch (e) { }
-    Object.defineProperty(Map.prototype, 'size', pdOri);
-    if (!propNeedles) return;
-    const entries = [...propNeedles.entries()];
-    propNeedles.clear();
-    console.log('[yt-js-engine-tamer] propNeedles is cleared from scriptlet', entries, propNeedles);
   })();
 
   if (FIX_XHR_REQUESTING) {
